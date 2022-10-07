@@ -12,8 +12,8 @@ defmodule Livebook.SettingsTest do
   end
 
   test "fetch_env_var!/1 returns one persisted fly" do
-    assert_raise Settings.NotFoundError,
-                 ~s/could not find an environment variable matching "123456"/,
+    assert_raise Livebook.Storage.NotFoundError,
+                 ~s/could not find entry in \"env_vars\" with ID "123456"/,
                  fn ->
                    Settings.fetch_env_var!("123456")
                  end

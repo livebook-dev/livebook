@@ -505,9 +505,17 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret addition request to the server.
   """
-  @spec put_secret(pid(), map()) :: :ok
-  def put_secret(pid, secret) do
-    GenServer.cast(pid, {:put_secret, self(), secret})
+  @spec set_secret(pid(), map()) :: :ok
+  def set_secret(pid, secret) do
+    GenServer.cast(pid, {:set_secret, self(), secret})
+  end
+
+  @doc """
+  Sends a secret deletion request to the server.
+  """
+  @spec unset_secret(pid(), map()) :: :ok
+  def unset_secret(pid, secret_name) do
+    GenServer.cast(pid, {:unset_secret, self(), secret_name})
   end
 
   @doc """
@@ -972,9 +980,15 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_cast({:put_secret, client_pid, secret}, state) do
+  def handle_cast({:set_secret, client_pid, secret}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:put_secret, client_id, secret}
+    operation = {:set_secret, client_id, secret}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:unset_secret, client_pid, secret_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:unset_secret, client_id, secret_name}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1437,8 +1451,13 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
-    if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, [secret])
+  defp after_operation(state, _prev_state, {:set_secret, _client_id, secret}) do
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
     state
   end
 
@@ -1570,9 +1589,19 @@ defmodule Livebook.Session do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
 
+  defp set_runtime_secret(state, secret) do
+    secret = {"LB_#{secret.name}", secret.value}
+    Runtime.put_system_envs(state.data.runtime, [secret])
+  end
+
   defp set_runtime_secrets(state, secrets) do
-    secrets = Enum.map(secrets, &{"LB_#{&1.name}", &1.value})
+    secrets = Enum.map(secrets, fn {name, value} -> {"LB_#{name}", value} end)
     Runtime.put_system_envs(state.data.runtime, secrets)
+  end
+
+  defp delete_runtime_secrets(state, secret_names) do
+    secret_names = Enum.map(secret_names, &"LB_#{&1}")
+    Runtime.delete_system_envs(state.data.runtime, secret_names)
   end
 
   defp set_runtime_env_vars(state) do

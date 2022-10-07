@@ -4,16 +4,6 @@ defmodule Livebook.Hubs do
   alias Livebook.Storage
   alias Livebook.Hubs.{Fly, Local, Metadata, Provider}
 
-  defmodule NotFoundError do
-    @moduledoc false
-
-    defexception [:id, plug_status: 404]
-
-    def message(%{id: id}) do
-      "could not find a hub matching #{inspect(id)}"
-    end
-  end
-
   @namespace :hubs
 
   @doc """
@@ -21,7 +11,7 @@ defmodule Livebook.Hubs do
   """
   @spec fetch_hubs() :: list(Provider.t())
   def fetch_hubs do
-    for fields <- Storage.current().all(@namespace) do
+    for fields <- Storage.all(@namespace) do
       to_struct(fields)
     end
   end
@@ -39,14 +29,11 @@ defmodule Livebook.Hubs do
   @doc """
   Gets one hub from storage.
 
-  Raises `NotFoundError` if the hub does not exist.
+  Raises `Livebook.Storage.NotFoundError` if the hub does not exist.
   """
   @spec fetch_hub!(String.t()) :: Provider.t()
   def fetch_hub!(id) do
-    case Storage.current().fetch(@namespace, id) do
-      :error -> raise NotFoundError, id: id
-      {:ok, fields} -> to_struct(fields)
-    end
+    Storage.fetch!(@namespace, id) |> to_struct()
   end
 
   @doc """
@@ -54,7 +41,7 @@ defmodule Livebook.Hubs do
   """
   @spec hub_exists?(String.t()) :: boolean()
   def hub_exists?(id) do
-    case Storage.current().fetch(@namespace, id) do
+    case Storage.fetch(@namespace, id) do
       :error -> false
       {:ok, _} -> true
     end
@@ -66,16 +53,14 @@ defmodule Livebook.Hubs do
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
     attributes = struct |> Map.from_struct() |> Map.to_list()
-
-    with :ok <- Storage.current().insert(@namespace, struct.id, attributes),
-         :ok <- broadcast_hubs_change() do
-      struct
-    end
+    :ok = Storage.insert(@namespace, struct.id, attributes)
+    :ok = broadcast_hubs_change()
+    struct
   end
 
   @doc false
   def delete_hub(id) do
-    Storage.current().delete(@namespace, id)
+    Storage.delete(@namespace, id)
   end
 
   @doc false

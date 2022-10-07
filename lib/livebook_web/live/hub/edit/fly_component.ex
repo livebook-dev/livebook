@@ -161,7 +161,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     env_operation = attrs["operation"]
     attrs = %{"key" => attrs["name"], "value" => attrs["value"]}
 
-    case FlyClient.put_secrets(socket.assigns.hub, [attrs]) do
+    case FlyClient.set_secrets(socket.assigns.hub, [attrs]) do
       {:ok, _} ->
         message =
           if env_operation == "new",
@@ -192,7 +192,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
-    case FlyClient.delete_secrets(socket.assigns.hub, [key]) do
+    case FlyClient.unset_secrets(socket.assigns.hub, [key]) do
       {:ok, _} ->
         {:noreply,
          socket

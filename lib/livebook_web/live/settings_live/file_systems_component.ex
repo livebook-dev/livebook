@@ -35,10 +35,10 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
           <div class="flex justify-end">
             <%= unless @default_file_system_id == file_system_id do %>
               <button
-                id={"#{file_system_id}-form"}
                 type="submit"
-                phx-click={JS.push("make_default_file_system", value: %{id: file_system_id})}
+                phx-click="make_default_file_system"
                 class="button-base button-outlined-gray"
+                phx-value-id={file_system_id}
               >
                 Make default
               </button>

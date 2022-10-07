@@ -62,7 +62,7 @@ defmodule Livebook.Hubs.FlyClient do
     end
   end
 
-  def put_secrets(%Fly{access_token: access_token, application_id: application_id}, secrets) do
+  def set_secrets(%Fly{access_token: access_token, application_id: application_id}, secrets) do
     mutation = """
     mutation($input: SetSecretsInput!) {
       setSecrets(input: $input) {
@@ -85,7 +85,7 @@ defmodule Livebook.Hubs.FlyClient do
     end
   end
 
-  def delete_secrets(%Fly{access_token: access_token, application_id: application_id}, keys) do
+  def unset_secrets(%Fly{access_token: access_token, application_id: application_id}, keys) do
     mutation = """
     mutation($input: UnsetSecretsInput!) {
       unsetSecrets(input: $input) {

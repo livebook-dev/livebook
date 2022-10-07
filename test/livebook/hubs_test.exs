@@ -34,8 +34,8 @@ defmodule Livebook.HubsTest do
   end
 
   test "fetch_hub!/1 returns one persisted fly" do
-    assert_raise Hubs.NotFoundError,
-                 ~s/could not find a hub matching "fly-foo"/,
+    assert_raise Livebook.Storage.NotFoundError,
+                 ~s/could not find entry in \"hubs\" with ID "fly-foo"/,
                  fn ->
                    Hubs.fetch_hub!("fly-foo")
                  end

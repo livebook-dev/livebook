@@ -6,25 +6,20 @@ defmodule Livebook.Settings do
   import Ecto.Changeset, only: [apply_action: 2]
 
   alias Livebook.FileSystem
+  alias Livebook.Storage
   alias Livebook.Settings.EnvVar
-
-  defmodule NotFoundError do
-    @moduledoc false
-
-    defexception [:message, plug_status: 404]
-  end
 
   @typedoc """
   An id that is used for filesystem's manipulation, either insertion or removal.
   """
-  @type file_system_id :: :local | String.t()
+  @type file_system_id :: String.t()
 
   @doc """
   Returns the current autosave path.
   """
   @spec autosave_path() :: String.t() | nil
   def autosave_path() do
-    case storage().fetch_key(:settings, "global", :autosave_path) do
+    case Storage.fetch_key(:settings, "global", :autosave_path) do
       {:ok, value} -> value
       :error -> default_autosave_path()
     end
@@ -43,7 +38,7 @@ defmodule Livebook.Settings do
   """
   @spec set_autosave_path(String.t()) :: :ok
   def set_autosave_path(autosave_path) do
-    storage().insert(:settings, "global", autosave_path: autosave_path)
+    Storage.insert(:settings, "global", autosave_path: autosave_path)
   end
 
   @doc """
@@ -51,18 +46,18 @@ defmodule Livebook.Settings do
   """
   @spec reset_autosave_path() :: :ok
   def reset_autosave_path() do
-    storage().delete_key(:settings, "global", :autosave_path)
+    Storage.delete_key(:settings, "global", :autosave_path)
   end
 
   @doc """
   Returns all known filesystems with their associated ids.
 
-  In case of the local filesystem the id resolves to `:local` atom.
+  In case of the local filesystem the id resolves to `"local"`.
   """
   @spec file_systems() :: [{file_system_id(), Filesystem.t()}]
   def file_systems() do
     restored_file_systems =
-      storage().all(:filesystem)
+      Storage.all(:filesystem)
       |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
       |> Enum.map(fn %{id: fs_id} = raw_fs ->
         {fs_id, storage_to_fs(raw_fs)}
@@ -84,7 +79,7 @@ defmodule Livebook.Settings do
     id = Livebook.Utils.random_short_id()
 
     :ok =
-      storage().insert(:filesystem, id, [{:type, "s3"}, {:order, System.os_time()} | attributes])
+      Storage.insert(:filesystem, id, [{:type, "s3"}, {:order, System.os_time()} | attributes])
 
     id
   end
@@ -117,7 +112,7 @@ defmodule Livebook.Settings do
   """
   @spec update_check_enabled?() :: boolean()
   def update_check_enabled?() do
-    case storage().fetch_key(:settings, "global", :update_check_enabled) do
+    case Storage.fetch_key(:settings, "global", :update_check_enabled) do
       {:ok, value} -> value
       :error -> true
     end
@@ -128,7 +123,7 @@ defmodule Livebook.Settings do
   """
   @spec set_update_check_enabled(boolean()) :: :ok
   def set_update_check_enabled(enabled) do
-    storage().insert(:settings, "global", update_check_enabled: enabled)
+    Storage.insert(:settings, "global", update_check_enabled: enabled)
   end
 
   @doc """
@@ -136,7 +131,7 @@ defmodule Livebook.Settings do
   """
   @spec fetch_env_vars() :: list(EnvVar.t())
   def fetch_env_vars do
-    for fields <- storage().all(:env_vars) do
+    for fields <- Storage.all(:env_vars) do
       struct!(EnvVar, Map.delete(fields, :id))
     end
   end
@@ -148,14 +143,8 @@ defmodule Livebook.Settings do
   """
   @spec fetch_env_var!(String.t()) :: EnvVar.t()
   def fetch_env_var!(id) do
-    case storage().fetch(:env_vars, id) do
-      :error ->
-        raise NotFoundError,
-          message: "could not find an environment variable matching #{inspect(id)}"
-
-      {:ok, fields} ->
-        struct!(EnvVar, Map.delete(fields, :id))
-    end
+    fields = Storage.fetch!(:env_vars, id)
+    struct!(EnvVar, Map.delete(fields, :id))
   end
 
   @doc """
@@ -163,7 +152,7 @@ defmodule Livebook.Settings do
   """
   @spec env_var_exists?(String.t()) :: boolean()
   def env_var_exists?(id) do
-    storage().fetch(:env_vars, id) != :error
+    Storage.fetch(:env_vars, id) != :error
   end
 
   @doc """
@@ -178,17 +167,15 @@ defmodule Livebook.Settings do
     changeset = EnvVar.changeset(env_var, attrs)
 
     with {:ok, env_var} <- apply_action(changeset, :insert) do
-      save_env_var(env_var)
+      {:ok, save_env_var(env_var)}
     end
   end
 
   defp save_env_var(env_var) do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
-
-    with :ok <- storage().insert(:env_vars, env_var.name, attributes),
-         :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
-      {:ok, env_var}
-    end
+    :ok = Storage.insert(:env_vars, env_var.name, attributes)
+    :ok = broadcast_env_vars_change({:env_var_set, env_var})
+    env_var
   end
 
   @doc """
@@ -201,7 +188,7 @@ defmodule Livebook.Settings do
   def unset_env_var(id) do
     if env_var_exists?(id) do
       env_var = fetch_env_var!(id)
-      storage().delete(:env_vars, id)
+      Storage.delete(:env_vars, id)
       broadcast_env_vars_change({:env_var_unset, env_var})
     end
 
@@ -261,7 +248,7 @@ defmodule Livebook.Settings do
   def default_file_system do
     {_id, file_system} =
       Enum.find(file_systems(), fn {id, _file_system} ->
-        id == default_file_system_id
+        id == default_file_system_id()
       end)
 
     file_system

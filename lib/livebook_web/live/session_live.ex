@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
@@ -21,6 +21,7 @@ defmodule LivebookWeb.SessionLive do
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
             Session.subscribe(session_id)
+            Secrets.subscribe()
 
             {data, client_id}
           else
@@ -55,7 +56,10 @@ defmodule LivebookWeb.SessionLive do
            platform: platform,
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
-           page_title: get_page_title(data.notebook.name)
+           page_title: get_page_title(data.notebook.name),
+           livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
+           select_secret_ref: nil,
+           select_secret_options: nil
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -172,7 +176,12 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
         <div data-el-secrets-list>
-          <.secrets_list data_view={@data_view} session={@session} socket={@socket} />
+          <.secrets_list
+            data_view={@data_view}
+            livebook_secrets={@livebook_secrets}
+            session={@session}
+            socket={@socket}
+          />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
@@ -405,9 +414,9 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
+          livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
-          preselect_name={@preselect_name}
           select_secret_options={@select_secret_options}
           return_to={@self_path}
         />
@@ -550,28 +559,56 @@ defmodule LivebookWeb.SessionLive do
   defp secrets_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <h3 class="uppercase text-sm font-semibold text-gray-500">
-        Secrets
-      </h3>
-      <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- @data_view.secrets do %>
-          <div class="flex justify-between items-center text-gray-500">
-            <span class="break-all">
-              <%= secret.name %>
-            </span>
-            <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
-              Session
-            </span>
-          </div>
-        <% end %>
+      <div>
+        <h3 class="uppercase text-sm font-semibold text-gray-500">
+          Secrets
+        </h3>
+        <span class="text-sm text-gray-500">Available only to this session</span>
       </div>
-      <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
-            class: "inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
-            aria_label: "add secret",
-            role: "button" do %>
-        <.remix_icon icon="add-line" class="text-lg align-center" />
-        <span>New secret</span>
-      <% end %>
+
+      <div class="flex flex-col">
+        <div class="flex flex-col space-y-4 mt-6">
+          <%= for {secret_name, _} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
+            <div class="flex justify-between items-center text-gray-500">
+              <span class="text-sm font-mono break-all">
+                <%= secret_name %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+
+        <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
+              class: "inline-flex items-center justify-center p-8 py-1 mt-6 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
+              aria_label: "add secret",
+              role: "button" do %>
+          <.remix_icon icon="add-line" class="text-lg align-center" />
+          <span>New secret</span>
+        <% end %>
+
+        <div class="mt-16">
+          <h3 class="uppercase text-sm font-semibold text-gray-500">
+            App secrets
+          </h3>
+          <span class="text-sm text-gray-500">Toggle to share with this session</span>
+        </div>
+
+        <div class="flex flex-col space-y-4 mt-6">
+          <%= for {secret_name, secret_value} = secret <- Enum.sort(@livebook_secrets) do %>
+            <div class="flex justify-between items-center text-gray-500">
+              <span class="text-sm font-mono break-all">
+                <%= secret_name %>
+              </span>
+              <.switch_checkbox
+                name="toggle_secret"
+                checked={is_secret_on_session?(secret, @data_view.secrets)}
+                phx-click="toggle_secret"
+                phx-value-secret_name={secret_name}
+                phx-value-secret_value={secret_value}
+              />
+            </div>
+          <% end %>
+        </div>
+      </div>
     </div>
     """
   end
@@ -756,14 +793,19 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(params, _url, socket)
       when socket.assigns.live_action == :secrets do
-    {:noreply,
-     assign(socket,
-       prefill_secret_name: params["secret_name"],
-       preselect_name: params["preselect_name"],
-       select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref),
-       select_secret_options:
-         if(params["preselect_name"], do: socket.assigns.select_secret_options)
-     )}
+    socket =
+      if params["preselect_name"] do
+        assign(socket, prefill_secret_name: params["preselect_name"])
+      else
+        # Erase any previously stored reference
+        assign(socket,
+          prefill_secret_name: params["secret_name"],
+          select_secret_ref: nil,
+          select_secret_options: nil
+        )
+      end
+
+    {:noreply, socket}
   end
 
   def handle_params(_params, _url, socket) do
@@ -1147,6 +1189,21 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
+  def handle_event(
+        "toggle_secret",
+        %{"secret-name" => secret_name, "secret-value" => secret_value, "value" => "true"},
+        socket
+      ) do
+    secret = %{name: secret_name, value: secret_value}
+    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_secret", %{"secret-name" => secret_name}, socket) do
+    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -1221,6 +1278,12 @@ defmodule LivebookWeb.SessionLive do
     Session.queue_bound_cells_evaluation(socket.assigns.session.pid, input_id)
 
     {:noreply, socket}
+  end
+
+  def handle_info({:set_secret, secret}, socket) do
+    livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
+
+    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -1950,5 +2013,13 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
+  end
+
+  defp session_only_secrets(secrets, livebook_secrets) do
+    Enum.reject(secrets, &(&1 in livebook_secrets)) |> Enum.sort()
+  end
+
+  defp is_secret_on_session?(secret, secrets) do
+    secret in secrets
   end
 end
