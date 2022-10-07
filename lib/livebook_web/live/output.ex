@@ -298,7 +298,7 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div
-      class="whitespace-pre-wrap font-editor text-red-600"
+      class="whitespace-pre-wrap break-words font-editor text-red-600"
       role="complementary"
       aria-label="error message"
       phx-no-format
@@ -311,7 +311,7 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div
-      class="whitespace-pre-wrap font-editor text-gray-500"
+      class="whitespace-pre-wrap break-words font-editor text-gray-500"
       role="complementary"
       aria-label="error"
       phx-no-format
