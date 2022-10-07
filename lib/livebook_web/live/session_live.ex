@@ -573,6 +573,22 @@ defmodule LivebookWeb.SessionLive do
               <span class="text-sm font-mono break-all">
                 <%= secret_name %>
               </span>
+              <button
+                id={"session-secret-#{secret_name}-delete"}
+                type="button"
+                phx-click={
+                  with_confirm(
+                    JS.push("delete_session_secret", value: %{secret_name: secret_name}),
+                    title: "Delete session secret - #{secret_name}",
+                    description: "Are you sure you want to delete this session secret?",
+                    confirm_text: "Delete",
+                    confirm_icon: "delete-bin-6-line"
+                  )
+                }
+                class="hover:text-red-600"
+              >
+                <.remix_icon icon="delete-bin-line" />
+              </button>
             </div>
           <% end %>
         </div>
@@ -598,13 +614,31 @@ defmodule LivebookWeb.SessionLive do
               <span class="text-sm font-mono break-all">
                 <%= secret_name %>
               </span>
-              <.switch_checkbox
-                name="toggle_secret"
-                checked={is_secret_on_session?(secret, @data_view.secrets)}
-                phx-click="toggle_secret"
-                phx-value-secret_name={secret_name}
-                phx-value-secret_value={secret_value}
-              />
+              <div class="flex gap-4 items-end">
+                <.switch_checkbox
+                  name="toggle_secret"
+                  checked={is_secret_on_session?(secret, @data_view.secrets)}
+                  phx-click="toggle_secret"
+                  phx-value-secret_name={secret_name}
+                  phx-value-secret_value={secret_value}
+                />
+                <button
+                  id={"app-secret-#{secret_name}-delete"}
+                  type="button"
+                  phx-click={
+                    with_confirm(
+                      JS.push("delete_app_secret", value: %{secret_name: secret_name}),
+                      title: "Delete app secret - #{secret_name}",
+                      description: "Are you sure you want to delete this app secret?",
+                      confirm_text: "Delete",
+                      confirm_icon: "delete-bin-6-line"
+                    )
+                  }
+                  class="hover:text-red-600"
+                >
+                  <.remix_icon icon="delete-bin-line" />
+                </button>
+              </div>
             </div>
           <% end %>
         </div>
@@ -1204,6 +1238,16 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
+    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_app_secret", %{"secret_name" => secret_name}, socket) do
+    Livebook.Secrets.unset_secret(secret_name)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -1282,6 +1326,12 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:set_secret, secret}, socket) do
     livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
+
+    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
+  end
+
+  def handle_info({:unset_secret, secret}, socket) do
+    livebook_secrets = Map.delete(socket.assigns.livebook_secrets, secret.name)
 
     {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end
