@@ -4,26 +4,6 @@ defmodule LivebookTest.EnterpriseServer do
 
   @name __MODULE__
 
-  defmodule CollectableMapper do
-    defstruct [:collectable, :fun]
-
-    defimpl Collectable do
-      def into(_) do
-        {term, collectable_fun} = Collectable.into(IO.stream(:stdio, :line))
-
-        fun = fn
-          term, {:cont, data} ->
-            collectable_fun.(term, {:cont, IO.ANSI.format([:blue, data])})
-
-          term, command ->
-            collectable_fun.(term, command)
-        end
-
-        {term, fun}
-      end
-    end
-  end
-
   def start do
     GenServer.start(__MODULE__, [], name: @name)
   end
