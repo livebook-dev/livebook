@@ -42,7 +42,6 @@ Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
 enterprise_path = System.get_env("ENTERPRISE_PATH", "../enterprise")
-IO.inspect(enterprise_path)
 enterprise_available? = File.exists?(enterprise_path)
 
 ExUnit.start(

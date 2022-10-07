@@ -132,6 +132,7 @@ defmodule LivebookTest.EnterpriseServer do
     ]
 
     cmd_opts = [stderr_to_stdout: true, env: env, cd: app_dir()]
+    args = ["--erl", "-elixir ansi_enabled true", "-S", "mix" | args]
 
     cmd_opts =
       if opts[:with_return],
@@ -139,7 +140,7 @@ defmodule LivebookTest.EnterpriseServer do
         else: Keyword.put(cmd_opts, :into, IO.stream(:stdio, :line))
 
     if opts[:with_return] do
-      case System.cmd(mix_executable(), args, cmd_opts) do
+      case System.cmd(elixir_executable(), args, cmd_opts) do
         {result, 0} ->
           result
 
@@ -152,22 +153,12 @@ defmodule LivebookTest.EnterpriseServer do
           System.halt(status)
       end
     else
-      0 =
-        System.cmd(
-          elixir_executable(),
-          ["--erl", "-elixir ansi_enabled true", "-S", "mix" | args],
-          cmd_opts
-        )
-        |> elem(1)
+      {_, 0} = System.cmd(elixir_executable(), args, cmd_opts)
     end
   end
 
   defp elixir_executable do
     System.find_executable("elixir")
-  end
-
-  defp mix_executable do
-    System.find_executable("mix")
   end
 
   defp info(message), do: log([:blue, message <> "\n"])
