@@ -20,17 +20,17 @@ defmodule LivebookTest.EnterpriseServer do
 
   @impl true
   def init(_opts) do
-    {:ok, %{token: nil, port: nil}, {:continue, :start_enterprise}}
+    {:ok, %{token: nil, node: enterprise_node(), port: nil}, {:continue, :start_enterprise}}
   end
 
   @impl true
   def handle_continue(:start_enterprise, state) do
-    {:noreply, %{state | port: start_enterprise()}}
+    {:noreply, %{state | port: start_enterprise(state)}}
   end
 
   @impl true
   def handle_call(:fetch_token, _from, state) do
-    token = state.token || fetch_token_from_enterprise()
+    token = state.token || fetch_token_from_enterprise(state)
 
     {:reply, token, %{state | token: token}}
   end
@@ -50,12 +50,11 @@ defmodule LivebookTest.EnterpriseServer do
 
   # Private
 
-  defp fetch_token_from_enterprise do
-    token = mix(["enterprise.gen.token"], with_return: true)
-    String.trim(token)
+  defp fetch_token_from_enterprise(state) do
+    :erpc.call(state.node, Enterprise.Integration, :fetch_token, [])
   end
 
-  defp start_enterprise do
+  defp start_enterprise(state) do
     ensure_app_dir!()
     prepare_database()
 
@@ -67,6 +66,10 @@ defmodule LivebookTest.EnterpriseServer do
     args = [
       "-e",
       "spawn(fn -> IO.gets([]) && System.halt(0) end)",
+      "--sname",
+      to_string(state.node),
+      "--cookie",
+      to_string(Node.get_cookie()),
       "-S",
       "mix",
       "phx.server"
@@ -159,6 +162,25 @@ defmodule LivebookTest.EnterpriseServer do
 
   defp elixir_executable do
     System.find_executable("elixir")
+  end
+
+  defp enterprise_node do
+    :"enterprise_#{Livebook.Utils.random_short_id()}@#{hostname()}"
+  end
+
+  defp hostname do
+    [nodename, hostname] =
+      node()
+      |> Atom.to_charlist()
+      |> :string.split(~c"@")
+
+    with {:ok, nodenames} <- :erl_epmd.names(hostname),
+         true <- List.keymember?(nodenames, nodename, 0) do
+      hostname
+    else
+      _ ->
+        raise "Error"
+    end
   end
 
   defp info(message), do: log([:blue, message <> "\n"])
