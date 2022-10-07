@@ -1,4 +1,4 @@
-defmodule LivebookTest.Integration.EnterpriseServer do
+defmodule LivebookTest.EnterpriseServer do
   @moduledoc false
   use GenServer
 
@@ -26,10 +26,6 @@ defmodule LivebookTest.Integration.EnterpriseServer do
 
   def start do
     GenServer.start(__MODULE__, [], name: @name)
-  end
-
-  def start_link do
-    GenServer.start_link(__MODULE__, [], name: @name)
   end
 
   def url do
@@ -75,7 +71,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   # Private
 
   defp fetch_token_from_enterprise do
-    token = cmd(["enterprise.gen.token"], with_return: true)
+    token = mix(["enterprise.gen.token"], with_return: true)
     String.trim(token)
   end
 
@@ -112,9 +108,9 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   end
 
   defp prepare_database do
-    cmd(["ecto.drop", "--quiet"])
-    cmd(["ecto.create", "--quiet"])
-    cmd(["ecto.migrate", "--quiet"])
+    mix(["ecto.drop", "--quiet"])
+    mix(["ecto.create", "--quiet"])
+    mix(["ecto.migrate", "--quiet"])
   end
 
   defp ensure_app_dir! do
@@ -149,7 +145,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     end
   end
 
-  defp cmd(args, opts \\ []) do
+  defp mix(args, opts \\ []) do
     env = [
       {"MIX_ENV", "livebook"},
       {"LIVEBOOK_ENTERPRISE_PORT", app_port()}
@@ -160,7 +156,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     cmd_opts =
       if opts[:with_return],
         do: cmd_opts,
-        else: Keyword.put(cmd_opts, :into, %CollectableMapper{})
+        else: Keyword.put(cmd_opts, :into, IO.stream(:stdio, :line))
 
     if opts[:with_return] do
       case System.cmd(mix_executable(), args, cmd_opts) do
@@ -176,7 +172,13 @@ defmodule LivebookTest.Integration.EnterpriseServer do
           System.halt(status)
       end
     else
-      0 = System.cmd(mix_executable(), args, cmd_opts) |> elem(1)
+      0 =
+        System.cmd(
+          elixir_executable(),
+          ["--erl", "-elixir ansi_enabled true", "-S", "mix" | args],
+          cmd_opts
+        )
+        |> elem(1)
     end
   end
 

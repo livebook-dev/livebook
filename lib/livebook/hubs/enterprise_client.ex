@@ -10,7 +10,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
     query {
       info {
         id
-        expire_at
       }
     }
     """

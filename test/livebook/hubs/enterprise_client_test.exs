@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
 
   describe "fetch_info/1" do
     test "fetches the token info", %{url: url, token: token} do
-      assert {:ok, %{"id" => _, "expire_at" => _}} = EnterpriseClient.fetch_info(url, token)
+      assert {:ok, %{"id" => _}} = EnterpriseClient.fetch_info(url, token)
     end
 
     test "returns invalid_token when token is invalid", %{url: url} do
@@ -15,7 +15,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
 
   describe "fetch_me/1" do
     test "fetches the current user id", %{url: url, token: token} do
-      assert {:ok, _} = EnterpriseClient.fetch_me(url, token)
+      assert {:ok, %{"id" => _}} = EnterpriseClient.fetch_me(url, token)
     end
 
     test "returns unauthorized when token is invalid", %{url: url} do

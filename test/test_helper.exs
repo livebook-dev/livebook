@@ -41,7 +41,11 @@ Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
+enterprise_path = System.get_env("ENTERPRISE_PATH", "../enterprise")
+IO.inspect(enterprise_path)
+enterprise_available? = File.exists?(enterprise_path)
+
 ExUnit.start(
   assert_receive_timeout: 1_500,
-  exclude: [erl_docs: erl_docs_available?, enterprise_integration: true]
+  exclude: [erl_docs: erl_docs_available?, enterprise_integration: !enterprise_available?]
 )
