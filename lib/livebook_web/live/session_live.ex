@@ -568,27 +568,43 @@ defmodule LivebookWeb.SessionLive do
 
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for {secret_name, _} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
+          <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
             <div class="flex justify-between items-center text-gray-500">
-              <span class="text-sm font-mono break-all">
+              <span
+                class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
+                phx-click={JS.toggle(to: "#session-secret-#{secret_name}")}
+              >
                 <%= secret_name %>
               </span>
-              <button
-                id={"session-secret-#{secret_name}-delete"}
-                type="button"
-                phx-click={
-                  with_confirm(
-                    JS.push("delete_session_secret", value: %{secret_name: secret_name}),
-                    title: "Delete session secret - #{secret_name}",
-                    description: "Are you sure you want to delete this session secret?",
-                    confirm_text: "Delete",
-                    confirm_icon: "delete-bin-6-line"
-                  )
-                }
-                class="hover:text-red-600"
-              >
-                <.remix_icon icon="delete-bin-line" />
-              </button>
+            </div>
+            <div
+              class="flex flex-col text-gray-800 bg-gray-100 p-2 space-y-1 rounded-lg hidden"
+              id={"session-secret-#{secret_name}"}
+            >
+              <span class="text-sm font-mono break-all flex-row">
+                <%= secret_name %>
+              </span>
+              <div class="flex flex-row justify-between items-center">
+                <span class="text-sm font-mono break-all flex-row">
+                  <%= secret_value %>
+                </span>
+                <button
+                  id={"app-secret-#{secret_name}-delete"}
+                  type="button"
+                  phx-click={
+                    with_confirm(
+                      JS.push("delete_session_secret", value: %{secret_name: secret_name}),
+                      title: "Delete session secret - #{secret_name}",
+                      description: "Are you sure you want to delete this session secret?",
+                      confirm_text: "Delete",
+                      confirm_icon: "delete-bin-6-line"
+                    )
+                  }
+                  class="hover:text-red-600"
+                >
+                  <.remix_icon icon="delete-bin-line" />
+                </button>
+              </div>
             </div>
           <% end %>
         </div>
@@ -611,17 +627,31 @@ defmodule LivebookWeb.SessionLive do
         <div class="flex flex-col space-y-4 mt-6">
           <%= for {secret_name, secret_value} = secret <- Enum.sort(@livebook_secrets) do %>
             <div class="flex justify-between items-center text-gray-500">
-              <span class="text-sm font-mono break-all">
+              <span
+                class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
+                phx-click={JS.toggle(to: "#app-secret-#{secret_name}")}
+              >
                 <%= secret_name %>
               </span>
-              <div class="flex gap-4 items-end">
-                <.switch_checkbox
-                  name="toggle_secret"
-                  checked={is_secret_on_session?(secret, @data_view.secrets)}
-                  phx-click="toggle_secret"
-                  phx-value-secret_name={secret_name}
-                  phx-value-secret_value={secret_value}
-                />
+              <.switch_checkbox
+                name="toggle_secret"
+                checked={is_secret_on_session?(secret, @data_view.secrets)}
+                phx-click="toggle_secret"
+                phx-value-secret_name={secret_name}
+                phx-value-secret_value={secret_value}
+              />
+            </div>
+            <div
+              class="flex flex-col text-gray-800 bg-gray-100 p-2 space-y-1 rounded-lg hidden"
+              id={"app-secret-#{secret_name}"}
+            >
+              <span class="text-sm font-mono break-all flex-row">
+                <%= secret_name %>
+              </span>
+              <div class="flex flex-row justify-between items-center">
+                <span class="text-sm font-mono break-all flex-row">
+                  <%= secret_value %>
+                </span>
                 <button
                   id={"app-secret-#{secret_name}-delete"}
                   type="button"
