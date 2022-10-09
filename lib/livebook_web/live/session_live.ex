@@ -569,17 +569,27 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
           <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
-            <div class="flex justify-between items-center text-gray-500">
+            <div
+              class="flex justify-between items-center text-gray-500"
+              id={"session-secret-#{secret_name}-title"}
+            >
               <span
                 class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
-                phx-click={JS.toggle(to: "#session-secret-#{secret_name}")}
+                phx-click={
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
+                }
               >
                 <%= secret_name %>
               </span>
             </div>
             <div
-              class="flex flex-col text-gray-800 bg-gray-100 p-2 space-y-1 rounded-lg hidden"
-              id={"session-secret-#{secret_name}"}
+              class="flex flex-col text-gray-800 bg-gray-100 p-2 space-y-1 rounded-lg hidden cursor-pointer"
+              id={"session-secret-#{secret_name}-detail"}
+              phx-click={
+                JS.toggle(to: "#session-secret-#{secret_name}-title")
+                |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
+              }
             >
               <span class="text-sm font-mono break-all flex-row">
                 <%= secret_name %>
