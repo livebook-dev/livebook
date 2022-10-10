@@ -574,7 +574,7 @@ defmodule LivebookWeb.SessionLive do
               id={"session-secret-#{secret_name}-wrapper"}
             >
               <span
-                class="text-sm font-mono break-all w-full cursor-pointer"
+                class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
                 id={"session-secret-#{secret_name}-title"}
                 phx-click={
                   JS.toggle(to: "#session-secret-#{secret_name}-title")
@@ -587,7 +587,7 @@ defmodule LivebookWeb.SessionLive do
                 <%= secret_name %>
               </span>
               <div
-                class="flex flex-col text-gray-500 hidden cursor-pointer"
+                class="flex flex-col text-gray-800 hidden"
                 id={"session-secret-#{secret_name}-detail"}
                 phx-click={
                   JS.toggle(to: "#session-secret-#{secret_name}-title")
@@ -598,7 +598,7 @@ defmodule LivebookWeb.SessionLive do
                 }
               >
                 <div class="flex flex-col">
-                  <span class="text-sm font-mono break-all flex-row">
+                  <span class="text-sm font-mono break-all flex-row cursor-pointer">
                     <%= secret_name %>
                   </span>
                   <div class="flex flex-row justify-between items-center">
@@ -651,7 +651,7 @@ defmodule LivebookWeb.SessionLive do
             >
               <div class="flex" id={"app-secret-#{secret_name}-title"}>
                 <span
-                  class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center"
+                  class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
                   phx-click={
                     JS.add_class("hidden", to: "#app-secret-#{secret_name}-title")
                     |> JS.remove_class("hidden", to: "#app-secret-#{secret_name}-detail")
@@ -670,7 +670,7 @@ defmodule LivebookWeb.SessionLive do
                   phx-value-secret_value={secret_value}
                 />
               </div>
-              <div class="flex flex-col text-gray-500 hidden" id={"app-secret-#{secret_name}-detail"}>
+              <div class="flex flex-col text-gray-800 hidden" id={"app-secret-#{secret_name}-detail"}>
                 <div class="flex flex-col">
                   <div class="flex justify-between items-center">
                     <span
