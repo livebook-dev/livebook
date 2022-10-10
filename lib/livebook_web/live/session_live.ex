@@ -674,7 +674,7 @@ defmodule LivebookWeb.SessionLive do
                 <div class="flex flex-col">
                   <div class="flex justify-between items-center">
                     <span
-                      class="text-sm font-mono break-all flex-row cursor-pointer"
+                      class="text-sm font-mono w-full break-all flex-row cursor-pointer"
                       phx-click={
                         JS.remove_class("hidden", to: "#app-secret-#{secret_name}-title")
                         |> JS.add_class("hidden", to: "#app-secret-#{secret_name}-detail")
