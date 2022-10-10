@@ -124,9 +124,9 @@ defmodule LivebookWeb.SettingsLive do
               Environment variables
             </h2>
             <p class="mt-4 text-gray-700">
-              Environment variables are used to store global values and secrets.
-              The global environment variables can be used on the entire Livebook
-              application and is accessible only to the current machine.
+              Environment variables store global values which are available
+              inside your notebooks. You can also configure the <code>PATH</code>
+              environment to make system dependencies available to notebooks.
             </p>
             <.live_component
               module={LivebookWeb.EnvVarsComponent}
