@@ -952,37 +952,29 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %Secret{name: "BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
     end
 
-    test "sync secrets when they're equal", %{conn: conn, session: session} do
+    test "syncs secrets", %{conn: conn, session: session} do
       Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
 
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: "FOO", value: "456", store: "livebook"}})
 
       assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
-
       assert %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
-    end
 
-    test "doesn't sync secrets when they are not the same", %{conn: conn, session: session} do
-      Livebook.Secrets.set_secret(%Secret{name: "FOO_BAR", value: "456"})
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO_BAR", value: "123"})
+      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO_BAR", value: "999", store: "livebook"}})
+      |> render_submit(%{data: %{name: "FOO", value: "789", store: "livebook"}})
 
-      assert %{secrets: %{"FOO_BAR" => "123"}} = Session.get_data(session.pid)
-
-      assert %Secret{name: "FOO_BAR", value: "999"} in Livebook.Secrets.fetch_secrets()
-
-      refute %Secret{name: "FOO_BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
+      assert %{secrets: %{"FOO" => "789"}} = Session.get_data(session.pid)
+      assert %Secret{name: "FOO", value: "789"} in Livebook.Secrets.fetch_secrets()
     end
 
-    test "never sync secrets when updating from session", %{conn: conn, session: session} do
+    test "never syncs secrets when updating from session", %{conn: conn, session: session} do
       Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, %{name: "FOO", value: "123"})
@@ -994,7 +986,6 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
 
       refute %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
-
       assert %Secret{name: "FOO", value: "123"} in Livebook.Secrets.fetch_secrets()
     end
 
