@@ -31,6 +31,7 @@ defmodule Livebook.Runtime.Attached do
   @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
   def connect(runtime) do
     %{node: node, cookie: cookie} = runtime
+    node = append_hostname(node)
 
     # Set cookie for connecting to this specific node
     Node.set_cookie(node, cookie)
@@ -42,10 +43,21 @@ defmodule Livebook.Runtime.Attached do
             node_manager_opts: [parent_node: node(), capture_orphan_logs: false]
           )
 
-        {:ok, %{runtime | server_pid: server_pid}}
+        {:ok, %{runtime | node: node, server_pid: server_pid}}
 
       :pang ->
         {:error, "node #{inspect(node)} is unreachable"}
+    end
+  end
+
+  # We need to append the hostname late because
+  # net_kernel has not yet started during config.
+  defp append_hostname(node) do
+    with :nomatch <- :string.find(Atom.to_string(node), "@"),
+         <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
+      :"#{node}#{suffix}"
+    else
+      _ -> node
     end
   end
 end
