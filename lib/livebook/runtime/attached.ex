@@ -31,6 +31,9 @@ defmodule Livebook.Runtime.Attached do
   @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
   def connect(runtime) do
     %{node: node, cookie: cookie} = runtime
+
+    # We need to append the hostname on connect because
+    # net_kernel has not yet started during new/2.
     node = append_hostname(node)
 
     # Set cookie for connecting to this specific node
@@ -50,8 +53,6 @@ defmodule Livebook.Runtime.Attached do
     end
   end
 
-  # We need to append the hostname late because
-  # net_kernel has not yet started during config.
   defp append_hostname(node) do
     with :nomatch <- :string.find(Atom.to_string(node), "@"),
          <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
