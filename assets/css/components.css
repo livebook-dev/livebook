@@ -132,11 +132,11 @@
   }
 
   .switch-button__checkbox {
-    @apply appearance-none absolute block w-7 h-7 rounded-full bg-gray-400 border-[5px] border-gray-100 cursor-pointer transition-all duration-300;
+    @apply appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-all duration-300;
   }
 
   .switch-button__bg {
-    @apply block h-full w-full rounded-full bg-gray-100 cursor-pointer transition-all duration-300;
+    @apply block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-all duration-300;
   }
 
   .switch-button__checkbox:checked {
