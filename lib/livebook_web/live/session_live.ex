@@ -601,7 +601,7 @@ defmodule LivebookWeb.SessionLive do
                   <span class="text-sm font-mono break-all flex-row cursor-pointer">
                     <%= secret_name %>
                   </span>
-                  <div class="flex flex-row justify-between items-center">
+                  <div class="flex flex-row justify-between items-center my-1">
                     <span class="text-sm font-mono break-all flex-row">
                       <%= secret_value %>
                     </span>
@@ -693,7 +693,7 @@ defmodule LivebookWeb.SessionLive do
                       phx-value-secret_value={secret_value}
                     />
                   </div>
-                  <div class="flex flex-row justify-between items-center">
+                  <div class="flex flex-row justify-between items-center my-1">
                     <span class="text-sm font-mono break-all flex-row">
                       <%= secret_value %>
                     </span>

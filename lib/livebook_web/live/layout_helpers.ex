@@ -61,7 +61,7 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="hidden md:flex w-[16rem] h-full py-2 md:py-5 bg-gray-900"
+      class="hidden md:flex w-[17rem] h-full py-2 md:py-5 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
