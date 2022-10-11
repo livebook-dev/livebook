@@ -1,4 +1,4 @@
-defmodule LivebookTest.EnterpriseServer do
+defmodule Livebook.EnterpriseServer do
   @moduledoc false
   use GenServer
 
