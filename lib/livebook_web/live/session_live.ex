@@ -577,8 +577,8 @@ defmodule LivebookWeb.SessionLive do
                 class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
                 id={"session-secret-#{secret_name}-title"}
                 phx-click={
-                  JS.add_class("hidden", to: "#session-secret-#{secret_name}-title")
-                  |> JS.remove_class("hidden", to: "#session-secret-#{secret_name}-detail")
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
                   |> JS.add_class("bg-gray-100",
                     to: "#session-secret-#{secret_name}-wrapper"
                   )
@@ -590,8 +590,8 @@ defmodule LivebookWeb.SessionLive do
                 class="flex flex-col text-gray-800 hidden"
                 id={"session-secret-#{secret_name}-detail"}
                 phx-click={
-                  JS.remove_class("hidden", to: "#session-secret-#{secret_name}-title")
-                  |> JS.add_class("hidden", to: "#session-secret-#{secret_name}-detail")
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
                   |> JS.remove_class("bg-gray-100",
                     to: "#session-secret-#{secret_name}-wrapper"
                   )
@@ -653,8 +653,8 @@ defmodule LivebookWeb.SessionLive do
                 <span
                   class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
                   phx-click={
-                    JS.add_class("hidden", to: "#app-secret-#{secret_name}-title")
-                    |> JS.remove_class("hidden", to: "#app-secret-#{secret_name}-detail")
+                    JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
+                    |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
                     |> JS.add_class("bg-gray-100",
                       to: "#app-secret-#{secret_name}-wrapper"
                     )
@@ -676,8 +676,8 @@ defmodule LivebookWeb.SessionLive do
                     <span
                       class="text-sm font-mono w-full break-all flex-row cursor-pointer"
                       phx-click={
-                        JS.remove_class("hidden", to: "#app-secret-#{secret_name}-title")
-                        |> JS.add_class("hidden", to: "#app-secret-#{secret_name}-detail")
+                        JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
+                        |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
                         |> JS.remove_class("bg-gray-100",
                           to: "#app-secret-#{secret_name}-wrapper"
                         )
