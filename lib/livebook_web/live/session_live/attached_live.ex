@@ -90,7 +90,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   end
 
   def handle_event("init", %{"data" => data}, socket) do
-    node = Utils.node_from_name(data["name"])
+    node = String.to_atom(data["name"])
     cookie = String.to_atom(data["cookie"])
 
     runtime = Runtime.Attached.new(node, cookie)

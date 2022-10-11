@@ -74,19 +74,6 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Converts the given name to node identifier.
-  """
-  @spec node_from_name(String.t()) :: atom()
-  def node_from_name(name) do
-    if name =~ "@" do
-      String.to_atom(name)
-    else
-      # Default to the same host as the current node
-      :"#{name}@#{node_host()}"
-    end
-  end
-
-  @doc """
   Returns the host part of a node.
   """
   @spec node_host() :: binary()
