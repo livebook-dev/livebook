@@ -222,7 +222,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
 
     ~H"""
-    <div class="pr-4" role="group" aria-label="memory information">
+    <div class="pr-1 lg:pr-4" role="group" aria-label="memory information">
       <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
         <svg viewbox="-10 5 50 25" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
           <circle
@@ -243,7 +243,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             fill="none"
           />
         </svg>
-        <div class="hidden md:flex">
+        <div class="hidden sm:flex md:hidden lg:flex">
           <span class="px-2 py-1 text-sm text-gray-500 font-medium">
             <%= format_bytes(@used) %> / <%= format_bytes(@total) %>
             <span class="sr-only"><%= @percentage %> percent used</span>

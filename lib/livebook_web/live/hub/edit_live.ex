@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <PageHelpers.title text="Edit Hub" socket={@socket} />
         </div>

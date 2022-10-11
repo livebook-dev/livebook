@@ -23,7 +23,7 @@ defmodule LivebookWeb.Hub.NewLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <PageHelpers.title text="Add Hub" socket={@socket} />
           <p class="mt-4 text-gray-700">
@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.NewLive do
             1. Select your Hub service
           </h2>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <.card_item id="fly" selected={@selected_type} title="Fly">
               <:logo>
                 <%= Phoenix.HTML.raw(File.read!("static/images/fly.svg")) %>

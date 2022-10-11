@@ -50,10 +50,10 @@ defmodule LivebookWeb.HomeLive do
       </:topbar_action>
       <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
-      <div class="p-4 sm:px-8 md:px-16 sm:py-6 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <PageHelpers.title text="Home" />
-          <div class="hidden sm:flex space-x-2" role="navigation" aria-label="new notebook">
+          <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
             <%= live_patch("Import",
               to: Routes.home_path(@socket, :import, "url"),
               class: "button-base button-outlined-gray whitespace-nowrap"
