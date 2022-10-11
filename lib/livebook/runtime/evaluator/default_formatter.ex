@@ -129,8 +129,8 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     IO.ANSI.format([:red, string], true)
   end
 
-  # defp error_type(%System.EnvError{env: "LB_" <> secret_name}),
-  #   do: {:missing_secret, secret_name}
+  defp error_type(%System.EnvError{env: "LB_" <> secret_name}),
+    do: {:missing_secret, secret_name}
 
   defp error_type(_), do: :other
 end
