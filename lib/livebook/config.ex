@@ -355,24 +355,6 @@ defmodule Livebook.Config do
     }
   end
 
-  @doc """
-  Appends hostname if its missing in the node string.
-
-  > By [José Valim](https://github.com/livebook-dev/livebook/issues/1472#issuecomment-1273706109)
-
-    ## Paramaters
-
-      - node: String that represents the Node name.
-
-    ## Examples
-
-      iex> append_hostname("phoenix")
-      phoenix@<YourMachineName>
-
-      iex> append_hostname("phoenix@127.0.0.1")
-      phoenix@127.0.0.1
-
-  """
   defp append_hostname(node) do
     with :nomatch <- :string.find(node, "@"),
          <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
