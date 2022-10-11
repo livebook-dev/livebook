@@ -336,11 +336,7 @@ defmodule Livebook.Config do
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
 
-    node =
-      node
-      |> append_hostname()
-      |> String.to_atom()
-
+    node = String.to_atom(node)
     cookie = String.to_atom(cookie)
 
     {node, cookie}
@@ -353,15 +349,6 @@ defmodule Livebook.Config do
       binary_part(string, 0, idx),
       binary_part(string, idx + 1, byte_size(string) - idx - 1)
     }
-  end
-
-  defp append_hostname(node) do
-    with :nomatch <- :string.find(node, "@"),
-         <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
-      node <> suffix
-    else
-      _ -> node
-    end
   end
 
   @doc """
