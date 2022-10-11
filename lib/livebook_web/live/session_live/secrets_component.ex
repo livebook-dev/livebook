@@ -206,14 +206,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     case Livebook.Secrets.validate_secret(data) do
       {:ok, secret} ->
         store = data["store"]
-
         set_secret(assigns.session.pid, secret, store)
-
-        if store == "livebook" &&
-             (assigns.select_secret_ref ||
-                {secret.name, assigns.livebook_secrets[secret.name]} in assigns.secrets) do
-          set_secret(assigns.session.pid, secret, "session")
-        end
 
         {:noreply,
          socket |> push_patch(to: assigns.return_to) |> push_secret_selected(secret.name)}
@@ -279,8 +272,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(pid, secret, "session"), do: Livebook.Session.set_secret(pid, secret)
-  defp set_secret(_pid, secret, "livebook"), do: Livebook.Secrets.set_secret(secret)
+  defp set_secret(pid, secret, "session") do
+    Livebook.Session.set_secret(pid, secret)
+  end
+
+  defp set_secret(pid, secret, "livebook") do
+    Livebook.Secrets.set_secret(secret)
+    Livebook.Session.set_secret(pid, secret)
+  end
 
   defp grant_access(secret_name, socket) do
     secret_value = socket.assigns.livebook_secrets[secret_name]
