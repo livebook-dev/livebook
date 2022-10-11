@@ -1,7 +1,7 @@
 defmodule Livebook.EnterpriseIntegrationCase do
   use ExUnit.CaseTemplate
 
-  alias LivebookTest.EnterpriseServer
+  alias Livebook.EnterpriseServer
 
   using do
     quote do
@@ -9,7 +9,7 @@ defmodule Livebook.EnterpriseIntegrationCase do
 
       @moduletag :enterprise_integration
 
-      alias LivebookTest.EnterpriseServer
+      alias Livebook.EnterpriseServer
     end
   end
 
