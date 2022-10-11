@@ -336,11 +336,11 @@ defmodule Livebook.Config do
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
 
-    unless node =~ "@" do
-      abort!(~s{expected node to include hostname, got: #{inspect(node)}})
-    end
+    node =
+      node
+      |> append_hostname()
+      |> String.to_atom()
 
-    node = String.to_atom(node)
     cookie = String.to_atom(cookie)
 
     {node, cookie}
@@ -353,6 +353,33 @@ defmodule Livebook.Config do
       binary_part(string, 0, idx),
       binary_part(string, idx + 1, byte_size(string) - idx - 1)
     }
+  end
+
+  @doc """
+  Appends hostname if its missing in the node string.
+
+  > By [José Valim](https://github.com/livebook-dev/livebook/issues/1472#issuecomment-1273706109)
+
+    ## Paramaters
+
+      - node: String that represents the Node name.
+
+    ## Examples
+
+      iex> append_hostname("phoenix")
+      phoenix@<YourMachineName>
+
+      iex> append_hostname("phoenix@127.0.0.1")
+      phoenix@127.0.0.1
+
+  """
+  defp append_hostname(node) do
+    with :nomatch <- :string.find(node, "@"),
+         <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
+      node <> suffix
+    else
+      _ -> node
+    end
   end
 
   @doc """
