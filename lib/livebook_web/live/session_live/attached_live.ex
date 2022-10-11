@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.AttachedLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{Session, Runtime, Utils}
+  alias Livebook.{Session, Runtime}
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
