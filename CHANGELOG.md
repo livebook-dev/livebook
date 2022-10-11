@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.7.1](https://github.com/livebook-dev/livebook/tree/v0.7.1) (2022-10-09)
+
+### Fixed
+
+- Fixed editing Mermaid graphs in Markdown cells ([#1471](https://github.com/livebook-dev/livebook/pull/1471))
+
 ## [v0.7.0](https://github.com/livebook-dev/livebook/tree/v0.7.0) (2022-10-07)
 
 ### Added

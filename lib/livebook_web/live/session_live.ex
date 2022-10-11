@@ -568,11 +568,62 @@ defmodule LivebookWeb.SessionLive do
 
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for {secret_name, _} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
-            <div class="flex justify-between items-center text-gray-500">
-              <span class="text-sm font-mono break-all">
+          <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
+            <div
+              class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
+              id={"session-secret-#{secret_name}-wrapper"}
+            >
+              <span
+                class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
+                id={"session-secret-#{secret_name}-title"}
+                phx-click={
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
+                  |> JS.add_class("bg-gray-100",
+                    to: "#session-secret-#{secret_name}-wrapper"
+                  )
+                }
+              >
                 <%= secret_name %>
               </span>
+              <div
+                class="flex flex-col text-gray-800 hidden"
+                id={"session-secret-#{secret_name}-detail"}
+                phx-click={
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
+                  |> JS.remove_class("bg-gray-100",
+                    to: "#session-secret-#{secret_name}-wrapper"
+                  )
+                }
+              >
+                <div class="flex flex-col">
+                  <span class="text-sm font-mono break-all flex-row cursor-pointer">
+                    <%= secret_name %>
+                  </span>
+                  <div class="flex flex-row justify-between items-center my-1">
+                    <span class="text-sm font-mono break-all flex-row">
+                      <%= secret_value %>
+                    </span>
+                    <button
+                      id={"session-secret-#{secret_name}-delete"}
+                      type="button"
+                      phx-click={
+                        with_confirm(
+                          JS.push("delete_session_secret", value: %{secret_name: secret_name}),
+                          title: "Delete session secret - #{secret_name}",
+                          description: "Are you sure you want to delete this session secret?",
+                          confirm_text: "Delete",
+                          confirm_icon: "delete-bin-6-line"
+                        )
+                      }
+                      class="hover:text-red-600"
+                    >
+                      <.remix_icon icon="delete-bin-line" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           <% end %>
         </div>
@@ -594,17 +645,77 @@ defmodule LivebookWeb.SessionLive do
 
         <div class="flex flex-col space-y-4 mt-6">
           <%= for {secret_name, secret_value} = secret <- Enum.sort(@livebook_secrets) do %>
-            <div class="flex justify-between items-center text-gray-500">
-              <span class="text-sm font-mono break-all">
-                <%= secret_name %>
-              </span>
-              <.switch_checkbox
-                name="toggle_secret"
-                checked={is_secret_on_session?(secret, @data_view.secrets)}
-                phx-click="toggle_secret"
-                phx-value-secret_name={secret_name}
-                phx-value-secret_value={secret_value}
-              />
+            <div
+              class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
+              id={"app-secret-#{secret_name}-wrapper"}
+            >
+              <div class="flex" id={"app-secret-#{secret_name}-title"}>
+                <span
+                  class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
+                  phx-click={
+                    JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
+                    |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
+                    |> JS.add_class("bg-gray-100",
+                      to: "#app-secret-#{secret_name}-wrapper"
+                    )
+                  }
+                >
+                  <%= secret_name %>
+                </span>
+                <.switch_checkbox
+                  name="toggle_secret"
+                  checked={is_secret_on_session?(secret, @data_view.secrets)}
+                  phx-click="toggle_secret"
+                  phx-value-secret_name={secret_name}
+                  phx-value-secret_value={secret_value}
+                />
+              </div>
+              <div class="flex flex-col text-gray-800 hidden" id={"app-secret-#{secret_name}-detail"}>
+                <div class="flex flex-col">
+                  <div class="flex justify-between items-center">
+                    <span
+                      class="text-sm font-mono w-full break-all flex-row cursor-pointer"
+                      phx-click={
+                        JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
+                        |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
+                        |> JS.remove_class("bg-gray-100",
+                          to: "#app-secret-#{secret_name}-wrapper"
+                        )
+                      }
+                    >
+                      <%= secret_name %>
+                    </span>
+                    <.switch_checkbox
+                      name="toggle_secret"
+                      checked={is_secret_on_session?(secret, @data_view.secrets)}
+                      phx-click="toggle_secret"
+                      phx-value-secret_name={secret_name}
+                      phx-value-secret_value={secret_value}
+                    />
+                  </div>
+                  <div class="flex flex-row justify-between items-center my-1">
+                    <span class="text-sm font-mono break-all flex-row">
+                      <%= secret_value %>
+                    </span>
+                    <button
+                      id={"app-secret-#{secret_name}-delete"}
+                      type="button"
+                      phx-click={
+                        with_confirm(
+                          JS.push("delete_app_secret", value: %{secret_name: secret_name}),
+                          title: "Delete app secret - #{secret_name}",
+                          description: "Are you sure you want to delete this app secret?",
+                          confirm_text: "Delete",
+                          confirm_icon: "delete-bin-6-line"
+                        )
+                      }
+                      class="hover:text-red-600"
+                    >
+                      <.remix_icon icon="delete-bin-line" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           <% end %>
         </div>
@@ -1204,6 +1315,16 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
+    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_app_secret", %{"secret_name" => secret_name}, socket) do
+    Livebook.Secrets.unset_secret(secret_name)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -1282,6 +1403,12 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:set_secret, secret}, socket) do
     livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
+
+    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
+  end
+
+  def handle_info({:unset_secret, secret}, socket) do
+    livebook_secrets = Map.delete(socket.assigns.livebook_secrets, secret.name)
 
     {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end

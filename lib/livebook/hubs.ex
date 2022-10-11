@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Fly, Local, Metadata, Provider}
+  alias Livebook.Hubs.{Enterprise, Fly, Local, Metadata, Provider}
 
   @namespace :hubs
 
@@ -103,6 +103,10 @@ defmodule Livebook.Hubs do
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
     Provider.load(%Fly{}, fields)
+  end
+
+  defp to_struct(%{id: "enterprise-" <> _} = fields) do
+    Provider.load(%Enterprise{}, fields)
   end
 
   defp to_struct(%{id: "local-" <> _} = fields) do

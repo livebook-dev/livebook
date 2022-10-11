@@ -35,7 +35,7 @@ defmodule LivebookWeb.SettingsLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div id="settings-page" class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-16">
+      <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-16">
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
@@ -51,8 +51,8 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium">
               About
             </h2>
-            <div class="flex flex-col md:flex-row gap-4 md:gap-12 items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
-              <div class="flex justify-center md:items-center space-x-12">
+            <div class="flex flex-col sm:flex-row gap-4 sm:gap-12 items-center justify-center sm:justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-center sm:items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
                   <.labeled_text label="Application">
                     <%= if app_url = Livebook.Config.app_service_url() do %>
@@ -122,13 +122,13 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Environment variables configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Environment variables
             </h2>
             <p class="mt-4 text-gray-700">
-              Environment variables are used to store global values and secrets.
-              The global environment variables can be used on the entire Livebook
-              application and is accessible only to the current machine.
+              Environment variables store global values which are available
+              inside your notebooks. You can also configure the <code>PATH</code>
+              environment to make system dependencies available to notebooks.
             </p>
             <.live_component
               module={LivebookWeb.EnvVarsComponent}

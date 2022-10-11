@@ -29,7 +29,7 @@ defmodule LivebookWeb.LearnLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
           <PageHelpers.title text="Learn" />
           <p class="mt-4 mb-8 text-gray-700">
@@ -57,7 +57,7 @@ defmodule LivebookWeb.LearnLive do
             </div>
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           <% # Note: it's fine to use stateless components in this comprehension,
           # because @notebook_infos never change %>
           <%= for info <- @notebook_infos do %>
@@ -92,7 +92,7 @@ defmodule LivebookWeb.LearnLive do
       <div class="mt-4">
         <ul>
           <%= for {notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1) do %>
-            <li class="py-4 flex flex-col sm:flex-row items-start sm:items-center sm:space-x-5 border-b border-gray-200 last:border-b-0">
+            <li class="py-4 flex flex-row items-center space-x-5 border-b border-gray-200 last:border-b-0">
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
@@ -100,8 +100,8 @@ defmodule LivebookWeb.LearnLive do
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.learn_path(@socket, :notebook, notebook_info.slug),
-                    class: "button-base button-outlined-gray mt-3 sm:mt-0" do %>
-                <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open notebook
+                    class: "button-base button-outlined-gray" do %>
+                <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open
               <% end %>
             </li>
           <% end %>

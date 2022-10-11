@@ -12,6 +12,9 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
@@ -20,7 +23,7 @@ defmodule LivebookWeb.Hub.NewLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <PageHelpers.title text="Add Hub" socket={@socket} />
           <p class="mt-4 text-gray-700">
@@ -33,7 +36,7 @@ defmodule LivebookWeb.Hub.NewLive do
             1. Select your Hub service
           </h2>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <.card_item id="fly" selected={@selected_type} title="Fly">
               <:logo>
                 <%= Phoenix.HTML.raw(File.read!("static/images/fly.svg")) %>
@@ -69,13 +72,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <% end %>
 
             <%= if @selected_type == "enterprise" do %>
-              <div>
-                Livebook Enterprise is currently in closed beta. If you want to learn more, <a
-                  href="https://livebook.dev/#livebook-plans"
-                  class="pointer-events-auto text-blue-600"
-                  target="_blank"
-                >click here</a>.
-              </div>
+              <.live_component module={LivebookWeb.Hub.New.EnterpriseComponent} id="enterprise-form" />
             <% end %>
           </div>
         <% end %>

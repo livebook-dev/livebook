@@ -15,7 +15,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
     ~H"""
     <div class="flex grow h-full">
-      <div class="absolute sm:static h-full z-[600]">
+      <div class="absolute md:static h-full z-[600]">
         <.live_region role="alert" />
         <.sidebar
           socket={@socket}
@@ -25,8 +25,8 @@ defmodule LivebookWeb.LayoutHelpers do
         />
       </div>
       <div class="grow overflow-y-auto">
-        <div class="sm:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
-          <div class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
+        <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
+          <div class="pt-1 text-xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
             <button
               data-el-toggle-sidebar
               aria-label="show sidebar"
@@ -61,12 +61,12 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="hidden sm:flex w-[18rem] h-full py-2 sm:py-5 bg-gray-900"
+      class="hidden md:flex w-[17rem] h-full py-2 md:py-5 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
       <button
-        class="hidden text-2xl text-gray-300 hover:text-white focus:text-white absolute top-3 right-3"
+        class="hidden text-xl text-gray-300 hover:text-white focus:text-white absolute top-4 right-3"
         aria-label="hide sidebar"
         data-el-toggle-sidebar
         phx-click={
