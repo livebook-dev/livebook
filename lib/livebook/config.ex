@@ -336,10 +336,6 @@ defmodule Livebook.Config do
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
 
-    unless node =~ "@" do
-      abort!(~s{expected node to include hostname, got: #{inspect(node)}})
-    end
-
     node = String.to_atom(node)
     cookie = String.to_atom(cookie)
 
