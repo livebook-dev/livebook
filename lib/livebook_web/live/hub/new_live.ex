@@ -12,6 +12,9 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
@@ -69,13 +72,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <% end %>
 
             <%= if @selected_type == "enterprise" do %>
-              <div>
-                Livebook Enterprise is currently in closed beta. If you want to learn more, <a
-                  href="https://livebook.dev/#livebook-plans"
-                  class="pointer-events-auto text-blue-600"
-                  target="_blank"
-                >click here</a>.
-              </div>
+              <.live_component module={LivebookWeb.Hub.New.EnterpriseComponent} id="enterprise-form" />
             <% end %>
           </div>
         <% end %>

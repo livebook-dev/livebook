@@ -18,7 +18,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
   end
 
   describe "fly" do
-    test "persists fly", %{conn: conn} do
+    test "persists new hub", %{conn: conn} do
       fly_bypass("123456789")
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
@@ -118,6 +118,124 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     end
   end
 
+  describe "enterprise" do
+    test "persists new hub", %{conn: conn} do
+      id = Livebook.Utils.random_short_id()
+      bypass = enterprise_bypass(id)
+
+      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+
+      assert view
+             |> element("#enterprise")
+             |> render_click() =~ "2. Configure your Hub"
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{
+        "enterprise" => %{
+          "url" => "http://localhost:#{bypass.port}",
+          "token" => "dummy access token"
+        }
+      })
+
+      assert view
+             |> element("#connect")
+             |> render_click() =~ "Add Hub"
+
+      attrs = %{
+        "url" => "http://localhost:#{bypass.port}",
+        "token" => "dummy access token",
+        "hub_name" => "Enterprise",
+        "hub_color" => "#FF00FF"
+      }
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{"enterprise" => attrs})
+
+      refute view
+             |> element("#enterprise-form .invalid-feedback")
+             |> has_element?()
+
+      assert {:ok, view, _html} =
+               view
+               |> element("#enterprise-form")
+               |> render_submit(%{"enterprise" => attrs})
+               |> follow_redirect(conn)
+
+      assert render(view) =~ "Hub added successfully"
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ ~s/style="color: #FF00FF"/
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ "/hub/enterprise-#{id}"
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ "Enterprise"
+    end
+
+    test "fails to create existing hub", %{conn: conn} do
+      hub = insert_hub(:enterprise, id: "enterprise-foo", external_id: "foo")
+      bypass = enterprise_bypass(hub.external_id)
+
+      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+
+      assert view
+             |> element("#enterprise")
+             |> render_click() =~ "2. Configure your Hub"
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{
+        "enterprise" => %{
+          "url" => "http://localhost:#{bypass.port}",
+          "token" => "dummy access token"
+        }
+      })
+
+      assert view
+             |> element("#connect")
+             |> render_click() =~ "Add Hub"
+
+      attrs = %{
+        "url" => "http://localhost:#{bypass.port}",
+        "token" => "dummy access token",
+        "hub_name" => "Enterprise",
+        "hub_color" => "#FF00FF"
+      }
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{"enterprise" => attrs})
+
+      refute view
+             |> element("#enterprise-form .invalid-feedback")
+             |> has_element?()
+
+      assert view
+             |> element("#enterprise-form")
+             |> render_submit(%{"enterprise" => attrs}) =~ "already exists"
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ ~s/style="color: #{hub.hub_color}"/
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ Routes.hub_path(conn, :edit, hub.id)
+
+      assert view
+             |> element("#hubs")
+             |> render() =~ hub.hub_name
+
+      assert Hubs.fetch_hub!(hub.id) == hub
+    end
+  end
+
   defp fly_bypass(app_id) do
     bypass = Bypass.open()
     Application.put_env(:livebook, :fly_graphql_endpoint, "http://localhost:#{bypass.port}")
@@ -136,6 +254,37 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       |> Plug.Conn.put_resp_content_type("application/json")
       |> Plug.Conn.resp(200, Jason.encode!(response))
     end)
+  end
+
+  defp enterprise_bypass(id) do
+    bypass = Bypass.open()
+
+    Bypass.expect(bypass, "POST", "/api/v1", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      body = Jason.decode!(body)
+
+      response =
+        cond do
+          body["query"] =~ "info" ->
+            %{
+              "data" => %{
+                "info" => %{
+                  "id" => Livebook.Utils.random_short_id(),
+                  "expire_at" => to_string(DateTime.utc_now())
+                }
+              }
+            }
+
+          body["query"] =~ "me" ->
+            %{"data" => %{"me" => %{"id" => id}}}
+        end
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(200, Jason.encode!(response))
+    end)
+
+    bypass
   end
 
   defp fetch_apps_response(app_id) do

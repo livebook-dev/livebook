@@ -10,13 +10,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       Hubs.clean_hubs()
     end)
 
-    bypass = Bypass.open()
-    Application.put_env(:livebook, :fly_graphql_endpoint, "http://localhost:#{bypass.port}")
-
-    {:ok, bypass: bypass}
+    :ok
   end
 
   describe "fly" do
+    setup do
+      bypass = Bypass.open()
+      Application.put_env(:livebook, :fly_graphql_endpoint, "http://localhost:#{bypass.port}")
+
+      {:ok, bypass: bypass}
+    end
+
     test "updates hub", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :mount} end)
 
@@ -55,18 +59,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ ~s/style="color: #FF00FF"/
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ Routes.hub_path(conn, :edit, hub.id)
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ "Personal Hub"
-
+      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"], hub_name: attrs["hub_name"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
@@ -195,6 +188,42 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
     end
+  end
+
+  describe "enterprise" do
+    test "updates hub", %{conn: conn} do
+      hub = insert_hub(:enterprise)
+      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+
+      attrs = %{"hub_color" => "#FF00FF"}
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{"enterprise" => attrs})
+
+      refute view
+             |> element("#enterprise-form .invalid-feedback")
+             |> has_element?()
+
+      assert {:ok, view, _html} =
+               view
+               |> element("#enterprise-form")
+               |> render_submit(%{"enterprise" => attrs})
+               |> follow_redirect(conn)
+
+      assert render(view) =~ "Hub updated successfully"
+
+      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"]})
+      refute Hubs.fetch_hub!(hub.id) == hub
+    end
+  end
+
+  defp assert_hub(view, conn, hub) do
+    hubs_html = view |> element("#hubs") |> render()
+
+    assert hubs_html =~ ~s/style="color: #{hub.hub_color}"/
+    assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+    assert hubs_html =~ hub.hub_name
   end
 
   defp fly_bypass(bypass, app_id, agent_pid) do
