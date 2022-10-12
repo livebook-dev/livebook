@@ -246,12 +246,10 @@ defmodule Livebook.Settings do
   Settings default file system
   """
   def default_file_system do
-    {_id, file_system} =
-      Enum.find(file_systems(), fn {id, _file_system} ->
-        id == default_file_system_id()
-      end)
-
-    file_system
+    case  storage().fetch(:filesystem, default_file_system_id()) do
+      {:ok, file} -> storage_to_fs(file)
+      :error ->  Livebook.Config.local_filesystem()
+    end
   end
 
   @doc """
