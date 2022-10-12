@@ -246,9 +246,9 @@ defmodule Livebook.Settings do
   Settings default file system
   """
   def default_file_system do
-    case  storage().fetch(:filesystem, default_file_system_id()) do
+    case storage().fetch(:filesystem, default_file_system_id()) do
       {:ok, file} -> storage_to_fs(file)
-      :error ->  Livebook.Config.local_filesystem()
+      :error -> Livebook.Config.local_filesystem()
     end
   end
 
