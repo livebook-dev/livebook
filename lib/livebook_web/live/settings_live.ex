@@ -318,7 +318,12 @@ defmodule LivebookWeb.SettingsLive do
     Livebook.Settings.remove_file_system(file_system_id)
 
     file_systems = Livebook.Settings.file_systems()
-    {:noreply, assign(socket, file_systems: file_systems)}
+
+    {:noreply,
+     assign(socket,
+       file_systems: file_systems,
+       default_file_system_id: Livebook.Settings.default_file_system_id()
+     )}
   end
 
   def handle_event("make_default_file_system", %{"id" => file_system_id}, socket) do

@@ -50,7 +50,7 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns all known filesystems with their associated ids.
+  Returns all known file systems with their associated ids.
 
   In case of the local filesystem the id resolves to `"local"`.
   """
@@ -243,9 +243,10 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Settings default file system
+  Returns the default file system.
   """
-  def default_file_system do
+  @spec default_file_system() :: Filesystem.t()
+  def default_file_system() do
     case storage().fetch(:filesystem, default_file_system_id()) do
       {:ok, file} -> storage_to_fs(file)
       :error -> Livebook.Config.local_filesystem()
@@ -253,9 +254,10 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Get default file system id
+  Returns the default file system id.
   """
-  def default_file_system_id do
+  @spec default_file_system_id() :: file_system_id()
+  def default_file_system_id() do
     case storage().fetch_key(:settings, "global", :default_file_system_id) do
       {:ok, default_file_system_id} -> default_file_system_id
       :error -> "local"
@@ -263,7 +265,8 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Settings default file system home
+  Returns the home directory in the default file system.
   """
-  def default_file_system_home, do: FileSystem.File.new(default_file_system())
+  @spec default_file_system_home() :: FileSystem.File.t()
+  def default_file_system_home(), do: FileSystem.File.new(default_file_system())
 end
