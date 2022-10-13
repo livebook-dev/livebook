@@ -89,7 +89,15 @@ defmodule Livebook.Settings do
   """
   @spec remove_file_system(file_system_id()) :: :ok
   def remove_file_system(filesystem_id) do
-    Storage.delete(:filesystem, filesystem_id)
+    if default_file_system_id() == filesystem_id do
+      storage().delete_key(:settings, "global", :default_file_system_id)
+    end
+
+    storage().delete(:filesystem, filesystem_id)
+  end
+
+  defp storage() do
+    Livebook.Storage.current()
   end
 
   defp storage_to_fs(%{type: "s3"} = config) do
@@ -225,4 +233,37 @@ defmodule Livebook.Settings do
   defp broadcast_env_vars_change(message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
   end
+
+  @doc """
+  Sets default file system.
+  """
+  @spec set_default_file_system(file_system_id()) :: :ok
+  def set_default_file_system(file_system_id) do
+    storage().insert(:settings, "global", default_file_system_id: file_system_id)
+  end
+
+  @doc """
+  Settings default file system
+  """
+  def default_file_system do
+    case storage().fetch(:filesystem, default_file_system_id()) do
+      {:ok, file} -> storage_to_fs(file)
+      :error -> Livebook.Config.local_filesystem()
+    end
+  end
+
+  @doc """
+  Get default file system id
+  """
+  def default_file_system_id do
+    case storage().fetch_key(:settings, "global", :default_file_system_id) do
+      {:ok, default_file_system_id} -> default_file_system_id
+      :error -> "local"
+    end
+  end
+
+  @doc """
+  Settings default file system home
+  """
+  def default_file_system_home, do: FileSystem.File.new(default_file_system())
 end

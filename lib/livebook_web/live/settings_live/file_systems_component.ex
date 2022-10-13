@@ -13,6 +13,7 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             <div class="flex items-center space-x-12">
               <.file_system_info file_system={file_system} />
             </div>
+
             <%= unless is_struct(file_system, FileSystem.Local) do %>
               <button
                 class="button-base button-outlined-red"
@@ -28,6 +29,18 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
                 }
               >
                 Detach
+              </button>
+            <% end %>
+          </div>
+          <div class="flex justify-end">
+            <%= unless @default_file_system_id == file_system_id do %>
+              <button
+                type="submit"
+                phx-click="make_default_file_system"
+                class="button-base button-outlined-gray"
+                phx-value-id={file_system_id}
+              >
+                Make default
               </button>
             <% end %>
           </div>

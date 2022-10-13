@@ -462,7 +462,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
+  defp determine_file(_params), do: Livebook.Settings.default_file_system_home()
 
   defp open_notebook(socket, file) do
     case import_notebook(file) do

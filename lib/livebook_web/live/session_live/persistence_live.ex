@@ -45,7 +45,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       <h3 class="text-2xl font-semibold text-gray-800">
         Save to file
       </h3>
-
       <div class="w-full flex-col space-y-6">
         <div class="h-full h-52">
           <.live_component
@@ -57,7 +56,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
             submit_event={:confirm_file}
           />
         </div>
-
         <form
           phx-change="set_options"
           onsubmit="return false;"
@@ -84,7 +82,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
               />
             </div>
           </div>
-
           <span class="text-gray-700 whitespace-nowrap pt-2">
             File: <%= normalize_file(@draft_file).path %>
           </span>
@@ -99,13 +96,11 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           >
             Save
           </button>
-
           <%= live_patch("Cancel",
             to: Routes.session_path(@socket, :page, @session.id),
             class: "button-base button-outlined-gray"
           ) %>
         </div>
-
         <%= if @saved_file do %>
           <button class="button-base button-outlined-red" phx-click="stop_saving">
             Stop saving to file
