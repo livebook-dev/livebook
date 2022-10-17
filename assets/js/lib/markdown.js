@@ -58,10 +58,10 @@ class Markdown {
         .use(remarkMath)
         .use(remarkPrepareMermaid)
         .use(remarkSyntaxHiglight, { highlight })
-        .use(remarkExpandUrls, { baseUrl: this.baseUrl })
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
+        .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
         .use(rehypeSanitize, sanitizeSchema())
         .use(rehypeKatex)
         .use(rehypeMermaid)
@@ -139,32 +139,38 @@ function remarkSyntaxHiglight(options) {
 
 // Expands relative URLs against the given base url
 // and deals with ".." in URLs
-function remarkExpandUrls(options) {
+function rehypeExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
-      visit(ast, "link", (node) => {
-        if (
-          node.url &&
-          !isAbsoluteUrl(node.url) &&
-          !isInternalUrl(node.url) &&
-          !isPageAnchor(node.url)
-        ) {
-          node.url = urlAppend(options.baseUrl, node.url);
-        }
-      });
+      visit(ast, "element", (node) => {
+        if (node.tagName === "a" && node.properties) {
+          const url = node.properties.href;
 
-      visit(ast, "image", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url) && !isInternalUrl(node.url)) {
-          node.url = urlAppend(options.baseUrl, node.url);
+          if (
+            url &&
+            !isAbsoluteUrl(url) &&
+            !isInternalUrl(url) &&
+            !isPageAnchor(url)
+          ) {
+            node.properties.href = urlAppend(options.baseUrl, url);
+          }
+        }
+
+        if (node.tagName === "img" && node.properties) {
+          const url = node.properties.src;
+
+          if (url && !isAbsoluteUrl(url) && !isInternalUrl(url)) {
+            node.properties.src = urlAppend(options.baseUrl, url);
+          }
         }
       });
     }
 
     // Browser normalizes URLs with ".." so we use a "__parent__"
     // modifier instead and handle it on the server
-    visit(ast, "link", (node) => {
-      if (node.url) {
-        node.url = node.url
+    visit(ast, "element", (node) => {
+      if (node.tagName === "a" && node.properties && node.properties.href) {
+        node.properties.href = node.properties.href
           .split("/")
           .map((part) => (part === ".." ? "__parent__" : part))
           .join("/");
