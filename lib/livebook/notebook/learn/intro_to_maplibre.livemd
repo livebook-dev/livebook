@@ -11,10 +11,10 @@ Mix.install([
 
 To work with maps in Livebook we need two libraries:
 
-* The [`maplibre`](https://github.com/cristineguadelupe/maplibre)
+* The [`maplibre`](https://github.com/livebook-dev/maplibre)
   package allows us to define our map style specifications
 
-* The [`kino_maplibre`](https://github.com/cristineguadelupe/Kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented)
+* The [`kino_maplibre`](https://github.com/livebook-dev/kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented)
 
 We will make extensive use of MapLibre's functions, so it's handy to alias the module to something shorter.
 

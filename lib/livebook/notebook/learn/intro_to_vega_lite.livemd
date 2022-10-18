@@ -14,7 +14,7 @@ We need two libraries for plotting in Livebook:
 * The [`vega_lite`](https://github.com/elixir-nx/vega_lite)
   package allows us to define our graph specifications
 
-* The [`kino_vega_lite`](https://github.com/elixir-nx/kino) package
+* The [`kino_vega_lite`](https://github.com/livebook-dev/kino_vega_lite) package
   instructs Livebook how to render our specifications
 
 Let's install them by running the setup cell above.
