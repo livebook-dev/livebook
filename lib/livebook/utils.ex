@@ -463,8 +463,8 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.format_bytes(0)
       "0 B"
 
-      iex> Livebook.Utils.format_bytes(1000)
-      "1000 B"
+      iex> Livebook.Utils.format_bytes(900)
+      "900 B"
 
       iex> Livebook.Utils.format_bytes(1100)
       "1.1 KB"
@@ -473,11 +473,13 @@ defmodule Livebook.Utils do
       "1.2 MB"
 
       iex> Livebook.Utils.format_bytes(1_363_148_800)
-      "1.3 GB"
+      "1.4 GB"
 
       iex> Livebook.Utils.format_bytes(1_503_238_553_600)
-      "1.4 TB"
+      "1.5 TB"
+
   """
+  @spec format_bytes(non_neg_integer()) :: String.t()
   def format_bytes(bytes) when is_integer(bytes) do
     cond do
       bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
@@ -495,10 +497,10 @@ defmodule Livebook.Utils do
     "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
   end
 
-  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
-  defp memory_unit(:GB), do: 1024 * 1024 * 1024
-  defp memory_unit(:MB), do: 1024 * 1024
-  defp memory_unit(:KB), do: 1024
+  defp memory_unit(:TB), do: 1_000_000_000_000
+  defp memory_unit(:GB), do: 1_000_000_000
+  defp memory_unit(:MB), do: 1_000_000
+  defp memory_unit(:KB), do: 1_000
 
   @doc """
   Gets the port for an existing listener.
