@@ -7,58 +7,17 @@ defmodule Standalone do
   """
   @spec copy_otp(Mix.Release.t()) :: Mix.Release.t()
   def copy_otp(release) do
-    erts_source = Path.join(:code.root_dir(), "erts-#{release.erts_version}")
-    otp_bin_dir = Path.join(:code.root_dir(), "bin")
-    otp_lib_dir = :code.lib_dir()
+    vendor_otp_path = "#{release.path}/vendor/otp"
+    File.mkdir_p!(Path.dirname(vendor_otp_path))
+    File.rm_rf!(vendor_otp_path)
+    File.cp_r!(:code.root_dir(), vendor_otp_path)
 
-    # 1. copy erts/{bin,include}
-    release_erts_bin_dir = Path.join(release.path, "erts-#{release.erts_version}/bin")
-    File.mkdir_p!(release_erts_bin_dir)
+    File.cd!(vendor_otp_path, fn ->
+      leftovers = File.ls!(".") -- ["COPYRIGHT", "usr", "bin", "lib", "erts-#{release.erts_version}"]
+      Enum.each(leftovers, &File.rm_rf!/1)
+    end)
 
-    cp_r!(Path.join(erts_source, "bin"), release_erts_bin_dir)
-
-    File.rm(Path.join(release_erts_bin_dir, "erl"))
-    File.rm(Path.join(release_erts_bin_dir, "erl.ini"))
-
-    File.write!(Path.join(release_erts_bin_dir, "erl"), ~S"""
-    #!/bin/sh
-    SELF=$(readlink "$0" || true)
-    if [ -z "$SELF" ]; then SELF="$0"; fi
-    BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
-    EMU=beam
-    PROGNAME=$(echo "$0" | sed 's/.*\///')
-    export EMU
-    export ROOTDIR
-    export BINDIR
-    export PROGNAME
-    exec "$BINDIR/erlexec" ${1+"$@"}
-    """)
-
-    make_executable(Path.join(release_erts_bin_dir, "erl"))
-
-    release_erts_include_dir = Path.join(release.path, "erts-#{release.erts_version}/include")
-    cp_r!(Path.join(erts_source, "include"), release_erts_include_dir)
-
-    # 2. copy lib
-    release_lib_dir = Path.join(release.path, "lib")
-    cp_r!(otp_lib_dir, release_lib_dir)
-
-    for dir <- Path.wildcard("#{release_lib_dir}/*/doc/{xml,html,pdf}") do
-      File.rm_rf!(dir)
-    end
-
-    # 3. copy boot files
-    release_bin_dir = Path.join(release.path, "bin")
-
-    for file <- Path.wildcard(Path.join(otp_bin_dir, "*.boot")) do
-      File.cp!(file, Path.join(release_bin_dir, Path.basename(file)))
-    end
-
-    # 4. copy usr
-    cp_r!(Path.join(:code.root_dir(), "usr"), Path.join(release.path, "usr"))
-
-    %{release | erts_source: erts_source}
+    release
   end
 
   @doc """
