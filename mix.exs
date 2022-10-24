@@ -164,7 +164,8 @@ defmodule Livebook.MixProject do
             ]
           ],
           additional_paths: [
-            "rel/erts-#{:erlang.system_info(:version)}/bin",
+            "/usr/local/bin",
+            "rel/vendor/otp/bin",
             "rel/vendor/elixir/bin"
           ],
           macos: [

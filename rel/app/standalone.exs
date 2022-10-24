@@ -10,11 +10,13 @@ defmodule Standalone do
     erts_source = Path.join(:code.root_dir(), "erts-#{release.erts_version}")
     otp_bin_dir = Path.join(:code.root_dir(), "bin")
     otp_lib_dir = :code.lib_dir()
+    vendor_otp_dir = Path.join([release.path, "vendor", "otp"])
+    File.rm_rf!(vendor_otp_dir)
+    File.mkdir_p!(vendor_otp_dir)
 
     # 1. copy erts/{bin,include}
-    release_erts_bin_dir = Path.join(release.path, "erts-#{release.erts_version}/bin")
+    release_erts_bin_dir = Path.join([vendor_otp_dir, "erts-#{release.erts_version}", "bin"])
     File.mkdir_p!(release_erts_bin_dir)
-
     cp_r!(Path.join(erts_source, "bin"), release_erts_bin_dir)
 
     File.rm(Path.join(release_erts_bin_dir, "erl"))
@@ -37,11 +39,13 @@ defmodule Standalone do
 
     make_executable(Path.join(release_erts_bin_dir, "erl"))
 
-    release_erts_include_dir = Path.join(release.path, "erts-#{release.erts_version}/include")
+    release_erts_include_dir =
+      Path.join([vendor_otp_dir, "erts-#{release.erts_version}", "include"])
+
     cp_r!(Path.join(erts_source, "include"), release_erts_include_dir)
 
     # 2. copy lib
-    release_lib_dir = Path.join(release.path, "lib")
+    release_lib_dir = Path.join(vendor_otp_dir, "lib")
     cp_r!(otp_lib_dir, release_lib_dir)
 
     for dir <- Path.wildcard("#{release_lib_dir}/*/doc/{xml,html,pdf}") do
@@ -49,16 +53,17 @@ defmodule Standalone do
     end
 
     # 3. copy boot files
-    release_bin_dir = Path.join(release.path, "bin")
+    release_bin_dir = Path.join(vendor_otp_dir, "bin")
+    File.mkdir!(release_bin_dir)
 
-    for file <- Path.wildcard(Path.join(otp_bin_dir, "*.boot")) do
+    for file <- Path.wildcard(Path.join(otp_bin_dir, "*")) do
       File.cp!(file, Path.join(release_bin_dir, Path.basename(file)))
     end
 
     # 4. copy usr
-    cp_r!(Path.join(:code.root_dir(), "usr"), Path.join(release.path, "usr"))
+    cp_r!(Path.join(:code.root_dir(), "usr"), Path.join(vendor_otp_dir, "usr"))
 
-    %{release | erts_source: erts_source}
+    release
   end
 
   @doc """
