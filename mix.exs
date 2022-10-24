@@ -164,9 +164,9 @@ defmodule Livebook.MixProject do
             ]
           ],
           additional_paths: [
-            "/usr/local/bin",
             "rel/vendor/otp/bin",
-            "rel/vendor/elixir/bin"
+            "rel/vendor/elixir/bin",
+            "/usr/local/bin"
           ],
           macos: [
             app_type: :agent,
