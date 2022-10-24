@@ -52,6 +52,10 @@ defmodule Standalone do
       File.rm_rf!(dir)
     end
 
+    for dir <- Path.wildcard("#{release_lib_dir}/*/src") do
+      File.rm_rf!(dir)
+    end
+
     # 3. copy boot files
     release_bin_dir = Path.join(vendor_otp_dir, "bin")
     File.mkdir!(release_bin_dir)
