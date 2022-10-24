@@ -23,6 +23,7 @@ defmodule AppBundler.Windows do
     copy_template(manifest_eex_path, manifest_xml_path, release: release)
 
     erl_exe = "#{app_path}/rel/erts-#{release.erts_version}/bin/erl.exe"
+    [erl_exe | _] = Path.wildcard("#{app_path}/**/erl.exe")
     log(:green, :updating, Path.relative_to_cwd(erl_exe))
     Mix.Task.run("pe.update", ["--set-manifest", manifest_xml_path, erl_exe])
 
