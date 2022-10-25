@@ -7,14 +7,14 @@ defmodule Livebook.Hubs.Fly do
   alias Livebook.Hubs
 
   @type t :: %__MODULE__{
-          id: Livebook.Utils.id(),
-          access_token: String.t(),
-          hub_name: String.t(),
-          hub_color: String.t(),
-          organization_id: String.t(),
-          organization_type: String.t(),
-          organization_name: String.t(),
-          application_id: String.t()
+          id: String.t() | nil,
+          access_token: String.t() | nil,
+          hub_name: String.t() | nil,
+          hub_color: String.t() | nil,
+          organization_id: String.t() | nil,
+          organization_type: String.t() | nil,
+          organization_name: String.t() | nil,
+          application_id: String.t() | nil
         }
 
   embedded_schema do

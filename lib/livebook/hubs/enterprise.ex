@@ -7,12 +7,12 @@ defmodule Livebook.Hubs.Enterprise do
   alias Livebook.Hubs
 
   @type t :: %__MODULE__{
-          id: Livebook.Utils.id(),
-          url: String.t(),
-          token: String.t(),
-          external_id: String.t(),
-          hub_name: String.t(),
-          hub_color: String.t()
+          id: String.t() | nil,
+          url: String.t() | nil,
+          token: String.t() | nil,
+          external_id: String.t() | nil,
+          hub_name: String.t() | nil,
+          hub_color: String.t() | nil
         }
 
   embedded_schema do
