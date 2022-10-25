@@ -111,4 +111,17 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_event("select_type", %{"value" => service}, socket) do
     {:noreply, assign(socket, selected_type: service)}
   end
+
+  @enterprise_messages ~w/session error/a
+
+  @impl true
+  def handle_info({kind, _} = message, socket) when kind in @enterprise_messages do
+    if socket.assigns.selected_type == "enterprise" do
+      send_update(LivebookWeb.Hub.New.EnterpriseComponent, id: "enterprise-form", message: message)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 end

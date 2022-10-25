@@ -4,9 +4,14 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   import Ecto.Changeset, only: [get_field: 2]
 
   alias Livebook.EctoTypes.HexColor
-  alias Livebook.Hubs.{Enterprise, EnterpriseClient}
+  alias Livebook.Hubs.Enterprise
+  alias Livebook.WebSocket
 
   @impl true
+  def update(%{message: message}, socket) do
+    handle_message(message, socket)
+  end
+
   def update(assigns, socket) do
     {:ok,
      socket
@@ -103,22 +108,14 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   def handle_event("connect", _params, socket) do
     url = get_field(socket.assigns.changeset, :url)
     token = get_field(socket.assigns.changeset, :token)
+    headers = [{"X-Auth-Token", token}]
 
-    with {:ok, _info} <- EnterpriseClient.fetch_info(url, token),
-         {:ok, %{"id" => id}} <- EnterpriseClient.fetch_me(url, token) do
-      base = %Enterprise{
-        token: token,
-        url: url,
-        external_id: id,
-        hub_name: "Enterprise",
-        hub_color: HexColor.random()
-      }
+    with {:ok, pid} <- WebSocket.connect(url, headers) do
+      :ok = WebSocket.send_session(pid)
 
-      changeset = Enterprise.change_hub(base)
-
-      {:noreply, assign(socket, changeset: changeset, base: base, connected: true)}
+      {:noreply, assign(socket, websocket: pid)}
     else
-      {:error, _message, reason} ->
+      {:error, reason} ->
         {:noreply,
          socket
          |> put_flash(:error, message_from_reason(reason))
@@ -151,7 +148,33 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.base, attrs))}
   end
 
-  defp message_from_reason(:invalid_url), do: "Failed to connect with given URL"
+  defp message_from_reason("unauthorized"), do: message_from_reason(:unauthorized)
+  defp message_from_reason(:econnrefused), do: "Failed to connect with given URL"
   defp message_from_reason(:unauthorized), do: "Failed to authorize with given token"
   defp message_from_reason(:invalid_token), do: "Failed to authenticate with given token"
+  defp message_from_reason(message) when is_binary(message), do: message
+
+  def handle_message({:error, error}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, message_from_reason(error.details))
+     |> push_patch(to: Routes.hub_path(socket, :new))}
+  end
+
+  def handle_message({:session, session_response}, socket) do
+    url = get_field(socket.assigns.changeset, :url)
+    token = get_field(socket.assigns.changeset, :token)
+
+    base = %Enterprise{
+      token: token,
+      url: url,
+      external_id: session_response.user.id,
+      hub_name: "Enterprise",
+      hub_color: HexColor.random()
+    }
+
+    changeset = Enterprise.change_hub(base)
+
+    {:ok, assign(socket, changeset: changeset, base: base, connected: true)}
+  end
 end
