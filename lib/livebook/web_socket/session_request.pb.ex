@@ -4,4 +4,3 @@ defmodule Livebook.WebSocket.SessionRequest do
 
   field :app_version, 1, type: :string, json_name: "appVersion"
 end
-
