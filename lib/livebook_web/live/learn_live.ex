@@ -39,7 +39,7 @@ defmodule LivebookWeb.LearnLive do
         </div>
         <div
           id="welcome-to-livebook"
-          class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center shadow-xl"
+          class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center"
         >
           <img src={@lead_notebook_info.details.cover_url} width="100" alt="livebook" />
           <div>
