@@ -7,6 +7,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
   describe "enterprise" do
     test "persists new hub", %{conn: conn, url: url, token: token} do
+      Livebook.Hubs.delete_hub("enterprise-bf1587a3-4501-4729-9f53-43679381e28b")
+
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
 
       assert view
@@ -22,9 +24,13 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         }
       })
 
-      assert view
-             |> element("#connect")
-             |> render_click() =~ "Add Hub"
+      view
+      |> element("#connect")
+      |> render_click()
+
+      Process.sleep(50)
+
+      assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
 
       attrs = %{
         "url" => url,
@@ -56,6 +62,31 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ "Enterprise"
     end
 
+    test "fails with invalid token", %{conn: conn, url: url} do
+      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      token = "foo bar baz"
+
+      assert view
+             |> element("#enterprise")
+             |> render_click() =~ "2. Configure your Hub"
+
+      view
+      |> element("#enterprise-form")
+      |> render_change(%{
+        "enterprise" => %{
+          "url" => url,
+          "token" => token
+        }
+      })
+
+      view
+      |> element("#connect")
+      |> render_click()
+
+      assert render(view) =~ "Invalid Token"
+      refute render(view) =~ "enterprise[hub_name]"
+    end
+
     test "fails to create existing hub", %{conn: conn, url: url, token: token} do
       hub =
         insert_hub(:enterprise,
@@ -80,9 +111,13 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         }
       })
 
-      assert view
-             |> element("#connect")
-             |> render_click() =~ "Add Hub"
+      view
+      |> element("#connect")
+      |> render_click()
+
+      Process.sleep(50)
+
+      assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
 
       attrs = %{
         "url" => url,
