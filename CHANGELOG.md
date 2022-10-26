@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.7.2](https://github.com/livebook-dev/livebook/tree/v0.7.2) (2022-10-26)
+
+### Added
+
+- Options to view and delete secrets in the session sidebar ([#1473](https://github.com/livebook-dev/livebook/pull/1473))
+- Option to change the default file system in settings ([#1450](https://github.com/livebook-dev/livebook/pull/1450))
+
+### Changed
+
+- Improved CLI configuration for Attached runtime to support short node name without hostname ([#1474](https://github.com/livebook-dev/livebook/pull/1474))
+
+### Fixed
+
+- Relative URLs in HTML elements in Markdown ([#1491](https://github.com/livebook-dev/livebook/pull/1491))
+- Units in byte formatting when showing memory usage ([#1494](https://github.com/livebook-dev/livebook/pull/1494))
+- Fixed vendoring OTP in the desktop app ([#1495](https://github.com/livebook-dev/livebook/pull/1495))
+
 ## [v0.7.1](https://github.com/livebook-dev/livebook/tree/v0.7.1) (2022-10-09)
 
 ### Fixed
