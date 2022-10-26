@@ -57,14 +57,12 @@ defmodule Livebook.WebSocket.Client do
 
   ## GenServer callbacks
 
-  @doc false
+  @impl true
   def init(_) do
     {:ok, %__MODULE__{}}
   end
 
-  @dialyzer {:nowarn_function, handle_call: 3}
-
-  @doc false
+  @impl true
   def handle_call({:connect, url, headers}, from, state) do
     uri = URI.parse(url)
 
@@ -92,12 +90,12 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  @doc false
+  @impl true
   def handle_cast(:close, state) do
     do_close(state)
   end
 
-  @doc false
+  @impl true
   def handle_info(message, state) do
     case Mint.WebSocket.stream(state.conn, message) do
       {:ok, conn, responses} ->
@@ -118,21 +116,11 @@ defmodule Livebook.WebSocket.Client do
   defp parse_ws_path(%URI{query: nil}), do: @ws_path
   defp parse_ws_path(%URI{query: query}), do: @ws_path <> "?" <> query
 
-  @http_schemes ~w(http https)
+  defp parse_http_scheme(uri) when uri.scheme in ["http", "ws"], do: :http
+  defp parse_http_scheme(uri) when uri.scheme in ["https", "wss"], do: :https
 
-  defp parse_http_scheme(%URI{scheme: "ws"}), do: :http
-  defp parse_http_scheme(%URI{scheme: "wss"}), do: :https
-
-  defp parse_http_scheme(%URI{scheme: scheme}) when scheme in @http_schemes,
-    do: String.to_atom(scheme)
-
-  @ws_schemes ~w(ws wss)
-
-  defp parse_ws_scheme(%URI{scheme: "http"}), do: :ws
-  defp parse_ws_scheme(%URI{scheme: "https"}), do: :wss
-
-  defp parse_ws_scheme(%URI{scheme: scheme}) when scheme in @ws_schemes,
-    do: String.to_atom(scheme)
+  defp parse_ws_scheme(uri) when uri.scheme in ["http", "ws"], do: :ws
+  defp parse_ws_scheme(uri) when uri.scheme in ["https", "wss"], do: :wss
 
   defp do_close(state) do
     # Streaming a close frame may fail if the server has already closed
@@ -141,8 +129,6 @@ defmodule Livebook.WebSocket.Client do
     Mint.HTTP.close(state.conn)
     {:stop, :normal, state}
   end
-
-  @dialyzer {:nowarn_function, stream_frame: 2}
 
   # Encodes a frame as a binary and sends it along the wire, keeping `conn`
   # and `websocket` up to date in `state`.

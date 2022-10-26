@@ -1,33 +1,33 @@
 syntax = "proto3";
 
 message User {
-	string id = 1;
-	string email = 2;
+  string id = 1;
+  string email = 2;
 }
 
 message Error {
-	string details = 1;
+  string details = 1;
 }
 
 message SessionRequest {
-	string app_version = 1;
+  string app_version = 1;
 }
 
 message SessionResponse {
-	string id = 1;
-	User user = 2;
+  string id = 1;
+  User user = 2;
 }
 
 message Request {
-	oneof type {
-		SessionRequest session = 1;
-	}
+  oneof type {
+    SessionRequest session = 1;
+  }
 }
 
 message Response {
-	oneof type {
-		Error error = 1;
+  oneof type {
+    Error error = 1;
 
-		SessionResponse session = 2;
-	}
+    SessionResponse session = 2;
+  }
 }

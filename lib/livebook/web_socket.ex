@@ -16,8 +16,9 @@ defmodule Livebook.WebSocket do
   @typep headers :: list(header())
 
   @doc """
-  Starts the WebSocket client link for given ws URL. `Livebook.WebSocket.Response`s
-  received from the server are forwarded to the sender pid.
+  Starts the WebSocket client link for given ws URL.
+
+  `Livebook.WebSocket.Response`s received from the server are forwarded to the sender pid.
   """
   @spec connect_link(String.t(), headers()) :: {:ok, pid()} | {:error, any()}
   def connect_link(url, headers \\ []) do
@@ -28,8 +29,9 @@ defmodule Livebook.WebSocket do
   end
 
   @doc """
-  Starts the WebSocket client for given ws URL. `Livebook.WebSocket.Response`s
-  received from the server are forwarded to the sender pid.
+  Starts the WebSocket client for given ws URL.
+
+  `Livebook.WebSocket.Response`s received from the server are forwarded to the sender pid.
   """
   @spec connect(String.t(), headers()) :: {:ok, pid()} | {:error, any()}
   def connect(url, headers \\ []) do
