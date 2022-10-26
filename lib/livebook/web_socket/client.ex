@@ -33,15 +33,15 @@ defmodule Livebook.WebSocket.Client do
   @doc """
   Connects the WebSocket client.
   """
-  def connect(socket, url, headers \\ []) do
-    GenServer.call(socket, {:connect, url, headers})
+  def connect(pid, url, headers \\ []) do
+    GenServer.call(pid, {:connect, url, headers})
   end
 
   @doc """
   Closes the socket
   """
-  def close(socket) do
-    GenServer.cast(socket, :close)
+  def close(pid) do
+    GenServer.cast(pid, :close)
   end
 
   @doc """
@@ -52,7 +52,7 @@ defmodule Livebook.WebSocket.Client do
   end
 
   def send_message(socket, data) when is_binary(data) do
-    GenServer.call(socket, {:send_message, data})
+    GenServer.call(socket, {:send_message, {:text, data}})
   end
 
   ## GenServer callbacks
@@ -84,7 +84,7 @@ defmodule Livebook.WebSocket.Client do
   end
 
   def handle_call({:send_message, msg}, _from, state) do
-    case stream_frame(state, {:text, msg}) do
+    case stream_frame(state, msg) do
       {:ok, state} -> {:reply, :ok, state}
       {:error, state, reason} -> {:reply, {:error, reason}, state}
     end
@@ -183,8 +183,7 @@ defmodule Livebook.WebSocket.Client do
 
   defp handle_responses(%{request_ref: ref, websocket: websocket} = state, [
          {:data, ref, data} | rest
-       ])
-       when websocket != nil do
+       ]) do
     case Mint.WebSocket.decode(websocket, data) do
       {:ok, websocket, frames} ->
         %{state | websocket: websocket, resp_body: nil}
