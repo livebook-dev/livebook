@@ -7,15 +7,18 @@ defmodule Livebook.WebSocketTest do
     test "successfully authenticates the web socket connection", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, socket} = WebSocket.connect(url, headers)
-      assert is_pid(socket)
+      assert {:ok, connection, :connected} = WebSocket.connect(url, headers)
+      assert WebSocket.disconnect(connection) == :ok
     end
 
     test "rejects the web socket connection with invalid credentials", %{url: url} do
       headers = [{"X-Auth-Token", "foo"}]
 
-      assert {:error, "Invalid Token"} = WebSocket.connect(url, headers)
-      assert {:error, "Token not found"} = WebSocket.connect(url)
+      assert {:error, connection, %{details: "Invalid Token"}} = WebSocket.connect(url, headers)
+      assert WebSocket.disconnect(connection) == :ok
+
+      assert {:error, connection, %{details: "Token not found"}} = WebSocket.connect(url)
+      assert WebSocket.disconnect(connection) == :ok
     end
   end
 
@@ -23,12 +26,17 @@ defmodule Livebook.WebSocketTest do
     test "receives the session response from server", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, socket} = WebSocket.connect(url, headers)
-      assert is_pid(socket)
+      assert {:ok, %WebSocket.Connection{} = connection, :connected} =
+               WebSocket.connect(url, headers)
 
-      assert :ok = WebSocket.send_session(socket)
+      assert {:ok, %WebSocket.Connection{} = connection} = WebSocket.send_session(connection)
 
-      assert_receive {:session, %{id: _, user: _}}
+      assert {:ok, connection, {:session, session_response}} =
+               WebSocket.receive_response(connection)
+
+      assert WebSocket.disconnect(connection) == :ok
+
+      assert session_response.user.email == "jake.peralta@mail.com"
     end
   end
 end
