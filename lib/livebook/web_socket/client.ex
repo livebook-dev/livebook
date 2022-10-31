@@ -37,7 +37,7 @@ defmodule Livebook.WebSocket.Client do
   end
 
   @doc """
-
+  Connects to the WebSocket server with given url and headers.
   """
   @spec connect(String.t(), list({String.t(), String.t()})) :: connect_fun()
   def connect(url, headers \\ []) do
@@ -58,24 +58,26 @@ defmodule Livebook.WebSocket.Client do
   defp parse_ws_scheme(uri) when uri.scheme in ["https", "wss"], do: :wss
 
   @doc """
+  Disconnects from the given connection, WebSocket and reference.
 
+  If there's no WebSocket connection yet, it'll only close the HTTP connection.
   """
   @spec disconnect(conn(), websocket(), ref()) :: :ok
-  def disconnect(conn, nil, _ref) do
-    Mint.HTTP.close(conn)
-
-    :ok
-  end
-
   def disconnect(conn, websocket, ref) do
-    send(conn, websocket, ref, :close)
+    if websocket do
+      send(conn, websocket, ref, :close)
+    end
+
     Mint.HTTP.close(conn)
 
     :ok
   end
 
   @doc """
+  Receive the message from the given HTTP connection.
 
+  If the WebSocket isn't connected yet, it will try to get the connection
+  response to start a new WebSocket connection.
   """
   @spec recv(conn(), ref(), term()) :: recv_fun()
   def recv(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
@@ -198,7 +200,7 @@ defmodule Livebook.WebSocket.Client do
   @dialyzer {:nowarn_function, send: 4}
 
   @doc """
-
+  Sends a message to the given HTTP Connection and WebSocket connection.
   """
   @spec send(conn(), websocket(), ref(), frame()) :: send_fun()
   def send(conn, websocket, ref, frame) do
@@ -211,7 +213,9 @@ defmodule Livebook.WebSocket.Client do
   defp prepare_frame(:close), do: :close
 
   defp prepare_frame(frame) when is_struct(frame) do
-    frame |> Livebook.WebSocket.Response.encode() |> prepare_frame()
+    frame
+    |> Livebook.WebSocket.Response.encode()
+    |> prepare_frame()
   end
 
   defp prepare_frame(frame) when is_binary(frame) do
