@@ -28,8 +28,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      Process.sleep(50)
-
       assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
 
       attrs = %{
@@ -114,8 +112,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       view
       |> element("#connect")
       |> render_click()
-
-      Process.sleep(50)
 
       assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
 
