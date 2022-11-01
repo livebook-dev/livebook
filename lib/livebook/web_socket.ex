@@ -14,7 +14,7 @@ defmodule Livebook.WebSocket do
           }
   end
 
-  @app_version Mix.Project.config()[:version]
+  @type proto :: SessionRequest.t()
 
   @typep header :: {String.t(), String.t()}
   @typep headers :: list(header())
@@ -23,8 +23,8 @@ defmodule Livebook.WebSocket do
   Connects with the WebSocket server for given URL and headers.
   """
   @spec connect(String.t(), headers()) ::
-          {:ok, Connection.t(), :connected | {atom(), struct()}}
-          | {:error, Connection.t(), String.t() | Livebook.WebSocket.Error.t()}
+          {:ok, Connection.t(), :connected | {atom(), proto()}}
+          | {:error, Connection.t(), String.t() | LivebookProto.Error.t()}
   def connect(url, headers \\ []) do
     with {:ok, conn, ref} <- Client.connect(url, headers) do
       conn
@@ -41,15 +41,18 @@ defmodule Livebook.WebSocket do
     Client.disconnect(connection.conn, connection.websocket, connection.ref)
   end
 
-  @dialyzer {:nowarn_function, send_session: 1}
-
   @doc """
-  Sends a session request to the given server.
+  Sends a request to the given server.
   """
-  @spec send_session(Connection.t()) :: Client.send_fun()
-  def send_session(%Connection{} = connection) do
-    session_request = SessionRequest.new!(app_version: @app_version)
-    message = Request.new!(type: {:session, session_request})
+  @spec send_request(Connection.t(), proto()) ::
+          {:ok, Connection.t()}
+          | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
+  def send_request(%Connection{} = connection, %{__struct__: SessionRequest} = session_request) do
+    do_send_request(connection, :session, session_request)
+  end
+
+  defp do_send_request(connection, type, struct) do
+    message = Request.new!(type: {type, struct})
 
     case Client.send(connection.conn, connection.websocket, connection.ref, message) do
       {:ok, conn, websocket} ->

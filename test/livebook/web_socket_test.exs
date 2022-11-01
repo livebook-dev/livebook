@@ -1,6 +1,8 @@
 defmodule Livebook.WebSocketTest do
   use Livebook.EnterpriseIntegrationCase, async: true
 
+  @app_version Mix.Project.config()[:version]
+
   alias Livebook.WebSocket
 
   describe "authentication" do
@@ -29,7 +31,10 @@ defmodule Livebook.WebSocketTest do
       assert {:ok, %WebSocket.Connection{} = connection, :connected} =
                WebSocket.connect(url, headers)
 
-      assert {:ok, %WebSocket.Connection{} = connection} = WebSocket.send_session(connection)
+      session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
+
+      assert {:ok, %WebSocket.Connection{} = connection} =
+               WebSocket.send_request(connection, session_request)
 
       assert {:ok, connection, {:session, session_response}} =
                WebSocket.receive_response(connection)

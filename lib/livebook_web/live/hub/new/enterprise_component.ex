@@ -7,6 +7,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   alias Livebook.Hubs.Enterprise
   alias Livebook.WebSocket
 
+  @app_version Mix.Project.config()[:version]
+
   @impl true
   def update(assigns, socket) do
     {:ok,
@@ -151,9 +153,10 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   defp connect_with_enterprise(url, token) do
     headers = [{"X-Auth-Token", token}]
+    session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
 
     with {:ok, connection, :connected} <- WebSocket.connect(url, headers),
-         {:ok, connection} <- WebSocket.send_session(connection),
+         {:ok, connection} <- WebSocket.send_request(connection, session_request),
          {:ok, connection, session_response} <- WebSocket.receive_response(connection) do
       WebSocket.disconnect(connection)
       {:ok, session_response}
