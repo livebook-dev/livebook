@@ -24,7 +24,9 @@ defmodule LivebookProto.MixProject do
     [
       "protobuf.generate": [
         "cmd protoc --elixir_out=one_file_per_module=true:lib --elixir_opt=include_docs=true --elixir_opt=gen_struct=true --elixir_opt=package_prefix=livebook_proto messages.proto",
-        "format lib/livebook_proto/*.pb.ex"
+        "format lib/livebook_proto/*.pb.ex",
+        "deps.get",
+        "compile"
       ]
     ]
   end
