@@ -26,13 +26,17 @@ defmodule Livebook.WebSocket.ClientTest do
       assert {:error, _conn, response} = Client.receive(conn, ref)
 
       assert response.status == 403
-      assert %{type: {:error, %{details: "Invalid Token"}}} = response.body
+
+      assert %{type: {:error, %{details: "Invalid Token"}}} =
+               LivebookProto.Response.decode(response.body)
 
       assert {:ok, conn, ref} = Client.connect(url)
       assert {:error, _conn, response} = Client.receive(conn, ref)
 
       assert response.status == 401
-      assert %{type: {:error, %{details: "Token not found"}}} = response.body
+
+      assert %{type: {:error, %{details: "Token not found"}}} =
+               LivebookProto.Response.decode(response.body)
     end
   end
 end

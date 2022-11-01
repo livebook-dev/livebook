@@ -47,14 +47,12 @@ defmodule Livebook.WebSocket do
   @spec send_request(Connection.t(), proto()) ::
           {:ok, Connection.t()}
           | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
-  def send_request(%Connection{} = connection, %{__struct__: SessionRequest} = session_request) do
-    do_send_request(connection, :session, session_request)
-  end
+  def send_request(%Connection{} = connection, %struct{} = data) do
+    type = LivebookProto.request_type(struct)
+    message = Request.new!(type: {type, data})
+    binary = {:binary, Request.encode(message)}
 
-  defp do_send_request(connection, type, struct) do
-    message = Request.new!(type: {type, struct})
-
-    case Client.send(connection.conn, connection.websocket, connection.ref, message) do
+    case Client.send(connection.conn, connection.websocket, connection.ref, binary) do
       {:ok, conn, websocket} ->
         {:ok, %{connection | conn: conn, websocket: websocket}}
 
@@ -83,14 +81,16 @@ defmodule Livebook.WebSocket do
   end
 
   defp handle_receive({:ok, conn, websocket, %Client.Response{body: response}}, ref) do
-    {:ok, %Connection{conn: conn, websocket: websocket, ref: ref}, response.type}
+    %{type: result} = LivebookProto.Response.decode(response)
+    {:ok, %Connection{conn: conn, websocket: websocket, ref: ref}, result}
   end
 
   defp handle_receive({:error, conn, %Client.Response{body: nil, status: status}}, ref) do
     {:error, %Connection{conn: conn, ref: ref}, Plug.Conn.Status.reason_phrase(status)}
   end
 
-  defp handle_receive({:error, conn, %Client.Response{body: %{type: {:error, error}}}}, ref) do
+  defp handle_receive({:error, conn, %Client.Response{body: response}}, ref) do
+    %{type: {:error, error}} = LivebookProto.Response.decode(response)
     {:error, %Connection{conn: conn, ref: ref}, error}
   end
 end

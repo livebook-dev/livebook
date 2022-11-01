@@ -7,7 +7,7 @@ defmodule Livebook.WebSocket.Client do
 
   @type conn :: Mint.HTTP.t()
   @type websocket :: Mint.WebSocket.t()
-  @type frame :: Mint.WebSocket.frame()
+  @type frame :: :close | {:binary, binary()}
   @type ref :: Mint.Types.request_ref()
   @type ws_error :: Mint.WebSocket.error()
   @type mint_error :: Mint.Types.error()
@@ -35,6 +35,9 @@ defmodule Livebook.WebSocket.Client do
             headers: Mint.Types.headers()
           }
   end
+
+  defguard is_frame(value)
+           when (is_tuple(value) and elem(value, 0) == :binary) or value == :close
 
   @doc """
   Connects to the WebSocket server with given url and headers.
@@ -138,7 +141,7 @@ defmodule Livebook.WebSocket.Client do
   defp handle_done_response(conn, ref, response) do
     case Mint.WebSocket.new(conn, ref, response.status, response.headers) do
       {:ok, conn, websocket} ->
-        case decode_body(websocket, response) do
+        case decode_response(websocket, response) do
           {websocket, {:ok, result}} ->
             {:ok, conn, websocket, result}
 
@@ -151,22 +154,15 @@ defmodule Livebook.WebSocket.Client do
         end
 
       {:error, conn, %UpgradeFailureError{status_code: status, headers: headers}} ->
-        response = %{
-          response
-          | body: decode_binary(response.body),
-            status: status,
-            headers: headers
-        }
-
-        {:error, conn, response}
+        {:error, conn, %{response | status: status, headers: headers}}
     end
   end
 
-  defp decode_body(websocket, %Response{status: 101, body: nil}) do
+  defp decode_response(websocket, %Response{status: 101, body: nil}) do
     {websocket, {:ok, :connected}}
   end
 
-  defp decode_body(websocket, response) do
+  defp decode_response(websocket, response) do
     case Mint.WebSocket.decode(websocket, response.body) do
       {:ok, websocket, frames} ->
         {websocket, handle_frames(response, frames)}
@@ -176,17 +172,10 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp decode_binary(binary) when is_binary(binary) do
-    LivebookProto.Response.decode(binary)
-  end
-
   defp handle_frames(response, frames) do
     Enum.reduce(frames, response, fn
       {:binary, binary}, acc ->
-        case decode_binary(binary) do
-          %{type: {:error, _}} = body -> {:error, %{acc | body: body}}
-          body -> {:ok, %{acc | body: body}}
-        end
+        {:ok, %{acc | body: binary}}
 
       {:close, _code, _data}, acc ->
         {:close, acc}
@@ -199,22 +188,10 @@ defmodule Livebook.WebSocket.Client do
   Sends a message to the given HTTP Connection and WebSocket connection.
   """
   @spec send(conn(), websocket(), ref(), frame()) :: send_result()
-  def send(conn, websocket, ref, frame) do
-    with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, prepare_frame(frame)),
+  def send(conn, websocket, ref, frame) when is_frame(frame) do
+    with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, frame),
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do
       {:ok, conn, websocket}
     end
-  end
-
-  defp prepare_frame(:close), do: :close
-
-  defp prepare_frame(frame) when is_struct(frame) do
-    frame
-    |> LivebookProto.Response.encode()
-    |> prepare_frame()
-  end
-
-  defp prepare_frame(frame) when is_binary(frame) do
-    {:text, frame}
   end
 end

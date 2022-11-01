@@ -4,8 +4,9 @@ defmodule Livebook.WebSocket.Server do
 
   require Logger
 
+  import Livebook.WebSocket.Client, only: [is_frame: 1]
+
   alias Livebook.WebSocket.Client
-  alias Livebook.WebSocket.Client.Response
 
   defstruct [
     :conn,
@@ -39,12 +40,8 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Sends a message to the WebSocket server the message request.
   """
-  def send_message(socket, data) when is_struct(data) do
-    send_message(socket, Protobuf.encode(data))
-  end
-
-  def send_message(socket, data) when is_binary(data) do
-    GenServer.call(socket, {:send_message, {:text, data}})
+  def send_message(socket, frame) when is_frame(frame) do
+    GenServer.cast(socket, {:send_message, frame})
   end
 
   ## GenServer callbacks
@@ -63,140 +60,48 @@ defmodule Livebook.WebSocket.Server do
     end
   end
 
-  def handle_call({:send_message, msg}, _from, state) do
-    case stream_frame(state, msg) do
-      {:ok, state} -> {:reply, :ok, state}
-      {:error, state, reason} -> {:reply, {:error, reason}, state}
+  @impl true
+  def handle_cast(:close, state) do
+    Client.disconnect(state.conn, state.websocket, state.ref)
+
+    {:stop, :normal, state}
+  end
+
+  def handle_cast({:send_message, frame}, state) do
+    case Client.send(state.conn, state.websocket, state.ref, frame) do
+      {:ok, conn, websocket} ->
+        {:noreply, %{state | conn: conn, websocket: websocket}}
+
+      {:error, %Mint.WebSocket{} = websocket, _reason} ->
+        {:noreply, %{state | websocket: websocket}}
+
+      {:error, conn, _reason} ->
+        {:noreply, %{state | conn: conn}}
     end
   end
 
   @impl true
-  def handle_cast(:close, state) do
-    do_close(state)
-  end
-
-  @impl true
   def handle_info(message, state) do
-    case Mint.WebSocket.stream(state.conn, message) do
-      {:ok, conn, responses} ->
-        state = handle_responses(%{state | conn: conn}, responses)
-        if state.closing?, do: do_close(state), else: {:noreply, state}
+    case Client.receive(state.conn, state.ref, state.websocket, message) do
+      {:ok, conn, websocket, response} ->
+        state = %{state | conn: conn, websocket: websocket}
+        {:noreply, reply(state, {:ok, response})}
 
-      {:error, conn, reason, _responses} ->
-        state = reply(%{state | conn: conn}, {:error, reason})
-        {:noreply, state}
+      {:error, conn, websocket, response} ->
+        state = %{state | conn: conn, websocket: websocket}
+        {:noreply, reply(state, {:error, response})}
 
-      :unknown ->
+      {:error, conn, response} ->
+        state = %{state | conn: conn}
+        {:noreply, reply(state, {:error, response})}
+
+      {:error, _} ->
         {:noreply, state}
     end
   end
 
   # Private
 
-  defp do_close(state) do
-    # Streaming a close frame may fail if the server has already closed
-    # for writing.
-    _ = stream_frame(state, :close)
-    Mint.HTTP.close(state.conn)
-    {:stop, :normal, state}
-  end
-
-  # Encodes a frame as a binary and sends it along the wire, keeping `conn`
-  # and `websocket` up to date in `state`.
-  defp stream_frame(state, frame) do
-    with {:ok, websocket, data} <- Mint.WebSocket.encode(state.websocket, frame),
-         {:ok, conn} <- Mint.WebSocket.stream_request_body(state.conn, state.ref, data) do
-      {:ok, %{state | conn: conn, websocket: websocket}}
-    else
-      {:error, %Mint.WebSocket{} = websocket, reason} ->
-        {:error, %{state | websocket: websocket}, reason}
-
-      {:error, conn, reason} ->
-        {:error, %{state | conn: conn}, reason}
-    end
-  end
-
-  defp handle_responses(state, responses)
-
-  defp handle_responses(%{ref: ref} = state, [{:status, ref, status} | rest]) do
-    handle_responses(%{state | status: status}, rest)
-  end
-
-  defp handle_responses(%{ref: ref} = state, [{:headers, ref, resp_headers} | rest]) do
-    handle_responses(%{state | resp_headers: resp_headers}, rest)
-  end
-
-  defp handle_responses(%{ref: ref, websocket: nil} = state, [
-         {:data, ref, resp_body} | rest
-       ]) do
-    handle_responses(%{state | resp_body: decode_binary(resp_body)}, rest)
-  end
-
-  defp handle_responses(%{ref: ref} = state, [{:done, ref} | rest]) do
-    case Mint.WebSocket.new(state.conn, ref, state.status, state.resp_headers) do
-      {:ok, conn, websocket} ->
-        %{
-          state
-          | conn: conn,
-            websocket: websocket,
-            status: nil,
-            resp_headers: nil,
-            resp_body: nil
-        }
-        |> reply({:ok, :connected})
-        |> handle_responses(rest)
-
-      {:error, conn, %Mint.WebSocket.UpgradeFailureError{status_code: status, headers: headers}} ->
-        response = %Response{body: state.resp_body, status: status, headers: headers}
-        reply(%{state | conn: conn, resp_body: nil}, {:error, response})
-    end
-  end
-
-  defp handle_responses(%{ref: ref, websocket: websocket} = state, [
-         {:data, ref, data} | rest
-       ]) do
-    case Mint.WebSocket.decode(websocket, data) do
-      {:ok, websocket, frames} ->
-        %{state | websocket: websocket, resp_body: nil}
-        |> handle_frames(frames)
-        |> handle_responses(rest)
-
-      {:error, websocket, reason} ->
-        reply(%{state | websocket: websocket}, {:error, reason})
-    end
-  end
-
-  defp handle_responses(state, [_response | rest]) do
-    handle_responses(state, rest)
-  end
-
-  defp handle_responses(state, []), do: state
-
-  defp handle_frames(state, frames) do
-    {frames, state} =
-      Enum.flat_map_reduce(frames, state, fn
-        # deserialize text and binary frames
-        {:binary, binary}, state ->
-          response = decode_binary(binary)
-          {[response.type], state}
-
-        # prepare to close the connection when a close frame is received
-        {:close, _code, _data}, state ->
-          {[], %{state | closing?: true}}
-      end)
-
-    {pid, _} = state.caller
-
-    for frame <- frames, do: send(pid, frame)
-
-    state
-  end
-
-  defp decode_binary(binary) when is_binary(binary) do
-    LivebookProto.Response.decode(binary)
-  end
-
-  # reply to an open GenServer call request if there is one
   defp reply(%{caller: nil} = state, response) do
     Logger.warn("The caller is nil, so we can't reply the message: #{inspect(response)}")
     state

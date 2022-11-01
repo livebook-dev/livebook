@@ -24,7 +24,7 @@ defmodule Livebook.WebSocketTest do
     end
   end
 
-  describe "send_session/1" do
+  describe "send_request/2" do
     test "receives the session response from server", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
