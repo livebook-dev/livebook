@@ -25,12 +25,14 @@ defmodule Livebook.WebSocket do
   @doc """
   Connects with the WebSocket server for given URL and headers.
   """
-  @spec connect(String.t(), headers()) :: Client.recv_fun()
+  @spec connect(String.t(), headers()) ::
+          {:ok, Connection.t(), :connected | {atom(), struct()}}
+          | {:error, Connection.t(), String.t() | Livebook.WebSocket.Error.t()}
   def connect(url, headers \\ []) do
     with {:ok, conn, ref} <- Client.connect(url, headers) do
       conn
-      |> Client.recv(ref)
-      |> handle_recv(ref)
+      |> Client.receive(ref)
+      |> handle_receive(ref)
     end
   end
 
@@ -69,26 +71,26 @@ defmodule Livebook.WebSocket do
   @doc """
   Receives a response from the given server.
   """
-  @spec receive_response(Connection.t()) :: Client.recv_fun()
+  @spec receive_response(Connection.t()) :: Client.receive_fun()
   def receive_response(%Connection{conn: conn, websocket: websocket, ref: ref}) do
     conn
-    |> Client.recv(ref, websocket)
-    |> handle_recv(ref)
+    |> Client.receive(ref, websocket)
+    |> handle_receive(ref)
   end
 
-  defp handle_recv({:ok, conn, websocket, :connected}, ref) do
+  defp handle_receive({:ok, conn, websocket, :connected}, ref) do
     {:ok, %Connection{conn: conn, websocket: websocket, ref: ref}, :connected}
   end
 
-  defp handle_recv({:ok, conn, websocket, %Client.Response{body: response}}, ref) do
+  defp handle_receive({:ok, conn, websocket, %Client.Response{body: response}}, ref) do
     {:ok, %Connection{conn: conn, websocket: websocket, ref: ref}, response.type}
   end
 
-  defp handle_recv({:error, conn, %Client.Response{body: nil, status: status}}, ref) do
+  defp handle_receive({:error, conn, %Client.Response{body: nil, status: status}}, ref) do
     {:error, %Connection{conn: conn, ref: ref}, Plug.Conn.Status.reason_phrase(status)}
   end
 
-  defp handle_recv({:error, conn, %Client.Response{body: %{type: {:error, error}}}}, ref) do
+  defp handle_receive({:error, conn, %Client.Response{body: %{type: {:error, error}}}}, ref) do
     {:error, %Connection{conn: conn, ref: ref}, error}
   end
 end

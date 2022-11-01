@@ -12,17 +12,17 @@ defmodule Livebook.WebSocket.Client do
   @type ws_error :: Mint.WebSocket.error()
   @type mint_error :: Mint.Types.error()
 
-  @type connect_fun ::
+  @type connect_result ::
           {:ok, conn(), ref()}
           | {:error, mint_error()}
           | {:error, conn(), ws_error()}
 
-  @type recv_fun ::
+  @type receive_result ::
           {:ok, conn(), Response.t() | :connect}
           | {:error, conn(), Response.t()}
           | {:error, conn(), :unknown}
 
-  @type send_fun ::
+  @type send_result ::
           {:ok, conn(), websocket()}
           | {:error, conn() | websocket(), term()}
 
@@ -39,7 +39,7 @@ defmodule Livebook.WebSocket.Client do
   @doc """
   Connects to the WebSocket server with given url and headers.
   """
-  @spec connect(String.t(), list({String.t(), String.t()})) :: connect_fun()
+  @spec connect(String.t(), list({String.t(), String.t()})) :: connect_result()
   def connect(url, headers \\ []) do
     uri = URI.parse(url)
     http_scheme = parse_http_scheme(uri)
@@ -79,8 +79,8 @@ defmodule Livebook.WebSocket.Client do
   If the WebSocket isn't connected yet, it will try to get the connection
   response to start a new WebSocket connection.
   """
-  @spec recv(conn(), ref(), term()) :: recv_fun()
-  def recv(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
+  @spec receive(conn(), ref(), term()) :: receive_result()
+  def receive(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
         handle_responses(conn, ref, websocket, responses)
@@ -202,7 +202,7 @@ defmodule Livebook.WebSocket.Client do
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
   """
-  @spec send(conn(), websocket(), ref(), frame()) :: send_fun()
+  @spec send(conn(), websocket(), ref(), frame()) :: send_result()
   def send(conn, websocket, ref, frame) do
     with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, prepare_frame(frame)),
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do

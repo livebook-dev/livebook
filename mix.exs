@@ -57,7 +57,11 @@ defmodule Livebook.MixProject do
     [
       "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
       "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      "protoc.gen": [
+        "cmd protoc --elixir_out=one_file_per_module=true:lib --elixir_opt=include_docs=true --elixir_opt=gen_struct=true --elixir_opt=package_prefix=livebook.web_socket defs/messages.proto",
+        "format lib/livebook/web_socket/*.pb.ex"
+      ]
     ]
   end
 
