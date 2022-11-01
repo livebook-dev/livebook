@@ -153,7 +153,7 @@ defmodule Livebook.WebSocket.Client do
       {:error, conn, %UpgradeFailureError{status_code: status, headers: headers}} ->
         response = %{
           response
-          | body: decode_text(response.body),
+          | body: decode_binary(response.body),
             status: status,
             headers: headers
         }
@@ -176,18 +176,14 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp decode_text(text) when is_binary(text) do
-    Livebook.WebSocket.Response.decode(text)
-  rescue
-    Protobuf.DecodeError -> text
+  defp decode_binary(binary) when is_binary(binary) do
+    LivebookProto.Response.decode(binary)
   end
-
-  defp decode_text(any), do: any
 
   defp handle_frames(response, frames) do
     Enum.reduce(frames, response, fn
-      {:text, text}, acc ->
-        case decode_text(text) do
+      {:binary, binary}, acc ->
+        case decode_binary(binary) do
           %{type: {:error, _}} = body -> {:error, %{acc | body: body}}
           body -> {:ok, %{acc | body: body}}
         end
@@ -214,7 +210,7 @@ defmodule Livebook.WebSocket.Client do
 
   defp prepare_frame(frame) when is_struct(frame) do
     frame
-    |> Livebook.WebSocket.Response.encode()
+    |> LivebookProto.Response.encode()
     |> prepare_frame()
   end
 

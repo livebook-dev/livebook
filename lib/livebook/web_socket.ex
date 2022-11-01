@@ -1,11 +1,8 @@
 defmodule Livebook.WebSocket do
   @moduledoc false
 
-  alias Livebook.WebSocket.{
-    Client,
-    Request,
-    SessionRequest
-  }
+  alias Livebook.WebSocket.Client
+  alias LivebookProto.{Request, SessionRequest}
 
   defmodule Connection do
     defstruct [:conn, :websocket, :ref]

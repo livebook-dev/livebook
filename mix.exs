@@ -103,6 +103,7 @@ defmodule Livebook.MixProject do
       {:phoenix_ecto, "~> 4.4.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.8.0"},
+      {:livebook_proto, path: "proto"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test}
