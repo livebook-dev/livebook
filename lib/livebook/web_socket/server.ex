@@ -129,7 +129,7 @@ defmodule Livebook.WebSocket.Server do
   defp handle_responses(%{ref: ref, websocket: nil} = state, [
          {:data, ref, resp_body} | rest
        ]) do
-    handle_responses(%{state | resp_body: decode_text(resp_body)}, rest)
+    handle_responses(%{state | resp_body: decode_binary(resp_body)}, rest)
   end
 
   defp handle_responses(%{ref: ref} = state, [{:done, ref} | rest]) do
@@ -176,8 +176,8 @@ defmodule Livebook.WebSocket.Server do
     {frames, state} =
       Enum.flat_map_reduce(frames, state, fn
         # deserialize text and binary frames
-        {:text, text}, state ->
-          response = decode_text(text)
+        {:binary, binary}, state ->
+          response = decode_binary(binary)
           {[response.type], state}
 
         # prepare to close the connection when a close frame is received
@@ -192,8 +192,8 @@ defmodule Livebook.WebSocket.Server do
     state
   end
 
-  defp decode_text(text) when is_binary(text) do
-    Livebook.WebSocket.Response.decode(text)
+  defp decode_binary(binary) when is_binary(binary) do
+    LivebookProto.Response.decode(binary)
   end
 
   # reply to an open GenServer call request if there is one
