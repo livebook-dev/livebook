@@ -163,20 +163,25 @@ defmodule Livebook.MixProject do
               ]
             ]
           ],
-          additional_paths: [
-            "rel/vendor/otp/bin",
-            "rel/vendor/elixir/bin",
-            "/usr/local/bin"
-          ],
           macos: [
             app_type: :agent,
             icon_path: "rel/app/icon-macos.png",
             build_dmg: macos_notarization != nil,
-            notarization: macos_notarization
+            notarization: macos_notarization,
+            additional_paths: [
+              "rel/vendor/otp/bin",
+              "rel/vendor/elixir/bin",
+              "/usr/local/bin"
+            ]
           ],
           windows: [
             icon_path: "rel/app/icon.ico",
-            build_installer: true
+            build_installer: true,
+            additional_paths: [
+              "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
+              "rel/vendor/otp/bin",
+              "rel/vendor/elixir/bin"
+            ]
           ]
         ]
       ]
