@@ -131,6 +131,12 @@ defmodule Livebook.MixProject do
   defp releases do
     macos_notarization = macos_notarization()
 
+    additional_paths = [
+      "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
+      "rel/vendor/otp/bin",
+      "rel/vendor/elixir/bin"
+    ]
+
     [
       livebook: [
         include_executables_for: [:unix],
@@ -168,20 +174,12 @@ defmodule Livebook.MixProject do
             icon_path: "rel/app/icon-macos.png",
             build_dmg: macos_notarization != nil,
             notarization: macos_notarization,
-            additional_paths: [
-              "rel/vendor/otp/bin",
-              "rel/vendor/elixir/bin",
-              "/usr/local/bin"
-            ]
+            additional_paths: additional_paths ++ ["/usr/local/bin"]
           ],
           windows: [
             icon_path: "rel/app/icon.ico",
             build_installer: true,
-            additional_paths: [
-              "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
-              "rel/vendor/otp/bin",
-              "rel/vendor/elixir/bin"
-            ]
+            additional_paths: additional_paths
           ]
         ]
       ]
