@@ -167,16 +167,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     end
   end
 
-  defp message_from_reason("unauthorized"), do: message_from_reason(:unauthorized)
-  defp message_from_reason(:econnrefused), do: "Failed to connect with given URL"
-  defp message_from_reason(:unauthorized), do: "Failed to authorize with given token"
-  defp message_from_reason(:invalid_token), do: "Failed to authenticate with given token"
-  defp message_from_reason(message) when is_binary(message), do: message
-
-  def handle_error(%{reason: reason}, socket) do
-    reason
-    |> message_from_reason()
-    |> show_connect_error(socket)
+  def handle_error(%{reason: :econnrefused}, socket) do
+    show_connect_error("Failed to connect with given URL", socket)
   end
 
   def handle_error(%{details: reason}, socket) do
