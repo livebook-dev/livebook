@@ -12,20 +12,6 @@ defmodule Livebook.WebSocket.Client do
   @type ws_error :: Mint.WebSocket.error()
   @type mint_error :: Mint.Types.error()
 
-  @type connect_result ::
-          {:ok, conn(), ref()}
-          | {:error, mint_error()}
-          | {:error, conn(), ws_error()}
-
-  @type receive_result ::
-          {:ok, conn(), Response.t() | :connect}
-          | {:error, conn(), Response.t()}
-          | {:error, conn(), :unknown}
-
-  @type send_result ::
-          {:ok, conn(), websocket()}
-          | {:error, conn() | websocket(), term()}
-
   defmodule Response do
     defstruct [:body, :status, :headers]
 
@@ -36,13 +22,15 @@ defmodule Livebook.WebSocket.Client do
           }
   end
 
-  defguard is_frame(value)
-           when (is_tuple(value) and elem(value, 0) == :binary) or value == :close
+  defguard is_frame(value) when value == :close or elem(value, 0) == :binary
 
   @doc """
   Connects to the WebSocket server with given url and headers.
   """
-  @spec connect(String.t(), list({String.t(), String.t()})) :: connect_result()
+  @spec connect(String.t(), list({String.t(), String.t()})) ::
+          {:ok, conn(), ref()}
+          | {:error, mint_error()}
+          | {:error, conn(), ws_error()}
   def connect(url, headers \\ []) do
     uri = URI.parse(url)
     http_scheme = parse_http_scheme(uri)
@@ -82,7 +70,10 @@ defmodule Livebook.WebSocket.Client do
   If the WebSocket isn't connected yet, it will try to get the connection
   response to start a new WebSocket connection.
   """
-  @spec receive(conn(), ref(), term()) :: receive_result()
+  @spec receive(conn(), ref(), term()) ::
+          {:ok, conn(), Response.t() | :connect}
+          | {:error, conn(), Response.t()}
+          | {:error, conn(), :unknown}
   def receive(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
@@ -187,7 +178,9 @@ defmodule Livebook.WebSocket.Client do
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
   """
-  @spec send(conn(), websocket(), ref(), frame()) :: send_result()
+  @spec send(conn(), websocket(), ref(), frame()) ::
+          {:ok, conn(), websocket()}
+          | {:error, conn() | websocket(), term()}
   def send(conn, websocket, ref, frame) when is_frame(frame) do
     with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, frame),
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do

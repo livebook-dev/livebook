@@ -1,6 +1,6 @@
 # Livebook Protobuf
 
-Livebook uses Protobuf messages to communicate with WebSocket.
+Livebook uses Protobuf messages for cross-backend communication over WebSocket.
 
 ## Generate message
 

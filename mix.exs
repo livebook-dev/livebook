@@ -39,8 +39,8 @@ defmodule Livebook.MixProject do
   defp extra_applications(:app), do: [:wx]
   defp extra_applications(_), do: []
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
+  defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
+  defp elixirc_paths(_), do: ["lib", "proto/lib"]
 
   defp package do
     [
@@ -49,7 +49,7 @@ defmodule Livebook.MixProject do
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
       files:
-        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe)
+        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
     ]
   end
 
@@ -102,7 +102,7 @@ defmodule Livebook.MixProject do
       {:ecto, "~> 3.9.0"},
       {:phoenix_ecto, "~> 4.4.0"},
       {:mint_web_socket, "~> 1.0.0"},
-      {:livebook_proto, path: "proto"},
+      {:protobuf, "~> 0.8.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test}
