@@ -60,7 +60,8 @@ defmodule Livebook.EnterpriseServer do
 
     env = [
       {~c"MIX_ENV", ~c"livebook"},
-      {~c"LIVEBOOK_ENTERPRISE_PORT", String.to_charlist(app_port())}
+      {~c"LIVEBOOK_ENTERPRISE_PORT", String.to_charlist(app_port())},
+      {~c"LIVEBOOK_ENTERPRISE_DEBUG", String.to_charlist(debug?())}
     ]
 
     args = [
@@ -117,6 +118,10 @@ defmodule Livebook.EnterpriseServer do
     System.get_env("ENTERPRISE_PORT", "4043")
   end
 
+  defp debug? do
+    System.get_env("ENTERPRISE_DEBUG", "false")
+  end
+
   defp wait_on_start(port) do
     case :httpc.request(:get, {~c"#{url()}/public/health", []}, [], []) do
       {:ok, _} ->
@@ -131,7 +136,8 @@ defmodule Livebook.EnterpriseServer do
   defp mix(args, opts \\ []) do
     env = [
       {"MIX_ENV", "livebook"},
-      {"LIVEBOOK_ENTERPRISE_PORT", app_port()}
+      {"LIVEBOOK_ENTERPRISE_PORT", app_port()},
+      {"LIVEBOOK_ENTERPRISE_DEBUG", debug?()}
     ]
 
     cmd_opts = [stderr_to_stdout: true, env: env, cd: app_dir()]

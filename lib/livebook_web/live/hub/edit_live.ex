@@ -18,13 +18,20 @@ defmodule LivebookWeb.Hub.EditLive do
     type = Provider.type(hub)
 
     if type == "local" do
-      {:ok,
-       socket |> redirect(to: "/") |> put_flash(:warning, "You can't edit the localhost Hub")}
+      {:noreply,
+       socket
+       |> redirect(to: "/")
+       |> put_flash(:warning, "You can't edit the localhost Hub")}
     else
-      {:ok, assign(socket, hub: hub, type: type, page_title: "Livebook - Hub", params: params)}
+      {:noreply,
+       assign(socket,
+         hub: hub,
+         type: type,
+         page_title: "Livebook - Hub",
+         params: params,
+         env_var_id: params["env_var_id"]
+       )}
     end
-
-    {:noreply, assign(socket, hub: hub, type: type, env_var_id: params["env_var_id"])}
   end
 
   @impl true
