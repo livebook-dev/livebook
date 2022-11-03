@@ -31,15 +31,15 @@ defmodule Livebook.WebSocket.ServerTest do
 
       assert response.status == 403
 
-      assert %{type: {:error, %{details: "Invalid Token"}}} =
-               LivebookProto.Response.decode(response.body)
+      assert %{type: {:error, %{details: error}}} = LivebookProto.Response.decode(response.body)
+      assert error =~ "the given token is invalid"
 
       assert {:error, response} = Server.connect(pid, url)
 
       assert response.status == 401
 
-      assert %{type: {:error, %{details: "Token not found"}}} =
-               LivebookProto.Response.decode(response.body)
+      assert %{type: {:error, %{details: error}}} = LivebookProto.Response.decode(response.body)
+      assert error =~ "could not get the token from the connection"
 
       assert Server.disconnect(pid) == :ok
     end

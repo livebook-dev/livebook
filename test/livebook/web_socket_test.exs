@@ -16,10 +16,12 @@ defmodule Livebook.WebSocketTest do
     test "rejects the web socket connection with invalid credentials", %{url: url} do
       headers = [{"X-Auth-Token", "foo"}]
 
-      assert {:error, connection, %{details: "Invalid Token"}} = WebSocket.connect(url, headers)
+      assert {:error, connection, %{details: error}} = WebSocket.connect(url, headers)
+      assert error =~ "the given token is invalid"
       assert WebSocket.disconnect(connection) == :ok
 
-      assert {:error, connection, %{details: "Token not found"}} = WebSocket.connect(url)
+      assert {:error, connection, %{details: error}} = WebSocket.connect(url)
+      assert error =~ "could not get the token from the connection"
       assert WebSocket.disconnect(connection) == :ok
     end
   end
