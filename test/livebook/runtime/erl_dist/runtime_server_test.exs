@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
   describe "evaluate_code/5" do
     test "spawns a new evaluator when necessary", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, [])
 
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
     end
@@ -48,8 +48,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       stderr =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
           code = "defmodule Foo do end"
-          RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
-          RuntimeServer.evaluate_code(pid, code, {:c1, :e2}, {:c1, nil})
+          RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
+          RuntimeServer.evaluate_code(pid, code, {:c1, :e2}, [])
 
           assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
           assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
@@ -59,7 +59,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
 
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, [])
 
       assert_receive {:runtime_evaluation_output, :e1, {:stdout, "error\n"}}
     end
@@ -71,17 +71,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       Logger.error("hey")
       """
 
-      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
 
       assert_receive {:runtime_evaluation_output, :e1, {:stdout, log_message}}
       assert log_message =~ "[error] hey"
     end
 
     test "supports cross-container evaluation context references", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "x = 1", {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, "x = 1", {:c1, :e1}, [])
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
-      RuntimeServer.evaluate_code(pid, "x", {:c2, :e2}, {:c1, :e1})
+      RuntimeServer.evaluate_code(pid, "x", {:c2, :e2}, [{:c1, :e1}])
 
       assert_receive {:runtime_evaluation_response, :e2, {:text, "\e[34m1\e[0m"},
                       %{evaluation_time_ms: _time_ms}}
@@ -110,7 +110,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       pid = spawn(fn -> loop.(loop, %{callers: [], count: 0}) end)
       """
 
-      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       await_code = """
@@ -124,8 +124,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       # Note: it's important to first start evaluation in :c2,
       # because it needs to copy evaluation context from :c1
 
-      RuntimeServer.evaluate_code(pid, await_code, {:c2, :e2}, {:c1, :e1})
-      RuntimeServer.evaluate_code(pid, await_code, {:c1, :e3}, {:c1, :e1})
+      RuntimeServer.evaluate_code(pid, await_code, {:c2, :e2}, [{:c1, :e1}])
+      RuntimeServer.evaluate_code(pid, await_code, {:c1, :e3}, [{:c1, :e1}])
 
       assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
       assert_receive {:runtime_evaluation_response, :e3, _, %{evaluation_time_ms: _time_ms}}
@@ -135,7 +135,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given completion request" do
     test "provides basic completion when no evaluation reference is given", %{pid: pid} do
       request = {:completion, "System.ver"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [])
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "version/0"}]}}
@@ -147,17 +147,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       number = 10
       """
 
-      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, :e1})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}])
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "number"}]}}
 
       request = {:completion, "ANSI.brigh"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, :e1})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}])
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "bright/0"}]}}
@@ -167,7 +167,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given details request" do
     test "responds with identifier details", %{pid: pid} do
       request = {:details, "System.version", 10}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [])
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{range: %{from: 1, to: 15}, contents: [_]}}
@@ -177,7 +177,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given format request" do
     test "responds with a formatted code", %{pid: pid} do
       request = {:format, "System.version"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [])
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request, %{code: "System.version()"}}
     end
@@ -199,7 +199,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     spawn_link(fn -> Process.exit(self(), :kill) end)
     """
 
-    RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+    RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
 
     assert_receive {:runtime_container_down, :c1, message}
     assert message =~ "killed"
@@ -246,13 +246,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     @tag opts: @opts
     test "notifies runtime owner when a smart cell is started", %{pid: pid} do
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       assert_receive {:runtime_smart_cell_started, "ref", %{js_view: %{}, source: "source"}}
     end
 
     @tag opts: @opts
     test "notifies runtime owner when a smart cell goes down", %{pid: pid} do
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       assert_receive {:runtime_smart_cell_started, "ref", %{js_view: %{pid: pid}}}
       Process.exit(pid, :crashed)
       assert_receive {:runtime_smart_cell_down, "ref"}
@@ -260,31 +260,32 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     @tag opts: @opts
     test "once started scans binding and sends the result to the cell server", %{pid: pid} do
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
-    test "scans binding when a new base locator is set", %{pid: pid} do
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+    test "scans binding when a new parent locators are set", %{pid: pid} do
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, [])
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
-      RuntimeServer.set_smart_cell_base_locator(pid, "ref", {:c2, nil})
+      RuntimeServer.set_smart_cell_parent_locators(pid, "ref", [{:c1, :e1}])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
-    test "scans binding when the base locator is evaluated", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, :e1})
+    test "scans binding when one of the parent locators is evaluated", %{pid: pid} do
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, [])
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [{:c1, :e1}])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
-      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, [])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
     test "scans evaluation result when the smart cell is evaluated", %{pid: pid} do
-      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
-      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil}, smart_cell_ref: "ref")
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, [], smart_cell_ref: "ref")
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_eval_result_ping}
     end
   end

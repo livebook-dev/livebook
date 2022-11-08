@@ -30,7 +30,7 @@ defmodule Livebook.Utils.Graph do
     do: find_path(graph, graph[from_id], to_id, [from_id | path])
 
   @doc """
-  Finds grpah leave nodes, that is, nodes with
+  Finds graph leave nodes, that is, nodes with
   no children.
   """
   @spec leaves(t()) :: list(node_id())
@@ -38,5 +38,38 @@ defmodule Livebook.Utils.Graph do
     children = MapSet.new(graph, fn {key, _} -> key end)
     parents = MapSet.new(graph, fn {_, value} -> value end)
     MapSet.difference(children, parents) |> MapSet.to_list()
+  end
+
+  @doc """
+  Reduces each top-down path in the graph.
+
+  Returns a list of accumulators, one for each leaf in the graph,
+  in no specific order.
+  """
+  @spec reduce_paths(t(), acc, (node_id(), acc -> acc)) :: acc when acc: term()
+  def reduce_paths(graph, acc, fun) do
+    leaves = Livebook.Utils.Graph.leaves(graph)
+    cache = do_reduce(graph, leaves, acc, fun, %{})
+    Enum.map(leaves, &cache[&1])
+  end
+
+  defp do_reduce(_graph, [], _initial_acc, _fun, cache), do: cache
+
+  defp do_reduce(graph, [cell_id | cell_ids], initial_acc, fun, cache) do
+    if parent_id = graph[cell_id] do
+      case cache do
+        %{^parent_id => acc} ->
+          acc = fun.(cell_id, acc)
+          cache = put_in(cache[cell_id], acc)
+          do_reduce(graph, cell_ids, initial_acc, fun, cache)
+
+        _ ->
+          do_reduce(graph, [parent_id, cell_id | cell_ids], initial_acc, fun, cache)
+      end
+    else
+      acc = fun.(cell_id, initial_acc)
+      cache = put_in(cache[cell_id], acc)
+      do_reduce(graph, cell_ids, initial_acc, fun, cache)
+    end
   end
 end

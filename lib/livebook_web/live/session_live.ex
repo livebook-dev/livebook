@@ -1221,10 +1221,10 @@ defmodule LivebookWeb.SessionLive do
 
     data = socket.private.data
 
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if Runtime.connected?(data.runtime) do
-        base_locator = Session.find_base_locator(data, cell, section, existing: true)
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, base_locator)
+        parent_locators = Session.parent_locators_for_cell(data, cell)
+        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else

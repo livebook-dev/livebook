@@ -61,11 +61,19 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @doc """
-  Returns the accumulated widget pids and clears the accumulator.
+  Updates tracer info.
   """
-  @spec flush_widgets(pid()) :: MapSet.t(pid())
-  def flush_widgets(pid) do
-    GenServer.call(pid, :flush_widgets)
+  @spec tracer_updates(pid(), list()) :: :ok
+  def tracer_updates(pid, updates) do
+    GenServer.cast(pid, {:tracer_updates, updates})
+  end
+
+  @doc """
+  Returns the accumulated tracer info.
+  """
+  @spec get_tracer_info(pid()) :: %Evaluator.Tracer{}
+  def get_tracer_info(pid) do
+    GenServer.call(pid, :get_tracer_info)
   end
 
   @impl true
@@ -81,22 +89,32 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
        evaluator: evaluator,
        send_to: send_to,
        runtime_broadcast_to: runtime_broadcast_to,
-       object_tracker: object_tracker
+       object_tracker: object_tracker,
+       tracer_info: %Evaluator.Tracer{}
      }}
   end
 
   @impl true
   def handle_cast({:configure, ref, file}, state) do
-    {:noreply, %{state | ref: ref, file: file, token_count: 0}}
+    {:noreply, %{state | ref: ref, file: file, token_count: 0, tracer_info: %Evaluator.Tracer{}}}
   end
 
   def handle_cast(:clear_input_cache, state) do
     {:noreply, %{state | input_cache: %{}}}
   end
 
+  def handle_cast({:tracer_updates, updates}, state) do
+    state = update_in(state.tracer_info, &Evaluator.Tracer.apply_updates(&1, updates))
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call(:flush, _from, state) do
     {:reply, :ok, flush_buffer(state)}
+  end
+
+  def handle_call(:get_tracer_info, _from, state) do
+    {:reply, state.tracer_info, state}
   end
 
   @impl true

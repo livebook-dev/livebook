@@ -67,7 +67,11 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           </div>
           <div>
             <div class="input-label">Cookie</div>
-            <%= text_input(f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie") %>
+            <%= text_input(f, :cookie,
+              value: @data["cookie"],
+              class: "input",
+              placeholder: "mycookie"
+            ) %>
           </div>
         </div>
         <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
