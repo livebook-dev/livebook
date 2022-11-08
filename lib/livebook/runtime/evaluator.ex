@@ -525,10 +525,20 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.replace!(:context_modules, [])
   end
 
+  @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
+
   defp eval(code, binding, env) do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
-      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+      # TODO: remove the else branch when we require Elixir v1.14.2
+      {value, binding, env} =
+        if function_exported?(Code, :eval_quoted_with_env, 4) do
+          Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+        else
+          Code.eval_quoted_with_env(quoted, binding, env)
+        end
+
       {:ok, value, binding, env}
     catch
       kind, error ->
