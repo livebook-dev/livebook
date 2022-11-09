@@ -6,6 +6,7 @@ on:
       - main
 env:
   otp: "25.0"
+  # TODO: update to v1.14.2 once it is out
   elixir: "main"
 jobs:
   main:
