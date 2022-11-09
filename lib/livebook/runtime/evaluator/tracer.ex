@@ -21,7 +21,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
 
   @doc false
   def trace(event, env) do
-    case to_updates(event, env) do
+    case event_to_updates(event, env) do
       [] ->
         :ok
 
@@ -33,11 +33,21 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     :ok
   end
 
-  defp to_updates(event, env) do
+  defp event_to_updates(event, env) do
     # Note that import/require/alias/defmodule don't trigger `:alias_reference`
     # for the used alias, so we add it explicitly
 
     case event do
+      :start ->
+        if Code.ensure_loaded?(env.module) do
+          raise CompileError,
+            line: env.line,
+            file: env.file,
+            description: "module #{inspect(env.module)} is already defined"
+        end
+
+        []
+
       {:import, _meta, module, _opts} ->
         if(env.module, do: [], else: [:import_defined]) ++
           [{:module_used, module}, {:alias_used, module}]

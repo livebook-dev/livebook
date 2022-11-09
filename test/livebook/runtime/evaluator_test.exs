@@ -277,6 +277,32 @@ defmodule Livebook.Runtime.EvaluatorTest do
       ref = Process.monitor(widget_pid1)
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
     end
+
+    test "raises when redefining a module in a different evaluation", %{evaluator: evaluator} do
+      code = """
+      defmodule Livebook.Runtime.EvaluatorTest.Redefinition do
+      end
+      """
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+
+      # Redefining in the same evaluation works
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+
+      Evaluator.evaluate_code(evaluator, code, :code_2, [], file: "file.ex")
+
+      assert_receive {:runtime_evaluation_response, :code_2,
+                      {:error, :error, %CompileError{}, []},
+                      %{
+                        code_error: %{
+                          line: 1,
+                          description:
+                            "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined"
+                        }
+                      }}
+    end
   end
 
   describe "evaluate_code/6 identifier tracking" do
@@ -584,6 +610,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Process.put(:x, 1)
       Process.put(:y, 1)
       Process.put(:z, 1)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingOne do
+      end
       """
       |> eval(evaluator, 0)
 
@@ -598,6 +627,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Process.put(:y, 2)
       Process.delete(:z)
+
+      defmodule Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingTwo do
+      end
       """
       |> eval(evaluator, 1)
 
@@ -615,6 +647,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert [_, _ | _] = context.env.macros[Integer]
 
       assert context.env.versioned_vars == %{{:x, nil} => 0, {:y, nil} => 1}
+
+      assert context.env.context_modules == [
+               Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingOne
+             ]
 
       assert context.pdict == %{x: 1, y: 1, z: 1}
 
@@ -635,6 +671,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert context.env.versioned_vars == %{{:y, nil} => 0}
 
+      assert context.env.context_modules == [
+               Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingTwo
+             ]
+
       # Process dictionary is not diffed
       assert context.pdict == %{x: 1, y: 2}
 
@@ -653,6 +693,11 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert {Integer, [is_odd: 1]} in context.env.macros
 
       assert context.env.versioned_vars == %{{:x, nil} => 0, {:y, nil} => 1}
+
+      assert context.env.context_modules == [
+               Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingTwo,
+               Livebook.Runtime.EvaluatorTest.Identifiers.ContextMergingOne
+             ]
 
       assert context.pdict == %{x: 1, y: 2}
     end
@@ -685,6 +730,22 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.forget_evaluation(evaluator, :code_1)
 
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
+    end
+
+    test "deletes modules defined by the given evaluation", %{evaluator: evaluator} do
+      code = """
+      defmodule Livebook.Runtime.EvaluatorTest.ForgetEvaluation.Redefinition do
+      end
+      """
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+
+      Evaluator.forget_evaluation(evaluator, :code_1)
+
+      # Define the module in a different evaluation
+      Evaluator.evaluate_code(evaluator, code, :code_2, [])
+      assert_receive {:runtime_evaluation_response, :code_2, {:ok, _}, metadata()}
     end
   end
 

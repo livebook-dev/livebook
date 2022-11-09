@@ -328,17 +328,25 @@ defmodule Livebook.Runtime.Evaluator do
 
     set_pdict(context, state.ignored_pdict_keys)
 
+    if old_context = state.contexts[ref] do
+      for module <- old_context.env.context_modules do
+        # If there is a deleted code for the module, we purge it first
+        :code.purge(module)
+        :code.delete(module)
+      end
+    end
+
     start_time = System.monotonic_time()
     eval_result = eval(code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
-    {result_context, result, code_error, identifiers_used, identifiers_defined} =
+    {new_context, result, code_error, identifiers_used, identifiers_defined} =
       case eval_result do
         {:ok, value, binding, env} ->
           tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
           context_id = random_id()
 
-          result_context = %{
+          new_context = %{
             id: context_id,
             binding: binding,
             env: prune_env(env, tracer_info),
@@ -346,21 +354,21 @@ defmodule Livebook.Runtime.Evaluator do
           }
 
           {identifiers_used, identifiers_defined} =
-            identifier_dependencies(result_context, tracer_info, context)
+            identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
-          {result_context, result, nil, identifiers_used, identifiers_defined}
+          {new_context, result, nil, identifiers_used, identifiers_defined}
 
         {:error, kind, error, stacktrace, code_error} ->
           result = {:error, kind, error, stacktrace}
           identifiers_used = :unknown
           identifiers_defined = %{}
           # Empty context
-          result_context = initial_context()
-          {result_context, result, code_error, identifiers_used, identifiers_defined}
+          new_context = initial_context()
+          {new_context, result, code_error, identifiers_used, identifiers_defined}
       end
 
-    state = put_context(state, ref, result_context)
+    state = put_context(state, ref, new_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
@@ -386,7 +394,16 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
-    state = delete_context(state, ref)
+    {context, state} = pop_context(state, ref)
+
+    for module <- context.env.context_modules do
+      # If there is a deleted code for the module, we purge it first
+      :code.purge(module)
+      :code.delete(module)
+      # And we immediately purge the newly deleted code
+      :code.purge(module)
+    end
+
     Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
 
     :erlang.garbage_collect(self())
@@ -446,14 +463,13 @@ defmodule Livebook.Runtime.Evaluator do
     put_in(state.contexts[ref], context)
   end
 
-  defp delete_context(state, ref) do
+  defp pop_context(state, ref) do
     update_evaluator_info(fn info ->
       {_, info} = pop_in(info.contexts[ref])
       info
     end)
 
-    {_, state} = pop_in(state.contexts[ref])
-    state
+    pop_in(state.contexts[ref])
   end
 
   defp update_evaluator_info(fun) do
@@ -494,6 +510,7 @@ defmodule Livebook.Runtime.Evaluator do
     env
     |> Map.replace!(:aliases, Map.to_list(tracer_info.aliases_defined))
     |> Map.replace!(:requires, MapSet.to_list(tracer_info.requires_defined))
+    |> Map.replace!(:context_modules, Map.keys(tracer_info.modules_defined))
   end
 
   defp merge_context(prev_context, context) do
@@ -523,7 +540,7 @@ defmodule Livebook.Runtime.Evaluator do
     end)
     |> Map.update!(:aliases, &Keyword.merge(prev_env.aliases, &1))
     |> Map.update!(:requires, &:ordsets.union(prev_env.requires, &1))
-    |> Map.replace!(:context_modules, [])
+    |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
   @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
@@ -685,6 +702,8 @@ defmodule Livebook.Runtime.Evaluator do
         into: MapSet.new(),
         do: var
   end
+
+  defp prune_stacktrace([{Livebook.Runtime.Evaluator.Tracer, _fun, _arity, _meta} | _]), do: []
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below
