@@ -21,7 +21,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
 
   @doc false
   def trace(event, env) do
-    case to_updates(event, env) do
+    case event_to_updates(event, env) do
       [] ->
         :ok
 
@@ -33,11 +33,21 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     :ok
   end
 
-  defp to_updates(event, env) do
+  defp event_to_updates(event, env) do
     # Note that import/require/alias/defmodule don't trigger `:alias_reference`
     # for the used alias, so we add it explicitly
 
     case event do
+      :start ->
+        if Code.ensure_loaded?(env.module) do
+          raise CompileError,
+            line: env.line,
+            file: env.file,
+            description: "module #{inspect(env.module)} is already defined"
+        end
+
+        []
+
       {:import, _meta, module, _opts} ->
         if(env.module, do: [], else: [:import_defined]) ++
           [{:module_used, module}, {:alias_used, module}]
@@ -73,11 +83,10 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
       {:remote_macro, _meta, module, _name, _arity} ->
         [{:module_used, module}, {:require_used, module}]
 
-      {:on_module, bytecode, _ignore} ->
+      {:on_module, _bytecode, _ignore} ->
         module = env.module
-        version = :erlang.md5(bytecode)
         vars = Map.keys(env.versioned_vars)
-        [{:module_defined, module, version, vars}, {:alias_used, module}]
+        [{:module_defined, module, vars}, {:alias_used, module}]
 
       _ ->
         []
@@ -96,8 +105,8 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     update_in(info.modules_used, &MapSet.put(&1, module))
   end
 
-  defp apply_update(info, {:module_defined, module, version, vars}) do
-    put_in(info.modules_defined[module], {version, vars})
+  defp apply_update(info, {:module_defined, module, vars}) do
+    put_in(info.modules_defined[module], vars)
   end
 
   defp apply_update(info, {:alias_used, alias}) do
