@@ -38,8 +38,9 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     # for the used alias, so we add it explicitly
 
     case event do
-      {:import, _meta, module, _opts} when env.module == nil ->
-        [{:module_used, module}, {:alias_used, module}, :import_defined]
+      {:import, _meta, module, _opts} ->
+        if(env.module, do: [], else: [:import_defined]) ++
+          [{:module_used, module}, {:alias_used, module}]
 
       {:imported_function, meta, module, name, _arity} ->
         var? = Keyword.has_key?(meta, :if_undefined)
@@ -49,17 +50,19 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
         var? = Keyword.has_key?(meta, :if_undefined)
         [{:module_used, module}, {:import_used, name, var?}]
 
-      {:alias, _meta, alias, as, _opts} when env.module == nil ->
-        [{:alias_defined, as, alias}, {:alias_used, alias}]
+      {:alias, _meta, alias, as, _opts} ->
+        if(env.module, do: [], else: [{:alias_defined, as, alias}]) ++
+          [{:alias_used, alias}]
 
       {:alias_expansion, _meta, as, _alias} ->
         [{:alias_used, as}]
 
-      {:alias_reference, _meta, alias} when env.module == nil ->
+      {:alias_reference, _meta, alias} ->
         [{:alias_used, alias}]
 
-      {:require, _meta, module, _opts} when env.module == nil ->
-        [{:module_used, module}, {:require_defined, module}, {:alias_used, module}]
+      {:require, _meta, module, _opts} ->
+        if(env.module, do: [], else: [{:require_defined, module}]) ++
+          [{:module_used, module}, {:alias_used, module}]
 
       {:struct_expansion, _meta, module, _keys} ->
         [{:module_used, module}]
@@ -117,7 +120,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     info = put_in(info.imports_used?, true)
 
     if var? do
-      update_in(info.undefined_vars, &MapSet.put(&1, name))
+      update_in(info.undefined_vars, &MapSet.put(&1, {name, nil}))
     else
       info
     end

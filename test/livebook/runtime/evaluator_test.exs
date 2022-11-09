@@ -297,8 +297,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
         |> eval(evaluator, 0)
 
       assert %{
-               {:variable, :x} => _,
-               {:variable, :y} => _
+               {:variable, {:x, nil}} => _,
+               {:variable, {:y, nil}} => _
              } = identifiers.defined
 
       identifiers =
@@ -307,8 +307,26 @@ defmodule Livebook.Runtime.EvaluatorTest do
         """
         |> eval(evaluator, 1)
 
-      assert {:variable, :x} in identifiers.used
-      assert {:variable, :y} not in identifiers.used
+      assert {:variable, {:x, nil}} in identifiers.used
+      assert {:variable, {:y, nil}} not in identifiers.used
+    end
+
+    test "variables with non-default context", %{evaluator: evaluator} do
+      identifiers =
+        """
+        var!(x, :context) = 1
+        """
+        |> eval(evaluator, 0)
+
+      assert %{{:variable, {:x, :context}} => _} = identifiers.defined
+
+      identifiers =
+        """
+        var!(x, :context)
+        """
+        |> eval(evaluator, 1)
+
+      assert {:variable, {:x, :context}} in identifiers.used
     end
 
     test "variables used inside a module", %{evaluator: evaluator} do
@@ -321,9 +339,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
         |> eval(evaluator, 0)
 
       assert %{
-               {:variable, :x} => _,
-               {:variable, :y} => _,
-               {:variable, :z} => _
+               {:variable, {:x, nil}} => _,
+               {:variable, {:y, nil}} => _,
+               {:variable, {:z, nil}} => _
              } = identifiers.defined
 
       identifiers =
@@ -336,9 +354,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
         """
         |> eval(evaluator, 1)
 
-      assert {:variable, :x} in identifiers.used
-      assert {:variable, :y} in identifiers.used
-      assert {:variable, :z} not in identifiers.used
+      assert {:variable, {:x, nil}} in identifiers.used
+      assert {:variable, {:y, nil}} in identifiers.used
+      assert {:variable, {:z, nil}} not in identifiers.used
     end
 
     test "reports parentheses-less arity-0 import as a used variable", %{evaluator: evaluator} do
@@ -348,7 +366,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         """
         |> eval(evaluator, 0)
 
-      assert {:variable, :self} in identifiers.used
+      assert {:variable, {:self, nil}} in identifiers.used
       assert :imports in identifiers.used
     end
 

@@ -504,8 +504,13 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp merge_binding(prev_binding, binding) do
-    new_keys = MapSet.new(binding, &elem(&1, 0))
-    kept_binding = Enum.reject(prev_binding, &(elem(&1, 0) in new_keys))
+    binding_map = Map.new(binding)
+
+    kept_binding =
+      Enum.reject(prev_binding, fn {var, _value} ->
+        Map.has_key?(binding_map, var)
+      end)
+
     binding ++ kept_binding
   end
 
@@ -517,11 +522,7 @@ defmodule Livebook.Runtime.Evaluator do
       |> Map.new()
     end)
     |> Map.update!(:aliases, &Keyword.merge(prev_env.aliases, &1))
-    |> Map.update!(:requires, fn requires ->
-      (prev_env.requires ++ requires)
-      |> Enum.sort()
-      |> Enum.dedup()
-    end)
+    |> Map.update!(:requires, &:ordsets.union(prev_env.requires, &1))
     |> Map.replace!(:context_modules, [])
   end
 
@@ -567,18 +568,18 @@ defmodule Livebook.Runtime.Evaluator do
     # Variables
 
     identifiers_used =
-      for var_name <- vars_used(context, tracer_info, prev_context),
-          do: {:variable, var_name},
+      for var <- vars_used(context, tracer_info, prev_context),
+          do: {:variable, var},
           into: identifiers_used
 
     identifiers_used =
-      for var_name <- tracer_info.undefined_vars,
-          do: {:variable, var_name},
+      for var <- tracer_info.undefined_vars,
+          do: {:variable, var},
           into: identifiers_used
 
     identifiers_defined =
-      for var_name <- vars_defined(context, prev_context),
-          do: {{:variable, var_name}, context.id},
+      for var <- vars_defined(context, prev_context),
+          do: {{:variable, var}, context.id},
           into: identifiers_defined
 
     # Modules
@@ -630,7 +631,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     identifiers_defined =
       if tracer_info.imports_defined? do
-        version = :erlang.phash2({context.env.functions, context.env.macros})
+        version = {:erlang.phash2(context.env.functions), :erlang.phash2(context.env.macros)}
         put_in(identifiers_defined[:imports], version)
       else
         identifiers_defined
@@ -654,22 +655,22 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp vars_used(context, tracer_info, prev_context) do
     prev_vars =
-      for {{name, nil}, _version} <- prev_context.env.versioned_vars,
+      for {var, _version} <- prev_context.env.versioned_vars,
           into: MapSet.new(),
-          do: name
+          do: var
 
     outer_used_vars =
-      for {{name, nil}, _version} <- context.env.versioned_vars,
+      for {var, _version} <- context.env.versioned_vars,
           into: MapSet.new(),
-          do: name
+          do: var
 
     # Note that :prune_binding removes variables used by modules
     # (unless used outside), so we get those from the tracer
     module_used_vars =
       for {_module, {_version, vars}} <- tracer_info.modules_defined,
-          {name, nil} <- vars,
+          var <- vars,
           into: MapSet.new(),
-          do: name
+          do: var
 
     # We take an intersection with previous vars, so we ignore variables
     # that we know are newly defined
@@ -677,8 +678,10 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp vars_defined(context, prev_context) do
-    for {{var, nil}, version} <- context.env.versioned_vars,
-        version >= map_size(prev_context.env.versioned_vars),
+    prev_num_vars = map_size(prev_context.env.versioned_vars)
+
+    for {var, version} <- context.env.versioned_vars,
+        version >= prev_num_vars,
         into: MapSet.new(),
         do: var
   end
