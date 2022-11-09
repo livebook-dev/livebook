@@ -103,7 +103,7 @@ defmodule Livebook.WebSocket.Server do
   # Private
 
   defp reply(%{caller: nil} = state, response) do
-    Logger.warn("The caller is nil, so we can't reply the message: #{inspect(response)}")
+    Logger.warning("The caller is nil, so we can't reply the message: #{inspect(response)}")
     state
   end
 

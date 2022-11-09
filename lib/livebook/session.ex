@@ -29,7 +29,7 @@ defmodule Livebook.Session do
   # the evaluation context from the parent section, the last context
   # needs to be copied from the main flow evaluator to the branching
   # section evaluator. The latter synchronously asks the former for
-  # that context using `Livebook.Runtime.Evaluator.fetch_evaluation_context/3`.
+  # that context using `Livebook.Runtime.Evaluator.get_evaluation_context/3`.
   # Consequently, in order to evaluate the first cell in a branching
   # section, the main flow needs to be free of work, otherwise we wait.
   # This assumptions are mirrored in by `Livebook.Session.Data` when
@@ -1040,7 +1040,7 @@ defmodule Livebook.Session do
   def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
-           {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
+           {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
         state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
         {{:ok, value}, state}
       else
@@ -1512,27 +1512,26 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:start_smart_cell, cell, section}) do
+  defp handle_action(state, {:start_smart_cell, cell, _section}) do
     if Runtime.connected?(state.data.runtime) do
-      base_locator = find_base_locator(state.data, cell, section, existing: true)
-      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
+      parent_locators = parent_locators_for_cell(state.data, cell)
+
+      Runtime.start_smart_cell(
+        state.data.runtime,
+        cell.kind,
+        cell.id,
+        cell.attrs,
+        parent_locators
+      )
     end
 
     state
   end
 
-  defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
+  defp handle_action(state, {:set_smart_cell_parents, cell, _section, parents}) do
     if Runtime.connected?(state.data.runtime) do
-      base_locator =
-        case parent do
-          nil ->
-            {container_ref_for_section(section), nil}
-
-          {parent_cell, parent_section} ->
-            {container_ref_for_section(parent_section), parent_cell.id}
-        end
-
-      Runtime.set_smart_cell_base_locator(state.data.runtime, cell.id, base_locator)
+      parent_locators = evaluation_parents_to_locators(parents)
+      Runtime.set_smart_cell_parent_locators(state.data.runtime, cell.id, parent_locators)
     end
 
     state
@@ -1566,8 +1565,8 @@ defmodule Livebook.Session do
     opts = [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
-    base_locator = find_base_locator(state.data, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
+    parent_locators = parent_locators_for_cell(state.data, cell)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, parent_locators, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
@@ -1799,34 +1798,21 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Finds evaluation locator that the given cell depends on.
+  Returns locators of evaluation parents for the given cell.
 
-  By default looks up the direct evaluation parent.
-
-  ## Options
-
-    * `:existing` - considers only cells that have been evaluated
-      as evaluation parents. Defaults to `false`
+  Considers only cells that have already been evaluated.
   """
-  @spec find_base_locator(Data.t(), Cell.t(), Section.t(), keyword()) :: Runtime.locator()
-  def find_base_locator(data, cell, section, opts \\ []) do
-    parent_filter =
-      if opts[:existing] do
-        fn cell ->
-          info = data.cell_infos[cell.id]
-          Cell.evaluable?(cell) and info.eval.validity in [:evaluated, :stale]
-        end
-      else
-        &Cell.evaluable?/1
-      end
+  @spec parent_locators_for_cell(Data.t(), Cell.t()) :: Runtime.parent_locators()
+  def parent_locators_for_cell(data, cell) do
+    data
+    |> Data.cell_evaluation_parents(cell)
+    |> evaluation_parents_to_locators()
+  end
 
-    default = {container_ref_for_section(section), nil}
-
-    data.notebook
-    |> Notebook.parent_cells_with_section(cell.id)
-    |> Enum.find_value(default, fn {cell, section} ->
-      parent_filter.(cell) && {container_ref_for_section(section), cell.id}
-    end)
+  defp evaluation_parents_to_locators(parents) do
+    for {cell, section} <- parents do
+      {container_ref_for_section(section), cell.id}
+    end
   end
 
   defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref

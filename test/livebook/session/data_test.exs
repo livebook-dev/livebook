@@ -9,9 +9,14 @@ defmodule Livebook.Session.DataTest do
   alias Livebook.Users.User
 
   @eval_resp {:ok, [1, 2, 3]}
-  @eval_meta %{evaluation_time_ms: 10}
   @smart_cell_definitions [%{kind: "text", name: "Text", requirement: nil}]
   @cid "__anonymous__"
+
+  defp eval_meta(opts \\ []) do
+    uses = opts[:uses] || []
+    defines = opts[:defines] || %{}
+    %{evaluation_time_ms: 10, identifiers_used: uses, identifiers_defined: defines}
+  end
 
   describe "new/1" do
     test "called with no arguments defaults to a blank notebook" do
@@ -50,7 +55,7 @@ defmodule Livebook.Session.DataTest do
       }
 
       assert %{cell_infos: %{"c1" => %{eval: %{snapshot: snapshot}}}} = Data.new(notebook)
-      assert snapshot != {nil, nil}
+      assert snapshot != nil
     end
   end
 
@@ -211,7 +216,7 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "marks cells in this and further sections as stale" do
+    test "marks cells in the given section (and dependent cells) as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -220,9 +225,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          # Evaluate cells
+          {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c3" => ["c2"]}
+          )
         ])
 
       operation = {:set_section_parent, @cid, "s2", "s1"}
@@ -232,12 +239,13 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :evaluated}},
                   "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}}
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "if a cell is evaluating in this section, clears all sections evaluation and queues" do
+    test "if a cell is evaluating in the given section, clears all sections evaluation and queues" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -246,7 +254,6 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, @cid, ["c2", "c3"]}
@@ -262,13 +269,17 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s3" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil},
+                  "s3" => %{evaluating_cell_id: nil}
                 }
-              },
+              } = new_data,
               [{:stop_evaluation, %{id: "s2", parent_id: nil}}]} =
                Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -321,7 +332,7 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "marks cells in this and further sections as stale" do
+    test "marks cells in the given section (and dependent cells) as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -331,7 +342,6 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
@@ -343,7 +353,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :evaluated}},
                   "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}}
+                  "c3" => %{eval: %{validity: :evaluated}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -358,7 +368,6 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, @cid, ["c2", "c3"]}
@@ -450,7 +459,7 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "inserting code cell before smart cell does not change its base" do
+    test "inserting code cell before smart cell does not change its parents" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -556,27 +565,30 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "marks evaluated child cells as stale when cells get deleted" do
+    test "marks dependent evaluated cells as stale when cells get deleted" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          # Evaluate both cells
+          {:insert_cell, @cid, "s2", 1, :code, "c3", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"], uses: %{"c2" => ["c1"]})
         ])
 
       operation = {:delete_section, @cid, "s1", true}
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{eval: %{validity: :stale}}}
+                cell_infos: %{
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :evaluated}}
+                }
               }, _actions} = Data.apply_operation(data, operation)
     end
 
-    test "marks cells in this and further sections as stale if branching section is deleted" do
+    test "when deleting a branching section, marks cells in the given section (and dependent cells) as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -585,10 +597,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
+          {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c3" => ["c2"]}
+          )
         ])
 
       operation = {:delete_section, @cid, "s2", false}
@@ -598,33 +612,8 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :evaluated}},
                   "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}}
-                }
-              }, _actions} = Data.apply_operation(data, operation)
-    end
-
-    test "does not mark cells in further sections as stale if branching section is deleted with cells" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:insert_section, @cid, 2, "s3"},
-          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
-        ])
-
-      operation = {:delete_section, @cid, "s2", true}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c3" => %{eval: %{validity: :evaluated}}
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :evaluated}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -650,7 +639,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "if the cell is evaluating, cencels section evaluation" do
+    test "if the cell is evaluating, clears section evaluation" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -666,8 +655,12 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :ready}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }, _actions} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil}
+                }
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
     test "removes the cell from notebook and section info, adds to deleted cells" do
@@ -712,41 +705,46 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:delete_cell, @cid, "c2"}
 
-      assert {:ok,
-              %{
-                section_infos: %{"s1" => %{evaluation_queue: []}}
-              }, _actions} = Data.apply_operation(data, operation)
+      assert {:ok, new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
-    test "marks evaluated child cells as stale" do
+    test "marks evaluated dependent cells as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          # Evaluate both cells
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => ["c1"]}
+          )
         ])
 
       operation = {:delete_cell, @cid, "c1"}
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{eval: %{validity: :stale}}}
+                cell_infos: %{
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :evaluated}}
+                }
               }, _actions} = Data.apply_operation(data, operation)
     end
 
-    test "marks child automatically reevaluating cells for evaluation" do
+    test "marks dependent automatically reevaluating cells for evaluation" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          # Evaluate both cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"])
+          evaluate_cells_operations(["setup", "c1", "c2"],
+            uses: %{"c2" => ["c1"]}
+          )
         ])
 
       operation = {:delete_cell, @cid, "c1"}
@@ -757,13 +755,12 @@ defmodule Livebook.Session.DataTest do
               }, _actions} = Data.apply_operation(data, operation)
     end
 
-    test "deleting a markdown cell does not change child cell validity" do
+    test "deleting a markdown cell does not change cell validity" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :markdown, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          # Evaluate the Code cell
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c2"])
         ])
@@ -807,7 +804,7 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "deleting evaluated code cell before smart cell changes its base" do
+    test "given evaluated code cell, triggers child smart cell parents update" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -818,7 +815,7 @@ defmodule Livebook.Session.DataTest do
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:smart_cell_started, @cid, "c2", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
         ])
 
       operation = {:delete_cell, @cid, "c1"}
@@ -826,8 +823,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{},
               [
                 {:forget_evaluation, _, _},
-                {:set_smart_cell_base, %{id: "c2"}, %{id: "s1"},
-                 {%{id: "setup"}, %{id: "setup-section"}}}
+                {:set_smart_cell_parents, %{id: "c2"}, %{id: "s1"},
+                 [{%{id: "setup"}, %{id: "setup-section"}}]}
               ]} = Data.apply_operation(data, operation)
     end
   end
@@ -939,7 +936,7 @@ defmodule Livebook.Session.DataTest do
     test "returns an error if the cell is evaluating and would move to a different section" do
       # In practice we don't want evaluating cells to be moved between
       # a section and a branching section, however for simplicity we
-      # do the same for other sections
+      # do the same for other sections too
 
       data =
         data_after_operations!([
@@ -955,18 +952,14 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "given negative offset moves the cell and marks relevant cells as stale" do
+    test "given negative offset, moves the cell upwards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          # Add cells
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}}
         ])
 
       operation = {:move_cell, @cid, "c3", -1}
@@ -975,32 +968,20 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{
                   sections: [
-                    %{
-                      cells: [%{id: "c1"}, %{id: "c3"}, %{id: "c2"}, %{id: "c4"}]
-                    }
+                    %{cells: [%{id: "c1"}, %{id: "c3"}, %{id: "c2"}, %{id: "c4"}]}
                   ]
-                },
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "given positive offset moves the cell and marks relevant cells as stale" do
+    test "given positive offset, moves the cell downards" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          # Add cells
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}}
         ])
 
       operation = {:move_cell, @cid, "c2", 1}
@@ -1013,12 +994,6 @@ defmodule Livebook.Session.DataTest do
                       cells: [%{id: "c1"}, %{id: "c3"}, %{id: "c2"}, %{id: "c4"}]
                     }
                   ]
-                },
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1028,7 +1003,6 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_section, @cid, 1, "s2"},
-          # Add cells
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
@@ -1048,35 +1022,64 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "marks relevant cells in further sections as stale" do
+    test "marks invalidated cells as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
-          # Evaluate cells
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c2" => ["c1"], "c3" => ["c2"], "c4" => ["c1"]}
+          )
         ])
 
       operation = {:move_cell, @cid, "c1", 1}
 
       assert {:ok,
               %{
-                cell_infos: %{"c3" => %{eval: %{validity: :stale}}}
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :evaluated}}
+                }
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "moving a markdown cell does not change validity" do
+    test "cells with :unknown are marked as stale when new identifiers get into scope" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          # Add cells
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => :unknown}
+          )
+        ])
+
+      operation = {:move_cell, @cid, "c3", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :evaluated}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "moving a markdown cell does not change cell validity" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :markdown, "c2", %{}},
-          # Evaluate the Code cell
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
@@ -1091,17 +1094,16 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "affected queued cell is unqueued" do
+    test "unqueues moved and child cells" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          # Add cells
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          # Evaluate the Code cell
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"]}
         ])
 
       operation = {:move_cell, @cid, "c2", -1}
@@ -1109,49 +1111,27 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{eval: %{status: :ready}}
+                  "c2" => %{eval: %{status: :ready}},
+                  "c3" => %{eval: %{status: :ready}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "does not invalidate the moved cell if the order of Code cells stays the same" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :markdown, "c2", %{}},
-          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c3"])
-        ])
-
-      operation = {:move_cell, @cid, "c1", 1}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c3" => %{eval: %{validity: :evaluated}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "invalidates only relevant cells if a cell is moved within a branch section" do
+    test "when moving to a branching section, marks dependent cells in other sections as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_section, @cid, 1, "s2"},
-          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:insert_cell, @cid, "s2", 1, :code, "c3", %{}},
+          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_section, @cid, 2, "s3"},
           {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c4" => ["c2"]}
+          )
         ])
 
       operation = {:move_cell, @cid, "c2", 1}
@@ -1161,43 +1141,8 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :evaluated}},
                   "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :evaluated}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "invalidates cells only in relevant branch sections" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:insert_cell, @cid, "s2", 1, :code, "c3", %{}},
-          {:insert_section, @cid, 2, "s3"},
-          {:insert_cell, @cid, "s3", 0, :code, "c4", %{}},
-          {:insert_section, @cid, 3, "s4"},
-          {:insert_cell, @cid, "s4", 0, :code, "c5", %{}},
-          {:set_section_parent, @cid, "s3", "s2"},
-          {:set_section_parent, @cid, "s4", "s1"},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"])
-        ])
-
-      operation = {:move_cell, @cid, "c2", 1}
-
-      # Section s4 is independent of section s2, so it shouldn't be invalidated
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :stale}},
-                  "c5" => %{eval: %{validity: :evaluated}}
+                  "c3" => %{eval: %{validity: :evaluated}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1206,13 +1151,13 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
-          # Add cells
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => ["c1"], "c3" => ["c1"]}
+          )
         ])
 
       {:ok, data_moved, []} = Data.apply_operation(data, {:move_cell, @cid, "c2", -1})
@@ -1238,212 +1183,6 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:move_section, @cid, "s2", 0}
       assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "given negative offset moves the section and marks relevant cells as stale" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
-          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
-        ])
-
-      operation = {:move_section, @cid, "s2", -1}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{id: "c3"}, %{id: "c4"}]
-                    },
-                    %{
-                      cells: [%{id: "c1"}, %{id: "c2"}]
-                    }
-                  ]
-                },
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :stale}},
-                  "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :stale}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "given positive offset moves the section and marks relevant cells as stale" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
-          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
-        ])
-
-      operation = {:move_section, @cid, "s1", 1}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{id: "c3"}, %{id: "c4"}]
-                    },
-                    %{
-                      cells: [%{id: "c1"}, %{id: "c2"}]
-                    }
-                  ]
-                },
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :stale}},
-                  "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}},
-                  "c4" => %{eval: %{validity: :stale}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "marks relevant cells in further sections as stale" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_section, @cid, 2, "s3"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s2", 1, :code, "c2", %{}},
-          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
-        ])
-
-      operation = {:move_section, @cid, "s1", 1}
-
-      assert {:ok,
-              %{
-                cell_infos: %{"c3" => %{eval: %{validity: :stale}}}
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "moving a section with only markdown cells does not change validity" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s2", 0, :markdown, "c2", %{}},
-          # Evaluate the Code cell
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1"])
-        ])
-
-      operation = {:move_section, @cid, "s2", -1}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "affected queued cells are unqueued" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          # Evaluate the Code cell
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
-        ])
-
-      operation = {:move_section, @cid, "s2", -1}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c2" => %{eval: %{status: :ready}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "does not invalidate cells in moved section if the order of Code cells stays the same" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_section, @cid, 2, "s3"},
-          {:insert_section, @cid, 3, "s4"},
-          # Add cells
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s2", 0, :markdown, "c2", %{}},
-          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          {:insert_cell, @cid, "s4", 0, :markdown, "c4", %{}},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c3"])
-        ])
-
-      operation = {:move_section, @cid, "s4", -1}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c3" => %{eval: %{validity: :evaluated}}
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "does not invalidate any cells if a branching sections is moved" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_section, @cid, 1, "s2"},
-          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
-          {:insert_section, @cid, 2, "s3"},
-          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
-          {:insert_section, @cid, 3, "s4"},
-          {:insert_cell, @cid, "s4", 0, :code, "c4", %{}},
-          {:set_section_parent, @cid, "s2", "s1"},
-          # Evaluate cells
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
-        ])
-
-      operation = {:move_section, @cid, "s2", 1}
-
-      # Section s2 is branching, so moving it should have no impact on validity
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated}},
-                  "c2" => %{eval: %{validity: :evaluated}},
-                  "c3" => %{eval: %{validity: :evaluated}},
-                  "c4" => %{eval: %{validity: :evaluated}}
-                }
-              }, []} = Data.apply_operation(data, operation)
     end
 
     test "returns an error when moving a regular section below one of its child sections" do
@@ -1473,6 +1212,145 @@ defmodule Livebook.Session.DataTest do
 
       assert :error = Data.apply_operation(data, operation)
     end
+
+    test "given negative offset, moves the section upwards" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
+          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}}
+        ])
+
+      operation = {:move_section, @cid, "s2", -1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{id: "c3"}, %{id: "c4"}]},
+                    %{cells: [%{id: "c1"}, %{id: "c2"}]}
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "given positive offset, moves the section downwards" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
+          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}}
+        ])
+
+      operation = {:move_section, @cid, "s1", 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{id: "c3"}, %{id: "c4"}]},
+                    %{cells: [%{id: "c1"}, %{id: "c2"}]}
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "marks invalidated cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
+          {:insert_section, @cid, 2, "s3"},
+          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
+          {:insert_cell, @cid, "s3", 1, :code, "c4", %{}},
+          {:insert_cell, @cid, "s3", 2, :code, "c5", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"],
+            uses: %{"c2" => ["c1"], "c3" => ["c1"], "c4" => ["c2"]}
+          )
+        ])
+
+      operation = {:move_section, @cid, "s1", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :evaluated}},
+                  "c4" => %{eval: %{validity: :stale}},
+                  "c5" => %{eval: %{validity: :evaluated}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "unqueues moved and child cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
+          {:insert_section, @cid, 2, "s3"},
+          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3"]}
+        ])
+
+      operation = {:move_section, @cid, "s2", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{eval: %{status: :ready}},
+                  "c3" => %{eval: %{status: :ready}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "does not invalidate any cells if a branching sections is moved" do
+      # Cell 2 uses an identifier with a name defined in cell 3,
+      # but it shouldn't see that identifier, because it branches
+      # from cell 1
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c2", %{}},
+          {:insert_section, @cid, 2, "s3"},
+          {:insert_cell, @cid, "s3", 0, :code, "c3", %{}},
+          {:insert_section, @cid, 3, "s4"},
+          {:insert_cell, @cid, "s4", 0, :code, "c4", %{}},
+          {:set_section_parent, @cid, "s2", "s1"},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c2" => ["c3"]}
+          )
+        ])
+
+      operation = {:move_section, @cid, "s2", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :evaluated}},
+                  "c4" => %{eval: %{validity: :evaluated}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :queue_cells_evaluation" do
@@ -1488,7 +1366,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error given non-Code cell" do
+    test "returns an error given non-code cell" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1513,7 +1391,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns connect runtime action if there is no runtime and this is the first evaluation" do
+    test "if there is no runtime and this is the first evaluation, returns a connect runtime action" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1525,11 +1403,15 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{eval: %{status: :queued}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: ["c1"]}}
-              }, [:connect_runtime]} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil}
+                }
+              } = new_data, [:connect_runtime]} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new(["c1"])
     end
 
-    test "only queues the cell if runtime start has already been requested" do
+    test "if runtime start has already been requested, just queues the cell" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1547,9 +1429,11 @@ defmodule Livebook.Session.DataTest do
                   "c2" => %{eval: %{status: :queued}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: ["c1", "c2"]}
+                  "s1" => %{evaluating_cell_id: nil}
                 }
-              }, []} = Data.apply_operation(data, operation)
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new(["c1", "c2"])
     end
 
     test "marks the cell as evaluating if the corresponding section is idle" do
@@ -1566,8 +1450,12 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{eval: %{status: :evaluating}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }, _actions} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1"}
+                }
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
     test "returns start evaluation action if the corresponding section is idle" do
@@ -1601,8 +1489,12 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :queued}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
-              }, []} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1"}
+                }
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new(["c2"])
     end
 
     test "marks the cell as queued if a previous section is already evaluating" do
@@ -1623,10 +1515,13 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :queued}}},
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]}
+                  "s1" => %{evaluating_cell_id: "c1"},
+                  "s2" => %{evaluating_cell_id: nil}
                 }
-              }, []} = Data.apply_operation(data, operation)
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new(["c2"])
     end
 
     test "queues previous unevaluated and stale cells" do
@@ -1640,22 +1535,22 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
           # Evaluate first 2 cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"]),
+          evaluate_cells_operations(["setup", "c1", "c2"], uses: %{"c2" => ["c1"]}),
           # Evaluate the first cell, so the second becomes stale
-          evaluate_cells_operations(["c1"])
+          evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
         ])
 
       # The above leads to:
       #
       # Section 1:
-      # * cell 1 - evaluated
-      # * cell 2 - stale
+      #   * cell 1 - evaluated
+      #   * cell 2 - stale
       # Section 2:
-      # * cell 3 - fresh
-      # * cell 4 - fresh
+      #   * cell 3 - fresh
+      #   * cell 4 - fresh
       #
-      # Queuing cell 4 should also queue cell 3 and cell 2,
-      # so that they all become evaluated.
+      # Queuing cell 4 should also queue cell 3 and cell 2, so that
+      # they all become evaluated.
 
       operation = {:queue_cells_evaluation, @cid, ["c4"]}
 
@@ -1667,13 +1562,16 @@ defmodule Livebook.Session.DataTest do
                   "c4" => %{eval: %{status: :queued}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: "c2", evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c3", "c4"]}
+                  "s1" => %{evaluating_cell_id: "c2"},
+                  "s2" => %{evaluating_cell_id: nil}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new(["c3", "c4"])
     end
 
-    test "queues only required parent cells when queueing a branch cell" do
+    test "given a branch cell, queues branch parent cells" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1699,11 +1597,15 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :queued}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s3" => %{evaluating_cell_id: nil, evaluation_queue: ["c3"]}
+                  "s1" => %{evaluating_cell_id: "c1"},
+                  "s2" => %{evaluating_cell_id: nil},
+                  "s3" => %{evaluating_cell_id: nil}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new(["c3"])
     end
 
     test "marks first branch cell as queued if a regular section is evaluating" do
@@ -1730,10 +1632,13 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]},
-                  "s3" => %{evaluating_cell_id: "c3", evaluation_queue: []}
+                  "s2" => %{evaluating_cell_id: nil},
+                  "s3" => %{evaluating_cell_id: "c3"}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new(["c2"])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
 
     test "marks first branch cell as evaluating if no regular section is evaluating" do
@@ -1753,10 +1658,14 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
-                section_infos: %{"s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
-              },
+                section_infos: %{
+                  "s2" => %{evaluating_cell_id: "c2"}
+                }
+              } = new_data,
               [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
                Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
     test "marks the second branch cell as evaluating if the first one is evaluated, even if a regular section is evaluating" do
@@ -1784,10 +1693,13 @@ defmodule Livebook.Session.DataTest do
                   "c4" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
-                  "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []},
-                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
+                  "s2" => %{evaluating_cell_id: "c3"},
+                  "s3" => %{evaluating_cell_id: "c4"}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
 
     test "marks regular cell as evaluating if only a branch cell is evaluating" do
@@ -1810,8 +1722,12 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c3" => %{eval: %{status: :evaluating}}},
-                section_infos: %{"s3" => %{evaluating_cell_id: "c3", evaluation_queue: []}}
-              }, _actions} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s3" => %{evaluating_cell_id: "c3"}
+                }
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -1916,8 +1832,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation =
-        {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
 
       assert {:ok,
               %{
@@ -1941,13 +1856,17 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{eval: %{status: :ready}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }, []} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil}
+                }
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
     test "preserves validity status" do
@@ -1962,11 +1881,11 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["c1"]),
           # Start evaluating the second cell
           {:queue_cells_evaluation, @cid, ["c2"]},
-          # Remove the first cell, marking the second as stale
+          # Remove the first cell, this should make the second cell stale
           {:delete_cell, @cid, "c1"}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta(uses: ["c1"])}
 
       assert {:ok,
               %{
@@ -1985,15 +1904,19 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1", "c2"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
-              },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c2"}
+                }
+              } = new_data,
               [{:start_evaluation, %{id: "c2"}, %{id: "s1"}}]} =
                Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
     test "marks next queued cell in a further section as evaluating if there is one" do
@@ -2008,21 +1931,24 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1", "c2"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: "c2"}
                 }
-              },
+              } = new_data,
               [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
                Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
-    test "marks evaluated child cells as stale" do
+    test "marks evaluated dependent cells as stale" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2030,25 +1956,92 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
-          # Evaluate all cells
+          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
-          # Queue the first cell again
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c2" => ["c1"], "c4" => ["c2"]}
+          ),
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(defines: %{"c1" => 1})}
 
       assert {:ok,
               %{
                 cell_infos: %{
                   "c2" => %{eval: %{validity: :stale}},
-                  "c3" => %{eval: %{validity: :stale}}
+                  "c3" => %{eval: %{validity: :evaluated}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "marks evaluated child cells as stale in relevant branch sections" do
+    test "cells with :unknown are marked as stale whenever any identifier changes" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => :unknown}
+          ),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp,
+         eval_meta(%{defines: %{"c1" => 1}})}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :evaluated}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "updates evaluation queue to include invalidated cells necessary for those already queued" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
+          {:insert_cell, @cid, "s1", 4, :code, "c5", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"],
+            uses: %{"c2" => ["c1"], "c3" => ["c2"]}
+          ),
+          {:queue_cells_evaluation, @cid, ["c1", "c5"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(defines: %{"c1" => 1})}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{status: :ready}},
+                  "c2" => %{eval: %{status: :evaluating}},
+                  "c3" => %{eval: %{status: :queued}},
+                  "c4" => %{eval: %{status: :ready}},
+                  "c5" => %{eval: %{status: :queued}}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c2"}
+                }
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new(["c3", "c5"])
+    end
+
+    test "marks dependent evaluated child cells as stale in branch sections" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2061,14 +2054,15 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s4", 0, :code, "c4", %{}},
           {:set_section_parent, @cid, "s3", "s2"},
           {:set_section_parent, @cid, "s4", "s1"},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"]),
-          # Queue the second cell again
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c3" => ["c2"], "c4" => ["c1", "c2"]}
+          ),
           {:queue_cells_evaluation, @cid, ["c2"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, @eval_meta}
+      operation =
+        {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta(defines: %{"c2" => 1})}
 
       # Section s4 is independent of section s2, so it shouldn't be invalidated
 
@@ -2083,7 +2077,7 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "marks child automatically reevaluating cells for evaluation" do
+    test "marks invalidated automatically reevaluating cells for evaluation" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2091,14 +2085,15 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
           {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
-          # Evaluate all cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
-          # Queue the first cell again
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => ["c1"], "c3" => ["c2"]}
+          ),
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(defines: %{"c1" => 1})}
 
       assert {:ok,
               %{
@@ -2116,13 +2111,12 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          # Evaluate all cells
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
@@ -2144,9 +2138,9 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
-          {:add_cell_evaluation_response, @cid, "c2", @eval_resp, @eval_meta},
-          # Make the Code cell evaluating
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()},
+          # Make the code cell evaluating
           {:queue_cells_evaluation, @cid, ["c2"]},
           # Bind the input (effectively read the current value)
           {:bind_input, @cid, "c2", "i1"},
@@ -2154,7 +2148,7 @@ defmodule Livebook.Session.DataTest do
           {:set_input_value, @cid, "i1", "stuff"}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
@@ -2164,7 +2158,7 @@ defmodule Livebook.Session.DataTest do
               }, _} = Data.apply_operation(data, operation)
     end
 
-    test "adds evaluation time to the response" do
+    test "updates evaluation time based on the result metadata" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2174,17 +2168,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation =
-        {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
-
-      Process.sleep(10)
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
 
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{eval: %{evaluation_time_ms: evaluation_time}}}
               }, []} = Data.apply_operation(data, operation)
 
-      assert evaluation_time >= 10
+      assert evaluation_time == 10
     end
 
     test "sets dirty flag to true if outputs are persisted" do
@@ -2199,8 +2190,7 @@ defmodule Livebook.Session.DataTest do
           {:mark_as_not_dirty, @cid}
         ])
 
-      operation =
-        {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
@@ -2217,7 +2207,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
 
       assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
     end
@@ -2232,13 +2222,13 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
       # Output the same input again
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
 
       assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
     end
@@ -2253,13 +2243,13 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
       # This time w don't output the input
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, eval_meta()}
 
       empty_map = %{}
 
@@ -2277,14 +2267,14 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
-          {:add_cell_evaluation_response, @cid, "c2", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", {:input, input}, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
       # This time w don't output the input
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, eval_meta()}
 
       assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
     end
@@ -2304,19 +2294,19 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:queue_cells_evaluation, @cid, ["c2"]}
         ])
 
       # This time w don't output the input
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, eval_meta()}
 
       assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
     end
 
-    test "evaluating code cell before smart cell changes its base" do
+    test "evaluating code cell before smart cell changes its parents" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2329,11 +2319,13 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok, %{},
-              [{:set_smart_cell_base, %{id: "c2"}, %{id: "s1"}, {%{id: "c1"}, %{id: "s1"}}}]} =
-               Data.apply_operation(data, operation)
+              [
+                {:set_smart_cell_parents, %{id: "c2"}, %{id: "s1"},
+                 [{%{id: "c1"}, %{id: "s1"}}, {%{id: "setup"}, %{id: "setup-section"}}]}
+              ]} = Data.apply_operation(data, operation)
     end
   end
 
@@ -2361,7 +2353,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "updates Code cell info with binding to the input cell" do
+    test "updates code cell info with binding to the input cell" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 
       data =
@@ -2372,7 +2364,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
           {:queue_cells_evaluation, @cid, ["c2"]}
         ])
 
@@ -2383,7 +2375,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{eval: %{bound_to_input_ids: ^bound_to_input_ids}}
+                  "c2" => %{eval: %{new_bound_to_input_ids: ^bound_to_input_ids}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -2412,9 +2404,11 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
     test "leaves branching sections unchanged" do
@@ -2441,10 +2435,13 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: "c3"}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -2476,11 +2473,15 @@ defmodule Livebook.Session.DataTest do
                   "c4" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil},
+                  "s3" => %{evaluating_cell_id: "c4"}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -2527,10 +2528,13 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
     test "if the cell is evaluating, returns stop evaluation action" do
@@ -2577,11 +2581,15 @@ defmodule Livebook.Session.DataTest do
                   "c4" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil},
+                  "s3" => %{evaluating_cell_id: "c4"}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s3"].evaluation_queue == MapSet.new([])
     end
 
     test "if the cell is queued, unqueues it" do
@@ -2602,11 +2610,15 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c2" => %{eval: %{validity: :fresh, status: :ready}}
                 },
-                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }, []} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1"}
+                }
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
 
-    test "if the cell is queued, unqueues dependent cells that are also queued" do
+    test "if the cell is queued, unqueues child cells that are also queued" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2623,8 +2635,12 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c3" => %{eval: %{status: :ready}}},
-                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }, []} = Data.apply_operation(data, operation)
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1"}
+                }
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -2723,7 +2739,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, @cid, "c1", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, @eval_meta}
+          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
         ])
 
       operation = {:update_smart_cell, client_id, "c1", %{}, Delta.new(), true}
@@ -2810,13 +2826,16 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil}
                 }
-              }, _actions} = Data.apply_operation(data, operation)
+              } = new_data, _actions} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
-    test "removes Code cell outputs" do
+    test "removes code cell outputs" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -3334,10 +3353,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          # Evaluate cells
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"]),
-          evaluate_cells_operations(["c1"])
+          evaluate_cells_operations(["setup", "c1", "c2"], uses: %{"c2" => ["c1"]}),
+          evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
         ])
 
       attrs = %{reevaluate_automatically: true}
@@ -3371,7 +3389,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta}
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
         ])
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
@@ -3379,7 +3397,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{input_values: %{"i1" => "stuff"}}, _} = Data.apply_operation(data, operation)
     end
 
-    test "given input value change, marks evaluated bound cells and their dependants as stale" do
+    test "given input value change, marks evaluated bound cells and their dependents as stale" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 
       data =
@@ -3393,9 +3411,11 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
-          evaluate_cells_operations(["c2", "c3", "c4"]),
-          {:bind_input, @cid, "c3", "i1"}
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2", "c3", "c4"],
+            bind_inputs: %{"c3" => ["i1"]},
+            uses: %{"c2" => ["c1"], "c3" => ["c2"], "c4" => ["c3"]}
+          )
         ])
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
@@ -3424,18 +3444,15 @@ defmodule Livebook.Session.DataTest do
     test "clears all statuses and the per-section queues" do
       data =
         data_after_operations!([
-          # First section with evaluating and queued cells
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          # Second section with evaluating and queued cells
           {:insert_section, @cid, 1, "s2"},
           {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
           {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
-          {:queue_cells_evaluation, @cid, ["c3", "c4"]}
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"]}
         ])
 
       runtime = connected_noop_runtime()
@@ -3450,10 +3467,13 @@ defmodule Livebook.Session.DataTest do
                   "c4" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
-                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil}
                 }
-              }, []} = Data.apply_operation(data, operation)
+              } = new_data, []} = Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["s1"].evaluation_queue == MapSet.new([])
+      assert new_data.section_infos["s2"].evaluation_queue == MapSet.new([])
     end
 
     test "starts evaluation if there was no runtime before and there is now" do
@@ -3473,11 +3493,13 @@ defmodule Livebook.Session.DataTest do
                   "setup" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
-                  "setup-section" => %{evaluating_cell_id: "setup", evaluation_queue: []}
+                  "setup-section" => %{evaluating_cell_id: "setup"}
                 }
-              },
+              } = new_data,
               [{:start_evaluation, %{id: "setup"}, %{id: "setup-section"}}]} =
                Data.apply_operation(data, operation)
+
+      assert new_data.section_infos["setup-section"].evaluation_queue == MapSet.new([])
     end
   end
 
@@ -3527,7 +3549,7 @@ defmodule Livebook.Session.DataTest do
       assert [] = Data.bound_cells_with_section(data, "nonexistent")
     end
 
-    test "returns Code cells bound to the given input" do
+    test "returns code cells bound to the given input" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 
       data =
@@ -3540,9 +3562,10 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, @eval_meta},
-          {:bind_input, @cid, "c2", "i1"},
-          {:bind_input, @cid, "c4", "i1"}
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2", "c3", "c4"], %{
+            bind_inputs: %{"c2" => ["i1"], "c4" => ["i1"]}
+          })
         ])
 
       assert [{%{id: "c2"}, _}, {%{id: "c4"}, _}] = Data.bound_cells_with_section(data, "i1")
@@ -3552,24 +3575,27 @@ defmodule Livebook.Session.DataTest do
   @empty_digest :erlang.md5("")
 
   describe "cell_ids_for_full_evaluation/2" do
-    test "includes changed cells with children" do
+    test "includes changed cells with dependent ones" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c4" => ["c2"]}
+          ),
           # Modify cell 2
           {:client_join, @cid, User.new()},
           {:apply_cell_delta, @cid, "c2", :primary, Delta.new() |> Delta.insert("cats"), 1}
         ])
 
-      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c3"]
+      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c4"]
     end
 
-    test "includes fresh cells with children" do
+    test "includes fresh cells" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -3581,7 +3607,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}}
         ])
 
-      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c3"]
+      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2"]
     end
 
     test "includes stale cells" do
@@ -3591,26 +3617,31 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"]),
+          evaluate_cells_operations(["setup", "c1", "c2"],
+            uses: %{"c2" => ["c1"]}
+          ),
           # Reevaluate cell 1
-          evaluate_cells_operations(["c1"])
+          evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
         ])
 
       assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2"]
     end
 
-    test "includes forced cells with children" do
+    test "includes forced cells with dependent ones" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:insert_cell, @cid, "s1", 3, :code, "c4", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2", "c3"])
+          evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"],
+            uses: %{"c4" => ["c2"]}
+          )
         ])
 
-      assert Data.cell_ids_for_full_evaluation(data, ["c2"]) |> Enum.sort() == ["c2", "c3"]
+      assert Data.cell_ids_for_full_evaluation(data, ["c2"]) |> Enum.sort() == ["c2", "c4"]
     end
 
     test "excludes evaluating and queued cells" do
@@ -3660,9 +3691,11 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup", "c1", "c2"]),
+          evaluate_cells_operations(["setup", "c1", "c2"],
+            uses: %{"c2" => ["c1"]}
+          ),
           # Reevaluate cell 1
-          evaluate_cells_operations(["c1"])
+          evaluate_cells_operations(["c1"], versions: %{"c1" => 1})
         ])
 
       assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1", "c2"]
@@ -3676,7 +3709,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
-          # Reevaluate cell 1
+          # Insert a new cell between the two evaluated cells
           {:insert_cell, @cid, "s1", 1, :code, "c3", %{}}
         ])
 
@@ -3702,16 +3735,31 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  defp evaluate_cells_operations(cell_ids) do
+  defp evaluate_cells_operations(cell_ids, opts \\ []) do
+    uses = opts[:uses] || %{}
+    versions = opts[:versions] || %{}
+    bind_inputs = opts[:bind_inputs] || %{}
+
     [
       {:queue_cells_evaluation, @cid, cell_ids},
-      for(
-        cell_id <- cell_ids,
-        do: [
+      for cell_id <- cell_ids do
+        # For convenience we make each cell evaluation define an identifier
+        # corresponding to the cell id, this way it is easy to make any
+        # other cell depend on it
+        metadata =
+          eval_meta(
+            defines: %{cell_id => versions[cell_id] || 0},
+            uses: uses[cell_id] || []
+          )
+
+        [
           {:evaluation_started, @cid, cell_id, @empty_digest},
-          {:add_cell_evaluation_response, @cid, cell_id, @eval_resp, @eval_meta}
+          for input_id <- bind_inputs[cell_id] || [] do
+            {:bind_input, @cid, cell_id, input_id}
+          end,
+          {:add_cell_evaluation_response, @cid, cell_id, @eval_resp, metadata}
         ]
-      )
+      end
     ]
   end
 

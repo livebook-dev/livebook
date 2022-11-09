@@ -28,7 +28,7 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def read_file(_, _), do: raise("not implemented")
     def start_smart_cell(_, _, _, _, _), do: :ok
-    def set_smart_cell_base_locator(_, _, _), do: :ok
+    def set_smart_cell_parent_locators(_, _, _), do: :ok
     def stop_smart_cell(_, _), do: :ok
 
     def fixed_dependencies?(_), do: false

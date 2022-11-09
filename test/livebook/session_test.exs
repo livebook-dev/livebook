@@ -7,6 +7,8 @@ defmodule Livebook.SessionTest do
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
 
+  @eval_meta %{evaluation_time_ms: 10, identifiers_used: [], identifiers_defined: %{}}
+
   setup do
     session = start_session()
     %{session: session}
@@ -759,10 +761,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, smart_cell.id)
 
-      send(
-        session.pid,
-        {:runtime_evaluation_response, "setup", {:ok, ""}, %{evaluation_time_ms: 10}}
-      )
+      send(session.pid, {:runtime_evaluation_response, "setup", {:ok, ""}, @eval_meta})
 
       session_pid = session.pid
       assert_receive {:ping, ^session_pid, metadata, %{ref: "ref"}}
@@ -781,8 +780,8 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "find_base_locator/3" do
-    test "given cell in main flow returns previous Code cell" do
+  describe "parent_locators_for_cell/2" do
+    test "given cell in main flow returns previous Code cells" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
       section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
@@ -793,10 +792,19 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2)
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), connected_noop_runtime()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
+        ])
+
+      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+               Session.parent_locators_for_cell(data, cell3)
     end
 
-    test "given cell in branching section returns previous Code cell in that section" do
+    test "given cell in branching section returns Code cells from both sections" do
       section1 = %{Section.new() | id: "s1"}
 
       cell1 = %{Cell.new(:code) | id: "c1"}
@@ -813,17 +821,25 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {"s2", "c1"} = Session.find_base_locator(data, cell3, section2)
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), connected_noop_runtime()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
+        ])
+
+      assert [{"s2", "c1"}, {:main_flow, "setup"}] = Session.parent_locators_for_cell(data, cell3)
     end
 
-    test "given cell in main flow returns nil if there is no previous cell" do
-      %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook = Notebook.new()
+    test "given cell in main flow returns an empty list if there is no previous cell" do
+      %{setup_section: %{cells: [setup_cell]}} = notebook = Notebook.new()
       data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, setup_cell, setup_section)
+      assert [] = Session.parent_locators_for_cell(data, setup_cell)
     end
 
-    test "when :existing is set ignores fresh and aborted cells" do
+    test "ignores fresh and aborted cells" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:code) | id: "c2"}
       section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
@@ -834,24 +850,25 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [] = Session.parent_locators_for_cell(data, cell3)
 
       data =
         data_after_operations!(data, [
           {:set_runtime, self(), connected_noop_runtime()},
           {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, %{evaluation_time_ms: 10}},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
 
-      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+               Session.parent_locators_for_cell(data, cell3)
 
       data =
         data_after_operations!(data, [
           {:reflect_main_evaluation_failure, self()}
         ])
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [] = Session.parent_locators_for_cell(data, cell3)
     end
   end
 

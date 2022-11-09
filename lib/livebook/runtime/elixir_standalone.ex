@@ -179,8 +179,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.ElixirStandalone.new()
   end
 
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  def evaluate_code(runtime, code, locator, parent_locators, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, parent_locators, opts)
   end
 
   def forget_evaluation(runtime, locator) do
@@ -191,20 +191,20 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, request, base_locator) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
+  def handle_intellisense(runtime, send_to, request, parent_locators) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, parent_locators)
   end
 
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+  def start_smart_cell(runtime, kind, ref, attrs, parent_locators) do
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, parent_locators)
   end
 
-  def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+  def set_smart_cell_parent_locators(runtime, ref, parent_locators) do
+    RuntimeServer.set_smart_cell_parent_locators(runtime.server_pid, ref, parent_locators)
   end
 
   def stop_smart_cell(runtime, ref) do
