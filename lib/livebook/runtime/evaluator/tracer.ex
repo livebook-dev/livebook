@@ -83,11 +83,10 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
       {:remote_macro, _meta, module, _name, _arity} ->
         [{:module_used, module}, {:require_used, module}]
 
-      {:on_module, bytecode, _ignore} ->
+      {:on_module, _bytecode, _ignore} ->
         module = env.module
-        version = :erlang.md5(bytecode)
         vars = Map.keys(env.versioned_vars)
-        [{:module_defined, module, version, vars}, {:alias_used, module}]
+        [{:module_defined, module, vars}, {:alias_used, module}]
 
       _ ->
         []
@@ -106,8 +105,8 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     update_in(info.modules_used, &MapSet.put(&1, module))
   end
 
-  defp apply_update(info, {:module_defined, module, version, vars}) do
-    put_in(info.modules_defined[module], {version, vars})
+  defp apply_update(info, {:module_defined, module, vars}) do
+    put_in(info.modules_defined[module], vars)
   end
 
   defp apply_update(info, {:alias_used, alias}) do

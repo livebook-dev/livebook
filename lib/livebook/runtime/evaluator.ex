@@ -607,7 +607,8 @@ defmodule Livebook.Runtime.Evaluator do
           into: identifiers_used
 
     identifiers_defined =
-      for {module, {version, _vars}} <- tracer_info.modules_defined,
+      for {module, _vars} <- tracer_info.modules_defined,
+          version = module.__info__(:md5),
           do: {{:module, module}, version},
           into: identifiers_defined
 
@@ -684,7 +685,7 @@ defmodule Livebook.Runtime.Evaluator do
     # Note that :prune_binding removes variables used by modules
     # (unless used outside), so we get those from the tracer
     module_used_vars =
-      for {_module, {_version, vars}} <- tracer_info.modules_defined,
+      for {_module, vars} <- tracer_info.modules_defined,
           var <- vars,
           into: MapSet.new(),
           do: var
