@@ -113,7 +113,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <.hub_section socket={@socket} hubs={@saved_hubs} current_page={@current_page} />
         </div>
         <div class="flex flex-col">
-          <%= if Livebook.Config.shutdown_enabled?() do %>
+          <%= if Livebook.Config.shutdown_callback() do %>
             <button
               class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
               aria-label="shutdown"

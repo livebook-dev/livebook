@@ -119,7 +119,7 @@ defmodule Livebook do
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
-      config :livebook, :shutdown_enabled, true
+      config :livebook, :shutdown_callback, {System, :stop, []}
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_WITHIN_IFRAME", false) do

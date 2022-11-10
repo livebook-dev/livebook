@@ -24,7 +24,7 @@ config :livebook, LivebookWeb.Endpoint,
   ]
 
 config :livebook, :iframe_port, 4001
-config :livebook, :shutdown_enabled, true
+config :livebook, :shutdown_callback, {System, :stop, []}
 
 # Feature flags
 config :livebook, :feature_flags,
