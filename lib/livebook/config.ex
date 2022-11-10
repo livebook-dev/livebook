@@ -143,7 +143,14 @@ defmodule Livebook.Config do
   """
   @spec update_instructions_url() :: String.t() | nil
   def update_instructions_url() do
-    Application.get_env(:livebook, :update_instructions_url)
+    Application.fetch_env!(:livebook, :update_instructions_url)
+  end
+
+  @doc """
+  Returns the force ssl host if any.
+  """
+  def force_ssl_host do
+    Application.fetch_env!(:livebook, :force_ssl_host)
   end
 
   @feature_flags Application.compile_env(:livebook, :feature_flags)

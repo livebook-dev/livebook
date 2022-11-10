@@ -23,12 +23,14 @@ config :livebook,
   app_service_name: nil,
   app_service_url: nil,
   authentication_mode: :token,
-  learn_notebooks: [],
   feature_flags: [],
+  force_ssl_host: nil,
+  learn_notebooks: [],
   plugs: [],
   shutdown_enabled: false,
-  within_iframe: false,
-  storage: Livebook.Storage.Ets
+  storage: Livebook.Storage.Ets,
+  update_instructions_url: nil,
+  within_iframe: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

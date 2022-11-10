@@ -206,15 +206,16 @@ The following environment variables configure Livebook:
   * LIVEBOOK_SHUTDOWN_ENABLED - controls if a shutdown button should be shown
     in the homepage. Set it to "true" to enable it.
 
-  * LIVEBOOK_WITHIN_IFRAME - controls if the application is running inside an
-    iframe. Set it to "true" to enable it.
-
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
     disable it.
 
   * LIVEBOOK_UPDATE_INSTRUCTIONS_URL - sets the URL to direct the user to for
     updating Livebook when a new version becomes available.
+
+  * LIVEBOOK_WITHIN_IFRAME - controls if the application is running inside an
+    iframe. Set it to "true" to enable it. If you do enable it, then the application
+    must run with HTTPS.
 
 <!-- Environment variables -->
 

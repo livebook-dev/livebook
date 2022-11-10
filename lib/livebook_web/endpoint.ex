@@ -94,11 +94,9 @@ defmodule LivebookWeb.Endpoint do
     end
   end
 
-  @plug_ssl Plug.SSL.init(host: {Application, :get_env, [:livebook, :force_ssl_host, nil]})
+  @plug_ssl Plug.SSL.init(host: {Livebook.Config, :force_ssl_host, []})
   def force_ssl(conn, _opts) do
-    force_ssl_host = Application.get_env(:livebook, :force_ssl_host, nil)
-
-    if force_ssl_host do
+    if Livebook.Config.force_ssl_host() do
       Plug.SSL.call(conn, @plug_ssl)
     else
       conn
