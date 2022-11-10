@@ -759,8 +759,12 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   @doc false
-  def ebin_path() do
-    Process.get(@ebin_path_key)
+  def write_module!(module, bytecode) do
+    if ebin_path = ebin_path() do
+      ebin_path
+      |> Path.join("#{module}.beam")
+      |> File.write!(bytecode)
+    end
   end
 
   defp delete_module!(module) do
@@ -774,5 +778,9 @@ defmodule Livebook.Runtime.Evaluator do
       |> Path.join("#{module}.beam")
       |> File.rm!()
     end
+  end
+
+  defp ebin_path() do
+    Process.get(@ebin_path_key)
   end
 end

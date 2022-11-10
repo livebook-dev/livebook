@@ -86,13 +86,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
       {:on_module, bytecode, _ignore} ->
         module = env.module
         vars = Map.keys(env.versioned_vars)
-
-        if ebin_path = Evaluator.ebin_path() do
-          ebin_path
-          |> Path.join("#{module}.beam")
-          |> File.write!(bytecode)
-        end
-
+        Evaluator.write_module!(module, bytecode)
         [{:module_defined, module, vars}, {:alias_used, module}]
 
       _ ->
