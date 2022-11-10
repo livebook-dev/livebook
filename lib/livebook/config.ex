@@ -115,6 +115,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns whether the application is running inside an iframe.
+  """
+  @spec within_iframe?() :: boolean()
+  def within_iframe? do
+    Application.fetch_env!(:livebook, :within_iframe)
+  end
+
+  @doc """
   Returns the application service name.
   """
   @spec app_service_name() :: String.t() | nil

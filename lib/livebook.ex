@@ -122,6 +122,10 @@ defmodule Livebook do
       config :livebook, :shutdown_enabled, true
     end
 
+    if Livebook.Config.boolean!("LIVEBOOK_WITHIN_IFRAME", false) do
+      config :livebook, :within_iframe, true
+    end
+
     config :livebook,
            :default_runtime,
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
