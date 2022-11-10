@@ -63,6 +63,9 @@ defmodule Livebook.Runtime.Evaluator do
   # would take too much memory
   @evaluator_info_key :evaluator_info
 
+  # We stor the path in process dictionary, so that the tracer can access it
+  @ebin_path_key :ebin_path
+
   @doc """
   Starts an evaluator.
 
@@ -79,6 +82,10 @@ defmodule Livebook.Runtime.Evaluator do
     * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
       behaviour, used for transforming evaluation result before sending
       it to the client. Defaults to identity
+
+    * `:ebin_path` - a directory to write modules bytecode into. When
+      not specified, modules are not written to disk
+
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
@@ -259,6 +266,7 @@ defmodule Livebook.Runtime.Evaluator do
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
+    ebin_path = Keyword.get(opts, :ebin_path)
 
     {:ok, io_proxy} =
       Evaluator.IOProxy.start_link(self(), send_to, runtime_broadcast_to, object_tracker)
@@ -277,6 +285,8 @@ defmodule Livebook.Runtime.Evaluator do
       initial_context: {context.id, context.env},
       contexts: %{}
     })
+
+    Process.put(@ebin_path_key, ebin_path)
 
     ignored_pdict_keys = Process.get_keys() |> MapSet.new()
 
@@ -330,9 +340,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     if old_context = state.contexts[ref] do
       for module <- old_context.env.context_modules do
-        # If there is a deleted code for the module, we purge it first
-        :code.purge(module)
-        :code.delete(module)
+        delete_module!(module)
       end
     end
 
@@ -397,9 +405,8 @@ defmodule Livebook.Runtime.Evaluator do
     {context, state} = pop_context(state, ref)
 
     for module <- context.env.context_modules do
-      # If there is a deleted code for the module, we purge it first
-      :code.purge(module)
-      :code.delete(module)
+      delete_module!(module)
+
       # And we immediately purge the newly deleted code
       :code.purge(module)
     end
@@ -749,5 +756,23 @@ defmodule Livebook.Runtime.Evaluator do
     System.monotonic_time()
     |> Kernel.-(started_at)
     |> System.convert_time_unit(:native, :millisecond)
+  end
+
+  @doc false
+  def ebin_path() do
+    Process.get(@ebin_path_key)
+  end
+
+  defp delete_module!(module) do
+    # If there is a deleted code for the module, we purge it first
+    :code.purge(module)
+
+    :code.delete(module)
+
+    if ebin_path = ebin_path() do
+      ebin_path
+      |> Path.join("#{module}.beam")
+      |> File.rm!()
+    end
   end
 end
