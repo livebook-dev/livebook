@@ -27,6 +27,7 @@ RUN mix do deps.get, deps.compile
 COPY rel rel
 COPY static static
 COPY iframe/priv/static/iframe iframe/priv/static/iframe
+COPY proto proto
 COPY lib lib
 # We need README.md during compilation
 # (look for @external_resource "README.md")

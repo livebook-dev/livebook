@@ -27,6 +27,7 @@ config :livebook,
   feature_flags: [],
   plugs: [],
   shutdown_enabled: false,
+  within_iframe: false,
   storage: Livebook.Storage.Ets
 
 # Import environment specific config. This must remain at the bottom
