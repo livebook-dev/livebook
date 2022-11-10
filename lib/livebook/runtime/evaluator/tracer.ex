@@ -83,9 +83,10 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
       {:remote_macro, _meta, module, _name, _arity} ->
         [{:module_used, module}, {:require_used, module}]
 
-      {:on_module, _bytecode, _ignore} ->
+      {:on_module, bytecode, _ignore} ->
         module = env.module
         vars = Map.keys(env.versioned_vars)
+        Evaluator.write_module!(module, bytecode)
         [{:module_defined, module, vars}, {:alias_used, module}]
 
       _ ->

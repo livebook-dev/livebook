@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @memory_usage_interval 15_000
 
   @doc """
-  Starts the manager.
+  Starts the runtime server.
 
   Note: make sure to call `attach` within #{@await_owner_timeout}ms
   or the runtime server assumes it's not needed and terminates.
@@ -39,6 +39,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     * `:extra_smart_cell_definitions` - a list of predefined smart
       cell definitions, that may be currently be unavailable, but
       should be reported together with their requirements
+
+    * `:ebin_path` - a directory to write modules bytecode into. When
+      not specified, modules are not written to disk
+
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -193,7 +197,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Stops the manager.
+  Stops the runtime server.
 
   This results in all Livebook-related modules being unloaded
   from the runtime node.
@@ -229,7 +233,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil,
        last_evaluator: nil,
-       initial_path: System.get_env("PATH", "")
+       initial_path: System.get_env("PATH", ""),
+       ebin_path: Keyword.get(opts, :ebin_path)
      }}
   end
 
@@ -542,7 +547,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           state.evaluator_supervisor,
           send_to: state.owner,
           runtime_broadcast_to: state.runtime_broadcast_to,
-          object_tracker: state.object_tracker
+          object_tracker: state.object_tracker,
+          ebin_path: state.ebin_path
         )
 
       Process.monitor(evaluator.pid)

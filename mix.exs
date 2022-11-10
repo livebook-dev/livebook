@@ -16,6 +16,7 @@ defmodule Livebook.MixProject do
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_elixirc_options: [docs: true],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),

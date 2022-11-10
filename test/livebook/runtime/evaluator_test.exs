@@ -3,13 +3,25 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
   alias Livebook.Runtime.Evaluator
 
-  setup do
+  setup ctx do
+    ebin_path =
+      if ctx[:with_ebin_path] do
+        hash = ctx.test |> to_string() |> :erlang.md5() |> Base.encode32(padding: false)
+        path = ["tmp", inspect(ctx.module), hash, "ebin"] |> Path.join() |> Path.expand()
+        File.rm_rf!(path)
+        File.mkdir_p!(path)
+        Code.append_path(path)
+        path
+      end
+
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
 
     {:ok, _pid, evaluator} =
-      start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]})
+      start_supervised(
+        {Evaluator, [send_to: self(), object_tracker: object_tracker, ebin_path: ebin_path]}
+      )
 
-    %{evaluator: evaluator, object_tracker: object_tracker}
+    %{evaluator: evaluator, object_tracker: object_tracker, ebin_path: ebin_path}
   end
 
   defmacrop metadata do
@@ -278,6 +290,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
     end
 
+    @tag :with_ebin_path
     test "raises when redefining a module in a different evaluation", %{evaluator: evaluator} do
       code = """
       defmodule Livebook.Runtime.EvaluatorTest.Redefinition do
@@ -302,6 +315,23 @@ defmodule Livebook.Runtime.EvaluatorTest do
                             "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined"
                         }
                       }}
+    end
+
+    @tag :with_ebin_path
+    test "writes module bytecode to disk when :ebin_path is specified",
+         %{evaluator: evaluator, ebin_path: ebin_path} do
+      code = """
+      defmodule Livebook.Runtime.EvaluatorTest.Disk do
+        @moduledoc "Test."
+      end
+      """
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+
+      assert File.exists?(Path.join(ebin_path, "Elixir.Livebook.Runtime.EvaluatorTest.Disk.beam"))
+
+      assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Livebook.Runtime.EvaluatorTest.Disk)
     end
   end
 
@@ -732,6 +762,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
     end
 
+    @tag :with_ebin_path
     test "deletes modules defined by the given evaluation", %{evaluator: evaluator} do
       code = """
       defmodule Livebook.Runtime.EvaluatorTest.ForgetEvaluation.Redefinition do
