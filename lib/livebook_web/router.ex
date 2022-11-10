@@ -106,7 +106,7 @@ defmodule LivebookWeb.Router do
   end
 
   defp within_iframe_secure_headers(conn, _opts) do
-    if Application.get_env(:livebook, :within_iframe, false) do
+    if Livebook.Config.within_iframe?() do
       delete_resp_header(conn, "x-frame-options")
     else
       conn

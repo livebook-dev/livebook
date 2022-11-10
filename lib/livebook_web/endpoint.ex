@@ -87,7 +87,7 @@ defmodule LivebookWeb.Endpoint do
   @plug_session Plug.Session.init(@session_options ++ [same_site: "Lax"])
   @plug_session_iframe Plug.Session.init(@session_options ++ [same_site: "None", secure: true])
   def session(conn, _opts) do
-    if Application.get_env(:livebook, :within_iframe, false) do
+    if Livebook.Config.within_iframe?() do
       Plug.Session.call(conn, @plug_session_iframe)
     else
       Plug.Session.call(conn, @plug_session)
