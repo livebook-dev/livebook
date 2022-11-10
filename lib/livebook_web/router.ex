@@ -9,6 +9,7 @@ defmodule LivebookWeb.Router do
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :within_iframe_secure_headers
   end
 
   pipeline :auth do
@@ -18,6 +19,7 @@ defmodule LivebookWeb.Router do
 
   pipeline :js_view_assets do
     plug :put_secure_browser_headers
+    plug :within_iframe_secure_headers
   end
 
   # The /public namespace includes routes with no authentication.
@@ -101,5 +103,13 @@ defmodule LivebookWeb.Router do
 
     get "/", AuthController, :index
     post "/", AuthController, :authenticate
+  end
+
+  defp within_iframe_secure_headers(conn, _opts) do
+    if Application.get_env(:livebook, :within_iframe, false) do
+      delete_resp_header(conn, "x-frame-options")
+    else
+      conn
+    end
   end
 end
