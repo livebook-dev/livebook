@@ -142,7 +142,7 @@ if Version.compare(System.version(), "1.14.2") != :lt do
 
           [
             "\n\n",
-            "#{idx + 1}) #{name} at line #{line}\n",
+            "#{idx + 1}) #{name} (line #{line})\n",
             format_failure(failure, test)
           ]
         end
@@ -165,6 +165,9 @@ if Version.compare(System.version(), "1.14.2") != :lt do
       source = String.trim(reason.doctest)
 
       [
+        String.duplicate(" ", @pad_size),
+        format_label("doctest"),
+        "\n",
         pad(source, @pad_size + 2),
         "\n",
         String.duplicate(" ", @pad_size),
