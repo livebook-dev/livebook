@@ -11,6 +11,10 @@ if Version.compare(System.version(), "1.14.2") != :lt do
     Runs doctests in the given modules.
     """
     @spec run(list(module())) :: :ok
+    def run(modules)
+
+    def run([]), do: :ok
+
     def run(modules) do
       case define_test_module(modules) do
         {:ok, test_module} ->
