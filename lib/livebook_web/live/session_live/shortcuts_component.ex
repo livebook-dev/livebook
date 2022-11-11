@@ -82,6 +82,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     ],
     navigation_mode: [
       %{seq: ["?"], desc: "Open this help modal", basic: true},
+      %{seq: ["f", "u"], desc: "Focus on first cell", basic: true},
+      %{seq: ["f", "d"], desc: "Focus on last cell", basic: true},
       %{seq: ["j"], desc: "Focus next cell", basic: true},
       %{seq: ["k"], desc: "Focus previous cell", basic: true},
       %{seq: ["J"], desc: "Move cell down"},

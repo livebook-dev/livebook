@@ -127,6 +127,16 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
+    this.getElement("focus-first-button").addEventListener(
+      "click",
+      (event) => this.moveFocusToHeadOrTail()
+    );
+
+    this.getElement("focus-last-button").addEventListener(
+      "click",
+      (event) => this.moveFocusToHeadOrTail(-1)
+    );
+
     this.getElement("code-zen-enable-button").addEventListener(
       "click",
       (event) => this.setCodeZen(true)
@@ -389,8 +399,12 @@ const Session = {
         }
       } else if (keyBuffer.tryMatch(["j"])) {
         this.moveFocus(1);
+      } else if (keyBuffer.tryMatch(["f", "u"])) {
+        this.moveFocusToHeadOrTail();
       } else if (keyBuffer.tryMatch(["k"])) {
         this.moveFocus(-1);
+      } else if (keyBuffer.tryMatch(["f", "d"])) {
+        this.moveFocusToHeadOrTail(-1);
       } else if (keyBuffer.tryMatch(["J"])) {
         this.moveFocusedCell(1);
       } else if (keyBuffer.tryMatch(["K"])) {
@@ -828,6 +842,11 @@ const Session = {
     this.setInsertMode(false);
   },
 
+  moveFocusToHeadOrTail(offset) {
+    const focusableId = this.headOrTailFocusableId(offset);
+    this.setFocusedEl(focusableId);
+  },
+
   moveFocus(offset) {
     const focusableId = this.nearbyFocusableId(this.focusedId, offset);
     this.setFocusedEl(focusableId);
@@ -1146,6 +1165,20 @@ const Session = {
     } else {
       return null;
     }
+  },
+
+  headOrTailFocusableId(offset) {
+    const focusableIds = this.getFocusableIds();
+
+    if (focusableIds.length === 0) {
+      return null;
+    }
+
+    let index = 2;
+    if (offset === -1) {
+      index = focusableIds.length - 1;
+    }
+    return focusableIds[index];
   },
 
   nearbyFocusableId(focusableId, offset) {

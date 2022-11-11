@@ -38,6 +38,8 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
+          <.focus_first_indicator />
+          <.focus_last_indicator />
           <.code_zen_indicator />
           <.persistence_indicator
             file={@file}
@@ -56,6 +58,34 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp focus_first_indicator(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Focus on the first cell">
+      <button
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="focus on the first cell"
+        data-el-focus-first-button
+      >
+        <.remix_icon icon="play-line" class="text-xl text-gray-400 -rotate-90" />
+      </button>
+    </span>
+    """
+  end
+
+  defp focus_last_indicator(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Focus on the last cell">
+      <button
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="focus on the last cell"
+        data-el-focus-last-button
+      >
+        <.remix_icon icon="play-line" class="text-xl text-gray-400 rotate-90" />
+      </button>
+    </span>
     """
   end
 
