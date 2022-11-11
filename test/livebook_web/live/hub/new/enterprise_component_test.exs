@@ -81,7 +81,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      assert render(view) =~ "Invalid Token"
+      assert render(view) =~ "the given token is invalid"
       refute render(view) =~ "enterprise[hub_name]"
     end
 
