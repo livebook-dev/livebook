@@ -32,7 +32,9 @@ defmodule Livebook.Runtime.Evaluator do
           runtime_broadcast_to: pid(),
           object_tracker: pid(),
           contexts: %{ref() => context()},
-          initial_context: context()
+          initial_context: context(),
+          initial_context_version: nil | (md5 :: binary()),
+          ignored_pdict_keys: list(term())
         }
 
   @typedoc """
@@ -376,6 +378,10 @@ defmodule Livebook.Runtime.Evaluator do
           {new_context, result, code_error, identifiers_used, identifiers_defined}
       end
 
+    if ebin_path() do
+      Livebook.Runtime.Evaluator.Doctests.run(new_context.env.context_modules)
+    end
+
     state = put_context(state, ref, new_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
@@ -404,16 +410,19 @@ defmodule Livebook.Runtime.Evaluator do
   defp handle_cast({:forget_evaluation, ref}, state) do
     {context, state} = pop_context(state, ref)
 
-    for module <- context.env.context_modules do
-      delete_module!(module)
+    if context do
+      for module <- context.env.context_modules do
+        delete_module!(module)
 
-      # And we immediately purge the newly deleted code
-      :code.purge(module)
+        # And we immediately purge the newly deleted code
+        :code.purge(module)
+      end
+
+      Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
+
+      :erlang.garbage_collect(self())
     end
 
-    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
-
-    :erlang.garbage_collect(self())
     {:noreply, state}
   end
 

@@ -333,6 +333,55 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Livebook.Runtime.EvaluatorTest.Disk)
     end
+
+    @tag :with_ebin_path
+    test "runs doctests when a module is defined", %{evaluator: evaluator} do
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.Doctests do
+        @doc """
+            iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
+            %{
+              name: "Amy Santiago",
+              description: "nypd detective",
+              precinct: 99
+            }
+
+            iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
+            %{name: "Jake Peralta", description: "NYPD detective"}
+        """
+        def data() do
+          %{
+            name: "Amy Santiago",
+            description: "nypd detective",
+            precinct: 99
+          }
+        end
+
+        @doc """
+            iex> Livebook.Runtime.EvaluatorTest.Doctests.raise_with_stacktrace()
+            :what
+        """
+        def raise_with_stacktrace() do
+          Enum.map(1, & &1)
+        end
+
+        @doc """
+            iex> Livebook.Runtime.EvaluatorTest.Doctests.exit()
+            :what
+        """
+        def exit() do
+          Process.exit(self(), :shutdown)
+        end
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_output, :code_1, {:text, doctest_result}}
+      assert doctest_result =~ "4 doctests, 3 failures"
+
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+    end
   end
 
   describe "evaluate_code/6 identifier tracking" do

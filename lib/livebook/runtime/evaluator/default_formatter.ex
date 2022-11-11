@@ -3,7 +3,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   # The formatter used by Livebook for rendering the results.
   #
-  # See `Livebook.Notebook.Cell` for available output formats.
+  # See `Livebook.Runtime.output/0` for available output formats.
 
   @behaviour Livebook.Runtime.Evaluator.Formatter
 
@@ -61,7 +61,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     end
   end
 
-  defp inspect_opts(opts \\ []) do
+  def inspect_opts(opts \\ []) do
     default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
     Keyword.merge(default_opts, opts)
   end
