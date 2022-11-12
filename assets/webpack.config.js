@@ -1,6 +1,5 @@
 const path = require("path");
 const glob = require("glob");
-const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
@@ -49,36 +48,22 @@ module.exports = (env, options) => {
       ],
     },
     plugins: [
-      // Polyfill the global "process" variable required by "remark" internals
-      new webpack.ProvidePlugin({
-        process: "process/browser.js",
-      }),
       new MiniCssExtractPlugin({ filename: "../css/app.css" }),
       new MonacoWebpackPlugin({
-        languages: ["markdown", "elixir", "xml", "json", "sql", "html", "css", "javascript"],
+        languages: [
+          "markdown",
+          "elixir",
+          "xml",
+          "json",
+          "sql",
+          "html",
+          "css",
+          "javascript",
+        ],
       }),
     ],
     optimization: {
       minimizer: ["...", new CssMinimizerPlugin()],
-      splitChunks: {
-        cacheGroups: {
-          // Chunk splitting is by default enabled for all async chunks,
-          // so for the dynamically loaded js/vega_lite/vega.js Webpack
-          // would produce one almost empty chunk and then a vendor chunk
-          // with "vega" and "vega-embed". We want to dynamically load all
-          // of it at once, so we disable the default vendors chunk
-          defaultVendors: false
-        }
-      }
-    },
-    resolve: {
-      fallback: {
-        // The crypto-js package relies no the crypto module, but it has
-        // fine support in browsers, so we don't provide polyfills
-        crypto: false,
-        // Polyfill the assert module required by "remark" internals
-        assert: require.resolve("assert"),
-      },
     },
   };
 };
