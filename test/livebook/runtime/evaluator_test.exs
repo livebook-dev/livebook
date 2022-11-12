@@ -334,6 +334,20 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(Livebook.Runtime.EvaluatorTest.Disk)
     end
 
+    test "deletes defined modules if the evaluation fails", %{evaluator: evaluator} do
+      code = """
+      defmodule Livebook.Runtime.EvaluatorTest.Raised do
+      end
+
+      raise "failed"
+      """
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:error, _, _, _}, metadata()}
+
+      refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Raised)
+    end
+
     @tag :with_ebin_path
     test "runs doctests when a module is defined", %{evaluator: evaluator} do
       code = ~S'''

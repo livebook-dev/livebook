@@ -350,10 +350,11 @@ defmodule Livebook.Runtime.Evaluator do
     eval_result = eval(code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
+    tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
+
     {new_context, result, code_error, identifiers_used, identifiers_defined} =
       case eval_result do
         {:ok, value, binding, env} ->
-          tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
           context_id = random_id()
 
           new_context = %{
@@ -370,6 +371,10 @@ defmodule Livebook.Runtime.Evaluator do
           {new_context, result, nil, identifiers_used, identifiers_defined}
 
         {:error, kind, error, stacktrace, code_error} ->
+          for {module, _} <- tracer_info.modules_defined do
+            delete_module!(module)
+          end
+
           result = {:error, kind, error, stacktrace}
           identifiers_used = :unknown
           identifiers_defined = %{}
