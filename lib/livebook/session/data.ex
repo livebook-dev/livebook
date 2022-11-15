@@ -1018,15 +1018,31 @@ defmodule Livebook.Session.Data do
   end
 
   defp add_cell_output({data, _} = data_actions, cell, output) do
-    data_actions
-    |> set!(
-      notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
-      input_values:
-        {0, output}
-        |> Cell.find_inputs_in_output()
-        |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
-        |> Map.merge(data.input_values)
-    )
+    new_input_values =
+      {0, output}
+      |> Cell.find_inputs_in_output()
+      |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
+
+    {data, _} =
+      data_actions =
+      data_actions
+      |> set!(
+        notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
+        input_values: Map.merge(new_input_values, data.input_values)
+      )
+
+    if data.cell_infos[cell.id].eval.status == :evaluating do
+      # When a cell renders an input, it should also be able to read
+      # that input during the same evaluation, so we make it seem as
+      # if it already existed prior to the evaluation
+
+      data_actions
+      |> update_cell_eval_info!(cell.id, fn eval_info ->
+        update_in(eval_info.data.input_values, &Map.merge(new_input_values, &1))
+      end)
+    else
+      data_actions
+    end
   end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do

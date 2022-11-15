@@ -1819,6 +1819,30 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
+
+    test "stores default values for new inputs in the pre-evaluation data" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation = {:add_cell_evaluation_output, @cid, "c1", {:input, input}}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{
+                    eval: %{data: %{input_values: %{"i1" => "hey"}}}
+                  }
+                }
+              }, _} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do
