@@ -108,6 +108,7 @@ jobs:
             --draft \
             ${{ github.ref_name }}
 
+      # TODO: adjust or remove livebook_cd since we now create universal build locally
       - name: Trigger desktop builds
         run: |
           gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}

@@ -370,8 +370,18 @@ defmodule Livebook.Config do
   Aborts booting due to a configuration error.
   """
   @spec abort!(String.t()) :: no_return()
-  def abort!(message) do
-    IO.puts("\nERROR!!! [Livebook] " <> message)
-    System.halt(1)
+  def abort!(message)
+
+  if Mix.target() == :app do
+    def abort!(message) do
+      ElixirKit.publish(:abort, message)
+      Process.sleep(:infinity)
+    end
+  else
+    def abort!(message) do
+      # TODO: change to Logger.error
+      IO.puts("\nERROR!!! [Livebook] " <> message)
+      System.halt(1)
+    end
   end
 end

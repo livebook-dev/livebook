@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>Livebook</string>
+  <key>CFBundleVersion</key>
+  <string><%= @release.version %></string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>Livebook</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>livebook</string>
+      </array>
+    </dict>
+  </array>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>LiveMarkdown</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>livemd</string>
+      </array>
+    </dict>
+  </array>
+  <key>LSUIElement</key>
+  <true/>
+  <key>LSRequiresNativeExecution</key>
+  <true/>
+</dict>
+</plist>

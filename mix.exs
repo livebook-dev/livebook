@@ -5,7 +5,7 @@ defmodule Livebook.MixProject do
   @version "0.7.2"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.14.0"
+  @app_elixir_version "1.14.2"
   @app_rebar3_version "3.19.0"
 
   def project do
@@ -23,22 +23,19 @@ defmodule Livebook.MixProject do
       escript: escript(),
       package: package(),
       default_release: :livebook,
-      releases: releases()
+      releases: releases(),
+      preferred_cli_env: preferred_cli_env(),
+      preferred_cli_target: preferred_cli_target()
     ]
   end
 
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications:
-        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
-          extra_applications(Mix.target()),
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
       env: Application.get_all_env(:livebook)
     ]
   end
-
-  defp extra_applications(:app), do: [:wx]
-  defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
   defp elixirc_paths(_), do: ["lib", "proto/lib"]
@@ -110,7 +107,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp target_deps(:app), do: [{:app_bundler, path: "app_bundler"}]
+  defp target_deps(:app), do: [{:elixirkit, path: "elixirkit"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -136,9 +133,9 @@ defmodule Livebook.MixProject do
     macos_notarization = macos_notarization()
 
     additional_paths = [
-      "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
-      "rel/vendor/otp/bin",
-      "rel/vendor/elixir/bin"
+      "vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
+      "vendor/otp/bin",
+      "vendor/elixir/bin"
     ]
 
     [
@@ -149,42 +146,26 @@ defmodule Livebook.MixProject do
         steps: [:assemble, &remove_cookie/1]
       ],
       app: [
-        include_erts: false,
+        # TODO:
+        # include_erts: false
+        include_erts: true,
         rel_templates_path: "rel/app",
         steps: [
           :assemble,
           &remove_cookie/1,
           &standalone_erlang_elixir/1,
-          &AppBundler.bundle/1
+          &ElixirKit.bundle/1
         ],
         app: [
-          name: "Livebook",
-          url_schemes: ["livebook"],
-          document_types: [
-            [
-              name: "LiveMarkdown",
-              extensions: ["livemd"],
-              macos: [
-                icon_path: "rel/app/icon.png",
-                role: "Editor"
-              ],
-              windows: [
-                icon_path: "rel/app/icon.ico"
-              ]
-            ]
-          ],
-          macos: [
-            app_type: :agent,
-            icon_path: "rel/app/icon-macos.png",
-            build_dmg: macos_notarization != nil,
-            notarization: macos_notarization,
-            additional_paths: additional_paths ++ ["/usr/local/bin"]
-          ],
-          windows: [
-            icon_path: "rel/app/icon.ico",
-            build_installer: true,
-            additional_paths: additional_paths
-          ]
+          launcher_path: "rel/app/Launcher.swift",
+          info_plist_path: "rel/app/Info.plist.eex",
+          resources: %{
+            "AppIcon.icns" => "rel/app/icon-macos.icns",
+            "Icon.png" => "rel/app/icon.png"
+          },
+          additional_paths: additional_paths ++ ["/usr/local/bin"],
+          build_dmg: macos_notarization != nil,
+          notarization: macos_notarization
         ]
       ]
     ]
@@ -197,7 +178,13 @@ defmodule Livebook.MixProject do
     password = System.get_env("NOTARIZE_PASSWORD")
 
     if identity && team_id && apple_id && password do
-      [identity: identity, team_id: team_id, apple_id: apple_id, password: password]
+      [
+        identity: identity,
+        team_id: team_id,
+        apple_id: apple_id,
+        password: password,
+        entitlements_plist_path: "rel/app/Entitlements.plist"
+      ]
     end
   end
 
@@ -214,5 +201,19 @@ defmodule Livebook.MixProject do
     |> Standalone.copy_elixir(@app_elixir_version)
     |> Standalone.copy_hex()
     |> Standalone.copy_rebar3(@app_rebar3_version)
+  end
+
+  defp preferred_cli_env do
+    [
+      app: :prod,
+      "app.build": :prod
+    ]
+  end
+
+  defp preferred_cli_target do
+    [
+      app: :app,
+      "app.build": :app
+    ]
   end
 end

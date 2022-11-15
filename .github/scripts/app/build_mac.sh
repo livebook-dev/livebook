@@ -8,8 +8,7 @@
 #     $ open ./test/support/notebooks/basic.livemd
 set -e
 
-. .github/scripts/app/bootstrap_mac.sh
 mix local.hex --force --if-missing
 mix local.rebar --force --if-missing
 MIX_ENV=prod MIX_TARGET=app mix deps.get --only prod
-MIX_ENV=prod MIX_TARGET=app mix release app --overwrite
+MIX_ENV=prod MIX_TARGET=app mix app.build
