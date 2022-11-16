@@ -563,6 +563,9 @@ defmodule LivebookWeb.SessionLive do
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets
         </h3>
+        <p class="p-5 my-5 shadow bg-white text-xs">
+          Access via <span class="font-mono">System.fetch_env!("LB_#{SECRET}")</span>
+        </p>
         <span class="text-sm text-gray-500">Available only to this session</span>
       </div>
 
