@@ -467,7 +467,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, @cid, connected_noop_runtime()},
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
-          {:smart_cell_started, @cid, "c2", Delta.new(), %{}, nil}
+          {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil}
         ])
 
       operation = {:insert_cell, @cid, "s1", 0, :code, "c3", %{}}
@@ -795,7 +795,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:smart_cell_started, @cid, "c1", Delta.new(), %{}, nil}
+          {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil}
         ])
 
       operation = {:delete_cell, @cid, "c1"}
@@ -813,7 +813,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
-          {:smart_cell_started, @cid, "c2", Delta.new(), %{}, nil},
+          {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil},
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
         ])
@@ -2339,7 +2339,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
-          {:smart_cell_started, @cid, "c2", Delta.new(), %{}, nil},
+          {:smart_cell_started, @cid, "c2", Delta.new(), nil, %{}, nil},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
@@ -2676,7 +2676,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
 
-      operation = {:smart_cell_started, @cid, "c1", Delta.new(), %{}, nil}
+      operation = {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil}
 
       assert :error = Data.apply_operation(data, operation)
     end
@@ -2692,7 +2692,7 @@ defmodule Livebook.Session.DataTest do
 
       delta = Delta.new() |> Delta.insert("content")
 
-      operation = {:smart_cell_started, @cid, "c1", delta, %{}, nil}
+      operation = {:smart_cell_started, @cid, "c1", delta, nil, %{}, nil}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :started}}}, _actions} =
                Data.apply_operation(data, operation)
@@ -2711,7 +2711,7 @@ defmodule Livebook.Session.DataTest do
 
       delta = Delta.new() |> Delta.insert("content")
 
-      operation = {:smart_cell_started, client_id, "c1", delta, %{}, nil}
+      operation = {:smart_cell_started, client_id, "c1", delta, nil, %{}, nil}
 
       assert {:ok,
               %{
@@ -2734,12 +2734,12 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:smart_cell_started, @cid, "c1", delta1, %{}, nil}
+          {:smart_cell_started, @cid, "c1", delta1, nil, %{}, nil}
         ])
 
       attrs = %{"text" => "content!"}
       delta2 = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
-      operation = {:update_smart_cell, client_id, "c1", attrs, delta2, false}
+      operation = {:update_smart_cell, client_id, "c1", attrs, delta2, nil, false}
 
       assert {:ok,
               %{
@@ -2761,12 +2761,12 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:smart_cell_started, @cid, "c1", Delta.new(), %{}, nil},
+          {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil},
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
         ])
 
-      operation = {:update_smart_cell, client_id, "c1", %{}, Delta.new(), true}
+      operation = {:update_smart_cell, client_id, "c1", %{}, Delta.new(), nil, true}
 
       assert {:ok,
               %{
@@ -3239,7 +3239,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 1, :smart, "c1", %{kind: "text"}},
           {:set_runtime, @cid, connected_noop_runtime()},
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
-          {:smart_cell_started, @cid, "c1", Delta.new(), %{},
+          {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{},
            %{language: "text", placement: :bottom, source: ""}}
         ])
 

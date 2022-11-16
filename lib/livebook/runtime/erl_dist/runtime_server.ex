@@ -448,10 +448,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             scan_eval_result: scan_eval_result
           } = info
 
+          chunks = info[:chunks]
+
           send(
             state.owner,
             {:runtime_smart_cell_started, ref,
-             %{source: source, js_view: js_view, editor: editor}}
+             %{source: source, chunks: chunks, js_view: js_view, editor: editor}}
           )
 
           info = %{

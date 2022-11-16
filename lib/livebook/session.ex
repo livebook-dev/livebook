@@ -39,7 +39,7 @@ defmodule Livebook.Session do
   # kept the contexts in its process dictionary, however the other
   # evaluator could only read the whole process dictionary, thus
   # allocating a lot of memory unnecessarily, which would be unacceptable
-  # for large data. By making a synchronous request to the evalutor
+  # for large data. By making a synchronous request to the evaluator
   # for a single specific evaluation context we make sure to copy
   # as little memory as necessary.
 
@@ -825,14 +825,24 @@ defmodule Livebook.Session do
       with {:ok, %Cell.Smart{} = cell, section} <-
              Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
         index = Enum.find_index(section.cells, &(&1 == cell))
+        chunks = cell.chunks || [{0, byte_size(cell.source)}]
+        chunk_count = length(chunks)
 
-        attrs = Map.take(cell, [:source, :outputs])
+        state = handle_operation(state, {:delete_cell, client_id, cell.id})
 
-        state
-        |> handle_operation({:delete_cell, client_id, cell.id})
-        |> handle_operation(
-          {:insert_cell, client_id, section.id, index, :code, Utils.random_id(), attrs}
-        )
+        for {{offset, size}, chunk_idx} <- Enum.with_index(chunks), reduce: state do
+          state ->
+            outputs = if(chunk_idx == chunk_count - 1, do: cell.outputs, else: [])
+            source = binary_part(cell.source, offset, size)
+            attrs = %{source: source, outputs: outputs}
+            cell_idx = index + chunk_idx
+            cell_id = Utils.random_id()
+
+            handle_operation(
+              state,
+              {:insert_cell, client_id, section.id, cell_idx, :code, cell_id, attrs}
+            )
+        end
       else
         _ -> state
       end
@@ -1099,8 +1109,12 @@ defmodule Livebook.Session do
 
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
+        chunks = info[:chunks] || []
         delta = Livebook.JSInterop.diff(cell.source, info.source)
-        operation = {:smart_cell_started, @client_id, id, delta, info.js_view, info.editor}
+
+        operation =
+          {:smart_cell_started, @client_id, id, delta, chunks, info.js_view, info.editor}
+
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1116,8 +1130,9 @@ defmodule Livebook.Session do
   def handle_info({:runtime_smart_cell_update, id, attrs, source, info}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
+        chunks = info[:chunks] || []
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, @client_id, id, attrs, delta, info.reevaluate}
+        operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
 
       :error ->

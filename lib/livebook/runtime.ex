@@ -254,6 +254,20 @@ defprotocol Livebook.Runtime do
 
   @type smart_cell_attrs :: map()
 
+  @typedoc """
+  Marks an part of smart cell source.
+
+  Both the offset ans size are expressed in bytes.
+  """
+  @type chunk :: {offset :: non_neg_integer(), size :: non_neg_integer()}
+
+  @type chunks :: list(chunks())
+
+  @typedoc """
+  Smart cell editor configuration.
+  """
+  @type editor :: %{language: String.t(), placement: :bottom | :top, source: String.t()}
+
   @doc """
   Returns relevant information about the runtime.
 
@@ -419,7 +433,7 @@ defprotocol Livebook.Runtime do
 
   Once the cell starts, the runtime sends the following message
 
-    * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
+    * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t(), chunks: chunks() | nil, editor: editor() | nil}}`
 
   In case of an unexpected failure it should also send
 
@@ -431,7 +445,7 @@ defprotocol Livebook.Runtime do
   to the runtime owner whenever attrs and the generated source code
   change.
 
-    * `{:runtime_smart_cell_update, ref, attrs, source, %{reevaluate: boolean()}}`
+    * `{:runtime_smart_cell_update, ref, attrs, source, %{reevaluate: boolean(), chunks: chunks() | nil}}`
 
   The attrs are persisted and may be used to restore the smart cell
   state later. Note that for persistence they get serialized and
