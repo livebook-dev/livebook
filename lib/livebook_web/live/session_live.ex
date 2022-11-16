@@ -558,19 +558,13 @@ defmodule LivebookWeb.SessionLive do
 
   defp secrets_info_icon(assigns) do
     ~H"""
-    <span class="-mt-1 icon-button cursor-pointer" phx-click={JS.toggle(to: "#secrets-info")}>
+    <span
+      class="-mt-1 icon-button cursor-pointer tooltip bottom-left multiline"
+      phx-click={JS.toggle(to: "#secrets-info")}
+      data-tooltip="Secrets are a safe way to share credentials and tokens with notebooks. They are often accessed by Smart Cells and can be read as environment variables using the LB_ prefix."
+    >
       <.remix_icon icon="question-line" class="text-xl" />
     </span>
-    """
-  end
-
-  defp secrets_info(assigns) do
-    ~H"""
-    <div id="secrets-info" class="p-5 mt-2 mb-5 rounded-lg shadow bg-white text-sm hidden">
-      Secrets are a safe way to share credentials and tokens with notebooks. They are often accessed by Smart Cells and can be read as environment variables using the
-      <span class="font-mono">LB_</span>
-      prefix.
-    </div>
     """
   end
 
@@ -583,7 +577,6 @@ defmodule LivebookWeb.SessionLive do
         </h3>
         <.secrets_info_icon />
       </div>
-      <.secrets_info />
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
