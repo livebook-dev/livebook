@@ -560,7 +560,6 @@ defmodule LivebookWeb.SessionLive do
     ~H"""
     <span
       class="-mt-1 icon-button cursor-pointer tooltip bottom-left multiline"
-      phx-click={JS.toggle(to: "#secrets-info")}
       data-tooltip="Secrets are a safe way to share credentials and tokens with notebooks. They are often accessed by Smart Cells and can be read as environment variables using the LB_ prefix."
     >
       <.remix_icon icon="question-line" class="text-xl" />
