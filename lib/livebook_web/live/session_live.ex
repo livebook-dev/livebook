@@ -556,19 +556,35 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
+  defp secrets_info_icon(assigns) do
+    ~H"""
+    <span class="-mt-1 icon-button cursor-pointer" phx-click={JS.toggle(to: "#secrets-info")}>
+      <.remix_icon icon="question-line" class="text-xl" />
+    </span>
+    """
+  end
+
+  defp secrets_info(assigns) do
+    ~H"""
+    <div id="secrets-info" class="p-5 mt-2 mb-5 rounded-lg shadow bg-white text-sm hidden">
+      Secrets are a safe way to share credentials and tokens with notebooks. They are often accessed by Smart Cells and can be read as environment variables using the
+      <span class="font-mono">LB_</span>
+      prefix.
+    </div>
+    """
+  end
+
   defp secrets_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <div>
+      <div class="flex justify-between items-start">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets
         </h3>
-        <p class="p-5 my-5 shadow bg-white text-xs">
-          Access via <span class="font-mono">System.fetch_env!("LB_#{SECRET}")</span>
-        </p>
-        <span class="text-sm text-gray-500">Available only to this session</span>
+        <.secrets_info_icon />
       </div>
-
+      <.secrets_info />
+      <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
           <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
