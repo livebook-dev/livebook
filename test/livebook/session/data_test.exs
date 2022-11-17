@@ -2236,6 +2236,24 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
     end
 
+    test "stores default values for new nested inputs" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+      output = {:grid, [{:input, input}], %{}}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c1", output, eval_meta()}
+
+      assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
+    end
+
     test "keeps input values for inputs that existed" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 

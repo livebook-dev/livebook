@@ -1018,8 +1018,10 @@ defmodule Livebook.Session.Data do
   end
 
   defp add_cell_output({data, _} = data_actions, cell, output) do
+    {[indexed_output], _counter} = Notebook.index_outputs([output], 0)
+
     new_input_values =
-      {0, output}
+      indexed_output
       |> Cell.find_inputs_in_output()
       |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
 
