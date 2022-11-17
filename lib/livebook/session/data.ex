@@ -162,10 +162,10 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, client_id()}
           | {:reflect_evaluation_failure, client_id(), Section.id()}
           | {:cancel_cell_evaluation, client_id(), Cell.id()}
-          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.js_view(),
-             Cell.Smart.editor() | nil}
+          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.chunks() | nil,
+             Runtime.js_view(), Runtime.editor() | nil}
           | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
-             reevaluate :: boolean()}
+             Runtime.chunks() | nil, reevaluate :: boolean()}
           | {:smart_cell_down, client_id(), Cell.id()}
           | {:recover_smart_cell, client_id(), Cell.id()}
           | {:erase_outputs, client_id()}
@@ -551,13 +551,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:smart_cell_started, client_id, id, delta, js_view, editor}) do
+  def apply_operation(data, {:smart_cell_started, client_id, id, delta, chunks, js_view, editor}) do
     with {:ok, %Cell.Smart{} = cell, _section} <-
            Notebook.fetch_cell_and_section(data.notebook, id),
          :starting <- data.cell_infos[cell.id].status do
       data
       |> with_actions()
-      |> smart_cell_started(cell, client_id, delta, js_view, editor)
+      |> smart_cell_started(cell, client_id, delta, chunks, js_view, editor)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -565,12 +565,12 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:update_smart_cell, client_id, id, attrs, delta, reevaluate}) do
+  def apply_operation(data, {:update_smart_cell, client_id, id, attrs, delta, chunks, reevaluate}) do
     with {:ok, %Cell.Smart{} = cell, section} <-
            Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
-      |> update_smart_cell(cell, client_id, attrs, delta)
+      |> update_smart_cell(cell, client_id, attrs, delta, chunks)
       |> maybe_queue_updated_smart_cell(cell, section, reevaluate)
       |> set_dirty()
       |> wrap_ok()
@@ -1369,8 +1369,17 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp smart_cell_started({data, _} = data_actions, cell, client_id, delta, js_view, editor) do
-    updated_cell = %{cell | js_view: js_view, editor: editor} |> apply_delta_to_cell(delta)
+  defp smart_cell_started(
+         {data, _} = data_actions,
+         cell,
+         client_id,
+         delta,
+         chunks,
+         js_view,
+         editor
+       ) do
+    updated_cell =
+      %{cell | chunks: chunks, js_view: js_view, editor: editor} |> apply_delta_to_cell(delta)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
@@ -1382,14 +1391,14 @@ defmodule Livebook.Session.Data do
     |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
-  defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta) do
+  defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta, chunks) do
     new_attrs =
       case cell.attrs do
         :__pruned__ -> :__pruned__
         _attrs -> attrs
       end
 
-    updated_cell = %{cell | attrs: new_attrs} |> apply_delta_to_cell(delta)
+    updated_cell = %{cell | attrs: new_attrs, chunks: chunks} |> apply_delta_to_cell(delta)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))

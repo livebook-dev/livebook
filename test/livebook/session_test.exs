@@ -135,7 +135,7 @@ defmodule Livebook.SessionTest do
       cell_id = smart_cell.id
 
       assert_receive {:operation, {:recover_smart_cell, _client_id, ^cell_id}}
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _, _}}
     end
   end
 
@@ -159,6 +159,38 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation,
                       {:insert_cell, _client_id, ^section_id, 0, :code, _id,
                        %{source: "content", outputs: []}}}
+    end
+
+    test "inserts multiple cells when the smart cell has explicit chunks" do
+      smart_cell = %{
+        Notebook.Cell.new(:smart)
+        | kind: "text",
+          source: "chunk 1\n\nchunk 2",
+          chunks: [{0, 7}, {9, 7}],
+          outputs: [{1, {:text, "Hello"}}]
+      }
+
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Session.subscribe(session.id)
+
+      Session.convert_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+      section_id = section.id
+
+      assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
+
+      assert_receive {:operation,
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
+                       %{source: "chunk 1", outputs: []}}}
+
+      assert_receive {:operation,
+                      {:insert_cell, _client_id, ^section_id, 1, :code, _id,
+                       %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
     end
   end
 
@@ -636,7 +668,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "smart cells" do
-    test "notifies subcribers when a smart cell starts and passes source diff as delta" do
+    test "notifies subscribers when a smart cell starts and passes source diff as delta" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
@@ -660,7 +692,7 @@ defmodule Livebook.SessionTest do
       delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}, nil}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, [], %{}, nil}}
     end
 
     test "sends an event to the smart cell server when the editor source changes" do
