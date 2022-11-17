@@ -559,13 +559,13 @@ defmodule LivebookWeb.SessionLive do
   defp secrets_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <div>
+      <div class="flex justify-between items-center">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets
         </h3>
-        <span class="text-sm text-gray-500">Available only to this session</span>
+        <.secrets_info_icon />
       </div>
-
+      <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
           <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
@@ -721,6 +721,24 @@ defmodule LivebookWeb.SessionLive do
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp secrets_info_icon(assigns) do
+    ~H"""
+    <span
+      class="icon-button cursor-pointer tooltip bottom-left"
+      data-tooltip={
+        ~S'''
+        Secrets are a safe way to share credentials
+        and tokens with notebooks. They are often
+        accessed by Smart cells and can be read as
+        environment variables using the LB_ prefix.
+        '''
+      }
+    >
+      <.remix_icon icon="question-line" class="text-xl leading-none" />
+    </span>
     """
   end
 
