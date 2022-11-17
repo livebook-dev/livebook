@@ -556,21 +556,10 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp secrets_info_icon(assigns) do
-    ~H"""
-    <span
-      class="-mt-1 icon-button cursor-pointer tooltip bottom-left multiline"
-      data-tooltip="Secrets are a safe way to share credentials and tokens with notebooks. They are often accessed by Smart Cells and can be read as environment variables using the LB_ prefix."
-    >
-      <.remix_icon icon="question-line" class="text-xl" />
-    </span>
-    """
-  end
-
   defp secrets_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <div class="flex justify-between items-start">
+      <div class="flex justify-between items-center">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Secrets
         </h3>
@@ -732,6 +721,24 @@ defmodule LivebookWeb.SessionLive do
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp secrets_info_icon(assigns) do
+    ~H"""
+    <span
+      class="icon-button cursor-pointer tooltip bottom-left"
+      data-tooltip={
+        ~S'''
+        Secrets are a safe way to share credentials
+        and tokens with notebooks. They are often
+        accessed by Smart cells and can be read as
+        environment variables using the LB_ prefix.
+        '''
+      }
+    >
+      <.remix_icon icon="question-line" class="text-xl leading-none" />
+    </span>
     """
   end
 
