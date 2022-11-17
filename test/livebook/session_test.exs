@@ -692,7 +692,7 @@ defmodule Livebook.SessionTest do
       delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, [], %{}, nil}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}}
     end
 
     test "sends an event to the smart cell server when the editor source changes" do

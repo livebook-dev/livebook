@@ -1109,7 +1109,7 @@ defmodule Livebook.Session do
 
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
-        chunks = info[:chunks] || []
+        chunks = info[:chunks]
         delta = Livebook.JSInterop.diff(cell.source, info.source)
 
         operation =
@@ -1130,7 +1130,7 @@ defmodule Livebook.Session do
   def handle_info({:runtime_smart_cell_update, id, attrs, source, info}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
-        chunks = info[:chunks] || []
+        chunks = info[:chunks]
         delta = Livebook.JSInterop.diff(cell.source, source)
         operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
