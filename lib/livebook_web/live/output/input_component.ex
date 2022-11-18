@@ -19,6 +19,27 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
+  def render(%{attrs: %{type: :image}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <.live_component
+        module={LivebookWeb.Output.ImageInputComponent}
+        id={"#{@id}-input"}
+        value={@value}
+        height={@attrs.size && elem(@attrs.size, 0)}
+        width={@attrs.size && elem(@attrs.size, 1)}
+        format={@attrs.format}
+        fit={@attrs.fit}
+        target={@myself}
+      />
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
@@ -241,6 +262,16 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :image} = attrs) do
+    {:ok,
+     %{
+       data: Base.decode64!(html_value["data"]),
+       height: html_value["height"],
+       width: html_value["width"],
+       format: attrs.format
+     }}
   end
 
   defp report_event(socket, value) do
