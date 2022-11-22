@@ -7,7 +7,16 @@ defmodule LivebookWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
-    plug :protect_from_forgery
+    # Because LIVEBOOK_SECRET_KEY_BASE authentication is randomly
+    # generated, the odds of getting a CSRFProtection is quite high
+    # and exceptions can lead to a poor user experience.
+    #
+    # During authentication, configure_session(renew: true) will
+    # override the configure_session(ignore: true) but the session
+    # will be cleared anyway. This means an attacker can authenticate
+    # someone in a given Livebook instance but they wouldn't be able
+    # to do anything once the authentication goes through.
+    plug :protect_from_forgery, with: :clear_session
     plug :put_secure_browser_headers
     plug :within_iframe_secure_headers
   end
