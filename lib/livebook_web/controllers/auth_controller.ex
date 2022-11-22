@@ -15,8 +15,8 @@ defmodule LivebookWeb.AuthController do
     end
   end
 
-  def index(conn, _params) do
-    render(conn, "index.html", auth_mode: Livebook.Config.auth_mode())
+  def index(conn, params) do
+    render(conn, "index.html", auth_mode: Livebook.Config.auth_mode(), errors: params["errors"])
   end
 
   def authenticate(conn, %{"password" => password}) do
@@ -25,7 +25,7 @@ defmodule LivebookWeb.AuthController do
     if AuthPlug.authenticated?(conn, :password) do
       redirect_to(conn)
     else
-      index(conn, %{})
+      render_form_error(conn)
     end
   end
 
@@ -35,8 +35,14 @@ defmodule LivebookWeb.AuthController do
     if AuthPlug.authenticated?(conn, :token) do
       redirect_to(conn)
     else
-      index(conn, %{})
+      render_form_error(conn)
     end
+  end
+
+  defp render_form_error(conn) do
+    index(conn, %{
+      "errors" => [{"%{auth_mode} is invalid", [auth_mode: Livebook.Config.auth_mode()]}]
+    })
   end
 
   defp redirect_to(conn) do
