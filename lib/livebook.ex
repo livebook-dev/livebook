@@ -104,7 +104,7 @@ defmodule Livebook do
         config :livebook, authentication_mode: :password, password: password
 
       Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
-        config :livebook, authentication_mode: :token, token: Livebook.Utils.random_id()
+        config :livebook, token: Livebook.Utils.random_id()
 
       true ->
         config :livebook, authentication_mode: :disabled
