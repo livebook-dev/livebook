@@ -19,6 +19,9 @@ config :mime, :types, %{
   "text/plain" => ["livemd"]
 }
 
+# We want CSRF tokens to be logged to help users with debugging
+config :plug_cowboy, :log_exceptions_with_status_code, [407..599]
+
 config :livebook,
   app_service_name: nil,
   app_service_url: nil,

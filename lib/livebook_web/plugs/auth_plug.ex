@@ -24,7 +24,9 @@ defmodule LivebookWeb.AuthPlug do
   Stores in the session the secret for the given mode.
   """
   def store(conn, mode, value) do
-    put_session(conn, key(conn.port, mode), hash(value))
+    conn
+    |> put_session(key(conn.port, mode), hash(value))
+    |> configure_session(renew: true)
   end
 
   @doc """
