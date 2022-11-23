@@ -31,7 +31,7 @@ if Version.compare(System.version(), "1.14.2") != :lt do
           delete_test_module(test_module)
 
         {:error, kind, error} ->
-          IO.warn(Exception.format(kind, error, []), [])
+          put_output({:error, colorize(:red, Exception.format(kind, error, [])), :other})
       end
 
       :ok
@@ -165,27 +165,50 @@ if Version.compare(System.version(), "1.14.2") != :lt do
 
       expected = diff[:right]
       got = diff[:left]
-
       source = String.trim(reason.doctest)
 
-      [
+      message_io =
+        if_io(reason.message != "Doctest failed", fn ->
+          message =
+            reason.message
+            |> String.replace_prefix("Doctest failed: ", "")
+            |> pad(@pad_size)
+
+          [colorize(:red, message), "\n"]
+        end)
+
+      source_io = [
         String.duplicate(" ", @pad_size),
         format_label("doctest"),
         "\n",
-        pad(source, @pad_size + 2),
-        "\n",
-        String.duplicate(" ", @pad_size),
-        format_label("expected"),
-        "\n",
-        String.duplicate(" ", @pad_size + 2),
-        expected,
-        "\n",
-        String.duplicate(" ", @pad_size),
-        format_label("got"),
-        "\n",
-        String.duplicate(" ", @pad_size + 2),
-        got
+        pad(source, @pad_size + 2)
       ]
+
+      expected_io =
+        if_io(expected, fn ->
+          [
+            "\n",
+            String.duplicate(" ", @pad_size),
+            format_label("expected"),
+            "\n",
+            String.duplicate(" ", @pad_size + 2),
+            expected
+          ]
+        end)
+
+      got_io =
+        if_io(got, fn ->
+          [
+            "\n",
+            String.duplicate(" ", @pad_size),
+            format_label("got"),
+            "\n",
+            String.duplicate(" ", @pad_size + 2),
+            got
+          ]
+        end)
+
+      message_io ++ source_io ++ expected_io ++ got_io
     end
 
     defp format_failure({kind, reason, stacktrace}, test) do
@@ -216,6 +239,8 @@ if Version.compare(System.version(), "1.14.2") != :lt do
         ]
       end
     end
+
+    defp if_io(value, fun), do: if(value, do: fun.(), else: [])
 
     defp format_stacktrace(stacktrace, test_case, test) do
       for entry <- stacktrace do

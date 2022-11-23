@@ -352,6 +352,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
     test "runs doctests when a module is defined", %{evaluator: evaluator} do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.Doctests do
+        @moduledoc """
+
+            iex> raise "oops"
+            ** (ArgumentError) not oops
+
+            iex> 1 +
+            :who_knows
+        """
+
         @doc """
             iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
             %{
@@ -392,7 +401,12 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
       assert_receive {:runtime_evaluation_output, :code_1, {:text, doctest_result}}
-      assert doctest_result =~ "4 doctests, 3 failures"
+
+      assert doctest_result =~ "6 doctests, 5 failures"
+      assert doctest_result =~ "Doctest did not compile, got: (TokenMissingError)"
+
+      assert doctest_result =~
+               "expected exception ArgumentError but got RuntimeError with message \"oops\""
 
       assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
     end
