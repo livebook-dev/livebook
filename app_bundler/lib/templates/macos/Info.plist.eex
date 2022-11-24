@@ -63,5 +63,8 @@
   <key>LSUIElement</key>
   <true/>
 <% end %>
+
+  <key>LSRequiresNativeExecution</key>
+  <true/>
 </dict>
 </plist>
