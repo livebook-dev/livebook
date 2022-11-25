@@ -21,7 +21,7 @@ module.exports = (env, options) => {
         __dirname,
         devMode ? "../tmp/static_dev/js" : "../static/js"
       ),
-      publicPath: "/js/",
+      publicPath: 'auto',
     },
     devtool: devMode ? "eval-cheap-module-source-map" : undefined,
     module: {

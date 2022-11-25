@@ -76,7 +76,7 @@ defmodule LivebookWeb.AuthPlug do
       %{method: "GET"} -> put_session(conn, :redirect_to, current_path(conn))
       conn -> conn
     end)
-    |> redirect(to: "/authenticate")
+    |> redirect(to: Path.join(Livebook.Config.base_url_path(), "/authenticate"))
     |> halt()
   end
 

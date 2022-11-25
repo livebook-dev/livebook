@@ -5,16 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href={Routes.static_path(@conn, "/favicon.svg")} />
+    <link rel="alternate icon" type="image/png" href={Routes.static_path(@conn, "/favicon.png")} />
     <%= live_title_tag(assigns[:page_title] || "Livebook") %>
-    <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/css/app.css")} />
-    <script
-      defer
-      phx-track-static
-      type="text/javascript"
-      src={Routes.static_path(@conn, "/js/app.js")}
-    >
+    <link rel="stylesheet" href={Routes.static_path(@conn, "/css/app.css")} />
+    <script>window.BASE_URL = "<%= Livebook.Config.base_url_path() %>";</script>
+    <script defer type="text/javascript" src={Routes.static_path(@conn, "/js/app.js")}>
     </script>
   </head>
   <body class="bg-white">

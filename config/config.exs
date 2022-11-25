@@ -2,7 +2,7 @@ import Config
 
 # Configures the endpoint
 config :livebook, LivebookWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "localhost", path: "/"],
   pubsub_server: Livebook.PubSub,
   live_view: [signing_salt: "livebook"]
 

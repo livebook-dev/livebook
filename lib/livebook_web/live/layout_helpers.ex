@@ -82,7 +82,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <div class="space-y-3">
             <div class="flex items-center mb-5">
               <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900 group" do %>
-                <img src="/images/logo.png" class="mx-2" height="40" width="40" alt="logo livebook" />
+                <img src={Path.join(Livebook.Config.base_url_path(), "/images/logo.png")} class="mx-2" height="40" width="40" alt="logo livebook" />
                 <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
                   Livebook
                 </span>

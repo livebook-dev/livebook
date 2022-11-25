@@ -109,7 +109,7 @@ defmodule LivebookWeb.SessionLive do
       >
         <span>
           <%= live_redirect to: Routes.home_path(@socket, :page), aria_label: "go to homepage" do %>
-            <img src="/images/logo.png" height="40" width="40" alt="" />
+            <img src={Path.join(Livebook.Config.base_url_path(), "/images/logo.png")} height="40" width="40" alt="" />
           <% end %>
         </span>
 
