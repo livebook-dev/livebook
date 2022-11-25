@@ -43,7 +43,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:enterprise) do
-    id = Livebook.Utils.random_short_id()
+    id = :erlang.phash2(Livebook.Utils.random_short_id())
 
     %Livebook.Hubs.Enterprise{
       id: "enterprise-#{id}",

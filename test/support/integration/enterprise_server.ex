@@ -2,6 +2,8 @@ defmodule Livebook.EnterpriseServer do
   @moduledoc false
   use GenServer
 
+  defstruct [:token, :user, :node, :port]
+
   @name __MODULE__
 
   def start do
@@ -16,11 +18,16 @@ defmodule Livebook.EnterpriseServer do
     GenServer.call(@name, :fetch_token)
   end
 
+  def user do
+    GenServer.call(@name, :fetch_user)
+  end
+
   # GenServer Callbacks
 
   @impl true
   def init(_opts) do
-    {:ok, %{token: nil, node: enterprise_node(), port: nil}, {:continue, :start_enterprise}}
+    state = %__MODULE__{node: enterprise_node()}
+    {:ok, state, {:continue, :start_enterprise}}
   end
 
   @impl true
@@ -30,9 +37,16 @@ defmodule Livebook.EnterpriseServer do
 
   @impl true
   def handle_call(:fetch_token, _from, state) do
-    token = state.token || fetch_token_from_enterprise(state)
+    state = if _ = state.token, do: state, else: create_enterprise_token(state)
 
-    {:reply, token, %{state | token: token}}
+    {:reply, state.token, state}
+  end
+
+  @impl true
+  def handle_call(:fetch_user, _from, state) do
+    state = if _ = state.user, do: state, else: create_enterprise_user(state)
+
+    {:reply, state.user, state}
   end
 
   # Port Callbacks
@@ -50,8 +64,24 @@ defmodule Livebook.EnterpriseServer do
 
   # Private
 
-  defp fetch_token_from_enterprise(state) do
-    :erpc.call(state.node, Enterprise.Integration, :fetch_token, [])
+  defp create_enterprise_token(state) do
+    if user = state.user do
+      token = call_erpc_function(state.node, :generate_user_session_token!, [user])
+      %{state | token: token}
+    else
+      user = call_erpc_function(state.node, :create_user)
+      token = call_erpc_function(state.node, :generate_user_session_token!, [user])
+
+      %{state | user: user, token: token}
+    end
+  end
+
+  defp create_enterprise_user(state) do
+    %{state | user: call_erpc_function(state.node, :create_user)}
+  end
+
+  defp call_erpc_function(node, function, args \\ []) do
+    :erpc.call(node, Enterprise.Integration, function, args)
   end
 
   defp start_enterprise(state) do
