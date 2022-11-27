@@ -41,7 +41,7 @@ defmodule LivebookWeb.LearnLive do
           id="welcome-to-livebook"
           class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center"
         >
-          <img src={Path.join(Livebook.Config.base_url_path(), @lead_notebook_info.details.cover_url)} width="100" alt="livebook" />
+          <img src={Routes.static_path(@socket, @lead_notebook_info.details.cover_url)} width="100" alt="livebook" />
           <div>
             <h3 class="text-xl text-gray-50 font-semibold">
               <%= @lead_notebook_info.title %>
@@ -76,7 +76,7 @@ defmodule LivebookWeb.LearnLive do
     ~H"""
     <div>
       <div class="p-8 mt-16 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
-        <img src={Path.join(Livebook.Config.base_url_path(), @group_info.cover_url)} width="100" />
+        <img src={Routes.static_path(@socket, @group_info.cover_url)} width="100" />
         <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
             <%= length(@group_info.notebook_infos) %> notebooks
