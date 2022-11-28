@@ -87,7 +87,14 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   end
 
   defp format_error(kind, error, stacktrace) do
-    {blamed, stacktrace} = Exception.blame(kind, error, stacktrace)
+    {blamed, stacktrace} =
+      case error do
+        %CompileError{description: "cannot compile file (errors have been logged)" <> _, line: 0} ->
+          {%CompileError{description: "cannot compile cell (errors have been logged)"}, []}
+
+        _ ->
+          Exception.blame(kind, error, stacktrace)
+      end
 
     banner =
       case blamed do
