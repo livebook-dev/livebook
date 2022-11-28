@@ -99,7 +99,7 @@ defmodule Livebook do
       config :livebook, LivebookWeb.Endpoint, http: [ip: ip], url: [host: host]
     end
 
-    if base_url_path = Livebook.Config.base_url_path!("LIVEBOOK_BASE_URL") do
+    if base_url_path = Livebook.Config.base_url_path!("LIVEBOOK_BASE_URL_PATH") do
       config :livebook, LivebookWeb.Endpoint, url: [path: base_url_path]
     end
 
