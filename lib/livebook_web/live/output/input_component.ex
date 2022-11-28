@@ -98,9 +98,11 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
     <textarea
+      id={@id}
       data-el-input
-      class="input min-h-[200px] tiny-scrollbar"
+      class="input min-h-[38px] max-h-[300px] tiny-scrollbar"
       name="value"
+      phx-hook="TextareaAutosize"
       phx-debounce="blur"
       phx-target={@myself}
       spellcheck="false"
