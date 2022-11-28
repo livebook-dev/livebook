@@ -12,6 +12,7 @@ import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
 import ScrollOnUpdate from "./scroll_on_update";
 import Session from "./session";
+import TextareaAutosize from "./textarea_autosize";
 import Timer from "./timer";
 import UserForm from "./user_form";
 import VirtualizedLines from "./virtualized_lines";
@@ -31,6 +32,7 @@ export default {
   MarkdownRenderer,
   ScrollOnUpdate,
   Session,
+  TextareaAutosize,
   Timer,
   UserForm,
   VirtualizedLines,
