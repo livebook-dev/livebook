@@ -10,12 +10,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:fly_metadata) do
-    %Livebook.Hubs.Metadata{
-      id: "fly-foo-bar-baz",
-      name: "My Personal Hub",
-      color: "#FF00FF",
-      provider: build(:fly)
-    }
+    :fly |> build() |> Livebook.Hubs.Provider.normalize()
   end
 
   def build(:fly) do
@@ -32,18 +27,11 @@ defmodule Livebook.Factory do
   end
 
   def build(:enterprise_metadata) do
-    id = Livebook.Utils.random_short_id()
-
-    %Livebook.Hubs.Metadata{
-      id: "enterprise-#{id}",
-      name: "Enterprise",
-      color: "#FF00FF",
-      provider: build(:enterprise)
-    }
+    :enterprise |> build() |> Livebook.Hubs.Provider.normalize()
   end
 
   def build(:enterprise) do
-    id = Livebook.Utils.random_short_id()
+    id = :erlang.phash2(Livebook.Utils.random_short_id())
 
     %Livebook.Hubs.Enterprise{
       id: "enterprise-#{id}",

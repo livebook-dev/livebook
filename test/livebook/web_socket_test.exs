@@ -27,7 +27,7 @@ defmodule Livebook.WebSocketTest do
   end
 
   describe "send_request/2" do
-    test "receives the session response from server", %{url: url, token: token} do
+    test "receives the session response from server", %{url: url, token: token, user: user} do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, %WebSocket.Connection{} = connection, :connected} =
@@ -43,7 +43,8 @@ defmodule Livebook.WebSocketTest do
 
       assert WebSocket.disconnect(connection) == :ok
 
-      assert session_response.user.email == "jake.peralta@mail.com"
+      assert session_response.user.id == user.id
+      assert session_response.user.email == user.email
     end
   end
 end

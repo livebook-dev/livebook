@@ -6,8 +6,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   alias Livebook.Hubs
 
   describe "enterprise" do
-    test "persists new hub", %{conn: conn, url: url, token: token} do
-      Livebook.Hubs.delete_hub("enterprise-bf1587a3-4501-4729-9f53-43679381e28b")
+    test "persists new hub", %{conn: conn, url: url, token: token, user: user} do
+      Livebook.Hubs.delete_hub("enterprise-#{user.id}")
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
 
@@ -28,7 +28,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
+      assert render(view) =~ to_string(user.id)
 
       attrs = %{
         "url" => url,
@@ -56,7 +56,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
       hubs_html = view |> element("#hubs") |> render()
       assert hubs_html =~ ~s/style="color: #FF00FF"/
-      assert hubs_html =~ "/hub/enterprise-bf1587a3-4501-4729-9f53-43679381e28b"
+      assert hubs_html =~ "/hub/enterprise-#{user.id}"
       assert hubs_html =~ "Enterprise"
     end
 
@@ -85,11 +85,11 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       refute render(view) =~ "enterprise[hub_name]"
     end
 
-    test "fails to create existing hub", %{conn: conn, url: url, token: token} do
+    test "fails to create existing hub", %{conn: conn, url: url, token: token, user: user} do
       hub =
         insert_hub(:enterprise,
-          id: "enterprise-bf1587a3-4501-4729-9f53-43679381e28b",
-          external_id: "bf1587a3-4501-4729-9f53-43679381e28b",
+          id: "enterprise-#{user.id}",
+          external_id: user.id,
           url: url,
           token: token
         )
@@ -113,7 +113,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      assert render(view) =~ "bf1587a3-4501-4729-9f53-43679381e28b"
+      assert render(view) =~ to_string(user.id)
 
       attrs = %{
         "url" => url,
