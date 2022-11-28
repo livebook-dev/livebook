@@ -241,7 +241,9 @@ defmodule Livebook.Config do
   Remove trailing '/' if present.
   """
   def base_url_path!(env) do
-    System.get_env(env)
+    if base_url_path = System.get_env(env) do
+      String.trim_trailing(base_url_path, "/")
+    end
   end
 
   @doc """
