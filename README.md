@@ -191,7 +191,7 @@ The following environment variables configure Livebook:
     Must be a valid IPv4 or IPv6 address.
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
-    Used in case of a deploy behind a reverse proxy.
+    Useful when deploying behind a reverse proxy.
 
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
