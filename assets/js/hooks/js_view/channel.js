@@ -4,7 +4,9 @@ const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
-const socket = new Socket(window.LIVEBOOK_BASE_URL_PATH + "/socket", { params: { _csrf_token: csrfToken } });
+const socket = new Socket(window.LIVEBOOK_BASE_URL_PATH + "/socket", {
+  params: { _csrf_token: csrfToken },
+});
 
 let channel = null;
 
