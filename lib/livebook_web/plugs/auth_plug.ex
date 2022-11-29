@@ -6,6 +6,8 @@ defmodule LivebookWeb.AuthPlug do
   import Plug.Conn
   import Phoenix.Controller
 
+  alias LivebookWeb.Router.Helpers, as: Routes
+
   @impl true
   def init(opts), do: opts
 
@@ -76,7 +78,7 @@ defmodule LivebookWeb.AuthPlug do
       %{method: "GET"} -> put_session(conn, :redirect_to, current_path(conn))
       conn -> conn
     end)
-    |> redirect(to: "/authenticate")
+    |> redirect(to: Routes.path(conn, "/authenticate"))
     |> halt()
   end
 

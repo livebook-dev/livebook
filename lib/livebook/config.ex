@@ -88,6 +88,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the base url path for the Livebook endpoint.
+  """
+  @spec base_url_path() :: String.t()
+  def base_url_path() do
+    Application.get_env(:livebook, LivebookWeb.Endpoint)[:url][:path]
+  end
+
+  @doc """
   Returns the configured port for the iframe endpoint.
   """
   @spec iframe_port() :: pos_integer() | 0
@@ -225,6 +233,15 @@ defmodule Livebook.Config do
         {port, ""} -> port
         :error -> abort!("expected #{env} to be an integer, got: #{inspect(port)}")
       end
+    end
+  end
+
+  @doc """
+  Parses and validates the base url path from env.
+  """
+  def base_url_path!(env) do
+    if base_url_path = System.get_env(env) do
+      String.trim_trailing(base_url_path, "/")
     end
   end
 

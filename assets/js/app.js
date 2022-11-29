@@ -21,7 +21,7 @@ const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
-const liveSocket = new LiveSocket("/live", Socket, {
+const liveSocket = new LiveSocket(window.LIVEBOOK_BASE_URL_PATH + "/live", Socket, {
   params: (liveViewName) => {
     return {
       _csrf_token: csrfToken,

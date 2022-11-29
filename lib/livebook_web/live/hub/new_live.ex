@@ -49,7 +49,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <.card_item id="enterprise" selected={@selected_type} title="Livebook Enterprise">
               <:logo>
                 <img
-                  src="/images/enterprise.png"
+                  src={Routes.static_path(@socket, "/images/enterprise.png")}
                   class="max-h-full max-w-[75%]"
                   alt="Livebook Enterprise logo"
                 />
