@@ -124,21 +124,20 @@ defmodule Livebook.Application do
       else
         _ ->
           Livebook.Config.abort!("""
-          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8),
+          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8), \
           which indicates something wrong in your OS configuration, or EPMD is not running.
 
-          Make sure your computer's name resolves locally or start Livebook using \
-          a long distribution name. Please try one of the fixes below:
+          To address this issue, you might:
 
-            * If you are using the Livebook App, please open up a bug report.
+            * Consult our Installation FAQ:
+              https://github.com/livebook-dev/livebook/wiki/Installation-FAQ
 
-            * If you are using Livebook's CLI, consider using longnames:
+            * If you are using Livebook's CLI or from source, consider using longnames:
 
                   livebook server --name livebook@127.0.0.1
+                  elixir --name livebook@127.0.0.1 -S mix phx.server
 
-            * If you are running it from source, do instead:
-
-                  MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+            * If the issue persists, please file a bug report
 
           """)
       end
