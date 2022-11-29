@@ -238,7 +238,6 @@ defmodule Livebook.Config do
 
   @doc """
   Parses and validates the base url path from env.
-  Remove trailing '/' if present.
   """
   def base_url_path!(env) do
     if base_url_path = System.get_env(env) do
