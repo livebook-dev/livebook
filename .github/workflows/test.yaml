@@ -38,9 +38,9 @@ jobs:
       - name: Run tests
         run: mix test
       - name: Install Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
+          node-version: "18.x"
       - name: Cache npm dependencies
         uses: actions/cache@v2
         with:
