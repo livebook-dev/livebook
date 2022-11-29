@@ -31,12 +31,7 @@ defmodule ElixirKit.Bundler do
     File.cp_r!(release.path, rel_dir)
 
     launcher = options |> Keyword.fetch!(:launcher_path) |> File.read!()
-    build_launcher(app_dir, app_name, launcher)
-
-    File.write!(
-      "#{rel_dir}/additional_paths",
-      Enum.join(options[:additional_paths] || [], ":")
-    )
+    build_launcher(release, app_dir, app_name, launcher)
 
     for {destination, source} <- options[:resources] || [] do
       File.cp!(source, "#{app_dir}/Contents/Resources/#{destination}")
@@ -54,8 +49,10 @@ defmodule ElixirKit.Bundler do
     cache_dir = cache_dir()
     File.mkdir_p!(cache_dir)
     dir = "#{@elixirkit_dir}/otp-bootstrap"
-    cmd("sh", ~w(#{dir}/openssl/build.sh #{cache_dir} #{@openssl_version} macos-aarch64))
-    cmd("sh", ~w(#{dir}/openssl/build.sh #{cache_dir} #{@openssl_version} macos-x86_64))
+
+    for target <- ~w(macos-aarch64 macos-x86_64) do
+      cmd("sh", ~w(#{dir}/openssl/build.sh #{cache_dir} #{@openssl_version} #{target}))
+    end
 
     cmd(
       "sh",
@@ -68,7 +65,7 @@ defmodule ElixirKit.Bundler do
     "#{cache_dir()}/otp-#{@otp_version}-macos-universal"
   end
 
-  defp build_launcher(app_dir, app_name, launcher) do
+  defp build_launcher(release, app_dir, app_name, launcher) do
     app_tmp = "#{app_dir}/tmp"
     File.rm_rf!(app_tmp)
     File.mkdir_p!(app_tmp)
@@ -80,7 +77,12 @@ defmodule ElixirKit.Bundler do
     File.mkdir_p!(launcher_dir)
     cache_dir = cache_dir()
 
-    for target <- ~w(macos-aarch64 macos-x86_64) do
+    targets = [
+      "macos-aarch64",
+      "macos-x86_64"
+    ]
+
+    for target <- targets do
       otp_dir = "#{cache_dir}/otp-#{@otp_version}-#{target}"
       cc_target = cc_target(target)
 
@@ -92,7 +94,7 @@ defmodule ElixirKit.Bundler do
         cc_target,
         "-o",
         "#{app_tmp}/ElixirKit.o.#{target}",
-        "#{@elixirkit_dir}/src/ElixirKit.m"
+        "#{@elixirkit_dir}/c_src/ElixirKit.m"
       ])
 
       cmd(
@@ -100,7 +102,7 @@ defmodule ElixirKit.Bundler do
         [
           "-parse-as-library",
           "-import-objc-header",
-          "#{@elixirkit_dir}/src/ElixirKit.h",
+          "#{@elixirkit_dir}/c_src/ElixirKit.h",
           "-lc++",
           "-ltermcap",
           "-target",
@@ -108,17 +110,52 @@ defmodule ElixirKit.Bundler do
           "-o",
           "#{app_tmp}/launcher.#{target}",
           "#{app_tmp}/Launcher.swift",
-          "#{@elixirkit_dir}/src/ElixirKit.swift",
+          "#{@elixirkit_dir}/c_src/ElixirKit.swift",
           "#{otp_dir}/usr/lib/liberl.a",
           "#{app_tmp}/ElixirKit.o.#{target}"
         ]
+      )
+
+      # this is a native runner, as opposed to simply a bash script, because the latter seems to
+      # be always executed using Rosetta in an universal app.
+      File.write!(
+        "#{app_tmp}/runner.swift",
+        EEx.eval_file("#{@elixirkit_dir}/c_src/runner.swift", release: release)
+      )
+
+      cmd(
+        "swiftc",
+        ~w(-o #{app_tmp}/runner.#{target} #{app_tmp}/runner.swift -target #{cc_target})
       )
     end
 
     cmd(
       "lipo",
-      ~w(#{app_tmp}/launcher.macos-aarch64 #{app_tmp}/launcher.macos-x86_64 -create -output #{launcher_path})
+      Enum.map(targets, &"#{app_tmp}/launcher.#{&1}") ++ ~w(-create -output #{launcher_path})
     )
+
+    cmd(
+      "lipo",
+      Enum.map(targets, &"#{app_tmp}/runner.#{&1}") ++ ~w(-create -output #{launcher_path}Runner)
+    )
+
+    erl_path = "#{app_dir}/Contents/Resources/rel/erts-#{release.erts_version}/bin/erl"
+
+    File.write!(erl_path, """
+    #!/bin/sh
+    SELF=$(readlink "$0" || true)
+    if [ -z "$SELF" ]; then SELF="$0"; fi
+    BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
+    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
+    EMU=beam
+    PROGNAME=$(echo "$0" | sed 's/.*\\///')
+    export EMU
+    export ROOTDIR
+    export BINDIR
+    export PROGNAME
+    RELEASE_ERLEXEC="${RELEASE_ERLEXEC:-"$BINDIR/erlexec"}"
+    exec $RELEASE_ERLEXEC ${1+"$@"}
+    """)
 
     File.rm_rf!(app_tmp)
 
@@ -137,16 +174,32 @@ defmodule ElixirKit.Bundler do
   def open_release_app do
     %{name: name, dir: dir} = release_app_config()
     ensure_not_running(name)
-    open_app(dir)
+    tty = tty()
+    forward_logs("#{System.user_home!()}/Library/Logs/#{name}.log")
+    cmd("open", ~w(-W --stdout #{tty} --stderr #{tty} #{dir}))
   end
 
-  defp open_app(app_dir) do
-    tty = tty()
-    cmd("open", ~w(-W --stdout #{tty} --stderr #{tty} #{app_dir}))
+  defp forward_logs(path) do
+    File.write!(path, "")
+    {:ok, log_pid} = File.open(path, [:read])
+
+    Task.start_link(fn ->
+      gets(log_pid)
+    end)
+  end
+
+  defp gets(pid) do
+    data = IO.gets(pid, "")
+
+    if data != :eof do
+      IO.write(data)
+    end
+
+    gets(pid)
   end
 
   defp ensure_not_running(name, kill? \\ true) do
-    case System.cmd("pgrep", [name], into: "") do
+    case System.cmd("pgrep", ["^#{name}$"], into: "") do
       {"", 1} ->
         :ok
 
@@ -185,6 +238,8 @@ defmodule ElixirKit.Bundler do
       #{extra}
       <key>LSRequiresNativeExecution</key>
       <true/>
+      <key>CFBundleExecutable</key>
+      <string>#{app_name}Runner</string>
     </dict>
     </plist>
     """

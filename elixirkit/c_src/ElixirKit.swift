@@ -3,7 +3,7 @@ import Combine
 
 struct ElixirKit {
     static func start() {
-        ElixirKitStartRelease()
+        ElixirKitStart()
     }
 
     static func startAsync() {

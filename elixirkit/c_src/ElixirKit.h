@@ -1,5 +1,5 @@
 #import <Foundation/Foundation.h>
 
-void ElixirKitStartRelease();
+void ElixirKitStart();
 
 void ElixirKitPublish(NSString* name, NSString* data);

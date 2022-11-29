@@ -4,6 +4,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        ElixirKit.startAsync()
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button!.title = "Demo"
         let statusMenu = NSMenu()
@@ -15,8 +17,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 class Main {
     static func main() {
-        ElixirKit.startAsync()
-
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

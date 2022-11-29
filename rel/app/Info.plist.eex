@@ -36,5 +36,7 @@
   <true/>
   <key>LSRequiresNativeExecution</key>
   <true/>
+  <key>CFBundleExecutable</key>
+  <string>LivebookRunner</string>
 </dict>
 </plist>

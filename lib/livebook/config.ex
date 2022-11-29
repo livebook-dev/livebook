@@ -379,7 +379,6 @@ defmodule Livebook.Config do
     end
   else
     def abort!(message) do
-      # TODO: change to Logger.error
       IO.puts("\nERROR!!! [Livebook] " <> message)
       System.halt(1)
     end

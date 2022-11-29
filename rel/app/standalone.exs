@@ -34,7 +34,7 @@ defmodule Standalone do
     export ROOTDIR
     export BINDIR
     export PROGNAME
-    exec "$BINDIR/erlexec" ${1+"$@"}
+    exec ${RELEASE_ERLEXEC:-"$BINDIR/erlexec"} ${1+"$@"}
     """)
 
     make_executable(Path.join(release_erts_bin_dir, "erl"))

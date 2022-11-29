@@ -4,6 +4,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        ElixirKit.startAsync()
+
         let image = NSImage(named: NSImage.Name("Icon"))!
         let resized = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { (dstRect) -> Bool in
             image.draw(in: dstRect)
@@ -42,8 +44,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 class Main {
     static func main() {
-        ElixirKit.startAsync()
-
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
