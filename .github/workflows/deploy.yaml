@@ -21,7 +21,7 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
       - name: Cache Mix
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             deps
@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: "18.x"
       - name: Cache npm dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}

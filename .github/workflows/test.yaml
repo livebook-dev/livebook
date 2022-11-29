@@ -21,7 +21,7 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
       - name: Cache Mix
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             deps
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: "18.x"
       - name: Cache npm dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -77,7 +77,7 @@ jobs:
         run: |
           "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
       - name: Cache Mix
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             deps
@@ -98,12 +98,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Cache Mix Deps
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
       - name: Cache Bootstrap
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: tmp
           key: ${{ runner.os }}-app-${{ hashFiles('.github/scripts/app/bootstrap_mac.sh') }}
