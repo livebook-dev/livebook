@@ -92,7 +92,8 @@ defmodule Livebook.Config do
   """
   @spec base_url_path() :: String.t()
   def base_url_path() do
-    Application.get_env(:livebook, LivebookWeb.Endpoint)[:url][:path]
+    path = Application.get_env(:livebook, LivebookWeb.Endpoint)[:url][:path]
+    String.trim_trailing(path, "/")
   end
 
   @doc """
