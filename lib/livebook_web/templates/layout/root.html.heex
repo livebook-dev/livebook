@@ -9,8 +9,16 @@
     <link rel="alternate icon" type="image/png" href={Routes.static_path(@conn, "/favicon.png")} />
     <%= live_title_tag(assigns[:page_title] || "Livebook") %>
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/css/app.css")} />
-    <script>window.LIVEBOOK_BASE_URL_PATH = "<%= Livebook.Config.base_url_path() %>";</script>
-    <script phx-track-static defer type="text/javascript" src={Routes.static_path(@conn, "/js/app.js")}></script>
+    <script>
+      window.LIVEBOOK_BASE_URL_PATH = "<%= Livebook.Config.base_url_path() %>";
+    </script>
+    <script
+      phx-track-static
+      defer
+      type="text/javascript"
+      src={Routes.static_path(@conn, "/js/app.js")}
+    >
+    </script>
   </head>
   <body class="bg-white">
     <%= @inner_content %>
