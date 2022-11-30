@@ -146,7 +146,7 @@ defmodule Livebook.MixProject do
         steps: [:assemble, &remove_cookie/1]
       ],
       app: [
-        include_erts: true,
+        include_erts: false,
         rel_templates_path: "rel/app",
         steps: [
           :assemble,
@@ -161,6 +161,7 @@ defmodule Livebook.MixProject do
             "AppIcon.icns" => "rel/app/icon-macos.icns",
             "Icon.png" => "rel/app/icon.png"
           },
+          root_dir: "vendor/otp",
           additional_paths: additional_paths ++ ["/usr/local/bin"],
           build_dmg: macos_notarization != nil,
           notarization: macos_notarization

@@ -16,7 +16,14 @@ path =
 
 let homeDir = NSHomeDirectory()
 let relDir = Bundle.main.path(forResource: "rel", ofType: "")!
-let binDir = "\(relDir)/erts-<%= release.erts_version %>/bin"
+
+<%= if root_dir = release.options[:app][:root_dir] do %>
+let rootDir = "\(relDir)/<%= root_dir %>"
+<% else %>
+let rootDir = relDir
+<% end %>
+
+let binDir = "\(rootDir)/erts-<%= release.erts_version %>/bin"
 let appName = Bundle.main.infoDictionary!["CFBundleName"] as! String
 let launcherPath = Bundle.main.path(forAuxiliaryExecutable: appName)!
 
@@ -33,16 +40,16 @@ task.arguments = ["start"]
 task.environment = ProcessInfo.processInfo.environment
 let path = task.environment!["PATH"]!
 task.environment!["PATH"] = "<%= path %>"
-task.environment!["RELEASE_ERLEXEC"] = "\(launcherPath) -- -home \(homeDir) -root \(relDir) -bindir \(binDir) "
+task.environment!["RELEASE_ERLEXEC"] = "\(launcherPath) -- -home \(homeDir) -root \(rootDir) -bindir \(binDir) "
 
 task.terminationHandler = {(t: Process) in
-  if t.terminationStatus != 0 {
-      let alert = NSAlert()
-      alert.alertStyle = .critical
-      alert.messageText = "\(appName) exited with error status \(t.terminationStatus)."
-      alert.informativeText = "Logs available at: \(logPath)"
-      alert.runModal()
-  }
+    if t.terminationStatus != 0 {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "\(appName) exited with error status \(t.terminationStatus)."
+        alert.informativeText = "Logs available at: \(logPath)"
+        alert.runModal()
+    }
 }
 
 try task.run()
