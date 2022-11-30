@@ -1,10 +1,9 @@
 name: Preview (build)
 on:
   pull_request:
-    types: [opened,synchronize,reopened,closed]
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
-
   build-application:
     name: Build PR image
     runs-on: ubuntu-latest
@@ -15,7 +14,7 @@ jobs:
       - name: Checkout git repo
         uses: actions/checkout@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2        
+        uses: docker/setup-buildx-action@v2
       - name: Generate UUID image name
         id: uuid
         run: echo "UUID_TAG_APP=$(uuidgen)" >> $GITHUB_ENV
@@ -34,14 +33,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           file: ./Dockerfile
           cache-from: type=gha
-          cache-to: type=gha,mode=max          
-
+          cache-to: type=gha,mode=max
 
   render-compose-file:
     name: Render Docker Compose file
     # Pass output of this workflow to another triggered by `workflow_run` event.
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - build-application
     steps:
       - name: Checkout git repo
@@ -60,10 +58,10 @@ jobs:
           path: docker-compose.rendered.yml
           retention-days: 2
       - name: Serialize PR Event to File
-        run:  |
+        run: |
           cat << EOF > event.json
-          ${{ toJSON(github.event) }} 
-          
+          ${{ toJSON(github.event) }}
+
           EOF
       - name: Upload PR Event as Artifact
         uses: actions/upload-artifact@v3
