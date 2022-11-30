@@ -440,7 +440,11 @@ to notebook variables and evaluation results. Those allow for
 making the UI data-driven!
 
 Hopefully this notebook gives you a good overview of the Smart cells'
-potential, now it's your turn to unlock it ⚡
+potential, now it's your turn to unlock it. ⚡ Once your Smart cell
+is complete, you can publish it as a package to [Hex.pm](https://hex.pm/)
+and allow anyone in the community to reuse them, or even find one that
+fits your needs. To learn more from examples, check out the several
+examples under the [Livebook Organization](https://github.com/livebook-dev).
 
 ## Final words
 
