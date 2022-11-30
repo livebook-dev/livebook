@@ -3,7 +3,7 @@
    <img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400">
   </a>
 </h1>
-
+ 
 [![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/) [![Version](https://img.shields.io/hexpm/v/livebook?color=b5a3be)](https://hex.pm/packages/livebook)
 
 Livebook is a web application for writing interactive and collaborative code notebooks. It features:
