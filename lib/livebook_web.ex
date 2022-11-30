@@ -30,8 +30,7 @@ defmodule LivebookWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {LivebookWeb.LayoutView, "live.html"}
+      use Phoenix.LiveView, layout: {LivebookWeb.LayoutView, :live}
 
       unquote(view_helpers())
     end
