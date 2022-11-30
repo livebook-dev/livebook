@@ -139,23 +139,27 @@ defmodule ElixirKit.Bundler do
       Enum.map(targets, &"#{app_tmp}/runner.#{&1}") ++ ~w(-create -output #{launcher_path}Runner)
     )
 
-    erl_path = "#{app_dir}/Contents/Resources/rel/erts-#{release.erts_version}/bin/erl"
+    erts_dir = "#{app_dir}/Contents/Resources/rel/erts-#{release.erts_version}"
 
-    File.write!(erl_path, """
-    #!/bin/sh
-    SELF=$(readlink "$0" || true)
-    if [ -z "$SELF" ]; then SELF="$0"; fi
-    BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
-    EMU=beam
-    PROGNAME=$(echo "$0" | sed 's/.*\\///')
-    export EMU
-    export ROOTDIR
-    export BINDIR
-    export PROGNAME
-    RELEASE_ERLEXEC="${RELEASE_ERLEXEC:-"$BINDIR/erlexec"}"
-    exec $RELEASE_ERLEXEC ${1+"$@"}
-    """)
+    if File.dir?(erts_dir) do
+      erl_path = "#{erts_dir}/bin/erl"
+
+      File.write!(erl_path, """
+      #!/bin/sh
+      SELF=$(readlink "$0" || true)
+      if [ -z "$SELF" ]; then SELF="$0"; fi
+      BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
+      ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
+      EMU=beam
+      PROGNAME=$(echo "$0" | sed 's/.*\\///')
+      export EMU
+      export ROOTDIR
+      export BINDIR
+      export PROGNAME
+      RELEASE_ERLEXEC="${RELEASE_ERLEXEC:-"$BINDIR/erlexec"}"
+      exec $RELEASE_ERLEXEC ${1+"$@"}
+      """)
+    end
 
     File.rm_rf!(app_tmp)
 

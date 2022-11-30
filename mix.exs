@@ -146,8 +146,6 @@ defmodule Livebook.MixProject do
         steps: [:assemble, &remove_cookie/1]
       ],
       app: [
-        # TODO:
-        # include_erts: false
         include_erts: true,
         rel_templates_path: "rel/app",
         steps: [
