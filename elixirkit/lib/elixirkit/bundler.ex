@@ -281,8 +281,7 @@ defmodule ElixirKit.Bundler do
     flags = [
       "--force",
       "--timestamp",
-      "--verbose",
-      "4",
+      "--verbose=4",
       "--options",
       "runtime",
       "--sign",
