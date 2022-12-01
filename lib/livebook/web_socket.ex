@@ -41,6 +41,8 @@ defmodule Livebook.WebSocket do
     Client.disconnect(connection.conn, connection.websocket, connection.ref)
   end
 
+  @dialyzer {:nowarn_function, send_request: 2}
+
   @doc """
   Sends a request to the given server.
   """
