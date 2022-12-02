@@ -6,8 +6,7 @@ on:
       - main
 env:
   otp: "25.0"
-  # TODO: update to v1.14.2 once it is out
-  elixir: "main"
+  elixir: "1.14.2"
 jobs:
   main:
     runs-on: ubuntu-latest

@@ -63,7 +63,7 @@ defmodule LivebookWeb.Output do
     assigns = %{id: id, content: content, mime_type: mime_type}
 
     ~H"""
-    <Output.ImageComponent.render content={@content} mime_type={@mime_type} />
+    <Output.ImageComponent.render id={@id} content={@content} mime_type={@mime_type} />
     """
   end
 

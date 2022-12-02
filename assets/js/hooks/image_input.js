@@ -3,6 +3,7 @@ import {
   getAttributeOrThrow,
   parseInteger,
 } from "../lib/attribute";
+import { base64ToBuffer, bufferToBase64 } from "../lib/utils";
 
 const dropClasses = ["bg-yellow-100", "border-yellow-300"];
 
@@ -258,18 +259,6 @@ function imageDataToRGBBuffer(imageData) {
   return bytes.buffer;
 }
 
-function bufferToBase64(buffer) {
-  let binaryString = "";
-  const bytes = new Uint8Array(buffer);
-  const length = bytes.byteLength;
-
-  for (let i = 0; i < length; i++) {
-    binaryString += String.fromCharCode(bytes[i]);
-  }
-
-  return btoa(binaryString);
-}
-
 function imageInfoToElement(imageInfo) {
   if (imageInfo.format === "png" || imageInfo.format === "jpeg") {
     const src = `data:image/${imageInfo.format};base64,${imageInfo.data}`;
@@ -282,7 +271,7 @@ function imageInfoToElement(imageInfo) {
     const canvas = document.createElement("canvas");
     canvas.height = imageInfo.height;
     canvas.width = imageInfo.width;
-    const buffer = bufferFromBase64(imageInfo.data);
+    const buffer = base64ToBuffer(imageInfo.data);
     const imageData = imageDataFromRGBBuffer(
       buffer,
       imageInfo.width,
@@ -308,18 +297,6 @@ function imageDataFromRGBBuffer(buffer, width, height) {
   }
 
   return new ImageData(data, width, height);
-}
-
-function bufferFromBase64(base64) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  const length = bytes.byteLength;
-
-  for (let i = 0; i < length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  return bytes.buffer;
 }
 
 export default ImageInput;

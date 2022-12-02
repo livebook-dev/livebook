@@ -189,3 +189,33 @@ const htmlEscapes = {
 export function escapeHtml(string) {
   return (string || "").replace(/[&<>"']/g, (char) => htmlEscapes[char]);
 }
+
+/**
+ * Encodes the given binary buffer into base64 string.
+ */
+export function bufferToBase64(buffer) {
+  let binaryString = "";
+  const bytes = new Uint8Array(buffer);
+  const length = bytes.byteLength;
+
+  for (let i = 0; i < length; i++) {
+    binaryString += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binaryString);
+}
+
+/**
+ * Decodes a base64 string into a binary buffer.
+ */
+export function base64ToBuffer(base64) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  const length = bytes.byteLength;
+
+  for (let i = 0; i < length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  return bytes.buffer;
+}
