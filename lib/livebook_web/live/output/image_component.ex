@@ -4,7 +4,13 @@ defmodule LivebookWeb.Output.ImageComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <img src={data_url(@content, @mime_type)} alt="output image" />
+    <img
+      class="max-h-[500px]"
+      src={data_url(@content, @mime_type)}
+      alt="output image"
+      id={@id}
+      phx-hook="ImageOutput"
+    />
     """
   end
 

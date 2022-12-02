@@ -7,6 +7,7 @@ import FocusOnUpdate from "./focus_on_update";
 import Headline from "./headline";
 import Highlight from "./highlight";
 import ImageInput from "./image_input";
+import ImageOutput from "./image_output";
 import JSView from "./js_view";
 import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
@@ -27,6 +28,7 @@ export default {
   Headline,
   Highlight,
   ImageInput,
+  ImageOutput,
   JSView,
   KeyboardControl,
   MarkdownRenderer,
