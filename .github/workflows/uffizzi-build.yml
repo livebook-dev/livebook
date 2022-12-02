@@ -3,6 +3,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
 
+env:
+  otp: "25.0"
+  elixir: "1.14.0"
+
 jobs:
   build-application:
     name: Build PR image
@@ -13,6 +17,42 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
+      # --- START build assets
+      - name: Install Erlang & Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.otp }}
+          elixir-version: ${{ env.elixir }}
+      - name: Cache Mix
+        uses: actions/cache@v3
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
+      # Note: we need to get Phoenix and LV because package.json points to them directly
+      - name: Install mix dependencies
+        run: mix deps.get
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Clean generated assets
+        run: rm -rf static/{js,css}
+      - name: Install npm dependencies
+        run: npm ci --prefix assets
+      - name: Build assets
+        run: npm run deploy --prefix assets
+        # --- END build assets
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Generate UUID image name
