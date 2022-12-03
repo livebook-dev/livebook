@@ -17,9 +17,20 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.4"}}
-  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.2.0"}}
-  kino_maplibre = %{name: "kino_maplibre", dependency: {:kino_maplibre, "~> 0.1.3"}}
+  kino_vega_lite = %{
+    name: "kino_vega_lite",
+    dependency: %{dep: {:kino_vega_lite, "~> 0.1.4"}, config: []}
+  }
+
+  kino_db = %{
+    name: "kino_db",
+    dependency: %{dep: {:kino_db, "~> 0.2.0"}, config: []}
+  }
+
+  kino_maplibre = %{
+    name: "kino_maplibre",
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.3"}, config: []}
+  }
 
   @extra_smart_cell_definitions [
     %{
@@ -29,23 +40,44 @@ defmodule Livebook.Runtime.ElixirStandalone do
         variants: [
           %{
             name: "Amazon Athena",
-            packages: [kino_db, %{name: "req_athena", dependency: {:req_athena, "~> 0.1.0"}}]
+            packages: [
+              kino_db,
+              %{
+                name: "req_athena",
+                dependency: %{dep: {:req_athena, "~> 0.1.0"}, config: []}
+              }
+            ]
           },
           %{
             name: "Google BigQuery",
-            packages: [kino_db, %{name: "req_bigquery", dependency: {:req_bigquery, "~> 0.1.0"}}]
+            packages: [
+              kino_db,
+              %{
+                name: "req_bigquery",
+                dependency: %{dep: {:req_bigquery, "~> 0.1.0"}, config: []}
+              }
+            ]
           },
           %{
             name: "MySQL",
-            packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+            packages: [
+              kino_db,
+              %{name: "myxql", dependency: %{dep: {:myxql, "~> 0.6.2"}, config: []}}
+            ]
           },
           %{
             name: "PostgreSQL",
-            packages: [kino_db, %{name: "postgrex", dependency: {:postgrex, "~> 0.16.3"}}]
+            packages: [
+              kino_db,
+              %{name: "postgrex", dependency: %{dep: {:postgrex, "~> 0.16.3"}, config: []}}
+            ]
           },
           %{
             name: "SQLite",
-            packages: [kino_db, %{name: "exqlite", dependency: {:exqlite, "~> 0.11.0"}}]
+            packages: [
+              kino_db,
+              %{name: "exqlite", dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}}
+            ]
           }
         ]
       }
@@ -214,7 +246,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def fixed_dependencies?(_runtime), do: false
 
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
   end
 
   def search_packages(_runtime, send_to, search) do

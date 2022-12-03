@@ -7,7 +7,31 @@ defmodule Livebook.Runtime.DependenciesTest do
 
   @jason {:jason, "~> 1.3.0"}
 
-  describe "add_mix_deps/2" do
+  describe "add_dependencies/3" do
+    test "adds dependencies and config" do
+      assert Dependencies.add_dependencies("", [
+               %{dep: {:nx, "~> 0.4.0"}, config: []},
+               %{
+                 dep: {:exla, "~> 0.4.0"},
+                 config: [nx: [default_defn_options: [compiler: EXLA]]]
+               },
+               %{dep: {:torchx, "~> 0.4.0"}, config: [nx: [default_backend: Torchx.Backend]]}
+             ]) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:nx, "~> 0.4.0"},
+                    {:exla, "~> 0.4.0"},
+                    {:torchx, "~> 0.4.0"}
+                  ],
+                  config: [nx: [default_defn_options: [compiler: EXLA], default_backend: Torchx.Backend]]
+                )\
+                """}
+    end
+  end
+
+  describe "add_mix_deps/3" do
     test "prepends Mix.install/2 call if there is none" do
       assert Dependencies.add_mix_deps("", [@jason]) ==
                {:ok,
@@ -188,6 +212,108 @@ defmodule Livebook.Runtime.DependenciesTest do
                     |  ^\
                 """}
     end
+
+    test "adds config if specified" do
+      config = [nx: [default_backend: EXLA.Backend]]
+
+      assert Dependencies.add_mix_deps("", [@jason], config) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:jason, "~> 1.3.0"}
+                  ],
+                  config: [nx: [default_backend: EXLA.Backend]]
+                )\
+                """}
+
+      assert Dependencies.add_mix_deps(
+               """
+               Mix.install([
+                 {:jason, "~> 1.3.0"}
+               ])\
+               """,
+               [],
+               config
+             ) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:jason, "~> 1.3.0"}
+                  ],
+                  config: [nx: [default_backend: EXLA.Backend]]
+                )\
+                """}
+    end
+
+    test "merges config keeping existing entries" do
+      assert Dependencies.add_mix_deps(
+               """
+               Mix.install(
+                 [
+                   {:jason, "~> 1.3.0"}
+                 ],
+                 config: [
+                   # Comment 1
+                   nx: [
+                     # Comment 2
+                     default_backend: Torchx.Backend
+                     # Comment 3
+                   ],
+                   # Comment 4
+                   foo: [bar: :baz]
+                 ]
+               )\
+               """,
+               [],
+               nx: [
+                 default_backend: EXLA.Backend,
+                 default_defn_options: [compiler: EXLA]
+               ]
+             ) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:jason, "~> 1.3.0"}
+                  ],
+                  config: [
+                    # Comment 1
+                    nx: [
+                      # Comment 2
+                      default_backend: Torchx.Backend,
+                      default_defn_options: [compiler: EXLA]
+                      # Comment 3
+                    ],
+                    # Comment 4
+                    foo: [bar: :baz]
+                  ]
+                )\
+                """}
+
+      assert Dependencies.add_mix_deps(
+               """
+               Mix.install(
+                 [
+                   {:jason, "~> 1.3.0"}
+                 ],
+                 [config: []]
+               )\
+               """,
+               [],
+               nx: [default_backend: EXLA.Backend]
+             ) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:jason, "~> 1.3.0"}
+                  ],
+                  config: [nx: [default_backend: EXLA.Backend]]
+                )\
+                """}
+    end
   end
 
   describe "search_hex/2" do
@@ -248,7 +374,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                {:ok,
                 [
                   %{
-                    dependency: {:ecto, "~> 3.7"},
+                    dependency: %{dep: {:ecto, "~> 3.7"}, config: []},
                     description:
                       "A toolkit for data mapping and language integrated query for Elixir",
                     name: "ecto",
@@ -256,7 +382,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                     version: "3.7.2"
                   },
                   %{
-                    dependency: {:ecto_sql, "~> 3.7"},
+                    dependency: %{dep: {:ecto_sql, "~> 3.7"}, config: []},
                     description: "SQL-based adapters for Ecto and database migrations",
                     name: "ecto_sql",
                     url: "https://hex.pm/packages/ecto_sql",

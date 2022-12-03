@@ -113,7 +113,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
   end
 
   def search_packages(_runtime, send_to, search) do
