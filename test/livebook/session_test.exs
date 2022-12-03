@@ -202,7 +202,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [{:jason, "~> 1.3.0"}])
+      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
       assert_receive {:operation, {:apply_cell_delta, "__server__", "setup", :primary, _delta, 1}}
 
@@ -232,7 +232,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [{:json, "~> 1.3.0"}])
+      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
       assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
     end

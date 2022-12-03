@@ -30,7 +30,7 @@ defmodule Livebook do
 
       [
         %{
-          dependency: {:kino, "~> 0.6.1"},
+          dependency: %{dep: {:kino, "~> 0.6.1"}, config: []},
           description: "Interactive widgets for Livebook",
           name: "kino",
           url: "https://hex.pm/packages/kino",

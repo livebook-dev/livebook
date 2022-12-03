@@ -34,7 +34,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def fixed_dependencies?(_), do: false
 
     def add_dependencies(_runtime, code, dependencies) do
-      Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+      Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
     end
 
     def search_packages(_, _, _), do: make_ref()
