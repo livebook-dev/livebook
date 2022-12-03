@@ -143,7 +143,7 @@ defmodule Livebook.Runtime.Dependencies do
          [{{:__block__, meta1, [:config]}, {:__block__, meta2, [current_config]}} | tail],
          config
        ) do
-    config = merge_config(current_config, config)
+    config = append_config(current_config, config)
     [{{:__block__, meta1, [:config]}, {:__block__, meta2, [config]}} | tail]
   end
 
@@ -152,54 +152,27 @@ defmodule Livebook.Runtime.Dependencies do
 
   defp update_config_in_opts([], config), do: [config: Macro.escape(config)]
 
-  defp merge_config(left, right) do
+  defp append_config(current_config, config) do
     # Note: the current config has literals wrapped in a :__block__,
-    # while the new one doesn't. Also, on conflicts the current config
-    # takes precedence
-    if block_keyword?(left) and Keyword.keyword?(right) do
-      merge_config_items(left, right)
-    else
-      left
-    end
-  end
+    # while the new one doesn't.
 
-  defp merge_config_items(
-         [{{:__block__, meta1, [key]}, value1} = head | left],
-         right
-       ) do
-    case Keyword.fetch(right, key) do
-      {:ok, value2} ->
-        [
-          {{:__block__, meta1, [key]}, map_maybe_block(value1, &merge_config(&1, value2))}
-          | merge_config_items(left, Keyword.delete(right, key))
-        ]
-
-      :error ->
-        [head | merge_config_items(left, right)]
-    end
-  end
-
-  defp merge_config_items([], right) do
-    to_quoted_opts = [literal_encoder: &{:ok, {:__block__, &2, [&1]}}]
+    # If the given key is already in the config, we ignore it
+    existing_keys = for {{:__block__, _meta, [key]}, _value} <- current_config, do: key
+    config = Keyword.drop(config, existing_keys)
 
     # We need to wrap literals in a block, as in the rest of the AST
+    to_quoted_opts = [literal_encoder: &{:ok, {:__block__, &2, [&1]}}]
+
     {:__block__, _, [items]} =
-      right
+      config
       |> Macro.to_string()
       |> Code.string_to_quoted!(to_quoted_opts)
 
-    items
+    current_config ++ items
   end
 
   defp map_maybe_block({:__block__, meta, [value]}, fun), do: {:__block__, meta, [fun.(value)]}
   defp map_maybe_block(value, fun), do: fun.(value)
-
-  defp block_keyword?([{{:__block__, _meta, [key]}, _value} | tail]) when is_atom(key) do
-    block_keyword?(tail)
-  end
-
-  defp block_keyword?([]), do: true
-  defp block_keyword?(_other), do: false
 
   @doc """
   Parses a plain Elixir term from its string representation.

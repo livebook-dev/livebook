@@ -247,7 +247,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                 """}
     end
 
-    test "merges config keeping existing entries" do
+    test "merges config in flat manner" do
       assert Dependencies.add_mix_deps(
                """
                Mix.install(
@@ -261,14 +261,16 @@ defmodule Livebook.Runtime.DependenciesTest do
                      default_backend: Torchx.Backend
                      # Comment 3
                    ],
+                   test: [x: :y]
                    # Comment 4
-                   foo: [bar: :baz]
                  ]
                )\
                """,
                [],
                nx: [
-                 default_backend: EXLA.Backend,
+                 default_defn_options: [compiler: EXLA]
+               ],
+               other: [
                  default_defn_options: [compiler: EXLA]
                ]
              ) ==
@@ -282,12 +284,12 @@ defmodule Livebook.Runtime.DependenciesTest do
                     # Comment 1
                     nx: [
                       # Comment 2
-                      default_backend: Torchx.Backend,
-                      default_defn_options: [compiler: EXLA]
+                      default_backend: Torchx.Backend
                       # Comment 3
                     ],
+                    test: [x: :y],
+                    other: [default_defn_options: [compiler: EXLA]]
                     # Comment 4
-                    foo: [bar: :baz]
                   ]
                 )\
                 """}
