@@ -100,7 +100,7 @@ defmodule LivebookWeb.Output.InputComponent do
     <textarea
       id={@id}
       data-el-input
-      class="input min-h-[38px] max-h-[300px] tiny-scrollbar"
+      class={"input min-h-[38px] max-h-[300px] tiny-scrollbar #{if @attrs[:monospace] do "font-mono" end}"}
       name="value"
       phx-hook="TextareaAutosize"
       phx-debounce="blur"

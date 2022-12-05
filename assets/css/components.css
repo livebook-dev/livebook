@@ -83,7 +83,7 @@
   /* Form fields */
 
   .input {
-    @apply font-mono w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300;
+    @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300;
   }
 
   .input[type="color"] {
