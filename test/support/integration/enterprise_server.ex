@@ -2,51 +2,98 @@ defmodule Livebook.EnterpriseServer do
   @moduledoc false
   use GenServer
 
-  defstruct [:token, :user, :node, :port]
+  defstruct [:token, :user, :node, :port, :app_port, :url, :env]
 
   @name __MODULE__
+  @timeout 10_000
 
-  def start do
-    GenServer.start(__MODULE__, [], name: @name)
+  def start(name \\ @name, opts \\ []) do
+    GenServer.start(__MODULE__, opts, name: name)
   end
 
-  def url do
-    "http://localhost:#{app_port()}"
+  def url(name \\ @name) do
+    GenServer.call(name, :fetch_url, @timeout)
   end
 
-  def token do
-    GenServer.call(@name, :fetch_token)
+  def token(name \\ @name) do
+    GenServer.call(name, :fetch_token, @timeout)
   end
 
-  def user do
-    GenServer.call(@name, :fetch_user)
+  def user(name \\ @name) do
+    GenServer.call(name, :fetch_user, @timeout)
+  end
+
+  def drop_database(name \\ @name) do
+    GenServer.cast(name, :drop_database)
+  end
+
+  def reconnect(name \\ @name) do
+    GenServer.cast(name, :reconnect)
+  end
+
+  def disconnect(name \\ @name) do
+    GenServer.cast(name, :disconnect)
   end
 
   # GenServer Callbacks
 
   @impl true
-  def init(_opts) do
-    state = %__MODULE__{node: enterprise_node()}
-    {:ok, state, {:continue, :start_enterprise}}
+  def init(opts) do
+    state = struct(__MODULE__, opts)
+
+    {:ok, %{state | node: enterprise_node()}, {:continue, :start_enterprise}}
   end
 
   @impl true
   def handle_continue(:start_enterprise, state) do
+    ensure_app_dir!()
+    prepare_database(state)
+
     {:noreply, %{state | port: start_enterprise(state)}}
   end
 
   @impl true
   def handle_call(:fetch_token, _from, state) do
-    state = if _ = state.token, do: state, else: create_enterprise_token(state)
+    state = if state.token, do: state, else: create_enterprise_token(state)
 
     {:reply, state.token, state}
   end
 
   @impl true
   def handle_call(:fetch_user, _from, state) do
-    state = if _ = state.user, do: state, else: create_enterprise_user(state)
+    state = if state.user, do: state, else: create_enterprise_user(state)
 
     {:reply, state.user, state}
+  end
+
+  @impl true
+  def handle_call(:fetch_url, _from, state) do
+    state = if state.app_port, do: state, else: %{state | app_port: app_port()}
+    url = state.url || fetch_url(state)
+
+    {:reply, url, %{state | url: url}}
+  end
+
+  @impl true
+  def handle_cast(:drop_database, state) do
+    :ok = mix(state, ["ecto.drop", "--quiet"])
+    {:noreply, state}
+  end
+
+  def handle_cast(:reconnect, state) do
+    if state.port do
+      {:noreply, state}
+    else
+      {:noreply, %{state | port: start_enterprise(state)}}
+    end
+  end
+
+  def handle_cast(:disconnect, state) do
+    if state.port do
+      Port.close(state.port)
+    end
+
+    {:noreply, %{state | port: nil}}
   end
 
   # Port Callbacks
@@ -85,14 +132,10 @@ defmodule Livebook.EnterpriseServer do
   end
 
   defp start_enterprise(state) do
-    ensure_app_dir!()
-    prepare_database()
-
-    env = [
-      {~c"MIX_ENV", ~c"livebook"},
-      {~c"LIVEBOOK_ENTERPRISE_PORT", String.to_charlist(app_port())},
-      {~c"LIVEBOOK_ENTERPRISE_DEBUG", String.to_charlist(debug?())}
-    ]
+    env =
+      for {key, value} <- env(state), into: [] do
+        {String.to_charlist(key), String.to_charlist(value)}
+      end
 
     args = [
       "-e",
@@ -118,13 +161,18 @@ defmodule Livebook.EnterpriseServer do
         args: args
       ])
 
-    wait_on_start(port)
+    wait_on_start(state, port)
   end
 
-  defp prepare_database do
-    mix(["ecto.drop", "--quiet"])
-    mix(["ecto.create", "--quiet"])
-    mix(["ecto.migrate", "--quiet"])
+  defp fetch_url(state) do
+    port = state.app_port || app_port()
+    "http://localhost:#{port}"
+  end
+
+  defp prepare_database(state) do
+    :ok = mix(state, ["ecto.drop", "--quiet"])
+    :ok = mix(state, ["ecto.create", "--quiet"])
+    :ok = mix(state, ["ecto.migrate", "--quiet"])
   end
 
   defp ensure_app_dir! do
@@ -148,51 +196,52 @@ defmodule Livebook.EnterpriseServer do
     System.get_env("ENTERPRISE_PORT", "4043")
   end
 
-  defp debug? do
+  defp debug do
     System.get_env("ENTERPRISE_DEBUG", "false")
   end
 
-  defp wait_on_start(port) do
-    case :httpc.request(:get, {~c"#{url()}/public/health", []}, [], []) do
+  defp wait_on_start(state, port) do
+    url = state.url || fetch_url(state)
+
+    case :httpc.request(:get, {~c"#{url}/public/health", []}, [], []) do
       {:ok, _} ->
         port
 
       {:error, _} ->
         Process.sleep(10)
-        wait_on_start(port)
+        wait_on_start(state, port)
     end
   end
 
-  defp mix(args, opts \\ []) do
-    env = [
-      {"MIX_ENV", "livebook"},
-      {"LIVEBOOK_ENTERPRISE_PORT", app_port()},
-      {"LIVEBOOK_ENTERPRISE_DEBUG", debug?()}
+  defp mix(state, args) do
+    cmd_opts = [
+      stderr_to_stdout: true,
+      env: env(state),
+      cd: app_dir(),
+      into: IO.stream(:stdio, :line)
     ]
 
-    cmd_opts = [stderr_to_stdout: true, env: env, cd: app_dir()]
     args = ["--erl", "-elixir ansi_enabled true", "-S", "mix" | args]
 
-    cmd_opts =
-      if opts[:with_return],
-        do: cmd_opts,
-        else: Keyword.put(cmd_opts, :into, IO.stream(:stdio, :line))
+    case System.cmd(elixir_executable(), args, cmd_opts) do
+      {_, 0} -> :ok
+      _ -> :error
+    end
+  end
 
-    if opts[:with_return] do
-      case System.cmd(elixir_executable(), args, cmd_opts) do
-        {result, 0} ->
-          result
+  defp env(state) do
+    app_port = state.app_port || app_port()
 
-        {message, status} ->
-          error("""
+    env = %{
+      "MIX_ENV" => "livebook",
+      "LIVEBOOK_ENTERPRISE_PORT" => to_string(app_port),
+      "LIVEBOOK_ENTERPRISE_DEBUG" => debug()
+    }
 
-          #{message}\
-          """)
-
-          System.halt(status)
-      end
+    if state.env do
+      Map.merge(env, state.env)
     else
-      {_, 0} = System.cmd(elixir_executable(), args, cmd_opts)
+      env
     end
   end
 
