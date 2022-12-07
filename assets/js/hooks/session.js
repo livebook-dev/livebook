@@ -301,28 +301,35 @@ const Session = {
     const key = event.key;
     const keyBuffer = this.keyBuffer;
 
-    // Universal shortcuts
-    if (cmd && shift && !alt && key === "Enter") {
-      cancelEvent(event);
-      this.queueFullCellsEvaluation(true);
-      return;
-    } else if (!cmd && shift && !alt && key === "Enter") {
-      cancelEvent(event);
-      if (isEvaluable(this.focusedCellType())) {
-        this.queueFocusedCellEvaluation();
+    // Universal shortcuts (ignore editable elements in cell output)
+    if (
+      !(
+        isEditableElement(event.target) &&
+        event.target.closest(`[data-el-outputs-container]`)
+      )
+    ) {
+      if (cmd && shift && !alt && key === "Enter") {
+        cancelEvent(event);
+        this.queueFullCellsEvaluation(true);
+        return;
+      } else if (!cmd && shift && !alt && key === "Enter") {
+        cancelEvent(event);
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+        this.moveFocus(1);
+        return;
+      } else if (cmd && !alt && key === "Enter") {
+        cancelEvent(event);
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+        return;
+      } else if (cmd && key === "s") {
+        cancelEvent(event);
+        this.saveNotebook();
+        return;
       }
-      this.moveFocus(1);
-      return;
-    } else if (cmd && !alt && key === "Enter") {
-      cancelEvent(event);
-      if (isEvaluable(this.focusedCellType())) {
-        this.queueFocusedCellEvaluation();
-      }
-      return;
-    } else if (cmd && key === "s") {
-      cancelEvent(event);
-      this.saveNotebook();
-      return;
     }
 
     if (this.insertMode) {
