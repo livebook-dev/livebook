@@ -3,7 +3,7 @@ set -e pipefail
 
 main() {
   export MAKEFLAGS=-j$(getconf _NPROCESSORS_ONLN)
-  elixir_vsn="${elixir_vsn:-1.14.0}"
+  elixir_vsn="${elixir_vsn:-1.14.2}"
 
   mkdir -p tmp/cache
   . .github/scripts/app/bootstrap_otp_mac.sh

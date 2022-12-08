@@ -7,7 +7,7 @@ on:
       - "v*.*.*"
 env:
   otp: "25.0"
-  elixir: "1.14.0"
+  elixir: "1.14.2"
 jobs:
   assets:
     outputs:

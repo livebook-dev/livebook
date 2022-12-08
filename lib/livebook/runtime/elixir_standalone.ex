@@ -19,17 +19,32 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   kino_vega_lite = %{
     name: "kino_vega_lite",
-    dependency: %{dep: {:kino_vega_lite, "~> 0.1.4"}, config: []}
+    dependency: %{dep: {:kino_vega_lite, "~> 0.1.7"}, config: []}
   }
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.0"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.1"}, config: []}
   }
 
   kino_maplibre = %{
     name: "kino_maplibre",
-    dependency: %{dep: {:kino_maplibre, "~> 0.1.3"}, config: []}
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.7"}, config: []}
+  }
+
+  kino_slack = %{
+    name: "kino_slack",
+    dependency: %{dep: {:kino_slack, "~> 0.1.0"}, config: []}
+  }
+
+  kino_bumblebee = %{
+    name: "kino_bumblebee",
+    dependency: %{dep: {:kino_bumblebee, "~> 0.1.0"}, config: []}
+  }
+
+  exla = %{
+    name: "exla",
+    dependency: %{dep: {:exla, "~> 0.4.1"}, config: [nx: [default_backend: EXLA.Backend]]}
   }
 
   @extra_smart_cell_definitions [
@@ -114,6 +129,30 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "Default",
             packages: [kino_maplibre]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoSlack.MessageCell",
+      name: "Slack message",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_slack]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoBumblebee.TaskCell",
+      name: "Neural Network task",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_bumblebee, exla]
           }
         ]
       }

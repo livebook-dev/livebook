@@ -2054,7 +2054,7 @@ defmodule LivebookWeb.SessionLive do
       {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
-      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _reevaluate} ->
+      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks, _reevaluate} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly

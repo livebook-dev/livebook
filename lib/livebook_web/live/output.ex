@@ -272,20 +272,6 @@ defmodule LivebookWeb.Output do
     render_formatted_error_message(formatted)
   end
 
-  # TODO: remove on Livebook v0.7
-  defp render_output(output, %{})
-       when elem(output, 0) in [
-              :vega_lite_static,
-              :vega_lite_dynamic,
-              :table_dynamic,
-              :frame_dynamic
-            ] do
-    render_error_message("""
-    Legacy output format: #{inspect(output)}. Please update Kino to
-    the latest version.
-    """)
-  end
-
   defp render_output(output, %{}) do
     render_error_message("""
     Unknown output format: #{inspect(output)}. If you're using Kino,

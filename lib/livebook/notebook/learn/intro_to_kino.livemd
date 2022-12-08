@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.7.0"}
+  {:kino, "~> 0.8.0"}
 ])
 ```
 
@@ -156,6 +156,17 @@ end
 
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.Tree
+
+By default cell results are inspected with a limit on the text size. Inspecting large data structures with no limit makes the representation impractical to read, that's where `Kino.Tree` comes in!
+
+```elixir
+data = Process.info(self())
+Kino.Tree.new(data)
+```
 
 <!-- livebook:{"branch_parent_index":0} -->
 

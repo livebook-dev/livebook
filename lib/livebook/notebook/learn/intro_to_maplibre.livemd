@@ -2,8 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:maplibre, "~> 0.1.2"},
-  {:kino_maplibre, "~> 0.1.3"}
+  {:maplibre, "~> 0.1.3"},
+  {:kino_maplibre, "~> 0.1.7"}
 ])
 ```
 

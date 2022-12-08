@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.8.0](https://github.com/livebook-dev/livebook/tree/v0.8.0) (2022-12-08)
+
+### Added
+
+- Introduced a mechanism for tracking how cells depend on each other and reevaluate only if necessary ([#1517](https://github.com/livebook-dev/livebook/pull/1517))
+- Improved reproducibility of module definitions ([#1518](https://github.com/livebook-dev/livebook/pull/1518))
+- Started persisting modules bytecode to disk ([#1521](https://github.com/livebook-dev/livebook/pull/1521))
+- Support for doctests, now running automatically ([#1525](https://github.com/livebook-dev/livebook/pull/1525))
+- Support for image input ([#1538](https://github.com/livebook-dev/livebook/pull/1538))
+- Environment variable for setting app base path, useful when deploying behind a proxy ([#1549](https://github.com/livebook-dev/livebook/pull/1549))
+- Rendering math in on-hover documentation ([#1566](https://github.com/livebook-dev/livebook/pull/1566))
+- Support for monospace font in textarea input ([#1565](https://github.com/livebook-dev/livebook/pull/1565))
+- Added "Neural Network task" and "Slack message" to predefined Smart cells
+
+### Changed
+
+- Made the textarea input resize automatically to fit the content ([#1552](https://github.com/livebook-dev/livebook/pull/1552))
+
 ## [v0.7.2](https://github.com/livebook-dev/livebook/tree/v0.7.2) (2022-10-26)
 
 ### Added
