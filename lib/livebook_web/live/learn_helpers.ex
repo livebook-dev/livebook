@@ -26,6 +26,7 @@ defmodule LivebookWeb.LearnHelpers do
     <% end %>
     """
   end
+
   defp img_src(_socket, "data:" <> _ = url), do: url
   defp img_src(socket, url), do: Routes.static_path(socket, url)
 end
