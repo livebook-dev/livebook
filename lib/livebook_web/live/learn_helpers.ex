@@ -12,13 +12,7 @@ defmodule LivebookWeb.LearnHelpers do
             class: "flex flex-col border-2 border-gray-100 hover:border-gray-200 rounded-2xl" do %>
       <div class="flex items-center justify-center p-6 border-b-2 border-gray-100 rounded-t-2xl h-[150px]">
         <img
-          src={
-            cover_url = @notebook_info.details.cover_url
-
-            if String.starts_with?(cover_url, "data:"),
-              do: cover_url,
-              else: Routes.static_path(@socket, cover_url)
-          }
+          src={img_src(@socket, @notebook_info.details.cover_url)}
           class="max-h-full max-w-[75%]"
           alt={"#{@notebook_info.title} logo"}
         />
@@ -32,4 +26,7 @@ defmodule LivebookWeb.LearnHelpers do
     <% end %>
     """
   end
+  
+  defp img_src(_socket, "data:" <> _ = url), do: url
+  defp img_src(socket, url), do: Routes.static_path(socket, url)
 end
