@@ -65,6 +65,7 @@ jobs:
           echo "PR number: ${{ env.PR_NUMBER }}"
           echo "Compose file hash: ${{ env.COMPOSE_FILE_HASH }}"
           cat event.json
+
   deploy-uffizzi-preview:
     name: Run Uffizzi deployment
     needs:
