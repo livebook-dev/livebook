@@ -51,7 +51,9 @@ defmodule LivebookWeb.AuthPlug do
 
   def authenticated?(session, port, mode) when mode in [:token, :password] do
     secret = session[key(port, mode)]
-    is_binary(secret) and Plug.Crypto.secure_compare(secret, expected(mode))
+
+    is_binary(secret) and mode == Livebook.Config.auth_mode() and
+      Plug.Crypto.secure_compare(secret, expected(mode))
   end
 
   defp authenticate(conn, :password) do
