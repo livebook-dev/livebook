@@ -28,6 +28,9 @@ jobs:
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "preview-spec"
             })[0];
+            if (matchArtifact === undefined) {
+              throw TypeError('Build Artifact not found!');
+            }
             let download = await github.rest.actions.downloadArtifact({
                owner: context.repo.owner,
                repo: context.repo.repo,
