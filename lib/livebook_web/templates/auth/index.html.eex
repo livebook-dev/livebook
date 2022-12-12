@@ -19,10 +19,10 @@
       <form method="post" class="flex flex-col space-y-4 items-center">
         <input type="hidden" value="<%= Phoenix.Controller.get_csrf_token() %>" name="_csrf_token"/>
         <%= if @auth_mode == :password do %>
-          <div phx-feedback-for="password" class="<%= if(@errors, do: "show-errors w-full", else: "w-full") %>">
+          <div phx-feedback-for="password" class="<%= if(@errors, do: "show-errors w-[20ch]", else: "w-[20ch]") %>">
           <input type="password" name="password" class="input" placeholder="Password" autofocus />
         <% else %>
-          <div phx-feedback-for="token" class="<%= if(@errors, do: "show-errors w-full", else: "w-full") %>">
+          <div phx-feedback-for="token" class="<%= if(@errors, do: "show-errors w-[20ch]", else: "w-[20ch]") %>">
           <input type="text" name="token" class="input" placeholder="Token" autofocus />
         <% end %>
         <%= for error <- @errors || [] do %>
