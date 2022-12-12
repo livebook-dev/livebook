@@ -92,6 +92,23 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  docker_extras:
+    if: github.ref_type == 'tag'
+    # The assets job may push new commit, so we wait for it
+    needs: [assets]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        run: |
+          version=${GITHUB_REF#refs/*/v}
+          docker/build_and_push.sh $version,latest true
+
   create_draft_release:
     if: github.ref_type == 'tag'
     permissions:
