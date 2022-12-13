@@ -27,24 +27,27 @@ defmodule Livebook.WebSocketTest do
   end
 
   describe "send_request/2" do
-    test "receives the session response from server", %{url: url, token: token, user: user} do
+    setup %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, %WebSocket.Connection{} = connection, :connected} =
-               WebSocket.connect(url, headers)
+      {:ok, %WebSocket.Connection{} = connection, :connected} = WebSocket.connect(url, headers)
 
+      on_exit(fn -> WebSocket.disconnect(connection) end)
+
+      {:ok, connection: connection}
+    end
+
+    test "successfully sends a session message", %{
+      connection: connection,
+      user: %{id: id, email: email}
+    } do
       session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
 
       assert {:ok, %WebSocket.Connection{} = connection} =
                WebSocket.send_request(connection, session_request)
 
-      assert {:ok, connection, {:session, session_response}} =
-               WebSocket.receive_response(connection)
-
-      assert WebSocket.disconnect(connection) == :ok
-
-      assert session_response.user.id == user.id
-      assert session_response.user.email == user.email
+      assert {:ok, ^connection, response} = WebSocket.receive_response(connection)
+      assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} = response
     end
   end
 end
