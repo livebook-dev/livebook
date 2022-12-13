@@ -160,7 +160,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   defp cleanup(state) do
     # Remove all modules defined during evaluation
-    for module <- state.modules_defined, Code.ensure_loaded?(module) do
+    for module <- state.modules_defined, function_exported?(module, :module_info, 1) do
       Evaluator.delete_module!(module, state.ebin_path)
     end
   end
