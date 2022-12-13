@@ -264,6 +264,8 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   def init(opts) do
+    Process.flag(:trap_exit, true)
+
     send_to = Keyword.fetch!(opts, :send_to)
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
@@ -320,6 +322,10 @@ defmodule Livebook.Runtime.Evaluator do
       {:cast, ^evaluator_ref, message} ->
         {:noreply, state} = handle_cast(message, state)
         loop(state)
+
+      {:EXIT, _pid, reason} when reason != :normal ->
+        handle_terminate(reason, state)
+        exit(reason)
     end
   end
 
@@ -474,6 +480,13 @@ defmodule Livebook.Runtime.Evaluator do
     context = get_context(state, parent_refs)
     result = fun.(context.binding)
     {:reply, result, state}
+  end
+
+  defp handle_terminate(_reason, state) do
+    # Remove all modules defined during evaluation
+    for {_ref, context} <- state.contexts, module <- context.env.context_modules do
+      delete_module!(module)
+    end
   end
 
   defp put_context(state, ref, context) do
