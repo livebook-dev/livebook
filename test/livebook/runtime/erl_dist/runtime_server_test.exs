@@ -194,15 +194,16 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
   end
 
+  @tag capture_log: true
   test "notifies the owner when an evaluator goes down", %{pid: pid} do
     code = """
-    spawn_link(fn -> Process.exit(self(), :kill) end)
+    Task.async(fn -> raise "error" end)
     """
 
     RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, [])
 
     assert_receive {:runtime_container_down, :c1, message}
-    assert message =~ "killed"
+    assert message =~ "(RuntimeError) error"
   end
 
   describe "smart cells" do

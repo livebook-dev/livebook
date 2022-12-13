@@ -689,16 +689,20 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp finish_scan_binding(ref, state) do
-    update_in(state.smart_cells[ref], fn info ->
-      Process.demonitor(info.scan_binding_monitor_ref, [:flush])
-      info = %{info | scan_binding_monitor_ref: nil}
+    if state.smart_cells[ref] do
+      update_in(state.smart_cells[ref], fn info ->
+        Process.demonitor(info.scan_binding_monitor_ref, [:flush])
+        info = %{info | scan_binding_monitor_ref: nil}
 
-      if info.scan_binding_pending do
-        scan_binding_async(ref, info, state)
-      else
-        info
-      end
-    end)
+        if info.scan_binding_pending do
+          scan_binding_async(ref, info, state)
+        else
+          info
+        end
+      end)
+    else
+      state
+    end
   end
 
   defp scan_binding_after_evaluation(state, locator) do

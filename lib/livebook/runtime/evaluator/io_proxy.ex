@@ -27,9 +27,23 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   `:send_to` process, so this device serves as a proxy. Make sure
   to also call configure/3` before every evaluation.
   """
-  @spec start_link(pid(), pid(), pid(), pid()) :: GenServer.on_start()
-  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker) do
-    GenServer.start_link(__MODULE__, {evaluator, send_to, runtime_broadcast_to, object_tracker})
+  @spec start(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
+  def start(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+    GenServer.start(
+      __MODULE__,
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+    )
+  end
+
+  @doc """
+  Linking version of `start/4`.
+  """
+  @spec start_link(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
+  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+    GenServer.start_link(
+      __MODULE__,
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+    )
   end
 
   @doc """
@@ -77,9 +91,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def init({evaluator, send_to, runtime_broadcast_to, object_tracker}) do
+  def init({evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}) do
+    evaluator_monitor = Process.monitor(evaluator)
+
     {:ok,
      %{
+       evaluator_monitor: evaluator_monitor,
        encoding: :unicode,
        ref: nil,
        file: nil,
@@ -90,7 +107,9 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
        send_to: send_to,
        runtime_broadcast_to: runtime_broadcast_to,
        object_tracker: object_tracker,
-       tracer_info: %Evaluator.Tracer{}
+       ebin_path: ebin_path,
+       tracer_info: %Evaluator.Tracer{},
+       modules_defined: MapSet.new()
      }}
   end
 
@@ -114,7 +133,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   def handle_call(:get_tracer_info, _from, state) do
-    {:reply, state.tracer_info, state}
+    modules_defined =
+      state.tracer_info.modules_defined
+      |> Map.keys()
+      |> Enum.into(state.modules_defined)
+
+    {:reply, state.tracer_info, %{state | modules_defined: modules_defined}}
   end
 
   @impl true
@@ -126,6 +150,19 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   def handle_info(:flush, state) do
     {:noreply, flush_buffer(state)}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, state)
+      when ref == state.evaluator_monitor do
+    cleanup(state)
+    {:stop, reason, state}
+  end
+
+  defp cleanup(state) do
+    # Remove all modules defined during evaluation
+    for module <- state.modules_defined, function_exported?(module, :module_info, 1) do
+      Evaluator.delete_module!(module, state.ebin_path)
+    end
   end
 
   defp io_request({:put_chars, chars} = req, state) do

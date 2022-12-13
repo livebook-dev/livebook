@@ -28,6 +28,7 @@ defmodule Livebook.Runtime.Evaluator do
           evaluator_ref: reference(),
           formatter: module(),
           io_proxy: pid(),
+          io_proxy_monitor: reference(),
           send_to: pid(),
           runtime_broadcast_to: pid(),
           object_tracker: pid(),
@@ -271,7 +272,9 @@ defmodule Livebook.Runtime.Evaluator do
     ebin_path = Keyword.get(opts, :ebin_path)
 
     {:ok, io_proxy} =
-      Evaluator.IOProxy.start_link(self(), send_to, runtime_broadcast_to, object_tracker)
+      Evaluator.IOProxy.start(self(), send_to, runtime_broadcast_to, object_tracker, ebin_path)
+
+    io_proxy_monitor = Process.monitor(io_proxy)
 
     # Use the dedicated IO device as the group leader, so that
     # intercepts all :stdio requests and also handles Livebook
@@ -296,6 +299,7 @@ defmodule Livebook.Runtime.Evaluator do
       evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
+      io_proxy_monitor: io_proxy_monitor,
       send_to: send_to,
       runtime_broadcast_to: runtime_broadcast_to,
       object_tracker: object_tracker,
@@ -320,6 +324,9 @@ defmodule Livebook.Runtime.Evaluator do
       {:cast, ^evaluator_ref, message} ->
         {:noreply, state} = handle_cast(message, state)
         loop(state)
+
+      {:DOWN, ref, :process, _pid, reason} when ref == state.io_proxy_monitor ->
+        exit(reason)
     end
   end
 
@@ -773,13 +780,14 @@ defmodule Livebook.Runtime.Evaluator do
     end
   end
 
-  defp delete_module!(module) do
+  @doc false
+  def delete_module!(module, ebin_path \\ ebin_path()) do
     # If there is a deleted code for the module, we purge it first
     :code.purge(module)
 
     :code.delete(module)
 
-    if ebin_path = ebin_path() do
+    if ebin_path do
       ebin_path
       |> Path.join("#{module}.beam")
       |> File.rm!()
