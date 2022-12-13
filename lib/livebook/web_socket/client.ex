@@ -48,20 +48,26 @@ defmodule Livebook.WebSocket.Client do
   defp parse_ws_scheme(uri) when uri.scheme in ["http", "ws"], do: :ws
   defp parse_ws_scheme(uri) when uri.scheme in ["https", "wss"], do: :wss
 
+  @dialyzer {:nowarn_function, disconnect: 3}
+
   @doc """
   Disconnects from the given connection, WebSocket and reference.
 
   If there's no WebSocket connection yet, it'll only close the HTTP connection.
   """
-  @spec disconnect(conn(), websocket(), ref()) :: :ok
+  @spec disconnect(conn(), websocket() | nil, ref()) ::
+          {:ok, conn(), websocket() | nil}
+          | {:error, conn() | websocket(), term()}
+  def disconnect(conn, nil, _ref) do
+    {:ok, conn} = Mint.HTTP.close(conn)
+    {:ok, conn, nil}
+  end
+
   def disconnect(conn, websocket, ref) do
-    if websocket do
-      send(conn, websocket, ref, :close)
+    with {:ok, conn, websocket} <- send(conn, websocket, ref, :close),
+         {:ok, conn} <- Mint.HTTP.close(conn) do
+      {:ok, conn, websocket}
     end
-
-    Mint.HTTP.close(conn)
-
-    :ok
   end
 
   @doc """
@@ -109,8 +115,7 @@ defmodule Livebook.WebSocket.Client do
           {:ok, conn, websocket, response}
 
         {:close, result} ->
-          disconnect(conn, websocket, ref)
-          {:ok, conn, websocket, result}
+          handle_disconnect(conn, websocket, ref, result)
 
         {:error, response} ->
           {:error, conn, websocket, response}
@@ -144,8 +149,7 @@ defmodule Livebook.WebSocket.Client do
             {:ok, conn, websocket, result}
 
           {websocket, {:close, result}} ->
-            disconnect(conn, websocket, ref)
-            {:ok, conn, websocket, result}
+            handle_disconnect(conn, websocket, ref, result)
 
           {websocket, {:error, reason}} ->
             {:error, conn, websocket, reason}
@@ -153,6 +157,19 @@ defmodule Livebook.WebSocket.Client do
 
       {:error, conn, %UpgradeFailureError{status_code: status, headers: headers}} ->
         {:error, conn, %{response | status: status, headers: headers}}
+    end
+  end
+
+  defp handle_disconnect(conn, websocket, ref, result) do
+    case disconnect(conn, websocket, ref) do
+      {:ok, conn, websocket} ->
+        {:ok, conn, websocket, result}
+
+      {:error, %Mint.WebSocket{} = websocket, reason} ->
+        {:error, conn, websocket, reason}
+
+      {:error, conn, reason} ->
+        {:error, conn, websocket, reason}
     end
   end
 

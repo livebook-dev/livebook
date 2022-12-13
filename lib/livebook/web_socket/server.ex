@@ -101,23 +101,19 @@ defmodule Livebook.WebSocket.Server do
     {:reply, state.connected?, state}
   end
 
+  @dialyzer {:nowarn_function, handle_cast: 2}
+
   @impl true
   def handle_cast(:disconnect, state) do
-    Client.disconnect(state.conn, state.websocket, state.ref)
-
-    {:stop, :normal, state}
-  end
-
-  def handle_cast({:send_message, frame}, state) do
-    case Client.send(state.conn, state.websocket, state.ref, frame) do
+    case Client.disconnect(state.conn, state.websocket, state.ref) do
       {:ok, conn, websocket} ->
-        {:noreply, %{state | conn: conn, websocket: websocket}}
+        {:noreply, %{state | conn: conn, websocket: websocket, connected?: false}}
 
-      {:error, %Mint.WebSocket{} = websocket, _reason} ->
-        {:noreply, %{state | websocket: websocket}}
+      {:error, %Mint.WebSocket{} = websocket, reason} ->
+        {:stop, {:error, reason}, %{state | websocket: websocket}}
 
-      {:error, conn, _reason} ->
-        {:noreply, %{state | conn: conn}}
+      {:error, conn, reason} ->
+        {:stop, {:error, reason}, %{state | conn: conn}}
     end
   end
 

@@ -12,7 +12,7 @@ defmodule Livebook.WebSocket.ClientTest do
 
       assert {:ok, conn, ref} = Client.connect(url, headers)
       assert {:ok, conn, websocket, :connected} = Client.receive(conn, ref)
-      assert Client.disconnect(conn, websocket, ref) == :ok
+      assert {:ok, _conn, _websocket} = Client.disconnect(conn, websocket, ref)
     end
 
     test "rejects the websocket with invalid address", %{token: token} do

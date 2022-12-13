@@ -31,12 +31,25 @@ defmodule Livebook.WebSocket do
     end
   end
 
+  @dialyzer {:nowarn_function, disconnect: 1}
+
   @doc """
   Disconnects the given WebSocket client.
   """
-  @spec disconnect(Connection.t()) :: :ok
+  @spec disconnect(Connection.t()) ::
+          {:ok, Connection.t()}
+          | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
   def disconnect(%Connection{} = connection) do
-    Client.disconnect(connection.conn, connection.websocket, connection.ref)
+    case Client.disconnect(connection.conn, connection.websocket, connection.ref) do
+      {:ok, conn, websocket} ->
+        {:ok, %{connection | conn: conn, websocket: websocket, ref: nil}}
+
+      {:error, %Mint.WebSocket{} = websocket, reason} ->
+        {:error, %{connection | websocket: websocket}, reason}
+
+      {:error, conn, reason} ->
+        {:error, %{connection | conn: conn}, reason}
+    end
   end
 
   @dialyzer {:nowarn_function, send_request: 2}
