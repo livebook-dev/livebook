@@ -76,9 +76,11 @@ docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd
 docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
 ```
 
+For CUDA support, [see images with the "cuda" tag](https://hub.docker.com/r/livebook/livebook/tags?name=cuda).
+
 To try out features from the main branch you can alternatively
 use the `livebook/livebook:edge` image.
-See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
+See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?ordering=last_updated).
 
 ### Embedded devices
 
