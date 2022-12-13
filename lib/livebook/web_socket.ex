@@ -2,7 +2,7 @@ defmodule Livebook.WebSocket do
   @moduledoc false
 
   alias Livebook.WebSocket.Client
-  alias LivebookProto.{Request, SessionRequest}
+  alias LivebookProto.Request
 
   defmodule Connection do
     defstruct [:conn, :websocket, :ref]
@@ -14,10 +14,8 @@ defmodule Livebook.WebSocket do
           }
   end
 
-  @type proto :: SessionRequest.t()
-
-  @typep header :: {String.t(), String.t()}
-  @typep headers :: list(header())
+  @type proto :: LivebookProto.SessionRequest.t()
+  @typep headers :: Mint.Types.headers()
 
   @doc """
   Connects with the WebSocket server for given URL and headers.
@@ -71,7 +69,9 @@ defmodule Livebook.WebSocket do
   @doc """
   Receives a response from the given server.
   """
-  @spec receive_response(Connection.t()) :: Client.receive_fun()
+  @spec receive_response(Connection.t()) ::
+          {:ok, Client.conn(), Client.websocket(), Client.Response.t() | :connect}
+          | {:error, Client.conn(), Client.Response.t()}
   def receive_response(%Connection{conn: conn, websocket: websocket, ref: ref}) do
     conn
     |> Client.receive(ref, websocket)

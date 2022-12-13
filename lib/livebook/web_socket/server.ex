@@ -26,6 +26,8 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Connects the WebSocket client.
   """
+  @spec connect(pid(), String.t(), list({String.t(), String.t()})) ::
+          {:ok, :connected} | {:error, Client.ws_error() | Client.mint_error()}
   def connect(pid, url, headers \\ []) do
     GenServer.call(pid, {:connect, url, headers})
   end
@@ -40,8 +42,10 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Sends a message to the WebSocket server the message request.
   """
-  def send_message(socket, frame) when is_frame(frame) do
-    GenServer.cast(socket, {:send_message, frame})
+  @spec send_message(pid(), Client.frame()) ::
+          :ok | {:error, Client.ws_error() | Client.mint_error()}
+  def send_message(pid, frame) when is_frame(frame) do
+    GenServer.call(pid, {:send_message, frame}, @timeout)
   end
 
   ## GenServer callbacks

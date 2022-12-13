@@ -16,9 +16,9 @@ defmodule Livebook.WebSocket.Client do
     defstruct [:body, :status, :headers]
 
     @type t :: %__MODULE__{
-            body: Livebook.WebSocket.Response.t(),
-            status: Mint.Types.status(),
-            headers: Mint.Types.headers()
+            body: Livebook.WebSocket.Response.t() | nil,
+            status: Mint.Types.status() | nil,
+            headers: Mint.Types.headers() | nil
           }
   end
 
@@ -70,10 +70,11 @@ defmodule Livebook.WebSocket.Client do
   If the WebSocket isn't connected yet, it will try to get the connection
   response to start a new WebSocket connection.
   """
-  @spec receive(conn(), ref(), term()) ::
-          {:ok, conn(), Response.t() | :connect}
-          | {:error, conn(), Response.t()}
-          | {:error, conn(), :unknown}
+  @spec receive(conn() | nil, ref(), websocket() | nil, term()) ::
+          {:ok, conn(), websocket(), Response.t() | :connected}
+          | {:error, conn(), websocket(), Response.t()}
+          | {:error, conn(), ws_error() | mint_error()}
+          | {:error, :unknown}
   def receive(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
