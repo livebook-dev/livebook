@@ -74,8 +74,14 @@ defmodule Livebook.WebSocket.Client do
           {:ok, conn(), websocket(), Response.t() | :connected}
           | {:error, conn(), websocket(), Response.t()}
           | {:error, conn(), ws_error() | mint_error()}
-          | {:error, :unknown}
+          | {:error, :not_connected | :unknown}
   def receive(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
+    do_receive(conn, ref, websocket, message)
+  end
+
+  defp do_receive(nil, _ref, _websocket, _message), do: {:error, :not_connected}
+
+  defp do_receive(conn, ref, websocket, message) do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
         handle_responses(conn, ref, websocket, responses)
@@ -93,24 +99,6 @@ defmodule Livebook.WebSocket.Client do
 
   @successful_status 100..299
 
-  defp handle_responses(conn, ref, nil, responses) do
-    result =
-      Enum.reduce(responses, %Response{}, fn
-        {:status, ^ref, status}, acc -> %{acc | status: status}
-        {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
-        {:data, ^ref, body}, acc -> %{acc | body: body}
-        {:done, ^ref}, acc -> handle_done_response(conn, ref, acc)
-      end)
-
-    case result do
-      %Response{} = response when response.status not in @successful_status ->
-        {:error, conn, response}
-
-      result ->
-        result
-    end
-  end
-
   defp handle_responses(conn, ref, websocket, [{:data, ref, data}]) do
     with {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
       case handle_frames(%Response{}, frames) do
@@ -127,6 +115,24 @@ defmodule Livebook.WebSocket.Client do
         {:error, response} ->
           {:error, conn, websocket, response}
       end
+    end
+  end
+
+  defp handle_responses(conn, ref, _websocket, [_ | _] = responses) do
+    result =
+      Enum.reduce(responses, %Response{}, fn
+        {:status, ^ref, status}, acc -> %{acc | status: status}
+        {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
+        {:data, ^ref, body}, acc -> %{acc | body: body}
+        {:done, ^ref}, acc -> handle_done_response(conn, ref, acc)
+      end)
+
+    case result do
+      %Response{} = response when response.status not in @successful_status ->
+        {:error, conn, response}
+
+      result ->
+        result
     end
   end
 

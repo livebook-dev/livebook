@@ -50,6 +50,47 @@ defmodule Livebook.WebSocket.ServerTest do
     end
   end
 
+  describe "reconnect event" do
+    test "should reconnect after websocket server is up", %{test: name} do
+      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
+      app_port = Enum.random(1000..9000) |> to_string()
+
+      {:ok, _} =
+        EnterpriseServer.start(name,
+          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
+          app_port: app_port
+        )
+
+      url = EnterpriseServer.url(name)
+      token = EnterpriseServer.token(name)
+      headers = [{"X-Auth-Token", token}]
+
+      assert {:ok, pid} = Server.start_link()
+      assert {:ok, :connected} = Server.connect(pid, url, headers)
+      assert Server.connected?(pid)
+
+      Process.monitor(pid)
+      leader = Process.group_leader()
+      Process.group_leader(pid, leader)
+
+      EnterpriseServer.disconnect(name)
+      Process.sleep(500)
+
+      refute Server.connected?(pid)
+
+      # Wait until the server is up again
+      assert EnterpriseServer.reconnect(name) == :ok
+      Process.sleep(2000)
+
+      assert Server.connected?(pid)
+      assert Server.disconnect(pid) == :ok
+      refute Server.connected?(pid)
+
+      EnterpriseServer.disconnect(name)
+      EnterpriseServer.drop_database(name)
+    end
+  end
+
   describe "send_message/2" do
     setup %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
