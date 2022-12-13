@@ -348,6 +348,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Raised)
     end
 
+    @tag :with_ebin_path
     @tag capture_log: true
     test "deletes defined modules on termination", %{evaluator: evaluator} do
       code = """
@@ -357,11 +358,12 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Task.async(fn -> raise "error" end)
       """
 
-      Evaluator.evaluate_code(evaluator, code, :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+      {:group_leader, gl} = Process.info(evaluator.pid, :group_leader)
 
-      ref = Process.monitor(evaluator.pid)
-      assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+
+      ref = Process.monitor(gl)
+      assert_receive {:DOWN, ^ref, :process, ^gl, _reason}
 
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Exited)
     end
