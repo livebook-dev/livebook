@@ -47,6 +47,14 @@ defmodule Livebook.Runtime.ElixirStandalone do
     dependency: %{dep: {:exla, "~> 0.4.1"}, config: [nx: [default_backend: EXLA.Backend]]}
   }
 
+  torchx = %{
+    name: "torchx",
+    dependency: %{dep: {:torchx, "~> 0.4.1"}, config: [nx: [default_backend: Torchx.Backend]]}
+  }
+
+  windows? = match?({:win32, _}, :os.type())
+  nx_backend_package = if(windows?, do: torchx, else: exla)
+
   @extra_smart_cell_definitions [
     %{
       kind: "Elixir.KinoDB.ConnectionCell",
@@ -152,7 +160,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
         variants: [
           %{
             name: "Default",
-            packages: [kino_bumblebee, exla]
+            packages: [kino_bumblebee, nx_backend_package]
           }
         ]
       }
