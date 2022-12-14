@@ -640,7 +640,13 @@ defmodule LivebookWeb.SessionLive do
           <h3 class="uppercase text-sm font-semibold text-gray-500">
             App secrets
           </h3>
-          <span class="text-sm text-gray-500">Toggle to share with this session</span>
+          <span class="text-sm text-gray-500">
+            <%= if @livebook_secrets == [] do %>
+              No secrets stored in Livebook so far
+            <% else %>
+              Toggle to share with this session
+            <% end %>
+          </span>
         </div>
 
         <div class="flex flex-col space-y-4 mt-6">
