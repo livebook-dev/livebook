@@ -107,7 +107,8 @@ jobs:
       - name: Build and push
         run: |
           version=${GITHUB_REF#refs/*/v}
-          docker/build_and_push.sh $version,latest true
+          docker/build_and_push.sh $version,latest true amd64
+          docker/build_and_push.sh $version,latest true arm64
 
   create_draft_release:
     if: github.ref_type == 'tag'

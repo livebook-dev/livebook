@@ -1,11 +1,12 @@
 ARG ELIXIR_VERSION
 ARG ERLANG_VERSION
-
 ARG CUDA_VERSION
+ARG ARCH
+ARG BASE_IMAGE=hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-focal-20211006
 
-FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-focal-20211006 AS elixir
+FROM --platform=linux/${ARCH} ${BASE_IMAGE} AS elixir
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04
+FROM --platform=linux/${ARCH} nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND nonintaeractive
 ENV LANG=C.UTF-8
