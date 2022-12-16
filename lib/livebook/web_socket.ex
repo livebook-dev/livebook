@@ -50,12 +50,12 @@ defmodule Livebook.WebSocket do
   @doc """
   Sends a request to the given server.
   """
-  @spec send_request(Connection.t(), proto()) ::
+  @spec send_request(Connection.t(), proto(), Livebook.Utils.id()) ::
           {:ok, Connection.t()}
           | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
-  def send_request(%Connection{} = connection, %struct{} = data) do
+  def send_request(%Connection{} = connection, %struct{} = data, id \\ Livebook.Utils.random_id()) do
     type = LivebookProto.request_type(struct)
-    message = Request.new!(type: {type, data})
+    message = Request.new!(id: id, type: {type, data})
     binary = {:binary, Request.encode(message)}
 
     case Client.send(connection.conn, connection.websocket, connection.ref, binary) do

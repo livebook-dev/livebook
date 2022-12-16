@@ -19,15 +19,19 @@ message SessionResponse {
 }
 
 message Request {
+  string id = 1;
+
   oneof type {
-    SessionRequest session = 1;
+    SessionRequest session = 2;
   }
 }
 
 message Response {
-  oneof type {
-    Error error = 1;
+  string id = 1;
 
-    SessionResponse session = 2;
+  oneof type {
+    Error error = 2;
+
+    SessionResponse session = 3;
   }
 }
