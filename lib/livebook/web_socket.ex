@@ -34,9 +34,7 @@ defmodule Livebook.WebSocket do
   @doc """
   Disconnects the given WebSocket client.
   """
-  @spec disconnect(Connection.t()) ::
-          {:ok, Connection.t()}
-          | {:error, Connection.t(), any()}
+  @spec disconnect(Connection.t()) :: {:ok, Connection.t()} | {:error, Connection.t(), any()}
   def disconnect(%Connection{} = connection) do
     case Client.disconnect(connection.conn, connection.websocket, connection.ref) do
       {:ok, conn, websocket} ->
@@ -72,7 +70,7 @@ defmodule Livebook.WebSocket do
   """
   @spec receive_response(Connection.t()) ::
           {:ok, Connection.t(), Client.Response.t() | :connect}
-          | {:error, Connection.t(), Client.Response.t()}
+          | {:error, Connection.t(), Client.Response.t() | term()}
   def receive_response(%Connection{conn: conn, websocket: websocket, ref: ref}) do
     conn
     |> Client.receive(ref, websocket)
