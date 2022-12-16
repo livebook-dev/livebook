@@ -104,10 +104,25 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: livebook/livebook
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}}-cuda11.8
+            type=raw,value=latest-cuda11.8
       - name: Build and push
-        run: |
-          version=${GITHUB_REF#refs/*/v}
-          docker/build_and_push.sh $version,latest true
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            BASE_IMAGE=livebook/utils:elixir-cuda11.8
 
   create_draft_release:
     if: github.ref_type == 'tag'
