@@ -8,50 +8,79 @@ defmodule Livebook.WebSocket.ServerTest do
 
   alias LivebookProto.Request
 
-  describe "connect/2" do
+  setup do
+    Livebook.WebSocket.subscribe()
+
+    :ok
+  end
+
+  describe "connect" do
     test "successfully authenticates the websocket connection", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, pid} = Server.start_link()
-      assert {:ok, :connected} = Server.connect(pid, url, headers)
-      assert Server.disconnect(pid) == :ok
+      assert {:ok, conn} = Server.start_link(url, headers)
+      assert_receive {:ok, ^conn, _id, :connected}
+      assert Server.connected?(conn)
     end
 
     test "rejects the websocket with invalid address", %{token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, pid} = Server.start_link()
-
-      assert {:error, %Mint.TransportError{reason: :econnrefused}} =
-               Server.connect(pid, "http://localhost:9999", headers)
-
-      assert Server.disconnect(pid) == :ok
+      assert {:ok, conn} = Server.start_link("http://localhost:9999", headers)
+      refute Server.connected?(conn)
     end
 
     test "rejects the websocket connection with invalid credentials", %{url: url} do
       headers = [{"X-Auth-Token", "foo"}]
 
-      assert {:ok, pid} = Server.start_link()
-      assert {:error, response} = Server.connect(pid, url, headers)
+      assert {:ok, conn} = Server.start_link(url, headers)
 
-      assert response.status == 403
+      assert_receive {:error, ^conn, _id,
+                      %Response{body: {:error, %{details: error}}, status: 403}}
 
-      assert %{type: {:error, %{details: error}}} = LivebookProto.Response.decode(response.body)
       assert error =~ "the given token is invalid"
+      assert Server.close(conn) == :ok
 
-      assert {:error, response} = Server.connect(pid, url)
+      assert {:ok, conn} = Server.start_link(url)
 
-      assert response.status == 401
+      assert_receive {:error, ^conn, _id,
+                      %Response{body: {:error, %{details: error}}, status: 401}}
 
-      assert %{type: {:error, %{details: error}}} = LivebookProto.Response.decode(response.body)
       assert error =~ "could not get the token from the connection"
+      assert Server.close(conn) == :ok
+    end
+  end
 
-      assert Server.disconnect(pid) == :ok
+  describe "send_message/2" do
+    setup %{url: url, token: token} do
+      headers = [{"X-Auth-Token", token}]
+
+      {:ok, conn} = Server.start_link(url, headers)
+
+      assert_receive {:ok, ^conn, _id, :connected}
+
+      {:ok, conn: conn}
+    end
+
+    test "successfully sends a session message", %{
+      conn: conn,
+      user: %{id: user_id, email: email}
+    } do
+      session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
+      id = Livebook.Utils.random_id()
+      request = Request.new!(id: id, type: {:session, session_request})
+      frame = {:binary, Request.encode(request)}
+
+      assert Server.send_message(conn, frame, request.id) == :ok
+      assert_receive {:ok, ^conn, ^id, %Response{body: {:session, response}}}
+      assert %{id: _, user: %{id: ^user_id, email: ^email}} = response
     end
   end
 
   describe "reconnect event" do
-    test "should reconnect after websocket server is up", %{test: name} do
+    @describetag :capture_log
+
+    setup %{test: name} do
       suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
       app_port = Enum.random(1000..9000) |> to_string()
 
@@ -65,53 +94,46 @@ defmodule Livebook.WebSocket.ServerTest do
       token = EnterpriseServer.token(name)
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, pid} = Server.start_link()
-      assert {:ok, :connected} = Server.connect(pid, url, headers)
-      assert Server.connected?(pid)
+      assert {:ok, conn} = Server.start_link(url, headers)
 
-      Process.monitor(pid)
-      leader = Process.group_leader()
-      Process.group_leader(pid, leader)
+      assert_receive {:ok, ^conn, _id, :connected}
+      assert Server.connected?(conn)
 
+      on_exit(fn ->
+        EnterpriseServer.disconnect(name)
+        EnterpriseServer.drop_database(name)
+      end)
+
+      {:ok, conn: conn}
+    end
+
+    test "receives the disconnect message from websocket server", %{conn: conn, test: name} do
       EnterpriseServer.disconnect(name)
-      Process.sleep(500)
 
-      refute Server.connected?(pid)
+      assert_receive {:error, ^conn, _id, %Response{body: reason}}
+      assert %Mint.TransportError{reason: :closed} = reason
+
+      assert Process.alive?(conn)
+      refute Server.connected?(conn)
+    end
+
+    test "should reconnect after websocket server is up", %{conn: conn, test: name} do
+      EnterpriseServer.disconnect(name)
+
+      assert_receive {:error, ^conn, _id, %Response{body: reason}}
+      assert %Mint.TransportError{reason: :closed} = reason
+
+      Process.sleep(1000)
+      refute Server.connected?(conn)
 
       # Wait until the server is up again
       assert EnterpriseServer.reconnect(name) == :ok
-      Process.sleep(2000)
+      assert_receive {:ok, ^conn, _id, :connected}, 5000
 
-      assert Server.connected?(pid)
-      assert Server.disconnect(pid) == :ok
-      refute Server.connected?(pid)
-
-      EnterpriseServer.disconnect(name)
-      EnterpriseServer.drop_database(name)
-    end
-  end
-
-  describe "send_message/2" do
-    setup %{url: url, token: token} do
-      headers = [{"X-Auth-Token", token}]
-
-      {:ok, pid} = Server.start_link()
-      {:ok, :connected} = Server.connect(pid, url, headers)
-
-      on_exit(fn -> Server.disconnect(pid) end)
-
-      {:ok, pid: pid}
-    end
-
-    test "successfully sends a session message", %{pid: pid, user: %{id: id, email: email}} do
-      session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
-      request = Request.new!(type: {:session, session_request})
-      frame = {:binary, Request.encode(request)}
-
-      assert Server.send_message(pid, frame) == :ok
-
-      assert_receive {:ok, %Response{body: body, status: nil, headers: nil}}
-      assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} = body
+      assert Server.connected?(conn)
+      assert Server.close(conn) == :ok
+      assert_receive {:ok, ^conn, _id, :disconnected}
+      refute Server.connected?(conn)
     end
   end
 end
