@@ -26,7 +26,7 @@ defmodule Livebook.WebSocket.ClientTest do
       headers = [{"X-Auth-Token", "foo"}]
 
       assert {:ok, conn, ref} = Client.connect(url, headers)
-      assert {:error, _conn, response} = Client.receive(conn, ref)
+      assert {:error, _conn, nil, response} = Client.receive(conn, ref)
 
       assert response.status == 403
 
@@ -34,7 +34,7 @@ defmodule Livebook.WebSocket.ClientTest do
       assert error =~ "the given token is invalid"
 
       assert {:ok, conn, ref} = Client.connect(url)
-      assert {:error, _conn, response} = Client.receive(conn, ref)
+      assert {:error, _conn, nil, response} = Client.receive(conn, ref)
 
       assert response.status == 401
 

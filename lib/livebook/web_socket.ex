@@ -8,9 +8,9 @@ defmodule Livebook.WebSocket do
     defstruct [:conn, :websocket, :ref]
 
     @type t :: %__MODULE__{
-            conn: Client.conn(),
-            websocket: Client.websocket(),
-            ref: Client.ref()
+            conn: Client.conn() | nil,
+            websocket: Client.websocket() | nil,
+            ref: Client.ref() | nil
           }
   end
 
@@ -31,28 +31,21 @@ defmodule Livebook.WebSocket do
     end
   end
 
-  @dialyzer {:nowarn_function, disconnect: 1}
-
   @doc """
   Disconnects the given WebSocket client.
   """
   @spec disconnect(Connection.t()) ::
           {:ok, Connection.t()}
-          | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
+          | {:error, Connection.t(), any()}
   def disconnect(%Connection{} = connection) do
     case Client.disconnect(connection.conn, connection.websocket, connection.ref) do
       {:ok, conn, websocket} ->
         {:ok, %{connection | conn: conn, websocket: websocket, ref: nil}}
 
-      {:error, %Mint.WebSocket{} = websocket, reason} ->
-        {:error, %{connection | websocket: websocket}, reason}
-
-      {:error, conn, reason} ->
-        {:error, %{connection | conn: conn}, reason}
+      {:error, conn, websocket, reason} ->
+        {:error, %{connection | conn: conn, websocket: websocket}, reason}
     end
   end
-
-  @dialyzer {:nowarn_function, send_request: 2}
 
   @doc """
   Sends a request to the given server.
@@ -69,22 +62,17 @@ defmodule Livebook.WebSocket do
       {:ok, conn, websocket} ->
         {:ok, %{connection | conn: conn, websocket: websocket}}
 
-      {:error, %Mint.WebSocket{} = websocket, reason} ->
-        {:error, %{connection | websocket: websocket}, reason}
-
-      {:error, conn, reason} ->
-        {:error, %{connection | conn: conn}, reason}
+      {:error, conn, websocket, reason} ->
+        {:error, %{connection | conn: conn, websocket: websocket}, reason}
     end
   end
-
-  @dialyzer {:nowarn_function, receive_response: 1}
 
   @doc """
   Receives a response from the given server.
   """
   @spec receive_response(Connection.t()) ::
-          {:ok, Client.conn(), Client.websocket(), Client.Response.t() | :connect}
-          | {:error, Client.conn(), Client.Response.t()}
+          {:ok, Connection.t(), Client.Response.t() | :connect}
+          | {:error, Connection.t(), Client.Response.t()}
   def receive_response(%Connection{conn: conn, websocket: websocket, ref: ref}) do
     conn
     |> Client.receive(ref, websocket)
@@ -100,12 +88,17 @@ defmodule Livebook.WebSocket do
     {:ok, %Connection{conn: conn, websocket: websocket, ref: ref}, result}
   end
 
-  defp handle_receive({:error, conn, %Client.Response{body: nil, status: status}}, ref) do
-    {:error, %Connection{conn: conn, ref: ref}, Plug.Conn.Status.reason_phrase(status)}
+  defp handle_receive({:error, conn, websocket, %Client.Response{body: nil, status: status}}, ref) do
+    {:error, %Connection{conn: conn, websocket: websocket, ref: ref},
+     Plug.Conn.Status.reason_phrase(status)}
   end
 
-  defp handle_receive({:error, conn, %Client.Response{body: response}}, ref) do
+  defp handle_receive({:error, conn, websocket, %Client.Response{body: response}}, ref) do
     %{type: {:error, error}} = LivebookProto.Response.decode(response)
-    {:error, %Connection{conn: conn, ref: ref}, error}
+    {:error, %Connection{conn: conn, websocket: websocket, ref: ref}, error}
+  end
+
+  defp handle_receive({:error, reason}, ref) do
+    {:error, %Connection{ref: ref}, reason}
   end
 end
