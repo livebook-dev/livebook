@@ -341,22 +341,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
-    {context, state} = pop_context(state, ref)
-
-    if context do
-      for module <- context.env.context_modules do
-        delete_module!(module)
-
-        # And we immediately purge the newly deleted code
-        :code.purge(module)
-      end
-
-      Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
-
-      :erlang.garbage_collect(self())
-    end
-
-    {:noreply, state}
+    do_forget_evaluation(ref, state)
   end
 
   defp handle_cast({:peek_context, parent_refs, fun}, state) do
@@ -495,6 +480,31 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     :erlang.garbage_collect(self())
+
+    {:noreply, state}
+  end
+
+  defp do_forget_evaluation(ref, state) do
+    {context, state} = pop_context(state, ref)
+
+    if context do
+      for module <- context.env.context_modules do
+        delete_module!(module)
+
+        # And we immediately purge the newly deleted code
+        :code.purge(module)
+      end
+
+      Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
+    end
+
+    continue_do_forget_evaluation(context != nil, state)
+  end
+
+  defp continue_do_forget_evaluation(context?, state) do
+    if context? do
+      :erlang.garbage_collect(self())
+    end
 
     {:noreply, state}
   end
