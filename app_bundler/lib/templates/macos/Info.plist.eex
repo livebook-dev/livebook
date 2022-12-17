@@ -59,6 +59,34 @@
   </array>
 <% end %>
 
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+      </array>
+      <key>UTTypeDescription</key>
+      <string>Livebook</string>
+      <key>UTTypeIcons</key>
+      <dict>
+        <key>UTTypeIconBadgeName</key>
+        <string>LiveMarkdownIcon</string>
+        <key>UTTypeIconText</key>
+        <string>Livebook</string>
+      </dict>
+      <key>UTTypeIdentifier</key>
+      <string>dev.livebook.livemarkdown</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>livemd</string>
+        </array>
+      </dict>
+    </dict>
+  </array>
+
 <%= if @app_options[:app_type] == :agent do %>
   <key>LSUIElement</key>
   <true/>
