@@ -394,7 +394,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     if old_context do
       for module <- old_context.env.context_modules do
-        delete_module!(module)
+        delete_module(module)
       end
     end
 
@@ -443,7 +443,7 @@ defmodule Livebook.Runtime.Evaluator do
 
         {:error, kind, error, stacktrace, code_error} ->
           for {module, _} <- tracer_info.modules_defined do
-            delete_module!(module)
+            delete_module(module)
           end
 
           result = {:error, kind, error, stacktrace}
@@ -489,7 +489,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     if context do
       for module <- context.env.context_modules do
-        delete_module!(module)
+        delete_module(module)
 
         # And we immediately purge the newly deleted code
         :code.purge(module)
@@ -807,7 +807,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   @doc false
-  def delete_module!(module, ebin_path \\ ebin_path()) do
+  def delete_module(module, ebin_path \\ ebin_path()) do
     # If there is a deleted code for the module, we purge it first
     :code.purge(module)
 
@@ -816,7 +816,7 @@ defmodule Livebook.Runtime.Evaluator do
     if ebin_path do
       ebin_path
       |> Path.join("#{module}.beam")
-      |> File.rm!()
+      |> File.rm()
     end
   end
 
