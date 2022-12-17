@@ -337,86 +337,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp handle_cast({:evaluate_code, code, ref, parent_refs, opts}, state) do
-    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
-
-    context = get_context(state, parent_refs)
-    file = Keyword.get(opts, :file, "nofile")
-    context = put_in(context.env.file, file)
-
-    Evaluator.IOProxy.configure(state.io_proxy, ref, file)
-
-    set_pdict(context, state.ignored_pdict_keys)
-
-    if old_context = state.contexts[ref] do
-      for module <- old_context.env.context_modules do
-        delete_module!(module)
-      end
-    end
-
-    start_time = System.monotonic_time()
-    eval_result = eval(code, context.binding, context.env)
-    evaluation_time_ms = time_diff_ms(start_time)
-
-    tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
-
-    {new_context, result, code_error, identifiers_used, identifiers_defined} =
-      case eval_result do
-        {:ok, value, binding, env} ->
-          context_id = random_id()
-
-          new_context = %{
-            id: context_id,
-            binding: binding,
-            env: prune_env(env, tracer_info),
-            pdict: current_pdict(state)
-          }
-
-          {identifiers_used, identifiers_defined} =
-            identifier_dependencies(new_context, tracer_info, context)
-
-          result = {:ok, value}
-          {new_context, result, nil, identifiers_used, identifiers_defined}
-
-        {:error, kind, error, stacktrace, code_error} ->
-          for {module, _} <- tracer_info.modules_defined do
-            delete_module!(module)
-          end
-
-          result = {:error, kind, error, stacktrace}
-          identifiers_used = :unknown
-          identifiers_defined = %{}
-          # Empty context
-          new_context = initial_context()
-          {new_context, result, code_error, identifiers_used, identifiers_defined}
-      end
-
-    if ebin_path() do
-      Livebook.Runtime.Evaluator.Doctests.run(new_context.env.context_modules)
-    end
-
-    state = put_context(state, ref, new_context)
-
-    Evaluator.IOProxy.flush(state.io_proxy)
-    Evaluator.IOProxy.clear_input_cache(state.io_proxy)
-
-    output = state.formatter.format_result(result)
-
-    metadata = %{
-      evaluation_time_ms: evaluation_time_ms,
-      memory_usage: memory(),
-      code_error: code_error,
-      identifiers_used: identifiers_used,
-      identifiers_defined: identifiers_defined
-    }
-
-    send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
-
-    if on_finish = opts[:on_finish] do
-      on_finish.(result)
-    end
-
-    :erlang.garbage_collect(self())
-    {:noreply, state}
+    do_evaluate_code(code, ref, parent_refs, opts, state)
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
@@ -481,6 +402,101 @@ defmodule Livebook.Runtime.Evaluator do
     context = get_context(state, parent_refs)
     result = fun.(context.binding)
     {:reply, result, state}
+  end
+
+  defp do_evaluate_code(code, ref, parent_refs, opts, state) do
+    {old_context, state} = pop_in(state.contexts[ref])
+
+    if old_context do
+      for module <- old_context.env.context_modules do
+        delete_module!(module)
+      end
+    end
+
+    # We remove the old context from state and jump to a tail-recursive
+    # function. This way we are sure there is no reference to the old
+    # state and we can garbage collect the old context before the evaluation
+    continue_do_evaluate_code(code, ref, parent_refs, opts, state)
+  end
+
+  defp continue_do_evaluate_code(code, ref, parent_refs, opts, state) do
+    :erlang.garbage_collect(self())
+
+    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
+
+    context = get_context(state, parent_refs)
+    file = Keyword.get(opts, :file, "nofile")
+    context = put_in(context.env.file, file)
+
+    Evaluator.IOProxy.configure(state.io_proxy, ref, file)
+
+    set_pdict(context, state.ignored_pdict_keys)
+
+    start_time = System.monotonic_time()
+    eval_result = eval(code, context.binding, context.env)
+    evaluation_time_ms = time_diff_ms(start_time)
+
+    tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
+
+    {new_context, result, code_error, identifiers_used, identifiers_defined} =
+      case eval_result do
+        {:ok, value, binding, env} ->
+          context_id = random_id()
+
+          new_context = %{
+            id: context_id,
+            binding: binding,
+            env: prune_env(env, tracer_info),
+            pdict: current_pdict(state)
+          }
+
+          {identifiers_used, identifiers_defined} =
+            identifier_dependencies(new_context, tracer_info, context)
+
+          result = {:ok, value}
+          {new_context, result, nil, identifiers_used, identifiers_defined}
+
+        {:error, kind, error, stacktrace, code_error} ->
+          for {module, _} <- tracer_info.modules_defined do
+            delete_module!(module)
+          end
+
+          result = {:error, kind, error, stacktrace}
+          identifiers_used = :unknown
+          identifiers_defined = %{}
+          # Empty context
+          new_context = initial_context()
+          {new_context, result, code_error, identifiers_used, identifiers_defined}
+      end
+
+    if ebin_path() do
+      Livebook.Runtime.Evaluator.Doctests.run(new_context.env.context_modules)
+    end
+
+    state = put_context(state, ref, new_context)
+
+    Evaluator.IOProxy.flush(state.io_proxy)
+    Evaluator.IOProxy.clear_input_cache(state.io_proxy)
+
+    output = state.formatter.format_result(result)
+
+    metadata = %{
+      evaluation_time_ms: evaluation_time_ms,
+      memory_usage: memory(),
+      code_error: code_error,
+      identifiers_used: identifiers_used,
+      identifiers_defined: identifiers_defined
+    }
+
+    send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
+
+    if on_finish = opts[:on_finish] do
+      on_finish.(result)
+    end
+
+    :erlang.garbage_collect(self())
+
+    {:noreply, state}
   end
 
   defp put_context(state, ref, context) do
