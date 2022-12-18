@@ -57,8 +57,16 @@ const ImageInput = {
 
     // Capture from camera
     this.cameraSelectionEl.addEventListener("click", (event) => {
-      const fromCamera = getAttributeOrDefault(event.target, "data-from-camera", "false");
-      const cameraId = getAttributeOrDefault(event.target, "data-camera-id", "");
+      const fromCamera = getAttributeOrDefault(
+        event.target,
+        "data-from-camera",
+        "false"
+      );
+      const cameraId = getAttributeOrDefault(
+        event.target,
+        "data-camera-id",
+        ""
+      );
 
       if (cameraId.length > 0) {
         this.captureFromCamera(cameraId);
@@ -85,7 +93,11 @@ const ImageInput = {
 
     this.previewEl.addEventListener("click", (event) => {
       event.stopPropagation();
-      const closeButton = getAttributeOrDefault(event.target, "close-button", "false");
+      const closeButton = getAttributeOrDefault(
+        event.target,
+        "close-button",
+        "false"
+      );
       if (closeButton === "true") {
         this.resetToInitilialStatus();
       } else {
@@ -152,67 +164,79 @@ const ImageInput = {
 
     let constraints;
     if (targetCameraId === "System Default") {
-      constraints = {audio: false, video: true};
+      constraints = { audio: false, video: true };
     } else {
       constraints = {
         audio: false,
         video: {
-          optional: [{
-            sourceId: targetCameraId
-          }]
+          optional: [
+            {
+              sourceId: targetCameraId,
+            },
+          ],
         },
         deviceId: {
-          exact: targetCameraId
-        }
+          exact: targetCameraId,
+        },
       };
     }
     this.cameraId = targetCameraId;
 
-    navigator.mediaDevices.getUserMedia(constraints)
-    .then((stream) => {
-      if (this.cameraStream !== void 0) {
-        this.stopMediaStream(this.cameraStream);
-      }
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((stream) => {
+        if (this.cameraStream !== void 0) {
+          this.stopMediaStream(this.cameraStream);
+        }
 
-      if (this.cameraPreview === void 0) {
-        this.cameraPreview = document.createElement('video');
-        this.cameraPreview.autoplay = true;
-      }
+        if (this.cameraPreview === void 0) {
+          this.cameraPreview = document.createElement("video");
+          this.cameraPreview.autoplay = true;
+        }
 
-      try {
-        this.cameraPreview.srcObject = stream;
-      } catch (error) {
-        this.cameraPreview.src = window.URL.createObjectURL(stream);
-      }
+        try {
+          this.cameraPreview.srcObject = stream;
+        } catch (error) {
+          this.cameraPreview.src = window.URL.createObjectURL(stream);
+        }
 
-      this.inputMode = "camera";
-      this.cameraStream = stream;
-      this.cameraButton.innerHTML = "Take this photo";
-      this.setPreview(this.cameraPreview, true);
-    })
-    .catch(() => {});
+        this.inputMode = "camera";
+        this.cameraStream = stream;
+        this.cameraButton.innerHTML = "Take this photo";
+        this.setPreview(this.cameraPreview, true);
+      })
+      .catch(() => {});
   },
 
   updateCameraList() {
     if (this.cameraList !== void 0) return;
 
-    navigator.mediaDevices.getUserMedia({audio: false, video: true})
-    .then((stream) => {
-      this.stopMediaStream(stream);
+    navigator.mediaDevices
+      .getUserMedia({ audio: false, video: true })
+      .then((stream) => {
+        this.stopMediaStream(stream);
 
-      navigator.mediaDevices.enumerateDevices()
-      .then((devices) => {
-        this.cameraListEl.innerHTML = this.generateCameraOption("System Default", "System Default");
-        this.cameraList = devices.filter((device) => {
-          const isVideoInput = device.kind === 'videoinput';
-          if (isVideoInput) {
-            this.cameraListEl.innerHTML += this.generateCameraOption(device.deviceId, device.label);
-          }
-          return isVideoInput;
-        });
-      }).catch(() => {});
-    })
-    .catch(() => {});
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => {
+            this.cameraListEl.innerHTML = this.generateCameraOption(
+              "System Default",
+              "System Default"
+            );
+            this.cameraList = devices.filter((device) => {
+              const isVideoInput = device.kind === "videoinput";
+              if (isVideoInput) {
+                this.cameraListEl.innerHTML += this.generateCameraOption(
+                  device.deviceId,
+                  device.label
+                );
+              }
+              return isVideoInput;
+            });
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
   },
 
   generateCameraOption(deviceId, label) {
@@ -241,7 +265,8 @@ const ImageInput = {
     this.resetToFileMode();
     const promptEl = document.createElement("div");
     promptEl.classList = ["text-gray-500"];
-    promptEl.innerText = "Drag an image file here or click to open file browser";
+    promptEl.innerText =
+      "Drag an image file here or click to open file browser";
     this.setPreview(promptEl, false);
   },
 

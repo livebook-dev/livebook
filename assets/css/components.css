@@ -74,7 +74,7 @@
     @apply rounded-full border-2;
   }
 
-  [class*='close-'] {
+  [class*="close-"] {
     color: #777;
     font: 1rem arial, sans-serif;
     position: absolute;
@@ -83,9 +83,9 @@
     text-shadow: 0 1px 0 #fff;
     top: -14px;
   }
-  
+
   .close-thin:after {
-    content: '×'; /* UTF-8 symbol */
+    content: "×"; /* UTF-8 symbol */
   }
 
   /* Links */
