@@ -68,6 +68,9 @@ const ImageInput = {
         ""
       );
 
+      console.log("fromCamera="+fromCamera, "cameraId="+cameraId);
+      console.log(event.target);
+
       if (cameraId.length > 0) {
         this.captureFromCamera(cameraId);
       } else {

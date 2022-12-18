@@ -71,7 +71,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
                 <.remix_icon
                   icon="camera-switch-line"
                   style="padding-inline-start: 5px"
-                  class="text-sm"
+                  class="text-xl"
                 />
               </button>
             </:toggle>
