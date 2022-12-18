@@ -34,19 +34,55 @@ const ImageInput = {
   mounted() {
     this.props = this.getProps();
 
+    this.inputMode = "file";
+
     this.inputEl = this.el.querySelector(`[data-input]`);
     this.previewEl = this.el.querySelector(`[data-preview]`);
 
+    this.cameraSelectionEl = this.el.querySelector(`[data-camera-select-menu]`);
+    this.cameraListEl = this.el.querySelector(`[data-camera-list]`);
+    this.cameraId = "System Default";
+    this.cameraList = void 0;
+    this.cameraPreview = void 0;
+    this.cameraStream = void 0;
+
     // Render initial value
     this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
+      this.resetToFileMode();
       const canvas = imageInfoToElement(imageInfo);
       this.setPreview(canvas);
     });
 
+    // Capture from camera
+    this.cameraSelectionEl.addEventListener("click", (event) => {
+      const fromCamera = getAttributeOrDefault(event.target, "data-from-camera", "false");
+      const cameraId = getAttributeOrDefault(event.target, "data-camera-id", "");
+
+      if (cameraId.length > 0) {
+        this.captureFromCamera(cameraId);
+      } else {
+        if (fromCamera === "false") {
+          this.updateCameraList();
+          this.cameraSelectionEl.children[0].children[0].click();
+        } else {
+          event.stopPropagation();
+          this.captureFromCamera("System Default");
+        }
+      }
+    });
+
     // File selection
 
-    this.el.addEventListener("click", (event) => {
-      this.inputEl.click();
+    this.previewEl.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (this.inputMode === "file") {
+        this.inputEl.click();
+      } else {
+        const canvas = this.toCanvas(this.cameraPreview);
+        this.setPreview(canvas);
+        this.pushImage(canvas);
+        this.resetToFileMode();
+      }
     });
 
     this.inputEl.addEventListener("change", (event) => {
@@ -99,6 +135,102 @@ const ImageInput = {
     };
   },
 
+  captureFromCamera(targetCameraId) {
+    if (this.cameraPreview !== void 0 && this.cameraId === targetCameraId) {
+      return;
+    }
+
+    let constraints;
+    if (targetCameraId === "System Default") {
+      constraints = {audio: false, video: true};
+    } else {
+      constraints = {
+        audio: false,
+        video: {
+          optional: [{
+            sourceId: targetCameraId
+          }]
+        },
+        deviceId: {
+          exact: targetCameraId
+        }
+      };
+    }
+    this.cameraId = targetCameraId;
+
+    navigator.mediaDevices.getUserMedia(constraints)
+    .then((stream) => {
+      if (this.cameraStream !== void 0) {
+        this.stopMediaStream(this.cameraStream);
+      }
+
+      if (this.cameraPreview === void 0) {
+        this.cameraPreview = document.createElement('video');
+        this.cameraPreview.autoplay = true;
+        this.cameraPreview.style = "margin-bottom: 5px;";
+      }
+
+      try {
+        this.cameraPreview.srcObject = stream;
+      } catch (error) {
+        this.cameraPreview.src = window.URL.createObjectURL(stream);
+      }
+
+      this.inputMode = "camera";
+      this.cameraStream = stream;
+      this.setPreview(this.cameraPreview);
+    })
+    .catch(() => {});
+  },
+
+  updateCameraList() {
+    if (this.cameraList !== void 0) return;
+
+    navigator.mediaDevices.getUserMedia({audio: false, video: true})
+    .then((stream) => {
+      this.stopMediaStream(stream);
+
+      navigator.mediaDevices.enumerateDevices()
+      .then((devices) => {
+        this.cameraListEl.innerHTML = this.generateCameraOption("System Default", "System Default");
+        this.cameraList = devices.filter((device) => {
+          const isVideoInput = device.kind === 'videoinput';
+          if (isVideoInput) {
+            this.cameraListEl.innerHTML += this.generateCameraOption(device.deviceId, device.label);
+          }
+          return isVideoInput;
+        });
+      }).catch(() => {});
+    })
+    .catch(() => {});
+  },
+
+  generateCameraOption(deviceId, label) {
+    return `<button class="menu-item text-gray-500" role="menuitem">
+      <span class="font-medium" data-camera-id="${deviceId}">${label}</span>
+    </button>`;
+  },
+
+  resetToFileMode() {
+    if (this.cameraStream !== void 0) {
+      this.stopMediaStream(this.cameraStream);
+    }
+    this.cameraStream = void 0;
+
+    if (this.cameraPreview !== void 0) {
+      this.cameraPreview.remove();
+      this.cameraPreview = void 0;
+    }
+
+    this.inputMode = "file";
+  },
+
+  stopMediaStream(mediaStream) {
+    mediaStream.getTracks().forEach((track) => {
+      track.stop();
+    });
+  },
+
   loadFile(file) {
     const reader = new FileReader();
 
@@ -107,16 +239,8 @@ const ImageInput = {
 
       imgEl.addEventListener("load", (loadEvent) => {
         const canvas = this.toCanvas(imgEl);
-
         this.setPreview(canvas);
-
-        this.pushEventTo(this.props.phxTarget, "change", {
-          value: {
-            data: canvasToBase64(canvas, this.props.format),
-            height: canvas.height,
-            width: canvas.width,
-          },
-        });
+        this.pushImage(canvas);
       });
 
       imgEl.src = readerEvent.target.result;
@@ -125,8 +249,27 @@ const ImageInput = {
     reader.readAsDataURL(file);
   },
 
+  pushImage(canvas) {
+    this.pushEventTo(this.props.phxTarget, "change", {
+      value: {
+        data: canvasToBase64(canvas, this.props.format),
+        height: canvas.height,
+        width: canvas.width,
+      },
+    });
+  },
+
   toCanvas(imgEl) {
-    const { width, height } = imgEl;
+    let width, height;
+    if (this.inputMode === "camera") {
+      height = imgEl.videoHeight;
+      width = imgEl.videoWidth;
+    } else {
+      let { width: imgWidth, height: imgHeight } = imgEl;
+      width = imgWidth;
+      height = imgHeight;
+    }
+
     const { width: boundWidth, height: boundHeight } = this.props;
 
     const canvas = document.createElement("canvas");

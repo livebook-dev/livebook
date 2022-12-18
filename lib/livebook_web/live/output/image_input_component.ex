@@ -48,10 +48,25 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       data-format={@format}
       data-fit={@fit}
     >
-      <input type="file" data-input class="hidden" name="value" />
-      <div id={"#{@id}-preview"} phx-update="ignore" data-preview>
-        <div class="text-gray-500">
-          Drag an image file here or click to open file browser
+      <input type="file" data-input class="hidden" name="value" accept="image/*" capture="user" />
+      <div>
+        <div id={"#{@id}-preview"} phx-update="ignore" data-preview>
+          <div class="text-gray-500">
+            Drag an image file here or click to open file browser
+          </div>
+        </div>
+        <div class="flex items-center justify-center text-gray-500" data-from-camera="true" data-camera-select-menu>
+          <.menu id={"#{@id}-camera-select-menu"} position="bottom-left">
+            <:toggle>
+              <button class="icon-button" aria-label="select camera" data-from-camera="true">
+                <span data-from-camera="true">From camera</span>
+                <.remix_icon icon="camera-switch-line" style="padding-inline-start: 5px" class="text-sm" />
+              </button>
+            </:toggle>
+            <:content>
+              <div data-camera-list></div>
+            </:content>
+          </.menu>
         </div>
       </div>
     </div>
