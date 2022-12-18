@@ -38,9 +38,11 @@ const ImageInput = {
 
     this.inputEl = this.el.querySelector(`[data-input]`);
     this.previewEl = this.el.querySelector(`[data-preview]`);
+    this.previewEl.style = "position: relative;";
 
     this.cameraSelectionEl = this.el.querySelector(`[data-camera-select-menu]`);
     this.cameraListEl = this.el.querySelector(`[data-camera-list]`);
+    this.cameraButton = this.el.querySelector(`[camera-button-label]`);
     this.cameraId = "System Default";
     this.cameraList = void 0;
     this.cameraPreview = void 0;
@@ -50,7 +52,7 @@ const ImageInput = {
     this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
       this.resetToFileMode();
       const canvas = imageInfoToElement(imageInfo);
-      this.setPreview(canvas);
+      this.setPreview(canvas, true);
     });
 
     // Capture from camera
@@ -65,8 +67,16 @@ const ImageInput = {
           this.updateCameraList();
           this.cameraSelectionEl.children[0].children[0].click();
         } else {
-          event.stopPropagation();
-          this.captureFromCamera("System Default");
+          if (this.cameraPreview !== void 0) {
+            event.stopPropagation();
+            const canvas = this.toCanvas(this.cameraPreview);
+            this.setPreview(canvas, true);
+            this.pushImage(canvas);
+            this.resetToFileMode();
+          } else {
+            event.stopPropagation();
+            this.captureFromCamera("System Default");
+          }
         }
       }
     });
@@ -75,13 +85,13 @@ const ImageInput = {
 
     this.previewEl.addEventListener("click", (event) => {
       event.stopPropagation();
-      if (this.inputMode === "file") {
-        this.inputEl.click();
+      const closeButton = getAttributeOrDefault(event.target, "close-button", "false");
+      if (closeButton === "true") {
+        this.resetToInitilialStatus();
       } else {
-        const canvas = this.toCanvas(this.cameraPreview);
-        this.setPreview(canvas);
-        this.pushImage(canvas);
-        this.resetToFileMode();
+        if (this.inputMode === "file") {
+          this.inputEl.click();
+        }
       }
     });
 
@@ -102,7 +112,7 @@ const ImageInput = {
       event.stopPropagation();
       event.preventDefault();
       const [file] = event.dataTransfer.files;
-      file && this.loadFile(file);
+      file && this.resetToFileMode() && this.loadFile(file);
     });
 
     this.el.addEventListener("dragenter", (event) => {
@@ -167,7 +177,6 @@ const ImageInput = {
       if (this.cameraPreview === void 0) {
         this.cameraPreview = document.createElement('video');
         this.cameraPreview.autoplay = true;
-        this.cameraPreview.style = "margin-bottom: 5px;";
       }
 
       try {
@@ -178,7 +187,8 @@ const ImageInput = {
 
       this.inputMode = "camera";
       this.cameraStream = stream;
-      this.setPreview(this.cameraPreview);
+      this.cameraButton.innerHTML = "Take this photo";
+      this.setPreview(this.cameraPreview, true);
     })
     .catch(() => {});
   },
@@ -222,7 +232,24 @@ const ImageInput = {
       this.cameraPreview = void 0;
     }
 
+    this.cameraButton.innerHTML = "Open camera";
     this.inputMode = "file";
+    return true;
+  },
+
+  resetToInitilialStatus() {
+    this.resetToFileMode();
+    const promptEl = document.createElement("div");
+    promptEl.classList = ["text-gray-500"];
+    promptEl.innerText = "Drag an image file here or click to open file browser";
+    this.setPreview(promptEl, false);
+  },
+
+  getCloseButton() {
+    const closeBtnEl = document.createElement("div");
+    closeBtnEl.classList = ["close-thin"];
+    closeBtnEl.setAttribute("close-button", "true");
+    return closeBtnEl;
   },
 
   stopMediaStream(mediaStream) {
@@ -239,7 +266,7 @@ const ImageInput = {
 
       imgEl.addEventListener("load", (loadEvent) => {
         const canvas = this.toCanvas(imgEl);
-        this.setPreview(canvas);
+        this.setPreview(canvas, true);
         this.pushImage(canvas);
       });
 
@@ -364,9 +391,13 @@ const ImageInput = {
     return canvas;
   },
 
-  setPreview(element) {
+  setPreview(element, displayCloseButton) {
     element.style.maxHeight = "300px";
-    this.previewEl.replaceChildren(element);
+    if (displayCloseButton === true) {
+      this.previewEl.replaceChildren(this.getCloseButton(), element);
+    } else {
+      this.previewEl.replaceChildren(element);
+    }
   },
 };
 

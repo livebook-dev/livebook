@@ -74,6 +74,20 @@
     @apply rounded-full border-2;
   }
 
+  [class*='close-'] {
+    color: #777;
+    font: 1rem arial, sans-serif;
+    position: absolute;
+    right: 1px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 #fff;
+    top: -14px;
+  }
+  
+  .close-thin:after {
+    content: '×'; /* UTF-8 symbol */
+  }
+
   /* Links */
 
   .link {
