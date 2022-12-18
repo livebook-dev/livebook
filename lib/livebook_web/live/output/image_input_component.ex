@@ -55,12 +55,24 @@ defmodule LivebookWeb.Output.ImageInputComponent do
             Drag an image file here or click to open file browser
           </div>
         </div>
-        <div class="flex items-center justify-center text-gray-500" data-from-camera="true" data-camera-select-menu>
+        <div
+          class="flex items-center justify-center text-gray-500"
+          data-from-camera="true"
+          data-camera-select-menu
+        >
           <.menu id={"#{@id}-camera-select-menu"} position="bottom-left">
             <:toggle>
-              <button class="icon-button button-gray mt-2 rounded-lg" aria-label="select camera" data-from-camera="true">
+              <button
+                class="icon-button button-gray mt-2 rounded-lg"
+                aria-label="select camera"
+                data-from-camera="true"
+              >
                 <span camera-button-label data-from-camera="true">Open camera</span>
-                <.remix_icon icon="camera-switch-line" style="padding-inline-start: 5px" class="text-sm" />
+                <.remix_icon
+                  icon="camera-switch-line"
+                  style="padding-inline-start: 5px"
+                  class="text-sm"
+                />
               </button>
             </:toggle>
             <:content>
