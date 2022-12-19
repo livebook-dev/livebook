@@ -2,7 +2,6 @@ defmodule Livebook.WebSocket do
   @moduledoc false
 
   alias Livebook.WebSocket.Client
-  alias LivebookProto.Request
 
   defmodule Connection do
     defstruct [:conn, :websocket, :ref]
@@ -48,15 +47,13 @@ defmodule Livebook.WebSocket do
   @doc """
   Sends a request to the given server.
   """
-  @spec send_request(Connection.t(), proto(), Livebook.Utils.id()) ::
+  @spec send_request(Connection.t(), proto()) ::
           {:ok, Connection.t()}
           | {:error, Connection.t(), Client.ws_error() | Client.mint_error()}
-  def send_request(%Connection{} = connection, %struct{} = data, id \\ Livebook.Utils.random_id()) do
-    type = LivebookProto.request_type(struct)
-    message = Request.new!(id: id, type: {type, data})
-    binary = {:binary, Request.encode(message)}
+  def send_request(%Connection{} = connection, data) do
+    frame = LivebookProto.build_request_frame(data)
 
-    case Client.send(connection.conn, connection.websocket, connection.ref, binary) do
+    case Client.send(connection.conn, connection.websocket, connection.ref, frame) do
       {:ok, conn, websocket} ->
         {:ok, %{connection | conn: conn, websocket: websocket}}
 
