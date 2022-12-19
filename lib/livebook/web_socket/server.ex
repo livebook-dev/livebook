@@ -4,8 +4,6 @@ defmodule Livebook.WebSocket.Server do
 
   require Logger
 
-  import Livebook.WebSocket.Client, only: [is_frame: 1]
-
   alias Livebook.WebSocket
   alias Livebook.WebSocket.Client
 
@@ -40,11 +38,11 @@ defmodule Livebook.WebSocket.Server do
   end
 
   @doc """
-  Sends a frame to given WebSocket Server.
+  Sends a Request to given WebSocket Server.
   """
-  @spec send_message(pid(), Client.frame(), Livebook.Utils.id()) :: :ok
-  def send_message(conn, frame, id) when is_frame(frame) do
-    Connection.call(conn, {:send, frame, id}, @timeout)
+  @spec send_request(pid(), WebSocket.proto()) :: :ok
+  def send_request(conn, %_struct{} = data) do
+    Connection.call(conn, {:request, data}, @timeout)
   end
 
   ## Connection callbacks
@@ -118,7 +116,7 @@ defmodule Livebook.WebSocket.Server do
     {:disconnect, {:close, caller}, state}
   end
 
-  def handle_call({:send, frame, id}, caller, state) do
+  def handle_call({:request, data}, caller, state) do
     Connection.reply(caller, :ok)
 
     case Client.send(state.http_conn, state.websocket, state.ref, frame) do
