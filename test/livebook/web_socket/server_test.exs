@@ -111,7 +111,7 @@ defmodule Livebook.WebSocket.ServerTest do
       refute Server.connected?(conn)
     end
 
-    test "should reconnect after websocket server is up", %{conn: conn, test: name} do
+    test "reconnects after websocket server is up", %{conn: conn, test: name} do
       EnterpriseServer.disconnect(name)
 
       assert_receive {:error, ^conn, 0, %Response{body: reason}}
