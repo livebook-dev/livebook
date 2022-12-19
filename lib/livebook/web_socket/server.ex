@@ -10,7 +10,7 @@ defmodule Livebook.WebSocket.Server do
   @timeout 10_000
   @backoff 1_490
 
-  defstruct [:url, :headers, :http_conn, :websocket, :ref]
+  defstruct [:url, :headers, :http_conn, :websocket, :ref, id: 0]
 
   @doc """
   Starts a new WebSocket Server connection with given URL and headers.
@@ -75,7 +75,6 @@ defmodule Livebook.WebSocket.Server do
   def disconnect({:close, caller}, state) do
     case Client.disconnect(state.http_conn, state.websocket, state.ref) do
       {:ok, conn, websocket} ->
-        WebSocket.broadcast_message({:ok, self(), Livebook.Utils.random_id(), :disconnected})
         Connection.reply(caller, :ok)
         {:noconnect, %{state | http_conn: conn, websocket: websocket}}
 
@@ -117,11 +116,13 @@ defmodule Livebook.WebSocket.Server do
   end
 
   def handle_call({:request, data}, caller, state) do
+    id = state.id
+    frame = LivebookProto.build_request_frame(data, id)
     Connection.reply(caller, :ok)
 
     case Client.send(state.http_conn, state.websocket, state.ref, frame) do
       {:ok, conn, websocket} ->
-        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+        {:noreply, %{state | http_conn: conn, websocket: websocket, id: id + 1}}
 
       {:error, conn, websocket, reason} ->
         WebSocket.broadcast_message({:error, self(), id, reason})
@@ -134,28 +135,28 @@ defmodule Livebook.WebSocket.Server do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
         {:ok, :connected}
-        |> build_response()
+        |> build_response(state)
         |> WebSocket.broadcast_message()
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, %Mint.TransportError{} = reason} ->
         {:error, reason}
-        |> build_response()
+        |> build_response(state)
         |> WebSocket.broadcast_message()
 
         {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
 
       {term, conn, websocket, data} ->
         {term, data}
-        |> build_response()
+        |> build_response(state)
         |> WebSocket.broadcast_message()
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, _} = error ->
         error
-        |> build_response()
+        |> build_response(state)
         |> WebSocket.broadcast_message()
 
         {:noreply, state}
@@ -164,32 +165,32 @@ defmodule Livebook.WebSocket.Server do
 
   # Private
 
-  defp build_response({:ok, :connected}) do
-    {:ok, self(), Livebook.Utils.random_id(), :connected}
+  defp build_response({:ok, :connected}, state) do
+    {:ok, self(), state.id, :connected}
   end
 
-  defp build_response({:ok, %Client.Response{body: nil, status: nil, headers: nil}}) do
-    {:ok, self(), Livebook.Utils.random_id(), :ping}
+  defp build_response({:ok, %Client.Response{body: nil, status: nil, headers: nil}}, state) do
+    {:ok, self(), state.id, :pong}
   end
 
-  defp build_response({:error, %Client.Response{body: nil, status: status} = response}) do
+  defp build_response({:error, %Client.Response{body: nil, status: status} = response}, state) do
     response = %{response | body: Plug.Conn.Status.reason_phrase(status)}
-    {:error, self(), Livebook.Utils.random_id(), response}
+    {:error, self(), state.id, response}
   end
 
-  defp build_response({:ok, %Client.Response{body: body} = response}) do
+  defp build_response({:ok, %Client.Response{body: body} = response}, _state) do
     case LivebookProto.Response.decode(body) do
       %{id: id, type: {:error, _} = error} -> {:error, self(), id, %{response | body: error}}
-      %{id: id, type: result} -> {:ok, self(), id, %{response | body: result}}
+      %{id: id, type: result} -> {:ok, self(), id, result}
     end
   end
 
-  defp build_response({:error, %Client.Response{body: body} = response}) do
+  defp build_response({:error, %Client.Response{body: body} = response}, _state) do
     %{id: id, type: {:error, _} = error} = LivebookProto.Response.decode(body)
     {:error, self(), id, %{response | body: error}}
   end
 
-  defp build_response({:error, reason}) do
-    {:error, self(), Livebook.Utils.random_id(), %Client.Response{body: reason}}
+  defp build_response({:error, reason}, state) do
+    {:error, self(), state.id, %Client.Response{body: reason}}
   end
 end
