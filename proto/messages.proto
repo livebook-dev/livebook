@@ -19,7 +19,7 @@ message SessionResponse {
 }
 
 message Request {
-  string id = 1;
+  int32 id = 1;
 
   oneof type {
     SessionRequest session = 2;
@@ -27,7 +27,7 @@ message Request {
 }
 
 message Response {
-  string id = 1;
+  int32 id = 1;
 
   oneof type {
     Error error = 2;

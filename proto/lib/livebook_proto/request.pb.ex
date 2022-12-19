@@ -4,6 +4,6 @@ defmodule LivebookProto.Request do
 
   oneof :type, 0
 
-  field :id, 1, type: :string
+  field :id, 1, type: :int32
   field :session, 2, type: LivebookProto.SessionRequest, oneof: 0
 end
