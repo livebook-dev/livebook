@@ -48,6 +48,7 @@ const ImageInput = {
     this.cameraPreview = void 0;
     this.cameraStream = void 0;
 
+    this.uploadButton = this.el.querySelector(`[data-from-file]`);
     this.cancelButton = this.el.querySelector(`[data-cancel-button]`);
 
     // Render initial value
@@ -200,6 +201,7 @@ const ImageInput = {
     }
     this.cameraId = targetCameraId;
     this.showCancelButton(true);
+    this.showUploadButton(false);
 
     navigator.mediaDevices
       .getUserMedia(constraints)
@@ -279,6 +281,7 @@ const ImageInput = {
     this.inputMode = "file";
 
     this.showCancelButton(false);
+    this.showUploadButton(true);
 
     return true;
   },
@@ -291,12 +294,20 @@ const ImageInput = {
     this.setPreview(promptEl);
   },
 
-  showCancelButton(display) {
+  showButton(btn, display) {
     if (display === true) {
-      this.cancelButton.style = "";
+      btn.style = "";
     } else {
-      this.cancelButton.style = "display: none;";
+      btn.style = "display: none;";
     }
+  },
+
+  showCancelButton(display) {
+    this.showButton(this.cancelButton, display);
+  },
+
+  showUploadButton(display) {
+    this.showButton(this.uploadButton, display);
   },
 
   stopMediaStream(mediaStream) {
