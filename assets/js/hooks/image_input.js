@@ -48,18 +48,30 @@ const ImageInput = {
     this.cameraPreview = void 0;
     this.cameraStream = void 0;
 
+    this.cancelButton = this.el.querySelector(`[data-cancel-button]`);
+
     // Render initial value
     this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
       this.resetToFileMode();
       const canvas = imageInfoToElement(imageInfo);
-      this.setPreview(canvas, true);
+      this.setPreview(canvas);
     });
 
     // Capture from camera
     this.cameraSelectionEl.addEventListener("click", (event) => {
+      const fromFile = getAttributeOrDefault(
+        event.target,
+        "data-from-file",
+        "false"
+      );
       const fromCamera = getAttributeOrDefault(
         event.target,
         "data-from-camera",
+        "false"
+      );
+      const cancelBtn = getAttributeOrDefault(
+        event.target,
+        "data-cancel",
         "false"
       );
       const cameraId = getAttributeOrDefault(
@@ -68,8 +80,17 @@ const ImageInput = {
         ""
       );
 
-      console.log("fromCamera=" + fromCamera, "cameraId=" + cameraId);
-      console.log(event.target);
+      if (fromFile !== "false") {
+        event.stopPropagation();
+        this.inputEl.click();
+        return;
+      }
+
+      if (cancelBtn !== "false") {
+        event.stopPropagation();
+        this.resetToInitilialStatus();
+        return;
+      }
 
       if (cameraId.length > 0) {
         this.captureFromCamera(cameraId);
@@ -81,7 +102,7 @@ const ImageInput = {
           if (this.cameraPreview !== void 0) {
             event.stopPropagation();
             const canvas = this.toCanvas(this.cameraPreview);
-            this.setPreview(canvas, true);
+            this.setPreview(canvas);
             this.pushImage(canvas);
             this.resetToFileMode();
           } else {
@@ -96,17 +117,8 @@ const ImageInput = {
 
     this.previewEl.addEventListener("click", (event) => {
       event.stopPropagation();
-      const closeButton = getAttributeOrDefault(
-        event.target,
-        "close-button",
-        "false"
-      );
-      if (closeButton === "true") {
-        this.resetToInitilialStatus();
-      } else {
-        if (this.inputMode === "file") {
-          this.inputEl.click();
-        }
+      if (this.inputMode === "file") {
+        this.inputEl.click();
       }
     });
 
@@ -184,6 +196,7 @@ const ImageInput = {
       };
     }
     this.cameraId = targetCameraId;
+    this.showCancelButton(true);
 
     navigator.mediaDevices
       .getUserMedia(constraints)
@@ -205,8 +218,8 @@ const ImageInput = {
 
         this.inputMode = "camera";
         this.cameraStream = stream;
-        this.cameraButton.innerHTML = "Take this photo";
-        this.setPreview(this.cameraPreview, true);
+        this.cameraButton.innerHTML = "Take picture";
+        this.setPreview(this.cameraPreview);
       })
       .catch(() => {});
   },
@@ -261,23 +274,26 @@ const ImageInput = {
 
     this.cameraButton.innerHTML = "Open camera";
     this.inputMode = "file";
+
+    this.showCancelButton(false);
+
     return true;
   },
 
   resetToInitilialStatus() {
     this.resetToFileMode();
     const promptEl = document.createElement("div");
-    promptEl.classList = ["text-gray-500"];
-    promptEl.innerText =
-      "Drag an image file here or click to open file browser";
-    this.setPreview(promptEl, false);
+    promptEl.className = "flex justify-center text-gray-500";
+    promptEl.innerText = "Drag an image file";
+    this.setPreview(promptEl);
   },
 
-  getCloseButton() {
-    const closeBtnEl = document.createElement("div");
-    closeBtnEl.classList = ["close-thin"];
-    closeBtnEl.setAttribute("close-button", "true");
-    return closeBtnEl;
+  showCancelButton(display) {
+    if (display === true) {
+      this.cancelButton.style = "";
+    } else {
+      this.cancelButton.style = "display: none;";
+    }
   },
 
   stopMediaStream(mediaStream) {
@@ -294,7 +310,7 @@ const ImageInput = {
 
       imgEl.addEventListener("load", (loadEvent) => {
         const canvas = this.toCanvas(imgEl);
-        this.setPreview(canvas, true);
+        this.setPreview(canvas);
         this.pushImage(canvas);
       });
 
@@ -419,13 +435,9 @@ const ImageInput = {
     return canvas;
   },
 
-  setPreview(element, displayCloseButton) {
+  setPreview(element) {
     element.style.maxHeight = "300px";
-    if (displayCloseButton === true) {
-      this.previewEl.replaceChildren(this.getCloseButton(), element);
-    } else {
-      this.previewEl.replaceChildren(element);
-    }
+    this.previewEl.replaceChildren(element);
   },
 };
 

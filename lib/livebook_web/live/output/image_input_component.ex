@@ -51,8 +51,8 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       <input type="file" data-input class="hidden" name="value" accept="image/*" capture="user" />
       <div>
         <div id={"#{@id}-preview"} phx-update="ignore" data-preview>
-          <div class="text-gray-500">
-            Drag an image file here or click to open file browser
+          <div class="flex justify-center text-gray-500">
+            Drag an image file
           </div>
         </div>
         <div
@@ -62,18 +62,40 @@ defmodule LivebookWeb.Output.ImageInputComponent do
         >
           <.menu id={"#{@id}-camera-select-menu"} position="bottom-left">
             <:toggle>
-              <button
-                class="icon-button button-gray mt-2 rounded-lg"
-                aria-label="select camera"
-                data-from-camera="true"
-              >
-                <span camera-button-label data-from-camera="true">Open camera</span>
-                <.remix_icon
-                  icon="camera-switch-line"
-                  style="padding-inline-start: 5px"
-                  class="text-xl"
-                />
-              </button>
+              <div class="flex items-center justify-center space-x-4">
+                <button
+                  class="icon-button button-gray py-2 px-2 mt-4 rounded-lg"
+                  aria-label="upload"
+                  data-from-file="true"
+                >
+                  <.remix_icon icon="upload-2-line" class="px-1 text-xl" data-from-file="true" />
+                  <span class="px-1" upload-button-label data-from-file="true">
+                    Upload
+                  </span>
+                </button>
+                <button
+                  class="icon-button button-gray py-2 px-2 mt-4 rounded-lg"
+                  aria-label="select camera"
+                  data-from-camera="true"
+                >
+                  <.remix_icon icon="camera-switch-line" class="px-1 text-xl" />
+                  <span class="px-1" camera-button-label data-from-camera="true">
+                    Open camera
+                  </span>
+                </button>
+                <button
+                  class="icon-button button-gray py-2 px-2 mt-4 rounded-lg"
+                  aria-label="cancel"
+                  data-cancel="true"
+                  style="display: none;"
+                  data-cancel-button
+                >
+                  <.remix_icon icon="close-circle-line" class="px-1 text-xl" data-cancel="true" />
+                  <span class="px-1" data-cancel="true">
+                    Cancel
+                  </span>
+                </button>
+              </div>
             </:toggle>
             <:content>
               <div data-camera-list></div>
