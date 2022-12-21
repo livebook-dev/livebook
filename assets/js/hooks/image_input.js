@@ -82,6 +82,9 @@ const ImageInput = {
 
       if (fromFile !== "false") {
         event.stopPropagation();
+        if (this.inputMode !== "file") {
+          this.resetToInitilialStatus();
+        }
         this.inputEl.click();
         return;
       }
