@@ -1,115 +1,196 @@
 defmodule Livebook.WebSocket.Server do
   @moduledoc false
-  use GenServer
+  use Connection
 
   require Logger
 
-  import Livebook.WebSocket.Client, only: [is_frame: 1]
-
+  alias Livebook.WebSocket
   alias Livebook.WebSocket.Client
 
-  defstruct [
-    :conn,
-    :websocket,
-    :caller,
-    :status,
-    :resp_headers,
-    :resp_body,
-    :ref,
-    closing?: false
-  ]
+  @timeout 10_000
+  @backoff 1_490
 
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts)
+  defstruct [:url, :headers, :http_conn, :websocket, :ref, id: 0]
+
+  @doc """
+  Starts a new WebSocket Server connection with given URL and headers.
+  """
+  @spec start_link(String.t(), Mint.Types.headers()) ::
+          {:ok, pid()} | {:error, {:already_started, pid()}}
+  def start_link(url, headers \\ []) do
+    Connection.start_link(__MODULE__, {url, headers})
   end
 
   @doc """
-  Connects the WebSocket client.
+  Checks if the given WebSocket Server is connected.
   """
-  def connect(pid, url, headers \\ []) do
-    GenServer.call(pid, {:connect, url, headers})
+  @spec connected?(pid()) :: boolean()
+  def connected?(conn) do
+    Connection.call(conn, :connected?, @timeout)
   end
 
   @doc """
-  Disconnects the WebSocket client.
+  Closes the given WebSocket Server connection.
   """
-  def disconnect(pid) do
-    GenServer.cast(pid, :close)
+  @spec close(pid()) :: :ok
+  def close(conn) do
+    Connection.call(conn, :close, @timeout)
   end
 
   @doc """
-  Sends a message to the WebSocket server the message request.
+  Sends a Request to given WebSocket Server.
   """
-  def send_message(socket, frame) when is_frame(frame) do
-    GenServer.cast(socket, {:send_message, frame})
+  @spec send_request(pid(), WebSocket.proto()) :: :ok
+  def send_request(conn, %_struct{} = data) do
+    Connection.call(conn, {:request, data}, @timeout)
+  end
+
+  ## Connection callbacks
+
+  @impl true
+  def init({url, headers}) do
+    state = struct!(__MODULE__, url: url, headers: headers)
+    {:connect, :init, state}
+  end
+
+  @impl true
+  def connect(_, state) do
+    case Client.connect(state.url, state.headers) do
+      {:ok, conn, ref} ->
+        {:ok, %{state | http_conn: conn, ref: ref}}
+
+      {:error, exception} when is_exception(exception) ->
+        Logger.error("Received exception: #{Exception.message(exception)}")
+        {:backoff, @backoff, state}
+
+      {:error, conn, reason} ->
+        Logger.error("Received error: #{inspect(reason)}")
+        {:backoff, @backoff, %{state | http_conn: conn}}
+    end
+  end
+
+  @dialyzer {:nowarn_function, disconnect: 2}
+
+  @impl true
+  def disconnect({:close, caller}, state) do
+    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
+      {:ok, conn, websocket} ->
+        Connection.reply(caller, :ok)
+        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
+
+      {:error, conn, websocket, reason} ->
+        Connection.reply(caller, {:error, reason})
+        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
+    end
+  end
+
+  def disconnect(info, state) do
+    case info do
+      {:error, :closed} -> Logger.error("Connection closed")
+      {:error, reason} -> Logger.error("Connection error: #{inspect(reason)}")
+    end
+
+    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
+      {:ok, conn, websocket} ->
+        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
+
+      {:error, conn, websocket, reason} ->
+        Logger.error("Received error: #{inspect(reason)}")
+        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
+    end
   end
 
   ## GenServer callbacks
 
   @impl true
-  def init(_) do
-    {:ok, %__MODULE__{}}
-  end
-
-  @impl true
-  def handle_call({:connect, url, headers}, from, state) do
-    case Client.connect(url, headers) do
-      {:ok, conn, ref} -> {:noreply, %{state | conn: conn, ref: ref, caller: from}}
-      {:error, _reason} = error -> {:reply, error, state}
-      {:error, conn, reason} -> {:reply, {:error, reason}, %{state | conn: conn}}
+  def handle_call(:connected?, _from, state) do
+    if conn = state.http_conn do
+      {:reply, conn.state == :open, state}
+    else
+      {:reply, false, state}
     end
   end
 
-  @impl true
-  def handle_cast(:close, state) do
-    Client.disconnect(state.conn, state.websocket, state.ref)
-
-    {:stop, :normal, state}
+  def handle_call(:close, caller, state) do
+    {:disconnect, {:close, caller}, state}
   end
 
-  def handle_cast({:send_message, frame}, state) do
-    case Client.send(state.conn, state.websocket, state.ref, frame) do
+  def handle_call({:request, data}, caller, state) do
+    id = state.id
+    frame = LivebookProto.build_request_frame(data, id)
+    Connection.reply(caller, :ok)
+
+    case Client.send(state.http_conn, state.websocket, state.ref, frame) do
       {:ok, conn, websocket} ->
-        {:noreply, %{state | conn: conn, websocket: websocket}}
+        {:noreply, %{state | http_conn: conn, websocket: websocket, id: id + 1}}
 
-      {:error, %Mint.WebSocket{} = websocket, _reason} ->
-        {:noreply, %{state | websocket: websocket}}
-
-      {:error, conn, _reason} ->
-        {:noreply, %{state | conn: conn}}
+      {:error, conn, websocket, reason} ->
+        WebSocket.broadcast_message({:error, self(), id, reason})
+        {:noreply, %{state | http_conn: conn, websocket: websocket}}
     end
   end
 
   @impl true
   def handle_info(message, state) do
-    case Client.receive(state.conn, state.ref, state.websocket, message) do
-      {:ok, conn, websocket, response} ->
-        state = %{state | conn: conn, websocket: websocket}
-        {:noreply, reply(state, {:ok, response})}
+    case Client.receive(state.http_conn, state.ref, state.websocket, message) do
+      {:ok, conn, websocket, :connected} ->
+        {:ok, :connected}
+        |> build_response(state)
+        |> WebSocket.broadcast_message()
 
-      {:error, conn, websocket, response} ->
-        state = %{state | conn: conn, websocket: websocket}
-        {:noreply, reply(state, {:error, response})}
+        {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
-      {:error, conn, response} ->
-        state = %{state | conn: conn}
-        {:noreply, reply(state, {:error, response})}
+      {:error, conn, websocket, %Mint.TransportError{} = reason} ->
+        {:error, reason}
+        |> build_response(state)
+        |> WebSocket.broadcast_message()
 
-      {:error, _} ->
+        {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
+
+      {term, conn, websocket, data} ->
+        {term, data}
+        |> build_response(state)
+        |> WebSocket.broadcast_message()
+
+        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+
+      {:error, _} = error ->
+        error
+        |> build_response(state)
+        |> WebSocket.broadcast_message()
+
         {:noreply, state}
     end
   end
 
   # Private
 
-  defp reply(%{caller: nil} = state, response) do
-    Logger.warning("The caller is nil, so we can't reply the message: #{inspect(response)}")
-    state
+  defp build_response({:ok, :connected}, state) do
+    {:ok, self(), state.id, :connected}
   end
 
-  defp reply(state, response) do
-    GenServer.reply(state.caller, response)
+  defp build_response({:ok, %Client.Response{body: nil, status: nil, headers: nil}}, state) do
+    {:ok, self(), state.id, :pong}
+  end
 
-    state
+  defp build_response({:error, %Client.Response{body: nil, status: status} = response}, state) do
+    response = %{response | body: Plug.Conn.Status.reason_phrase(status)}
+    {:error, self(), state.id, response}
+  end
+
+  defp build_response({:ok, %Client.Response{body: body} = response}, _state) do
+    case LivebookProto.Response.decode(body) do
+      %{id: id, type: {:error, _} = error} -> {:error, self(), id, %{response | body: error}}
+      %{id: id, type: result} -> {:ok, self(), id, result}
+    end
+  end
+
+  defp build_response({:error, %Client.Response{body: body} = response}, _state) do
+    %{id: id, type: {:error, _} = error} = LivebookProto.Response.decode(body)
+    {:error, self(), id, %{response | body: error}}
+  end
+
+  defp build_response({:error, reason}, state) do
+    {:error, self(), state.id, %Client.Response{body: reason}}
   end
 end

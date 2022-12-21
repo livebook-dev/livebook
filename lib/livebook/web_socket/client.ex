@@ -7,7 +7,7 @@ defmodule Livebook.WebSocket.Client do
 
   @type conn :: Mint.HTTP.t()
   @type websocket :: Mint.WebSocket.t()
-  @type frame :: :close | {:binary, binary()}
+  @type frame :: Mint.WebSocket.frame() | Mint.WebSocket.shorthand_frame()
   @type ref :: Mint.Types.request_ref()
   @type ws_error :: Mint.WebSocket.error()
   @type mint_error :: Mint.Types.error()
@@ -16,9 +16,9 @@ defmodule Livebook.WebSocket.Client do
     defstruct [:body, :status, :headers]
 
     @type t :: %__MODULE__{
-            body: Livebook.WebSocket.Response.t(),
-            status: Mint.Types.status(),
-            headers: Mint.Types.headers()
+            body: Livebook.WebSocket.Response.t() | nil,
+            status: Mint.Types.status() | nil,
+            headers: Mint.Types.headers() | nil
           }
   end
 
@@ -53,15 +53,19 @@ defmodule Livebook.WebSocket.Client do
 
   If there's no WebSocket connection yet, it'll only close the HTTP connection.
   """
-  @spec disconnect(conn(), websocket(), ref()) :: :ok
+  @spec disconnect(conn(), websocket() | nil, ref()) ::
+          {:ok, conn(), websocket() | nil}
+          | {:error, conn() | websocket(), term()}
+  def disconnect(conn, nil, _ref) do
+    {:ok, conn} = Mint.HTTP.close(conn)
+    {:ok, conn, nil}
+  end
+
   def disconnect(conn, websocket, ref) do
-    if websocket do
-      send(conn, websocket, ref, :close)
+    with {:ok, conn, websocket} <- send(conn, websocket, ref, :close),
+         {:ok, conn} <- Mint.HTTP.close(conn) do
+      {:ok, conn, websocket}
     end
-
-    Mint.HTTP.close(conn)
-
-    :ok
   end
 
   @doc """
@@ -70,17 +74,24 @@ defmodule Livebook.WebSocket.Client do
   If the WebSocket isn't connected yet, it will try to get the connection
   response to start a new WebSocket connection.
   """
-  @spec receive(conn(), ref(), term()) ::
-          {:ok, conn(), Response.t() | :connect}
-          | {:error, conn(), Response.t()}
-          | {:error, conn(), :unknown}
+  @spec receive(conn() | nil, ref(), websocket() | nil, term()) ::
+          {:ok, conn(), websocket(), Response.t() | :connected}
+          | {:error, conn(), websocket(), Response.t()}
+          | {:error, conn(), websocket(), ws_error() | mint_error()}
+          | {:error, :not_connected | :unknown}
   def receive(conn, ref, websocket \\ nil, message \\ receive(do: (message -> message))) do
+    do_receive(conn, ref, websocket, message)
+  end
+
+  defp do_receive(nil, _ref, _websocket, _message), do: {:error, :not_connected}
+
+  defp do_receive(conn, ref, websocket, message) do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
         handle_responses(conn, ref, websocket, responses)
 
       {:error, conn, reason, []} ->
-        {:error, conn, reason}
+        {:error, conn, websocket, reason}
 
       {:error, conn, _reason, responses} ->
         handle_responses(conn, ref, websocket, responses)
@@ -92,24 +103,6 @@ defmodule Livebook.WebSocket.Client do
 
   @successful_status 100..299
 
-  defp handle_responses(conn, ref, nil, responses) do
-    result =
-      Enum.reduce(responses, %Response{}, fn
-        {:status, ^ref, status}, acc -> %{acc | status: status}
-        {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
-        {:data, ^ref, body}, acc -> %{acc | body: body}
-        {:done, ^ref}, acc -> handle_done_response(conn, ref, acc)
-      end)
-
-    case result do
-      %Response{} = response when response.status not in @successful_status ->
-        {:error, conn, response}
-
-      result ->
-        result
-    end
-  end
-
   defp handle_responses(conn, ref, websocket, [{:data, ref, data}]) do
     with {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
       case handle_frames(%Response{}, frames) do
@@ -120,8 +113,7 @@ defmodule Livebook.WebSocket.Client do
           {:ok, conn, websocket, response}
 
         {:close, result} ->
-          disconnect(conn, websocket, ref)
-          {:ok, conn, websocket, result}
+          handle_disconnect(conn, websocket, ref, result)
 
         {:error, response} ->
           {:error, conn, websocket, response}
@@ -129,7 +121,25 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp handle_done_response(conn, ref, response) do
+  defp handle_responses(conn, ref, websocket, [_ | _] = responses) do
+    result =
+      Enum.reduce(responses, %Response{}, fn
+        {:status, ^ref, status}, acc -> %{acc | status: status}
+        {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
+        {:data, ^ref, body}, acc -> %{acc | body: body}
+        {:done, ^ref}, acc -> handle_done_response(conn, ref, websocket, acc)
+      end)
+
+    case result do
+      %Response{} = response when response.status not in @successful_status ->
+        {:error, conn, websocket, response}
+
+      result ->
+        result
+    end
+  end
+
+  defp handle_done_response(conn, ref, websocket, response) do
     case Mint.WebSocket.new(conn, ref, response.status, response.headers) do
       {:ok, conn, websocket} ->
         case decode_response(websocket, response) do
@@ -137,15 +147,20 @@ defmodule Livebook.WebSocket.Client do
             {:ok, conn, websocket, result}
 
           {websocket, {:close, result}} ->
-            disconnect(conn, websocket, ref)
-            {:ok, conn, websocket, result}
+            handle_disconnect(conn, websocket, ref, result)
 
           {websocket, {:error, reason}} ->
             {:error, conn, websocket, reason}
         end
 
       {:error, conn, %UpgradeFailureError{status_code: status, headers: headers}} ->
-        {:error, conn, %{response | status: status, headers: headers}}
+        {:error, conn, websocket, %{response | status: status, headers: headers}}
+    end
+  end
+
+  defp handle_disconnect(conn, websocket, ref, result) do
+    with {:ok, conn, websocket} <- disconnect(conn, websocket, ref) do
+      {:ok, conn, websocket, result}
     end
   end
 
@@ -173,18 +188,22 @@ defmodule Livebook.WebSocket.Client do
     end)
   end
 
-  @dialyzer {:nowarn_function, send: 4}
-
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
   """
   @spec send(conn(), websocket(), ref(), frame()) ::
           {:ok, conn(), websocket()}
-          | {:error, conn() | websocket(), term()}
+          | {:error, conn(), websocket(), term()}
   def send(conn, websocket, ref, frame) when is_frame(frame) do
     with {:ok, websocket, data} <- Mint.WebSocket.encode(websocket, frame),
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do
       {:ok, conn, websocket}
+    else
+      {:error, %Mint.HTTP1{} = conn, reason} ->
+        {:error, conn, websocket, reason}
+
+      {:error, websocket, reason} ->
+        {:error, conn, websocket, reason}
     end
   end
 end

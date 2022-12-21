@@ -10,7 +10,7 @@ defmodule Livebook.WebSocketTest do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, connection, :connected} = WebSocket.connect(url, headers)
-      assert WebSocket.disconnect(connection) == :ok
+      assert {:ok, _connection} = WebSocket.disconnect(connection)
     end
 
     test "rejects the web socket connection with invalid credentials", %{url: url} do
@@ -18,33 +18,36 @@ defmodule Livebook.WebSocketTest do
 
       assert {:error, connection, %{details: error}} = WebSocket.connect(url, headers)
       assert error =~ "the given token is invalid"
-      assert WebSocket.disconnect(connection) == :ok
+      assert {:ok, _connection} = WebSocket.disconnect(connection)
 
       assert {:error, connection, %{details: error}} = WebSocket.connect(url)
       assert error =~ "could not get the token from the connection"
-      assert WebSocket.disconnect(connection) == :ok
+      assert {:ok, _connection} = WebSocket.disconnect(connection)
     end
   end
 
   describe "send_request/2" do
-    test "receives the session response from server", %{url: url, token: token, user: user} do
+    setup %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, %WebSocket.Connection{} = connection, :connected} =
-               WebSocket.connect(url, headers)
+      {:ok, %WebSocket.Connection{} = connection, :connected} = WebSocket.connect(url, headers)
 
+      on_exit(fn -> WebSocket.disconnect(connection) end)
+
+      {:ok, connection: connection}
+    end
+
+    test "successfully sends a session message", %{
+      connection: connection,
+      user: %{id: id, email: email}
+    } do
       session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
 
       assert {:ok, %WebSocket.Connection{} = connection} =
                WebSocket.send_request(connection, session_request)
 
-      assert {:ok, connection, {:session, session_response}} =
-               WebSocket.receive_response(connection)
-
-      assert WebSocket.disconnect(connection) == :ok
-
-      assert session_response.user.id == user.id
-      assert session_response.user.email == user.email
+      assert {:ok, ^connection, response} = WebSocket.receive_response(connection)
+      assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} = response
     end
   end
 end
