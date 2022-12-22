@@ -6,10 +6,14 @@ defmodule Livebook.WebSocket do
 
   ## Messages
 
-    * `{:ok, pid, random_id, :connected}`
-    * `{:ok, pid, random_id, %Livebook.WebSocket.Response{}}`
-    * `{:error, pid, random_id, %Livebook.WebSocket.Response{}}`
-    * `{:error, pid, random_id, reason}`
+    * `{:unknown, :error, reason}`
+    * `{:connect, :ok, :waiting_upgrade | :connected}`
+    * `{:connect, :error, reason}`
+    * `{:disconnect, :ok, :disconnected}`
+    * `{:disconnect, :error, reason}`
+    * `{:response, :error, {:error, reason}}`
+    * `{:response, id, {type, struct}}`
+    * `{:response, id, {:error, reason}}`
 
   """
   @spec subscribe() :: :ok | {:error, {:already_registered, pid()}}

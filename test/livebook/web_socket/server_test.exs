@@ -5,7 +5,6 @@ defmodule Livebook.WebSocket.ServerTest do
   @moduletag :capture_log
 
   alias Livebook.WebSocket.Server
-  alias Livebook.WebSocket.Client.Response
 
   setup do
     Livebook.WebSocket.subscribe()
@@ -18,7 +17,8 @@ defmodule Livebook.WebSocket.ServerTest do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, conn} = Server.start_link(url, headers)
-      assert_receive {:ok, ^conn, _id, :connected}
+      assert_receive {:connect, :ok, :waiting_upgrade}
+      assert_receive {:connect, :ok, :connected}
       assert Server.connected?(conn)
     end
 
@@ -34,18 +34,14 @@ defmodule Livebook.WebSocket.ServerTest do
 
       assert {:ok, conn} = Server.start_link(url, headers)
 
-      assert_receive {:error, ^conn, -1, response}
-      assert %Response{body: {:error, %{details: error}}, status: 403} = response
-
-      assert error =~ "the given token is invalid"
+      assert_receive {:connect, :error, reason}
+      assert reason =~ "the given token is invalid"
       assert Server.close(conn) == :ok
 
       assert {:ok, conn} = Server.start_link(url)
 
-      assert_receive {:error, ^conn, -1, response}
-      assert %Response{body: {:error, %{details: error}}, status: 401} = response
-
-      assert error =~ "could not get the token from the connection"
+      assert_receive {:connect, :error, reason}
+      assert reason =~ "could not get the token from the connection"
       assert Server.close(conn) == :ok
     end
   end
@@ -56,7 +52,8 @@ defmodule Livebook.WebSocket.ServerTest do
 
       {:ok, conn} = Server.start_link(url, headers)
 
-      assert_receive {:ok, ^conn, _id, :connected}
+      assert_receive {:connect, :ok, :waiting_upgrade}
+      assert_receive {:connect, :ok, :connected}
 
       {:ok, conn: conn}
     end
@@ -67,9 +64,9 @@ defmodule Livebook.WebSocket.ServerTest do
     } do
       session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
 
-      assert Server.send_request(conn, session_request) == :ok
-      assert_receive {:ok, ^conn, 0, {:session, response}}
-      assert %{id: _, user: %{id: ^id, email: ^email}} = response
+      assert {:ok, req_id} = Server.send_request(conn, session_request)
+      assert_receive {:response, ^req_id, {:session, session_response}}
+      assert %{id: _, user: %{id: ^id, email: ^email}} = session_response
     end
   end
 
@@ -90,7 +87,8 @@ defmodule Livebook.WebSocket.ServerTest do
 
       assert {:ok, conn} = Server.start_link(url, headers)
 
-      assert_receive {:ok, ^conn, _id, :connected}
+      assert_receive {:connect, :ok, :waiting_upgrade}
+      assert_receive {:connect, :ok, :connected}
       assert Server.connected?(conn)
 
       on_exit(fn ->
@@ -104,8 +102,8 @@ defmodule Livebook.WebSocket.ServerTest do
     test "receives the disconnect message from websocket server", %{conn: conn, test: name} do
       EnterpriseServer.disconnect(name)
 
-      assert_receive {:error, ^conn, 0, %Response{body: reason}}
-      assert %Mint.TransportError{reason: :closed} = reason
+      assert_receive {:connect, :error, %Mint.TransportError{reason: :closed}}
+      assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
 
       assert Process.alive?(conn)
       refute Server.connected?(conn)
@@ -114,15 +112,17 @@ defmodule Livebook.WebSocket.ServerTest do
     test "reconnects after websocket server is up", %{conn: conn, test: name} do
       EnterpriseServer.disconnect(name)
 
-      assert_receive {:error, ^conn, 0, %Response{body: reason}}
-      assert %Mint.TransportError{reason: :closed} = reason
+      assert_receive {:connect, :error, %Mint.TransportError{reason: :closed}}
+      assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
 
       Process.sleep(1000)
       refute Server.connected?(conn)
 
       # Wait until the server is up again
       assert EnterpriseServer.reconnect(name) == :ok
-      assert_receive {:ok, ^conn, 0, :connected}, 5000
+
+      assert_receive {:connect, :ok, :waiting_upgrade}, 3000
+      assert_receive {:connect, :ok, :connected}, 3000
 
       assert Server.connected?(conn)
       assert Server.close(conn) == :ok
