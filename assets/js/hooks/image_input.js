@@ -24,106 +24,38 @@ const dropClasses = ["bg-yellow-100", "border-yellow-300"];
  *
  *   * `data-fit` - the fit strategy
  *
- * The element should have the following children:
- *
- *   * `[data-input]` - a file input used for file selection
- *
- *   * `[data-preview]` - a container to put image preview in
  */
 const ImageInput = {
   mounted() {
     this.props = this.getProps();
 
-    this.inputMode = "file";
-
     this.inputEl = this.el.querySelector(`[data-input]`);
     this.previewEl = this.el.querySelector(`[data-preview]`);
-    this.previewEl.style = "position: relative;";
 
-    this.cameraSelectionEl = this.el.querySelector(`[data-camera-select-menu]`);
+    this.cameraPreviewEl = this.el.querySelector(`[data-camera-preview]`);
     this.cameraListEl = this.el.querySelector(`[data-camera-list]`);
-    this.cameraButton = this.el.querySelector(`[camera-button-label]`);
-    this.cameraId = "System Default";
-    this.cameraList = void 0;
-    this.cameraPreview = void 0;
-    this.cameraStream = void 0;
 
-    this.uploadButton = this.el.querySelector(`[data-from-file]`);
-    this.cancelButton = this.el.querySelector(`[data-cancel-button]`);
+    this.uploadButton = this.el.querySelector(`[data-btn-upload]`);
+    this.openCameraButton = this.el.querySelector(`[data-btn-open-camera]`);
+    this.captureCameraButton = this.el.querySelector(
+      `[data-btn-capture-camera]`
+    );
+    this.cancelButton = this.el.querySelector(`[data-btn-cancel]`);
+
+    this.cameraListPopulated = false;
+    this.cameraVideoEl = null;
+    this.cameraStream = null;
 
     // Render initial value
     this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
-      this.resetToFileMode();
       const canvas = imageInfoToElement(imageInfo);
       this.setPreview(canvas);
     });
 
-    // Capture from camera
-    this.cameraSelectionEl.addEventListener("click", (event) => {
-      const fromFile = getAttributeOrDefault(
-        event.target,
-        "data-from-file",
-        "false"
-      );
-      const fromCamera = getAttributeOrDefault(
-        event.target,
-        "data-from-camera",
-        "false"
-      );
-      const cancelBtn = getAttributeOrDefault(
-        event.target,
-        "data-cancel",
-        "false"
-      );
-      const cameraId = getAttributeOrDefault(
-        event.target,
-        "data-camera-id",
-        ""
-      );
-
-      if (fromFile !== "false") {
-        event.stopPropagation();
-        if (this.inputMode !== "file") {
-          this.resetToInitilialStatus();
-        }
-        this.inputEl.click();
-        return;
-      }
-
-      if (cancelBtn !== "false") {
-        event.stopPropagation();
-        this.resetToInitilialStatus();
-        return;
-      }
-
-      if (cameraId.length > 0) {
-        this.captureFromCamera(cameraId);
-      } else {
-        if (fromCamera === "false") {
-          this.updateCameraList();
-          this.cameraSelectionEl.children[0].children[0].click();
-        } else {
-          if (this.cameraPreview !== void 0) {
-            event.stopPropagation();
-            const canvas = this.toCanvas(this.cameraPreview);
-            this.setPreview(canvas);
-            this.pushImage(canvas);
-            this.resetToFileMode();
-          } else {
-            event.stopPropagation();
-            this.captureFromCamera("System Default");
-          }
-        }
-      }
-    });
-
     // File selection
 
-    this.previewEl.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (this.inputMode === "file") {
-        this.inputEl.click();
-      }
+    this.uploadButton.addEventListener("click", (event) => {
+      this.inputEl.click();
     });
 
     this.inputEl.addEventListener("change", (event) => {
@@ -143,7 +75,8 @@ const ImageInput = {
       event.stopPropagation();
       event.preventDefault();
       const [file] = event.dataTransfer.files;
-      file && this.resetToFileMode() && this.loadFile(file);
+      file && this.loadFile(file);
+      this.closeCameraView();
     });
 
     this.el.addEventListener("dragenter", (event) => {
@@ -158,6 +91,39 @@ const ImageInput = {
 
     this.el.addEventListener("drop", (event) => {
       this.el.classList.remove(...dropClasses);
+    });
+
+    // Camera capture
+
+    this.openCameraButton.addEventListener("click", (event) => {
+      if (!this.cameraListPopulated) {
+        this.renderCameraList();
+        this.cameraListPopulated = true;
+      }
+    });
+
+    this.cameraListEl.addEventListener("click", (event) => {
+      const button = event.target.closest(`[data-camera-id]`);
+
+      if (button) {
+        const cameraId = button.dataset.cameraId;
+        this.openCameraView(cameraId);
+      }
+    });
+
+    this.captureCameraButton.addEventListener("click", (event) => {
+      const canvas = this.toCanvas(
+        this.cameraVideoEl,
+        this.cameraVideoEl.videoWidth,
+        this.cameraVideoEl.videoHeight
+      );
+      this.setPreview(canvas);
+      this.pushImage(canvas);
+      this.closeCameraView();
+    });
+
+    this.cancelButton.addEventListener("click", (event) => {
+      this.closeCameraView();
     });
   },
 
@@ -176,146 +142,6 @@ const ImageInput = {
     };
   },
 
-  captureFromCamera(targetCameraId) {
-    if (this.cameraPreview !== void 0 && this.cameraId === targetCameraId) {
-      return;
-    }
-
-    let constraints;
-    if (targetCameraId === "System Default") {
-      constraints = { audio: false, video: true };
-    } else {
-      constraints = {
-        audio: false,
-        video: {
-          optional: [
-            {
-              sourceId: targetCameraId,
-            },
-          ],
-        },
-        deviceId: {
-          exact: targetCameraId,
-        },
-      };
-    }
-    this.cameraId = targetCameraId;
-    this.showCancelButton(true);
-    this.showUploadButton(false);
-
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then((stream) => {
-        if (this.cameraStream !== void 0) {
-          this.stopMediaStream(this.cameraStream);
-        }
-
-        if (this.cameraPreview === void 0) {
-          this.cameraPreview = document.createElement("video");
-          this.cameraPreview.autoplay = true;
-        }
-
-        try {
-          this.cameraPreview.srcObject = stream;
-        } catch (error) {
-          this.cameraPreview.src = window.URL.createObjectURL(stream);
-        }
-
-        this.inputMode = "camera";
-        this.cameraStream = stream;
-        this.cameraButton.innerHTML = "Take picture";
-        this.setPreview(this.cameraPreview);
-      })
-      .catch(() => {});
-  },
-
-  updateCameraList() {
-    if (this.cameraList !== void 0) return;
-
-    navigator.mediaDevices
-      .getUserMedia({ audio: false, video: true })
-      .then((stream) => {
-        this.stopMediaStream(stream);
-
-        navigator.mediaDevices
-          .enumerateDevices()
-          .then((devices) => {
-            this.cameraListEl.innerHTML = this.generateCameraOption(
-              "System Default",
-              "System Default"
-            );
-            this.cameraList = devices.filter((device) => {
-              const isVideoInput = device.kind === "videoinput";
-              if (isVideoInput) {
-                this.cameraListEl.innerHTML += this.generateCameraOption(
-                  device.deviceId,
-                  device.label
-                );
-              }
-              return isVideoInput;
-            });
-          })
-          .catch(() => {});
-      })
-      .catch(() => {});
-  },
-
-  generateCameraOption(deviceId, label) {
-    return `<button class="menu-item text-gray-500" role="menuitem">
-      <span class="font-medium" data-camera-id="${deviceId}">${label}</span>
-    </button>`;
-  },
-
-  resetToFileMode() {
-    if (this.cameraStream !== void 0) {
-      this.stopMediaStream(this.cameraStream);
-    }
-    this.cameraStream = void 0;
-
-    if (this.cameraPreview !== void 0) {
-      this.cameraPreview.remove();
-      this.cameraPreview = void 0;
-    }
-
-    this.cameraButton.innerHTML = "Open camera";
-    this.inputMode = "file";
-
-    this.showCancelButton(false);
-    this.showUploadButton(true);
-
-    return true;
-  },
-
-  resetToInitilialStatus() {
-    this.resetToFileMode();
-    const promptEl = document.createElement("div");
-    promptEl.className = "flex justify-center text-gray-500";
-    promptEl.innerText = "Drag an image file";
-    this.setPreview(promptEl);
-  },
-
-  showButton(btn, display) {
-    if (display === true) {
-      btn.style = "";
-    } else {
-      btn.style = "display: none;";
-    }
-  },
-
-  showCancelButton(display) {
-    this.showButton(this.cancelButton, display);
-  },
-
-  showUploadButton(display) {
-    this.showButton(this.uploadButton, display);
-  },
-
-  stopMediaStream(mediaStream) {
-    mediaStream.getTracks().forEach((track) => {
-      track.stop();
-    });
-  },
-
   loadFile(file) {
     const reader = new FileReader();
 
@@ -323,7 +149,7 @@ const ImageInput = {
       const imgEl = document.createElement("img");
 
       imgEl.addEventListener("load", (loadEvent) => {
-        const canvas = this.toCanvas(imgEl);
+        const canvas = this.toCanvas(imgEl, imgEl.width, imgEl.height);
         this.setPreview(canvas);
         this.pushImage(canvas);
       });
@@ -332,6 +158,109 @@ const ImageInput = {
     };
 
     reader.readAsDataURL(file);
+  },
+
+  openCameraView(targetCameraId) {
+    this.cameraPreviewEl.classList.remove("hidden");
+    this.cancelButton.classList.remove("hidden");
+    this.captureCameraButton.classList.remove("hidden");
+    this.previewEl.classList.add("hidden");
+    this.openCameraButton.classList.add("hidden");
+    this.uploadButton.classList.add("hidden");
+
+    navigator.mediaDevices
+      .getUserMedia(this.cameraConstraints(targetCameraId))
+      .then((stream) => {
+        this.cameraStream = stream;
+
+        this.cameraVideoEl = document.createElement("video");
+        this.cameraVideoEl.autoplay = true;
+        this.cameraVideoEl.playsinline = true;
+        this.cameraVideoEl.muted = true;
+        this.cameraVideoEl.srcObject = stream;
+        this.setCameraPreview(this.cameraVideoEl);
+      })
+      .catch(() => {});
+  },
+
+  cameraConstraints(targetCameraId) {
+    if (targetCameraId === "system_default") {
+      return {
+        audio: false,
+        video: true,
+      };
+    } else {
+      return {
+        audio: false,
+        video: { deviceId: targetCameraId },
+      };
+    }
+  },
+
+  renderCameraList() {
+    // In Firefox we need to make sure media permissions are granted,
+    // then enumerate devices, and only then stop the stream; otherwise
+    // device labels are empty
+    navigator.mediaDevices
+      .getUserMedia({ audio: false, video: true })
+      .then((stream) => {
+        return navigator.mediaDevices.enumerateDevices().then((devices) => {
+          this.stopMediaStream(stream);
+          return devices;
+        });
+      })
+      .then((devices) => {
+        const deviceOptions = devices
+          .filter((device) => device.kind === "videoinput")
+          .map((device) => ({
+            deviceId: device.deviceId,
+            label: device.label,
+          }));
+
+        this.cameraListEl.innerHTML = [
+          { deviceId: "system_default", label: "System Default" },
+          ...deviceOptions,
+        ]
+          .map(
+            ({ deviceId, label }) => `
+            <button class="menu-item text-gray-500" role="menuitem" data-camera-id="${deviceId}">
+              <span class="font-medium">${label}</span>
+            </button>
+          `
+          )
+          .join("");
+      })
+      .catch((error) => {
+        console.error(error);
+        this.openCameraButton.disabled = true;
+      });
+  },
+
+  closeCameraView() {
+    if (this.cameraStream !== null) {
+      this.stopMediaStream(this.cameraStream);
+      this.cameraStream = null;
+    }
+
+    if (this.cameraVideoEl !== null) {
+      this.cameraVideoEl.remove();
+      this.cameraVideoEl = null;
+    }
+
+    this.cameraPreviewEl.classList.add("hidden");
+    this.cancelButton.classList.add("hidden");
+    this.captureCameraButton.classList.add("hidden");
+    this.previewEl.classList.remove("hidden");
+    this.openCameraButton.classList.remove("hidden");
+    this.uploadButton.classList.remove("hidden");
+
+    return true;
+  },
+
+  stopMediaStream(mediaStream) {
+    mediaStream.getTracks().forEach((track) => {
+      track.stop();
+    });
   },
 
   pushImage(canvas) {
@@ -344,17 +273,7 @@ const ImageInput = {
     });
   },
 
-  toCanvas(imgEl) {
-    let width, height;
-    if (this.inputMode === "camera") {
-      height = imgEl.videoHeight;
-      width = imgEl.videoWidth;
-    } else {
-      let { width: imgWidth, height: imgHeight } = imgEl;
-      width = imgWidth;
-      height = imgHeight;
-    }
-
+  toCanvas(imageEl, width, height) {
     const { width: boundWidth, height: boundHeight } = this.props;
 
     const canvas = document.createElement("canvas");
@@ -369,7 +288,7 @@ const ImageInput = {
 
       canvas
         .getContext("2d")
-        .drawImage(imgEl, 0, 0, width, height, 0, 0, width, height);
+        .drawImage(imageEl, 0, 0, width, height, 0, 0, width, height);
     } else if (this.props.fit === "contain") {
       const widthScale = boundWidth / width;
       const heightScale = boundHeight / height;
@@ -382,7 +301,7 @@ const ImageInput = {
       canvas.height = scaledHeight;
 
       ctx.drawImage(
-        imgEl,
+        imageEl,
         0,
         0,
         width,
@@ -404,7 +323,7 @@ const ImageInput = {
       canvas.height = boundHeight;
 
       ctx.drawImage(
-        imgEl,
+        imageEl,
         Math.round((scaledWidth - boundWidth) / scale / 2),
         Math.round((scaledHeight - boundHeight) / scale / 2),
         width - Math.round((scaledWidth - boundWidth) / scale),
@@ -429,7 +348,7 @@ const ImageInput = {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.drawImage(
-        imgEl,
+        imageEl,
         0,
         0,
         width,
@@ -443,7 +362,17 @@ const ImageInput = {
       canvas.width = boundWidth;
       canvas.height = boundHeight;
 
-      ctx.drawImage(imgEl, 0, 0, width, height, 0, 0, boundWidth, boundHeight);
+      ctx.drawImage(
+        imageEl,
+        0,
+        0,
+        width,
+        height,
+        0,
+        0,
+        boundWidth,
+        boundHeight
+      );
     }
 
     return canvas;
@@ -452,6 +381,11 @@ const ImageInput = {
   setPreview(element) {
     element.style.maxHeight = "300px";
     this.previewEl.replaceChildren(element);
+  },
+
+  setCameraPreview(element) {
+    element.style.maxHeight = "300px";
+    this.cameraPreviewEl.replaceChildren(element);
   },
 };
 
