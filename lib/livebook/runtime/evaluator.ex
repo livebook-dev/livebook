@@ -293,7 +293,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     Process.put(@ebin_path_key, ebin_path)
 
-    ignored_pdict_keys = Process.get_keys() |> MapSet.new()
+    ignored_pdict_keys = MapSet.new([:rand_seed, :random_seed] ++ Process.get_keys())
 
     state = %{
       evaluator_ref: evaluator_ref,
