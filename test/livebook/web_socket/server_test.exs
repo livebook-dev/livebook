@@ -1,7 +1,6 @@
 defmodule Livebook.WebSocket.ServerTest do
   use Livebook.EnterpriseIntegrationCase, async: true
 
-  @app_version Mix.Project.config()[:version]
   @moduletag :capture_log
 
   alias Livebook.WebSocket.Server
@@ -62,7 +61,7 @@ defmodule Livebook.WebSocket.ServerTest do
       conn: conn,
       user: %{id: id, email: email}
     } do
-      session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
+      session_request = LivebookProto.SessionRequest.new!(app_version: Livebook.app_version())
 
       assert {:ok, req_id} = Server.send_request(conn, session_request)
       assert_receive {:response, ^req_id, {:session, session_response}}

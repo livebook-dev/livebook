@@ -1,6 +1,5 @@
 defmodule Livebook.Hubs.EnterpriseClientTest do
   use Livebook.EnterpriseIntegrationCase, async: true
-  @app_version Mix.Project.config()[:version]
 
   alias Livebook.Hubs.EnterpriseClient
 
@@ -43,7 +42,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
     end
 
     test "successfully sends a session message", %{pid: pid, user: %{id: id, email: email}} do
-      session_request = LivebookProto.SessionRequest.new!(app_version: @app_version)
+      session_request = LivebookProto.SessionRequest.new!(app_version: Livebook.app_version())
 
       assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} =
                EnterpriseClient.send_request(pid, session_request)

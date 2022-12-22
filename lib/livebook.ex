@@ -72,6 +72,9 @@ defmodule Livebook do
       ]
   """
 
+  @doc false
+  def app_version, do: Application.spec(:livebook, :vsn) |> List.to_string()
+
   @doc """
   Executes Livebook's `config/runtime.exs`.
 
