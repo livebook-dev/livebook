@@ -96,6 +96,28 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_3, {:ok, 2}, metadata()}
     end
 
+    test "keeps :rand state intact in process dictionary", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, ":rand.seed(:default, 0)", :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, ":rand.uniform()", :code_2, [])
+      assert_receive {:runtime_evaluation_response, :code_2, {:ok, number1}, metadata()}
+
+      Evaluator.evaluate_code(evaluator, ":rand.uniform()", :code_2, [])
+      assert_receive {:runtime_evaluation_response, :code_2, {:ok, number2}, metadata()}
+
+      assert number1 != number2
+
+      Evaluator.evaluate_code(evaluator, ":rand.seed(:default, 0)", :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+
+      Evaluator.evaluate_code(evaluator, ":rand.uniform()", :code_2, [])
+      assert_receive {:runtime_evaluation_response, :code_2, {:ok, ^number1}, metadata()}
+
+      Evaluator.evaluate_code(evaluator, ":rand.uniform()", :code_2, [])
+      assert_receive {:runtime_evaluation_response, :code_2, {:ok, ^number2}, metadata()}
+    end
+
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, ~s{IO.puts("hey")}, :code_1, [])
 
