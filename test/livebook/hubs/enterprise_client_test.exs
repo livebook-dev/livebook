@@ -1,5 +1,6 @@
 defmodule Livebook.Hubs.EnterpriseClientTest do
   use Livebook.EnterpriseIntegrationCase, async: true
+  @moduletag :capture_log
 
   alias Livebook.Hubs.EnterpriseClient
 
@@ -12,7 +13,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
 
     test "rejects the websocket with invalid address", %{token: token} do
       enterprise = build(:enterprise, url: "http://localhost:9999", token: token)
-      EnterpriseClient.subscribe()
+      Livebook.WebSocket.subscribe()
 
       assert {:ok, _pid} = EnterpriseClient.start_link(enterprise)
       assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
@@ -20,7 +21,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
 
     test "rejects the web socket connection with invalid credentials", %{url: url} do
       enterprise = build(:enterprise, url: url, token: "foo")
-      EnterpriseClient.subscribe()
+      Livebook.WebSocket.subscribe()
 
       assert {:ok, _pid} = EnterpriseClient.start_link(enterprise)
       assert_receive {:connect, :error, reason}
@@ -31,7 +32,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
   describe "send_request/1" do
     setup %{url: url, token: token} do
       enterprise = build(:enterprise, url: url, token: token)
-      EnterpriseClient.subscribe()
+      Livebook.WebSocket.subscribe()
 
       {:ok, pid} = EnterpriseClient.start_link(enterprise)
       refute_receive {:connect, :error, _}
@@ -42,7 +43,8 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
     end
 
     test "successfully sends a session message", %{pid: pid, user: %{id: id, email: email}} do
-      session_request = LivebookProto.SessionRequest.new!(app_version: Livebook.app_version())
+      session_request =
+        LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
       assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} =
                EnterpriseClient.send_request(pid, session_request)

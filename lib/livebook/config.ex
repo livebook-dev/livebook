@@ -366,6 +366,9 @@ defmodule Livebook.Config do
     end
   end
 
+  @doc false
+  def app_version, do: Application.spec(:livebook, :vsn) |> List.to_string()
+
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
 

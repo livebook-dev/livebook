@@ -32,45 +32,12 @@ defmodule Livebook.Hubs.EnterpriseClient do
     GenServer.cast(pid, :disconnect)
   end
 
-  @doc """
-  Subscribe to Enterprise Client events.
-
-  ## Messages
-
-    * `{:connect, :error, reason}`
-
-  """
-  @spec subscribe() :: :ok | {:error, {:already_registered, pid()}}
-  def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "enterprise")
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe() :: :ok
-  def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "enterprise")
-  end
-
-  @doc """
-  Notifies interested processes about Enterprise Client messages.
-
-  Broadcasts the given message under the `"enterprise"` topic.
-  """
-  @spec broadcast_message(any()) :: :ok
-  def broadcast_message(message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "enterprise", message)
-  end
-
   ## GenServer callbacks
 
   @impl true
   def init(%Enterprise{url: url, token: token} = enterprise) do
     headers = [{"X-Auth-Token", token}]
-
-    {:ok, pid} = Server.start_link(url, headers)
-    WebSocket.subscribe()
+    {:ok, pid} = Server.start_link(self(), url, headers)
 
     {:ok, %__MODULE__{hub: enterprise, server: pid}}
   end
@@ -91,17 +58,16 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @impl true
   def handle_info({:connect, _, _} = message, state) do
-    broadcast_message(message)
+    WebSocket.broadcast_message(message)
     {:noreply, state}
   end
 
   def handle_info({:disconnect, :error, _} = message, state) do
-    broadcast_message(message)
+    WebSocket.broadcast_message(message)
     {:noreply, state}
   end
 
   def handle_info({:disconnect, :ok, :disconnected}, state) do
-    WebSocket.unsubscribe()
     {:stop, :normal, state}
   end
 

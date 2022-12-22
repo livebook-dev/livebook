@@ -5,17 +5,11 @@ defmodule Livebook.WebSocket.ServerTest do
 
   alias Livebook.WebSocket.Server
 
-  setup do
-    Livebook.WebSocket.subscribe()
-
-    :ok
-  end
-
   describe "connect" do
     test "successfully authenticates the websocket connection", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, conn} = Server.start_link(url, headers)
+      assert {:ok, conn} = Server.start_link(self(), url, headers)
       assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
       assert Server.connected?(conn)
@@ -24,20 +18,20 @@ defmodule Livebook.WebSocket.ServerTest do
     test "rejects the websocket with invalid address", %{token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, conn} = Server.start_link("http://localhost:9999", headers)
+      assert {:ok, conn} = Server.start_link(self(), "http://localhost:9999", headers)
       refute Server.connected?(conn)
     end
 
     test "rejects the websocket connection with invalid credentials", %{url: url} do
       headers = [{"X-Auth-Token", "foo"}]
 
-      assert {:ok, conn} = Server.start_link(url, headers)
+      assert {:ok, conn} = Server.start_link(self(), url, headers)
 
       assert_receive {:connect, :error, reason}
       assert reason =~ "the given token is invalid"
       assert Server.close(conn) == :ok
 
-      assert {:ok, conn} = Server.start_link(url)
+      assert {:ok, conn} = Server.start_link(self(), url)
 
       assert_receive {:connect, :error, reason}
       assert reason =~ "could not get the token from the connection"
@@ -49,7 +43,7 @@ defmodule Livebook.WebSocket.ServerTest do
     setup %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      {:ok, conn} = Server.start_link(url, headers)
+      {:ok, conn} = Server.start_link(self(), url, headers)
 
       assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
@@ -61,7 +55,8 @@ defmodule Livebook.WebSocket.ServerTest do
       conn: conn,
       user: %{id: id, email: email}
     } do
-      session_request = LivebookProto.SessionRequest.new!(app_version: Livebook.app_version())
+      session_request =
+        LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
       assert {:ok, req_id} = Server.send_request(conn, session_request)
       assert_receive {:response, ^req_id, {:session, session_response}}
@@ -84,7 +79,7 @@ defmodule Livebook.WebSocket.ServerTest do
       token = EnterpriseServer.token(name)
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, conn} = Server.start_link(url, headers)
+      assert {:ok, conn} = Server.start_link(self(), url, headers)
 
       assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}

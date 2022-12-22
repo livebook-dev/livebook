@@ -59,7 +59,9 @@ defmodule Livebook.WebSocket.ClientTest do
       ref: ref,
       user: %{id: id, email: email}
     } do
-      session_request = LivebookProto.SessionRequest.new!(app_version: Livebook.app_version())
+      session_request =
+        LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
+
       request = Request.new!(type: {:session, session_request})
       frame = {:binary, Request.encode(request)}
 

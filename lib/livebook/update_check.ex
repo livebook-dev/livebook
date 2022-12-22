@@ -142,7 +142,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp new_version(release) do
-    current_version = Livebook.app_version()
+    current_version = Livebook.Config.app_version()
 
     with %{
            "tag_name" => "v" <> version,
