@@ -10,15 +10,15 @@ defmodule Livebook.WebSocket.Server do
   @timeout 10_000
   @backoff 1_490
 
-  defstruct [:url, :headers, :http_conn, :websocket, :ref, id: 0]
+  defstruct [:url, :listener, :headers, :http_conn, :websocket, :ref, id: 0, reply: %{}]
 
   @doc """
   Starts a new WebSocket Server connection with given URL and headers.
   """
-  @spec start_link(String.t(), Mint.Types.headers()) ::
+  @spec start_link(pid(), String.t(), Mint.Types.headers()) ::
           {:ok, pid()} | {:error, {:already_started, pid()}}
-  def start_link(url, headers \\ []) do
-    Connection.start_link(__MODULE__, {url, headers})
+  def start_link(listener, url, headers \\ []) do
+    Connection.start_link(__MODULE__, {listener, url, headers})
   end
 
   @doc """
@@ -40,7 +40,7 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Sends a Request to given WebSocket Server.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: :ok
+  @spec send_request(pid(), WebSocket.proto()) :: {:ok, non_neg_integer()}
   def send_request(conn, %_struct{} = data) do
     Connection.call(conn, {:request, data}, @timeout)
   end
@@ -48,8 +48,8 @@ defmodule Livebook.WebSocket.Server do
   ## Connection callbacks
 
   @impl true
-  def init({url, headers}) do
-    state = struct!(__MODULE__, url: url, headers: headers)
+  def init({listener, url, headers}) do
+    state = struct!(__MODULE__, listener: listener, url: url, headers: headers)
     {:connect, :init, state}
   end
 
@@ -57,14 +57,19 @@ defmodule Livebook.WebSocket.Server do
   def connect(_, state) do
     case Client.connect(state.url, state.headers) do
       {:ok, conn, ref} ->
+        send(state.listener, {:connect, :ok, :waiting_upgrade})
         {:ok, %{state | http_conn: conn, ref: ref}}
 
       {:error, exception} when is_exception(exception) ->
         Logger.error("Received exception: #{Exception.message(exception)}")
+        send(state.listener, {:connect, :error, exception})
+
         {:backoff, @backoff, state}
 
       {:error, conn, reason} ->
         Logger.error("Received error: #{inspect(reason)}")
+        send(state.listener, {:connect, :error, reason})
+
         {:backoff, @backoff, %{state | http_conn: conn}}
     end
   end
@@ -73,13 +78,15 @@ defmodule Livebook.WebSocket.Server do
 
   @impl true
   def disconnect({:close, caller}, state) do
+    Connection.reply(caller, :ok)
+
     case Client.disconnect(state.http_conn, state.websocket, state.ref) do
       {:ok, conn, websocket} ->
-        Connection.reply(caller, :ok)
+        send(state.listener, {:disconnect, :ok, :disconnected})
         {:noconnect, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, reason} ->
-        Connection.reply(caller, {:error, reason})
+        send(state.listener, {:disconnect, :error, reason})
         {:noconnect, %{state | http_conn: conn, websocket: websocket}}
     end
   end
@@ -92,10 +99,14 @@ defmodule Livebook.WebSocket.Server do
 
     case Client.disconnect(state.http_conn, state.websocket, state.ref) do
       {:ok, conn, websocket} ->
+        send(state.listener, {:disconnect, :ok, :disconnected})
+
         {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, reason} ->
         Logger.error("Received error: #{inspect(reason)}")
+        send(state.listener, {:disconnect, :error, reason})
+
         {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
     end
   end
@@ -118,15 +129,14 @@ defmodule Livebook.WebSocket.Server do
   def handle_call({:request, data}, caller, state) do
     id = state.id
     frame = LivebookProto.build_request_frame(data, id)
-    Connection.reply(caller, :ok)
+    reply = Map.put(state.reply, id, caller)
 
     case Client.send(state.http_conn, state.websocket, state.ref, frame) do
       {:ok, conn, websocket} ->
-        {:noreply, %{state | http_conn: conn, websocket: websocket, id: id + 1}}
+        {:noreply, %{state | http_conn: conn, websocket: websocket, id: id + 1, reply: reply}}
 
       {:error, conn, websocket, reason} ->
-        WebSocket.broadcast_message({:error, self(), id, reason})
-        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+        {:reply, {:error, reason}, %{state | http_conn: conn, websocket: websocket}}
     end
   end
 
@@ -134,30 +144,25 @@ defmodule Livebook.WebSocket.Server do
   def handle_info(message, state) do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
-        {:ok, :connected}
-        |> build_response(state)
-        |> WebSocket.broadcast_message()
+        send(state.listener, build_message({:ok, :connected}))
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, %Mint.TransportError{} = reason} ->
-        {:error, reason}
-        |> build_response(state)
-        |> WebSocket.broadcast_message()
+        send(state.listener, build_message({:error, reason}))
 
         {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
 
       {term, conn, websocket, data} ->
-        {term, data}
-        |> build_response(state)
-        |> WebSocket.broadcast_message()
+        state =
+          {term, data}
+          |> build_message()
+          |> send_reply(state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, _} = error ->
-        error
-        |> build_response(state)
-        |> WebSocket.broadcast_message()
+        send(state.listener, build_message(error))
 
         {:noreply, state}
     end
@@ -165,32 +170,74 @@ defmodule Livebook.WebSocket.Server do
 
   # Private
 
-  defp build_response({:ok, :connected}, state) do
-    {:ok, self(), state.id, :connected}
-  end
-
-  defp build_response({:ok, %Client.Response{body: nil, status: nil, headers: nil}}, state) do
-    {:ok, self(), state.id, :pong}
-  end
-
-  defp build_response({:error, %Client.Response{body: nil, status: status} = response}, state) do
-    response = %{response | body: Plug.Conn.Status.reason_phrase(status)}
-    {:error, self(), state.id, response}
-  end
-
-  defp build_response({:ok, %Client.Response{body: body} = response}, _state) do
-    case LivebookProto.Response.decode(body) do
-      %{id: id, type: {:error, _} = error} -> {:error, self(), id, %{response | body: error}}
-      %{id: id, type: result} -> {:ok, self(), id, result}
+  defp send_reply({:response, :error, reason}, state) do
+    for {id, caller} <- state.reply, reduce: state do
+      acc ->
+        Connection.reply(caller, {:error, reason})
+        %{acc | reply: Map.delete(acc.reply, id)}
     end
   end
 
-  defp build_response({:error, %Client.Response{body: body} = response}, _state) do
-    %{id: id, type: {:error, _} = error} = LivebookProto.Response.decode(body)
-    {:error, self(), id, %{response | body: error}}
+  defp send_reply({:response, id, result}, state) do
+    if caller = state.reply[id] do
+      Connection.reply(caller, result)
+    end
+
+    %{state | reply: Map.delete(state.reply, id)}
   end
 
-  defp build_response({:error, reason}, state) do
-    {:error, self(), state.id, %Client.Response{body: reason}}
+  defp send_reply(message, state) do
+    send(state.listener, message)
+
+    state
+  end
+
+  defp build_message({:ok, :connected}) do
+    {:connect, :ok, :connected}
+  end
+
+  defp build_message({:ok, %Client.Response{body: nil, status: nil}}) do
+    :pong
+  end
+
+  defp build_message({:error, %Client.Response{body: nil, status: status}}) do
+    {:response, :error, Plug.Conn.Status.reason_phrase(status)}
+  end
+
+  defp build_message({:ok, %Client.Response{body: body}}) do
+    case LivebookProto.Response.decode(body) do
+      %{id: -1, type: {:error, %{details: reason}}} ->
+        {:response, :error, reason}
+
+      %{id: id, type: {:error, %{details: reason}}} ->
+        {:response, id, {:error, reason}}
+
+      %{id: id, type: result} ->
+        {:response, id, result}
+    end
+  end
+
+  defp build_message({:error, %Client.Response{body: body} = response})
+       when response.status != nil do
+    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
+    {:connect, :error, reason}
+  end
+
+  defp build_message({:error, %Client.Response{body: body}}) do
+    case LivebookProto.Response.decode(body) do
+      %{id: -1, type: {:error, %{details: reason}}} ->
+        {:response, :error, reason}
+
+      %{id: id, type: {:error, %{details: reason}}} ->
+        {:response, id, {:error, reason}}
+    end
+  end
+
+  defp build_message({:error, %Mint.TransportError{} = reason}) do
+    {:connect, :error, reason}
+  end
+
+  defp build_message({:error, reason}) do
+    {:unknown, :error, reason}
   end
 end
