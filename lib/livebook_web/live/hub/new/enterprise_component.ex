@@ -5,12 +5,12 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Enterprise, EnterpriseClient}
-  alias Livebook.WebSocket
+  alias Livebook.WebSocket.Server
 
   @impl true
   def update(assigns, socket) do
     if connected?(socket) do
-      WebSocket.subscribe()
+      EnterpriseClient.subscribe()
     end
 
     {:ok,
@@ -127,7 +127,9 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         session_request =
           LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
-        case EnterpriseClient.send_request(pid, session_request) do
+        conn = EnterpriseClient.get_server(pid)
+
+        case Server.send_request(conn, session_request) do
           {:session, session_response} ->
             base = %{base | external_id: session_response.user.id}
             changeset = Enterprise.change_hub(base)

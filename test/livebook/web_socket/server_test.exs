@@ -58,8 +58,7 @@ defmodule Livebook.WebSocket.ServerTest do
       session_request =
         LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
-      assert {:ok, req_id} = Server.send_request(conn, session_request)
-      assert_receive {:response, ^req_id, {:session, session_response}}
+      assert {:session, session_response} = Server.send_request(conn, session_request)
       assert %{id: _, user: %{id: ^id, email: ^email}} = session_response
     end
   end

@@ -10,7 +10,7 @@ defmodule Livebook.WebSocket.Server do
   @timeout 10_000
   @backoff 1_490
 
-  defstruct [:url, :listener, :headers, :http_conn, :websocket, :ref, id: 0]
+  defstruct [:url, :listener, :headers, :http_conn, :websocket, :ref, id: 0, reply: %{}]
 
   @doc """
   Starts a new WebSocket Server connection with given URL and headers.
@@ -126,13 +126,14 @@ defmodule Livebook.WebSocket.Server do
     {:disconnect, {:close, caller}, state}
   end
 
-  def handle_call({:request, data}, _caller, state) do
+  def handle_call({:request, data}, caller, state) do
     id = state.id
     frame = LivebookProto.build_request_frame(data, id)
+    reply = Map.put(state.reply, id, caller)
 
     case Client.send(state.http_conn, state.websocket, state.ref, frame) do
       {:ok, conn, websocket} ->
-        {:reply, {:ok, id}, %{state | http_conn: conn, websocket: websocket, id: id + 1}}
+        {:noreply, %{state | http_conn: conn, websocket: websocket, id: id + 1, reply: reply}}
 
       {:error, conn, websocket, reason} ->
         {:reply, {:error, reason}, %{state | http_conn: conn, websocket: websocket}}
@@ -153,7 +154,10 @@ defmodule Livebook.WebSocket.Server do
         {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
 
       {term, conn, websocket, data} ->
-        send(state.listener, build_message({term, data}))
+        state =
+          {term, data}
+          |> build_message()
+          |> send_reply(state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
@@ -165,6 +169,28 @@ defmodule Livebook.WebSocket.Server do
   end
 
   # Private
+
+  defp send_reply({:response, :error, reason}, state) do
+    for {id, caller} <- state.reply, reduce: state do
+      acc ->
+        Connection.reply(caller, {:error, reason})
+        %{acc | reply: Map.delete(acc.reply, id)}
+    end
+  end
+
+  defp send_reply({:response, id, result}, state) do
+    if caller = state.reply[id] do
+      Connection.reply(caller, result)
+    end
+
+    %{state | reply: Map.delete(state.reply, id)}
+  end
+
+  defp send_reply(message, state) do
+    send(state.listener, message)
+
+    state
+  end
 
   defp build_message({:ok, :connected}) do
     {:connect, :ok, :connected}

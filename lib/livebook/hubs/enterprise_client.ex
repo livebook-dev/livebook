@@ -3,10 +3,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   use GenServer
 
   alias Livebook.Hubs.Enterprise
-  alias Livebook.WebSocket
   alias Livebook.WebSocket.Server
 
-  defstruct [:server, :hub, reply: %{}]
+  @pubsub_topic "enterprise"
+
+  defstruct [:server, :hub]
 
   @doc """
   Connects the Enterprise client with WebSocket server.
@@ -17,11 +18,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @doc """
-  Sends a Request.
+  Gets the WebSocket server PID.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: :ok
-  def send_request(pid, %_struct{} = data) do
-    GenServer.call(pid, {:request, data})
+  @spec get_server(pid()) :: pid()
+  def get_server(pid) do
+    GenServer.call(pid, :get_server)
   end
 
   @doc """
@@ -31,6 +32,36 @@ defmodule Livebook.Hubs.EnterpriseClient do
   def disconnect(pid) do
     GenServer.cast(pid, :disconnect)
   end
+
+  @doc """
+  Subscribe to WebSocket Server events.
+
+  ## Messages
+
+    * `{:unknown, :error, reason}`
+    * `{:connect, :ok, :waiting_upgrade | :connected}`
+    * `{:connect, :error, reason}`
+    * `{:disconnect, :ok, :disconnected}`
+    * `{:disconnect, :error, reason}`
+
+  """
+  @spec subscribe() :: :ok | {:error, {:already_registered, pid()}}
+  def subscribe do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, @pubsub_topic)
+  end
+
+  @doc """
+  Unsubscribes from `subscribe/0`.
+  """
+  @spec unsubscribe() :: :ok
+  def unsubscribe do
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, @pubsub_topic)
+  end
+
+  @doc """
+
+  """
+  @spec broadcast_message(any()) :: :ok
 
   ## GenServer callbacks
 
@@ -43,10 +74,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @impl true
-  def handle_call({:request, data}, caller, state) do
-    {:ok, id} = Server.send_request(state.server, data)
-
-    {:noreply, %{state | reply: Map.put(state.reply, id, caller)}}
+  def handle_call(:get_server, _caller, state) do
+    {:reply, state.server, state}
   end
 
   @impl true
@@ -58,12 +87,12 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @impl true
   def handle_info({:connect, _, _} = message, state) do
-    WebSocket.broadcast_message(message)
+    broadcast_message(message)
     {:noreply, state}
   end
 
   def handle_info({:disconnect, :error, _} = message, state) do
-    WebSocket.broadcast_message(message)
+    broadcast_message(message)
     {:noreply, state}
   end
 
@@ -71,14 +100,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:stop, :normal, state}
   end
 
-  def handle_info({:response, :error, _reason}, state) do
-    {:noreply, state}
-  end
+  # Private
 
-  def handle_info({:response, id, result}, state) do
-    {caller, reply} = Map.pop(state.reply, id)
-    if caller, do: GenServer.reply(caller, result)
-
-    {:noreply, %{state | reply: reply}}
+  # Notifies interested processes about WebSocket Server messages.
+  # Broadcasts the given message under the `"enterprise"` topic.
+  defp broadcast_message(message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, @pubsub_topic, message)
   end
 end

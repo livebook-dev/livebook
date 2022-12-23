@@ -366,7 +366,9 @@ defmodule Livebook.Config do
     end
   end
 
-  @doc false
+  @doc """
+  Returns the current version of running Livebook.
+  """
   def app_version, do: Application.spec(:livebook, :vsn) |> List.to_string()
 
   defp parse_connection_config!(config) do
