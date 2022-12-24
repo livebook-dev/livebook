@@ -20,9 +20,9 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Gets the WebSocket server PID.
   """
-  @spec get_server(pid()) :: pid()
-  def get_server(pid) do
-    GenServer.call(pid, :get_server)
+  @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
+  def send_request(pid, %_struct{} = data) do
+    Server.send_request(GenServer.call(pid, :get_server), data)
   end
 
   @doc """
@@ -57,11 +57,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   def unsubscribe do
     Phoenix.PubSub.unsubscribe(Livebook.PubSub, @pubsub_topic)
   end
-
-  @doc """
-
-  """
-  @spec broadcast_message(any()) :: :ok
 
   ## GenServer callbacks
 
