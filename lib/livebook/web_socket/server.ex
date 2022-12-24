@@ -40,7 +40,7 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Sends a Request to given WebSocket Server.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: {:ok, non_neg_integer()}
+  @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
   def send_request(conn, %_struct{} = data) do
     Connection.call(conn, {:request, data}, @timeout)
   end
