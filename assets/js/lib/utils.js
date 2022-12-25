@@ -21,6 +21,10 @@ export function isElementHidden(element) {
   return element.offsetParent === null;
 }
 
+export function isElementVisibleInViewport(element) {
+  return !isElementHidden(element) && isElementInViewport(element);
+}
+
 export function clamp(n, x, y) {
   return Math.min(Math.max(n, x), y);
 }
