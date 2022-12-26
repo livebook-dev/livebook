@@ -144,100 +144,87 @@ defmodule Livebook.WebSocket.Server do
   def handle_info(message, state) do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
-        send(state.listener, build_message({:ok, :connected}))
+        state = send_received({:ok, :connected}, state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, %Mint.TransportError{} = reason} ->
-        send(state.listener, build_message({:error, reason}))
+        state = send_received({:error, reason}, state)
 
         {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
 
       {term, conn, websocket, data} ->
-        state =
-          {term, data}
-          |> build_message()
-          |> send_reply(state)
+        state = send_received({term, data}, state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, _} = error ->
-        send(state.listener, build_message(error))
-
-        {:noreply, state}
+        {:noreply, send_received(error, state)}
     end
   end
 
   # Private
 
-  defp send_reply({:response, :error, reason}, state) do
-    for {id, caller} <- state.reply, reduce: state do
-      acc ->
-        Connection.reply(caller, {:error, reason})
-        %{acc | reply: Map.delete(acc.reply, id)}
+  defp send_received({:ok, :connected}, state) do
+    send(state.listener, {:connect, :ok, :connected})
+    state
+  end
+
+  defp send_received({:ok, %Client.Response{body: nil, status: nil}}, state), do: state
+
+  defp send_received({:ok, %Client.Response{body: body}}, state) do
+    case LivebookProto.Response.decode(body) do
+      %{id: -1, type: {:error, %{details: reason}}} ->
+        reply_to_all({:error, reason}, state)
+
+      %{id: id, type: {:error, %{details: reason}}} ->
+        reply_to_id(id, {:error, reason}, state)
+
+      %{id: id, type: result} ->
+        reply_to_id(id, result, state)
     end
   end
 
-  defp send_reply({:response, id, result}, state) do
-    if caller = state.reply[id] do
-      Connection.reply(caller, result)
-    end
+  defp send_received({:error, :unknown}, state), do: state
 
-    %{state | reply: Map.delete(state.reply, id)}
+  defp send_received({:error, %Mint.TransportError{} = reason}, state) do
+    send(state.listener, {:connect, :error, reason})
+    state
   end
 
-  defp send_reply(message, state) do
-    send(state.listener, message)
+  defp send_received({:error, %Client.Response{body: body, status: status}}, state)
+       when body != nil and status != nil do
+    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
+    send(state.listener, {:connect, :error, reason})
 
     state
   end
 
-  defp build_message({:ok, :connected}) do
-    {:connect, :ok, :connected}
+  defp send_received({:error, %Client.Response{body: nil, status: status}}, state)
+       when status != nil do
+    reply_to_all({:error, Plug.Conn.Status.reason_phrase(status)}, state)
   end
 
-  defp build_message({:ok, %Client.Response{body: nil, status: nil}}) do
-    :pong
-  end
-
-  defp build_message({:error, %Client.Response{body: nil, status: status}}) do
-    {:response, :error, Plug.Conn.Status.reason_phrase(status)}
-  end
-
-  defp build_message({:ok, %Client.Response{body: body}}) do
+  defp send_received({:error, %Client.Response{body: body, status: nil}}, state) do
     case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} ->
-        {:response, :error, reason}
-
-      %{id: id, type: {:error, %{details: reason}}} ->
-        {:response, id, {:error, reason}}
-
-      %{id: id, type: result} ->
-        {:response, id, result}
+      %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, state)
+      %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, state)
     end
   end
 
-  defp build_message({:error, %Client.Response{body: body} = response})
-       when response.status != nil do
-    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
-    {:connect, :error, reason}
-  end
-
-  defp build_message({:error, %Client.Response{body: body}}) do
-    case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} ->
-        {:response, :error, reason}
-
-      %{id: id, type: {:error, %{details: reason}}} ->
-        {:response, id, {:error, reason}}
+  defp reply_to_all(message, state) do
+    for {id, caller} <- state.reply, reduce: state do
+      acc ->
+        Connection.reply(caller, message)
+        %{acc | reply: Map.delete(acc.reply, id)}
     end
   end
 
-  defp build_message({:error, %Mint.TransportError{} = reason}) do
-    {:connect, :error, reason}
-  end
+  defp reply_to_id(id, message, state) do
+    if caller = state.reply[id] do
+      Connection.reply(caller, message)
+    end
 
-  defp build_message({:error, reason}) do
-    {:unknown, :error, reason}
+    %{state | reply: Map.delete(state.reply, id)}
   end
 end
