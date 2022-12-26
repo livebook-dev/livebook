@@ -10,7 +10,6 @@ defmodule Livebook.WebSocket.ServerTest do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, _conn} = Server.start_link(self(), url, headers)
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
     end
 
@@ -18,7 +17,6 @@ defmodule Livebook.WebSocket.ServerTest do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, _conn} = Server.start_link(self(), "http://localhost:9999", headers)
-      refute_receive {:connect, :ok, :waiting_upgrade}
       refute_receive {:connect, :ok, :connected}
     end
 
@@ -43,7 +41,6 @@ defmodule Livebook.WebSocket.ServerTest do
 
       {:ok, conn} = Server.start_link(self(), url, headers)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
 
       {:ok, conn: conn}
@@ -78,7 +75,6 @@ defmodule Livebook.WebSocket.ServerTest do
 
       assert {:ok, conn} = Server.start_link(self(), url, headers)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
 
       on_exit(fn ->
@@ -109,7 +105,6 @@ defmodule Livebook.WebSocket.ServerTest do
       # Wait until the server is up again
       assert EnterpriseServer.reconnect(name) == :ok
 
-      assert_receive {:connect, :ok, :waiting_upgrade}, 3000
       assert_receive {:connect, :ok, :connected}, 3000
     end
   end
@@ -120,7 +115,6 @@ defmodule Livebook.WebSocket.ServerTest do
 
       {:ok, _conn} = Server.start_link(self(), url, headers)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
 
       :ok
@@ -129,7 +123,8 @@ defmodule Livebook.WebSocket.ServerTest do
     test "receives a secret_created event" do
       name = "MY_SECRET_ID"
       value = Livebook.Utils.random_id()
-      EnterpriseServer.rpc(:create_secret, [name, value])
+      node = EnterpriseServer.get_node()
+      :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
     end
@@ -137,12 +132,13 @@ defmodule Livebook.WebSocket.ServerTest do
     test "receives a secret_updated event" do
       name = "API_USERNAME"
       value = "JakePeralta"
-      secret = EnterpriseServer.rpc(:create_secret, [name, value])
+      node = EnterpriseServer.get_node()
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
 
       new_value = "ChonkyCat"
-      EnterpriseServer.rpc(:update_secret, [secret, new_value])
+      :erpc.call(node, Enterprise.Integration, :update_secret, [secret, new_value])
 
       assert_receive {:event, :secret_updated, %{name: ^name, value: ^new_value}}
     end

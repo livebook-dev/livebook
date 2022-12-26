@@ -31,10 +31,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   ## Messages
 
-    * `{:connect, :ok, :waiting_upgrade | :connected}`
+    * `{:connect, :ok, :connected}`
     * `{:connect, :error, reason}`
-    * `{:disconnect, :ok, :disconnected}`
-    * `{:disconnect, :error, reason}`
     * `{:secret_created, %Secret{}}`
     * `{:secret_updated, %Secret{}}`
 

@@ -15,7 +15,6 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       enterprise = build(:enterprise, url: url, token: token)
 
       assert {:ok, _pid} = EnterpriseClient.start_link(enterprise)
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
     end
 
@@ -40,7 +39,6 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       enterprise = build(:enterprise, url: url, token: token)
       assert {:ok, _pid} = EnterpriseClient.start_link(enterprise)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
 
       :ok
@@ -49,7 +47,8 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
     test "receives a secret_created event" do
       name = "API_TOKEN_ID"
       value = Livebook.Utils.random_id()
-      EnterpriseServer.rpc(:create_secret, [name, value])
+      node = EnterpriseServer.get_node()
+      :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:secret_created, %Secret{name: ^name, value: ^value}}
     end
@@ -57,12 +56,13 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
     test "receives a secret_updated event" do
       name = "SUPER_SUDO_USER"
       value = "JakePeralta"
-      secret = EnterpriseServer.rpc(:create_secret, [name, value])
+      node = EnterpriseServer.get_node()
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:secret_created, %Secret{name: ^name, value: ^value}}
 
       new_value = "ChonkyCat"
-      EnterpriseServer.rpc(:update_secret, [secret, new_value])
+      :erpc.call(node, Enterprise.Integration, :update_secret, [secret, new_value])
 
       assert_receive {:secret_updated, %Secret{name: ^name, value: ^new_value}}
     end

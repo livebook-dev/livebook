@@ -23,6 +23,10 @@ defmodule Livebook.EnterpriseServer do
     GenServer.call(name, :fetch_user, @timeout)
   end
 
+  def get_node(name \\ @name) do
+    GenServer.call(name, :fetch_node)
+  end
+
   def drop_database(name \\ @name) do
     GenServer.cast(name, :drop_database)
   end
@@ -33,10 +37,6 @@ defmodule Livebook.EnterpriseServer do
 
   def disconnect(name \\ @name) do
     GenServer.cast(name, :disconnect)
-  end
-
-  def rpc(name \\ @name, function, args) do
-    GenServer.call(name, {:call_rpc, function, args})
   end
 
   # GenServer Callbacks
@@ -78,8 +78,8 @@ defmodule Livebook.EnterpriseServer do
     {:reply, url, %{state | url: url}}
   end
 
-  def handle_call({:call_rpc, function, args}, _from, state) do
-    {:reply, call_erpc_function(state.node, function, args), state}
+  def handle_call(:fetch_node, _from, state) do
+    {:reply, state.node, state}
   end
 
   @impl true

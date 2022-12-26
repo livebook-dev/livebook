@@ -41,7 +41,6 @@ defmodule Livebook.WebSocket.Server do
   def connect(_, state) do
     case Client.connect(state.url, state.headers) do
       {:ok, conn, ref} ->
-        send(state.listener, {:connect, :ok, :waiting_upgrade})
         {:ok, %{state | http_conn: conn, ref: ref}}
 
       {:error, exception} when is_exception(exception) ->
