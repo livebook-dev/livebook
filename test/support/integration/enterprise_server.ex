@@ -35,6 +35,10 @@ defmodule Livebook.EnterpriseServer do
     GenServer.cast(name, :disconnect)
   end
 
+  def rpc(name \\ @name, function, args) do
+    GenServer.call(name, {:call_rpc, function, args})
+  end
+
   # GenServer Callbacks
 
   @impl true
@@ -72,6 +76,10 @@ defmodule Livebook.EnterpriseServer do
     url = state.url || fetch_url(state)
 
     {:reply, url, %{state | url: url}}
+  end
+
+  def handle_call({:call_rpc, function, args}, _from, state) do
+    {:reply, call_erpc_function(state.node, function, args), state}
   end
 
   @impl true
