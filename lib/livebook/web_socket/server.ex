@@ -22,22 +22,6 @@ defmodule Livebook.WebSocket.Server do
   end
 
   @doc """
-  Checks if the given WebSocket Server is connected.
-  """
-  @spec connected?(pid()) :: boolean()
-  def connected?(conn) do
-    Connection.call(conn, :connected?, @timeout)
-  end
-
-  @doc """
-  Closes the given WebSocket Server connection.
-  """
-  @spec close(pid()) :: :ok
-  def close(conn) do
-    Connection.call(conn, :close, @timeout)
-  end
-
-  @doc """
   Sends a Request to given WebSocket Server.
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
@@ -77,55 +61,19 @@ defmodule Livebook.WebSocket.Server do
   @dialyzer {:nowarn_function, disconnect: 2}
 
   @impl true
-  def disconnect({:close, caller}, state) do
-    Connection.reply(caller, :ok)
-
-    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
-      {:ok, conn, websocket} ->
-        send(state.listener, {:disconnect, :ok, :disconnected})
-        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
-
-      {:error, conn, websocket, reason} ->
-        send(state.listener, {:disconnect, :error, reason})
-        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
-    end
-  end
-
   def disconnect(info, state) do
     case info do
+      {:close, from} -> Logger.debug("Received close from: #{inspect(from)}")
       {:error, :closed} -> Logger.error("Connection closed")
       {:error, reason} -> Logger.error("Connection error: #{inspect(reason)}")
     end
 
-    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
-      {:ok, conn, websocket} ->
-        send(state.listener, {:disconnect, :ok, :disconnected})
-
-        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
-
-      {:error, conn, websocket, reason} ->
-        Logger.error("Received error: #{inspect(reason)}")
-        send(state.listener, {:disconnect, :error, reason})
-
-        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
-    end
+    {:connect, :reconnect, state}
   end
 
   ## GenServer callbacks
 
   @impl true
-  def handle_call(:connected?, _from, state) do
-    if conn = state.http_conn do
-      {:reply, conn.state == :open, state}
-    else
-      {:reply, false, state}
-    end
-  end
-
-  def handle_call(:close, caller, state) do
-    {:disconnect, {:close, caller}, state}
-  end
-
   def handle_call({:request, data}, caller, state) do
     id = state.id
     frame = LivebookProto.build_request_frame(data, id)

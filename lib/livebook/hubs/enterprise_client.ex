@@ -27,14 +27,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @doc """
-  Disconnects the Enterprise client with WebSocket server.
-  """
-  @spec disconnect(pid()) :: :ok
-  def disconnect(pid) do
-    GenServer.cast(pid, :disconnect)
-  end
-
-  @doc """
   Subscribe to WebSocket Server events.
 
   ## Messages
@@ -73,13 +65,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def handle_call(:get_server, _caller, state) do
     {:reply, state.server, state}
-  end
-
-  @impl true
-  def handle_cast(:disconnect, state) do
-    with :ok <- Server.close(state.server) do
-      {:noreply, state}
-    end
   end
 
   @impl true
