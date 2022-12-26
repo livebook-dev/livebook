@@ -2,7 +2,6 @@ defmodule Livebook.WebSocket.ClientTest do
   use Livebook.EnterpriseIntegrationCase, async: true
 
   alias Livebook.WebSocket.Client
-  alias LivebookProto.Request
 
   describe "connect/2" do
     test "successfully authenticates the websocket connection", %{url: url, token: token} do
@@ -62,8 +61,7 @@ defmodule Livebook.WebSocket.ClientTest do
       session_request =
         LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
-      request = Request.new!(type: {:session, session_request})
-      frame = {:binary, Request.encode(request)}
+      frame = LivebookProto.build_request_frame(session_request)
 
       assert {:ok, conn, websocket} = Client.send(conn, websocket, ref, frame)
 
@@ -72,6 +70,49 @@ defmodule Livebook.WebSocket.ClientTest do
 
       assert %{type: result} = LivebookProto.Response.decode(body)
       assert {:session, %{id: _, user: %{id: ^id, email: ^email}}} = result
+    end
+
+    test "successfully sends a create secret message", %{
+      conn: conn,
+      websocket: websocket,
+      ref: ref
+    } do
+      create_secret_request =
+        LivebookProto.CreateSecretRequest.new!(
+          name: "TWITTER_USERNAME",
+          value: "jake.peralta"
+        )
+
+      frame = LivebookProto.build_request_frame(create_secret_request)
+
+      assert {:ok, conn, websocket} = Client.send(conn, websocket, ref, frame)
+
+      assert {:ok, ^conn, ^websocket, %Client.Response{body: body}} =
+               Client.receive(conn, ref, websocket)
+
+      assert %{type: {:create_secret, _}} = LivebookProto.Response.decode(body)
+    end
+
+    test "sends a create secret message, but receive a changeset error", %{
+      conn: conn,
+      websocket: websocket,
+      ref: ref
+    } do
+      create_secret_request =
+        LivebookProto.CreateSecretRequest.new!(
+          name: "API_TOKEN",
+          value: ""
+        )
+
+      frame = LivebookProto.build_request_frame(create_secret_request)
+
+      assert {:ok, conn, websocket} = Client.send(conn, websocket, ref, frame)
+
+      assert {:ok, ^conn, ^websocket, %Client.Response{body: body}} =
+               Client.receive(conn, ref, websocket)
+
+      assert %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
+      assert reason =~ "value: can't be blank"
     end
   end
 end
