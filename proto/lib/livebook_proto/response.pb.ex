@@ -7,4 +7,9 @@ defmodule LivebookProto.Response do
   field :id, 1, type: :int32
   field :error, 2, type: LivebookProto.Error, oneof: 0
   field :session, 3, type: LivebookProto.SessionResponse, oneof: 0
+
+  field :create_secret, 4,
+    type: LivebookProto.CreateSecretResponse,
+    json_name: "createSecret",
+    oneof: 0
 end

@@ -6,4 +6,9 @@ defmodule LivebookProto.Request do
 
   field :id, 1, type: :int32
   field :session, 2, type: LivebookProto.SessionRequest, oneof: 0
+
+  field :create_secret, 3,
+    type: LivebookProto.CreateSecretRequest,
+    json_name: "createSecret",
+    oneof: 0
 end
