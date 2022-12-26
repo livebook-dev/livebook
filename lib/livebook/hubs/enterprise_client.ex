@@ -3,6 +3,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   use GenServer
 
   alias Livebook.Hubs.Enterprise
+  alias Livebook.Secrets.Secret
   alias Livebook.WebSocket.Server
 
   @pubsub_topic "enterprise"
@@ -38,11 +39,12 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   ## Messages
 
-    * `{:unknown, :error, reason}`
     * `{:connect, :ok, :waiting_upgrade | :connected}`
     * `{:connect, :error, reason}`
     * `{:disconnect, :ok, :disconnected}`
     * `{:disconnect, :error, reason}`
+    * `{:secret_created, %Secret{}}`
+    * `{:secret_updated, %Secret{}}`
 
   """
   @spec subscribe() :: :ok | {:error, {:already_registered, pid()}}
@@ -88,6 +90,16 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   def handle_info({:disconnect, :error, _} = message, state) do
     broadcast_message(message)
+    {:noreply, state}
+  end
+
+  def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
+    broadcast_message({:secret_created, %Secret{name: name, value: value}})
+    {:noreply, state}
+  end
+
+  def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
+    broadcast_message({:secret_updated, %Secret{name: name, value: value}})
     {:noreply, state}
   end
 
