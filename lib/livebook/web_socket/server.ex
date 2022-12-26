@@ -173,15 +173,19 @@ defmodule Livebook.WebSocket.Server do
   defp send_received({:ok, %Client.Response{body: nil, status: nil}}, state), do: state
 
   defp send_received({:ok, %Client.Response{body: body}}, state) do
-    case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} ->
+    case decode_response_or_event(body) do
+      {:response, %{id: -1, type: {:error, %{details: reason}}}} ->
         reply_to_all({:error, reason}, state)
 
-      %{id: id, type: {:error, %{details: reason}}} ->
+      {:response, %{id: id, type: {:error, %{details: reason}}}} ->
         reply_to_id(id, {:error, reason}, state)
 
-      %{id: id, type: result} ->
+      {:response, %{id: id, type: result}} ->
         reply_to_id(id, result, state)
+
+      {:event, %{type: {name, data}}} ->
+        send(state.listener, {:event, name, data})
+        state
     end
   end
 
@@ -226,5 +230,12 @@ defmodule Livebook.WebSocket.Server do
     end
 
     %{state | reply: Map.delete(state.reply, id)}
+  end
+
+  defp decode_response_or_event(data) do
+    case LivebookProto.Response.decode(data) do
+      %{type: nil} -> {:event, LivebookProto.Event.decode(data)}
+      response -> {:response, response}
+    end
   end
 end

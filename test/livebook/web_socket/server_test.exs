@@ -122,4 +122,38 @@ defmodule Livebook.WebSocket.ServerTest do
       refute Server.connected?(conn)
     end
   end
+
+  describe "handle events from server" do
+    setup %{url: url, token: token} do
+      headers = [{"X-Auth-Token", token}]
+
+      {:ok, _conn} = Server.start_link(self(), url, headers)
+
+      assert_receive {:connect, :ok, :waiting_upgrade}
+      assert_receive {:connect, :ok, :connected}
+
+      :ok
+    end
+
+    test "receives a secret_created event" do
+      name = "MY_SECRET_ID"
+      value = Livebook.Utils.random_id()
+      EnterpriseServer.rpc(:create_secret, [name, value])
+
+      assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
+    end
+
+    test "receives a secret_updated event" do
+      name = "API_USERNAME"
+      value = "JakePeralta"
+      secret = EnterpriseServer.rpc(:create_secret, [name, value])
+
+      assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
+
+      new_value = "ChonkyCat"
+      EnterpriseServer.rpc(:update_secret, [secret, new_value])
+
+      assert_receive {:event, :secret_updated, %{name: ^name, value: ^new_value}}
+    end
+  end
 end
