@@ -172,11 +172,10 @@ defmodule Livebook.WebSocket.Server do
   end
 
   defp reply_to_id(id, message, state) do
-    if caller = state.reply[id] do
-      Connection.reply(caller, message)
-    end
+    {caller, reply} = Map.pop(state.reply, id)
+    if caller, do: Connection.reply(caller, message)
 
-    %{state | reply: Map.delete(state.reply, id)}
+    %{state | reply: reply}
   end
 
   defp decode_response_or_event(data) do
