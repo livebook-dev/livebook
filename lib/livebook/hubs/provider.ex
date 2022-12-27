@@ -1,27 +1,21 @@
 defprotocol Livebook.Hubs.Provider do
   @moduledoc false
 
-  @type t :: %{
-          required(:__struct__) => module(),
-          required(:id) => String.t(),
-          optional(any()) => any()
-        }
-
   @doc """
   Normalize given struct to `Livebook.Hubs.Metadata` struct.
   """
-  @spec normalize(t()) :: Livebook.Hubs.Metadata.t()
+  @spec normalize(struct()) :: Livebook.Hubs.Metadata.t()
   def normalize(struct)
 
   @doc """
   Loads fields into given struct.
   """
-  @spec load(t(), map() | keyword()) :: t()
+  @spec load(struct(), map() | keyword()) :: struct()
   def load(struct, fields)
 
   @doc """
   Gets the type from struct.
   """
-  @spec type(t()) :: String.t()
+  @spec type(struct()) :: String.t()
   def type(struct)
 end

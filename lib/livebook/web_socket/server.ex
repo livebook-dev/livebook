@@ -22,22 +22,6 @@ defmodule Livebook.WebSocket.Server do
   end
 
   @doc """
-  Checks if the given WebSocket Server is connected.
-  """
-  @spec connected?(pid()) :: boolean()
-  def connected?(conn) do
-    Connection.call(conn, :connected?, @timeout)
-  end
-
-  @doc """
-  Closes the given WebSocket Server connection.
-  """
-  @spec close(pid()) :: :ok
-  def close(conn) do
-    Connection.call(conn, :close, @timeout)
-  end
-
-  @doc """
   Sends a Request to given WebSocket Server.
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
@@ -57,7 +41,6 @@ defmodule Livebook.WebSocket.Server do
   def connect(_, state) do
     case Client.connect(state.url, state.headers) do
       {:ok, conn, ref} ->
-        send(state.listener, {:connect, :ok, :waiting_upgrade})
         {:ok, %{state | http_conn: conn, ref: ref}}
 
       {:error, exception} when is_exception(exception) ->
@@ -77,55 +60,19 @@ defmodule Livebook.WebSocket.Server do
   @dialyzer {:nowarn_function, disconnect: 2}
 
   @impl true
-  def disconnect({:close, caller}, state) do
-    Connection.reply(caller, :ok)
-
-    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
-      {:ok, conn, websocket} ->
-        send(state.listener, {:disconnect, :ok, :disconnected})
-        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
-
-      {:error, conn, websocket, reason} ->
-        send(state.listener, {:disconnect, :error, reason})
-        {:noconnect, %{state | http_conn: conn, websocket: websocket}}
-    end
-  end
-
   def disconnect(info, state) do
     case info do
+      {:close, from} -> Logger.debug("Received close from: #{inspect(from)}")
       {:error, :closed} -> Logger.error("Connection closed")
       {:error, reason} -> Logger.error("Connection error: #{inspect(reason)}")
     end
 
-    case Client.disconnect(state.http_conn, state.websocket, state.ref) do
-      {:ok, conn, websocket} ->
-        send(state.listener, {:disconnect, :ok, :disconnected})
-
-        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
-
-      {:error, conn, websocket, reason} ->
-        Logger.error("Received error: #{inspect(reason)}")
-        send(state.listener, {:disconnect, :error, reason})
-
-        {:connect, :reconnect, %{state | http_conn: conn, websocket: websocket}}
-    end
+    {:connect, :reconnect, state}
   end
 
   ## GenServer callbacks
 
   @impl true
-  def handle_call(:connected?, _from, state) do
-    if conn = state.http_conn do
-      {:reply, conn.state == :open, state}
-    else
-      {:reply, false, state}
-    end
-  end
-
-  def handle_call(:close, caller, state) do
-    {:disconnect, {:close, caller}, state}
-  end
-
   def handle_call({:request, data}, caller, state) do
     id = state.id
     frame = LivebookProto.build_request_frame(data, id)
@@ -144,100 +91,98 @@ defmodule Livebook.WebSocket.Server do
   def handle_info(message, state) do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
-        send(state.listener, build_message({:ok, :connected}))
+        state = send_received({:ok, :connected}, state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, %Mint.TransportError{} = reason} ->
-        send(state.listener, build_message({:error, reason}))
+        state = send_received({:error, reason}, state)
 
         {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
 
       {term, conn, websocket, data} ->
-        state =
-          {term, data}
-          |> build_message()
-          |> send_reply(state)
+        state = send_received({term, data}, state)
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, _} = error ->
-        send(state.listener, build_message(error))
-
-        {:noreply, state}
+        {:noreply, send_received(error, state)}
     end
   end
 
   # Private
 
-  defp send_reply({:response, :error, reason}, state) do
+  defp send_received({:ok, :connected}, state) do
+    send(state.listener, {:connect, :ok, :connected})
+    state
+  end
+
+  defp send_received({:ok, %Client.Response{body: nil, status: nil}}, state), do: state
+
+  defp send_received({:ok, %Client.Response{body: body}}, state) do
+    case decode_response_or_event(body) do
+      {:response, %{id: -1, type: {:error, %{details: reason}}}} ->
+        reply_to_all({:error, reason}, state)
+
+      {:response, %{id: id, type: {:error, %{details: reason}}}} ->
+        reply_to_id(id, {:error, reason}, state)
+
+      {:response, %{id: id, type: result}} ->
+        reply_to_id(id, result, state)
+
+      {:event, %{type: {name, data}}} ->
+        send(state.listener, {:event, name, data})
+        state
+    end
+  end
+
+  defp send_received({:error, :unknown}, state), do: state
+
+  defp send_received({:error, %Mint.TransportError{} = reason}, state) do
+    send(state.listener, {:connect, :error, reason})
+    state
+  end
+
+  defp send_received({:error, %Client.Response{body: body, status: status}}, state)
+       when body != nil and status != nil do
+    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
+    send(state.listener, {:connect, :error, reason})
+
+    state
+  end
+
+  defp send_received({:error, %Client.Response{body: nil, status: status}}, state)
+       when status != nil do
+    reply_to_all({:error, Plug.Conn.Status.reason_phrase(status)}, state)
+  end
+
+  defp send_received({:error, %Client.Response{body: body, status: nil}}, state) do
+    case LivebookProto.Response.decode(body) do
+      %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, state)
+      %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, state)
+    end
+  end
+
+  defp reply_to_all(message, state) do
     for {id, caller} <- state.reply, reduce: state do
       acc ->
-        Connection.reply(caller, {:error, reason})
+        Connection.reply(caller, message)
         %{acc | reply: Map.delete(acc.reply, id)}
     end
   end
 
-  defp send_reply({:response, id, result}, state) do
+  defp reply_to_id(id, message, state) do
     if caller = state.reply[id] do
-      Connection.reply(caller, result)
+      Connection.reply(caller, message)
     end
 
     %{state | reply: Map.delete(state.reply, id)}
   end
 
-  defp send_reply(message, state) do
-    send(state.listener, message)
-
-    state
-  end
-
-  defp build_message({:ok, :connected}) do
-    {:connect, :ok, :connected}
-  end
-
-  defp build_message({:ok, %Client.Response{body: nil, status: nil}}) do
-    :pong
-  end
-
-  defp build_message({:error, %Client.Response{body: nil, status: status}}) do
-    {:response, :error, Plug.Conn.Status.reason_phrase(status)}
-  end
-
-  defp build_message({:ok, %Client.Response{body: body}}) do
-    case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} ->
-        {:response, :error, reason}
-
-      %{id: id, type: {:error, %{details: reason}}} ->
-        {:response, id, {:error, reason}}
-
-      %{id: id, type: result} ->
-        {:response, id, result}
+  defp decode_response_or_event(data) do
+    case LivebookProto.Response.decode(data) do
+      %{type: nil} -> {:event, LivebookProto.Event.decode(data)}
+      response -> {:response, response}
     end
-  end
-
-  defp build_message({:error, %Client.Response{body: body} = response})
-       when response.status != nil do
-    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
-    {:connect, :error, reason}
-  end
-
-  defp build_message({:error, %Client.Response{body: body}}) do
-    case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} ->
-        {:response, :error, reason}
-
-      %{id: id, type: {:error, %{details: reason}}} ->
-        {:response, id, {:error, reason}}
-    end
-  end
-
-  defp build_message({:error, %Mint.TransportError{} = reason}) do
-    {:connect, :error, reason}
-  end
-
-  defp build_message({:error, reason}) do
-    {:unknown, :error, reason}
   end
 end

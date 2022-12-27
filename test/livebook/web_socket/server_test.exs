@@ -9,33 +9,29 @@ defmodule Livebook.WebSocket.ServerTest do
     test "successfully authenticates the websocket connection", %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, conn} = Server.start_link(self(), url, headers)
-      assert_receive {:connect, :ok, :waiting_upgrade}
+      assert {:ok, _conn} = Server.start_link(self(), url, headers)
       assert_receive {:connect, :ok, :connected}
-      assert Server.connected?(conn)
     end
 
     test "rejects the websocket with invalid address", %{token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      assert {:ok, conn} = Server.start_link(self(), "http://localhost:9999", headers)
-      refute Server.connected?(conn)
+      assert {:ok, _conn} = Server.start_link(self(), "http://localhost:9999", headers)
+      refute_receive {:connect, :ok, :connected}
     end
 
     test "rejects the websocket connection with invalid credentials", %{url: url} do
       headers = [{"X-Auth-Token", "foo"}]
 
-      assert {:ok, conn} = Server.start_link(self(), url, headers)
+      assert {:ok, _conn} = Server.start_link(self(), url, headers)
 
       assert_receive {:connect, :error, reason}
       assert reason =~ "the given token is invalid"
-      assert Server.close(conn) == :ok
 
-      assert {:ok, conn} = Server.start_link(self(), url)
+      assert {:ok, _conn} = Server.start_link(self(), url)
 
       assert_receive {:connect, :error, reason}
       assert reason =~ "could not get the token from the connection"
-      assert Server.close(conn) == :ok
     end
   end
 
@@ -45,7 +41,6 @@ defmodule Livebook.WebSocket.ServerTest do
 
       {:ok, conn} = Server.start_link(self(), url, headers)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
 
       {:ok, conn: conn}
@@ -80,9 +75,7 @@ defmodule Livebook.WebSocket.ServerTest do
 
       assert {:ok, conn} = Server.start_link(self(), url, headers)
 
-      assert_receive {:connect, :ok, :waiting_upgrade}
       assert_receive {:connect, :ok, :connected}
-      assert Server.connected?(conn)
 
       on_exit(fn ->
         EnterpriseServer.disconnect(name)
@@ -99,27 +92,55 @@ defmodule Livebook.WebSocket.ServerTest do
       assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
 
       assert Process.alive?(conn)
-      refute Server.connected?(conn)
     end
 
-    test "reconnects after websocket server is up", %{conn: conn, test: name} do
+    test "reconnects after websocket server is up", %{test: name} do
       EnterpriseServer.disconnect(name)
 
       assert_receive {:connect, :error, %Mint.TransportError{reason: :closed}}
       assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
 
       Process.sleep(1000)
-      refute Server.connected?(conn)
 
       # Wait until the server is up again
       assert EnterpriseServer.reconnect(name) == :ok
 
-      assert_receive {:connect, :ok, :waiting_upgrade}, 3000
       assert_receive {:connect, :ok, :connected}, 3000
+    end
+  end
 
-      assert Server.connected?(conn)
-      assert Server.close(conn) == :ok
-      refute Server.connected?(conn)
+  describe "handle events from server" do
+    setup %{url: url, token: token} do
+      headers = [{"X-Auth-Token", token}]
+
+      {:ok, _conn} = Server.start_link(self(), url, headers)
+
+      assert_receive {:connect, :ok, :connected}
+
+      :ok
+    end
+
+    test "receives a secret_created event" do
+      name = "MY_SECRET_ID"
+      value = Livebook.Utils.random_id()
+      node = EnterpriseServer.get_node()
+      :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
+
+      assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
+    end
+
+    test "receives a secret_updated event" do
+      name = "API_USERNAME"
+      value = "JakePeralta"
+      node = EnterpriseServer.get_node()
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
+
+      assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
+
+      new_value = "ChonkyCat"
+      :erpc.call(node, Enterprise.Integration, :update_secret, [secret, new_value])
+
+      assert_receive {:event, :secret_updated, %{name: ^name, value: ^new_value}}
     end
   end
 end

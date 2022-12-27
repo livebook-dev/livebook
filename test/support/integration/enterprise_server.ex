@@ -23,8 +23,15 @@ defmodule Livebook.EnterpriseServer do
     GenServer.call(name, :fetch_user, @timeout)
   end
 
+  def get_node(name \\ @name) do
+    GenServer.call(name, :fetch_node)
+  end
+
   def drop_database(name \\ @name) do
-    GenServer.cast(name, :drop_database)
+    app_port = GenServer.call(name, :fetch_port)
+    state_env = GenServer.call(name, :fetch_env)
+
+    app_port |> env(state_env) |> mix(["ecto.drop", "--quiet"])
   end
 
   def reconnect(name \\ @name) do
@@ -74,12 +81,20 @@ defmodule Livebook.EnterpriseServer do
     {:reply, url, %{state | url: url}}
   end
 
-  @impl true
-  def handle_cast(:drop_database, state) do
-    :ok = mix(state, ["ecto.drop", "--quiet"])
-    {:noreply, state}
+  def handle_call(:fetch_node, _from, state) do
+    {:reply, state.node, state}
   end
 
+  def handle_call(:fetch_port, _from, state) do
+    port = state.app_port || app_port()
+    {:reply, port, state}
+  end
+
+  def handle_call(:fetch_env, _from, state) do
+    {:reply, state.env, state}
+  end
+
+  @impl true
   def handle_cast(:reconnect, state) do
     if state.port do
       {:noreply, state}
@@ -213,10 +228,14 @@ defmodule Livebook.EnterpriseServer do
     end
   end
 
-  defp mix(state, args) do
+  defp mix(state, args) when is_struct(state) do
+    state |> env() |> mix(args)
+  end
+
+  defp mix(env, args) do
     cmd_opts = [
       stderr_to_stdout: true,
-      env: env(state),
+      env: env,
       cd: app_dir(),
       into: IO.stream(:stdio, :line)
     ]
@@ -231,15 +250,18 @@ defmodule Livebook.EnterpriseServer do
 
   defp env(state) do
     app_port = state.app_port || app_port()
+    env(app_port, state.env)
+  end
 
+  defp env(app_port, state_env) do
     env = %{
       "MIX_ENV" => "livebook",
       "LIVEBOOK_ENTERPRISE_PORT" => to_string(app_port),
       "LIVEBOOK_ENTERPRISE_DEBUG" => debug()
     }
 
-    if state.env do
-      Map.merge(env, state.env)
+    if state_env do
+      Map.merge(env, state_env)
     else
       env
     end
