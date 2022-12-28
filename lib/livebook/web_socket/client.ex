@@ -180,6 +180,9 @@ defmodule Livebook.WebSocket.Client do
 
   defp handle_frames(response, frames) do
     Enum.reduce(frames, response, fn
+      _, {_, _} = acc ->
+        acc
+
       {:binary, binary}, acc ->
         {:ok, %{acc | body: binary}}
 
