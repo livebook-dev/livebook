@@ -7,6 +7,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   alias Livebook.WebSocket.Server
 
   @pubsub_topic "enterprise"
+  @registry Livebook.HubsRegistry
 
   defstruct [:server, :hub]
 
@@ -15,7 +16,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec start_link(Enterprise.t()) :: GenServer.on_start()
   def start_link(%Enterprise{} = enterprise) do
-    GenServer.start_link(__MODULE__, enterprise)
+    GenServer.start_link(__MODULE__, enterprise, name: registry_name(enterprise))
   end
 
   @doc """
@@ -96,5 +97,9 @@ defmodule Livebook.Hubs.EnterpriseClient do
   # Broadcasts the given message under the `"enterprise"` topic.
   defp broadcast_message(message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, @pubsub_topic, message)
+  end
+
+  defp registry_name(%Enterprise{url: url}) do
+    {:via, Registry, {@registry, url}}
   end
 end
