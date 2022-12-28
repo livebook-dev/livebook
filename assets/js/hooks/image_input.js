@@ -48,7 +48,7 @@ const ImageInput = {
 
     // Render initial value
     this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
-      const canvas = imageInfoToElement(imageInfo);
+      const canvas = imageInfoToElement(imageInfo, this.props.format);
       this.setPreview(canvas);
     });
 
@@ -421,15 +421,15 @@ function imageDataToRGBBuffer(imageData) {
   return bytes.buffer;
 }
 
-function imageInfoToElement(imageInfo) {
-  if (imageInfo.format === "png" || imageInfo.format === "jpeg") {
-    const src = `data:image/${imageInfo.format};base64,${imageInfo.data}`;
+function imageInfoToElement(imageInfo, format) {
+  if (format === "png" || format === "jpeg") {
+    const src = `data:image/${format};base64,${imageInfo.data}`;
     const img = document.createElement("img");
     img.src = src;
     return img;
   }
 
-  if (imageInfo.format === "rgb") {
+  if (format === "rgb") {
     const canvas = document.createElement("canvas");
     canvas.height = imageInfo.height;
     canvas.width = imageInfo.width;
@@ -443,7 +443,7 @@ function imageInfoToElement(imageInfo) {
     return canvas;
   }
 
-  throw new Error(`Unexpected format: ${imageInfo.format}`);
+  throw new Error(`Unexpected format: ${format}`);
 }
 
 function imageDataFromRGBBuffer(buffer, width, height) {

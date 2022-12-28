@@ -1,3 +1,4 @@
+import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
 import ConfirmModal from "./confirm_modal";
@@ -19,6 +20,7 @@ import UserForm from "./user_form";
 import VirtualizedLines from "./virtualized_lines";
 
 export default {
+  AudioInput,
   Cell,
   CellEditor,
   ConfirmModal,

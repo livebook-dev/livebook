@@ -21,14 +21,13 @@ defmodule LivebookWeb.Output.ImageInputComponent do
             push_event(socket, "image_input_init:#{socket.assigns.id}", %{
               data: Base.encode64(value.data),
               height: value.height,
-              width: value.width,
-              format: value.format
+              width: value.width
             })
           else
             socket
           end
 
-        assign(socket, initialize: true)
+        assign(socket, initialized: true)
       end
 
     {:ok, socket}
