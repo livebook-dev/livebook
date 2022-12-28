@@ -33,7 +33,11 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.Utils.UniqueTask
+        Livebook.Utils.UniqueTask,
+        # Start the registry for managing unique connections
+        {Registry, keys: :unique, name: Livebook.HubsRegistry},
+        # Start the supervisor dynamically managing connections
+        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
         iframe_server_specs() ++
         [
