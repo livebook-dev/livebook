@@ -1,5 +1,6 @@
 defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   use Livebook.EnterpriseIntegrationCase, async: true
+  @moduletag :capture_log
 
   import Phoenix.LiveViewTest
 
@@ -60,7 +61,21 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ "Enterprise"
     end
 
-    test "fails with invalid token", %{conn: conn, url: url} do
+    test "fails with invalid token", %{test: name, conn: conn} do
+      # Since we're registering enterprise by it's URL
+      # we need to create another Enterprise instance
+      # to allow both connections.
+      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
+      app_port = Enum.random(1000..9000) |> to_string()
+
+      {:ok, _} =
+        EnterpriseServer.start(name,
+          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
+          app_port: app_port
+        )
+
+      url = EnterpriseServer.url(name)
+
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
       token = "foo bar baz"
 
@@ -83,15 +98,39 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
       assert render(view) =~ "the given token is invalid"
       refute render(view) =~ "enterprise[hub_name]"
+    after
+      EnterpriseServer.disconnect(name)
+      EnterpriseServer.drop_database(name)
     end
 
-    test "fails to create existing hub", %{conn: conn, url: url, token: token, user: user} do
+    test "fails to create existing hub", %{
+      test: name,
+      conn: conn,
+      url: url,
+      token: token,
+      user: user
+    } do
+      # Since we're registering enterprise by it's URL
+      # we need to create another Enterprise instance
+      # to allow both connections.
+      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
+      app_port = Enum.random(1000..9000) |> to_string()
+
+      {:ok, _} =
+        EnterpriseServer.start(name,
+          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
+          app_port: app_port
+        )
+
+      another_url = EnterpriseServer.url(name)
+      another_token = EnterpriseServer.token(name)
+
       hub =
         insert_hub(:enterprise,
           id: "enterprise-#{user.id}",
           external_id: user.id,
-          url: url,
-          token: token
+          url: another_url,
+          token: another_token
         )
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
@@ -140,6 +179,9 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ hub.hub_name
 
       assert Hubs.fetch_hub!(hub.id) == hub
+    after
+      EnterpriseServer.disconnect(name)
+      EnterpriseServer.drop_database(name)
     end
   end
 end
