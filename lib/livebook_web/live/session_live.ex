@@ -8,6 +8,9 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
+  alias Livebook.Hubs.EnterpriseClient
+
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -22,6 +25,7 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Secrets.subscribe()
+            EnterpriseClient.subscribe()
 
             {data, client_id}
           else
@@ -414,6 +418,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
+          enterprise_hubs={@connected_hubs}
           livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
@@ -1352,6 +1357,16 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
+  end
+
+  def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
+    {:noreply,
+     put_flash(socket, :info, "A new secret has been created on your Livebook Enterprise")}
+  end
+
+  def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
+    {:noreply,
+     put_flash(socket, :info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
   def handle_info({:error, error}, socket) do
