@@ -19,7 +19,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @doc """
-  Gets the WebSocket server PID.
+  Sends a request to the WebSocket server.
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
   def send_request(pid, %_struct{} = data) do
