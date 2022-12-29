@@ -3,18 +3,16 @@ defmodule LivebookWeb.UserComponent do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.Users.User
+  alias Livebook.EctoTypes.HexColor
+  alias Livebook.Users
 
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
     user = socket.assigns.user
+    changeset = Users.change_user(user)
 
-    {:ok, assign(socket, data: user_to_data(user), valid: true, preview_user: user)}
-  end
-
-  defp user_to_data(user) do
-    %{"name" => user.name || "", "hex_color" => user.hex_color}
+    {:ok, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
   end
 
   @impl true
@@ -25,11 +23,11 @@ defmodule LivebookWeb.UserComponent do
         User profile
       </h3>
       <div class="flex justify-center">
-        <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
+        <.user_avatar user={@user} class="h-20 w-20" text_class="text-3xl" />
       </div>
       <.form
-        let={f}
-        for={:data}
+        :let={f}
+        for={@changeset}
         phx-submit={@on_save |> JS.push("save")}
         phx-change="validate"
         phx-target={@myself}
@@ -37,42 +35,22 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <div>
+          <.input_wrapper form={f} field={:name}>
             <div class="input-label">Display name</div>
-            <%= text_input(f, :name, value: @data["name"], class: "input", spellcheck: "false") %>
-          </div>
-          <div>
+            <%= text_input(f, :name, class: "input", spellcheck: "false") %>
+          </.input_wrapper>
+          <.input_wrapper form={f} field={:hex_color}>
             <div class="input-label">Cursor color</div>
-            <div class="flex space-x-4 items-center">
-              <div
-                class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                style={"border-color: #{@preview_user.hex_color}"}
-              >
-                <div class="rounded h-5 w-5" style={"background-color: #{@preview_user.hex_color}"}>
-                </div>
-              </div>
-              <div class="relative grow">
-                <%= text_input(f, :hex_color,
-                  value: @data["hex_color"],
-                  class: "input",
-                  spellcheck: "false",
-                  maxlength: 7
-                ) %>
-                <button
-                  class="icon-button absolute right-2 top-1"
-                  type="button"
-                  phx-click="randomize_color"
-                  phx-target={@myself}
-                >
-                  <.remix_icon icon="refresh-line" class="text-xl" />
-                </button>
-              </div>
-            </div>
-          </div>
+            <.hex_color_input
+              form={f}
+              field={:hex_color}
+              randomize={JS.push("randomize_color", target: @myself)}
+            />
+          </.input_wrapper>
           <button
             class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
-            disabled={not @valid}
+            disabled={not @valid?}
           >
             <.remix_icon icon="save-line" />
             <span>Save</span>
@@ -85,27 +63,32 @@ defmodule LivebookWeb.UserComponent do
 
   @impl true
   def handle_event("randomize_color", %{}, socket) do
-    data = %{
-      socket.assigns.data
-      | "hex_color" => User.random_hex_color(except: [socket.assigns.preview_user.hex_color])
-    }
-
-    handle_event("validate", %{"data" => data}, socket)
+    hex_color = HexColor.random(except: [socket.assigns.user.hex_color])
+    handle_event("validate", %{"user" => %{"hex_color" => hex_color}}, socket)
   end
 
-  def handle_event("validate", %{"data" => data}, socket) do
-    {valid, user} =
-      case User.change(socket.assigns.user, data) do
-        {:ok, user} -> {true, user}
-        {:error, _errors, user} -> {false, user}
+  def handle_event("validate", %{"user" => params}, socket) do
+    changeset = Users.change_user(socket.assigns.user, params)
+
+    user =
+      if changeset.valid? do
+        Ecto.Changeset.apply_action!(changeset, :update)
+      else
+        socket.assigns.user
       end
 
-    {:noreply, assign(socket, data: data, valid: valid, preview_user: user)}
+    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
   end
 
-  def handle_event("save", %{"data" => data}, socket) do
-    {:ok, user} = User.change(socket.assigns.user, data)
-    Livebook.Users.broadcast_change(user)
-    {:noreply, socket}
+  def handle_event("save", %{"user" => params}, socket) do
+    changeset = Users.change_user(socket.assigns.user, params)
+
+    case Users.update_user(changeset) do
+      {:ok, user} ->
+        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
+    end
   end
 end

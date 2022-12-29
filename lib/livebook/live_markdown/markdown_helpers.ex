@@ -353,6 +353,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
       cells
       |> Enum.map(&IO.iodata_length/1)
       |> Enum.max()
+      |> max(3)
     end)
   end
 

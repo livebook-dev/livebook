@@ -142,7 +142,8 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(%{
       "livebook_object" => "smart_cell",
       "kind" => cell.kind,
-      "attrs" => cell.attrs
+      "attrs" => cell.attrs,
+      "chunks" => cell.chunks && Enum.map(cell.chunks, &Tuple.to_list/1)
     })
   end
 

@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 flex flex-col space-y-8">
+    <div class="p-6 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Insert image
       </h3>
@@ -78,9 +78,6 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
     %{images_dir: images_dir} = socket.assigns.session
 
     consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
-      # Ensure the path is normalized (see https://github.com/elixir-plug/plug/issues/1047)
-      # TODO: remove once we update to a Plug version with the issue resolved
-      path = Path.expand(path)
       upload_file = FileSystem.File.local(path)
       ext = Path.extname(entry.client_name)
       filename = if name == "", do: entry.client_name, else: name <> ext

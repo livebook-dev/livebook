@@ -6,11 +6,11 @@ defmodule LivebookWeb.PageHelpers do
 
   ## Examples
 
-      <.title text="Explore" socket={@socket} />
+      <.title text="Learn" socket={@socket} />
   """
   def title(assigns) do
     ~H"""
-    <h1 class="text-3xl text-gray-800 font-semibold">
+    <h1 class="text-2xl text-gray-800 font-medium">
       <%= @text %>
     </h1>
     """

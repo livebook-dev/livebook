@@ -6,6 +6,8 @@ defmodule LivebookWeb.AuthPlug do
   import Plug.Conn
   import Phoenix.Controller
 
+  alias LivebookWeb.Router.Helpers, as: Routes
+
   @impl true
   def init(opts), do: opts
 
@@ -24,7 +26,9 @@ defmodule LivebookWeb.AuthPlug do
   Stores in the session the secret for the given mode.
   """
   def store(conn, mode, value) do
-    put_session(conn, key(conn.port, mode), hash(value))
+    conn
+    |> put_session(key(conn.port, mode), hash(value))
+    |> configure_session(renew: true)
   end
 
   @doc """
@@ -47,7 +51,9 @@ defmodule LivebookWeb.AuthPlug do
 
   def authenticated?(session, port, mode) when mode in [:token, :password] do
     secret = session[key(port, mode)]
-    is_binary(secret) and Plug.Crypto.secure_compare(secret, expected(mode))
+
+    is_binary(secret) and mode == Livebook.Config.auth_mode() and
+      Plug.Crypto.secure_compare(secret, expected(mode))
   end
 
   defp authenticate(conn, :password) do
@@ -74,7 +80,7 @@ defmodule LivebookWeb.AuthPlug do
       %{method: "GET"} -> put_session(conn, :redirect_to, current_path(conn))
       conn -> conn
     end)
-    |> redirect(to: "/authenticate")
+    |> redirect(to: Routes.path(conn, "/authenticate"))
     |> halt()
   end
 

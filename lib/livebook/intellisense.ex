@@ -266,6 +266,23 @@ defmodule Livebook.Intellisense do
          insert_text: Atom.to_string(name)
        }
 
+  defp format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
+    insert_text =
+      if arity == 0 do
+        Atom.to_string(name)
+      else
+        "#{name}($0)"
+      end
+
+    %{
+      label: Atom.to_string(name),
+      kind: :bitstring_option,
+      detail: "bitstring option",
+      documentation: nil,
+      insert_text: insert_text
+    }
+  end
+
   defp keyword_macro?(name) do
     def? = name |> Atom.to_string() |> String.starts_with?("def")
 
@@ -346,7 +363,17 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  @ordered_kinds [:keyword, :field, :variable, :module, :struct, :interface, :function, :type]
+  @ordered_kinds [
+    :keyword,
+    :field,
+    :variable,
+    :module,
+    :struct,
+    :interface,
+    :function,
+    :type,
+    :bitstring_option
+  ]
 
   defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
     {length(@ordered_kinds), completion_item.label}
@@ -476,7 +503,7 @@ defmodule Livebook.Intellisense do
 
     if vsn = app && Application.spec(app, :vsn) do
       url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
-      "[Hexdocs](#{url})"
+      "[View on Hexdocs](#{url})"
     end
   end
 

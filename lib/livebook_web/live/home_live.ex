@@ -2,10 +2,11 @@ defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
-  import LivebookWeb.UserHelpers
 
-  alias LivebookWeb.{ExploreHelpers, PageHelpers, SidebarHelpers}
+  alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
+
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(params, _session, socket) do
@@ -15,12 +16,10 @@ defmodule LivebookWeb.HomeLive do
     end
 
     sessions = Sessions.list_sessions()
-    notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
+    notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
@@ -37,105 +36,100 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex grow h-full">
-      <.live_region role="alert" />
-      <SidebarHelpers.sidebar
-        socket={@socket}
-        current_page={Routes.home_path(@socket, :page)}
-        current_user={@current_user}
-      />
-      <div class="grow overflow-y-auto">
-        <SidebarHelpers.toggle socket={@socket}>
-          <a aria-label="new-notebook" class="flex items-center" phx-click="new">
-            <.remix_icon icon="add-line" />
-            <span class="pl-2">New notebook</span>
-          </a>
-        </SidebarHelpers.toggle>
-        <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
-        <.memory_notification memory={@memory} app_service_url={@app_service_url} />
-        <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-lg mx-auto space-y-4">
-          <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-            <PageHelpers.title text="Home" />
-            <div class="hidden sm:flex space-x-2" role="navigation" aria-label="new notebook">
-              <%= live_patch("Import",
-                to: Routes.home_path(@socket, :import, "url"),
-                class: "button-base button-outlined-gray whitespace-nowrap"
-              ) %>
-              <button class="button-base button-blue" phx-click="new">
-                New notebook
-              </button>
-            </div>
-          </div>
-
-          <div class="h-80" role="region" aria-label="file system">
-            <.live_component
-              module={LivebookWeb.FileSelectComponent}
-              id="home-file-select"
-              file={@file}
-              extnames={[LiveMarkdown.extension()]}
-              running_files={files(@sessions)}
-            >
-              <div class="flex justify-end space-x-2">
-                <button
-                  class="button-base button-outlined-gray whitespace-nowrap"
-                  phx-click="fork"
-                  disabled={not path_forkable?(@file, @file_info)}
-                >
-                  <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
-                  <span>Fork</span>
-                </button>
-                <%= if file_running?(@file, @sessions) do %>
-                  <%= live_redirect("Join session",
-                    to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
-                    class: "button-base button-blue"
-                  ) %>
-                <% else %>
-                  <span {open_button_tooltip_attrs(@file, @file_info)}>
-                    <button
-                      class="button-base button-blue"
-                      phx-click="open"
-                      disabled={not path_openable?(@file, @file_info, @sessions)}
-                    >
-                      Open
-                    </button>
-                  </span>
-                <% end %>
-              </div>
-            </.live_component>
-          </div>
-
-          <div class="py-12" data-el-explore-section role="region" aria-label="explore section">
-            <div class="mb-4 flex justify-between items-center">
-              <h2 class="uppercase font-semibold text-gray-500">
-                Explore
-              </h2>
-              <%= live_redirect to: Routes.explore_path(@socket, :page),
-                    class: "flex items-center text-blue-600" do %>
-                <span class="font-semibold">See all</span>
-                <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
-              <% end %>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <% # Note: it's fine to use stateless components in this comprehension,
-              # because @notebook_infos never change %>
-              <%= for info <- @notebook_infos do %>
-                <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
-              <% end %>
-            </div>
-          </div>
-          <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
-            <.live_component
-              module={LivebookWeb.HomeLive.SessionListComponent}
-              id="session-list"
-              sessions={@sessions}
-              memory={@memory}
-            />
+    <LayoutHelpers.layout
+      socket={@socket}
+      current_page={Routes.home_path(@socket, :page)}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+    >
+      <:topbar_action>
+        <a aria-label="new-notebook" class="flex items-center cursor-pointer" phx-click="new">
+          <.remix_icon icon="add-line" />
+          <span class="pl-2">New notebook</span>
+        </a>
+      </:topbar_action>
+      <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
+      <.memory_notification memory={@memory} app_service_url={@app_service_url} />
+      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
+        <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
+          <PageHelpers.title text="Home" />
+          <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
+            <%= live_patch("Import",
+              to: Routes.home_path(@socket, :import, "url"),
+              class: "button-base button-outlined-gray whitespace-nowrap"
+            ) %>
+            <button class="button-base button-blue" phx-click="new">
+              New notebook
+            </button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <.current_user_modal current_user={@current_user} />
+        <div class="h-80" role="region" aria-label="file system">
+          <.live_component
+            module={LivebookWeb.FileSelectComponent}
+            id="home-file-select"
+            file={@file}
+            extnames={[LiveMarkdown.extension()]}
+            running_files={files(@sessions)}
+          >
+            <div class="flex justify-end space-x-2">
+              <button
+                class="button-base button-outlined-gray whitespace-nowrap"
+                phx-click="fork"
+                disabled={not path_forkable?(@file, @file_info)}
+              >
+                <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
+                <span>Fork</span>
+              </button>
+              <%= if file_running?(@file, @sessions) do %>
+                <%= live_redirect("Join session",
+                  to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
+                  class: "button-base button-blue"
+                ) %>
+              <% else %>
+                <span {open_button_tooltip_attrs(@file, @file_info)}>
+                  <button
+                    class="button-base button-blue"
+                    phx-click="open"
+                    disabled={not path_openable?(@file, @file_info, @sessions)}
+                  >
+                    Open
+                  </button>
+                </span>
+              <% end %>
+            </div>
+          </.live_component>
+        </div>
+
+        <div class="py-12" data-el-learn-section role="region" aria-label="learn section">
+          <div class="mb-4 flex justify-between items-center">
+            <h2 class="uppercase font-semibold text-gray-500">
+              Learn
+            </h2>
+            <%= live_redirect to: Routes.learn_path(@socket, :page),
+                    class: "flex items-center text-blue-600" do %>
+              <span class="font-semibold">See all</span>
+              <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+            <% end %>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <% # Note: it's fine to use stateless components in this comprehension,
+            # because @notebook_infos never change %>
+            <%= for info <- @notebook_infos do %>
+              <LearnHelpers.notebook_card notebook_info={info} socket={@socket} />
+            <% end %>
+          </div>
+        </div>
+        <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
+          <.live_component
+            module={LivebookWeb.HomeLive.SessionListComponent}
+            id="session-list"
+            sessions={@sessions}
+            memory={@memory}
+          />
+        </div>
+      </div>
+    </LayoutHelpers.layout>
 
     <%= if @live_action == :close_session do %>
       <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>
@@ -149,7 +143,7 @@ defmodule LivebookWeb.HomeLive do
     <% end %>
 
     <%= if @live_action == :import do %>
-      <.modal id="import-modal" show class="w-full max-w-xl" patch={@self_path}>
+      <.modal id="import-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component
           module={LivebookWeb.HomeLive.ImportComponent}
           id="import"
@@ -468,7 +462,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
+  defp determine_file(_params), do: Livebook.Settings.default_file_system_home()
 
   defp open_notebook(socket, file) do
     case import_notebook(file) do

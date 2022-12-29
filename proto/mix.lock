@@ -1,0 +1,3 @@
+%{
+  "protobuf": {:hex, :protobuf, "0.8.0", "61b27d6fd50e7b1b2eb0ee17c1f639906121f4ef965ae0994644eb4c68d4647d", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: true]}], "hexpm", "3644ed846fd6f5e3b5c2cd617aa8344641e230edf812a45365fee7622bccd25a"},
+}

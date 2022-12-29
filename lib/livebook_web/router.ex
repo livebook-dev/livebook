@@ -7,8 +7,18 @@ defmodule LivebookWeb.Router do
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
-    plug :protect_from_forgery
+    # Because LIVEBOOK_SECRET_KEY_BASE authentication is randomly
+    # generated, the odds of getting a CSRFProtection is quite high
+    # and exceptions can lead to a poor user experience.
+    #
+    # During authentication, configure_session(renew: true) will
+    # override the configure_session(ignore: true) but the session
+    # will be cleared anyway. This means an attacker can authenticate
+    # someone in a given Livebook instance but they wouldn't be able
+    # to do anything once the authentication goes through.
+    plug :protect_from_forgery, with: :clear_session
     plug :put_secure_browser_headers
+    plug :within_iframe_secure_headers
   end
 
   pipeline :auth do
@@ -18,6 +28,7 @@ defmodule LivebookWeb.Router do
 
   pipeline :js_view_assets do
     plug :put_secure_browser_headers
+    plug :within_iframe_secure_headers
   end
 
   # The /public namespace includes routes with no authentication.
@@ -51,12 +62,20 @@ defmodule LivebookWeb.Router do
 
       live "/settings", SettingsLive, :page
       live "/settings/add-file-system", SettingsLive, :add_file_system
+      live "/settings/env-var/new", SettingsLive, :add_env_var
+      live "/settings/env-var/edit/:env_var_id", SettingsLive, :edit_env_var
 
-      live "/explore", ExploreLive, :page
-      live "/explore/notebooks/:slug", ExploreLive, :notebook
+      live "/learn", LearnLive, :page
+      live "/learn/notebooks/:slug", LearnLive, :notebook
+
+      live "/hub", Hub.NewLive, :new, as: :hub
+      live "/hub/:id", Hub.EditLive, :edit, as: :hub
+      live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var, as: :hub
+      live "/hub/:id/env-var/edit/:env_var_id", Hub.EditLive, :edit_env_var, as: :hub
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
+      live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
       live "/sessions/:id/bin", SessionLive, :bin
@@ -94,5 +113,13 @@ defmodule LivebookWeb.Router do
 
     get "/", AuthController, :index
     post "/", AuthController, :authenticate
+  end
+
+  defp within_iframe_secure_headers(conn, _opts) do
+    if Livebook.Config.within_iframe?() do
+      delete_resp_header(conn, "x-frame-options")
+    else
+      conn
+    end
   end
 end

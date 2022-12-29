@@ -88,6 +88,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the base url path for the Livebook endpoint.
+  """
+  @spec base_url_path() :: String.t()
+  def base_url_path() do
+    path = Application.get_env(:livebook, LivebookWeb.Endpoint)[:url][:path]
+    String.trim_trailing(path, "/")
+  end
+
+  @doc """
   Returns the configured port for the iframe endpoint.
   """
   @spec iframe_port() :: pos_integer() | 0
@@ -107,11 +116,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns whether the shutdown feature is enabled.
+  Returns an mfa if there's a way to shut down the system.
   """
-  @spec shutdown_enabled?() :: boolean()
-  def shutdown_enabled?() do
-    Application.fetch_env!(:livebook, :shutdown_enabled)
+  @spec shutdown_callback() :: mfa() | nil
+  def shutdown_callback() do
+    Application.fetch_env!(:livebook, :shutdown_callback)
+  end
+
+  @doc """
+  Returns whether the application is running inside an iframe.
+  """
+  @spec within_iframe?() :: boolean()
+  def within_iframe? do
+    Application.fetch_env!(:livebook, :within_iframe)
   end
 
   @doc """
@@ -135,7 +152,32 @@ defmodule Livebook.Config do
   """
   @spec update_instructions_url() :: String.t() | nil
   def update_instructions_url() do
-    Application.get_env(:livebook, :update_instructions_url)
+    Application.fetch_env!(:livebook, :update_instructions_url)
+  end
+
+  @doc """
+  Returns the force ssl host if any.
+  """
+  def force_ssl_host do
+    Application.fetch_env!(:livebook, :force_ssl_host)
+  end
+
+  @feature_flags Application.compile_env(:livebook, :feature_flags)
+
+  @doc """
+  Returns the feature flag list.
+  """
+  @spec feature_flags() :: keyword(boolean()) | []
+  def feature_flags do
+    @feature_flags
+  end
+
+  @doc """
+  Return if the feature flag is enabled.
+  """
+  @spec feature_flag_enabled?(atom()) :: boolean()
+  def feature_flag_enabled?(key) do
+    @feature_flags[key]
   end
 
   ## Parsing
@@ -192,6 +234,15 @@ defmodule Livebook.Config do
         {port, ""} -> port
         :error -> abort!("expected #{env} to be an integer, got: #{inspect(port)}")
       end
+    end
+  end
+
+  @doc """
+  Parses and validates the base url path from env.
+  """
+  def base_url_path!(env) do
+    if base_url_path = System.get_env(env) do
+      String.trim_trailing(base_url_path, "/")
     end
   end
 
@@ -304,76 +355,24 @@ defmodule Livebook.Config do
       "embedded" ->
         Livebook.Runtime.Embedded.new()
 
-      "mix" ->
-        case mix_path(File.cwd!()) do
-          {:ok, path} ->
-            Livebook.Runtime.MixStandalone.new(path)
-
-          :error ->
-            abort!(
-              "the current directory is not a Mix project, make sure to specify the path explicitly with mix:path"
-            )
-        end
-
-      "mix:" <> config ->
-        {path, flags} = parse_mix_config!(config)
-
-        case mix_path(path) do
-          {:ok, path} ->
-            if Livebook.Utils.valid_cli_flags?(flags) do
-              Livebook.Runtime.MixStandalone.new(path, flags)
-            else
-              abort!(~s{"#{flags}" is not a valid flag sequence})
-            end
-
-          :error ->
-            abort!(~s{"#{path}" does not point to a Mix project})
-        end
-
       "attached:" <> config ->
         {node, cookie} = parse_connection_config!(config)
         Livebook.Runtime.Attached.new(node, cookie)
 
       other ->
         abort!(
-          ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
+          ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
     end
   end
 
-  defp parse_mix_config!(config) do
-    case String.split(config, ":", parts: 2) do
-      # Ignore Windows drive letter
-      [<<letter>>, rest] when letter in ?a..?z or letter in ?A..?Z ->
-        [path | rest] = String.split(rest, ":", parts: 2)
-        [<<letter, ":", path::binary>> | rest]
-
-      other ->
-        other
-    end
-    |> case do
-      [path] -> {path, ""}
-      [path, flags] -> {path, flags}
-    end
-  end
-
-  defp mix_path(path) do
-    path = Path.expand(path)
-    mixfile = Path.join(path, "mix.exs")
-
-    if File.exists?(mixfile) do
-      {:ok, path}
-    else
-      :error
-    end
-  end
+  @doc """
+  Returns the current version of running Livebook.
+  """
+  def app_version, do: Application.spec(:livebook, :vsn) |> List.to_string()
 
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
-
-    unless node =~ "@" do
-      abort!(~s{expected node to include hostname, got: #{inspect(node)}})
-    end
 
     node = String.to_atom(node)
     cookie = String.to_atom(cookie)

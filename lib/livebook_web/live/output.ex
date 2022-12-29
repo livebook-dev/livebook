@@ -2,9 +2,11 @@ defmodule LivebookWeb.Output do
   use Phoenix.Component
 
   import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
 
   alias Phoenix.LiveView.JS
   alias LivebookWeb.Output
+  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Renders a list of cell outputs.
@@ -17,7 +19,6 @@ defmodule LivebookWeb.Output do
         id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
         data-el-output
         data-border={border?(output)}
-        data-wrapper={wrapper?(output)}
       >
         <%= render_output(output, %{
           id: "output-#{idx}",
@@ -33,13 +34,9 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:error, _message}), do: true
+  defp border?({:error, _message, _type}), do: true
+  defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
-
-  defp wrapper?({:frame, _outputs, _info}), do: true
-  defp wrapper?({:tabs, _tabs, _info}), do: true
-  defp wrapper?({:grid, _tabs, _info}), do: true
-  defp wrapper?(_output), do: false
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
@@ -66,7 +63,7 @@ defmodule LivebookWeb.Output do
     assigns = %{id: id, content: content, mime_type: mime_type}
 
     ~H"""
-    <Output.ImageComponent.render content={@content} mime_type={@mime_type} />
+    <Output.ImageComponent.render id={@id} content={@content} mime_type={@mime_type} />
     """
   end
 
@@ -103,7 +100,7 @@ defmodule LivebookWeb.Output do
          client_id: client_id
        }) do
     {labels, active_idx} =
-      if info == :__pruned__ do
+      if info.labels == :__pruned__ do
         {[], nil}
       else
         labels =
@@ -177,17 +174,13 @@ defmodule LivebookWeb.Output do
          input_values: input_values,
          client_id: client_id
        }) do
-    style =
-      if info == :__pruned__ do
-        nil
-      else
-        columns = info[:columns] || 1
-        "grid-template-columns: repeat(#{columns}, minmax(0, 1fr));"
-      end
+    columns = info[:columns] || 1
+    gap = info[:gap] || 8
 
     assigns = %{
       id: id,
-      style: style,
+      columns: columns,
+      gap: gap,
       outputs: outputs,
       socket: socket,
       session_id: session_id,
@@ -199,9 +192,8 @@ defmodule LivebookWeb.Output do
     <div id={@id} class="overflow-auto tiny-scrollbar">
       <div
         id={"#{@id}-grid"}
-        class="grid grid-cols-2 gap-x-4 w-full"
-        style={@style}
-        data-keep-attribute="style"
+        class="grid grid-cols-2 w-full"
+        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
         phx-update="append"
       >
         <%= for {output_idx, output} <- @outputs do %>
@@ -243,31 +235,41 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted}, %{}) do
-    assigns = %{message: formatted}
+  defp render_output({:error, formatted, {:missing_secret, secret_name}}, %{
+         socket: socket,
+         session_id: session_id
+       }) do
+    assigns = %{
+      message: formatted,
+      secret_name: secret_name,
+      socket: socket,
+      session_id: session_id
+    }
 
     ~H"""
-    <div
-      class="whitespace-pre-wrap font-editor text-gray-500"
-      role="complementary"
-      aria-label="error"
-      phx-no-format
-    ><%= ansi_string_to_html(@message) %></div>
+    <div class="-m-4 space-x-4 py-4">
+      <div
+        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
+        style="color: var(--ansi-color-red);"
+      >
+        <div class="flex space-x-2 font-editor">
+          <.remix_icon icon="close-circle-line" />
+          <span>Missing secret <%= inspect(@secret_name) %></span>
+        </div>
+        <%= live_patch to: Routes.session_path(@socket, :secrets, @session_id, secret_name: @secret_name),
+            class: "button-base button-gray",
+            aria_label: "add secret",
+            role: "button" do %>
+          <span>Add secret</span>
+        <% end %>
+      </div>
+      <%= render_formatted_error_message(@message) %>
+    </div>
     """
   end
 
-  # TODO: remove on Livebook v0.7
-  defp render_output(output, %{})
-       when elem(output, 0) in [
-              :vega_lite_static,
-              :vega_lite_dynamic,
-              :table_dynamic,
-              :frame_dynamic
-            ] do
-    render_error_message("""
-    Legacy output format: #{inspect(output)}. Please update Kino to
-    the latest version.
-    """)
+  defp render_output({:error, formatted, _type}, %{}) do
+    render_formatted_error_message(formatted)
   end
 
   defp render_output(output, %{}) do
@@ -282,11 +284,24 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div
-      class="whitespace-pre-wrap font-editor text-red-600"
+      class="whitespace-pre-wrap break-words font-editor text-red-600"
       role="complementary"
       aria-label="error message"
       phx-no-format
     ><%= @message %></div>
+    """
+  end
+
+  defp render_formatted_error_message(formatted) do
+    assigns = %{message: formatted}
+
+    ~H"""
+    <div
+      class="whitespace-pre-wrap break-words font-editor text-gray-500"
+      role="complementary"
+      aria-label="error"
+      phx-no-format
+    ><%= ansi_string_to_html(@message) %></div>
     """
   end
 end

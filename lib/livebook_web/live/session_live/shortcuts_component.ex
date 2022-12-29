@@ -99,6 +99,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
+      %{seq: ["s", "e"], desc: "Toggle secrets panel"},
       %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
       %{seq: ["s", "p"], desc: "Show package search"},
@@ -144,20 +145,21 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-3">
+    <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>
       <p class="text-gray-700">
         Livebook highly embraces keyboard navigation to improve your productivity.
         It operates in one of two modes similarly to the Vim text editor.
-        In <span class="font-semibold">navigation mode</span> you move around
+        In <span class="font-semibold">navigation mode</span>
+        you move around
         the notebook and execute commands, whereas in the
         <span class="font-semibold">insert mode</span>
         you have editor focus and directly modify the given cell content.
       </p>
       <div class="flex">
-        <form class="mt-4" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
+        <form class="my-2" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
           <.switch_checkbox
             name="basic"
             label="Basic view (essential shortcuts only)"
@@ -173,6 +175,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       />
       <.shortcuts_section
         title="Insert mode"
+        description="Shortcuts in the code editor match Visual Studio Code. Here is a summary (US keyboard layout)."
         shortcuts={@shortcuts.insert_mode}
         basic={@basic}
         platform={@platform}
@@ -196,18 +199,29 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       end
 
     {left, right} = split_in_half(shortcuts)
-    assigns = assign(assigns, left: left, right: right)
+
+    assigns =
+      assigns
+      |> assign(left: left, right: right)
+      |> assign_new(:description, fn -> nil end)
 
     ~H"""
-    <h3 class="text-lg font-medium text-gray-900 pt-4">
-      <%= @title %>
-    </h3>
-    <div class="mt-2 flex flex-col lg:flex-row lg:space-x-4">
-      <div class="lg:grow">
-        <.shortcuts_section_table shortcuts={@left} platform={@platform} />
-      </div>
-      <div class="lg:w-1/2">
-        <.shortcuts_section_table shortcuts={@right} platform={@platform} />
+    <div class="flex flex-col space-y-3">
+      <h3 class="text-lg font-medium text-gray-900">
+        <%= @title %>
+      </h3>
+      <%= if @description do %>
+        <div class="text-gray-700">
+          <%= @description %>
+        </div>
+      <% end %>
+      <div class="flex flex-col lg:flex-row lg:space-x-4">
+        <div class="lg:grow">
+          <.shortcuts_section_table shortcuts={@left} platform={@platform} />
+        </div>
+        <div class="lg:w-1/2">
+          <.shortcuts_section_table shortcuts={@right} platform={@platform} />
+        </div>
       </div>
     </div>
     """
@@ -236,23 +250,23 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     seq = shortcut[:"seq_#{platform}"] || shortcut.seq
     press_all = Map.get(shortcut, :press_all, false)
 
-    joiner =
+    elements =
       if press_all do
-        assigns = %{}
-
-        ~H"""
-        <.remix_icon icon="add-line" class="text-lg text-gray-600" />
-        """
+        Enum.intersperse(seq, :joiner)
+      else
+        seq
       end
-
-    elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
 
     assigns = %{elements: elements}
 
     ~H"""
     <div class="flex space-x-1 items-center markdown">
       <%= for element <- @elements do %>
-        <%= element %>
+        <%= if element == :joiner do %>
+          <.remix_icon icon="add-line" class="text-lg text-gray-600" />
+        <% else %>
+          <kbd><%= element %></kbd>
+        <% end %>
       <% end %>
     </div>
     """

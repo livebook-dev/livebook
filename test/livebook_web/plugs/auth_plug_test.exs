@@ -2,14 +2,15 @@ defmodule LivebookWeb.AuthPlugTest do
   use LivebookWeb.ConnCase, async: false
 
   setup context do
-    {type, value} =
+    {type, other_type, value} =
       cond do
-        token = context[:token] -> {:token, token}
-        password = context[:password] -> {:password, password}
-        true -> {:disabled, ""}
+        token = context[:token] -> {:token, :password, token}
+        password = context[:password] -> {:password, :token, password}
+        true -> {:disabled, :disabled, ""}
       end
 
     unless type == :disabled do
+      Application.delete_env(:livebook, other_type)
       Application.put_env(:livebook, :authentication_mode, type)
       Application.put_env(:livebook, type, value)
 
@@ -98,6 +99,12 @@ defmodule LivebookWeb.AuthPlugTest do
     test "redirects to '/' if no authentication is required", %{conn: conn} do
       conn = get(conn, "/authenticate")
       assert redirected_to(conn) == "/"
+    end
+
+    @tag password: "grumpycat"
+    test "does not crash when given a token", %{conn: conn} do
+      conn = post(conn, "/authenticate?token=grumpycat")
+      assert html_response(conn, 200) =~ "token is invalid"
     end
 
     @tag password: "grumpycat"

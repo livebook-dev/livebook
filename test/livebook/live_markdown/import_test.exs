@@ -46,6 +46,14 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```elixir
     IO.puts("My text")
     ```
+
+    <!-- livebook:{"attrs":{},"chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
+
+    ```elixir
+    x = 1
+
+    x * x
+    ```
     """
 
     {notebook, []} = Import.notebook_from_livemd(markdown)
@@ -109,6 +117,16 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      """,
                      attrs: %{"text" => "My text"},
                      kind: "text"
+                   },
+                   %Cell.Smart{
+                     source: """
+                     x = 1
+
+                     x * x\
+                     """,
+                     attrs: %{},
+                     chunks: [{0, 5}, {7, 5}],
+                     kind: "multi_chunk"
                    }
                  ]
                }
@@ -736,7 +754,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     end
 
     test "imports snippets with output info string" do
-      # We now explicitly mark every output sinppet with <!-- livebook:{"output":true} -->
+      # We now explicitly mark every output snippet with <!-- livebook:{"output":true} -->
       # and use empty snippets for textual outputs, however previously
       # we supported ```output too, so let's ensure they still work
 

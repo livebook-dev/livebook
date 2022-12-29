@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @memory_usage_interval 15_000
 
   @doc """
-  Starts the manager.
+  Starts the runtime server.
 
   Note: make sure to call `attach` within #{@await_owner_timeout}ms
   or the runtime server assumes it's not needed and terminates.
@@ -39,6 +39,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     * `:extra_smart_cell_definitions` - a list of predefined smart
       cell definitions, that may be currently be unavailable, but
       should be reported together with their requirements
+
+    * `:ebin_path` - a directory to write modules bytecode into. When
+      not specified, modules are not written to disk
+
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -71,9 +75,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   See `Livebook.Runtime.Evaluator` for more details.
   """
-  @spec evaluate_code(pid(), String.t(), Runtime.locator(), Runtime.locator(), keyword()) :: :ok
-  def evaluate_code(pid, code, locator, base_locator, opts \\ []) do
-    GenServer.cast(pid, {:evaluate_code, code, locator, base_locator, opts})
+  @spec evaluate_code(
+          pid(),
+          String.t(),
+          Runtime.locator(),
+          Runtime.parent_locators(),
+          keyword()
+        ) :: :ok
+  def evaluate_code(pid, code, locator, parent_locators, opts \\ []) do
+    GenServer.cast(pid, {:evaluate_code, code, locator, parent_locators, opts})
   end
 
   @doc """
@@ -109,11 +119,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           pid(),
           pid(),
           Runtime.intellisense_request(),
-          Runtime.locator()
+          Runtime.Runtime.parent_locators()
         ) :: reference()
-  def handle_intellisense(pid, send_to, request, base_locator) do
+  def handle_intellisense(pid, send_to, request, parent_locators) do
     ref = make_ref()
-    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, base_locator})
+    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, parent_locators})
     ref
   end
 
@@ -144,18 +154,22 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           String.t(),
           Runtime.smart_cell_ref(),
           Runtime.smart_cell_attrs(),
-          Runtime.locator()
+          Runtime.Runtime.parent_locators()
         ) :: :ok
-  def start_smart_cell(pid, kind, ref, attrs, base_locator) do
-    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs, base_locator})
+  def start_smart_cell(pid, kind, ref, attrs, parent_locators) do
+    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs, parent_locators})
   end
 
   @doc """
-  Updates the locator with smart cell context.
+  Updates the parent locator used by a smart cell as its context.
   """
-  @spec set_smart_cell_base_locator(pid(), Runtime.smart_cell_ref(), Runtime.locator()) :: :ok
-  def set_smart_cell_base_locator(pid, ref, base_locator) do
-    GenServer.cast(pid, {:set_smart_cell_base_locator, ref, base_locator})
+  @spec set_smart_cell_parent_locators(
+          pid(),
+          Runtime.smart_cell_ref(),
+          Runtime.Runtime.parent_locators()
+        ) :: :ok
+  def set_smart_cell_parent_locators(pid, ref, parent_locators) do
+    GenServer.cast(pid, {:set_smart_cell_parent_locators, ref, parent_locators})
   end
 
   @doc """
@@ -167,7 +181,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Stops the manager.
+  Sets the given environment variables.
+  """
+  @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(pid, envs) do
+    GenServer.cast(pid, {:put_system_envs, envs})
+  end
+
+  @doc """
+  Unsets the given environment variables.
+  """
+  @spec delete_system_envs(pid(), list(String.t())) :: :ok
+  def delete_system_envs(pid, names) do
+    GenServer.cast(pid, {:delete_system_envs, names})
+  end
+
+  @doc """
+  Stops the runtime server.
 
   This results in all Livebook-related modules being unloaded
   from the runtime node.
@@ -202,7 +232,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil,
-       last_evaluator: nil
+       last_evaluator: nil,
+       initial_path: System.get_env("PATH", ""),
+       ebin_path: Keyword.get(opts, :ebin_path)
      }}
   end
 
@@ -225,7 +257,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply,
      state
      |> handle_down_evaluator(message)
-     |> handle_down_scan_binding(message)}
+     |> handle_down_scan_binding(message)
+     |> handle_down_smart_cell(message)}
   end
 
   def handle_info({:evaluation_finished, locator}, state) do
@@ -271,13 +304,25 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp handle_down_scan_binding(state, {:DOWN, monitor_ref, :process, _, _}) do
-    Enum.find_value(state.smart_cells, fn
-      {ref, %{scan_binding_monitor_ref: ^monitor_ref}} -> ref
-      _ -> nil
-    end)
+    state.smart_cells
+    |> Enum.find(fn {_ref, info} -> info.scan_binding_monitor_ref == monitor_ref end)
     |> case do
+      {ref, _info} -> finish_scan_binding(ref, state)
       nil -> state
-      ref -> finish_scan_binding(ref, state)
+    end
+  end
+
+  defp handle_down_smart_cell(state, {:DOWN, monitor_ref, :process, _, _}) do
+    state.smart_cells
+    |> Enum.find(fn {_ref, info} -> info.monitor_ref == monitor_ref end)
+    |> case do
+      {ref, _info} ->
+        send(state.owner, {:runtime_smart_cell_down, ref})
+        {_, state} = pop_in(state.smart_cells[ref])
+        state
+
+      nil ->
+        state
     end
   end
 
@@ -302,25 +347,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, {container_ref, evaluation_ref} = locator, base_locator, opts},
+        {:evaluate_code, code, {container_ref, evaluation_ref} = locator, parent_locators, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
 
-    base_evaluation_ref =
-      case base_locator do
-        {^container_ref, evaluation_ref} ->
-          evaluation_ref
-
-        {parent_container_ref, evaluation_ref} ->
-          Evaluator.initialize_from(
-            state.evaluators[container_ref],
-            state.evaluators[parent_container_ref],
-            evaluation_ref
-          )
-
-          nil
-      end
+    parent_evaluation_refs = evaluation_refs_for_container(state, container_ref, parent_locators)
 
     {smart_cell_ref, opts} = Keyword.pop(opts, :smart_cell_ref)
     smart_cell_info = smart_cell_ref && state.smart_cells[smart_cell_ref]
@@ -344,7 +376,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       state.evaluators[container_ref],
       code,
       evaluation_ref,
-      base_evaluation_ref,
+      parent_evaluation_refs,
       opts
     )
 
@@ -364,15 +396,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:handle_intellisense, send_to, ref, request, base_locator}, state) do
-    {container_ref, evaluation_ref} = base_locator
-    evaluator = state.evaluators[container_ref]
+  def handle_cast({:handle_intellisense, send_to, ref, request, parent_locators}, state) do
+    {container_ref, parent_evaluation_refs} =
+      case parent_locators do
+        [] ->
+          {nil, []}
+
+        [{container_ref, _} | _] ->
+          parent_evaluation_refs =
+            parent_locators
+            # If there is a parent evaluator we ignore it and use whatever
+            # initial context we currently have in the evaluator. We sync
+            # initial context only on evaluation, since it may be blocking
+            |> Enum.take_while(&(elem(&1, 0) == container_ref))
+            |> Enum.map(&elem(&1, 1))
+
+          {container_ref, parent_evaluation_refs}
+      end
+
+    evaluator = container_ref && state.evaluators[container_ref]
 
     intellisense_context =
       if evaluator == nil or elem(request, 0) in [:format] do
         Evaluator.intellisense_context()
       else
-        Evaluator.intellisense_context(evaluator, evaluation_ref)
+        Evaluator.intellisense_context(evaluator, parent_evaluation_refs)
       end
 
     Task.Supervisor.start_child(state.task_supervisor, fn ->
@@ -383,7 +431,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:start_smart_cell, kind, ref, attrs, base_locator}, state) do
+  def handle_cast({:start_smart_cell, kind, ref, attrs, parent_locators}, state) do
     definition = Enum.find(state.smart_cell_definitions, &(&1.kind == kind))
 
     state =
@@ -400,16 +448,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             scan_eval_result: scan_eval_result
           } = info
 
+          chunks = info[:chunks]
+
           send(
             state.owner,
             {:runtime_smart_cell_started, ref,
-             %{source: source, js_view: js_view, editor: editor}}
+             %{source: source, chunks: chunks, js_view: js_view, editor: editor}}
           )
 
           info = %{
             pid: pid,
+            monitor_ref: Process.monitor(pid),
             scan_binding: scan_binding,
-            base_locator: base_locator,
+            parent_locators: parent_locators,
             scan_binding_pending: false,
             scan_binding_monitor_ref: nil,
             scan_eval_result: scan_eval_result
@@ -419,18 +470,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           put_in(state.smart_cells[ref], info)
 
         {:error, error} ->
-          Logger.error("failed to start smart cell, reason: #{inspect(error)}")
+          Logger.error("failed to start smart cell - #{Exception.format_exit(error)}")
           state
       end
 
     {:noreply, state}
   end
 
-  def handle_cast({:set_smart_cell_base_locator, ref, base_locator}, state) do
+  def handle_cast({:set_smart_cell_parent_locators, ref, parent_locators}, state) do
     state =
       update_in(state.smart_cells[ref], fn
-        %{base_locator: ^base_locator} = info -> info
-        info -> scan_binding_async(ref, %{info | base_locator: base_locator}, state)
+        %{parent_locators: ^parent_locators} = info -> info
+        info -> scan_binding_async(ref, %{info | parent_locators: parent_locators}, state)
       end)
 
     {:noreply, state}
@@ -442,6 +493,28 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if pid do
       DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
     end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:put_system_envs, envs}, state) do
+    envs
+    |> Enum.map(fn
+      {"PATH", path} -> {"PATH", state.initial_path <> os_path_separator() <> path}
+      other -> other
+    end)
+    |> System.put_env()
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:delete_system_envs, names}, state) do
+    names
+    |> Enum.map(fn
+      "PATH" -> {"PATH", state.initial_path}
+      name -> {name, nil}
+    end)
+    |> System.put_env()
 
     {:noreply, state}
   end
@@ -476,7 +549,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           state.evaluator_supervisor,
           send_to: state.owner,
           runtime_broadcast_to: state.runtime_broadcast_to,
-          object_tracker: state.object_tracker
+          object_tracker: state.object_tracker,
+          ebin_path: state.ebin_path
         )
 
       Process.monitor(evaluator.pid)
@@ -555,12 +629,28 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       send(myself, {:scan_binding_ack, ref})
     end
 
-    {container_ref, evaluation_ref} = info.base_locator
-    evaluator = state.evaluators[container_ref]
+    {container_ref, parent_evaluation_refs} =
+      case info.parent_locators do
+        [] ->
+          {nil, []}
+
+        [{container_ref, _} | _] = parent_locators ->
+          parent_evaluation_refs =
+            evaluation_refs_for_container(state, container_ref, parent_locators)
+
+          {container_ref, parent_evaluation_refs}
+      end
+
+    evaluator = container_ref && state.evaluators[container_ref]
 
     worker_pid =
       if evaluator do
-        Evaluator.peek_context(evaluator, evaluation_ref, &scan_and_ack.(&1.binding, &1.env))
+        Evaluator.peek_context(
+          evaluator,
+          parent_evaluation_refs,
+          &scan_and_ack.(&1.binding, &1.env)
+        )
+
         evaluator.pid
       else
         {:ok, pid} =
@@ -578,28 +668,59 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     %{info | scan_binding_pending: false, scan_binding_monitor_ref: monitor_ref}
   end
 
-  defp finish_scan_binding(ref, state) do
-    update_in(state.smart_cells[ref], fn info ->
-      Process.demonitor(info.scan_binding_monitor_ref, [:flush])
-      info = %{info | scan_binding_monitor_ref: nil}
+  defp evaluation_refs_for_container(state, container_ref, locators) do
+    case Enum.split_while(locators, &(elem(&1, 0) == container_ref)) do
+      {locators, []} ->
+        Enum.map(locators, &elem(&1, 1))
 
-      if info.scan_binding_pending do
-        scan_binding_async(ref, info, state)
-      else
-        info
-      end
-    end)
+      {locators, [{source_container_ref, _} | _] = source_locators} ->
+        source_evaluation_refs = Enum.map(source_locators, &elem(&1, 1))
+
+        evaluator = state.evaluators[container_ref]
+        source_evaluator = state.evaluators[source_container_ref]
+
+        if evaluator && source_evaluator do
+          # Synchronize initial state in the child evaluator
+          Evaluator.initialize_from(evaluator, source_evaluator, source_evaluation_refs)
+        end
+
+        Enum.map(locators, &elem(&1, 1))
+    end
+  end
+
+  defp finish_scan_binding(ref, state) do
+    if state.smart_cells[ref] do
+      update_in(state.smart_cells[ref], fn info ->
+        Process.demonitor(info.scan_binding_monitor_ref, [:flush])
+        info = %{info | scan_binding_monitor_ref: nil}
+
+        if info.scan_binding_pending do
+          scan_binding_async(ref, info, state)
+        else
+          info
+        end
+      end)
+    else
+      state
+    end
   end
 
   defp scan_binding_after_evaluation(state, locator) do
     update_in(state.smart_cells, fn smart_cells ->
-      Map.new(smart_cells, fn
-        {ref, %{base_locator: ^locator} = info} ->
+      Map.new(smart_cells, fn {ref, info} ->
+        if locator in info.parent_locators do
           {ref, scan_binding_async(ref, info, state)}
-
-        other ->
-          other
+        else
+          {ref, info}
+        end
       end)
     end)
+  end
+
+  defp os_path_separator() do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
+    end
   end
 end

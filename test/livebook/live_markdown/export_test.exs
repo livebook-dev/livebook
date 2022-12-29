@@ -72,6 +72,16 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     """,
                     attrs: %{"text" => "My text"},
                     kind: "text"
+                },
+                %{
+                  Notebook.Cell.new(:smart)
+                  | source: """
+                    x = 1
+
+                    x * x\
+                    """,
+                    chunks: [{0, 5}, {7, 5}],
+                    kind: "multi_chunk"
                 }
               ]
           }
@@ -113,10 +123,18 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     Process.info()
     ```
 
-    <!-- livebook:{"attrs":{"text":"My text"},"kind":"text","livebook_object":"smart_cell"} -->
+    <!-- livebook:{"attrs":{"text":"My text"},"chunks":null,"kind":"text","livebook_object":"smart_cell"} -->
 
     ```elixir
     IO.puts("My text")
+    ```
+
+    <!-- livebook:{"attrs":{},"chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
+
+    ```elixir
+    x = 1
+
+    x * x
     ```
     """
 

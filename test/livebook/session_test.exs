@@ -7,6 +7,8 @@ defmodule Livebook.SessionTest do
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
 
+  @eval_meta %{evaluation_time_ms: 10, identifiers_used: [], identifiers_defined: %{}}
+
   setup do
     session = start_session()
     %{session: session}
@@ -105,6 +107,38 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "recover_smart_cell/2" do
+    test "sends a recover operations to subscribers and starts the smart cell" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "content!", js_view: %{}, editor: nil}}
+      )
+
+      send(session.pid, {:runtime_smart_cell_down, smart_cell.id})
+
+      Session.subscribe(session.id)
+
+      Session.recover_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+
+      assert_receive {:operation, {:recover_smart_cell, _client_id, ^cell_id}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _, _}}
+    end
+  end
+
   describe "convert_smart_cell/2" do
     test "sends a delete and insert operations to subscribers" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
@@ -126,6 +160,38 @@ defmodule Livebook.SessionTest do
                       {:insert_cell, _client_id, ^section_id, 0, :code, _id,
                        %{source: "content", outputs: []}}}
     end
+
+    test "inserts multiple cells when the smart cell has explicit chunks" do
+      smart_cell = %{
+        Notebook.Cell.new(:smart)
+        | kind: "text",
+          source: "chunk 1\n\nchunk 2",
+          chunks: [{0, 7}, {9, 7}],
+          outputs: [{1, {:text, "Hello"}}]
+      }
+
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Session.subscribe(session.id)
+
+      Session.convert_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+      section_id = section.id
+
+      assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
+
+      assert_receive {:operation,
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
+                       %{source: "chunk 1", outputs: []}}}
+
+      assert_receive {:operation,
+                      {:insert_cell, _client_id, ^section_id, 1, :code, _id,
+                       %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
+    end
   end
 
   describe "add_dependencies/2" do
@@ -136,7 +202,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [{:jason, "~> 1.3.0"}])
+      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
       assert_receive {:operation, {:apply_cell_delta, "__server__", "setup", :primary, _delta, 1}}
 
@@ -166,7 +232,7 @@ defmodule Livebook.SessionTest do
 
       Session.subscribe(session.id)
 
-      Session.add_dependencies(session.pid, [{:json, "~> 1.3.0"}])
+      Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
       assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
     end
@@ -513,7 +579,7 @@ defmodule Livebook.SessionTest do
 
     assert_receive {:operation, {:set_runtime, _, runtime}}
     refute Runtime.connected?(runtime)
-    assert_receive {:info, "runtime node terminated unexpectedly"}
+    assert_receive {:error, "runtime node terminated unexpectedly - no connection"}
   end
 
   test "on user change sends an update operation subscribers", %{session: session} do
@@ -602,7 +668,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "smart cells" do
-    test "notifies subcribers when a smart cell starts and passes source diff as delta" do
+    test "notifies subscribers when a smart cell starts and passes source diff as delta" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
@@ -626,7 +692,7 @@ defmodule Livebook.SessionTest do
       delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}, nil}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}}
     end
 
     test "sends an event to the smart cell server when the editor source changes" do
@@ -662,6 +728,48 @@ defmodule Livebook.SessionTest do
       assert_receive {:editor_source, "content!"}
     end
 
+    test "normalizes line endings in smart cells having an editor" do
+      # Prior to Livebook 0.7.0 the editor would use system line endings,
+      # hence smart cells having editor may have CRLF in their persisted
+      # source, so we want to normalize it upfront
+
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      server_pid = self()
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{
+           source: "content\r\nmultiline",
+           js_view: %{ref: smart_cell.id, pid: server_pid, assets: %{}},
+           editor: %{language: nil, placement: :bottom, source: "content\r\nmultiline"}
+         }}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       %{source: "content\nmultiline", editor: %{source: "content\nmultiline"}}
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
     test "pings the smart cell before evaluation to await all incoming messages" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "1"}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
@@ -685,10 +793,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, smart_cell.id)
 
-      send(
-        session.pid,
-        {:runtime_evaluation_response, "setup", {:ok, ""}, %{evaluation_time_ms: 10}}
-      )
+      send(session.pid, {:runtime_evaluation_response, "setup", {:ok, ""}, @eval_meta})
 
       session_pid = session.pid
       assert_receive {:ping, ^session_pid, metadata, %{ref: "ref"}}
@@ -707,8 +812,8 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "find_base_locator/3" do
-    test "given cell in main flow returns previous Code cell" do
+  describe "parent_locators_for_cell/2" do
+    test "given cell in main flow returns previous Code cells" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
       section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
@@ -719,10 +824,19 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2)
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), connected_noop_runtime()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
+        ])
+
+      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+               Session.parent_locators_for_cell(data, cell3)
     end
 
-    test "given cell in branching section returns previous Code cell in that section" do
+    test "given cell in branching section returns Code cells from both sections" do
       section1 = %{Section.new() | id: "s1"}
 
       cell1 = %{Cell.new(:code) | id: "c1"}
@@ -739,17 +853,25 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {"s2", "c1"} = Session.find_base_locator(data, cell3, section2)
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), connected_noop_runtime()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
+        ])
+
+      assert [{"s2", "c1"}, {:main_flow, "setup"}] = Session.parent_locators_for_cell(data, cell3)
     end
 
-    test "given cell in main flow returns nil if there is no previous cell" do
-      %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook = Notebook.new()
+    test "given cell in main flow returns an empty list if there is no previous cell" do
+      %{setup_section: %{cells: [setup_cell]}} = notebook = Notebook.new()
       data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, setup_cell, setup_section)
+      assert [] = Session.parent_locators_for_cell(data, setup_cell)
     end
 
-    test "when :existing is set ignores fresh and aborted cells" do
+    test "ignores fresh and aborted cells" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:code) | id: "c2"}
       section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
@@ -760,24 +882,25 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section1, section2]}
       data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [] = Session.parent_locators_for_cell(data, cell3)
 
       data =
         data_after_operations!(data, [
           {:set_runtime, self(), connected_noop_runtime()},
           {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, %{evaluation_time_ms: 10}},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, @eval_meta}
         ])
 
-      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [{:main_flow, "c1"}, {:main_flow, "setup"}] =
+               Session.parent_locators_for_cell(data, cell3)
 
       data =
         data_after_operations!(data, [
           {:reflect_main_evaluation_failure, self()}
         ])
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+      assert [] = Session.parent_locators_for_cell(data, cell3)
     end
   end
 

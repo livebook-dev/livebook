@@ -73,7 +73,7 @@ Example usage:
 
 /*
 Note: we let the arrow and content overlap 1px,
-othrwise there's a tiny space between them.
+otherwise there's a tiny space between them.
 */
 
 .tooltip.top:before {
@@ -98,7 +98,14 @@ othrwise there's a tiny space between them.
   transform: translate(-50%, calc(var(--arrow-size) - 1px + var(--distance)));
 }
 
-.tooltip.bottom:after {
+.tooltip.bottom-left:before {
+  top: 100%;
+  right: 0;
+  transform: translate(0%, calc(var(--arrow-size) - 1px + var(--distance)));
+}
+
+.tooltip.bottom:after,
+.tooltip.bottom-left:after {
   top: 100%;
   left: 50%;
   transform: translate(-50%, var(--distance));

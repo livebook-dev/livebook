@@ -3,7 +3,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   # The formatter used by Livebook for rendering the results.
   #
-  # See `Livebook.Notebook.Cell` for available output formats.
+  # See `Livebook.Runtime.output/0` for available output formats.
 
   @behaviour Livebook.Runtime.Evaluator.Formatter
 
@@ -27,7 +27,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   def format_result({:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
-    {:error, formatted}
+    {:error, formatted, error_type(error)}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -61,7 +61,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     end
   end
 
-  defp inspect_opts(opts \\ []) do
+  def inspect_opts(opts \\ []) do
     default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
     Keyword.merge(default_opts, opts)
   end
@@ -87,7 +87,14 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   end
 
   defp format_error(kind, error, stacktrace) do
-    {blamed, stacktrace} = Exception.blame(kind, error, stacktrace)
+    {blamed, stacktrace} =
+      case error do
+        %CompileError{description: "cannot compile file (errors have been logged)" <> _, line: 0} ->
+          {%CompileError{description: "cannot compile cell (errors have been logged)"}, []}
+
+        _ ->
+          Exception.blame(kind, error, stacktrace)
+      end
 
     banner =
       case blamed do
@@ -128,4 +135,9 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   defp error_color(string) do
     IO.ANSI.format([:red, string], true)
   end
+
+  defp error_type(%System.EnvError{env: "LB_" <> secret_name}),
+    do: {:missing_secret, secret_name}
+
+  defp error_type(_), do: :other
 end

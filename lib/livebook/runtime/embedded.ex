@@ -76,8 +76,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Embedded.new()
   end
 
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  def evaluate_code(runtime, code, locator, parent_locators, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, parent_locators, opts)
   end
 
   def forget_evaluation(runtime, locator) do
@@ -88,20 +88,20 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, request, base_locator) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
+  def handle_intellisense(runtime, send_to, request, parent_locators) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, parent_locators)
   end
 
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+  def start_smart_cell(runtime, kind, ref, attrs, parent_locators) do
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, parent_locators)
   end
 
-  def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+  def set_smart_cell_parent_locators(runtime, ref, parent_locators) do
+    RuntimeServer.set_smart_cell_parent_locators(runtime.server_pid, ref, parent_locators)
   end
 
   def stop_smart_cell(runtime, ref) do
@@ -113,13 +113,21 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
   end
 
   def search_packages(_runtime, send_to, search) do
     {mod, fun, args} = config()[:load_packages]
     packages = apply(mod, fun, args)
     Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
+  end
+
+  def put_system_envs(runtime, envs) do
+    RuntimeServer.put_system_envs(runtime.server_pid, envs)
+  end
+
+  def delete_system_envs(runtime, names) do
+    RuntimeServer.delete_system_envs(runtime.server_pid, names)
   end
 
   defp config() do

@@ -13,7 +13,6 @@ Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new()
 
 Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.ElixirStandalone,
-  Livebook.Runtime.MixStandalone,
   Livebook.Runtime.Attached,
   Livebook.Runtime.Embedded
 ])
@@ -22,7 +21,7 @@ defmodule Livebook.Runtime.Embedded.Packages do
   def list() do
     [
       %{
-        dependency: {:jason, "~> 1.3.0"},
+        dependency: %{dep: {:jason, "~> 1.3.0"}, config: []},
         description: "A blazing fast JSON parser and generator in pure Elixir",
         name: "jason",
         url: "https://hex.pm/packages/jason",
@@ -38,11 +37,14 @@ Application.put_env(:livebook, Livebook.Runtime.Embedded,
 )
 
 # Disable autosaving
-Livebook.Storage.current().insert(:settings, "global", autosave_path: nil)
+Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
-exclude = []
-exclude = if erl_docs_available?, do: exclude, else: Keyword.put(exclude, :erl_docs, true)
+enterprise_path = System.get_env("ENTERPRISE_PATH", "../enterprise")
+enterprise_available? = File.exists?(enterprise_path)
 
-ExUnit.start(assert_receive_timeout: 1_500, exclude: exclude)
+ExUnit.start(
+  assert_receive_timeout: 1_500,
+  exclude: [erl_docs: erl_docs_available?, enterprise_integration: !enterprise_available?]
+)

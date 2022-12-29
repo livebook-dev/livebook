@@ -26,7 +26,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 flex flex-col space-y-8">
+    <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Search packages
       </h3>

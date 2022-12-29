@@ -48,6 +48,7 @@ defmodule Livebook.Application do
       {:ok, _} = result ->
         clear_env_vars()
         display_startup_info()
+        insert_development_hub()
         result
 
       {:error, error} ->
@@ -123,21 +124,20 @@ defmodule Livebook.Application do
       else
         _ ->
           Livebook.Config.abort!("""
-          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8),
+          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8), \
           which indicates something wrong in your OS configuration, or EPMD is not running.
 
-          Make sure your computer's name resolves locally or start Livebook using \
-          a long distribution name. Please try one of the fixes below:
+          To address this issue, you might:
 
-            * If you are using the Livebook App, please open up a bug report.
+            * Consult our Installation FAQ:
+              https://github.com/livebook-dev/livebook/wiki/Installation-FAQ
 
-            * If you are using Livebook's CLI, consider using longnames:
+            * If you are using Livebook's CLI or from source, consider using longnames:
 
                   livebook server --name livebook@127.0.0.1
+                  elixir --name livebook@127.0.0.1 -S mix phx.server
 
-            * If you are running it from source, do instead:
-
-                  MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+            * If the issue persists, please file a bug report
 
           """)
       end
@@ -177,6 +177,20 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
+    defp insert_development_hub do
+      unless Livebook.Hubs.hub_exists?("local-host") do
+        Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
+          id: "local-host",
+          hub_name: "Localhost",
+          hub_color: Livebook.EctoTypes.HexColor.random()
+        })
+      end
+    end
+  else
+    defp insert_development_hub, do: :ok
   end
 
   defp iframe_server_specs() do

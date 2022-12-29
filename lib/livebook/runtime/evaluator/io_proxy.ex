@@ -23,24 +23,37 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   @doc """
   Starts an IO device process.
 
-  Make sure to use `configure/3` to correctly proxy the requests.
+  For all supported requests a message is sent to the configured
+  `:send_to` process, so this device serves as a proxy. Make sure
+  to also call configure/3` before every evaluation.
   """
-  @spec start_link(pid(), pid(), pid(), pid()) :: GenServer.on_start()
-  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker) do
-    GenServer.start_link(__MODULE__, {evaluator, send_to, runtime_broadcast_to, object_tracker})
+  @spec start(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
+  def start(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+    GenServer.start(
+      __MODULE__,
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+    )
   end
 
   @doc """
-  Sets IO proxy destination and the reference to be attached to all
-  messages.
-
-  For all supported requests a message is sent to the configured
-  `:send_to` process, so this device serves as a proxy. The given
-  evaluation reference is also included in all messages.
+  Linking version of `start/4`.
   """
-  @spec configure(pid(), Evaluator.ref()) :: :ok
-  def configure(pid, ref) do
-    GenServer.cast(pid, {:configure, ref})
+  @spec start_link(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
+  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+    GenServer.start_link(
+      __MODULE__,
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+    )
+  end
+
+  @doc """
+  Configures IO proxy for a new evaluation.
+
+  The given reference is attached to all the proxied messages.
+  """
+  @spec configure(pid(), Evaluator.ref(), String.t()) :: :ok
+  def configure(pid, ref, file) do
+    GenServer.cast(pid, {:configure, ref, file})
   end
 
   @doc """
@@ -62,41 +75,70 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @doc """
-  Returns the accumulated widget pids and clears the accumulator.
+  Updates tracer info.
   """
-  @spec flush_widgets(pid()) :: MapSet.t(pid())
-  def flush_widgets(pid) do
-    GenServer.call(pid, :flush_widgets)
+  @spec tracer_updates(pid(), list()) :: :ok
+  def tracer_updates(pid, updates) do
+    GenServer.cast(pid, {:tracer_updates, updates})
+  end
+
+  @doc """
+  Returns the accumulated tracer info.
+  """
+  @spec get_tracer_info(pid()) :: %Evaluator.Tracer{}
+  def get_tracer_info(pid) do
+    GenServer.call(pid, :get_tracer_info)
   end
 
   @impl true
-  def init({evaluator, send_to, runtime_broadcast_to, object_tracker}) do
+  def init({evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}) do
+    evaluator_monitor = Process.monitor(evaluator)
+
     {:ok,
      %{
+       evaluator_monitor: evaluator_monitor,
        encoding: :unicode,
        ref: nil,
+       file: nil,
        buffer: [],
        input_cache: %{},
        token_count: 0,
        evaluator: evaluator,
        send_to: send_to,
        runtime_broadcast_to: runtime_broadcast_to,
-       object_tracker: object_tracker
+       object_tracker: object_tracker,
+       ebin_path: ebin_path,
+       tracer_info: %Evaluator.Tracer{},
+       modules_defined: MapSet.new()
      }}
   end
 
   @impl true
-  def handle_cast({:configure, ref}, state) do
-    {:noreply, %{state | ref: ref, token_count: 0}}
+  def handle_cast({:configure, ref, file}, state) do
+    {:noreply, %{state | ref: ref, file: file, token_count: 0, tracer_info: %Evaluator.Tracer{}}}
   end
 
   def handle_cast(:clear_input_cache, state) do
     {:noreply, %{state | input_cache: %{}}}
   end
 
+  def handle_cast({:tracer_updates, updates}, state) do
+    state = update_in(state.tracer_info, &Evaluator.Tracer.apply_updates(&1, updates))
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call(:flush, _from, state) do
     {:reply, :ok, flush_buffer(state)}
+  end
+
+  def handle_call(:get_tracer_info, _from, state) do
+    modules_defined =
+      state.tracer_info.modules_defined
+      |> Map.keys()
+      |> Enum.into(state.modules_defined)
+
+    {:reply, state.tracer_info, %{state | modules_defined: modules_defined}}
   end
 
   @impl true
@@ -108,6 +150,19 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   def handle_info(:flush, state) do
     {:noreply, flush_buffer(state)}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, state)
+      when ref == state.evaluator_monitor do
+    cleanup(state)
+    {:stop, reason, state}
+  end
+
+  defp cleanup(state) do
+    # Remove all modules defined during evaluation
+    for module <- state.modules_defined, function_exported?(module, :module_info, 1) do
+      Evaluator.delete_module(module, state.ebin_path)
+    end
   end
 
   defp io_request({:put_chars, chars} = req, state) do
@@ -221,13 +276,24 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {:ok, state}
   end
 
+  # Used until Kino v0.7
   defp io_request({:livebook_monitor_object, object, destination, payload}, state) do
-    reply = Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload)
+    io_request({:livebook_monitor_object, object, destination, payload, false}, state)
+  end
+
+  defp io_request({:livebook_monitor_object, object, destination, payload, ack?}, state) do
+    reply =
+      Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload, ack?)
+
     {reply, state}
   end
 
   defp io_request(:livebook_get_broadcast_target, state) do
     {{:ok, state.runtime_broadcast_to}, state}
+  end
+
+  defp io_request(:livebook_get_evaluation_file, state) do
+    {state.file, state}
   end
 
   defp io_request(_, state) do

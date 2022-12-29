@@ -19,6 +19,46 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
+  def render(%{attrs: %{type: :image}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <.live_component
+        module={LivebookWeb.Output.ImageInputComponent}
+        id={"#{@id}-input"}
+        value={@value}
+        height={@attrs.size && elem(@attrs.size, 0)}
+        width={@attrs.size && elem(@attrs.size, 1)}
+        format={@attrs.format}
+        fit={@attrs.fit}
+        target={@myself}
+      />
+    </div>
+    """
+  end
+
+  def render(%{attrs: %{type: :audio}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <.live_component
+        module={LivebookWeb.Output.AudioInputComponent}
+        id={"#{@id}-input"}
+        value={@value}
+        format={@attrs.format}
+        sampling_rate={@attrs.sampling_rate}
+        target={@myself}
+      />
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
@@ -77,9 +117,11 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
     <textarea
+      id={@id}
       data-el-input
-      class="input min-h-[200px] tiny-scrollbar"
+      class={"input min-h-[38px] max-h-[300px] tiny-scrollbar #{if(@attrs[:monospace], do: "font-mono")}"}
       name="value"
+      phx-hook="TextareaAutosize"
       phx-debounce="blur"
       phx-target={@myself}
       spellcheck="false"
@@ -241,6 +283,26 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :image} = attrs) do
+    {:ok,
+     %{
+       data: Base.decode64!(html_value["data"]),
+       height: html_value["height"],
+       width: html_value["width"],
+       format: attrs.format
+     }}
+  end
+
+  defp parse(html_value, %{type: :audio} = attrs) do
+    {:ok,
+     %{
+       data: Base.decode64!(html_value["data"]),
+       num_channels: html_value["num_channels"],
+       sampling_rate: html_value["sampling_rate"],
+       format: attrs.format
+     }}
   end
 
   defp report_event(socket, value) do

@@ -1,11 +1,11 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.14-rc.0"
-  @version "0.6.3"
+  @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
+  @version "0.8.0"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.14.0-rc.0"
+  @app_elixir_version "1.14.2"
   @app_rebar3_version "3.19.0"
 
   def project do
@@ -16,6 +16,7 @@ defmodule Livebook.MixProject do
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_elixirc_options: [docs: true],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),
@@ -39,8 +40,8 @@ defmodule Livebook.MixProject do
   defp extra_applications(:app), do: [:wx]
   defp extra_applications(_), do: []
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
+  defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
+  defp elixirc_paths(_), do: ["lib", "proto/lib"]
 
   defp package do
     [
@@ -49,7 +50,7 @@ defmodule Livebook.MixProject do
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
       files:
-        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe)
+        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe proto/lib)
     ]
   end
 
@@ -57,7 +58,8 @@ defmodule Livebook.MixProject do
     [
       "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
       "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
     ]
   end
 
@@ -89,8 +91,8 @@ defmodule Livebook.MixProject do
     [
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 3.0"},
-      {:phoenix_live_view, "~> 0.17.3"},
-      {:phoenix_live_dashboard, "~> 0.6.0"},
+      {:phoenix_live_view, "~> 0.18.1"},
+      {:phoenix_live_dashboard, "~> 0.7.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
@@ -98,9 +100,14 @@ defmodule Livebook.MixProject do
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
       {:aws_signature, "~> 0.3.0"},
+      {:ecto, "~> 3.9.0"},
+      {:phoenix_ecto, "~> 4.4.0"},
+      {:mint_web_socket, "~> 1.0.0"},
+      {:protobuf, "~> 0.8.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
-      {:bypass, "~> 2.1", only: :test}
+      {:bypass, "~> 2.1", only: :test},
+      {:connection, "~> 1.1.0"}
     ]
   end
 
@@ -128,6 +135,12 @@ defmodule Livebook.MixProject do
 
   defp releases do
     macos_notarization = macos_notarization()
+
+    additional_paths = [
+      "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
+      "rel/vendor/otp/bin",
+      "rel/vendor/elixir/bin"
+    ]
 
     [
       livebook: [
@@ -161,19 +174,17 @@ defmodule Livebook.MixProject do
               ]
             ]
           ],
-          additional_paths: [
-            "rel/erts-#{:erlang.system_info(:version)}/bin",
-            "rel/vendor/elixir/bin"
-          ],
           macos: [
             app_type: :agent,
             icon_path: "rel/app/icon-macos.png",
             build_dmg: macos_notarization != nil,
-            notarization: macos_notarization
+            notarization: macos_notarization,
+            additional_paths: additional_paths ++ ["/usr/local/bin"]
           ],
           windows: [
             icon_path: "rel/app/icon.ico",
-            build_installer: true
+            build_installer: true,
+            additional_paths: additional_paths
           ]
         ]
       ]

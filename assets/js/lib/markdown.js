@@ -45,6 +45,8 @@ class Markdown {
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
       morphdom(this.container, wrappedHtml, { childrenOnly: true });
+
+      this._fixMermaidSpacing();
     });
   }
 
@@ -56,14 +58,14 @@ class Markdown {
         .use(remarkMath)
         .use(remarkPrepareMermaid)
         .use(remarkSyntaxHiglight, { highlight })
-        .use(remarkExpandUrls, { baseUrl: this.baseUrl })
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
+        .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
         .use(rehypeSanitize, sanitizeSchema())
         .use(rehypeKatex)
         .use(rehypeMermaid)
-        .use(rehypeExternalLinks)
+        .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
         .use(rehypeStringify)
         .process(this.content)
         .then((file) => String(file))
@@ -82,6 +84,13 @@ class Markdown {
           }
         })
     );
+  }
+
+  _fixMermaidSpacing() {
+    // A workaround for https://github.com/mermaid-js/mermaid/issues/1758
+    for (const svg of this.container.querySelectorAll(".mermaid svg")) {
+      svg.removeAttribute("height");
+    }
   }
 }
 
@@ -130,32 +139,38 @@ function remarkSyntaxHiglight(options) {
 
 // Expands relative URLs against the given base url
 // and deals with ".." in URLs
-function remarkExpandUrls(options) {
+function rehypeExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
-      visit(ast, "link", (node) => {
-        if (
-          node.url &&
-          !isAbsoluteUrl(node.url) &&
-          !isInternalUrl(node.url) &&
-          !isPageAnchor(node.url)
-        ) {
-          node.url = urlAppend(options.baseUrl, node.url);
-        }
-      });
+      visit(ast, "element", (node) => {
+        if (node.tagName === "a" && node.properties) {
+          const url = node.properties.href;
 
-      visit(ast, "image", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url) && !isInternalUrl(node.url)) {
-          node.url = urlAppend(options.baseUrl, node.url);
+          if (
+            url &&
+            !isAbsoluteUrl(url) &&
+            !isInternalUrl(url) &&
+            !isPageAnchor(url)
+          ) {
+            node.properties.href = urlAppend(options.baseUrl, url);
+          }
+        }
+
+        if (node.tagName === "img" && node.properties) {
+          const url = node.properties.src;
+
+          if (url && !isAbsoluteUrl(url) && !isInternalUrl(url)) {
+            node.properties.src = urlAppend(options.baseUrl, url);
+          }
         }
       });
     }
 
     // Browser normalizes URLs with ".." so we use a "__parent__"
     // modifier instead and handle it on the server
-    visit(ast, "link", (node) => {
-      if (node.url) {
-        node.url = node.url
+    visit(ast, "element", (node) => {
+      if (node.tagName === "a" && node.properties && node.properties.href) {
+        node.properties.href = node.properties.href
           .split("/")
           .map((part) => (part === ".." ? "__parent__" : part))
           .join("/");
@@ -171,7 +186,9 @@ function remarkPrepareMermaid(options) {
     visit(ast, "code", (node, index, parent) => {
       if (node.lang === "mermaid") {
         node.type = "html";
-        node.value = `<div class="mermaid">${escapeHtml(node.value)}</div>`;
+        node.value = `
+          <div class="mermaid">${escapeHtml(node.value)}</div>
+        `;
       }
     });
   };
@@ -213,7 +230,10 @@ function rehypeExternalLinks(options) {
         const url = node.properties.href;
 
         if (isInternalUrl(url)) {
-          node.properties["data-phx-link"] = "redirect";
+          node.properties["data-phx-link"] =
+            options.baseUrl && url.startsWith(options.baseUrl)
+              ? "patch"
+              : "redirect";
           node.properties["data-phx-link-state"] = "push";
         } else if (isAbsoluteUrl(url)) {
           node.properties.target = "_blank";

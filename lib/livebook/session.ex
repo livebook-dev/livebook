@@ -29,7 +29,7 @@ defmodule Livebook.Session do
   # the evaluation context from the parent section, the last context
   # needs to be copied from the main flow evaluator to the branching
   # section evaluator. The latter synchronously asks the former for
-  # that context using `Livebook.Runtime.Evaluator.fetch_evaluation_context/3`.
+  # that context using `Livebook.Runtime.Evaluator.get_evaluation_context/3`.
   # Consequently, in order to evaluate the first cell in a branching
   # section, the main flow needs to be free of work, otherwise we wait.
   # This assumptions are mirrored in by `Livebook.Session.Data` when
@@ -39,14 +39,23 @@ defmodule Livebook.Session do
   # kept the contexts in its process dictionary, however the other
   # evaluator could only read the whole process dictionary, thus
   # allocating a lot of memory unnecessarily, which would be unacceptable
-  # for large data. By making a synchronous request to the evalutor
+  # for large data. By making a synchronous request to the evaluator
   # for a single specific evaluation context we make sure to copy
   # as little memory as necessary.
 
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
+  defstruct [
+    :id,
+    :pid,
+    :origin,
+    :notebook_name,
+    :file,
+    :images_dir,
+    :created_at,
+    :memory_usage
+  ]
 
   use GenServer, restart: :temporary
 
@@ -173,7 +182,6 @@ defmodule Livebook.Session do
     * `{:hydrate_bin_entries, entries}`
     * `{:operation, operation}`
     * `{:error, error}`
-    * `{:info, info}`
 
   """
   @spec subscribe(id()) :: :ok | {:error, term()}
@@ -330,7 +338,15 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell convertion request to the server.
+  Sends cell recover request to the server.
+  """
+  @spec recover_smart_cell(pid(), Cell.id()) :: :ok
+  def recover_smart_cell(pid, cell_id) do
+    GenServer.cast(pid, {:recover_smart_cell, self(), cell_id})
+  end
+
+  @doc """
+  Sends cell conversion request to the server.
   """
   @spec convert_smart_cell(pid(), Cell.id()) :: :ok
   def convert_smart_cell(pid, cell_id) do
@@ -487,6 +503,22 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a secret addition request to the server.
+  """
+  @spec set_secret(pid(), map()) :: :ok
+  def set_secret(pid, secret) do
+    GenServer.cast(pid, {:set_secret, self(), secret})
+  end
+
+  @doc """
+  Sends a secret deletion request to the server.
+  """
+  @spec unset_secret(pid(), map()) :: :ok
+  def unset_secret(pid, secret_name) do
+    GenServer.cast(pid, {:unset_secret, self(), secret_name})
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -543,6 +575,7 @@ defmodule Livebook.Session do
 
   @impl true
   def init(opts) do
+    Livebook.Settings.subscribe()
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -559,6 +592,7 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+
       {:ok, state}
     else
       {:error, error} ->
@@ -778,6 +812,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:recover_smart_cell, client_pid, cell_id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:recover_smart_cell, client_id, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:convert_smart_cell, client_pid, cell_id}, state) do
     client_id = client_id(state, client_pid)
 
@@ -785,14 +825,24 @@ defmodule Livebook.Session do
       with {:ok, %Cell.Smart{} = cell, section} <-
              Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
         index = Enum.find_index(section.cells, &(&1 == cell))
+        chunks = cell.chunks || [{0, byte_size(cell.source)}]
+        chunk_count = length(chunks)
 
-        attrs = Map.take(cell, [:source, :outputs])
+        state = handle_operation(state, {:delete_cell, client_id, cell.id})
 
-        state
-        |> handle_operation({:delete_cell, client_id, cell.id})
-        |> handle_operation(
-          {:insert_cell, client_id, section.id, index, :code, Utils.random_id(), attrs}
-        )
+        for {{offset, size}, chunk_idx} <- Enum.with_index(chunks), reduce: state do
+          state ->
+            outputs = if(chunk_idx == chunk_count - 1, do: cell.outputs, else: [])
+            source = binary_part(cell.source, offset, size)
+            attrs = %{source: source, outputs: outputs}
+            cell_idx = index + chunk_idx
+            cell_id = Utils.random_id()
+
+            handle_operation(
+              state,
+              {:insert_cell, client_id, section.id, cell_idx, :code, cell_id, attrs}
+            )
+        end
       else
         _ -> state
       end
@@ -940,13 +990,28 @@ defmodule Livebook.Session do
     end
   end
 
+  def handle_cast({:set_secret, client_pid, secret}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_secret, client_id, secret}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:unset_secret, client_pid, secret_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:unset_secret, client_id, secret_name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
-    broadcast_info(state.session_id, "runtime node terminated unexpectedly")
+  def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
+    broadcast_error(
+      state.session_id,
+      "runtime node terminated unexpectedly - #{Exception.format_exit(reason)}"
+    )
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
@@ -985,7 +1050,7 @@ defmodule Livebook.Session do
   def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
-           {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
+           {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
         state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
         {{:ok, value}, state}
       else
@@ -1014,7 +1079,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:user_change, user}, state) do
-    operation = {:update_user, self(), user}
+    operation = {:update_user, @client_id, user}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1033,10 +1098,23 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    info =
+      if info.editor do
+        normalize_newlines = &String.replace(&1, "\r\n", "\n")
+        info = update_in(info.source, normalize_newlines)
+        update_in(info.editor.source, normalize_newlines)
+      else
+        info
+      end
+
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
+        chunks = info[:chunks]
         delta = Livebook.JSInterop.diff(cell.source, info.source)
-        operation = {:smart_cell_started, @client_id, id, delta, info.js_view, info.editor}
+
+        operation =
+          {:smart_cell_started, @client_id, id, delta, chunks, info.js_view, info.editor}
+
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1044,11 +1122,17 @@ defmodule Livebook.Session do
     end
   end
 
+  def handle_info({:runtime_smart_cell_down, id}, state) do
+    operation = {:smart_cell_down, @client_id, id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:runtime_smart_cell_update, id, attrs, source, info}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
+        chunks = info[:chunks]
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, @client_id, id, attrs, delta, info.reevaluate}
+        operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1064,6 +1148,22 @@ defmodule Livebook.Session do
       else
         _ -> state
       end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:env_var_set, env_var}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:env_var_unset, env_var}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.delete_system_envs(state.data.runtime, [env_var.name])
+    end
 
     {:noreply, state}
   end
@@ -1276,6 +1376,9 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
+      set_runtime_secrets(state, state.data.secrets)
+      set_runtime_env_vars(state)
+
       state
     else
       state
@@ -1363,6 +1466,16 @@ defmodule Livebook.Session do
     state
   end
 
+  defp after_operation(state, _prev_state, {:set_secret, _client_id, secret}) do
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
@@ -1414,27 +1527,26 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:start_smart_cell, cell, section}) do
+  defp handle_action(state, {:start_smart_cell, cell, _section}) do
     if Runtime.connected?(state.data.runtime) do
-      base_locator = find_base_locator(state.data, cell, section, existing: true)
-      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
+      parent_locators = parent_locators_for_cell(state.data, cell)
+
+      Runtime.start_smart_cell(
+        state.data.runtime,
+        cell.kind,
+        cell.id,
+        cell.attrs,
+        parent_locators
+      )
     end
 
     state
   end
 
-  defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
+  defp handle_action(state, {:set_smart_cell_parents, cell, _section, parents}) do
     if Runtime.connected?(state.data.runtime) do
-      base_locator =
-        case parent do
-          nil ->
-            {container_ref_for_section(section), nil}
-
-          {parent_cell, parent_section} ->
-            {container_ref_for_section(parent_section), parent_cell.id}
-        end
-
-      Runtime.set_smart_cell_base_locator(state.data.runtime, cell.id, base_locator)
+      parent_locators = evaluation_parents_to_locators(parents)
+      Runtime.set_smart_cell_parent_locators(state.data.runtime, cell.id, parent_locators)
     end
 
     state
@@ -1457,7 +1569,7 @@ defmodule Livebook.Session do
         file -> file.path
       end
 
-    file = path <> "#cell"
+    file = path <> "#cell:#{cell.id}"
 
     smart_cell_ref =
       case cell do
@@ -1468,8 +1580,8 @@ defmodule Livebook.Session do
     opts = [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
-    base_locator = find_base_locator(state.data, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
+    parent_locators = parent_locators_for_cell(state.data, cell)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, parent_locators, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
@@ -1483,16 +1595,32 @@ defmodule Livebook.Session do
     broadcast_message(session_id, {:error, error})
   end
 
-  defp broadcast_info(session_id, info) do
-    broadcast_message(session_id, {:info, info})
-  end
-
   defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
   defp put_memory_usage(state, runtime) do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
+  end
+
+  defp set_runtime_secret(state, secret) do
+    secret = {"LB_#{secret.name}", secret.value}
+    Runtime.put_system_envs(state.data.runtime, [secret])
+  end
+
+  defp set_runtime_secrets(state, secrets) do
+    secrets = Enum.map(secrets, fn {name, value} -> {"LB_#{name}", value} end)
+    Runtime.put_system_envs(state.data.runtime, secrets)
+  end
+
+  defp delete_runtime_secrets(state, secret_names) do
+    secret_names = Enum.map(secret_names, &"LB_#{&1}")
+    Runtime.delete_system_envs(state.data.runtime, secret_names)
+  end
+
+  defp set_runtime_env_vars(state) do
+    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.name, &1.value})
+    Runtime.put_system_envs(state.data.runtime, env_vars)
   end
 
   defp notify_update(state) do
@@ -1685,34 +1813,21 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Finds evaluation locator that the given cell depends on.
+  Returns locators of evaluation parents for the given cell.
 
-  By default looks up the direct evaluation parent.
-
-  ## Options
-
-    * `:existing` - considers only cells that have been evaluated
-      as evaluation parents. Defaults to `false`
+  Considers only cells that have already been evaluated.
   """
-  @spec find_base_locator(Data.t(), Cell.t(), Section.t(), keyword()) :: Runtime.locator()
-  def find_base_locator(data, cell, section, opts \\ []) do
-    parent_filter =
-      if opts[:existing] do
-        fn cell ->
-          info = data.cell_infos[cell.id]
-          Cell.evaluable?(cell) and info.eval.validity in [:evaluated, :stale]
-        end
-      else
-        &Cell.evaluable?/1
-      end
+  @spec parent_locators_for_cell(Data.t(), Cell.t()) :: Runtime.parent_locators()
+  def parent_locators_for_cell(data, cell) do
+    data
+    |> Data.cell_evaluation_parents(cell)
+    |> evaluation_parents_to_locators()
+  end
 
-    default = {container_ref_for_section(section), nil}
-
-    data.notebook
-    |> Notebook.parent_cells_with_section(cell.id)
-    |> Enum.find_value(default, fn {cell, section} ->
-      parent_filter.(cell) && {container_ref_for_section(section), cell.id}
-    end)
+  defp evaluation_parents_to_locators(parents) do
+    for {cell, section} <- parents do
+      {container_ref_for_section(section), cell.id}
+    end
   end
 
   defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref

@@ -32,6 +32,10 @@ defmodule Livebook.Runtime.Attached do
   def connect(runtime) do
     %{node: node, cookie: cookie} = runtime
 
+    # We need to append the hostname on connect because
+    # net_kernel has not yet started during new/2.
+    node = append_hostname(node)
+
     # Set cookie for connecting to this specific node
     Node.set_cookie(node, cookie)
 
@@ -39,13 +43,22 @@ defmodule Livebook.Runtime.Attached do
       :pong ->
         server_pid =
           Livebook.Runtime.ErlDist.initialize(node,
-            node_manager_opts: [parent_node: node()]
+            node_manager_opts: [parent_node: node(), capture_orphan_logs: false]
           )
 
-        {:ok, %{runtime | server_pid: server_pid}}
+        {:ok, %{runtime | node: node, server_pid: server_pid}}
 
       :pang ->
         {:error, "node #{inspect(node)} is unreachable"}
+    end
+  end
+
+  defp append_hostname(node) do
+    with :nomatch <- :string.find(Atom.to_string(node), "@"),
+         <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
+      :"#{node}#{suffix}"
+    else
+      _ -> node
     end
   end
 end
@@ -82,8 +95,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     Livebook.Runtime.Attached.new(runtime.node, runtime.cookie)
   end
 
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  def evaluate_code(runtime, code, locator, parent_locators, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, parent_locators, opts)
   end
 
   def forget_evaluation(runtime, locator) do
@@ -94,20 +107,20 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, request, base_locator) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
+  def handle_intellisense(runtime, send_to, request, parent_locators) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, parent_locators)
   end
 
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+  def start_smart_cell(runtime, kind, ref, attrs, parent_locators) do
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, parent_locators)
   end
 
-  def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+  def set_smart_cell_parent_locators(runtime, ref, parent_locators) do
+    RuntimeServer.set_smart_cell_parent_locators(runtime.server_pid, ref, parent_locators)
   end
 
   def stop_smart_cell(runtime, ref) do
@@ -122,5 +135,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
 
   def search_packages(_runtime, _send_to, _search) do
     raise "not supported"
+  end
+
+  def put_system_envs(runtime, envs) do
+    RuntimeServer.put_system_envs(runtime.server_pid, envs)
+  end
+
+  def delete_system_envs(runtime, names) do
+    RuntimeServer.delete_system_envs(runtime.server_pid, names)
   end
 end

@@ -111,6 +111,10 @@ const Session = {
       this.toggleClientsList()
     );
 
+    this.getElement("secrets-list-toggle").addEventListener("click", (event) =>
+      this.toggleSecretsList()
+    );
+
     this.getElement("runtime-info-toggle").addEventListener("click", (event) =>
       this.toggleRuntimeInfo()
     );
@@ -202,6 +206,13 @@ const Session = {
     });
 
     this.handleEvent(
+      "secret_selected",
+      ({ select_secret_ref, secret_name }) => {
+        this.handleSecretSelected(select_secret_ref, secret_name);
+      }
+    );
+
+    this.handleEvent(
       "location_report",
       ({ client_id, focusable_id, selection }) => {
         const report = {
@@ -290,28 +301,35 @@ const Session = {
     const key = event.key;
     const keyBuffer = this.keyBuffer;
 
-    // Universal shortcuts
-    if (cmd && shift && !alt && key === "Enter") {
-      cancelEvent(event);
-      this.queueFullCellsEvaluation(true);
-      return;
-    } else if (!cmd && shift && !alt && key === "Enter") {
-      cancelEvent(event);
-      if (isEvaluable(this.focusedCellType())) {
-        this.queueFocusedCellEvaluation();
+    // Universal shortcuts (ignore editable elements in cell output)
+    if (
+      !(
+        isEditableElement(event.target) &&
+        event.target.closest(`[data-el-outputs-container]`)
+      )
+    ) {
+      if (cmd && shift && !alt && key === "Enter") {
+        cancelEvent(event);
+        this.queueFullCellsEvaluation(true);
+        return;
+      } else if (!cmd && shift && !alt && key === "Enter") {
+        cancelEvent(event);
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+        this.moveFocus(1);
+        return;
+      } else if (cmd && !alt && key === "Enter") {
+        cancelEvent(event);
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+        return;
+      } else if (cmd && key === "s") {
+        cancelEvent(event);
+        this.saveNotebook();
+        return;
       }
-      this.moveFocus(1);
-      return;
-    } else if (cmd && !alt && key === "Enter") {
-      cancelEvent(event);
-      if (isEvaluable(this.focusedCellType())) {
-        this.queueFocusedCellEvaluation();
-      }
-      return;
-    } else if (cmd && key === "s") {
-      cancelEvent(event);
-      this.saveNotebook();
-      return;
     }
 
     if (this.insertMode) {
@@ -346,6 +364,8 @@ const Session = {
         this.queueFocusedSectionEvaluation();
       } else if (keyBuffer.tryMatch(["s", "s"])) {
         this.toggleSectionsList();
+      } else if (keyBuffer.tryMatch(["s", "e"])) {
+        this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
@@ -680,6 +700,10 @@ const Session = {
 
   toggleClientsList() {
     this.toggleSidePanelContent("clients-list");
+  },
+
+  toggleSecretsList() {
+    this.toggleSidePanelContent("secrets-list");
   },
 
   toggleRuntimeInfo() {
@@ -1021,6 +1045,13 @@ const Session = {
   handleClientsUpdated(updatedClients) {
     updatedClients.forEach((client) => {
       this.clientsMap[client.id] = client;
+    });
+  },
+
+  handleSecretSelected(select_secret_ref, secretName) {
+    globalPubSub.broadcast(`js_views:${select_secret_ref}`, {
+      type: "secretSelected",
+      secretName,
     });
   },
 

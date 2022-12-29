@@ -21,17 +21,21 @@ const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
-const liveSocket = new LiveSocket("/live", Socket, {
-  params: (liveViewName) => {
-    return {
-      _csrf_token: csrfToken,
-      // Pass the most recent user data to the LiveView in `connect_params`
-      user_data: loadUserData(),
-    };
-  },
-  hooks: hooks,
-  dom: morphdomOptions,
-});
+const liveSocket = new LiveSocket(
+  window.LIVEBOOK_BASE_URL_PATH + "/live",
+  Socket,
+  {
+    params: (liveViewName) => {
+      return {
+        _csrf_token: csrfToken,
+        // Pass the most recent user data to the LiveView in `connect_params`
+        user_data: loadUserData(),
+      };
+    },
+    hooks: hooks,
+    dom: morphdomOptions,
+  }
+);
 
 // Show progress bar on live navigation and form submits
 registerTopbar();

@@ -18,19 +18,43 @@ defmodule AppBundler.MacOS do
 
     launcher_eex_path = Path.expand("#{@templates_path}/macos/Launcher.swift.eex")
     launcher_src_path = "#{tmp_dir}/Launcher.swift"
+    launcher_x86_64_path = "#{tmp_dir}/#{app_name}Launcher-x86_64"
+    launcher_aarch64_path = "#{tmp_dir}/#{app_name}Launcher-aarch64"
     launcher_bin_path = "#{contents_path}/MacOS/#{app_name}Launcher"
     copy_template(launcher_eex_path, launcher_src_path, release: release, app_options: options)
 
     File.mkdir!("#{contents_path}/MacOS")
-    log(:green, :creating, Path.relative_to_cwd(launcher_bin_path))
+
+    log(:green, :creating, launcher_x86_64_path)
 
     cmd!("swiftc", [
       "-warnings-as-errors",
       "-target",
-      swiftc_target(),
+      "x86_64-apple-macosx10.15",
       "-o",
-      launcher_bin_path,
+      launcher_x86_64_path,
       launcher_src_path
+    ])
+
+    log(:green, :creating, launcher_aarch64_path)
+
+    cmd!("swiftc", [
+      "-warnings-as-errors",
+      "-target",
+      "arm64-apple-macosx12",
+      "-o",
+      launcher_aarch64_path,
+      launcher_src_path
+    ])
+
+    log(:green, :creating, Path.relative_to_cwd(launcher_bin_path))
+
+    cmd!("lipo", [
+      launcher_x86_64_path,
+      launcher_aarch64_path,
+      "-create",
+      "-output",
+      launcher_bin_path
     ])
 
     icon_path =
@@ -78,12 +102,9 @@ defmodule AppBundler.MacOS do
     )
 
     to_sign =
-      "#{app_dir}/**"
-      |> Path.wildcard()
-      |> Enum.filter(fn file ->
-        stat = File.lstat!(file)
-        Bitwise.band(0o100, stat.mode) != 0 and stat.type == :regular
-      end)
+      "find #{app_dir} -perm +111 -type f -exec sh -c \"file {} | grep --silent Mach-O\" \\; -print"
+      |> shell!(into: "")
+      |> String.split("\n", trim: true)
 
     to_sign = to_sign ++ [app_dir]
 
@@ -98,9 +119,7 @@ defmodule AppBundler.MacOS do
     log(:green, "signing", Path.relative_to_cwd(app_dir))
     codesign(to_sign, "--options=runtime --entitlements=#{entitlements_plist_path}", notarization)
 
-    target = AppBundler.target()
-    vsn = release.version
-    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install-#{vsn}-#{target}.dmg"
+    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install.dmg"
     log(:green, "creating", Path.relative_to_cwd(dmg_path))
 
     cmd!(
@@ -165,16 +184,6 @@ defmodule AppBundler.MacOS do
 
       cmd!("iconutil", ~w(-c icns #{dest_tmp_path} -o #{dest_path}))
       File.rm_rf!(dest_tmp_path)
-    end
-  end
-
-  defp swiftc_target do
-    case :erlang.system_info(:system_architecture) do
-      'x86_64' ++ _ ->
-        "x86_64-apple-macosx10.15"
-
-      'aarch64' ++ _ ->
-        "arm64-apple-macosx12"
     end
   end
 end

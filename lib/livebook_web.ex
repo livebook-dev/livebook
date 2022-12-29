@@ -16,9 +16,12 @@ defmodule LivebookWeb do
         root: "lib/livebook_web/templates",
         namespace: LivebookWeb
 
+      # Bring component functionality
+      use Phoenix.Component
+
       # Import convenience functions from controllers
       import Phoenix.Controller,
-        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
+        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
 
       # Include shared imports and aliases for views
       unquote(view_helpers())
@@ -27,8 +30,7 @@ defmodule LivebookWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {LivebookWeb.LayoutView, "live.html"}
+      use Phoenix.LiveView, layout: {LivebookWeb.LayoutView, :live}
 
       unquote(view_helpers())
     end
@@ -55,8 +57,10 @@ defmodule LivebookWeb do
   defp view_helpers do
     quote do
       # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
 
+      # TODO: Remove me once all deprecated helpers have been removed
       # Import LiveView helpers (live_render, live_component, live_patch, etc)
       import Phoenix.LiveView.Helpers
 
@@ -67,6 +71,7 @@ defmodule LivebookWeb do
 
       # Custom helpers
       import LivebookWeb.Helpers
+      import LivebookWeb.FormHelpers
       import LivebookWeb.LiveHelpers
     end
   end

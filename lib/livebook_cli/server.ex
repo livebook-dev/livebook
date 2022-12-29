@@ -45,7 +45,6 @@ defmodule LivebookCLI.Server do
                            explicitly for the given notebook, defaults to standalone
                            Supported options:
                              * standalone - Elixir standalone
-                             * mix[:PATH][:FLAGS] - Mix standalone
                              * attached:NODE:COOKIE - Attached
                              * embedded - Embedded
       --home               The home path for the Livebook instance
@@ -162,7 +161,7 @@ defmodule LivebookCLI.Server do
 
   defp open_from_args(base_url, ["new"]) do
     base_url
-    |> set_path("/explore/notebooks/new")
+    |> set_path("/learn/notebooks/new")
     |> Livebook.Utils.browser_open()
   end
 

@@ -3,7 +3,12 @@ import {
   getAttributeOrThrow,
   parseInteger,
 } from "../lib/attribute";
-import { isElementHidden, randomId, randomToken } from "../lib/utils";
+import {
+  isElementHidden,
+  isElementVisibleInViewport,
+  randomId,
+  randomToken,
+} from "../lib/utils";
 import { globalPubSub } from "../lib/pub_sub";
 import {
   getChannel,
@@ -72,7 +77,7 @@ const JSView = {
 
     this.channel = getChannel(this.props.sessionId, this.props.clientId);
 
-    this.removeIframe = this.createIframe();
+    this.iframeActions = this.createIframe();
 
     // Setup child communication
     this.childReadyPromise = new Promise((resolve, reject) => {
@@ -89,7 +94,9 @@ const JSView = {
     this.hiddenInput.style.display = "none";
     this.el.appendChild(this.hiddenInput);
 
-    this.loadIframe();
+    this.iframeActions.visibilityPromise.then(() => {
+      this.loadIframe();
+    });
 
     // Channel events
 
@@ -154,7 +161,7 @@ const JSView = {
   destroyed() {
     window.removeEventListener("message", this._handleWindowMessage);
 
-    this.removeIframe();
+    this.iframeActions.remove();
 
     this.unsubscribeFromChannelEvents();
     this.channel.push("disconnect", { ref: this.props.ref });
@@ -248,11 +255,36 @@ const JSView = {
       );
     });
 
-    return () => {
+    // We detect when the placeholder enters viewport and becomes visible,
+    // based on that we can load the iframe contents lazily
+
+    let viewportIntersectionObserver = null;
+
+    const visibilityPromise = new Promise((resolve, reject) => {
+      if (isElementVisibleInViewport(this.iframePlaceholder)) {
+        resolve();
+      } else {
+        viewportIntersectionObserver = new IntersectionObserver((entries) => {
+          if (isElementVisibleInViewport(this.iframePlaceholder)) {
+            viewportIntersectionObserver.disconnect();
+            resolve();
+          }
+        });
+        viewportIntersectionObserver.observe(this.iframePlaceholder);
+      }
+    });
+
+    // Cleanup
+
+    const remove = () => {
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
+      viewportIntersectionObserver && viewportIntersectionObserver.disconnect();
       this.iframe.remove();
+      this.iframePlaceholder.remove();
     };
+
+    return { visibilityPromise, remove };
   },
 
   repositionIframe() {
@@ -331,6 +363,12 @@ const JSView = {
       } else if (message.type === "syncReply") {
         this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
         this.channel.push("ping", { ref: this.props.ref });
+      } else if (message.type == "selectSecret") {
+        this.pushEvent("select_secret", {
+          js_view_ref: this.props.ref,
+          preselect_name: message.preselectName,
+          options: message.options,
+        });
       }
     }
   },
@@ -409,6 +447,11 @@ const JSView = {
       // do a ping to synchronize with the server
       this.syncCallbackQueue.push(event.callback);
       this.postMessage({ type: "sync" });
+    } else if (event.type == "secretSelected") {
+      this.postMessage({
+        type: "secretSelected",
+        secretName: event.secretName,
+      });
     }
   },
 };

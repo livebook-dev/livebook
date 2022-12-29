@@ -1,6 +1,8 @@
+ARG BASE_IMAGE=hexpm/elixir:1.14.2-erlang-24.3.4.2-debian-bullseye-20210902-slim
+
 # Stage 1
 # Builds the Livebook release
-FROM hexpm/elixir:1.14.0-rc.0-erlang-24.3.4.2-debian-bullseye-20210902-slim AS build
+FROM ${BASE_IMAGE} AS build
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
@@ -27,6 +29,7 @@ RUN mix do deps.get, deps.compile
 COPY rel rel
 COPY static static
 COPY iframe/priv/static/iframe iframe/priv/static/iframe
+COPY proto proto
 COPY lib lib
 # We need README.md during compilation
 # (look for @external_resource "README.md")
@@ -38,7 +41,7 @@ RUN mix do compile, release livebook
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
-FROM hexpm/elixir:1.14.0-rc.0-erlang-24.3.4.2-debian-bullseye-20210902-slim
+FROM ${BASE_IMAGE}
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \

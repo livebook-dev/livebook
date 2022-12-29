@@ -225,10 +225,12 @@ defmodule Livebook.LiveMarkdown.Import do
        ) do
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
     %{"kind" => kind, "attrs" => attrs} = data
+    chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
 
     cell = %{
       Notebook.Cell.new(:smart)
       | source: source,
+        chunks: chunks,
         outputs: outputs,
         kind: kind,
         attrs: attrs

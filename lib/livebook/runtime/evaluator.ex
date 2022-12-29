@@ -28,11 +28,14 @@ defmodule Livebook.Runtime.Evaluator do
           evaluator_ref: reference(),
           formatter: module(),
           io_proxy: pid(),
+          io_proxy_monitor: reference(),
           send_to: pid(),
           runtime_broadcast_to: pid(),
           object_tracker: pid(),
           contexts: %{ref() => context()},
-          initial_context: context()
+          initial_context: context(),
+          initial_context_version: nil | (md5 :: binary()),
+          ignored_pdict_keys: list(term())
         }
 
   @typedoc """
@@ -56,10 +59,15 @@ defmodule Livebook.Runtime.Evaluator do
           {:ok, result :: any()}
           | {:error, Exception.kind(), error :: any(), Exception.stacktrace()}
 
-  # We store evaluation envs in the process dictionary, so that we
-  # can build intellisense context without asking the evaluator
-  @env_key :evaluation_env
-  @initial_env_key :initial_env
+  # We store some information in the process dictionary for non-blocking
+  # access from other evaluators. In particular we store context metadata,
+  # such as envs, this way we can build intellisense context without
+  # asking the evaluator. We don't store binding though, because that
+  # would take too much memory
+  @evaluator_info_key :evaluator_info
+
+  # We stor the path in process dictionary, so that the tracer can access it
+  @ebin_path_key :ebin_path
 
   @doc """
   Starts an evaluator.
@@ -77,6 +85,10 @@ defmodule Livebook.Runtime.Evaluator do
     * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
       behaviour, used for transforming evaluation result before sending
       it to the client. Defaults to identity
+
+    * `:ebin_path` - a directory to write modules bytecode into. When
+      not specified, modules are not written to disk
+
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
@@ -117,10 +129,10 @@ defmodule Livebook.Runtime.Evaluator do
   Any exceptions are captured and transformed into an error
   result.
 
-  The resulting contxt (binding and env) is stored under `ref`.
-  Any subsequent calls may specify `base_ref` pointing to a
-  previous evaluation, in which case the corresponding context
-  is used as the entry point for evaluation.
+  The resulting context (binding and env) is stored under `ref`. Any
+  subsequent calls may specify `parent_refs` pointing to a sequence
+  of previous evaluations, in which case the corresponding context is
+  used as the entry point for evaluation.
 
   The evaluation result is transformed with the configured
   formatter send to the configured client (see `start_link/1`).
@@ -134,37 +146,29 @@ defmodule Livebook.Runtime.Evaluator do
       finished. The function receives `t:evaluation_result/0`
       as an argument
   """
-  @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
-  def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
-    cast(evaluator, {:evaluate_code, code, ref, base_ref, opts})
+  @spec evaluate_code(t(), String.t(), ref(), list(ref()), keyword()) :: :ok
+  def evaluate_code(evaluator, code, ref, parent_refs, opts \\ []) do
+    cast(evaluator, {:evaluate_code, code, ref, parent_refs, opts})
   end
 
   @doc """
   Fetches the evaluation context (binding and env) for the given
-  evaluation reference.
-
-  ## Options
-
-    * `:cached_id` - id of context that the sender may already have,
-      if it matches the fetched context, `{:error, :not_modified}`
-      is returned instead
+  evaluation sequence.
   """
-  @spec fetch_evaluation_context(t(), ref(), keyword()) ::
-          {:ok, context()} | {:error, :not_modified}
-  def fetch_evaluation_context(evaluator, ref, opts \\ []) do
-    cached_id = opts[:cached_id]
-    call(evaluator, {:fetch_evaluation_context, ref, cached_id})
+  @spec get_evaluation_context(t(), list(ref())) :: context()
+  def get_evaluation_context(evaluator, parent_refs) do
+    call(evaluator, {:get_evaluation_context, parent_refs})
   end
 
   @doc """
-  Fetches an evaluation context from `source_evaluator` and configures
-  it as the initial context for `evaluator`.
+  Fetches an aggregated evaluation context from `source_evaluator`
+  and caches it as the initial context for `evaluator`.
 
   The process dictionary is also copied to match `source_evaluator`.
   """
   @spec initialize_from(t(), t(), ref()) :: :ok
-  def initialize_from(evaluator, source_evaluator, source_evaluation_ref) do
-    call(evaluator, {:initialize_from, source_evaluator, source_evaluation_ref})
+  def initialize_from(evaluator, source_evaluator, source_parent_refs) do
+    call(evaluator, {:initialize_from, source_evaluator, source_parent_refs})
   end
 
   @doc """
@@ -190,15 +194,22 @@ defmodule Livebook.Runtime.Evaluator do
   @doc """
   Builds intellisense context from the given evaluation.
   """
-  @spec intellisense_context(t(), ref()) :: Livebook.Intellisense.intellisense_context()
-  def intellisense_context(evaluator, ref) do
+  @spec intellisense_context(t(), list(ref())) :: Livebook.Intellisense.intellisense_context()
+  def intellisense_context(evaluator, parent_refs) do
     {:dictionary, dictionary} = Process.info(evaluator.pid, :dictionary)
 
-    env =
-      find_in_dictionary(dictionary, {@env_key, ref}) ||
-        find_in_dictionary(dictionary, @initial_env_key)
+    evaluator_info = find_in_dictionary(dictionary, @evaluator_info_key)
+    %{initial_context: {_id, initial_env}} = evaluator_info
 
-    map_binding = fn fun -> map_binding(evaluator, ref, fun) end
+    env =
+      List.foldr(parent_refs, initial_env, fn ref, prev_env ->
+        case evaluator_info.contexts do
+          %{^ref => {_id, env}} -> merge_env(prev_env, env)
+          _ -> prev_env
+        end
+      end)
+
+    map_binding = fn fun -> map_binding(evaluator, parent_refs, fun) end
 
     %{env: env, map_binding: map_binding}
   end
@@ -211,8 +222,8 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   # Applies the given function to evaluation binding
-  defp map_binding(evaluator, ref, fun) do
-    call(evaluator, {:map_binding, ref, fun})
+  defp map_binding(evaluator, parent_refs, fun) do
+    call(evaluator, {:map_binding, parent_refs, fun})
   end
 
   @doc """
@@ -221,9 +232,9 @@ defmodule Livebook.Runtime.Evaluator do
   Ths function runs within the evaluator process, so that no data
   is copied between processes, unless explicitly sent.
   """
-  @spec peek_context(t(), ref(), (context() -> any())) :: :ok
-  def peek_context(evaluator, ref, fun) do
-    cast(evaluator, {:peek_context, ref, fun})
+  @spec peek_context(t(), list(ref()), (context() -> any())) :: :ok
+  def peek_context(evaluator, parent_refs, fun) do
+    cast(evaluator, {:peek_context, parent_refs, fun})
   end
 
   defp cast(evaluator, message) do
@@ -258,9 +269,12 @@ defmodule Livebook.Runtime.Evaluator do
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
+    ebin_path = Keyword.get(opts, :ebin_path)
 
     {:ok, io_proxy} =
-      Evaluator.IOProxy.start_link(self(), send_to, runtime_broadcast_to, object_tracker)
+      Evaluator.IOProxy.start(self(), send_to, runtime_broadcast_to, object_tracker, ebin_path)
+
+    io_proxy_monitor = Process.monitor(io_proxy)
 
     # Use the dedicated IO device as the group leader, so that
     # intercepts all :stdio requests and also handles Livebook
@@ -271,17 +285,28 @@ defmodule Livebook.Runtime.Evaluator do
     evaluator = %{pid: self(), ref: evaluator_ref}
 
     context = initial_context()
-    Process.put(@initial_env_key, context.env)
+
+    Process.put(@evaluator_info_key, %{
+      initial_context: {context.id, context.env},
+      contexts: %{}
+    })
+
+    Process.put(@ebin_path_key, ebin_path)
+
+    ignored_pdict_keys = MapSet.new([:rand_seed, :random_seed] ++ Process.get_keys())
 
     state = %{
       evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
+      io_proxy_monitor: io_proxy_monitor,
       send_to: send_to,
       runtime_broadcast_to: runtime_broadcast_to,
       object_tracker: object_tracker,
       contexts: %{},
-      initial_context: context
+      initial_context: context,
+      initial_context_version: nil,
+      ignored_pdict_keys: ignored_pdict_keys
     }
 
     :proc_lib.init_ack(evaluator)
@@ -299,40 +324,141 @@ defmodule Livebook.Runtime.Evaluator do
       {:cast, ^evaluator_ref, message} ->
         {:noreply, state} = handle_cast(message, state)
         loop(state)
+
+      {:DOWN, ref, :process, _pid, reason} when ref == state.io_proxy_monitor ->
+        exit(reason)
     end
   end
 
   defp initial_context() do
     env = Code.env_for_eval([])
-    %{binding: [], env: env, id: random_id()}
+    env = Macro.Env.prepend_tracer(env, Evaluator.Tracer)
+    %{id: random_id(), binding: [], env: env, pdict: %{}}
   end
 
-  defp handle_cast({:evaluate_code, code, ref, base_ref, opts}, state) do
-    Evaluator.IOProxy.configure(state.io_proxy, ref)
+  defp handle_cast({:evaluate_code, code, ref, parent_refs, opts}, state) do
+    do_evaluate_code(code, ref, parent_refs, opts, state)
+  end
 
-    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
+  defp handle_cast({:forget_evaluation, ref}, state) do
+    do_forget_evaluation(ref, state)
+  end
 
-    context = get_context(state, base_ref)
-    file = Keyword.get(opts, :file, "nofile")
-    context = put_in(context.env.file, file)
-    start_time = System.monotonic_time()
+  defp handle_cast({:peek_context, parent_refs, fun}, state) do
+    context = get_context(state, parent_refs)
+    fun.(context)
+    {:noreply, state}
+  end
 
-    {result_context, result, code_error} =
-      case eval(code, context.binding, context.env) do
-        {:ok, value, binding, env} ->
-          binding = reorder_binding(binding, context.binding)
-          result_context = %{binding: binding, env: env, id: random_id()}
-          result = {:ok, value}
-          {result_context, result, nil}
+  defp handle_call({:get_evaluation_context, parent_refs}, _from, state) do
+    context = get_context(state, parent_refs)
+    {:reply, context, state}
+  end
 
-        {:error, kind, error, stacktrace, code_error} ->
-          result = {:error, kind, error, stacktrace}
-          {context, result, code_error}
+  defp handle_call({:initialize_from, source_evaluator, source_parent_refs}, _from, state) do
+    {:dictionary, dictionary} = Process.info(source_evaluator.pid, :dictionary)
+
+    evaluator_info = find_in_dictionary(dictionary, @evaluator_info_key)
+
+    version =
+      source_parent_refs
+      |> Enum.map(fn ref ->
+        with {id, _env} <- evaluator_info.contexts[ref], do: id
+      end)
+      |> :erlang.md5()
+
+    state =
+      if version == state.initial_context_version do
+        state
+      else
+        context = Evaluator.get_evaluation_context(source_evaluator, source_parent_refs)
+
+        update_evaluator_info(fn info ->
+          put_in(info.initial_context, {context.id, context.env})
+        end)
+
+        %{state | initial_context: context, initial_context_version: version}
       end
 
-    evaluation_time_ms = get_execution_time_delta(start_time)
+    {:reply, :ok, state}
+  end
 
-    state = put_context(state, ref, result_context)
+  defp handle_call({:map_binding, parent_refs, fun}, _from, state) do
+    context = get_context(state, parent_refs)
+    result = fun.(context.binding)
+    {:reply, result, state}
+  end
+
+  defp do_evaluate_code(code, ref, parent_refs, opts, state) do
+    {old_context, state} = pop_in(state.contexts[ref])
+
+    if old_context do
+      for module <- old_context.env.context_modules do
+        delete_module(module)
+      end
+    end
+
+    # We remove the old context from state and jump to a tail-recursive
+    # function. This way we are sure there is no reference to the old
+    # state and we can garbage collect the old context before the evaluation
+    continue_do_evaluate_code(code, ref, parent_refs, opts, state)
+  end
+
+  defp continue_do_evaluate_code(code, ref, parent_refs, opts, state) do
+    :erlang.garbage_collect(self())
+
+    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
+
+    context = get_context(state, parent_refs)
+    file = Keyword.get(opts, :file, "nofile")
+    context = put_in(context.env.file, file)
+
+    Evaluator.IOProxy.configure(state.io_proxy, ref, file)
+
+    set_pdict(context, state.ignored_pdict_keys)
+
+    start_time = System.monotonic_time()
+    eval_result = eval(code, context.binding, context.env)
+    evaluation_time_ms = time_diff_ms(start_time)
+
+    tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
+
+    {new_context, result, code_error, identifiers_used, identifiers_defined} =
+      case eval_result do
+        {:ok, value, binding, env} ->
+          context_id = random_id()
+
+          new_context = %{
+            id: context_id,
+            binding: binding,
+            env: prune_env(env, tracer_info),
+            pdict: current_pdict(state)
+          }
+
+          {identifiers_used, identifiers_defined} =
+            identifier_dependencies(new_context, tracer_info, context)
+
+          result = {:ok, value}
+          {new_context, result, nil, identifiers_used, identifiers_defined}
+
+        {:error, kind, error, stacktrace, code_error} ->
+          for {module, _} <- tracer_info.modules_defined do
+            delete_module(module)
+          end
+
+          result = {:error, kind, error, stacktrace}
+          identifiers_used = :unknown
+          identifiers_defined = %{}
+          # Empty context
+          new_context = initial_context()
+          {new_context, result, code_error, identifiers_used, identifiers_defined}
+      end
+
+    if ebin_path() do
+      Livebook.Runtime.Evaluator.Doctests.run(new_context.env.context_modules)
+    end
+
+    state = put_context(state, ref, new_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
@@ -342,7 +468,9 @@ defmodule Livebook.Runtime.Evaluator do
     metadata = %{
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
-      code_error: code_error
+      code_error: code_error,
+      identifiers_used: identifiers_used,
+      identifiers_defined: identifiers_defined
     }
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
@@ -352,82 +480,129 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     :erlang.garbage_collect(self())
+
     {:noreply, state}
   end
 
-  defp handle_cast({:forget_evaluation, ref}, state) do
-    state = delete_context(state, ref)
-    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
+  defp do_forget_evaluation(ref, state) do
+    {context, state} = pop_context(state, ref)
 
-    :erlang.garbage_collect(self())
-    {:noreply, state}
-  end
+    if context do
+      for module <- context.env.context_modules do
+        delete_module(module)
 
-  defp handle_cast({:peek_context, ref, fun}, state) do
-    context = get_context(state, ref)
-    fun.(context)
-    {:noreply, state}
-  end
-
-  defp handle_call({:fetch_evaluation_context, ref, cached_id}, _from, state) do
-    context = get_context(state, ref)
-
-    reply =
-      if context.id == cached_id do
-        {:error, :not_modified}
-      else
-        {:ok, context}
+        # And we immediately purge the newly deleted code
+        :code.purge(module)
       end
 
-    {:reply, reply, state}
+      Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
+    end
+
+    continue_do_forget_evaluation(context != nil, state)
   end
 
-  defp handle_call({:initialize_from, source_evaluator, source_evaluation_ref}, _from, state) do
-    state =
-      case Evaluator.fetch_evaluation_context(
-             source_evaluator,
-             source_evaluation_ref,
-             cached_id: state.initial_context.id
-           ) do
-        {:ok, context} ->
-          # If the context changed, mirror the process dictionary again
-          copy_process_dictionary_from(source_evaluator)
+  defp continue_do_forget_evaluation(context?, state) do
+    if context? do
+      :erlang.garbage_collect(self())
+    end
 
-          Process.put(@initial_env_key, context.env)
-          put_in(state.initial_context, context)
-
-        {:error, :not_modified} ->
-          state
-      end
-
-    {:reply, :ok, state}
-  end
-
-  defp handle_call({:map_binding, ref, fun}, _from, state) do
-    context = get_context(state, ref)
-    result = fun.(context.binding)
-    {:reply, result, state}
+    {:noreply, state}
   end
 
   defp put_context(state, ref, context) do
-    Process.put({@env_key, ref}, context.env)
+    update_evaluator_info(fn info ->
+      put_in(info.contexts[ref], {context.id, context.env})
+    end)
+
     put_in(state.contexts[ref], context)
   end
 
-  defp delete_context(state, ref) do
-    Process.delete({@env_key, ref})
-    {_, state} = pop_in(state.contexts[ref])
-    state
+  defp pop_context(state, ref) do
+    update_evaluator_info(fn info ->
+      {_, info} = pop_in(info.contexts[ref])
+      info
+    end)
+
+    pop_in(state.contexts[ref])
   end
 
-  defp get_context(state, ref) do
-    Map.get_lazy(state.contexts, ref, fn -> state.initial_context end)
+  defp update_evaluator_info(fun) do
+    info = Process.get(@evaluator_info_key)
+    Process.put(@evaluator_info_key, fun.(info))
   end
+
+  defp get_context(state, parent_refs) do
+    List.foldr(parent_refs, state.initial_context, fn ref, prev_context ->
+      if context = state.contexts[ref] do
+        merge_context(prev_context, context)
+      else
+        prev_context
+      end
+    end)
+  end
+
+  defp set_pdict(context, ignored_pdict_keys) do
+    for key <- Process.get_keys(),
+        key not in ignored_pdict_keys,
+        not Map.has_key?(context.pdict, key) do
+      Process.delete(key)
+    end
+
+    for {key, value} <- context.pdict do
+      Process.put(key, value)
+    end
+  end
+
+  defp current_pdict(state) do
+    for {key, value} <- Process.get(),
+        key not in state.ignored_pdict_keys,
+        do: {key, value},
+        into: %{}
+  end
+
+  defp prune_env(env, tracer_info) do
+    env
+    |> Map.replace!(:aliases, Map.to_list(tracer_info.aliases_defined))
+    |> Map.replace!(:requires, MapSet.to_list(tracer_info.requires_defined))
+    |> Map.replace!(:context_modules, Map.keys(tracer_info.modules_defined))
+  end
+
+  defp merge_context(prev_context, context) do
+    binding = merge_binding(prev_context.binding, context.binding)
+    env = merge_env(prev_context.env, context.env)
+    pdict = context.pdict
+    %{id: random_id(), binding: binding, env: env, pdict: pdict}
+  end
+
+  defp merge_binding(prev_binding, binding) do
+    binding_map = Map.new(binding)
+
+    kept_binding =
+      Enum.reject(prev_binding, fn {var, _value} ->
+        Map.has_key?(binding_map, var)
+      end)
+
+    binding ++ kept_binding
+  end
+
+  defp merge_env(prev_env, env) do
+    env
+    |> Map.update!(:versioned_vars, fn versioned_vars ->
+      Enum.uniq(Map.keys(prev_env.versioned_vars) ++ Map.keys(versioned_vars))
+      |> Enum.with_index()
+      |> Map.new()
+    end)
+    |> Map.update!(:aliases, &Keyword.merge(prev_env.aliases, &1))
+    |> Map.update!(:requires, &:ordsets.union(prev_env.requires, &1))
+    |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
+  end
+
+  @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
 
   defp eval(code, binding, env) do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
-      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env)
+      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
       {:ok, value, binding, env}
     catch
       kind, error ->
@@ -449,23 +624,133 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(%CompileError{}), do: true
   defp code_error?(_error), do: false
 
-  defp reorder_binding(binding, prev_binding) do
-    # We keep the order of existing binding entries and move the new
-    # ones to the beginning
+  defp identifier_dependencies(context, tracer_info, prev_context) do
+    identifiers_used = MapSet.new()
+    identifiers_defined = %{}
 
-    binding_map = Map.new(binding)
+    # Variables
 
-    unchanged_binding =
-      Enum.filter(prev_binding, fn {key, prev_val} ->
-        val = binding_map[key]
-        :erts_debug.same(val, prev_val)
-      end)
+    identifiers_used =
+      for var <- vars_used(context, tracer_info, prev_context),
+          do: {:variable, var},
+          into: identifiers_used
 
-    unchanged_binding
-    |> Enum.reduce(binding_map, fn {key, _}, acc -> Map.delete(acc, key) end)
-    |> Map.to_list()
-    |> Kernel.++(unchanged_binding)
+    identifiers_used =
+      for var <- tracer_info.undefined_vars,
+          do: {:variable, var},
+          into: identifiers_used
+
+    identifiers_defined =
+      for var <- vars_defined(context, prev_context),
+          do: {{:variable, var}, context.id},
+          into: identifiers_defined
+
+    # Modules
+
+    identifiers_used =
+      for module <- tracer_info.modules_used,
+          do: {:module, module},
+          into: identifiers_used
+
+    identifiers_defined =
+      for {module, _vars} <- tracer_info.modules_defined,
+          version = module.__info__(:md5),
+          do: {{:module, module}, version},
+          into: identifiers_defined
+
+    # Aliases
+
+    identifiers_used =
+      for alias <- tracer_info.aliases_used,
+          do: {:alias, alias},
+          into: identifiers_used
+
+    identifiers_defined =
+      for {as, alias} <- tracer_info.aliases_defined,
+          do: {{:alias, as}, alias},
+          into: identifiers_defined
+
+    # Requires
+
+    identifiers_used =
+      for module <- tracer_info.requires_used,
+          do: {:require, module},
+          into: identifiers_used
+
+    identifiers_defined =
+      for module <- tracer_info.requires_defined,
+          do: {{:require, module}, :ok},
+          into: identifiers_defined
+
+    # Imports
+
+    identifiers_used =
+      if tracer_info.imports_used? or tracer_info.imports_defined? do
+        # Imports are not always incremental, due to :except, so if
+        # we define imports, we also implicitly rely on prior imports
+        MapSet.put(identifiers_used, :imports)
+      else
+        identifiers_used
+      end
+
+    identifiers_defined =
+      if tracer_info.imports_defined? do
+        version = {:erlang.phash2(context.env.functions), :erlang.phash2(context.env.macros)}
+        put_in(identifiers_defined[:imports], version)
+      else
+        identifiers_defined
+      end
+
+    # Process dictionary
+
+    # Every evaluation depends on the pdict
+    identifiers_used = MapSet.put(identifiers_used, :pdict)
+
+    identifiers_defined =
+      if context.pdict == prev_context.pdict do
+        identifiers_defined
+      else
+        version = :erlang.phash2(context.pdict)
+        put_in(identifiers_defined[:pdict], version)
+      end
+
+    {MapSet.to_list(identifiers_used), identifiers_defined}
   end
+
+  defp vars_used(context, tracer_info, prev_context) do
+    prev_vars =
+      for {var, _version} <- prev_context.env.versioned_vars,
+          into: MapSet.new(),
+          do: var
+
+    outer_used_vars =
+      for {var, _version} <- context.env.versioned_vars,
+          into: MapSet.new(),
+          do: var
+
+    # Note that :prune_binding removes variables used by modules
+    # (unless used outside), so we get those from the tracer
+    module_used_vars =
+      for {_module, vars} <- tracer_info.modules_defined,
+          var <- vars,
+          into: MapSet.new(),
+          do: var
+
+    # We take an intersection with previous vars, so we ignore variables
+    # that we know are newly defined
+    MapSet.intersection(prev_vars, MapSet.union(outer_used_vars, module_used_vars))
+  end
+
+  defp vars_defined(context, prev_context) do
+    prev_num_vars = map_size(prev_context.env.versioned_vars)
+
+    for {var, version} <- context.env.versioned_vars,
+        version >= prev_num_vars,
+        into: MapSet.new(),
+        do: var
+  end
+
+  defp prune_stacktrace([{Livebook.Runtime.Evaluator.Tracer, _fun, _arity, _meta} | _]), do: []
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below
@@ -475,6 +760,10 @@ defmodule Livebook.Runtime.Evaluator do
       |> Enum.reverse()
       |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
       |> Enum.reverse()
+      |> case do
+        [] -> stack
+        stack -> stack
+      end
     end
   else
     @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
@@ -502,22 +791,36 @@ defmodule Livebook.Runtime.Evaluator do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 
-  defp copy_process_dictionary_from(source_evaluator) do
-    {:dictionary, dictionary} = Process.info(source_evaluator.pid, :dictionary)
-
-    for {key, value} <- dictionary, not internal_dictionary_key?(key) do
-      Process.put(key, value)
-    end
-  end
-
-  defp internal_dictionary_key?("$" <> _), do: true
-  defp internal_dictionary_key?({@env_key, _ref}), do: true
-  defp internal_dictionary_key?(@initial_env_key), do: true
-  defp internal_dictionary_key?(_), do: false
-
-  defp get_execution_time_delta(started_at) do
+  defp time_diff_ms(started_at) do
     System.monotonic_time()
     |> Kernel.-(started_at)
     |> System.convert_time_unit(:native, :millisecond)
+  end
+
+  @doc false
+  def write_module!(module, bytecode) do
+    if ebin_path = ebin_path() do
+      ebin_path
+      |> Path.join("#{module}.beam")
+      |> File.write!(bytecode)
+    end
+  end
+
+  @doc false
+  def delete_module(module, ebin_path \\ ebin_path()) do
+    # If there is a deleted code for the module, we purge it first
+    :code.purge(module)
+
+    :code.delete(module)
+
+    if ebin_path do
+      ebin_path
+      |> Path.join("#{module}.beam")
+      |> File.rm()
+    end
+  end
+
+  defp ebin_path() do
+    Process.get(@ebin_path_key)
   end
 end

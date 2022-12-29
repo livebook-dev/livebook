@@ -1,3 +1,5 @@
+import renderMathInElement from "katex/contrib/auto-render";
+
 import monaco from "./live_editor/monaco";
 import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
@@ -384,6 +386,33 @@ class LiveEditor {
     };
 
     this.editor.getModel().__getHover__ = (model, position) => {
+      // On the first hover, we setup a listener to postprocess hover
+      // content with KaTeX. Prior to that, the hover element is not
+      // in the DOM
+
+      this.hoverContentProcessed = false;
+
+      if (!this.hoverContentEl) {
+        this.hoverContentEl = this.container.querySelector(
+          ".monaco-hover-content"
+        );
+
+        if (this.hoverContentEl) {
+          new MutationObserver((event) => {
+            // We mutate the DOM, so we use a flag to ignore events
+            // that we triggered ourselves
+            if (!this.hoverContentProcessed) {
+              renderMathInElement(this.hoverContentEl);
+              this.hoverContentProcessed = true;
+            }
+          }).observe(this.hoverContentEl, { childList: true });
+        } else {
+          console.warn(
+            "Could not find an element matching .monaco-hover-content"
+          );
+        }
+      }
+
       const line = model.getLineContent(position.lineNumber);
       const column = position.column;
 

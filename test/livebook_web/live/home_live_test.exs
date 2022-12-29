@@ -231,12 +231,30 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  describe "hubs sidebar" do
+    test "render section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ "Add Hub"
+    end
+
+    test "render persisted hubs", %{conn: conn} do
+      fly = insert_hub(:fly, id: "fly-foo-bar-id")
+
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ fly.hub_name
+
+      Livebook.Hubs.delete_hub("fly-foo-bar-id")
+    end
+  end
+
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
     {:ok, view, _} = live(conn, "/")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{[data-el-explore-section] a}, "Welcome to Livebook")
+             |> element(~s{[data-el-learn-section] a}, "Welcome to Livebook")
              |> render_click()
              |> follow_redirect(conn)
 
@@ -390,11 +408,17 @@ defmodule LivebookWeb.HomeLiveTest do
 
   test "handles user profile update", %{conn: conn} do
     {:ok, view, _} = live(conn, "/")
+    data = %{user: %{name: "Jake Peralta", hex_color: "#123456"}}
 
     view
     |> element("#user_form")
-    |> render_submit(%{data: %{hex_color: "#123456"}})
+    |> render_change(data)
 
+    view
+    |> element("#user_form")
+    |> render_submit(data)
+
+    assert render(view) =~ "Jake Peralta"
     assert render(view) =~ "#123456"
   end
 

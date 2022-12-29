@@ -1,6 +1,13 @@
 <%
 
-additional_paths = Enum.map_join(@app_options[:additional_paths], ":", &"\\(resourcePath)/#{&1}")
+additional_paths =
+  Enum.map_join(@app_options[:additional_paths], ":", fn path ->
+    if String.starts_with?(path, "/") do
+      path
+    else
+      "\\(resourcePath)/#{path}"
+    end
+  end)
 
 %>import Cocoa
 
@@ -88,6 +95,7 @@ func buildReleaseTask() -> Process {
 
 <%= if additional_paths != "" do %>
     let resourcePath = Bundle.main.resourcePath ?? ""
+    _ = resourcePath
     let additionalPaths = "<%= additional_paths %>"
     let path = task.environment!["PATH"] ?? ""
     task.environment!["PATH"] = "\(additionalPaths):\(path)"

@@ -1,0 +1,18 @@
+version: "3"
+x-uffizzi:
+  ingress:
+    service: livebook
+    port: 8080
+services:
+  livebook:
+    image: "${APP_IMAGE}"
+    environment:
+      - LIVEBOOK_PORT=8080
+      - LIVEBOOK_TOKEN_ENABLED=false
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2000M

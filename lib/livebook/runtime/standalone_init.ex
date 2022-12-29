@@ -2,10 +2,8 @@ defmodule Livebook.Runtime.StandaloneInit do
   @moduledoc false
 
   # Generic functionality related to starting and setting up
-  # a new Elixir system process. It's used by both ElixirStandalone
-  # and MixStandalone runtimes.
+  # a new Elixir system process. It's used by ElixirStandalone.
 
-  alias Livebook.Utils.Emitter
   alias Livebook.Runtime.NodePool
 
   @doc """
@@ -83,15 +81,11 @@ defmodule Livebook.Runtime.StandaloneInit do
 
   ## Options
 
-    * `:emitter` - an emitter through which all child outpt is passed
-
     * `:init_opts` - see `Livebook.Runtime.ErlDist.initialize/2`
   """
   @spec parent_init_sequence(node(), port(), keyword()) :: {:ok, pid()} | {:error, String.t()}
   def parent_init_sequence(child_node, port, opts \\ []) do
     port_ref = Port.monitor(port)
-
-    emitter = opts[:emitter]
 
     loop = fn loop ->
       receive do
@@ -104,17 +98,14 @@ defmodule Livebook.Runtime.StandaloneInit do
 
           {:ok, server_pid}
 
-        {^port, {:data, output}} ->
-          # Pass all the outputs through the given emitter.
-          emitter && Emitter.emit(emitter, output)
+        {^port, {:data, _output}} ->
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->
           {:error, "Elixir terminated unexpectedly, please check the terminal for errors"}
       after
-        # Use a longer timeout to account for longer child node startup,
-        # as may happen when starting with Mix.
-        40_000 ->
+        # Use a longer timeout to account for longer child node startup.
+        30_000 ->
           {:error, "connection timed out"}
       end
     end

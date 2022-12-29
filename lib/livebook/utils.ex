@@ -74,19 +74,6 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Converts the given name to node identifier.
-  """
-  @spec node_from_name(String.t()) :: atom()
-  def node_from_name(name) do
-    if name =~ "@" do
-      String.to_atom(name)
-    else
-      # Default to the same host as the current node
-      :"#{name}@#{node_host()}"
-    end
-  end
-
-  @doc """
   Returns the host part of a node.
   """
   @spec node_host() :: binary()
@@ -175,26 +162,6 @@ defmodule Livebook.Utils do
     uri = URI.parse(url)
     uri.scheme != nil and uri.host not in [nil, ""]
   end
-
-  @doc """
-  Validates if the given hex color is the correct format
-
-  ## Examples
-
-      iex> Livebook.Utils.valid_hex_color?("#111111")
-      true
-
-      iex> Livebook.Utils.valid_hex_color?("#ABC123")
-      true
-
-      iex> Livebook.Utils.valid_hex_color?("ABCDEF")
-      false
-
-      iex> Livebook.Utils.valid_hex_color?("#111")
-      false
-  """
-  @spec valid_hex_color?(String.t()) :: boolean()
-  def valid_hex_color?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
 
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
@@ -358,7 +325,7 @@ defmodule Livebook.Utils do
 
     case cmd_args do
       {cmd, args} -> System.cmd(cmd, args)
-      nil -> Logger.warn("could not open the browser, no open command found in the system")
+      nil -> Logger.warning("could not open the browser, no open command found in the system")
     end
 
     :ok
@@ -496,8 +463,8 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.format_bytes(0)
       "0 B"
 
-      iex> Livebook.Utils.format_bytes(1000)
-      "1000 B"
+      iex> Livebook.Utils.format_bytes(900)
+      "900 B"
 
       iex> Livebook.Utils.format_bytes(1100)
       "1.1 KB"
@@ -506,11 +473,13 @@ defmodule Livebook.Utils do
       "1.2 MB"
 
       iex> Livebook.Utils.format_bytes(1_363_148_800)
-      "1.3 GB"
+      "1.4 GB"
 
       iex> Livebook.Utils.format_bytes(1_503_238_553_600)
-      "1.4 TB"
+      "1.5 TB"
+
   """
+  @spec format_bytes(non_neg_integer()) :: String.t()
   def format_bytes(bytes) when is_integer(bytes) do
     cond do
       bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
@@ -528,10 +497,10 @@ defmodule Livebook.Utils do
     "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
   end
 
-  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
-  defp memory_unit(:GB), do: 1024 * 1024 * 1024
-  defp memory_unit(:MB), do: 1024 * 1024
-  defp memory_unit(:KB), do: 1024
+  defp memory_unit(:TB), do: 1_000_000_000_000
+  defp memory_unit(:GB), do: 1_000_000_000
+  defp memory_unit(:MB), do: 1_000_000
+  defp memory_unit(:KB), do: 1_000
 
   @doc """
   Gets the port for an existing listener.

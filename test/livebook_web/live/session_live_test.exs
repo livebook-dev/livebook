@@ -3,9 +3,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
-  alias Livebook.Users.User
+  alias Livebook.Secrets.Secret
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -442,32 +442,30 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
-
       path = Path.join(tmp_dir, "notebook.livemd")
-
-      view
-      |> element("button", "Choose a file")
-      |> render_click()
 
       view
       |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: path})
 
       view
-      |> element(~s{button[phx-click="confirm_file"]}, "Choose")
+      |> element(~s{button}, "Save")
       |> render_click()
 
-      view
-      |> element(~s{button}, "Save now")
-      |> render_click()
+      assert Session.get_data(session.pid).file
 
-      view
-      |> element("button", "Change file")
-      |> render_click()
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
+      assert view = find_live_child(view, "persistence")
 
       assert view
              |> element("button", "notebook.livemd")
              |> has_element?()
+
+      view
+      |> element(~s{button}, "Stop saving")
+      |> render_click()
+
+      refute Session.get_data(session.pid).file
     end
 
     @tag :tmp_dir
@@ -476,27 +474,18 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
-
       path = Path.join(tmp_dir, "notebook.livemd")
-
-      view
-      |> element("button", "Choose a file")
-      |> render_click()
 
       view
       |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: path})
 
       view
-      |> element(~s{button[phx-click="confirm_file"]}, "Choose")
-      |> render_click()
-
-      view
       |> element(~s{form[phx-change="set_options"]})
       |> render_change(%{persist_outputs: "true"})
 
       view
-      |> element(~s{button}, "Save now")
+      |> element(~s{button}, "Save")
       |> render_click()
 
       assert %{notebook: %{persist_outputs: true}} = Session.get_data(session.pid)
@@ -577,7 +566,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "connected users" do
     test "lists connected users", %{conn: conn, session: session} do
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
@@ -601,7 +590,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.subscribe(session.id)
 
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
@@ -622,7 +611,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "updates users list whenever a user changes his data",
          %{conn: conn, session: session} do
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
@@ -833,6 +822,34 @@ defmodule LivebookWeb.SessionLiveTest do
       close_session_by_id(session_id)
     end
 
+    test "when a remote URL cannot be loaded, attempts to resolve a flat URL", %{conn: conn} do
+      bypass = Bypass.open()
+
+      # Multi-level path is not available
+      Bypass.expect_once(bypass, "GET", "/nested/path/to/notebook.livemd", fn conn ->
+        Plug.Conn.resp(conn, 500, "Error")
+      end)
+
+      # A flat path is available
+      Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "# My notebook")
+      end)
+
+      index_url = url(bypass.port) <> "/index.livemd"
+      {:ok, session} = Sessions.create_session(origin: {:url, index_url})
+
+      assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
+               result = live(conn, "/sessions/#{session.id}/nested/path/to/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "My notebook"
+
+      Session.close(session.pid)
+      close_session_by_id(session_id)
+    end
+
     test "renders an error message if relative remote notebook cannot be loaded", %{conn: conn} do
       bypass = Bypass.open()
 
@@ -914,6 +931,171 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "secrets" do
+    test "adds a secret from form", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "foo", value: "123", store: "session"}})
+
+      assert %{secrets: %{"FOO" => "123"}} = Session.get_data(session.pid)
+    end
+
+    test "adds a livebook secret from form", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "bar", value: "456", store: "livebook"}})
+
+      assert %Secret{name: "BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "syncs secrets", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO", value: "456", store: "livebook"}})
+
+      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
+      assert %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO", value: "789", store: "livebook"}})
+
+      assert %{secrets: %{"FOO" => "789"}} = Session.get_data(session.pid)
+      assert %Secret{name: "FOO", value: "789"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "never syncs secrets when updating from session", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO", value: "456", store: "session"}})
+
+      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
+
+      refute %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
+      assert %Secret{name: "FOO", value: "123"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.fetch_env!("LB_FOO")})
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert view
+             |> element("span", "Add secret")
+             |> has_element?()
+    end
+  end
+
+  describe "environment variables" do
+    test "outputs persisted env var from ets", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      section_id = insert_section(session.pid)
+
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+
+      attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+      Settings.set_env_var(attrs)
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
+
+      Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
+
+      Settings.unset_env_var("MY_AWESOME_ENV")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+    end
+
+    @tag :tmp_dir
+    test "outputs persisted PATH delimited with os PATH env var",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      separator =
+        case :os.type() do
+          {:win32, _} -> ";"
+          _ -> ":"
+        end
+
+      initial_os_path = System.get_env("PATH", "")
+      expected_path = initial_os_path <> separator <> tmp_dir
+
+      attrs = params_for(:env_var, name: "PATH", value: tmp_dir)
+      Settings.set_env_var(attrs)
+
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      section_id = insert_section(session.pid)
+
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH") |> IO.write()})
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, ^expected_path}}}
+
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      Settings.unset_env_var("PATH")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, ^initial_os_path}}}
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_pid) do
@@ -957,11 +1139,6 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.queue_cell_evaluation(session_pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
     cell_id
-  end
-
-  defp create_user_with_name(name) do
-    {:ok, user} = User.new() |> User.change(%{"name" => name})
-    user
   end
 
   defp url(port), do: "http://localhost:#{port}"

@@ -83,7 +83,7 @@
   /* Form fields */
 
   .input {
-    @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
+    @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300;
   }
 
   .input[type="color"] {
@@ -124,7 +124,7 @@
   }
 
   .switch-button {
-    @apply relative inline-block w-14 h-7 mr-2 select-none;
+    @apply relative inline-block w-14 h-7 select-none;
   }
 
   .switch-button--disabled {
@@ -132,11 +132,11 @@
   }
 
   .switch-button__checkbox {
-    @apply appearance-none absolute block w-7 h-7 rounded-full bg-gray-400 border-[5px] border-gray-100 cursor-pointer transition-all duration-300;
+    @apply appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-all duration-300;
   }
 
   .switch-button__bg {
-    @apply block h-full w-full rounded-full bg-gray-100 cursor-pointer transition-all duration-300;
+    @apply block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-all duration-300;
   }
 
   .switch-button__checkbox:checked {
@@ -274,5 +274,26 @@
 
   .info-box {
     @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
+  }
+
+  /* Cards */
+  .card-item {
+    @apply cursor-pointer;
+  }
+
+  .card-item:not(.selected) .card-item-logo {
+    @apply border-gray-100;
+  }
+
+  .card-item:not(.selected) .card-item-body {
+    @apply bg-gray-100;
+  }
+
+  .card-item.selected .card-item-logo {
+    @apply border-gray-200;
+  }
+
+  .card-item.selected .card-item-body {
+    @apply bg-gray-200;
   }
 }

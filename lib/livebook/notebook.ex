@@ -472,23 +472,6 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Returns the list with the given parent cells and all of
-  their child cells.
-
-  The cells are not ordered in any secific way.
-  """
-  @spec cell_ids_with_children(t(), list(Cell.id())) :: list(Cell.id())
-  def cell_ids_with_children(notebook, parent_cell_ids) do
-    graph = cell_dependency_graph(notebook)
-
-    for parent_id <- parent_cell_ids,
-        leaf_id <- Graph.leaves(graph),
-        cell_id <- Graph.find_path(graph, leaf_id, parent_id),
-        uniq: true,
-        do: cell_id
-  end
-
-  @doc """
   Computes cell dependency graph.
 
   Every cell has one or none parent cells, so the graph
@@ -765,14 +748,24 @@ defmodule Livebook.Notebook do
   end
 
   # Keep layout output and its relevant contents
-  defp do_prune_outputs([{idx, {type, tabs_outputs, _info}} | outputs], acc)
-       when type in [:tabs, :grid] do
+  defp do_prune_outputs([{idx, {:tabs, tabs_outputs, info}} | outputs], acc) do
     case prune_outputs(tabs_outputs) do
       [] ->
         do_prune_outputs(outputs, acc)
 
       pruned_tabs_outputs ->
-        do_prune_outputs(outputs, [{idx, {type, pruned_tabs_outputs, :__pruned__}} | acc])
+        info = Map.replace(info, :labels, :__pruned__)
+        do_prune_outputs(outputs, [{idx, {:tabs, pruned_tabs_outputs, info}} | acc])
+    end
+  end
+
+  defp do_prune_outputs([{idx, {:grid, grid_outputs, info}} | outputs], acc) do
+    case prune_outputs(grid_outputs) do
+      [] ->
+        do_prune_outputs(outputs, acc)
+
+      pruned_grid_outputs ->
+        do_prune_outputs(outputs, [{idx, {:grid, pruned_grid_outputs, info}} | acc])
     end
   end
 

@@ -17,9 +17,43 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.1"}}
-  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.2"}}
-  kino_maplibre = %{name: "kino_maplibre", dependency: {:kino_maplibre, "~> 0.1.3"}}
+  kino_vega_lite = %{
+    name: "kino_vega_lite",
+    dependency: %{dep: {:kino_vega_lite, "~> 0.1.7"}, config: []}
+  }
+
+  kino_db = %{
+    name: "kino_db",
+    dependency: %{dep: {:kino_db, "~> 0.2.1"}, config: []}
+  }
+
+  kino_maplibre = %{
+    name: "kino_maplibre",
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.7"}, config: []}
+  }
+
+  kino_slack = %{
+    name: "kino_slack",
+    dependency: %{dep: {:kino_slack, "~> 0.1.0"}, config: []}
+  }
+
+  kino_bumblebee = %{
+    name: "kino_bumblebee",
+    dependency: %{dep: {:kino_bumblebee, "~> 0.1.0"}, config: []}
+  }
+
+  exla = %{
+    name: "exla",
+    dependency: %{dep: {:exla, "~> 0.4.1"}, config: [nx: [default_backend: EXLA.Backend]]}
+  }
+
+  torchx = %{
+    name: "torchx",
+    dependency: %{dep: {:torchx, "~> 0.4.1"}, config: [nx: [default_backend: Torchx.Backend]]}
+  }
+
+  windows? = match?({:win32, _}, :os.type())
+  nx_backend_package = if(windows?, do: torchx, else: exla)
 
   @extra_smart_cell_definitions [
     %{
@@ -29,23 +63,44 @@ defmodule Livebook.Runtime.ElixirStandalone do
         variants: [
           %{
             name: "Amazon Athena",
-            packages: [kino_db, %{name: "req_athena", dependency: {:req_athena, "~> 0.1.0"}}]
+            packages: [
+              kino_db,
+              %{
+                name: "req_athena",
+                dependency: %{dep: {:req_athena, "~> 0.1.0"}, config: []}
+              }
+            ]
           },
           %{
             name: "Google BigQuery",
-            packages: [kino_db, %{name: "req_bigquery", dependency: {:req_bigquery, "~> 0.1.0"}}]
+            packages: [
+              kino_db,
+              %{
+                name: "req_bigquery",
+                dependency: %{dep: {:req_bigquery, "~> 0.1.0"}, config: []}
+              }
+            ]
           },
           %{
             name: "MySQL",
-            packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+            packages: [
+              kino_db,
+              %{name: "myxql", dependency: %{dep: {:myxql, "~> 0.6.2"}, config: []}}
+            ]
           },
           %{
             name: "PostgreSQL",
-            packages: [kino_db, %{name: "postgrex", dependency: {:postgrex, "~> 0.16.3"}}]
+            packages: [
+              kino_db,
+              %{name: "postgrex", dependency: %{dep: {:postgrex, "~> 0.16.3"}, config: []}}
+            ]
           },
           %{
             name: "SQLite",
-            packages: [kino_db, %{name: "exqlite", dependency: {:exqlite, "~> 0.11.0"}}]
+            packages: [
+              kino_db,
+              %{name: "exqlite", dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}}
+            ]
           }
         ]
       }
@@ -82,6 +137,30 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "Default",
             packages: [kino_maplibre]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoSlack.MessageCell",
+      name: "Slack message",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_slack]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoBumblebee.TaskCell",
+      name: "Neural Network task",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_bumblebee, nx_backend_package]
           }
         ]
       }
@@ -179,8 +258,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.ElixirStandalone.new()
   end
 
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  def evaluate_code(runtime, code, locator, parent_locators, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, parent_locators, opts)
   end
 
   def forget_evaluation(runtime, locator) do
@@ -191,20 +270,20 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, request, base_locator) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
+  def handle_intellisense(runtime, send_to, request, parent_locators) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, parent_locators)
   end
 
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+  def start_smart_cell(runtime, kind, ref, attrs, parent_locators) do
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, parent_locators)
   end
 
-  def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+  def set_smart_cell_parent_locators(runtime, ref, parent_locators) do
+    RuntimeServer.set_smart_cell_parent_locators(runtime.server_pid, ref, parent_locators)
   end
 
   def stop_smart_cell(runtime, ref) do
@@ -214,10 +293,18 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def fixed_dependencies?(_runtime), do: false
 
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
   end
 
   def search_packages(_runtime, send_to, search) do
     Livebook.Runtime.Dependencies.search_packages_on_hex(send_to, search)
+  end
+
+  def put_system_envs(runtime, envs) do
+    RuntimeServer.put_system_envs(runtime.server_pid, envs)
+  end
+
+  def delete_system_envs(runtime, names) do
+    RuntimeServer.delete_system_envs(runtime.server_pid, names)
   end
 end

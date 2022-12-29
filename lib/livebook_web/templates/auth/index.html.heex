@@ -1,0 +1,47 @@
+<div class="h-screen flex items-center justify-center bg-gray-900">
+  <div class="flex flex-col space-y-4 items-center">
+    <a href={Routes.path(@conn, "/")}>
+      <img
+        src={Routes.static_path(@conn, "/images/logo.png")}
+        height="128"
+        width="128"
+        alt="livebook"
+      />
+    </a>
+    <div class="text-2xl text-gray-50">
+      Authentication required
+    </div>
+
+    <div class="max-w-2xl text-center text-gray-300">
+      <%= if @auth_mode == :password do %>
+        Type password to access the Livebook.
+      <% else %>
+        Please check out the console for authentication URL
+        or type the token directly here.
+      <% end %>
+    </div>
+    <div class="text-2xl text-gray-50 w-full pt-2">
+      <form method="post" class="flex flex-col space-y-4 items-center">
+        <input type="hidden" value={Phoenix.Controller.get_csrf_token()} name="_csrf_token" />
+        <div
+          phx-feedback-for={@auth_mode}
+          class={if(@errors, do: "show-errors w-[20ch]", else: "w-[20ch]")}
+        >
+          <%= if @auth_mode == :password do %>
+            <input type="password" name="password" class="input" placeholder="Password" autofocus />
+          <% else %>
+            <input type="text" name="token" class="input" placeholder="Token" autofocus />
+          <% end %>
+          <%= for error <- @errors || [] do %>
+            <span class="mt-1 hidden text-red-600 text-sm phx-form-error:block">
+              <%= translate_error(error) %>
+            </span>
+          <% end %>
+        </div>
+        <button type="submit" class="button-base button-blue">
+          Authenticate
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

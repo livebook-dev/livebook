@@ -50,6 +50,7 @@ defmodule LivebookWeb.LiveHelpers do
             <%= live_redirect("", to: @navigate, class: "hidden", id: "#{@id}-return") %>
           <% end %>
           <button
+            type="button"
             class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
             aria_label="close modal"
             phx-click={hide_modal(@id)}
@@ -95,7 +96,7 @@ defmodule LivebookWeb.LiveHelpers do
 
     ~H"""
     <.modal id={@id} class="w-full max-w-xl" phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
-      <div id={"#{@id}-content"} class="p-6 pb-4 flex flex-col" phx-update="ignore">
+      <div id={"#{@id}-content"} class="p-6 flex flex-col" phx-update="ignore">
         <h3 class="text-2xl font-semibold text-gray-800" data-title></h3>
         <p class="mt-8 text-gray-700" data-description></p>
         <label class="mt-6 text-gray-700 flex items-center" data-opt-out>
@@ -290,7 +291,7 @@ defmodule LivebookWeb.LiveHelpers do
       )
 
     ~H"""
-    <div class="flex space-x-3 items-center justify-between">
+    <div class="flex items-center gap-1 sm:gap-3 justify-between">
       <%= if @label do %>
         <span class="text-gray-700"><%= @label %></span>
       <% end %>
@@ -482,7 +483,6 @@ defmodule LivebookWeb.LiveHelpers do
         class={"menu__content #{menu_content_class(@position)}"}
         role="menu"
         phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}
-        }
       >
         <%= render_slot(@content) %>
       </menu>

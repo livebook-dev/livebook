@@ -30,7 +30,8 @@ defmodule Livebook.Session.Data do
     :runtime,
     :smart_cell_definitions,
     :clients_map,
-    :users_map
+    :users_map,
+    :secrets
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
@@ -50,12 +51,13 @@ defmodule Livebook.Session.Data do
           runtime: Runtime.t(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
-          users_map: %{User.id() => User.t()}
+          users_map: %{User.id() => User.t()},
+          secrets: list(secret())
         }
 
   @type section_info :: %{
           evaluating_cell_id: Cell.id(),
-          evaluation_queue: list(Cell.id())
+          evaluation_queue: MapSet.t(Cell.id())
         }
 
   @type cell_info :: markdown_cell_info() | code_cell_info() | smart_cell_info()
@@ -94,7 +96,10 @@ defmodule Livebook.Session.Data do
           evaluation_number: non_neg_integer(),
           outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
-          bound_input_readings: input_reading()
+          new_bound_to_input_ids: MapSet.t(input_id()),
+          identifiers_used: list(identifier :: term()) | :unknown,
+          identifiers_defined: %{(identifier :: term()) => version :: term()},
+          data: t()
         }
 
   @type cell_bin_entry :: %{
@@ -110,7 +115,7 @@ defmodule Livebook.Session.Data do
   @type cell_evaluation_validity :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
 
-  @type smart_cell_status :: :dead | :starting | :started
+  @type smart_cell_status :: :dead | :starting | :started | :down
 
   @type input_id :: String.t()
 
@@ -120,23 +125,13 @@ defmodule Livebook.Session.Data do
 
   @type index :: non_neg_integer()
 
+  @type secret :: %{name: String.t(), value: String.t()}
+
   # Snapshot holds information about the cell evaluation dependencies,
-  # for example what is the previous cell, the number of times the
-  # cell was evaluated, the list of available inputs, etc. Whenever
-  # the snapshot changes, it implies a new evaluation context, which
-  # basically means the cell got stale.
-  #
-  # The snapshot comprises of two actual snapshots:
-  #
-  #   * `deps_snapshot` - everything related to parent cells and
-  #     their evaluations. This is recorded once the cell starts
-  #     evaluating
-  #
-  #   * `bound_inputs_snapshot` - snapshot of the inputs and their
-  #     values used by cell evaluation. This is recorded once the
-  #     cell finishes its evaluation
-  #
-  @type snapshot :: {deps_snapshot :: term(), bound_inputs_snapshot :: term()}
+  # including parent cells and inputs. Whenever the snapshot changes,
+  # it implies a new evaluation context, which basically means the cell
+  # got stale.
+  @type snapshot :: term()
 
   @type input_reading :: {input_id(), input_value :: term()}
 
@@ -167,10 +162,12 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, client_id()}
           | {:reflect_evaluation_failure, client_id(), Section.id()}
           | {:cancel_cell_evaluation, client_id(), Cell.id()}
-          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.js_view(),
-             Cell.Smart.editor() | nil}
+          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.chunks() | nil,
+             Runtime.js_view(), Runtime.editor() | nil}
           | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
-             reevaluate :: boolean()}
+             Runtime.chunks() | nil, reevaluate :: boolean()}
+          | {:smart_cell_down, client_id(), Cell.id()}
+          | {:recover_smart_cell, client_id(), Cell.id()}
           | {:erase_outputs, client_id()}
           | {:set_notebook_name, client_id(), String.t()}
           | {:set_section_name, client_id(), Section.id(), String.t()}
@@ -187,6 +184,8 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
+          | {:set_secret, client_id(), secret()}
+          | {:unset_secret, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
@@ -194,7 +193,8 @@ defmodule Livebook.Session.Data do
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
           | {:start_smart_cell, Cell.t(), Section.t()}
-          | {:set_smart_cell_base, Cell.t(), Section.t(), parent :: {Cell.t(), Section.t()} | nil}
+          | {:set_smart_cell_parents, Cell.t(), Section.t(),
+             parent :: {Cell.t(), Section.t()} | nil}
           | {:broadcast_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
 
   @doc """
@@ -214,7 +214,8 @@ defmodule Livebook.Session.Data do
       runtime: Livebook.Config.default_runtime(),
       smart_cell_definitions: [],
       clients_map: %{},
-      users_map: %{}
+      users_map: %{},
+      secrets: %{}
     }
 
     data
@@ -251,7 +252,7 @@ defmodule Livebook.Session.Data do
 
   This is a pure function, responsible only for transforming the
   state, without direct side effects. This way all processes having
-  the same data can individually apply the given opreation and end
+  the same data can individually apply the given operation and end
   up with the same updated data.
 
   Since this doesn't trigger any actual processing, it becomes the
@@ -320,7 +321,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> cancel_section_evaluation(section)
       |> set_section_parent(section, parent_section)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> set_dirty()
       |> wrap_ok()
     else
@@ -336,7 +337,7 @@ defmodule Livebook.Session.Data do
       |> cancel_section_evaluation(section)
       |> add_action({:stop_evaluation, section})
       |> unset_section_parent(section)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> set_dirty()
       |> wrap_ok()
     else
@@ -352,7 +353,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> insert_cell(section_id, index, cell)
       |> maybe_start_smart_cells()
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> set_dirty()
       |> wrap_ok()
     end
@@ -365,7 +366,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> delete_section(section, delete_cells)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
@@ -380,7 +381,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> delete_cell(cell, section)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
@@ -395,7 +396,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> restore_cell(cell_bin_entry)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> maybe_start_smart_cells()
       |> set_dirty()
       |> wrap_ok()
@@ -412,7 +413,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> move_cell(cell, offset)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
@@ -428,7 +429,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> move_section(section, offset)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
@@ -450,12 +451,11 @@ defmodule Livebook.Session.Data do
       cells_with_section
       |> Enum.reduce(with_actions(data), fn {cell, section}, data_actions ->
         data_actions
-        |> queue_prerequisite_cells_evaluation(cell)
+        |> queue_prerequisite_cells_evaluation(cell.id)
         |> queue_cell_evaluation(cell, section)
       end)
       |> maybe_connect_runtime(data)
-      |> maybe_evaluate_queued()
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> wrap_ok()
     else
       :error
@@ -496,9 +496,7 @@ defmodule Livebook.Session.Data do
       |> add_cell_output(cell, output)
       |> finish_cell_evaluation(cell, section, metadata)
       |> garbage_collect_input_values()
-      |> compute_snapshots_and_validity()
-      |> maybe_evaluate_queued()
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
@@ -510,8 +508,9 @@ defmodule Livebook.Session.Data do
   def apply_operation(data, {:bind_input, _client_id, cell_id, input_id}) do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          Cell.evaluable?(cell),
+         :evaluating <- data.cell_infos[cell.id].eval.status,
          true <- Map.has_key?(data.input_values, input_id),
-         false <- MapSet.member?(data.cell_infos[cell.id].eval.bound_to_input_ids, input_id) do
+         false <- MapSet.member?(data.cell_infos[cell.id].eval.new_bound_to_input_ids, input_id) do
       data
       |> with_actions()
       |> bind_input(cell, input_id)
@@ -552,13 +551,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:smart_cell_started, client_id, id, delta, js_view, editor}) do
+  def apply_operation(data, {:smart_cell_started, client_id, id, delta, chunks, js_view, editor}) do
     with {:ok, %Cell.Smart{} = cell, _section} <-
            Notebook.fetch_cell_and_section(data.notebook, id),
          :starting <- data.cell_infos[cell.id].status do
       data
       |> with_actions()
-      |> smart_cell_started(cell, client_id, delta, js_view, editor)
+      |> smart_cell_started(cell, client_id, delta, chunks, js_view, editor)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -566,14 +565,39 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:update_smart_cell, client_id, id, attrs, delta, reevaluate}) do
+  def apply_operation(data, {:update_smart_cell, client_id, id, attrs, delta, chunks, reevaluate}) do
     with {:ok, %Cell.Smart{} = cell, section} <-
            Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
-      |> update_smart_cell(cell, client_id, attrs, delta)
+      |> update_smart_cell(cell, client_id, attrs, delta, chunks)
       |> maybe_queue_updated_smart_cell(cell, section, reevaluate)
       |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:smart_cell_down, _client_id, id}) do
+    with {:ok, %Cell.Smart{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> smart_cell_down(cell)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:recover_smart_cell, _client_id, cell_id}) do
+    with {:ok, %Cell.Smart{} = cell, section} <-
+           Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         :down <- data.cell_infos[cell_id].status do
+      data
+      |> with_actions()
+      |> recover_smart_cell(cell, section)
       |> wrap_ok()
     else
       _ -> :error
@@ -681,7 +705,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> set_dirty()
       |> wrap_ok()
     else
@@ -694,7 +718,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_input_value(input_id, value)
-      |> compute_snapshots_and_validity()
+      |> update_validity_and_evaluation()
       |> wrap_ok()
     else
       _ -> :error
@@ -727,6 +751,20 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_dirty(false)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_secret, _client_id, secret}) do
+    data
+    |> with_actions()
+    |> set_secret(secret)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:unset_secret, _client_id, secret_name}) do
+    data
+    |> with_actions()
+    |> unset_secret(secret_name)
     |> wrap_ok()
   end
 
@@ -806,7 +844,7 @@ defmodule Livebook.Session.Data do
     info = data.cell_infos[cell.id]
 
     data_actions =
-      if is_struct(cell, Cell.Smart) and info.status != :dead do
+      if is_struct(cell, Cell.Smart) and info.status in [:started, :starting] do
         add_action(data_actions, {:stop_smart_cell, cell})
       else
         data_actions
@@ -897,8 +935,7 @@ defmodule Livebook.Session.Data do
 
     # For each path in the dependency graph, find the upmost cell
     # which parent changed. From that point downwards all cells
-    # are invalidated. Then gather invalidated cells from all paths
-    # and unqueue them.
+    # are potentially affected, so we unqueue them.
 
     invalidted_cell_ids =
       graph_after
@@ -949,7 +986,7 @@ defmodule Livebook.Session.Data do
   defp queue_cell_evaluation(data_actions, cell, section) do
     data_actions
     |> update_section_info!(section.id, fn section ->
-      %{section | evaluation_queue: append_new(section.evaluation_queue, cell.id)}
+      update_in(section.evaluation_queue, &MapSet.put(&1, cell.id))
     end)
     |> update_cell_eval_info!(cell.id, fn eval_info ->
       update_in(eval_info.status, fn
@@ -962,7 +999,7 @@ defmodule Livebook.Session.Data do
   defp unqueue_cell_evaluation(data_actions, cell, section) do
     data_actions
     |> update_section_info!(section.id, fn section ->
-      %{section | evaluation_queue: List.delete(section.evaluation_queue, cell.id)}
+      update_in(section.evaluation_queue, &MapSet.delete(&1, cell.id))
     end)
     |> update_cell_eval_info!(cell.id, &%{&1 | status: :ready})
   end
@@ -981,15 +1018,33 @@ defmodule Livebook.Session.Data do
   end
 
   defp add_cell_output({data, _} = data_actions, cell, output) do
-    data_actions
-    |> set!(
-      notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
-      input_values:
-        {0, output}
-        |> Cell.find_inputs_in_output()
-        |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
-        |> Map.merge(data.input_values)
-    )
+    {[indexed_output], _counter} = Notebook.index_outputs([output], 0)
+
+    new_input_values =
+      indexed_output
+      |> Cell.find_inputs_in_output()
+      |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
+
+    {data, _} =
+      data_actions =
+      data_actions
+      |> set!(
+        notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
+        input_values: Map.merge(new_input_values, data.input_values)
+      )
+
+    if data.cell_infos[cell.id].eval.status == :evaluating do
+      # When a cell renders an input, it should also be able to read
+      # that input during the same evaluation, so we make it seem as
+      # if it already existed prior to the evaluation
+
+      data_actions
+      |> update_cell_eval_info!(cell.id, fn eval_info ->
+        update_in(eval_info.data.input_values, &Map.merge(new_input_values, &1))
+      end)
+    else
+      data_actions
+    end
   end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
@@ -999,13 +1054,38 @@ defmodule Livebook.Session.Data do
         eval_info
         | status: :ready,
           evaluation_time_ms: metadata.evaluation_time_ms,
-          # After finished evaluation, take the snapshot of read inputs
-          evaluation_snapshot:
-            {elem(eval_info.evaluation_snapshot, 0),
-             input_readings_snapshot(eval_info.bound_input_readings)}
+          identifiers_used: metadata.identifiers_used,
+          identifiers_defined: metadata.identifiers_defined,
+          bound_to_input_ids: eval_info.new_bound_to_input_ids
       }
     end)
+    |> update_cell_evaluation_snapshot(cell, section)
     |> set_section_info!(section.id, evaluating_cell_id: nil)
+  end
+
+  defp update_cell_evaluation_snapshot({data, _} = data_actions, cell, section) do
+    info = data.cell_infos[cell.id]
+
+    eval_data = data.cell_infos[cell.id].eval.data
+    eval_data = put_in(eval_data.cell_infos[cell.id], info)
+
+    graph = Notebook.cell_dependency_graph(eval_data.notebook, cell_filter: &Cell.evaluable?/1)
+
+    cell_snapshots =
+      for {cell_id, %{eval: eval_info}} <- eval_data.cell_infos,
+          do: {cell_id, eval_info.snapshot},
+          into: %{}
+
+    # We compute evaluation snapshot based on the notebook state prior
+    # to evaluation, but using the information about the dependencies
+    # obtained during evaluation (identifiers, inputs)
+    evaluation_snapshot = cell_snapshot(cell, section, graph, cell_snapshots, eval_data)
+
+    data_actions
+    |> update_cell_eval_info!(
+      cell.id,
+      &%{&1 | evaluation_snapshot: evaluation_snapshot, data: nil}
+    )
   end
 
   defp maybe_connect_runtime({data, _} = data_actions, prev_data) do
@@ -1018,7 +1098,26 @@ defmodule Livebook.Session.Data do
   end
 
   defp any_cell_queued?(data) do
-    Enum.any?(data.section_infos, fn {_section_id, info} -> info.evaluation_queue != [] end)
+    Enum.any?(data.section_infos, fn {_section_id, info} ->
+      not Enum.empty?(info.evaluation_queue)
+    end)
+  end
+
+  defp queue_prerequisite_cells_evaluation_for_queued({data, _} = data_actions) do
+    {awaiting_branch_sections, awaiting_regular_sections} =
+      data.notebook
+      |> Notebook.all_sections()
+      |> Enum.filter(&section_awaits_evaluation?(data, &1.id))
+      |> Enum.split_with(& &1.parent_id)
+
+    trailing_queued_cell_ids =
+      for section <- awaiting_branch_sections ++ Enum.take(awaiting_regular_sections, -1),
+          cell = last_queued_cell(data, section),
+          do: cell.id
+
+    reduce(data_actions, trailing_queued_cell_ids, fn data_actions, cell_id ->
+      queue_prerequisite_cells_evaluation(data_actions, cell_id)
+    end)
   end
 
   defp maybe_evaluate_queued({data, _} = data_actions) do
@@ -1033,7 +1132,7 @@ defmodule Livebook.Session.Data do
 
       data_actions =
         reduce(data_actions, awaiting_branch_sections, fn {data, _} = data_actions, section ->
-          %{evaluation_queue: [id | _]} = data.section_infos[section.id]
+          %{id: id} = first_queued_cell(data, section)
 
           {:ok, parent} = Notebook.fetch_section(data.notebook, section.parent_id)
 
@@ -1046,7 +1145,7 @@ defmodule Livebook.Session.Data do
 
           prev_section_queued? =
             prev_cell_section != nil and
-              data.section_infos[prev_cell_section.id].evaluation_queue != []
+              not Enum.empty?(data.section_infos[prev_cell_section.id].evaluation_queue)
 
           # If evaluating this cell requires interaction with the main flow,
           # we keep the cell queued. In case of the Elixir runtimes the
@@ -1069,6 +1168,25 @@ defmodule Livebook.Session.Data do
       # Don't trigger evaluation if we don't have a runtime started yet
       data_actions
     end
+  end
+
+  defp first_queued_cell(data, section) do
+    find_queued_cell(data, section.cells)
+  end
+
+  defp last_queued_cell(data, section) do
+    find_queued_cell(data, Enum.reverse(section.cells))
+  end
+
+  defp find_queued_cell(data, cells) do
+    Enum.find_value(cells, fn cell ->
+      info = data.cell_infos[cell.id]
+
+      case info do
+        %{eval: %{status: :queued}} -> cell
+        _ -> nil
+      end
+    end)
   end
 
   defp main_flow_evaluating?(data) do
@@ -1094,51 +1212,51 @@ defmodule Livebook.Session.Data do
 
   defp section_awaits_evaluation?(data, section_id) do
     info = data.section_infos[section_id]
-    info.evaluating_cell_id == nil and info.evaluation_queue != []
+    info.evaluating_cell_id == nil and not Enum.empty?(info.evaluation_queue)
   end
 
   defp evaluate_next_cell_in_section({data, _} = data_actions, section) do
-    case data.section_infos[section.id] do
-      %{evaluating_cell_id: nil, evaluation_queue: [id | ids]} ->
-        cell = Enum.find(section.cells, &(&1.id == id))
+    section_info = data.section_infos[section.id]
 
-        data_actions
-        |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
-        |> update_cell_eval_info!(id, fn eval_info ->
-          %{
-            eval_info
-            | # Note: we intentionally mark the cell as evaluating up front,
-              # so that another queue operation doesn't cause duplicated
-              # :start_evaluation action
-              status: :evaluating,
-              evaluation_number: eval_info.evaluation_number + 1,
-              outputs_batch_number: eval_info.outputs_batch_number + 1,
-              evaluation_digest: nil,
-              evaluation_snapshot: eval_info.snapshot,
-              bound_to_input_ids: MapSet.new(),
-              bound_input_readings: [],
-              # This is a rough estimate, the exact time is measured in the
-              # evaluator itself
-              evaluation_start: DateTime.utc_now()
-          }
-        end)
-        |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
-        |> add_action({:start_evaluation, cell, section})
+    if section_info.evaluating_cell_id == nil and not Enum.empty?(section_info.evaluation_queue) do
+      cell = first_queued_cell(data, section)
 
-      _ ->
-        data_actions
+      data_actions
+      |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | outputs: []}))
+      |> update_cell_eval_info!(cell.id, fn eval_info ->
+        %{
+          eval_info
+          | # Note: we intentionally mark the cell as evaluating up front,
+            # so that another queue operation doesn't cause duplicated
+            # :start_evaluation action
+            status: :evaluating,
+            evaluation_number: eval_info.evaluation_number + 1,
+            outputs_batch_number: eval_info.outputs_batch_number + 1,
+            evaluation_digest: nil,
+            new_bound_to_input_ids: MapSet.new(),
+            # Keep the notebook state before evaluation
+            data: data,
+            # This is a rough estimate, the exact time is measured in the
+            # evaluator itself
+            evaluation_start: DateTime.utc_now()
+        }
+      end)
+      |> set_section_info!(section.id,
+        evaluating_cell_id: cell.id,
+        evaluation_queue: MapSet.delete(section_info.evaluation_queue, cell.id)
+      )
+      |> add_action({:start_evaluation, cell, section})
+    else
+      data_actions
     end
   end
 
-  defp bind_input({data, _} = data_actions, cell, input_id) do
+  defp bind_input(data_actions, cell, input_id) do
     data_actions
     |> update_cell_eval_info!(cell.id, fn eval_info ->
       %{
         eval_info
-        | bound_to_input_ids: MapSet.put(eval_info.bound_to_input_ids, input_id),
-          bound_input_readings: [
-            {input_id, data.input_values[input_id]} | eval_info.bound_input_readings
-          ]
+        | new_bound_to_input_ids: MapSet.put(eval_info.new_bound_to_input_ids, input_id)
       }
     end)
   end
@@ -1162,7 +1280,7 @@ defmodule Livebook.Session.Data do
     evaluable_cells = Enum.filter(section.cells, &Cell.evaluable?/1)
 
     data_actions
-    |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: [])
+    |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: MapSet.new())
     |> reduce(
       evaluable_cells,
       &update_cell_eval_info!(&1, &2.id, fn eval_info ->
@@ -1182,14 +1300,13 @@ defmodule Livebook.Session.Data do
     )
   end
 
-  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell) do
+  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell_id) do
     prerequisites_queue =
       data.notebook
-      |> Notebook.parent_cells_with_section(cell.id)
-      |> Enum.filter(fn {cell, _} -> Cell.evaluable?(cell) end)
-      |> Enum.take_while(fn {parent_cell, _section} ->
-        info = data.cell_infos[parent_cell.id]
-        info.eval.validity != :evaluated and info.eval.status == :ready
+      |> Notebook.parent_cells_with_section(cell_id)
+      |> Enum.filter(fn {cell, _section} ->
+        info = data.cell_infos[cell.id]
+        Cell.evaluable?(cell) and info.eval.validity != :evaluated and info.eval.status == :ready
       end)
       |> Enum.reverse()
 
@@ -1215,16 +1332,20 @@ defmodule Livebook.Session.Data do
       :queued ->
         data_actions
         |> unqueue_cell_evaluation(cell, section)
-        |> unqueue_dependent_cells_evaluation(cell)
+        |> unqueue_child_cells_evaluation(cell)
 
       _ ->
         data_actions
     end
   end
 
-  defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell) do
-    dependent = dependent_cells_with_section(data, cell.id)
-    unqueue_cells_evaluation(data_actions, dependent)
+  defp unqueue_child_cells_evaluation({data, _} = data_actions, cell) do
+    evaluation_children =
+      data.notebook
+      |> Notebook.child_cells_with_section(cell.id)
+      |> Enum.filter(fn {cell, _} -> Cell.evaluable?(cell) end)
+
+    unqueue_cells_evaluation(data_actions, evaluation_children)
   end
 
   defp unqueue_cells_evaluation({data, _} = data_actions, cells_with_section) do
@@ -1250,8 +1371,17 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp smart_cell_started({data, _} = data_actions, cell, client_id, delta, js_view, editor) do
-    updated_cell = %{cell | js_view: js_view, editor: editor} |> apply_delta_to_cell(delta)
+  defp smart_cell_started(
+         {data, _} = data_actions,
+         cell,
+         client_id,
+         delta,
+         chunks,
+         js_view,
+         editor
+       ) do
+    updated_cell =
+      %{cell | chunks: chunks, js_view: js_view, editor: editor} |> apply_delta_to_cell(delta)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
@@ -1263,18 +1393,23 @@ defmodule Livebook.Session.Data do
     |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
-  defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta) do
+  defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta, chunks) do
     new_attrs =
       case cell.attrs do
         :__pruned__ -> :__pruned__
         _attrs -> attrs
       end
 
-    updated_cell = %{cell | attrs: new_attrs} |> apply_delta_to_cell(delta)
+    updated_cell = %{cell | attrs: new_attrs, chunks: chunks} |> apply_delta_to_cell(delta)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
+  end
+
+  defp smart_cell_down(data_actions, cell) do
+    data_actions
+    |> update_cell_info!(cell.id, &%{&1 | status: :down})
   end
 
   defp maybe_queue_updated_smart_cell({data, _} = data_actions, cell, section, reevaluate) do
@@ -1284,9 +1419,17 @@ defmodule Livebook.Session.Data do
 
     if evaluated? and reevaluate do
       data_actions
-      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_prerequisite_cells_evaluation(cell.id)
       |> queue_cell_evaluation(cell, section)
       |> maybe_evaluate_queued()
+    else
+      data_actions
+    end
+  end
+
+  defp recover_smart_cell({data, _} = data_actions, cell, section) do
+    if Runtime.connected?(data.runtime) do
+      start_smart_cell(data_actions, cell, section)
     else
       data_actions
     end
@@ -1454,6 +1597,16 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  defp set_secret({data, _} = data_actions, secret) do
+    secrets = Map.put(data.secrets, secret.name, secret.value)
+    set!(data_actions, secrets: secrets)
+  end
+
+  defp unset_secret({data, _} = data_actions, secret_name) do
+    secrets = Map.delete(data.secrets, secret_name)
+    set!(data_actions, secrets: secrets)
+  end
+
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do
     data_actions
     |> set!(smart_cell_definitions: smart_cell_definitions)
@@ -1472,13 +1625,17 @@ defmodule Livebook.Session.Data do
       cells_ready_to_start = Enum.filter(dead_cells, fn {cell, _} -> cell.kind in kinds end)
 
       reduce(data_actions, cells_ready_to_start, fn data_actions, {cell, section} ->
-        data_actions
-        |> update_cell_info!(cell.id, &%{&1 | status: :starting})
-        |> add_action({:start_smart_cell, cell, section})
+        start_smart_cell(data_actions, cell, section)
       end)
     else
       data_actions
     end
+  end
+
+  defp start_smart_cell(data_actions, cell, section) do
+    data_actions
+    |> update_cell_info!(cell.id, &%{&1 | status: :starting})
+    |> add_action({:start_smart_cell, cell, section})
   end
 
   defp dead_smart_cells_with_section(data) do
@@ -1535,14 +1692,6 @@ defmodule Livebook.Session.Data do
     {data, actions ++ [action]}
   end
 
-  defp append_new(list, item) do
-    if item in list do
-      list
-    else
-      list ++ [item]
-    end
-  end
-
   defp garbage_collect_input_values({data, _} = data_actions) do
     if any_section_evaluating?(data) do
       # Wait if evaluation is ongoing as it may render inputs
@@ -1556,76 +1705,38 @@ defmodule Livebook.Session.Data do
   defp update_smart_cell_bases({data, _} = data_actions, prev_data) do
     alive_smart_cell_ids =
       for {%Cell.Smart{} = cell, _} <- Notebook.cells_with_section(data.notebook),
-          data.cell_infos[cell.id].status != :dead,
+          data.cell_infos[cell.id].status in [:started, :starting],
           into: MapSet.new(),
           do: cell.id
 
     if Enum.empty?(alive_smart_cell_ids) do
       data_actions
     else
-      new_eval_graph = cell_evaluation_graph(data)
-      prev_eval_graph = cell_evaluation_graph(prev_data)
+      new_eval_parents = cell_evaluation_parents(data)
+      prev_eval_parents = cell_evaluation_parents(prev_data)
 
       cell_lookup =
         data.notebook
         |> Notebook.cells_with_section()
         |> Map.new(fn {cell, section} -> {cell.id, {cell, section}} end)
 
-      for {cell_id, parent_id} <- new_eval_graph,
+      for {cell_id, eval_parents} <- new_eval_parents,
           MapSet.member?(alive_smart_cell_ids, cell_id),
-          Map.has_key?(prev_eval_graph, cell_id),
-          prev_eval_graph[cell_id] != parent_id,
+          Map.has_key?(prev_eval_parents, cell_id),
+          prev_eval_parents[cell_id] != eval_parents,
           reduce: data_actions do
         data_actions ->
           {cell, section} = cell_lookup[cell_id]
-          parent = cell_lookup[parent_id]
-          add_action(data_actions, {:set_smart_cell_base, cell, section, parent})
+          parents = Enum.map(eval_parents, &cell_lookup[&1])
+          add_action(data_actions, {:set_smart_cell_parents, cell, section, parents})
       end
     end
-  end
-
-  # Builds a graph with evaluation parents, where each parent has
-  # aleady been evaluated. All fresh/aborted cells are leaves in
-  # this graph
-  defp cell_evaluation_graph(data) do
-    graph = Notebook.cell_dependency_graph(data.notebook, cell_filter: &Cell.evaluable?/1)
-
-    graph
-    |> Livebook.Utils.Graph.leaves()
-    |> Enum.reduce(%{}, fn cell_id, eval_graph ->
-      build_eval_graph(data, graph, cell_id, [], eval_graph)
-    end)
-  end
-
-  defp build_eval_graph(_data, _graph, nil, orphan_ids, eval_graph) do
-    put_parent(eval_graph, orphan_ids, nil)
-  end
-
-  defp build_eval_graph(data, graph, cell_id, orphan_ids, eval_graph) do
-    # We are traversing from every leaf up, so we want to compute
-    # the common path only once
-    if eval_parent_id = eval_graph[cell_id] do
-      put_parent(eval_graph, orphan_ids, eval_parent_id)
-    else
-      info = data.cell_infos[cell_id]
-
-      if info.eval.validity in [:evaluated, :stale] do
-        eval_graph = put_parent(eval_graph, orphan_ids, cell_id)
-        build_eval_graph(data, graph, graph[cell_id], [cell_id], eval_graph)
-      else
-        build_eval_graph(data, graph, graph[cell_id], [cell_id | orphan_ids], eval_graph)
-      end
-    end
-  end
-
-  defp put_parent(eval_graph, cell_ids, parent_id) do
-    Enum.reduce(cell_ids, eval_graph, &Map.put(&2, &1, parent_id))
   end
 
   defp new_section_info() do
     %{
       evaluating_cell_id: nil,
-      evaluation_queue: []
+      evaluation_queue: MapSet.new()
     }
   end
 
@@ -1670,9 +1781,12 @@ defmodule Livebook.Session.Data do
       evaluation_number: 0,
       outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
-      bound_input_readings: [],
-      snapshot: {nil, nil},
-      evaluation_snapshot: nil
+      new_bound_to_input_ids: MapSet.new(),
+      identifiers_used: [],
+      identifiers_defined: %{},
+      snapshot: nil,
+      evaluation_snapshot: nil,
+      data: nil
     }
   end
 
@@ -1734,6 +1848,52 @@ defmodule Livebook.Session.Data do
   end
 
   @doc """
+  Builds evaluation parent sequence for every evaluable cell.
+
+  This function should be used instead of calling `cell_evaluation_parents/2`
+  multiple times.
+  """
+  @spec cell_evaluation_parents(t()) :: %{Cell.id() => list(Cell.id())}
+  def cell_evaluation_parents(data) do
+    graph = Notebook.cell_dependency_graph(data.notebook, cell_filter: &Cell.evaluable?/1)
+
+    graph
+    |> Graph.reduce_paths({nil, %{}}, fn cell_id, {parent_id, chains} ->
+      if parent_id do
+        parent_chain = chains[parent_id]
+        parent_info = data.cell_infos[parent_id]
+
+        chain =
+          if parent_info.eval.validity in [:evaluated, :stale] do
+            [parent_id | parent_chain]
+          else
+            parent_chain
+          end
+
+        {cell_id, put_in(chains[cell_id], chain)}
+      else
+        {cell_id, put_in(chains[cell_id], [])}
+      end
+    end)
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.reduce(&Map.merge/2)
+  end
+
+  @doc """
+  Builds evaluation parent sequence for the given cell.
+
+  Considers only cells that have already been evaluated.
+  """
+  @spec cell_evaluation_parents(Data.t(), Cell.t()) :: list({Cell.t(), Section.t()})
+  def cell_evaluation_parents(data, cell) do
+    for {cell, section} <- Notebook.parent_cells_with_section(data.notebook, cell.id),
+        info = data.cell_infos[cell.id],
+        Cell.evaluable?(cell),
+        info.eval.validity in [:evaluated, :stale],
+        do: {cell, section}
+  end
+
+  @doc """
   Find cells bound to the given input.
   """
   @spec bound_cells_with_section(t(), input_id()) :: list({Cell.t(), Section.t()})
@@ -1746,20 +1906,16 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp dependent_cells_with_section(data, cell_id) do
-    data.notebook
-    |> Notebook.child_cells_with_section(cell_id)
-    |> Enum.filter(fn {cell, _} -> Cell.evaluable?(cell) end)
-  end
-
-  # Computes cell snapshots and updates validity based on the new values.
-  defp compute_snapshots_and_validity(data_actions) do
+  # Computes cell snapshots and updates validity based on the new
+  # values, then triggers further evaluation if applicable.
+  defp update_validity_and_evaluation(data_actions) do
     data_actions
     |> compute_snapshots()
     |> update_validity()
     # After updating validity there may be new stale cells, so we check
     # if any of them is configured for automatic reevaluation
     |> maybe_queue_reevaluating_cells()
+    |> queue_prerequisite_cells_evaluation_for_queued()
     |> maybe_evaluate_queued()
   end
 
@@ -1770,32 +1926,7 @@ defmodule Livebook.Session.Data do
 
     cell_snapshots =
       Enum.reduce(cells_with_section, %{}, fn {cell, section}, cell_snapshots ->
-        info = data.cell_infos[cell.id]
-        prev_cell_id = graph[cell.id]
-
-        is_branch? = section.parent_id != nil
-
-        parent_deps =
-          prev_cell_id &&
-            {
-              prev_cell_id,
-              cell_snapshots[prev_cell_id],
-              number_of_evaluations(data.cell_infos[prev_cell_id])
-            }
-
-        deps = {is_branch?, parent_deps}
-        deps_snapshot = :erlang.phash2(deps)
-
-        inputs_snapshot =
-          if info.eval.status == :evaluating do
-            # While the cell is evaluating the bound inputs snapshot
-            # is not stable, so we reuse the previous snapshot
-            elem(info.eval.snapshot, 1)
-          else
-            bound_inputs_snapshot(data, cell)
-          end
-
-        snapshot = {deps_snapshot, inputs_snapshot}
+        snapshot = cell_snapshot(cell, section, graph, cell_snapshots, data)
         put_in(cell_snapshots[cell.id], snapshot)
       end)
 
@@ -1807,26 +1938,102 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp number_of_evaluations(%{eval: %{status: :evaluating}} = info) do
-    info.eval.evaluation_number - 1
+  defp cell_snapshot(cell, section, graph, cell_snapshots, data) do
+    info = data.cell_infos[cell.id]
+
+    # Note that this is an implication of the Elixir runtime, we want
+    # to reevaluate as much as possible in a branch, rather than copying
+    # contexts between processes, because all structural sharing is
+    # lost when copying
+    is_branch? = section.parent_id != nil
+
+    {parent_ids, identifier_versions} = identifier_deps(cell.id, graph, data)
+
+    parent_snapshots = Enum.map(parent_ids, &cell_snapshots[&1])
+
+    bound_input_values =
+      for(
+        input_id <- info.eval.bound_to_input_ids,
+        do: {input_id, data.input_values[input_id]}
+      )
+      |> Enum.sort()
+
+    deps = {is_branch?, parent_snapshots, identifier_versions, bound_input_values}
+
+    :erlang.phash2(deps)
   end
 
-  defp number_of_evaluations(info), do: info.eval.evaluation_number
+  defp identifier_deps(cell_id, graph, data) do
+    info = data.cell_infos[cell_id]
 
-  defp bound_inputs_snapshot(data, cell) do
-    %{bound_to_input_ids: bound_to_input_ids} = data.cell_infos[cell.id].eval
+    {parent_ids, identifier_versions} =
+      case info.eval.identifiers_used do
+        :unknown ->
+          all_identifier_deps(graph[cell_id], graph, data)
 
-    for(
-      input_id <- bound_to_input_ids,
-      do: {input_id, data.input_values[input_id]}
-    )
-    |> input_readings_snapshot()
+        identifiers_used ->
+          gather_identifier_deps(graph[cell_id], identifiers_used, graph, data, {[], []})
+      end
+
+    {Enum.sort(parent_ids), Enum.sort(identifier_versions)}
   end
 
-  defp input_readings_snapshot([]), do: :empty
+  defp all_identifier_deps(cell_id, graph, data) do
+    parent_ids = graph |> Graph.find_path(cell_id, nil) |> Enum.drop(1)
 
-  defp input_readings_snapshot(name_value_pairs) do
-    name_value_pairs |> Enum.sort() |> :erlang.phash2()
+    identifier_versions =
+      parent_ids
+      |> List.foldr(%{}, fn cell_id, acc ->
+        identifiers_defined = data.cell_infos[cell_id].eval.identifiers_defined
+        Map.merge(acc, identifiers_defined)
+      end)
+      |> Map.to_list()
+
+    {parent_ids, identifier_versions}
+  end
+
+  defp gather_identifier_deps(nil, _identifiers_used, _graph, _data, acc), do: acc
+
+  defp gather_identifier_deps(_cell_id, [], _graph, _data, acc), do: acc
+
+  defp gather_identifier_deps(
+         cell_id,
+         identifiers_used,
+         graph,
+         data,
+         {parent_ids, identifier_versions}
+       ) do
+    identifiers_defined = data.cell_infos[cell_id].eval.identifiers_defined
+
+    identifiers_used
+    |> Enum.reduce({[], []}, fn identifier, {versions, rest_identifiers} ->
+      case identifiers_defined do
+        %{^identifier => version} ->
+          {[{identifier, version} | versions], rest_identifiers}
+
+        _ ->
+          {versions, [identifier | rest_identifiers]}
+      end
+    end)
+    |> case do
+      {[], rest_identifiers} ->
+        gather_identifier_deps(
+          graph[cell_id],
+          rest_identifiers,
+          graph,
+          data,
+          {parent_ids, identifier_versions}
+        )
+
+      {versions, rest_identifiers} ->
+        gather_identifier_deps(
+          graph[cell_id],
+          rest_identifiers,
+          graph,
+          data,
+          {[cell_id | parent_ids], versions ++ identifier_versions}
+        )
+    end
   end
 
   defp update_validity({data, _} = data_actions) do
@@ -1849,7 +2056,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
-    cells_to_reeavaluete =
+    cells_to_reevaluate =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
       |> Enum.filter(fn {cell, _section} ->
@@ -1860,9 +2067,9 @@ defmodule Livebook.Session.Data do
       end)
 
     data_actions
-    |> reduce(cells_to_reeavaluete, fn data_actions, {cell, section} ->
+    |> reduce(cells_to_reevaluate, fn data_actions, {cell, section} ->
       data_actions
-      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_prerequisite_cells_evaluation(cell.id)
       |> queue_cell_evaluation(cell, section)
     end)
   end
@@ -1884,7 +2091,7 @@ defmodule Livebook.Session.Data do
   Returns the list of cell ids for full evaluation.
 
   The list includes all outdated cells, cells in `forced_cell_ids`
-  and all of their child cells.
+  and all cells with identifier dependency on these.
   """
   @spec cell_ids_for_full_evaluation(t(), list(Cell.id())) :: list(Cell.id())
   def cell_ids_for_full_evaluation(data, forced_cell_ids) do
@@ -1893,16 +2100,70 @@ defmodule Livebook.Session.Data do
     evaluable_cell_ids =
       for {cell, _} <- evaluable_cells_with_section,
           cell_outdated?(data, cell) or cell.id in forced_cell_ids,
-          info = data.cell_infos[cell.id],
-          info.eval.status == :ready,
-          uniq: true,
-          do: cell.id
+          do: cell.id,
+          into: MapSet.new()
 
-    cell_ids = Notebook.cell_ids_with_children(data.notebook, evaluable_cell_ids)
+    cell_identifier_parents = cell_identifier_parents(data)
 
-    for {cell, _} <- evaluable_cells_with_section,
-        cell.id in cell_ids,
-        do: cell.id
+    child_ids =
+      for {cell_id, cell_identifier_parents} <- cell_identifier_parents,
+          Enum.any?(cell_identifier_parents, &(&1 in evaluable_cell_ids)),
+          do: cell_id
+
+    child_ids
+    |> Enum.into(evaluable_cell_ids)
+    |> Enum.to_list()
+    |> Enum.filter(fn cell_id ->
+      info = data.cell_infos[cell_id]
+      info.eval.status == :ready
+    end)
+  end
+
+  # Builds identifier parent list for every evaluable cell.
+  #
+  # This is similar to cell_evaluation_parents, but the dependency is
+  # based on identifiers used/set by each cell.
+  defp cell_identifier_parents(data) do
+    graph = Notebook.cell_dependency_graph(data.notebook, cell_filter: &Cell.evaluable?/1)
+
+    graph
+    |> Graph.reduce_paths(
+      {nil, %{}, %{}},
+      fn cell_id, {parent_id, setters, identifier_parents} ->
+        if parent_id do
+          cell_info = data.cell_infos[cell_id]
+
+          direct_parents =
+            case cell_info.eval.identifiers_used do
+              :unknown ->
+                setters |> Map.values() |> Enum.uniq()
+
+              identifiers_used ->
+                for identifier <- identifiers_used,
+                    parent_id = setters[identifier],
+                    uniq: true,
+                    do: parent_id
+            end
+
+          parents =
+            for parent_id <- direct_parents,
+                cell_id <- [parent_id | identifier_parents[parent_id]],
+                uniq: true,
+                do: cell_id
+
+          setters =
+            for {identifier, _version} <- cell_info.eval.identifiers_defined,
+                do: {identifier, cell_id},
+                into: setters
+
+          {cell_id, setters, put_in(identifier_parents[cell_id], parents)}
+        else
+          {cell_id, setters, put_in(identifier_parents[cell_id], [])}
+        end
+      end
+    )
+    |> Enum.map(&elem(&1, 2))
+    |> Enum.reduce(&Map.merge/2)
   end
 
   @doc """
@@ -1934,5 +2195,22 @@ defmodule Livebook.Session.Data do
         end
     end)
     |> elem(0)
+  end
+
+  @doc """
+  Fetches an input value for the given cell.
+
+  If the cell is evaluating, the input value at evaluation start is
+  returned instead of the current value.
+  """
+  @spec fetch_input_value_for_cell(t(), input_id(), Cell.id()) :: {:ok, term()} | :error
+  def fetch_input_value_for_cell(data, input_id, cell_id) do
+    data =
+      case data.cell_infos[cell_id] do
+        %{eval: %{status: :evaluating, data: data}} -> data
+        _ -> data
+      end
+
+    Map.fetch(data.input_values, input_id)
   end
 end

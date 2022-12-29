@@ -26,7 +26,7 @@ import { sha256Base64 } from "../../lib/utils";
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 // (3): https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
 
-const IFRAME_SHA256 = "fA00WeO9LAvgpbMz9vKEU0WTr4Uk5bTt/BxKHdweEz8=";
+const IFRAME_SHA256 = "vd7g1B8fLBFZH6C6KNpG4H8B0SQ/oIuqKaTW6jD053A=";
 
 export function initializeIframeSource(iframe, iframePort, iframeUrl) {
   const url = getIframeUrl(iframePort, iframeUrl);
@@ -35,7 +35,7 @@ export function initializeIframeSource(iframe, iframePort, iframeUrl) {
     iframe.sandbox =
       "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups";
     iframe.allow =
-      "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking";
+      "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking; clipboard-read; clipboard-write";
     iframe.src = url;
   });
 }
@@ -48,8 +48,8 @@ function getIframeUrl(iframePort, iframeUrl) {
   }
 
   return protocol === "https:"
-    ? "https://livebook.space/iframe/v3.html"
-    : `http://${window.location.hostname}:${iframePort}/iframe/v3.html`;
+    ? "https://livebook.space/iframe/v4.html"
+    : `http://${window.location.hostname}:${iframePort}/iframe/v4.html`;
 }
 
 let iframeVerificationPromise = null;

@@ -7,8 +7,7 @@ defmodule LivebookWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_livebook_key",
-    signing_salt: "deadbook",
-    same_site: "Lax"
+    signing_salt: "deadbook"
   ]
 
   # Don't check the origin as we don't know how the web app is gonna be accessed.
@@ -78,18 +77,26 @@ defmodule LivebookWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug Plug.Session, @session_options
+  plug :session
 
   # Run custom plugs from the app configuration
   plug LivebookWeb.ConfiguredPlug
 
   plug LivebookWeb.Router
 
-  @plug_ssl Plug.SSL.init(host: {Application, :get_env, [:livebook, :force_ssl_host, nil]})
-  def force_ssl(conn, _opts) do
-    force_ssl_host = Application.get_env(:livebook, :force_ssl_host, nil)
+  @plug_session Plug.Session.init(@session_options ++ [same_site: "Lax"])
+  @plug_session_iframe Plug.Session.init(@session_options ++ [same_site: "None", secure: true])
+  def session(conn, _opts) do
+    if Livebook.Config.within_iframe?() do
+      Plug.Session.call(conn, @plug_session_iframe)
+    else
+      Plug.Session.call(conn, @plug_session)
+    end
+  end
 
-    if force_ssl_host do
+  @plug_ssl Plug.SSL.init(host: {Livebook.Config, :force_ssl_host, []})
+  def force_ssl(conn, _opts) do
+    if Livebook.Config.force_ssl_host() do
       Plug.SSL.call(conn, @plug_ssl)
     else
       conn

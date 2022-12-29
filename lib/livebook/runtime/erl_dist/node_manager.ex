@@ -42,6 +42,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        It is used to disconnect the node when the server terminates,
        which happens when the last session using the node disconnects.
        Defaults to `nil`
+
+    * `:capture_orphan_logs` - whether to capture logs out of Livebook
+      evaluator's scope. Defaults to `true`
   """
   def start(opts \\ []) do
     {opts, gen_opts} = split_opts(opts)
@@ -84,12 +87,13 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     unload_modules_on_termination = Keyword.get(opts, :unload_modules_on_termination, true)
     auto_termination = Keyword.get(opts, :auto_termination, true)
     parent_node = Keyword.get(opts, :parent_node)
+    capture_orphan_logs = Keyword.get(opts, :capture_orphan_logs, true)
 
     ## Initialize the node
 
     Process.flag(:trap_exit, true)
 
-    {:ok, server_supevisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
+    {:ok, server_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
 
     # Register our own standard error IO device that proxies
     # to sender's group leader.
@@ -104,15 +108,24 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
+    tmp_dir = make_tmp_dir()
+
+    if ebin_path = ebin_path(tmp_dir) do
+      File.mkdir_p!(ebin_path)
+      Code.prepend_path(ebin_path)
+    end
+
     {:ok,
      %{
        unload_modules_on_termination: unload_modules_on_termination,
        auto_termination: auto_termination,
-       server_supevisor: server_supevisor,
+       server_supervisor: server_supervisor,
        runtime_servers: [],
        initial_ignore_module_conflict: initial_ignore_module_conflict,
        original_standard_error: original_standard_error,
-       parent_node: parent_node
+       parent_node: parent_node,
+       capture_orphan_logs: capture_orphan_logs,
+       tmp_dir: tmp_dir
      }}
   end
 
@@ -131,6 +144,14 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     if state.parent_node do
       Node.disconnect(state.parent_node)
+    end
+
+    if ebin_path = ebin_path(state.tmp_dir) do
+      Code.delete_path(ebin_path)
+    end
+
+    if tmp_dir = state.tmp_dir do
+      File.rm_rf!(tmp_dir)
     end
 
     :ok
@@ -152,7 +173,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   end
 
   def handle_info({:orphan_log, _output} = message, state) do
-    for pid <- state.runtime_servers, do: send(pid, message)
+    if state.capture_orphan_logs do
+      for pid <- state.runtime_servers, do: send(pid, message)
+    end
+
     {:noreply, state}
   end
 
@@ -160,11 +184,28 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   @impl true
   def handle_call({:start_runtime_server, opts}, _from, state) do
+    opts = Keyword.put_new(opts, :ebin_path, ebin_path(state.tmp_dir))
+
     {:ok, server_pid} =
-      DynamicSupervisor.start_child(state.server_supevisor, {ErlDist.RuntimeServer, opts})
+      DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})
 
     Process.monitor(server_pid)
     state = update_in(state.runtime_servers, &[server_pid | &1])
     {:reply, server_pid, state}
+  end
+
+  defp make_tmp_dir() do
+    path = Path.join([System.tmp_dir!(), "livebook_runtime", random_id()])
+
+    if File.mkdir_p(path) == :ok do
+      path
+    end
+  end
+
+  defp ebin_path(nil), do: nil
+  defp ebin_path(tmp_dir), do: Path.join(tmp_dir, "ebin")
+
+  defp random_id() do
+    :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 end

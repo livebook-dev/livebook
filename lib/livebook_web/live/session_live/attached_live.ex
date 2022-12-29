@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.AttachedLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{Session, Runtime, Utils}
+  alias Livebook.{Session, Runtime}
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the connection information below:
       </p>
       <.form
-        let={f}
+        :let={f}
         for={:data}
         phx-submit="init"
         phx-change="validate"
@@ -67,7 +67,11 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           </div>
           <div>
             <div class="input-label">Cookie</div>
-            <%= text_input(f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie") %>
+            <%= text_input(f, :cookie,
+              value: @data["cookie"],
+              class: "input",
+              placeholder: "mycookie"
+            ) %>
           </div>
         </div>
         <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
@@ -90,7 +94,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   end
 
   def handle_event("init", %{"data" => data}, socket) do
-    node = Utils.node_from_name(data["name"])
+    node = String.to_atom(data["name"])
     cookie = String.to_atom(data["cookie"])
 
     runtime = Runtime.Attached.new(node, cookie)
