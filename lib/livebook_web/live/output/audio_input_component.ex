@@ -38,7 +38,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
     ~H"""
     <div
       id={"#{@id}-root"}
-      class="inline-flex flex-col p-4 border-2 border-dashed border-gray-200 rounded-lg"
+      class="inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg"
       phx-hook="AudioInput"
       phx-update="ignore"
       data-id={@id}
@@ -49,7 +49,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
     >
       <input type="file" data-input class="hidden" name="value" accept="audio/*" capture="user" />
       <audio controls data-preview></audio>
-      <div class="mt-4 flex items-center justify-center gap-4">
+      <div class="flex items-center justify-center gap-4">
         <button
           class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
           data-btn-upload
@@ -70,6 +70,13 @@ defmodule LivebookWeb.Output.AudioInputComponent do
         >
           <.remix_icon icon="stop-line" class="text-lg leading-none mr-2" />
           <span>Stop recording</span>
+        </button>
+        <button
+          class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
+          data-btn-cancel
+        >
+          <.remix_icon icon="close-circle-line" class="text-lg leading-none mr-2" />
+          <span>Cancel</span>
         </button>
       </div>
     </div>

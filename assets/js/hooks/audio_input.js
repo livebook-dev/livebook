@@ -28,6 +28,7 @@ const AudioInput = {
     this.uploadButton = this.el.querySelector(`[data-btn-upload]`);
     this.recordButton = this.el.querySelector(`[data-btn-record]`);
     this.stopButton = this.el.querySelector(`[data-btn-stop]`);
+    this.cancelButton = this.el.querySelector(`[data-btn-cancel]`);
 
     this.mediaRecorder = null;
 
@@ -89,6 +90,10 @@ const AudioInput = {
     this.stopButton.addEventListener("click", (event) => {
       this.stopRecording();
     });
+
+    this.cancelButton.addEventListener("click", (event) => {
+      this.stopRecording(false);
+    });
   },
 
   updated() {
@@ -110,35 +115,41 @@ const AudioInput = {
   },
 
   startRecording() {
+    this.audioEl.classList.add("hidden");
     this.uploadButton.classList.add("hidden");
     this.recordButton.classList.add("hidden");
     this.stopButton.classList.remove("hidden");
+    this.cancelButton.classList.remove("hidden");
 
-    const audioChunks = [];
+    this.audioChunks = [];
 
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       this.mediaRecorder = new MediaRecorder(stream);
 
       this.mediaRecorder.addEventListener("dataavailable", (event) => {
-        audioChunks.push(event.data);
-      });
-
-      this.mediaRecorder.addEventListener("stop", (event) => {
-        const audioBlob = new Blob(audioChunks);
-
-        audioBlob.arrayBuffer().then((buffer) => {
-          this.loadEncodedAudio(buffer);
-        });
+        this.audioChunks.push(event.data);
       });
 
       this.mediaRecorder.start();
     });
   },
 
-  stopRecording() {
+  stopRecording(load = true) {
+    this.audioEl.classList.remove("hidden");
     this.uploadButton.classList.remove("hidden");
     this.recordButton.classList.remove("hidden");
     this.stopButton.classList.add("hidden");
+    this.cancelButton.classList.add("hidden");
+
+    if (load) {
+      this.mediaRecorder.addEventListener("stop", (event) => {
+        const audioBlob = new Blob(this.audioChunks);
+
+        audioBlob.arrayBuffer().then((buffer) => {
+          this.loadEncodedAudio(buffer);
+        });
+      });
+    }
 
     this.mediaRecorder.stop();
   },
