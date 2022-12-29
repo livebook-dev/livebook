@@ -9,7 +9,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @pubsub_topic "enterprise"
   @registry Livebook.HubsRegistry
 
-  defstruct [:server, :hub]
+  defstruct [:server, :hub, secrets: []]
 
   @doc """
   Connects the Enterprise client with WebSocket server.
@@ -25,6 +25,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
   def send_request(pid, %_struct{} = data) do
     Server.send_request(GenServer.call(pid, :get_server), data)
+  end
+
+  @doc """
+  Returns a list of cached secrets.
+  """
+  @spec list_cached_secrets(pid()) :: list(Secret.t())
+  def list_cached_secrets(pid) do
+    GenServer.call(pid, :list_cached_secrets)
   end
 
   @doc """
@@ -66,6 +74,10 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:reply, state.server, state}
   end
 
+  def handle_call(:list_cached_secrets, _caller, state) do
+    {:reply, state.secrets, state}
+  end
+
   @impl true
   def handle_info({:connect, _, _} = message, state) do
     broadcast_message(message)
@@ -78,13 +90,17 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
-    broadcast_message({:secret_created, %Secret{name: name, value: value}})
-    {:noreply, state}
+    secret = %Secret{name: name, value: value}
+    broadcast_message({:secret_created, secret})
+
+    {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
-    broadcast_message({:secret_updated, %Secret{name: name, value: value}})
-    {:noreply, state}
+    secret = %Secret{name: name, value: value}
+    broadcast_message({:secret_updated, secret})
+
+    {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:disconnect, :ok, :disconnected}, state) do
@@ -101,5 +117,19 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   defp registry_name(%Enterprise{url: url}) do
     {:via, Registry, {@registry, url}}
+  end
+
+  defp put_secret(state, %Secret{name: name} = secret) do
+    secrets =
+      if Enum.any?(state.secrets, &(&1.name == name)) do
+        Enum.reduce(state.secrets, [], fn
+          %Secret{name: ^name}, acc -> [secret | acc]
+          item, acc -> [item | acc]
+        end)
+      else
+        [secret | state.secrets]
+      end
+
+    %{state | secrets: Enum.reverse(secrets)}
   end
 end
