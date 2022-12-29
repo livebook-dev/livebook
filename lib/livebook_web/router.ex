@@ -82,7 +82,7 @@ defmodule LivebookWeb.Router do
       get "/sessions/:id/export/download/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
-      live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
+      live "/sessions/:id/cell-upload", SessionLive, :cell_upload
       live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/images/:image", SessionController, :show_image

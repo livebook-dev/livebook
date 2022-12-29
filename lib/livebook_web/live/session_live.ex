@@ -352,8 +352,8 @@ defmodule LivebookWeb.SessionLive do
           id="cell-upload"
           session={@session}
           return_to={@self_path}
-          cell={@cell}
           uploads={@uploads}
+          cell_upload_metadata={@cell_upload_metadata}
         />
       </.modal>
     <% end %>
@@ -890,9 +890,20 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action in [:cell_settings, :cell_upload] do
+      when socket.assigns.live_action == :cell_settings do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
+  end
+
+  def handle_params(%{"section_id" => section_id, "cell_id" => cell_id}, _url, socket)
+      when socket.assigns.live_action == :cell_upload do
+    cell_id =
+      case cell_id do
+        "" -> nil
+        id -> id
+      end
+
+    {:noreply, assign(socket, cell_upload_metadata: %{section_id: section_id, cell_id: cell_id})}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket)
@@ -1425,6 +1436,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_info({:cell_upload_complete, metadata, url}, socket) do
+    params = %{
+      "type" => "image",
+      "section_id" => metadata.section_id,
+      "cell_id" => metadata.cell_id,
+      "url" => url
+    }
+
+    handle_event("insert_cell_below", params, socket)
+  end
+
   def handle_info({:set_secret, secret}, socket) do
     livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
 
@@ -1791,6 +1813,12 @@ defmodule LivebookWeb.SessionLive do
       C-->D;
     ```\
     """
+
+    {:markdown, %{source: source}}
+  end
+
+  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}) do
+    source = "![](#{url})"
 
     {:markdown, %{source: source}}
   end

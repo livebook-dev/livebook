@@ -28,7 +28,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_actions>
       <:secondary>
         <.enable_insert_mode_button />
-        <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -377,19 +376,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <button class="icon-button" aria-label="edit content">
         <.remix_icon icon="pencil-line" class="text-xl" />
       </button>
-    </span>
-    """
-  end
-
-  defp insert_image_button(assigns) do
-    ~H"""
-    <span class="tooltip top" data-tooltip="Insert image" data-el-insert-image-button>
-      <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_id),
-            class: "icon-button",
-            aria_label: "insert image",
-            role: "button" do %>
-        <.remix_icon icon="image-add-line" class="text-xl" />
-      <% end %>
     </span>
     """
   end
