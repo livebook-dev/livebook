@@ -40,6 +40,25 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
+  def render(%{attrs: %{type: :audio}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <.live_component
+        module={LivebookWeb.Output.AudioInputComponent}
+        id={"#{@id}-input"}
+        value={@value}
+        format={@attrs.format}
+        sampling_rate={@attrs.sampling_rate}
+        target={@myself}
+      />
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
@@ -272,6 +291,16 @@ defmodule LivebookWeb.Output.InputComponent do
        data: Base.decode64!(html_value["data"]),
        height: html_value["height"],
        width: html_value["width"],
+       format: attrs.format
+     }}
+  end
+
+  defp parse(html_value, %{type: :audio} = attrs) do
+    {:ok,
+     %{
+       data: Base.decode64!(html_value["data"]),
+       num_channels: html_value["num_channels"],
+       sampling_rate: html_value["sampling_rate"],
        format: attrs.format
      }}
   end

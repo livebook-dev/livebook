@@ -21,14 +21,13 @@ defmodule LivebookWeb.Output.ImageInputComponent do
             push_event(socket, "image_input_init:#{socket.assigns.id}", %{
               data: Base.encode64(value.data),
               height: value.height,
-              width: value.width,
-              format: value.format
+              width: value.width
             })
           else
             socket
           end
 
-        assign(socket, initialize: true)
+        assign(socket, initialized: true)
       end
 
     {:ok, socket}
@@ -57,13 +56,6 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       </div>
       <div class="hidden flex justify-center" data-camera-preview></div>
       <div class="mt-4 flex items-center justify-center gap-4">
-        <button
-          class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
-          data-btn-upload
-        >
-          <.remix_icon icon="upload-2-line" class="text-lg leading-none mr-2" />
-          <span>Upload</span>
-        </button>
         <.menu id={"#{@id}-camera-select-menu"} position="bottom-left">
           <:toggle>
             <button
@@ -91,6 +83,13 @@ defmodule LivebookWeb.Output.ImageInputComponent do
         >
           <.remix_icon icon="close-circle-line" class="text-lg leading-none mr-2" />
           <span>Cancel</span>
+        </button>
+        <button
+          class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
+          data-btn-upload
+        >
+          <.remix_icon icon="upload-2-line" class="text-lg leading-none mr-2" />
+          <span>Upload</span>
         </button>
       </div>
     </div>
