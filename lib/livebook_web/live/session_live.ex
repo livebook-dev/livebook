@@ -353,8 +353,7 @@ defmodule LivebookWeb.SessionLive do
           session={@session}
           return_to={@self_path}
           uploads={@uploads}
-          cell_id={@cell_id}
-          section_id={@section_id}
+          cell_upload_metadata={@cell_upload_metadata}
         />
       </.modal>
     <% end %>
@@ -891,21 +890,20 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action in [:cell_settings] do
+      when socket.assigns.live_action == :cell_settings do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
-  @impl true
   def handle_params(%{"section_id" => section_id, "cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action in [:cell_upload] do
-    {:noreply, socket |> assign(cell_id: cell_id) |> assign(section_id: section_id)}
-  end
+      when socket.assigns.live_action == :cell_upload do
+    cell_id =
+      case cell_id do
+        "" -> nil
+        id -> id
+      end
 
-  @impl true
-  def handle_params(%{"section_id" => section_id}, _url, socket)
-      when socket.assigns.live_action in [:cell_upload] do
-    {:noreply, socket |> assign(cell_id: "") |> assign(section_id: section_id)}
+    {:noreply, assign(socket, cell_upload_metadata: %{section_id: section_id, cell_id: cell_id})}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket)
@@ -1438,7 +1436,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_info({:cell_upload_complete, params}, socket) do
+  def handle_info({:cell_upload_complete, metadata, url}, socket) do
+    params = %{
+      "type" => "image",
+      "section_id" => metadata.section_id,
+      "cell_id" => metadata.cell_id,
+      "url" => url
+    }
+
     handle_event("insert_cell_below", params, socket)
   end
 
