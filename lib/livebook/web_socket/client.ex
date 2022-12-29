@@ -22,7 +22,7 @@ defmodule Livebook.WebSocket.Client do
           }
   end
 
-  defguard is_frame(value) when value == :close or elem(value, 0) == :binary
+  defguard is_frame(value) when value in [:close, :ping] or elem(value, 0) == :binary
 
   @doc """
   Connects to the WebSocket server with given url and headers.
@@ -188,6 +188,9 @@ defmodule Livebook.WebSocket.Client do
 
       {:close, _code, _data}, acc ->
         {:close, acc}
+
+      _, acc ->
+        {:ok, acc}
     end)
   end
 
