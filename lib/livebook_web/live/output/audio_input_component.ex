@@ -65,10 +65,14 @@ defmodule LivebookWeb.Output.AudioInputComponent do
           <span>Record</span>
         </button>
         <button
-          class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
+          class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500 items-center"
           data-btn-stop
         >
-          <.remix_icon icon="stop-line" class="text-lg leading-none mr-2" />
+          <span class="mr-2 flex h-3 w-3 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75">
+            </span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"></span>
+          </span>
           <span>Stop recording</span>
         </button>
         <button
