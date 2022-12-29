@@ -52,13 +52,6 @@ defmodule LivebookWeb.Output.AudioInputComponent do
       <div class="flex items-center justify-center gap-4">
         <button
           class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
-          data-btn-upload
-        >
-          <.remix_icon icon="upload-2-line" class="text-lg leading-none mr-2" />
-          <span>Upload</span>
-        </button>
-        <button
-          class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
           data-btn-record
         >
           <.remix_icon icon="mic-line" class="text-lg leading-none mr-2" />
@@ -81,6 +74,13 @@ defmodule LivebookWeb.Output.AudioInputComponent do
         >
           <.remix_icon icon="close-circle-line" class="text-lg leading-none mr-2" />
           <span>Cancel</span>
+        </button>
+        <button
+          class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
+          data-btn-upload
+        >
+          <.remix_icon icon="upload-2-line" class="text-lg leading-none mr-2" />
+          <span>Upload</span>
         </button>
       </div>
     </div>
