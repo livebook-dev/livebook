@@ -2250,14 +2250,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp fetch_enterprise_secrets(socket) do
-    for connected_hub <- socket.assigns.connected_hubs, reduce: %{} do
-      acc ->
-        secrets =
-          for secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid), into: %{} do
-            {secret.name, secret.value}
-          end
-
-        Map.merge(acc, secrets)
-    end
+    for connected_hub <- socket.assigns.connected_hubs,
+        secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
+        into: %{},
+        do: {secret.name, secret.value}
   end
 end

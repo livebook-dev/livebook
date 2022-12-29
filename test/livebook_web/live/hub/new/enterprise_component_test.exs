@@ -160,9 +160,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   end
 
   defp start_new_instance(name) do
-    # Since we're registering enterprise by it's URL
-    # we need to create another Enterprise instance
-    # to allow both connections.
     suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
     app_port = Enum.random(1000..9000) |> to_string()
 
