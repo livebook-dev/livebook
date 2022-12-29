@@ -115,21 +115,18 @@ defmodule Livebook.Hubs.EnterpriseClient do
     Phoenix.PubSub.broadcast(Livebook.PubSub, @pubsub_topic, message)
   end
 
-  defp registry_name(%Enterprise{url: url}) do
-    {:via, Registry, {@registry, url}}
+  defp registry_name(%Enterprise{id: id}) do
+    {:via, Registry, {@registry, id}}
   end
 
   defp put_secret(state, %Secret{name: name} = secret) do
     secrets =
-      if Enum.any?(state.secrets, &(&1.name == name)) do
-        Enum.reduce(state.secrets, [], fn
-          %Secret{name: ^name}, acc -> [secret | acc]
-          item, acc -> [item | acc]
-        end)
+      if idx = Enum.find_index(state.secrets, &(&1.name == name)) do
+        List.replace_at(state.secrets, idx, secret)
       else
-        [secret | state.secrets]
+        state.secrets ++ [secret]
       end
 
-    %{state | secrets: Enum.reverse(secrets)}
+    %{state | secrets: secrets}
   end
 end

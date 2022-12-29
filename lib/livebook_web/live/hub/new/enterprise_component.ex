@@ -103,8 +103,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     """
   end
 
-  @registry Livebook.HubsRegistry
-
   @impl true
   def handle_event("connect", _params, socket) do
     url = get_field(socket.assigns.changeset, :url)
@@ -117,17 +115,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
       hub_color: HexColor.random()
     }
 
-    pid =
-      case Registry.lookup(@registry, url) do
-        [{pid, _}] ->
-          pid
-
-        [] ->
-          case EnterpriseClient.start_link(base) do
-            {:ok, pid} -> pid
-            {:error, {:already_started, pid}} -> pid
-          end
-      end
+    {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
       {:connect, :error, reason} ->
@@ -140,7 +128,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
         case EnterpriseClient.send_request(pid, session_request) do
           {:session, session_response} ->
-            base = %{base | external_id: session_response.user.id}
+            base = %{base | external_id: session_response.id}
             changeset = Enterprise.change_hub(base)
 
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}

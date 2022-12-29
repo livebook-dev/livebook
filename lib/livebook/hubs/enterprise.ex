@@ -10,7 +10,7 @@ defmodule Livebook.Hubs.Enterprise do
           id: String.t() | nil,
           url: String.t() | nil,
           token: String.t() | nil,
-          external_id: pos_integer() | nil,
+          external_id: String.t() | nil,
           hub_name: String.t() | nil,
           hub_color: String.t() | nil
         }

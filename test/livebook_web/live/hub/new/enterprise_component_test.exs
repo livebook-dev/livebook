@@ -7,8 +7,10 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   alias Livebook.Hubs
 
   describe "enterprise" do
-    test "persists new hub", %{conn: conn, url: url, token: token, user: user} do
-      Livebook.Hubs.delete_hub("enterprise-#{user.id}")
+    test "persists new hub", %{conn: conn, url: url, token: token} do
+      node = EnterpriseServer.get_node()
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
+      Livebook.Hubs.delete_hub("enterprise-#{id}")
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
 
@@ -29,7 +31,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      assert render(view) =~ to_string(user.id)
+      assert render(view) =~ to_string(id)
 
       attrs = %{
         "url" => url,
@@ -57,22 +59,12 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
       hubs_html = view |> element("#hubs") |> render()
       assert hubs_html =~ ~s/style="color: #FF00FF"/
-      assert hubs_html =~ "/hub/enterprise-#{user.id}"
+      assert hubs_html =~ "/hub/enterprise-#{id}"
       assert hubs_html =~ "Enterprise"
     end
 
     test "fails with invalid token", %{test: name, conn: conn} do
-      # Since we're registering enterprise by it's URL
-      # we need to create another Enterprise instance
-      # to allow both connections.
-      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
-      app_port = Enum.random(1000..9000) |> to_string()
-
-      {:ok, _} =
-        EnterpriseServer.start(name,
-          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
-          app_port: app_port
-        )
+      start_new_instance(name)
 
       url = EnterpriseServer.url(name)
 
@@ -99,37 +91,22 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert render(view) =~ "the given token is invalid"
       refute render(view) =~ "enterprise[hub_name]"
     after
-      EnterpriseServer.disconnect(name)
-      EnterpriseServer.drop_database(name)
+      stop_new_instance(name)
     end
 
-    test "fails to create existing hub", %{
-      test: name,
-      conn: conn,
-      url: url,
-      token: token,
-      user: user
-    } do
-      # Since we're registering enterprise by it's URL
-      # we need to create another Enterprise instance
-      # to allow both connections.
-      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
-      app_port = Enum.random(1000..9000) |> to_string()
+    test "fails to create existing hub", %{conn: conn, url: url, token: token} do
+      node = EnterpriseServer.get_node()
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
+      user = :erpc.call(node, Enterprise.Integration, :create_user, [])
 
-      {:ok, _} =
-        EnterpriseServer.start(name,
-          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
-          app_port: app_port
-        )
-
-      another_url = EnterpriseServer.url(name)
-      another_token = EnterpriseServer.token(name)
+      another_token =
+        :erpc.call(node, Enterprise.Integration, :generate_user_session_token!, [user])
 
       hub =
         insert_hub(:enterprise,
-          id: "enterprise-#{user.id}",
-          external_id: user.id,
-          url: another_url,
+          id: "enterprise-#{id}",
+          external_id: id,
+          url: url,
           token: another_token
         )
 
@@ -152,7 +129,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       |> element("#connect")
       |> render_click()
 
-      assert render(view) =~ to_string(user.id)
+      assert render(view) =~ to_string(id)
 
       attrs = %{
         "url" => url,
@@ -179,9 +156,25 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ hub.hub_name
 
       assert Hubs.fetch_hub!(hub.id) == hub
-    after
-      EnterpriseServer.disconnect(name)
-      EnterpriseServer.drop_database(name)
     end
+  end
+
+  defp start_new_instance(name) do
+    # Since we're registering enterprise by it's URL
+    # we need to create another Enterprise instance
+    # to allow both connections.
+    suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
+    app_port = Enum.random(1000..9000) |> to_string()
+
+    {:ok, _} =
+      EnterpriseServer.start(name,
+        env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
+        app_port: app_port
+      )
+  end
+
+  defp stop_new_instance(name) do
+    EnterpriseServer.disconnect(name)
+    EnterpriseServer.drop_database(name)
   end
 end
