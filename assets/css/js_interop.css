@@ -129,7 +129,9 @@ solely client-side operations.
 }
 
 [data-el-session]
-  [data-el-cell][data-type="setup"]:not([data-eval-validity="fresh"]:not([data-js-empty])):not([data-js-changed]):not([data-js-focused])
+  [data-el-cell][data-type="setup"]:not(
+    [data-eval-validity="fresh"]:not([data-js-empty])
+  ):not([data-js-changed]):not([data-js-focused])
   [data-el-editor-box] {
   @apply h-0 overflow-hidden;
 }
@@ -138,7 +140,9 @@ solely client-side operations.
   [data-el-cell][data-type="setup"][data-js-focused]
   [data-el-info-box],
 [data-el-session]
-  [data-el-cell][data-type="setup"][data-eval-validity="fresh"]:not([data-js-empty])
+  [data-el-cell][data-type="setup"][data-eval-validity="fresh"]:not(
+    [data-js-empty]
+  )
   [data-el-info-box],
 [data-el-session]
   [data-el-cell][data-type="setup"][data-js-changed]
