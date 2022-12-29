@@ -10,7 +10,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
   describe "enterprise" do
     setup %{user: user, url: url, token: token} do
       Livebook.Hubs.delete_hub("enterprise-#{user.id}")
-      enterprise = insert_hub(:enterprise, url: url, token: token)
+
+      enterprise =
+        insert_hub(:enterprise,
+          id: "enterprise-#{user.id}",
+          external_id: user.id,
+          url: url,
+          token: token
+        )
+
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
       Livebook.Hubs.EnterpriseClient.subscribe()
 
@@ -65,6 +73,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
       assert_receive {:secret_created, %Secret{name: "FOO", value: "123"}}
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
+      assert has_element?(view, "#enterprise-secret-#{attrs.data.name}-title")
     end
   end
 end
