@@ -173,9 +173,15 @@ defmodule Livebook.Application do
   end
 
   defp load_lb_env_vars do
-    for {name, value} <- System.get_env(), String.starts_with?(name, "LB_") do
-      Livebook.Secrets.set_secret(%Livebook.Secrets.Secret{name: name, value: value})
-      System.delete_env(name)
+    for {var, value} <- System.get_env(), String.starts_with?(var, "LB_") do
+      "LB_" <> name = var
+
+      Livebook.Secrets.TemporaryStorage.set_secret(%Livebook.Secrets.Secret{
+        name: name,
+        value: value
+      })
+
+      System.delete_env(var)
     end
   end
 

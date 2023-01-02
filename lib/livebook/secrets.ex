@@ -5,15 +5,17 @@ defmodule Livebook.Secrets do
 
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
+  alias Livebook.Secrets.TemporaryStorage
 
   @doc """
   Get the secrets list from storage.
   """
   @spec fetch_secrets() :: list(Secret.t())
-  def fetch_secrets() do
+  def fetch_secrets do
     for fields <- Storage.all(:secrets) do
       struct!(Secret, Map.delete(fields, :id))
     end
+    |> List.flatten(TemporaryStorage.fetch_secrets())
     |> Enum.sort()
   end
 
