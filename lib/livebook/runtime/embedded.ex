@@ -122,6 +122,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
   end
 
+  def disable_dependencies_cache(runtime) do
+    RuntimeServer.disable_dependencies_cache(runtime.server_pid)
+  end
+
   def put_system_envs(runtime, envs) do
     RuntimeServer.put_system_envs(runtime.server_pid, envs)
   end

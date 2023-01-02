@@ -233,6 +233,16 @@
     @apply bottom-0 left-0 transform translate-y-full -mb-1;
   }
 
+  .menu__content--top-left.menu__content--distant,
+  .menu__content--top-right.menu__content--distant {
+    @apply -mt-2;
+  }
+
+  .menu__content--bottom-left.menu__content--distant,
+  .menu__content--bottom-right.menu__content--distant {
+    @apply -mb-2;
+  }
+
   .menu:not(.menu--open) > .menu__overlay,
   .menu:not(.menu--open) > .menu__content {
     @apply hidden;

@@ -505,6 +505,13 @@ defprotocol Livebook.Runtime do
   def search_packages(runtime, send_to, search)
 
   @doc """
+  Disables dependencies cache, so they are fetched and compiled from
+  scratch.
+  """
+  @spec disable_dependencies_cache(t()) :: :ok
+  def disable_dependencies_cache(runtime)
+
+  @doc """
   Sets the given environment variables.
   """
   @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok

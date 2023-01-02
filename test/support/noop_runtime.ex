@@ -39,6 +39,8 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def search_packages(_, _, _), do: make_ref()
 
+    def disable_dependencies_cache(_), do: :ok
+
     def put_system_envs(_, _), do: :ok
     def delete_system_envs(_, _), do: :ok
   end

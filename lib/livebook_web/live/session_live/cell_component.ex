@@ -112,6 +112,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
+          runtime={@runtime}
         />
       </:primary>
       <:secondary>
@@ -339,19 +340,42 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp setup_cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
-    <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      data-el-queue-cell-evaluation-button
-      data-cell-id={@cell_id}
-    >
-      <%= if @validity == :fresh do %>
-        <.remix_icon icon="play-circle-fill" class="text-xl" />
-        <span class="text-sm font-medium">Setup</span>
-      <% else %>
-        <.remix_icon icon="restart-fill" class="text-xl" />
-        <span class="text-sm font-medium">Reconnect and setup</span>
+    <div class="flex items-center space-x-1">
+      <button
+        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        data-el-queue-cell-evaluation-button
+        data-cell-id={@cell_id}
+      >
+        <%= if @validity == :fresh do %>
+          <.remix_icon icon="play-circle-fill" class="text-xl" />
+          <span class="text-sm font-medium">Setup</span>
+        <% else %>
+          <.remix_icon icon="restart-fill" class="text-xl" />
+          <span class="text-sm font-medium">Reconnect and setup</span>
+        <% end %>
+      </button>
+      <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
+        <.menu id="setup-menu" position="bottom-left" distant>
+          <:toggle>
+            <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+              <.remix_icon icon="arrow-down-s-line" class="text-xl" />
+            </button>
+          </:toggle>
+          <:content>
+            <button
+              class="menu-item text-gray-500"
+              role="menuitem"
+              data-el-queue-cell-evaluation-button
+              data-cell-id={@cell_id}
+              data-disable-dependencies-cache
+            >
+              <.remix_icon icon="play-circle-fill" />
+              <span class="font-medium">Setup without cache</span>
+            </button>
+          </:content>
+        </.menu>
       <% end %>
-    </button>
+    </div>
     """
   end
 

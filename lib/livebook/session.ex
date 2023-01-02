@@ -362,6 +362,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends disable dependencies cache request to the server.
+  """
+  @spec disable_dependencies_cache(pid()) :: :ok
+  def disable_dependencies_cache(pid) do
+    GenServer.cast(pid, :disable_dependencies_cache)
+  end
+
+  @doc """
   Sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
@@ -852,6 +860,14 @@ defmodule Livebook.Session do
 
   def handle_cast({:add_dependencies, dependencies}, state) do
     {:noreply, do_add_dependencies(state, dependencies)}
+  end
+
+  def handle_cast(:disable_dependencies_cache, state) do
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.disable_dependencies_cache(state.data.runtime)
+    end
+
+    {:noreply, state}
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
