@@ -74,7 +74,10 @@ defmodule Livebook.Secrets do
     :ok
   end
 
-  @doc false
+  @doc """
+  Sets additional secrets that are kept only in memory.
+  """
+  @spec set_temporary_secrets(list(Secret.t())) :: :ok
   def set_temporary_secrets(secrets) do
     :persistent_term.put(@temporary_key, secrets)
   end
