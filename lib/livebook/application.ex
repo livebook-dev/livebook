@@ -46,6 +46,7 @@ defmodule Livebook.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
+        load_lb_env_vars()
         clear_env_vars()
         display_startup_info()
         insert_development_hub()
@@ -166,6 +167,13 @@ defmodule Livebook.Application do
   defp clear_env_vars() do
     for {var, _} <- System.get_env(), config_env_var?(var) do
       System.delete_env(var)
+    end
+  end
+
+  defp load_lb_env_vars do
+    for {name, value} <- System.get_env(), String.starts_with?(name, "LB_") do
+      Livebook.Secrets.set_secret(%Livebook.Secrets.Secret{name: name, value: value})
+      System.delete_env(name)
     end
   end
 
