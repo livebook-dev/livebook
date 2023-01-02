@@ -4,7 +4,6 @@ defmodule Livebook.SecretsTest do
 
   alias Livebook.Secrets
   alias Livebook.Secrets.Secret
-  alias Livebook.Secrets.TemporaryStorage
 
   describe "fetch_secrets/0" do
     test "returns a list of secrets from storage" do
@@ -20,7 +19,7 @@ defmodule Livebook.SecretsTest do
     test "returns a list of secrets from temporary storage" do
       secret = %Secret{name: "BAR", value: "222"}
 
-      TemporaryStorage.set_secret(secret)
+      Secrets.set_temporary_secret(secret)
       assert secret in Secrets.fetch_secrets()
 
       # We can't delete from temporary storage, since it will be deleted

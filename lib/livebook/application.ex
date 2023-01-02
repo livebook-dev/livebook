@@ -33,9 +33,7 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.Utils.UniqueTask,
-        # Start the temporary secret storage
-        Livebook.Secrets.TemporaryStorage
+        Livebook.Utils.UniqueTask
       ] ++
         iframe_server_specs() ++
         [
@@ -176,7 +174,7 @@ defmodule Livebook.Application do
     for {var, value} <- System.get_env(), String.starts_with?(var, "LB_") do
       "LB_" <> name = var
 
-      Livebook.Secrets.TemporaryStorage.set_secret(%Livebook.Secrets.Secret{
+      Livebook.Secrets.set_temporary_secret(%Livebook.Secrets.Secret{
         name: name,
         value: value
       })
