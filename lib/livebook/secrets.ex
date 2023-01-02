@@ -74,7 +74,6 @@ defmodule Livebook.Secrets do
     :ok
   end
 
-  @temporary_key :livebook_temporary_secrets
   @doc false
   def set_temporary_secrets(secrets) do
     :persistent_term.put(@temporary_key, secrets)
