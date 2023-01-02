@@ -90,10 +90,10 @@ defmodule Livebook.WebSocket.Server do
   @loop_ping_delay 5_000
 
   @impl true
-  def handle_info(:loop_ping, state) do
+  def handle_info({:loop_ping, ref}, state) when ref == state.ref and is_reference(ref) do
     case Client.send(state.http_conn, state.websocket, state.ref, :ping) do
       {:ok, conn, websocket} ->
-        Process.send_after(self(), :loop_ping, @loop_ping_delay)
+        Process.send_after(self(), {:loop_ping, state.ref}, @loop_ping_delay)
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
       {:error, conn, websocket, _reason} ->
@@ -101,11 +101,13 @@ defmodule Livebook.WebSocket.Server do
     end
   end
 
+  def handle_info({:loop_ping, _another_ref}, state), do: {:noreply, state}
+
   def handle_info(message, state) do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
         state = send_received({:ok, :connected}, state)
-        send(self(), :loop_ping)
+        send(self(), {:loop_ping, state.ref})
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
