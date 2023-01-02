@@ -33,7 +33,9 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.Utils.UniqueTask
+        Livebook.Utils.UniqueTask,
+        # Start the temporary secret storage
+        Livebook.Secrets.TemporaryStorage
       ] ++
         iframe_server_specs() ++
         [
