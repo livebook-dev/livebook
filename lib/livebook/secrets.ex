@@ -13,10 +13,12 @@ defmodule Livebook.Secrets do
   """
   @spec fetch_secrets() :: list(Secret.t())
   def fetch_secrets do
+    temporary_secrets = :persistent_term.get(@temporary_key, [])
+
     for fields <- Storage.all(:secrets) do
       struct!(Secret, Map.delete(fields, :id))
     end
-    |> List.flatten(fetch_temporary_secrets())
+    |> List.flatten(temporary_secrets)
     |> Enum.sort()
   end
 
@@ -74,12 +76,9 @@ defmodule Livebook.Secrets do
 
   @temporary_key :livebook_temporary_secrets
   @doc false
-  def set_temporary_secret(secret) do
-    :persistent_term.put(@temporary_key, [secret | fetch_temporary_secrets()])
+  def set_temporary_secrets(secrets) do
+    :persistent_term.put(@temporary_key, secrets)
   end
-
-  @doc false
-  def fetch_temporary_secrets, do: :persistent_term.get(@temporary_key, [])
 
   @doc """
   Subscribe to secrets updates.

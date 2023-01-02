@@ -1006,7 +1006,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "loads secret from temporary storage", %{conn: conn, session: session} do
       secret = %Secret{name: "FOOBARBAZ", value: "ChonkyCat"}
-      Livebook.Secrets.set_temporary_secret(secret)
+      Livebook.Secrets.set_temporary_secrets([secret])
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
