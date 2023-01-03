@@ -143,6 +143,39 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:set_runtime, _pid, %{} = _runtime}}
     end
 
+    test "reevaluting the setup cell with dependencies cache disabled",
+         %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
+      # Start the standalone runtime, to encapsulate env var changes
+      {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      evaluate_setup(session.pid)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{
+        "cell_id" => "setup",
+        "disable_dependencies_cache" => true
+      })
+
+      section_id = insert_section(session.pid)
+
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s/System.get_env("MIX_INSTALL_FORCE")/)
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[32m\"true\"\e[0m"},
+                       _}}
+    end
+
     test "cancelling cell evaluation", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(2000)")

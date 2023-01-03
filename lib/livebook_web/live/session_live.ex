@@ -1144,7 +1144,7 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
     assert_policy!(socket, :execute)
     data = socket.private.data
 
@@ -1156,6 +1156,10 @@ defmodule LivebookWeb.SessionLive do
       else
         _ -> {:ok, socket}
       end
+
+    if params["disable_dependencies_cache"] do
+      Session.disable_dependencies_cache(socket.assigns.session.pid)
+    end
 
     if status == :ok do
       Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)

@@ -181,6 +181,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Disables dependencies cache globally.
+  """
+  @spec disable_dependencies_cache(pid()) :: :ok
+  def disable_dependencies_cache(pid) do
+    GenServer.cast(pid, :disable_dependencies_cache)
+  end
+
+  @doc """
   Sets the given environment variables.
   """
   @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
@@ -493,6 +501,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if pid do
       DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
     end
+
+    {:noreply, state}
+  end
+
+  def handle_cast(:disable_dependencies_cache, state) do
+    System.put_env("MIX_INSTALL_FORCE", "true")
 
     {:noreply, state}
   end

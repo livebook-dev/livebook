@@ -137,6 +137,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     raise "not supported"
   end
 
+  def disable_dependencies_cache(runtime) do
+    RuntimeServer.disable_dependencies_cache(runtime.server_pid)
+  end
+
   def put_system_envs(runtime, envs) do
     RuntimeServer.put_system_envs(runtime.server_pid, envs)
   end

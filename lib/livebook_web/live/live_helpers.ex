@@ -447,6 +447,9 @@ defmodule LivebookWeb.LiveHelpers do
     * `:position` - which side of the clickable the menu menu should
       be attached to, either `"left"` or `"right"`. Defaults to `"right"`
 
+    * `:distant` - whether the menu should be further from the anchor
+      element. Defaults to `false`
+
     * `:secondary_click` - whether secondary click (usually right mouse click)
       should open the menu. Defaults to `false`
 
@@ -466,6 +469,7 @@ defmodule LivebookWeb.LiveHelpers do
       assigns
       |> assign_new(:disabled, fn -> false end)
       |> assign_new(:position, fn -> "bottom-right" end)
+      |> assign_new(:distant, fn -> false end)
       |> assign_new(:secondary_click, fn -> false end)
 
     ~H"""
@@ -480,7 +484,7 @@ defmodule LivebookWeb.LiveHelpers do
       </div>
       <div class="menu__overlay" phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}></div>
       <menu
-        class={"menu__content #{menu_content_class(@position)}"}
+        class={"menu__content #{menu_content_class(@position)} #{if(@distant, do: "menu__content--distant")}"}
         role="menu"
         phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}
       >

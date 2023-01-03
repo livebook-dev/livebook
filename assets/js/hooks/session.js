@@ -526,7 +526,10 @@ const Session = {
     );
     if (evalButton) {
       const cellId = evalButton.getAttribute("data-cell-id");
-      this.queueCellEvaluation(cellId);
+      const disableDependenciesCache = evalButton.hasAttribute(
+        "data-disable-dependencies-cache"
+      );
+      this.queueCellEvaluation(cellId, disableDependenciesCache);
     }
 
     const hash = window.location.hash;
@@ -740,9 +743,12 @@ const Session = {
     }
   },
 
-  queueCellEvaluation(cellId) {
+  queueCellEvaluation(cellId, disableDependenciesCache) {
     this.dispatchQueueEvaluation(() => {
-      this.pushEvent("queue_cell_evaluation", { cell_id: cellId });
+      this.pushEvent("queue_cell_evaluation", {
+        cell_id: cellId,
+        disable_dependencies_cache: disableDependenciesCache,
+      });
     });
   },
 
