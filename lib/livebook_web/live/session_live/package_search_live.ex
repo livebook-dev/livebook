@@ -43,6 +43,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
           autocomplete="off"
           spellcheck="false"
           autofocus
+          phx-mounted={JS.focus()}
         />
       </form>
       <div class={
