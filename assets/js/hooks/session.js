@@ -521,6 +521,10 @@ const Session = {
       this.setInsertMode(true);
     }
 
+    if (event.target.closest(`[data-btn-package-search]`) && this.insertMode) {
+      this.setInsertMode(false);
+    }
+
     const evalButton = event.target.closest(
       `[data-el-queue-cell-evaluation-button]`
     );
