@@ -68,7 +68,7 @@ defmodule Livebook.Runtime.Evaluator.ObjectTracker do
   """
   @spec remove_reference_sync(pid(), object_reference()) :: :ok
   def remove_reference_sync(object_tracker, reference) do
-    GenServer.call(object_tracker, {:remove_reference_sync, reference})
+    GenServer.call(object_tracker, {:remove_reference_sync, reference}, 10_000)
   end
 
   @doc """
@@ -134,7 +134,7 @@ defmodule Livebook.Runtime.Evaluator.ObjectTracker do
     {:noreply, garbage_collect(state)}
   end
 
-  def handle_info({:monitor_ack, :ignored}, state) do
+  def handle_info({:monitor_ack, _}, state) do
     {:noreply, state}
   end
 
@@ -170,9 +170,9 @@ defmodule Livebook.Runtime.Evaluator.ObjectTracker do
           {:DOWN, ^ack_ref, :process, _pid, _reason} ->
             :ok
         after
-          5_000 ->
+          8_000 ->
             Logger.warning(
-              "expected a monitoring acknowledgement, but none was received within 5 seconds"
+              "expected a monitoring acknowledgement, but none was received within 8 seconds"
             )
         end
       end
