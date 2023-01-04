@@ -2295,7 +2295,8 @@ defmodule Livebook.Session.DataTest do
 
       empty_map = %{}
 
-      assert {:ok, %{input_values: ^empty_map}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_values: ^empty_map}, [{:clean_up_input_values, %{"i1" => "value"}}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "does not garbage collect inputs if present in another cell" do
