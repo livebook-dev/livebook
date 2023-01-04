@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
       phx-hook="AudioInput"
       phx-update="ignore"
       data-id={@id}
-      data-phx-target={@target}
+      data-phx-target={@myself}
       data-format={@format}
       data-sampling-rate={@sampling_rate}
       data-endianness={@endianness}
@@ -85,5 +85,23 @@ defmodule LivebookWeb.Output.AudioInputComponent do
       </div>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("change", params, socket) do
+    value = %{
+      data: Base.decode64!(params["data"]),
+      num_channels: params["num_channels"],
+      sampling_rate: params["sampling_rate"],
+      format: socket.assigns.format
+    }
+
+    send_update(LivebookWeb.Output.InputComponent,
+      id: socket.assigns.input_component_id,
+      event: :change,
+      value: value
+    )
+
+    {:noreply, socket}
   end
 end

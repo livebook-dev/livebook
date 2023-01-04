@@ -265,11 +265,9 @@ const ImageInput = {
 
   pushImage(canvas) {
     this.pushEventTo(this.props.phxTarget, "change", {
-      value: {
-        data: canvasToBase64(canvas, this.props.format),
-        height: canvas.height,
-        width: canvas.width,
-      },
+      data: canvasToBase64(canvas, this.props.format),
+      height: canvas.height,
+      width: canvas.width,
     });
   },
 

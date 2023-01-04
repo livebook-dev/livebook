@@ -27,6 +27,9 @@ defmodule Livebook.Runtime.NoopRuntime do
     def handle_intellisense(_, _, _, _), do: make_ref()
 
     def read_file(_, _), do: raise("not implemented")
+    def transfer_file(_, _, _, _), do: raise("not implemented")
+    def revoke_file(_, _), do: raise("not implemented")
+
     def start_smart_cell(_, _, _, _, _), do: :ok
     def set_smart_cell_parent_locators(_, _, _), do: :ok
     def stop_smart_cell(_, _), do: :ok

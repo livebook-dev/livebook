@@ -417,6 +417,25 @@ defprotocol Livebook.Runtime do
   def read_file(runtime, path)
 
   @doc """
+  Transfers file at `path` to the runtime.
+
+  This operation is asynchronous and `callback` is called with the
+  path of the transferred file (on the runtime host) once the transfer
+  is complete.
+
+  If the runtime is on the same host as the caller, the implementation
+  may simply use `path`.
+  """
+  @spec transfer_file(t(), String.t(), String.t(), (path :: String.t() | nil -> any())) :: :ok
+  def transfer_file(runtime, path, file_id, callback)
+
+  @doc """
+  Cleans up resources allocated with `transfer_file/4`, if any.
+  """
+  @spec revoke_file(t(), String.t()) :: :ok
+  def revoke_file(runtime, file_id)
+
+  @doc """
   Starts a smart cell of the given kind.
 
   `kind` must point to an available `t:smart_cell_definition/0`, which

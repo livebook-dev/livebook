@@ -196,6 +196,7 @@ defmodule Livebook.Session.Data do
           | {:set_smart_cell_parents, Cell.t(), Section.t(),
              parent :: {Cell.t(), Section.t()} | nil}
           | {:broadcast_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
+          | {:clean_up_input_values, %{input_id() => term()}}
 
   @doc """
   Returns a fresh notebook session state.
@@ -1698,7 +1699,15 @@ defmodule Livebook.Session.Data do
       data_actions
     else
       used_input_ids = data.notebook |> initial_input_values() |> Map.keys()
-      set!(data_actions, input_values: Map.take(data.input_values, used_input_ids))
+      {input_values, unused_input_values} = Map.split(data.input_values, used_input_ids)
+
+      if unused_input_values == %{} do
+        data_actions
+      else
+        data_actions
+        |> set!(input_values: input_values)
+        |> add_action({:clean_up_input_values, unused_input_values})
+      end
     end
   end
 

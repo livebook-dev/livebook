@@ -96,6 +96,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
+  def transfer_file(runtime, path, file_id, callback) do
+    RuntimeServer.transfer_file(runtime.server_pid, path, file_id, callback)
+  end
+
+  def revoke_file(runtime, file_id) do
+    RuntimeServer.revoke_file(runtime.server_pid, file_id)
+  end
+
   def start_smart_cell(runtime, kind, ref, attrs, parent_locators) do
     RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, parent_locators)
   end

@@ -187,11 +187,9 @@ const AudioInput = {
 
   pushAudio(audioInfo) {
     this.pushEventTo(this.props.phxTarget, "change", {
-      value: {
-        data: bufferToBase64(this.encodeAudio(audioInfo)),
-        num_channels: audioInfo.numChannels,
-        sampling_rate: audioInfo.samplingRate,
-      },
+      data: bufferToBase64(this.encodeAudio(audioInfo)),
+      num_channels: audioInfo.numChannels,
+      sampling_rate: audioInfo.samplingRate,
     });
   },
 
