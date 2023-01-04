@@ -18,7 +18,7 @@ defmodule Livebook.Secrets do
     for fields <- Storage.all(:secrets) do
       struct!(Secret, Map.delete(fields, :id))
     end
-    |> List.flatten(temporary_secrets)
+    |> Enum.concat(temporary_secrets)
     |> Enum.sort()
   end
 
