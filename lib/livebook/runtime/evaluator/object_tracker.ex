@@ -68,7 +68,7 @@ defmodule Livebook.Runtime.Evaluator.ObjectTracker do
   """
   @spec remove_reference_sync(pid(), object_reference()) :: :ok
   def remove_reference_sync(object_tracker, reference) do
-    GenServer.call(object_tracker, {:remove_reference_sync, reference}, 10_000)
+    GenServer.call(object_tracker, {:remove_reference_sync, reference}, :infinity)
   end
 
   @doc """
