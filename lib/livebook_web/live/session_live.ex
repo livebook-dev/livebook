@@ -703,22 +703,24 @@ defmodule LivebookWeb.SessionLive do
                     <span class="text-sm font-mono break-all flex-row">
                       <%= secret_value %>
                     </span>
-                    <button
-                      id={"app-secret-#{secret_name}-delete"}
-                      type="button"
-                      phx-click={
-                        with_confirm(
-                          JS.push("delete_app_secret", value: %{secret_name: secret_name}),
-                          title: "Delete app secret - #{secret_name}",
-                          description: "Are you sure you want to delete this app secret?",
-                          confirm_text: "Delete",
-                          confirm_icon: "delete-bin-6-line"
-                        )
-                      }
-                      class="hover:text-red-600"
-                    >
-                      <.remix_icon icon="delete-bin-line" />
-                    </button>
+                    <%= if Secrets.secret_exists?(secret_name) do %>
+                      <button
+                        id={"app-secret-#{secret_name}-delete"}
+                        type="button"
+                        phx-click={
+                          with_confirm(
+                            JS.push("delete_app_secret", value: %{secret_name: secret_name}),
+                            title: "Delete app secret - #{secret_name}",
+                            description: "Are you sure you want to delete this app secret?",
+                            confirm_text: "Delete",
+                            confirm_icon: "delete-bin-6-line"
+                          )
+                        }
+                        class="hover:text-red-600"
+                      >
+                        <.remix_icon icon="delete-bin-line" />
+                      </button>
+                    <% end %>
                   </div>
                 </div>
               </div>

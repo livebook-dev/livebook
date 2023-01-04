@@ -5,12 +5,28 @@ defmodule Livebook.SecretsTest do
   alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
-  test "fetch secrets" do
-    Secrets.set_secret(%Secret{name: "FOO", value: "111"})
-    assert %Secret{name: "FOO", value: "111"} in Secrets.fetch_secrets()
+  describe "fetch_secrets/0" do
+    test "returns a list of secrets from storage" do
+      secret = %Secret{name: "FOO", value: "111"}
 
-    Secrets.unset_secret("FOO")
-    refute %Secret{name: "FOO", value: "111"} in Secrets.fetch_secrets()
+      Secrets.set_secret(secret)
+      assert secret in Secrets.fetch_secrets()
+
+      Secrets.unset_secret(secret.name)
+      refute secret in Secrets.fetch_secrets()
+    end
+
+    test "returns a list of secrets from temporary storage" do
+      secret = %Secret{name: "BAR", value: "222"}
+
+      Secrets.set_temporary_secrets([secret])
+      assert secret in Secrets.fetch_secrets()
+
+      # We can't delete from temporary storage, since it will be deleted
+      # on next startup, if not provided
+      Secrets.unset_secret(secret.name)
+      assert secret in Secrets.fetch_secrets()
+    end
   end
 
   test "fetch an specific secret" do

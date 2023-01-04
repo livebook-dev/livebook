@@ -1036,6 +1036,16 @@ defmodule LivebookWeb.SessionLiveTest do
              |> element("span", "Add secret")
              |> has_element?()
     end
+
+    test "loads secret from temporary storage", %{conn: conn, session: session} do
+      secret = %Secret{name: "FOOBARBAZ", value: "ChonkyCat"}
+      Livebook.Secrets.set_temporary_secrets([secret])
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert render(view) =~ secret.name
+      assert render(view) =~ secret.value
+    end
   end
 
   describe "environment variables" do
