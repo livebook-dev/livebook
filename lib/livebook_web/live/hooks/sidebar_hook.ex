@@ -46,6 +46,7 @@ defmodule LivebookWeb.SidebarHook do
 
   defp handle_event(_event, _params, socket), do: {:cont, socket}
 
+  # TODO: Move Hub connection life-cycle elsewhere
   @supervisor Livebook.HubsSupervisor
   @registry Livebook.HubsRegistry
 

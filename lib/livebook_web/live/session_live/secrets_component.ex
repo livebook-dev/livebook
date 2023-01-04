@@ -335,6 +335,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
+  # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
   defp enterprise_hubs_options(connected_hubs, selected_hub) do
     initial_option = [key: "Select one Hub", value: "", selected: true, disabled: true]
 
