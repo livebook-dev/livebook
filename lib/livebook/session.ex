@@ -59,6 +59,8 @@ defmodule Livebook.Session do
 
   use GenServer, restart: :temporary
 
+  import Livebook.Notebook.Cell, only: [is_file_input_value: 1]
+
   alias Livebook.Session.{Data, FileGuard}
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
@@ -1064,16 +1066,21 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
-    {reply, state} =
+    state =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
         state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
-        {{:ok, value}, state}
-      else
-        _ -> {:error, state}
-      end
 
-    send(reply_to, {:runtime_evaluation_input_reply, reply})
+        prepare_input_value(input_id, value, state.data, fn value ->
+          send(reply_to, {:runtime_evaluation_input_reply, {:ok, value}})
+        end)
+
+        state
+      else
+        _ ->
+          send(reply_to, {:runtime_evaluation_input_reply, :error})
+          state
+      end
 
     {:noreply, state}
   end
@@ -1245,6 +1252,7 @@ defmodule Livebook.Session do
   @doc """
   Returns a local path to the directory for all assets for hash.
   """
+  @spec local_assets_path(String.t()) :: String.t()
   def local_assets_path(hash) do
     Path.join([livebook_tmp_path(), "assets", encode_path_component(hash)])
   end
@@ -1270,6 +1278,15 @@ defmodule Livebook.Session do
     else
       :error
     end
+  end
+
+  @doc """
+  Returns a local path to the given file input file.
+  """
+  @spec local_file_input_path(id(), Data.input_id()) :: String.t()
+  def local_file_input_path(session_id, input_id) do
+    %{path: session_dir} = session_tmp_dir(session_id)
+    Path.join([session_dir, "file_inputs", input_id])
   end
 
   defp encode_path_component(component) do
@@ -1576,6 +1593,24 @@ defmodule Livebook.Session do
     state
   end
 
+  defp handle_action(state, {:clean_up_input_values, input_values}) do
+    for {input_id, value} <- input_values do
+      case value do
+        value when is_file_input_value(value) ->
+          if Runtime.connected?(state.data.runtime) do
+            Runtime.revoke_file(state.data.runtime, input_id)
+          end
+
+          File.rm(value.path)
+
+        _ ->
+          :ok
+      end
+    end
+
+    state
+  end
+
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section) do
@@ -1601,6 +1636,17 @@ defmodule Livebook.Session do
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
+  end
+
+  defp prepare_input_value(input_id, value, data, on_value) when is_file_input_value(value) do
+    Runtime.transfer_file(data.runtime, value.path, input_id, fn path ->
+      value = %{path: path, client_name: value.client_name}
+      on_value.(value)
+    end)
+  end
+
+  defp prepare_input_value(_input_id, value, _data, on_value) do
+    on_value.(value)
   end
 
   defp broadcast_operation(session_id, operation) do

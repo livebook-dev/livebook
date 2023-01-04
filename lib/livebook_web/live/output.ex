@@ -213,12 +213,18 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:input, attrs}, %{id: id, input_values: input_values, client_id: client_id}) do
+  defp render_output({:input, attrs}, %{
+         id: id,
+         input_values: input_values,
+         client_id: client_id,
+         session_id: session_id
+       }) do
     live_component(Output.InputComponent,
       id: id,
       attrs: attrs,
       input_values: input_values,
-      client_id: client_id
+      client_id: client_id,
+      session_id: session_id
     )
   end
 

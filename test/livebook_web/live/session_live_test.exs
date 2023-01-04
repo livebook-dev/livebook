@@ -359,6 +359,52 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:event, :form_ref, %{data: %{name: "sherlock"}, type: :submit}}
     end
+
+    test "file input", %{conn: conn, session: session, test: test} do
+      section_id = insert_section(session.pid)
+
+      Process.register(self(), test)
+
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :file,
+        label: "File",
+        default: nil,
+        destination: test,
+        accept: :any
+      }
+
+      Session.subscribe(session.id)
+
+      insert_cell_with_output(session.pid, section_id, {:input, input})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> file_input(~s/[data-el-outputs-container] form/, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "data.txt",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("data.txt")
+
+      assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
+
+      assert File.read!(value.path) == "content"
+      assert value.client_name == "data.txt"
+
+      # When the input disappears, the file should be removed
+
+      Session.erase_outputs(session.pid)
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(value.path)
+    end
   end
 
   describe "outputs" do

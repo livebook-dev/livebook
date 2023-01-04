@@ -184,7 +184,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   @impl true
   def handle_call({:start_runtime_server, opts}, _from, state) do
-    opts = Keyword.put_new(opts, :ebin_path, ebin_path(state.tmp_dir))
+    opts =
+      opts
+      |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
+      |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})
@@ -204,6 +207,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   defp ebin_path(nil), do: nil
   defp ebin_path(tmp_dir), do: Path.join(tmp_dir, "ebin")
+
+  defp child_tmp_dir(nil), do: nil
+  defp child_tmp_dir(tmp_dir), do: Path.join(tmp_dir, random_id())
 
   defp random_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)

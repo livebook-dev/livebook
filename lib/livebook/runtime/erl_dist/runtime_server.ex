@@ -43,6 +43,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     * `:ebin_path` - a directory to write modules bytecode into. When
       not specified, modules are not written to disk
 
+    * `:tmp_dir` - a temporary directory to write files into, such as
+      those from file inputs. When not specified, operations relying
+      on the directory are not possible
+
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -147,6 +151,61 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Transfers file at `path` to the runtime.
+
+  If the runtime is at the same host as the caller, no copying occurs.
+
+  See `Livebook.Runtime` for more details.
+  """
+  @spec transfer_file(pid(), String.t(), String.t(), (path :: String.t() | nil -> any())) :: :ok
+  def transfer_file(pid, path, file_id, callback) do
+    if same_host?(pid) do
+      callback.(path)
+    else
+      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+        md5 = file_md5(path)
+
+        target_path =
+          case GenServer.call(pid, {:transfer_file_open, file_id, md5}, :infinity) do
+            {:noop, target_path} ->
+              target_path
+
+            {:transfer, target_path, target_pid} ->
+              try do
+                path
+                |> File.stream!([], 2048)
+                |> Enum.each(fn chunk -> IO.binwrite(target_pid, chunk) end)
+
+                target_path
+              rescue
+                _error -> nil
+              after
+                File.close(target_pid)
+              end
+          end
+
+        callback.(target_path)
+      end)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Removes the file created by `transfer_file/4`, if any.
+
+  See `Livebook.Runtime` for more details.
+  """
+  @spec revoke_file(pid(), String.t()) :: :ok
+  def revoke_file(pid, file_id) do
+    unless same_host?(pid) do
+      GenServer.cast(pid, {:revoke_file, file_id})
+    end
+
+    :ok
+  end
+
+  @doc """
   Starts a new smart cell.
   """
   @spec start_smart_cell(
@@ -242,7 +301,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        memory_timer_ref: nil,
        last_evaluator: nil,
        initial_path: System.get_env("PATH", ""),
-       ebin_path: Keyword.get(opts, :ebin_path)
+       ebin_path: Keyword.get(opts, :ebin_path),
+       tmp_dir: Keyword.get(opts, :tmp_dir)
      }}
   end
 
@@ -533,6 +593,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_cast({:revoke_file, file_id}, state) do
+    target_path = file_path(state, file_id)
+    File.rm(target_path)
+
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call({:read_file, path}, {from_pid, _}, state) do
     # Delegate reading to a separate task and let the caller
@@ -552,6 +619,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       end)
 
     {:reply, {result_ref, task_pid}, state}
+  end
+
+  def handle_call({:transfer_file_open, file_id, md5}, _from, state) do
+    reply =
+      if target_path = file_path(state, file_id) do
+        current_md5 = if File.exists?(target_path), do: file_md5(target_path)
+
+        if current_md5 == md5 do
+          {:noop, target_path}
+        else
+          target_path |> Path.dirname() |> File.mkdir_p!()
+          target_pid = File.open!(target_path, [:binary, :write])
+          {:transfer, target_path, target_pid}
+        end
+      else
+        {:noop, nil}
+      end
+
+    {:reply, reply, state}
+  end
+
+  defp file_path(state, file_id) do
+    if tmp_dir = state.tmp_dir do
+      Path.join([tmp_dir, "files", file_id])
+    end
   end
 
   defp ensure_evaluator(state, container_ref) do
@@ -736,5 +828,24 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       {:win32, _} -> ";"
       _ -> ":"
     end
+  end
+
+  defp same_host?(pid) do
+    node_host(node()) == node_host(node(pid))
+  end
+
+  defp node_host(node) do
+    [_nodename, hostname] =
+      node
+      |> Atom.to_charlist()
+      |> :string.split(~c"@")
+
+    hostname
+  end
+
+  defp file_md5(path) do
+    File.stream!(path, [], 2048)
+    |> Enum.reduce(:erlang.md5_init(), &:erlang.md5_update(&2, &1))
+    |> :erlang.md5_final()
   end
 end

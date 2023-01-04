@@ -7,6 +7,10 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
+  def update(%{event: :change, value: value}, socket) do
+    {:ok, handle_change(socket, value)}
+  end
+
   def update(assigns, socket) do
     value = assigns.input_values[assigns.attrs.id]
 
@@ -29,12 +33,12 @@ defmodule LivebookWeb.Output.InputComponent do
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
+        input_component_id={@id}
         value={@value}
         height={@attrs.size && elem(@attrs.size, 0)}
         width={@attrs.size && elem(@attrs.size, 1)}
         format={@attrs.format}
         fit={@attrs.fit}
-        target={@myself}
       />
     </div>
     """
@@ -50,10 +54,30 @@ defmodule LivebookWeb.Output.InputComponent do
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
         id={"#{@id}-input"}
+        input_component_id={@id}
         value={@value}
         format={@attrs.format}
         sampling_rate={@attrs.sampling_rate}
-        target={@myself}
+      />
+    </div>
+    """
+  end
+
+  def render(%{attrs: %{type: :file}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <.live_component
+        module={LivebookWeb.Output.FileInputComponent}
+        id={"#{@id}-input"}
+        input_component_id={@id}
+        value={@value}
+        accept={@attrs.accept}
+        input_id={@attrs.id}
+        session_id={@session_id}
       />
     </div>
     """
@@ -178,9 +202,9 @@ defmodule LivebookWeb.Output.InputComponent do
 
   @impl true
   def handle_event("change", %{"value" => html_value}, socket) do
-    case handle_change(socket, html_value) do
-      {:ok, socket} ->
-        {:noreply, socket}
+    case parse(html_value, socket.assigns.attrs) do
+      {:ok, value} ->
+        {:noreply, handle_change(socket, value)}
 
       :error ->
         # Force the current value
@@ -189,8 +213,9 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def handle_event("submit", %{"value" => html_value}, socket) do
-    case handle_change(socket, html_value) do
-      {:ok, socket} ->
+    case parse(html_value, socket.assigns.attrs) do
+      {:ok, value} ->
+        socket = handle_change(socket, value)
         send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
         {:noreply, socket}
 
@@ -199,22 +224,16 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
-  defp handle_change(socket, html_value) do
-    case parse(html_value, socket.assigns.attrs) do
-      {:ok, value} ->
-        prev_value = socket.assigns.value
+  defp handle_change(socket, value) do
+    prev_value = socket.assigns.value
 
-        socket = assign(socket, value: value)
+    socket = assign(socket, value: value)
 
-        if value != prev_value do
-          report_change(socket)
-        end
-
-        {:ok, socket}
-
-      {:error, _error} ->
-        :error
+    if value != prev_value do
+      report_change(socket)
     end
+
+    socket
   end
 
   defp report_change(%{assigns: assigns} = socket) do
@@ -283,26 +302,6 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
-  end
-
-  defp parse(html_value, %{type: :image} = attrs) do
-    {:ok,
-     %{
-       data: Base.decode64!(html_value["data"]),
-       height: html_value["height"],
-       width: html_value["width"],
-       format: attrs.format
-     }}
-  end
-
-  defp parse(html_value, %{type: :audio} = attrs) do
-    {:ok,
-     %{
-       data: Base.decode64!(html_value["data"]),
-       num_channels: html_value["num_channels"],
-       sampling_rate: html_value["sampling_rate"],
-       format: attrs.format
-     }}
   end
 
   defp report_event(socket, value) do

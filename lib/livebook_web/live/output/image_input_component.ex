@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       phx-hook="ImageInput"
       phx-update="ignore"
       data-id={@id}
-      data-phx-target={@target}
+      data-phx-target={@myself}
       data-height={@height}
       data-width={@width}
       data-format={@format}
@@ -94,5 +94,23 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       </div>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("change", params, socket) do
+    value = %{
+      data: Base.decode64!(params["data"]),
+      height: params["height"],
+      width: params["width"],
+      format: socket.assigns.format
+    }
+
+    send_update(LivebookWeb.Output.InputComponent,
+      id: socket.assigns.input_component_id,
+      event: :change,
+      value: value
+    )
+
+    {:noreply, socket}
   end
 end
