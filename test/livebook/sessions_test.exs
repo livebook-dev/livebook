@@ -1,18 +1,22 @@
 defmodule Livebook.SessionsTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Sessions
+  alias Livebook.{Sessions, Session}
 
   describe "create_session/0" do
     test "starts a new session process under the sessions supervisor" do
       {:ok, session} = Sessions.create_session()
       assert has_child_with_pid?(Livebook.SessionSupervisor, session.pid)
+
+      Session.close(session.pid)
     end
 
     test "broadcasts a message to subscribers" do
       Sessions.subscribe()
-      {:ok, %{id: id}} = Sessions.create_session()
+      {:ok, %{id: id} = session} = Sessions.create_session()
       assert_receive {:session_created, %{id: ^id}}
+
+      Session.close(session.pid)
     end
   end
 
@@ -20,6 +24,8 @@ defmodule Livebook.SessionsTest do
     test "lists all sessions" do
       {:ok, session} = Sessions.create_session()
       assert session in Sessions.list_sessions()
+
+      Session.close(session.pid)
     end
   end
 
@@ -32,6 +38,8 @@ defmodule Livebook.SessionsTest do
     test "returns session matching the given id" do
       {:ok, session} = Sessions.create_session()
       assert {:ok, ^session} = Sessions.fetch_session(session.id)
+
+      Session.close(session.pid)
     end
   end
 
@@ -42,6 +50,8 @@ defmodule Livebook.SessionsTest do
       updated_session = %{session | notebook_name: "New name"}
       Livebook.Sessions.update_session(updated_session)
       assert_receive {:session_updated, %{id: ^id, notebook_name: "New name"}}
+
+      Session.close(session.pid)
     end
   end
 

@@ -377,7 +377,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       defmodule Livebook.Runtime.EvaluatorTest.Exited do
       end
 
-      Task.async(fn -> raise "error" end)
+      Process.exit(self(), :kill)
       """
 
       {:group_leader, gl} = Process.info(evaluator.pid, :group_leader)

@@ -397,7 +397,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, file)
 
       # Wait for the session to deal with the files
-      Process.sleep(500)
+      wait_for_session_update(session.pid)
 
       assert {:ok, true} =
                FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "images/test.jpg"))
@@ -419,7 +419,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, nil)
 
       # Wait for the session to deal with the files
-      Process.sleep(500)
+      wait_for_session_update(session.pid)
 
       assert {:ok, true} = FileSystem.File.exists?(image_file)
 
@@ -483,8 +483,6 @@ defmodule Livebook.SessionTest do
 
       assert {:ok, false} = FileSystem.File.exists?(file)
 
-      Process.flag(:trap_exit, true)
-
       # Calling twice can happen in a race, make sure it doesn't crash
       Session.close(session.pid)
       Session.close([session.pid])
@@ -499,11 +497,11 @@ defmodule Livebook.SessionTest do
 
       assert {:ok, true} = FileSystem.File.exists?(images_dir)
 
-      Process.flag(:trap_exit, true)
       Session.close(session.pid)
 
       # Wait for the session to deal with the files
-      Process.sleep(50)
+      ref = Process.monitor(session.pid)
+      assert_receive {:DOWN, ^ref, :process, _, _}
 
       assert {:ok, false} = FileSystem.File.exists?(images_dir)
     end
@@ -951,5 +949,12 @@ defmodule Livebook.SessionTest do
   defp connected_noop_runtime() do
     {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
     runtime
+  end
+
+  defp wait_for_session_update(session_pid) do
+    # This call is synchronous, so it gives the session time
+    # for handling the previously sent change messages.
+    Session.get_data(session_pid)
+    :ok
   end
 end

@@ -188,6 +188,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       opts
       |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
       |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
+      |> Keyword.put_new(:base_path_env, System.get_env("PATH", ""))
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})

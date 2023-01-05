@@ -226,8 +226,6 @@ defmodule LivebookWeb.HomeLiveTest do
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id
       refute render(view) =~ session3.id
-
-      Session.close([session1.pid, session2.pid, session3.pid])
     end
   end
 
