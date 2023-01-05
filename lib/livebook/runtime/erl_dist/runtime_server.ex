@@ -47,6 +47,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       those from file inputs. When not specified, operations relying
       on the directory are not possible
 
+    * `:base_path_env` - the value of `PATH` environment variable
+      to merge new values into when setting environment variables.
+      Defaults to `System.get_env("PATH", "")`
+
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -300,7 +304,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil,
        last_evaluator: nil,
-       initial_path: System.get_env("PATH", ""),
+       base_env_path:
+         Keyword.get_lazy(opts, :base_env_path, fn -> System.get_env("PATH", "") end),
        ebin_path: Keyword.get(opts, :ebin_path),
        tmp_dir: Keyword.get(opts, :tmp_dir)
      }}
@@ -574,7 +579,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_cast({:put_system_envs, envs}, state) do
     envs
     |> Enum.map(fn
-      {"PATH", path} -> {"PATH", state.initial_path <> os_path_separator() <> path}
+      {"PATH", path} -> {"PATH", state.base_env_path <> os_path_separator() <> path}
       other -> other
     end)
     |> System.put_env()
@@ -585,7 +590,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_cast({:delete_system_envs, names}, state) do
     names
     |> Enum.map(fn
-      "PATH" -> {"PATH", state.initial_path}
+      "PATH" -> {"PATH", state.base_env_path}
       name -> {name, nil}
     end)
     |> System.put_env()
