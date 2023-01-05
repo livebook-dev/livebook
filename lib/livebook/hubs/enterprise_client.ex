@@ -120,13 +120,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   defp put_secret(state, %Secret{name: name} = secret) do
-    secrets =
-      if idx = Enum.find_index(state.secrets, &(&1.name == name)) do
-        List.replace_at(state.secrets, idx, secret)
-      else
-        state.secrets ++ [secret]
-      end
-
-    %{state | secrets: secrets}
+    %{state | secrets: [secret | Enum.reject(state.secrets, &(&1.name == name))]}
   end
 end

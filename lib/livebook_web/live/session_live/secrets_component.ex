@@ -337,10 +337,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
   defp enterprise_hubs_options(connected_hubs, selected_hub) do
-    initial_option = [key: "Select one Hub", value: "", selected: true, disabled: true]
-
-    for %{hub: %{id: id, hub_name: name}} <- connected_hubs, reduce: [initial_option] do
-      acc -> acc ++ [[key: name, value: id, selected: id == selected_hub]]
-    end
+    [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
+      for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
+        [key: name, value: id, selected: id == selected_hub]
+      end
   end
 end

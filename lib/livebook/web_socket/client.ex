@@ -106,17 +106,11 @@ defmodule Livebook.WebSocket.Client do
   defp handle_responses(conn, ref, websocket, [{:data, ref, data}]) do
     with {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
       case handle_frames(%Response{}, frames) do
-        {:ok, %Response{body: %{type: {:error, _}}} = response} ->
-          {:error, conn, websocket, response}
-
         {:ok, response} ->
           {:ok, conn, websocket, response}
 
         {:close, result} ->
           handle_disconnect(conn, websocket, ref, result)
-
-        {:error, response} ->
-          {:error, conn, websocket, response}
       end
     end
   end
@@ -178,21 +172,9 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp handle_frames(response, frames) do
-    Enum.reduce(frames, response, fn
-      _, {_, _} = acc ->
-        acc
-
-      {:binary, binary}, acc ->
-        {:ok, %{acc | body: binary}}
-
-      {:close, _code, _data}, acc ->
-        {:close, acc}
-
-      _, acc ->
-        {:ok, acc}
-    end)
-  end
+  defp handle_frames(response, [{:binary, binary} | _]), do: {:ok, %{response | body: binary}}
+  defp handle_frames(response, [{:close, _, data} | _]), do: {:close, %{response | body: data}}
+  defp handle_frames(response, _any), do: {:ok, response}
 
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
