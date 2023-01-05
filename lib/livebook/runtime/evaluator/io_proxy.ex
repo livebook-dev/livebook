@@ -124,7 +124,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   def handle_cast({:tracer_updates, updates}, state) do
     state = update_in(state.tracer_info, &Evaluator.Tracer.apply_updates(&1, updates))
-    {:noreply, state}
+
+    modules_defined =
+      for {:module_defined, module, _vars} <- updates,
+          into: state.modules_defined,
+          do: module
+
+    {:noreply, %{state | modules_defined: modules_defined}}
   end
 
   @impl true
@@ -133,12 +139,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   def handle_call(:get_tracer_info, _from, state) do
-    modules_defined =
-      state.tracer_info.modules_defined
-      |> Map.keys()
-      |> Enum.into(state.modules_defined)
-
-    {:reply, state.tracer_info, %{state | modules_defined: modules_defined}}
+    {:reply, state.tracer_info, state}
   end
 
   @impl true
