@@ -194,6 +194,20 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session.pid)
     end
 
+    test "setting cell to always reevaluating", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> element("#cell-#{cell_id}-evaluation-menu button", "Reevaluate automatically")
+      |> render_click()
+
+      assert %{notebook: %{sections: [%{cells: [%Cell.Code{reevaluate_automatically: true}]}]}} =
+               Session.get_data(session.pid)
+    end
+
     test "inserting a cell below the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
