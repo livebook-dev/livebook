@@ -367,6 +367,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> delete_section(section, delete_cells)
+      |> garbage_collect_input_values()
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()
@@ -382,6 +383,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> delete_cell(cell, section)
+      |> garbage_collect_input_values()
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> set_dirty()

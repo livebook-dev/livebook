@@ -827,6 +827,28 @@ defmodule Livebook.Session.DataTest do
                  [{%{id: "setup"}, %{id: "setup-section"}}]}
               ]} = Data.apply_operation(data, operation)
     end
+
+    test "garbage collects input values that are no longer used" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:set_input_value, @cid, "i1", "value"}
+        ])
+
+      operation = {:delete_cell, @cid, "c1"}
+
+      empty_map = %{}
+
+      assert {:ok, %{input_values: ^empty_map}, actions} = Data.apply_operation(data, operation)
+      assert {:clean_up_input_values, %{"i1" => "value"}} in actions
+    end
   end
 
   describe "apply_operation/2 given :restore_cell" do
