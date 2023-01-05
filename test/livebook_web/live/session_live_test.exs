@@ -1162,17 +1162,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
 
-      cell_id =
-        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH") |> IO.write()})
+      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH")})
 
       view
       |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, ^expected_path}}}
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
 
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+      assert output == "\e[32m\"#{expected_path}\"\e[0m"
 
       Settings.unset_env_var("PATH")
 
@@ -1181,7 +1180,9 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, ^initial_os_path}}}
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{initial_os_path}\"\e[0m"
     end
   end
 
