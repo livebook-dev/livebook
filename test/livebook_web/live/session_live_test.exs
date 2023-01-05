@@ -1175,7 +1175,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
 
-      assert output == "\e[32m\"#{expected_path}\"\e[0m"
+      assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
 
       Settings.unset_env_var("PATH")
 
@@ -1186,7 +1186,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
 
-      assert output == "\e[32m\"#{initial_os_path}\"\e[0m"
+      assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
     end
   end
 
