@@ -13,10 +13,10 @@ defmodule Livebook.WebSocket.Client do
   @type mint_error :: Mint.Types.error()
 
   defmodule Response do
-    defstruct [:body, :status, :headers]
+    defstruct [:status, :headers, body: []]
 
     @type t :: %__MODULE__{
-            body: Livebook.WebSocket.Response.t() | nil,
+            body: list(Livebook.WebSocket.Response.t()),
             status: Mint.Types.status() | nil,
             headers: Mint.Types.headers() | nil
           }
@@ -105,13 +105,7 @@ defmodule Livebook.WebSocket.Client do
 
   defp handle_responses(conn, ref, websocket, [{:data, ref, data}]) do
     with {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
-      case handle_frames(%Response{}, frames) do
-        {:ok, response} ->
-          {:ok, conn, websocket, response}
-
-        {:close, result} ->
-          handle_disconnect(conn, websocket, ref, result)
-      end
+      {:ok, conn, websocket, handle_frames(%Response{}, frames)}
     end
   end
 
@@ -120,7 +114,7 @@ defmodule Livebook.WebSocket.Client do
       Enum.reduce(responses, %Response{}, fn
         {:status, ^ref, status}, acc -> %{acc | status: status}
         {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
-        {:data, ^ref, body}, acc -> %{acc | body: body}
+        {:data, ^ref, body}, acc -> %{acc | body: [body | acc.body]}
         {:done, ^ref}, acc -> handle_done_response(conn, ref, websocket, acc)
       end)
 
@@ -140,9 +134,6 @@ defmodule Livebook.WebSocket.Client do
           {websocket, {:ok, result}} ->
             {:ok, conn, websocket, result}
 
-          {websocket, {:close, result}} ->
-            handle_disconnect(conn, websocket, ref, result)
-
           {websocket, {:error, reason}} ->
             {:error, conn, websocket, reason}
         end
@@ -152,29 +143,24 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp handle_disconnect(conn, websocket, ref, result) do
-    with {:ok, conn, websocket} <- disconnect(conn, websocket, ref) do
-      {:ok, conn, websocket, result}
-    end
-  end
-
-  defp decode_response(websocket, %Response{status: 101, body: nil}) do
+  defp decode_response(websocket, %Response{status: 101, body: []}) do
     {websocket, {:ok, :connected}}
   end
 
   defp decode_response(websocket, response) do
     case Mint.WebSocket.decode(websocket, response.body) do
       {:ok, websocket, frames} ->
-        {websocket, handle_frames(response, frames)}
+        {websocket, {:ok, handle_frames(response, frames)}}
 
       {:error, websocket, reason} ->
         {websocket, {:error, reason}}
     end
   end
 
-  defp handle_frames(response, [{:binary, binary} | _]), do: {:ok, %{response | body: binary}}
-  defp handle_frames(response, [{:close, _, data} | _]), do: {:close, %{response | body: data}}
-  defp handle_frames(response, _any), do: {:ok, response}
+  defp handle_frames(response, frames) do
+    body = for {:binary, binary} <- frames, do: binary
+    %{response | body: body}
+  end
 
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
