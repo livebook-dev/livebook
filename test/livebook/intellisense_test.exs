@@ -148,7 +148,7 @@ defmodule Livebook.IntellisenseTest do
                detail: "module",
                documentation: "No documentation available",
                insert_text: "Elixir"
-             } in Intellisense.get_completion_items("E", context)
+             } in Intellisense.get_completion_items("Eli", context)
     end
 
     test "Elixir module completion" do

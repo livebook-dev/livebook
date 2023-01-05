@@ -53,6 +53,8 @@ defmodule LivebookWeb.SessionControllerTest do
 
       assert conn.status == 400
       assert conn.resp_body == "Invalid format, supported formats: livemd, exs"
+
+      Session.close(session.pid)
     end
 
     test "handles live markdown notebook source", %{conn: conn} do
