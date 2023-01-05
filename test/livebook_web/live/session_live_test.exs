@@ -1145,6 +1145,10 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "outputs persisted PATH delimited with os PATH env var",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      # Start the standalone runtime, to encapsulate env var changes
+      {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
       separator =
         case :os.type() do
           {:win32, _} -> ";"
