@@ -46,15 +46,32 @@ defmodule Livebook.WebSocket.ServerTest do
       {:ok, conn: conn}
     end
 
-    test "successfully sends a session request", %{
-      conn: conn,
-      user: %{id: id, email: email}
-    } do
+    test "successfully sends a session request", %{conn: conn, user: %{id: id, email: email}} do
       session_request =
         LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
       assert {:session, session_response} = Server.send_request(conn, session_request)
       assert %{id: _, user: %{id: ^id, email: ^email}} = session_response
+    end
+
+    test "successfully sends a create secret message", %{conn: conn} do
+      create_secret_request =
+        LivebookProto.CreateSecretRequest.new!(
+          name: "MY_USERNAME",
+          value: "Jake Peralta"
+        )
+
+      assert {:create_secret, _} = Server.send_request(conn, create_secret_request)
+    end
+
+    test "sends a create secret message, but receive a changeset error", %{conn: conn} do
+      create_secret_request =
+        LivebookProto.CreateSecretRequest.new!(
+          name: "MY_USERNAME",
+          value: ""
+        )
+
+      assert Server.send_request(conn, create_secret_request) == {:error, "value: can't be blank"}
     end
   end
 

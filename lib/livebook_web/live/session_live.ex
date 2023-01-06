@@ -8,6 +8,9 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
+  alias Livebook.Hubs.EnterpriseClient
+
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -22,6 +25,8 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Secrets.subscribe()
+            # TODO: Move this to Hubs.subscribe([:secrets]) and rename all "enterprise" to "hubs"
+            EnterpriseClient.subscribe()
 
             {data, client_id}
           else
@@ -58,6 +63,7 @@ defmodule LivebookWeb.SessionLive do
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
            livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
+           enterprise_secrets: fetch_enterprise_secrets(socket),
            select_secret_ref: nil,
            select_secret_options: nil
          )
@@ -179,6 +185,7 @@ defmodule LivebookWeb.SessionLive do
           <.secrets_list
             data_view={@data_view}
             livebook_secrets={@livebook_secrets}
+            enterprise_secrets={@enterprise_secrets}
             session={@session}
             socket={@socket}
           />
@@ -414,6 +421,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
+          enterprise_hubs={@connected_hubs}
           livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
@@ -727,6 +735,60 @@ defmodule LivebookWeb.SessionLive do
             </div>
           <% end %>
         </div>
+
+        <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
+          <div class="mt-16">
+            <h3 class="uppercase text-sm font-semibold text-gray-500">
+              Enterprise secrets
+            </h3>
+            <span class="text-sm text-gray-500">Available in all sessions</span>
+          </div>
+
+          <div class="flex flex-col space-y-4 mt-6">
+            <%= for {secret_name, secret_value} <- Enum.sort(@enterprise_secrets) do %>
+              <div
+                class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
+                id={"enterprise-secret-#{secret_name}-wrapper"}
+              >
+                <span
+                  class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
+                  id={"enterprise-secret-#{secret_name}-title"}
+                  phx-click={
+                    JS.toggle(to: "#enterprise-secret-#{secret_name}-title")
+                    |> JS.toggle(to: "#enterprise-secret-#{secret_name}-detail")
+                    |> JS.add_class("bg-gray-100",
+                      to: "#enterprise-secret-#{secret_name}-wrapper"
+                    )
+                  }
+                >
+                  <%= secret_name %>
+                </span>
+                <div
+                  class="flex flex-col text-gray-800 hidden"
+                  id={"enterprise-secret-#{secret_name}-detail"}
+                  phx-click={
+                    JS.toggle(to: "#enterprise-secret-#{secret_name}-title")
+                    |> JS.toggle(to: "#enterprise-secret-#{secret_name}-detail")
+                    |> JS.remove_class("bg-gray-100",
+                      to: "#enterprise-secret-#{secret_name}-wrapper"
+                    )
+                  }
+                >
+                  <div class="flex flex-col">
+                    <span class="text-sm font-mono break-all flex-row cursor-pointer">
+                      <%= secret_name %>
+                    </span>
+                    <div class="flex flex-row justify-between items-center my-1">
+                      <span class="text-sm font-mono break-all flex-row">
+                        <%= secret_value %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -1369,6 +1431,20 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
+  end
+
+  def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
+    {:noreply,
+     socket
+     |> assign(enterprise_secrets: fetch_enterprise_secrets(socket))
+     |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
+  end
+
+  def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
+    {:noreply,
+     socket
+     |> assign(enterprise_secrets: fetch_enterprise_secrets(socket))
+     |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
   def handle_info({:error, error}, socket) do
@@ -2206,5 +2282,12 @@ defmodule LivebookWeb.SessionLive do
 
   defp is_secret_on_session?(secret, secrets) do
     secret in secrets
+  end
+
+  defp fetch_enterprise_secrets(socket) do
+    for connected_hub <- socket.assigns.connected_hubs,
+        secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
+        into: %{},
+        do: {secret.name, secret.value}
   end
 end

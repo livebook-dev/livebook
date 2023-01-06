@@ -87,11 +87,27 @@ defmodule Livebook.WebSocket.Server do
     end
   end
 
+  @loop_ping_delay 5_000
+
   @impl true
+  def handle_info({:loop_ping, ref}, state) when ref == state.ref and is_reference(ref) do
+    case Client.send(state.http_conn, state.websocket, state.ref, :ping) do
+      {:ok, conn, websocket} ->
+        Process.send_after(self(), {:loop_ping, state.ref}, @loop_ping_delay)
+        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+
+      {:error, conn, websocket, _reason} ->
+        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+    end
+  end
+
+  def handle_info({:loop_ping, _another_ref}, state), do: {:noreply, state}
+
   def handle_info(message, state) do
     case Client.receive(state.http_conn, state.ref, state.websocket, message) do
       {:ok, conn, websocket, :connected} ->
         state = send_received({:ok, :connected}, state)
+        send(self(), {:loop_ping, state.ref})
 
         {:noreply, %{state | http_conn: conn, websocket: websocket}}
 
@@ -117,22 +133,25 @@ defmodule Livebook.WebSocket.Server do
     state
   end
 
-  defp send_received({:ok, %Client.Response{body: nil, status: nil}}, state), do: state
+  defp send_received({:ok, %Client.Response{body: [], status: nil}}, state), do: state
 
-  defp send_received({:ok, %Client.Response{body: body}}, state) do
-    case decode_response_or_event(body) do
-      {:response, %{id: -1, type: {:error, %{details: reason}}}} ->
-        reply_to_all({:error, reason}, state)
+  defp send_received({:ok, %Client.Response{body: binaries}}, state) do
+    for binary <- binaries, reduce: state do
+      acc ->
+        case decode_response_or_event(binary) do
+          {:response, %{id: -1, type: {:error, %{details: reason}}}} ->
+            reply_to_all({:error, reason}, acc)
 
-      {:response, %{id: id, type: {:error, %{details: reason}}}} ->
-        reply_to_id(id, {:error, reason}, state)
+          {:response, %{id: id, type: {:error, %{details: reason}}}} ->
+            reply_to_id(id, {:error, reason}, acc)
 
-      {:response, %{id: id, type: result}} ->
-        reply_to_id(id, result, state)
+          {:response, %{id: id, type: result}} ->
+            reply_to_id(id, result, acc)
 
-      {:event, %{type: {name, data}}} ->
-        send(state.listener, {:event, name, data})
-        state
+          {:event, %{type: {name, data}}} ->
+            send(acc.listener, {:event, name, data})
+            acc
+        end
     end
   end
 
@@ -143,40 +162,48 @@ defmodule Livebook.WebSocket.Server do
     state
   end
 
-  defp send_received({:error, %Client.Response{body: body, status: status}}, state)
-       when body != nil and status != nil do
-    %{type: {:error, %{details: reason}}} = LivebookProto.Response.decode(body)
-    send(state.listener, {:connect, :error, reason})
+  defp send_received({:error, %Client.Response{body: binaries, status: status}}, state)
+       when binaries != [] and status != nil do
+    for binary <- binaries do
+      with {:response, body} <- decode_response_or_event(binary),
+           %{type: {:error, %{details: reason}}} <- body do
+        send(state.listener, {:connect, :error, reason})
+      end
+    end
 
     state
   end
 
-  defp send_received({:error, %Client.Response{body: nil, status: status}}, state)
+  defp send_received({:error, %Client.Response{body: [], status: status}}, state)
        when status != nil do
     reply_to_all({:error, Plug.Conn.Status.reason_phrase(status)}, state)
   end
 
-  defp send_received({:error, %Client.Response{body: body, status: nil}}, state) do
-    case LivebookProto.Response.decode(body) do
-      %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, state)
-      %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, state)
+  defp send_received({:error, %Client.Response{body: binaries, status: nil}}, state) do
+    for binary <- binaries,
+        {:response, body} <- decode_response_or_event(binary),
+        reduce: state do
+      acc ->
+        case body do
+          %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, acc)
+          %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, acc)
+        end
     end
   end
 
   defp reply_to_all(message, state) do
-    for {id, caller} <- state.reply, reduce: state do
-      acc ->
-        Connection.reply(caller, message)
-        %{acc | reply: Map.delete(acc.reply, id)}
-    end
-  end
-
-  defp reply_to_id(id, message, state) do
-    if caller = state.reply[id] do
+    for {_id, caller} <- state.reply do
       Connection.reply(caller, message)
     end
 
-    %{state | reply: Map.delete(state.reply, id)}
+    state
+  end
+
+  defp reply_to_id(id, message, state) do
+    {caller, reply} = Map.pop(state.reply, id)
+    if caller, do: Connection.reply(caller, message)
+
+    %{state | reply: reply}
   end
 
   defp decode_response_or_event(data) do

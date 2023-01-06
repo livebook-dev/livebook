@@ -18,7 +18,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
      |> assign(
        base: %Enterprise{},
        changeset: Enterprise.change_hub(%Enterprise{}),
-       connected: false
+       pid: nil
      )}
   end
 
@@ -68,7 +68,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
           Connect
         </button>
 
-        <%= if @connected do %>
+        <%= if @pid do %>
           <div class="grid grid-cols-1 md:grid-cols-1">
             <.input_wrapper form={f} field={:external_id} class="flex flex-col space-y-1">
               <div class="input-label">ID</div>
@@ -128,10 +128,10 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
         case EnterpriseClient.send_request(pid, session_request) do
           {:session, session_response} ->
-            base = %{base | external_id: session_response.user.id}
+            base = %{base | external_id: session_response.id}
             changeset = Enterprise.change_hub(base)
 
-            {:noreply, assign(socket, connected: true, changeset: changeset, base: base)}
+            {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
           {:error, reason} ->
             GenServer.stop(pid)
@@ -148,6 +148,10 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     if socket.assigns.changeset.valid? do
       case Enterprise.create_hub(socket.assigns.base, params) do
         {:ok, hub} ->
+          if pid = socket.assigns.pid do
+            GenServer.stop(pid)
+          end
+
           {:noreply,
            socket
            |> put_flash(:success, "Hub added successfully")
@@ -167,6 +171,10 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   def handle_error(%{reason: :econnrefused}, socket) do
     show_connect_error("Failed to connect with given URL", socket)
+  end
+
+  def handle_error(%{reason: _}, socket) do
+    show_connect_error("Failed to connect with Enterprise", socket)
   end
 
   def handle_error(reason, socket) do

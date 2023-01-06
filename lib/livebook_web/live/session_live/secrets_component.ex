@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Hubs.EnterpriseClient
+
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -115,6 +117,22 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
                   <%= radio_button(f, :store, "livebook", checked: @data["store"] == "livebook") %> in the Livebook app
                 <% end %>
+                <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
+                  <%= label class: "flex items-center gap-2 text-gray-600" do %>
+                    <%= radio_button(f, :store, "enterprise",
+                      disabled: @enterprise_hubs == [],
+                      checked: @data["store"] == "enterprise"
+                    ) %> in the Enterprise
+                  <% end %>
+                  <%= if @data["store"] == "enterprise" do %>
+                    <%= select(
+                      f,
+                      :enterprise_hub,
+                      enterprise_hubs_options(@enterprise_hubs, @data["enterprise_hub"]),
+                      class: "input"
+                    ) %>
+                  <% end %>
+                <% end %>
               </div>
             </div>
             <div class="flex space-x-2">
@@ -201,18 +219,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
-    assigns = socket.assigns
+    with {:ok, secret} <- Livebook.Secrets.validate_secret(data),
+         :ok <- set_secret(socket, secret, data["store"]) do
+      {:noreply,
+       socket
+       |> push_patch(to: socket.assigns.return_to)
+       |> push_secret_selected(secret.name)}
+    else
+      {:error, %{errors: errors}} ->
+        {:noreply, assign(socket, errors: errors)}
 
-    case Livebook.Secrets.validate_secret(data) do
-      {:ok, secret} ->
-        store = data["store"]
-        set_secret(assigns.session.pid, secret, store)
-
-        {:noreply,
-         socket |> push_patch(to: assigns.return_to) |> push_secret_selected(secret.name)}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, errors: changeset.errors)}
+      {:error, socket} ->
+        {:noreply, socket}
     end
   end
 
@@ -272,13 +290,32 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(pid, secret, "session") do
-    Livebook.Session.set_secret(pid, secret)
+  defp set_secret(socket, secret, "session") do
+    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(pid, secret, "livebook") do
+  defp set_secret(socket, secret, "livebook") do
     Livebook.Secrets.set_secret(secret)
-    Livebook.Session.set_secret(pid, secret)
+    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+  end
+
+  defp set_secret(socket, secret, "enterprise") do
+    selected_hub = socket.assigns.data["enterprise_hub"]
+
+    if hub = Enum.find(socket.assigns.enterprise_hubs, &(&1.hub.id == selected_hub)) do
+      create_secret_request =
+        LivebookProto.CreateSecretRequest.new!(
+          name: secret.name,
+          value: secret.value
+        )
+
+      case EnterpriseClient.send_request(hub.pid, create_secret_request) do
+        {:create_secret, _} -> :ok
+        {:error, reason} -> {:error, put_flash(socket, :error, reason)}
+      end
+    else
+      {:error, %{errors: [{"enterprise_hub", {"can't be blank", []}}]}}
+    end
   end
 
   defp grant_access(secret_name, socket) do
@@ -296,5 +333,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
          Map.has_key?(socket.assigns.livebook_secrets, prefill_secret_name) do
       prefill_secret_name
     end
+  end
+
+  # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
+  defp enterprise_hubs_options(connected_hubs, selected_hub) do
+    [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
+      for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
+        [key: name, value: id, selected: id == selected_hub]
+      end
   end
 end

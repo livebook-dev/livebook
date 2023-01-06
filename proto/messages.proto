@@ -28,11 +28,20 @@ message SessionResponse {
   User user = 2;
 }
 
+message CreateSecretRequest {
+  string name = 1;
+  string value = 2;
+}
+
+message CreateSecretResponse {
+}
+
 message Request {
   int32 id = 1;
 
   oneof type {
     SessionRequest session = 2;
+    CreateSecretRequest create_secret = 3;
   }
 }
 
@@ -43,6 +52,7 @@ message Response {
     Error error = 2;
 
     SessionResponse session = 3;
+    CreateSecretResponse create_secret = 4;
   }
 }
 

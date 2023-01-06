@@ -13,16 +13,16 @@ defmodule Livebook.WebSocket.Client do
   @type mint_error :: Mint.Types.error()
 
   defmodule Response do
-    defstruct [:body, :status, :headers]
+    defstruct [:status, :headers, body: []]
 
     @type t :: %__MODULE__{
-            body: Livebook.WebSocket.Response.t() | nil,
+            body: list(Livebook.WebSocket.Response.t()),
             status: Mint.Types.status() | nil,
             headers: Mint.Types.headers() | nil
           }
   end
 
-  defguard is_frame(value) when value == :close or elem(value, 0) == :binary
+  defguard is_frame(value) when value in [:close, :ping] or elem(value, 0) == :binary
 
   @doc """
   Connects to the WebSocket server with given url and headers.
@@ -106,32 +106,27 @@ defmodule Livebook.WebSocket.Client do
   defp handle_responses(conn, ref, websocket, [{:data, ref, data}]) do
     with {:ok, websocket, frames} <- Mint.WebSocket.decode(websocket, data) do
       case handle_frames(%Response{}, frames) do
-        {:ok, %Response{body: %{type: {:error, _}}} = response} ->
-          {:error, conn, websocket, response}
-
-        {:ok, response} ->
-          {:ok, conn, websocket, response}
-
-        {:close, result} ->
-          handle_disconnect(conn, websocket, ref, result)
-
-        {:error, response} ->
-          {:error, conn, websocket, response}
+        {:ok, response} -> {:ok, conn, websocket, response}
+        {:close, response} -> handle_disconnect(conn, websocket, ref, response)
       end
     end
   end
 
   defp handle_responses(conn, ref, websocket, [_ | _] = responses) do
-    result =
-      Enum.reduce(responses, %Response{}, fn
-        {:status, ^ref, status}, acc -> %{acc | status: status}
-        {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
-        {:data, ^ref, body}, acc -> %{acc | body: body}
-        {:done, ^ref}, acc -> handle_done_response(conn, ref, websocket, acc)
-      end)
+    Enum.reduce(responses, %Response{}, fn
+      {:status, ^ref, status}, acc -> %{acc | status: status}
+      {:headers, ^ref, headers}, acc -> %{acc | headers: headers}
+      {:data, ^ref, body}, acc -> %{acc | body: body}
+      {:done, ^ref}, acc -> handle_done_response(conn, ref, websocket, acc)
+    end)
+    |> case do
+      {:error, _conn, _websocket, %Response{body: [_ | _]}} = result ->
+        result
 
-    case result do
-      %Response{} = response when response.status not in @successful_status ->
+      {:error, conn, websocket, %Response{} = response} ->
+        {:error, conn, websocket, %{response | body: [response.body]}}
+
+      %Response{body: [_ | _]} = response when response.status not in @successful_status ->
         {:error, conn, websocket, response}
 
       result ->
@@ -143,14 +138,9 @@ defmodule Livebook.WebSocket.Client do
     case Mint.WebSocket.new(conn, ref, response.status, response.headers) do
       {:ok, conn, websocket} ->
         case decode_response(websocket, response) do
-          {websocket, {:ok, result}} ->
-            {:ok, conn, websocket, result}
-
-          {websocket, {:close, result}} ->
-            handle_disconnect(conn, websocket, ref, result)
-
-          {websocket, {:error, reason}} ->
-            {:error, conn, websocket, reason}
+          {websocket, {:ok, response}} -> {:ok, conn, websocket, response}
+          {websocket, {:close, response}} -> handle_disconnect(conn, websocket, ref, response)
+          {websocket, {:error, reason}} -> {:error, conn, websocket, reason}
         end
 
       {:error, conn, %UpgradeFailureError{status_code: status, headers: headers}} ->
@@ -164,7 +154,7 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp decode_response(websocket, %Response{status: 101, body: nil}) do
+  defp decode_response(websocket, %Response{status: 101}) do
     {websocket, {:ok, :connected}}
   end
 
@@ -178,15 +168,14 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp handle_frames(response, frames) do
-    Enum.reduce(frames, response, fn
-      {:binary, binary}, acc ->
-        {:ok, %{acc | body: binary}}
+  defp handle_frames(response, [{:binary, binary} | rest]),
+    do: handle_frames(%{response | body: [binary | response.body]}, rest)
 
-      {:close, _code, _data}, acc ->
-        {:close, acc}
-    end)
-  end
+  defp handle_frames(response, [{:close, _, _} | _]),
+    do: {:close, response}
+
+  defp handle_frames(response, [_ | rest]), do: handle_frames(response, rest)
+  defp handle_frames(response, []), do: {:ok, response}
 
   @doc """
   Sends a message to the given HTTP Connection and WebSocket connection.
