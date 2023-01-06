@@ -136,9 +136,9 @@ defmodule Livebook.WebSocket.Server do
   defp send_received({:ok, %Client.Response{body: [], status: nil}}, state), do: state
 
   defp send_received({:ok, %Client.Response{body: binaries}}, state) do
-    for body <- decode_binary_list(binaries), reduce: state do
+    for binary <- binaries, reduce: state do
       acc ->
-        case body do
+        case decode_response_or_event(binary) do
           {:response, %{id: -1, type: {:error, %{details: reason}}}} ->
             reply_to_all({:error, reason}, acc)
 
@@ -164,9 +164,11 @@ defmodule Livebook.WebSocket.Server do
 
   defp send_received({:error, %Client.Response{body: binaries, status: status}}, state)
        when binaries != [] and status != nil do
-    for {:response, body} <- decode_binary_list(binaries) do
-      %{type: {:error, %{details: reason}}} = body
-      send(state.listener, {:connect, :error, reason})
+    for binary <- binaries do
+      with {:response, body} <- decode_response_or_event(binary),
+           %{type: {:error, %{details: reason}}} <- body do
+        send(state.listener, {:connect, :error, reason})
+      end
     end
 
     state
@@ -178,18 +180,14 @@ defmodule Livebook.WebSocket.Server do
   end
 
   defp send_received({:error, %Client.Response{body: binaries, status: nil}}, state) do
-    for {:response, body} <- decode_binary_list(binaries), reduce: state do
+    for binary <- binaries,
+        {:response, body} <- decode_response_or_event(binary),
+        reduce: state do
       acc ->
         case body do
           %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, acc)
           %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, acc)
         end
-    end
-  end
-
-  defp decode_binary_list(body) do
-    for binary <- body do
-      decode_response_or_event(binary)
     end
   end
 
