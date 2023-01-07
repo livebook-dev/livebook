@@ -1260,6 +1260,20 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event(
+        "set_reevaluate_automatically",
+        %{"value" => value, "cell_id" => cell_id},
+        socket
+      ) do
+    assert_policy!(socket, :edit)
+
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
+      reevaluate_automatically: value
+    })
+
+    {:noreply, socket}
+  end
+
   def handle_event("save", %{}, socket) do
     assert_policy!(socket, :edit)
 

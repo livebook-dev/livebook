@@ -295,31 +295,56 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp cell_evaluation_button(%{status: :ready, reevaluate_automatically: true} = assigns)
-       when assigns.validity in [:evaluated, :stale] do
-    ~H"""
-    <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id),
-          class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
-      <.remix_icon icon="check-line" class="text-xl" />
-      <span class="text-sm font-medium">
-        Reevaluates automatically
-      </span>
-    <% end %>
-    """
-  end
-
   defp cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
-    <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      data-el-queue-cell-evaluation-button
-      data-cell-id={@cell_id}
-    >
-      <.remix_icon icon="play-circle-fill" class="text-xl" />
-      <span class="text-sm font-medium">
-        <%= if(@validity == :evaluated, do: "Reevaluate", else: "Evaluate") %>
-      </span>
-    </button>
+    <div class="flex items-center space-x-1">
+      <button
+        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        data-el-queue-cell-evaluation-button
+        data-cell-id={@cell_id}
+      >
+        <%= cond do %>
+          <% @reevaluate_automatically and @validity in [:evaluated, :stale] -> %>
+            <.remix_icon icon="check-line" class="text-xl" />
+            <span class="text-sm font-medium">Reevaluates automatically</span>
+          <% @validity == :evaluated -> %>
+            <.remix_icon icon="play-circle-fill" class="text-xl" />
+            <span class="text-sm font-medium">Reevaluate</span>
+          <% true -> %>
+            <.remix_icon icon="play-circle-fill" class="text-xl" />
+            <span class="text-sm font-medium">Evaluate</span>
+        <% end %>
+      </button>
+      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position="bottom-left" distant>
+        <:toggle>
+          <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
+          </button>
+        </:toggle>
+        <:content>
+          <button
+            class={"menu-item #{if(not @reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")}"}
+            role="menuitem"
+            phx-click={
+              JS.push("set_reevaluate_automatically", value: %{value: false, cell_id: @cell_id})
+            }
+          >
+            <.remix_icon icon="check-line" class={if(@reevaluate_automatically, do: "invisible")} />
+            <span class="font-medium">Evaluate on demand</span>
+          </button>
+          <button
+            class={"menu-item #{if(@reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")}"}
+            role="menuitem"
+            phx-click={
+              JS.push("set_reevaluate_automatically", value: %{value: true, cell_id: @cell_id})
+            }
+          >
+            <.remix_icon icon="check-line" class={if(not @reevaluate_automatically, do: "invisible")} />
+            <span class="font-medium">Reevaluate automatically</span>
+          </button>
+        </:content>
+      </.menu>
+    </div>
     """
   end
 

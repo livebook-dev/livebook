@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                     </button>
                   <% else %>
                     <button
-                      class="menu-item text-gray-500 bg-gray-50"
+                      class="menu-item text-gray-500"
                       phx-click="set_section_parent"
                       phx-value-section_id={@section_view.id}
                       phx-value-parent_id={parent.id}
