@@ -300,20 +300,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex items-center space-x-1">
       <button
         class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-        data-el-queue-cell-evaluation-button={not @reevaluate_automatically}
+        data-el-queue-cell-evaluation-button
         data-cell-id={@cell_id}
       >
-        <.remix_icon icon="play-circle-fill" class="text-xl" />
-        <span class="text-sm font-medium">
-          <%= cond do %>
-            <% @reevaluate_automatically and @validity in [:evaluated, :stale] -> %>
-              Reevaluates automatically
-            <% @validity == :evaluated -> %>
-              Reevaluate
-            <% true -> %>
-              Evaluate
-          <% end %>
-        </span>
+        <%= cond do %>
+          <% @reevaluate_automatically and @validity in [:evaluated, :stale] -> %>
+            <.remix_icon icon="check-line" class="text-xl" />
+            <span class="text-sm font-medium">Reevaluates automatically</span>
+          <% @validity == :evaluated -> %>
+            <.remix_icon icon="play-circle-fill" class="text-xl" />
+            <span class="text-sm font-medium">Reevaluate</span>
+          <% true -> %>
+            <.remix_icon icon="play-circle-fill" class="text-xl" />
+            <span class="text-sm font-medium">Evaluate</span>
+        <% end %>
       </button>
       <.menu id={"cell-#{@cell_id}-evaluation-menu"} position="bottom-left" distant>
         <:toggle>
