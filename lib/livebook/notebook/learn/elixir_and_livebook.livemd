@@ -51,21 +51,6 @@ IO.puts(__ENV__.file)
 IO.puts(__DIR__)
 ```
 
-## Runtimes
-
-Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
-for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
-(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
-keyboard shortcut).
-
-By default, a new Elixir node is started (similarly to starting `iex`). You
-can click reconnect whenever you want to discard the current node and start
-a new one.
-
-You can also manually *attach* to an existing distributed node by picking the
-"Attached Node" runtime. To do so, you will need the Erlang Name of the external
-node and its Erlang Cookie.
-
 ## Mix projects
 
 Sometimes you may want to run a notebook within the context of an existing
@@ -89,6 +74,37 @@ Mix.install(
   lockfile: Path.join(my_app_root, "mix.lock")
 )
 ```
+
+## Runtimes
+
+Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
+for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
+(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
+keyboard shortcut).
+
+By default, a new Elixir node is started (similarly to starting `iex`). You can click
+reconnect whenever you want to discard the current node and start a new one.
+
+You can also manually *attach* to an existing distributed node by picking the
+"Attached Node" runtime. To do so, you will need the Erlang Name of the external node
+and its Erlang Cookie. For example, you can start a Phoenix application as follows:
+
+```shell
+$ iex --sname phoenix-app --cookie secret -S mix phx.server
+```
+
+Now open up a new notebook and click the "Runtime" icon on the sidebar.
+Click to "Configure" the runtime and choose "Attached node". Input the
+name and cookie as above and you should be ready to connect to it.
+
+Note, however, that you can't install new dependencies on a connected runtime.
+If you want to install dependencies, you have two options:
+
+  1. Use the Mix project approach outlined in the previous section;
+
+  2. Use a regular notebook and use `Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
+     to connect to your application. Use [the `:erpc` module](https://www.erlang.org/doc/man/erpc.html)
+     to fetch data from the remote node and execute code.
 
 ## More on branches #1
 
