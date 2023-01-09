@@ -1,6 +1,11 @@
-﻿class Demo {
+using ElixirKit;
+
+class Demo {
     public static void Main()
     {
-        Console.WriteLine("Hello, World!");
+        var api = new ElixirKit.API();
+        api.Start(name: "demo");
+        api.Publish("log", "Hello from C#!");
+        api.WaitForExit();
     }
 }

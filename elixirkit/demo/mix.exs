@@ -19,6 +19,8 @@ defmodule Demo.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:elixirkit, path: ".."}
+    ]
   end
 end

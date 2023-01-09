@@ -7,4 +7,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../elixirkit_dotnet/ElixirKit.csproj" />
+  </ItemGroup>
+
 </Project>

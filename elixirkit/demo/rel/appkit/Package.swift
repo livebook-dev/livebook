@@ -1,14 +1,19 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.5
 
 import PackageDescription
 
 let package = Package(
     name: "Demo",
-    dependencies: [],
+    platforms: [
+        .macOS(.v11)
+    ],
+    dependencies: [
+        .package(name: "ElixirKit", path: "../../../elixirkit_swift")
+    ],
     targets: [
         .executableTarget(
             name: "Demo",
-            dependencies: []
-        ),
+            dependencies: ["ElixirKit"]
+        )
     ]
 )
