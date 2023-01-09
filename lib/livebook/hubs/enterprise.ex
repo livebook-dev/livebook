@@ -126,5 +126,14 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def type(_), do: "enterprise"
+  def type(_enterprise), do: "enterprise"
+
+  def connectable?(_enterprise), do: true
+
+  def connect(%Livebook.Hubs.Enterprise{} = enterprise) do
+    case Livebook.Hubs.fetch_connected_hub(enterprise) do
+      %{pid: pid} -> pid
+      nil -> Livebook.Hubs.supervise_hub({Livebook.Hubs.EnterpriseClient, enterprise})
+    end
+  end
 end

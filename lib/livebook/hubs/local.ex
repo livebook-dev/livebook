@@ -18,5 +18,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Local do
     }
   end
 
-  def type(_), do: "local"
+  def type(_local), do: "local"
+
+  def connectable?(_local), do: false
+
+  def connect(_local), do: :noop
 end
