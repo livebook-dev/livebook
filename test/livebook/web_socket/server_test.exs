@@ -71,7 +71,8 @@ defmodule Livebook.WebSocket.ServerTest do
           value: ""
         )
 
-      assert Server.send_request(conn, create_secret_request) == {:error, "value: can't be blank"}
+      assert {:changeset_error, errors} = Server.send_request(conn, create_secret_request)
+      assert "can't be blank" in errors.value
     end
   end
 

@@ -140,6 +140,9 @@ defmodule Livebook.WebSocket.Server do
           {:response, %{id: id, type: {:error, %{details: reason}}}} ->
             reply_to_id(id, {:error, reason}, acc)
 
+          {:response, %{id: id, type: {:changeset, %{errors: field_errors}}}} ->
+            reply_to_id(id, {:changeset_error, to_changeset_errors(field_errors)}, acc)
+
           {:response, %{id: id, type: result}} ->
             reply_to_id(id, result, acc)
 
@@ -147,6 +150,12 @@ defmodule Livebook.WebSocket.Server do
             send(acc.listener, {:event, name, data})
             acc
         end
+    end
+  end
+
+  defp to_changeset_errors(field_errors) do
+    for %{field: field, details: errors} <- field_errors, into: %{} do
+      {String.to_atom(field), errors}
     end
   end
 
