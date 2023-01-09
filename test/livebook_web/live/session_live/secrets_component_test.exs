@@ -8,19 +8,21 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
   alias Livebook.Sessions
 
   describe "enterprise" do
-    setup %{user: user, url: url, token: token} do
-      Livebook.Hubs.delete_hub("enterprise-#{user.id}")
+    setup %{url: url, token: token} do
+      id = Livebook.Utils.random_id()
+      Livebook.Hubs.delete_hub("enterprise-#{id}")
 
       enterprise =
         insert_hub(:enterprise,
-          id: "enterprise-#{user.id}",
-          external_id: user.id,
+          id: "enterprise-#{id}",
+          external_id: id,
           url: url,
           token: token
         )
 
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
       Livebook.Hubs.EnterpriseClient.subscribe()
+      Livebook.Hubs.connect_hubs()
 
       on_exit(fn ->
         Session.close(session.pid)
@@ -42,7 +44,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
                data: %{
                  name: "FOO",
                  value: "123",
-                 store: "enterprise"
+                 store: "hub"
                }
              }) =~ ~s(<option value="#{enterprise.id}">#{enterprise.hub_name}</option>)
     end
@@ -58,8 +60,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         data: %{
           name: "FOO",
           value: "123",
-          store: "enterprise",
-          enterprise_hub: enterprise.id
+          store: "hub",
+          connected_hub: enterprise.id
         }
       }
 
