@@ -9,6 +9,15 @@ message Error {
   string details = 1;
 }
 
+message FieldError {
+  string field = 1;
+  repeated string details = 2;
+}
+
+message ChangesetError {
+  repeated FieldError errors = 1;
+}
+
 message SecretCreated {
   string name = 1;
   string value = 2;
@@ -50,9 +59,10 @@ message Response {
 
   oneof type {
     Error error = 2;
+    ChangesetError changeset = 3;
 
-    SessionResponse session = 3;
-    CreateSecretResponse create_secret = 4;
+    SessionResponse session = 4;
+    CreateSecretResponse create_secret = 5;
   }
 }
 
