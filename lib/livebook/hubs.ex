@@ -155,8 +155,6 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hub(Provider.t()) :: :ok
   def connect_hub(hub) do
-    IO.inspect(hub)
-
     if child_spec = Provider.connect(hub) do
       DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
