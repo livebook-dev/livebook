@@ -34,6 +34,16 @@ defmodule Livebook.Hubs do
 
   @doc """
   Gets one hub from storage.
+  """
+  @spec get_hub(String.t()) :: {:ok, Provider.t()} | :error
+  def get_hub(id) do
+    with {:ok, data} <- Storage.fetch(@namespace, id) do
+      {:ok, to_struct(data)}
+    end
+  end
+
+  @doc """
+  Gets one hub from storage.
 
   Raises `Livebook.Storage.NotFoundError` if the hub does not exist.
   """
@@ -68,11 +78,9 @@ defmodule Livebook.Hubs do
 
   @doc false
   def delete_hub(id) do
-    if hub_exists?(id) do
-      hub = fetch_hub!(id)
-
+    with {:ok, hub} <- get_hub(id) do
       if connected_hub = get_connected_hub(hub) do
-        GenServer.stop(connected_hub.pid)
+        Process.exit(connected_hub.pid, :normal)
       end
 
       :ok = Storage.delete(@namespace, id)
