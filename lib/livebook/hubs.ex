@@ -10,7 +10,7 @@ defmodule Livebook.Hubs do
           required(:pid) => pid(),
           required(:hub) => Provider.t()
         }
-  @type connected_hubs :: %{optional(String.t()) => connected_hub()}
+  @type connected_hubs :: list(connected_hub())
 
   @doc """
   Gets a list of hubs from storage.
@@ -130,8 +130,9 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- fetch_hubs(), Provider.connectable?(hub) do
-      Provider.connect(hub)
+    for hub <- fetch_hubs() do
+      if child_spec = Provider.connect(hub),
+        do: DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
 
     :ok
@@ -142,19 +143,20 @@ defmodule Livebook.Hubs do
 
   ## Example
 
-      iex> fetch_connected_hubs()
-      %{"enterprise-12345" => %{pid: #PID<0.178.0>, hub: %Enterprise{}}}
+      iex> get_connected_hubs()
+      [%{pid: #PID<0.178.0>, hub: %Enterprise{}}, ...]
 
   """
-  @spec fetch_connected_hubs() :: connected_hubs()
-  def fetch_connected_hubs do
-    for hub <- fetch_hubs(), reduce: %{} do
+  @spec get_connected_hubs() :: connected_hubs()
+  def get_connected_hubs do
+    for hub <- fetch_hubs(), reduce: [] do
       acc ->
-        case fetch_connected_hub(hub) do
+        case get_connected_hub(hub) do
           nil -> acc
-          connected_hub -> Map.put_new(acc, hub.id, connected_hub)
+          connected_hub -> [connected_hub | acc]
         end
     end
+    |> Enum.reverse()
   end
 
   @doc """
@@ -162,40 +164,21 @@ defmodule Livebook.Hubs do
 
   ## Examples
 
-      iex> fetch_connected_hub(%Enterprise{})
+      iex> get_connected_hub(%Enterprise{})
       %{pid: #PID<0.178.0>, hub: %Enterprise{}}
 
-      iex> fetch_connected_hub(%Enterprise{})
+      iex> get_connected_hub(%Enterprise{})
       nil
 
-      iex> fetch_connected_hub(%Fly{})
+      iex> get_connected_hub(%Fly{})
       nil
 
   """
-  @spec fetch_connected_hub(Provider.t()) :: connected_hub() | nil
-  def fetch_connected_hub(hub) do
-    with true <- Provider.connectable?(hub),
-         [{pid, _}] <- Registry.lookup(Livebook.HubsRegistry, hub.id) do
-      %{pid: pid, hub: hub}
-    else
-      _ -> nil
-    end
-  end
-
-  @doc """
-  Adds the given hub to the `Livebook.HubsSupervisor`.
-
-  ## Example
-
-      iex> supervise_hub({EnterpriseClient, %Enterprise{}})
-      #PID<0.178.0>
-
-  """
-  @spec supervise_hub(Supervisor.child_spec()) :: pid()
-  def supervise_hub(child_spec) do
-    case DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec) do
-      {:ok, pid} -> pid
-      {:error, {:already_started, pid}} -> pid
+  @spec get_connected_hub(Provider.t()) :: connected_hub() | nil
+  def get_connected_hub(hub) do
+    case Registry.lookup(Livebook.HubsRegistry, hub.id) do
+      [{pid, _}] -> %{pid: pid, hub: hub}
+      [] -> nil
     end
   end
 end

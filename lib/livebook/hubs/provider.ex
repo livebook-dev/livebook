@@ -20,14 +20,8 @@ defprotocol Livebook.Hubs.Provider do
   def type(struct)
 
   @doc """
-  Checks if the given struct can connect.
+  Gets the child spec of the given struct.
   """
-  @spec connectable?(struct()) :: boolean()
-  def connectable?(struct)
-
-  @doc """
-  Gets or register the PID of the given struct on the dynamic supervisor.
-  """
-  @spec connect(struct()) :: :noop | pid()
+  @spec connect(struct()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
   def connect(struct)
 end

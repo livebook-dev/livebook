@@ -135,7 +135,5 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
 
   def type(_fly), do: "fly"
 
-  def connectable?(_fly), do: false
-
-  def connect(_fly), do: :noop
+  def connect(_fly), do: nil
 end

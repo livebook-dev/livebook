@@ -2285,7 +2285,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp fetch_enterprise_secrets do
-    for {_id, connected_hub} <- Hubs.fetch_connected_hubs(),
+    for connected_hub <- Hubs.get_connected_hubs(),
         secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
         into: %{},
         do: {secret.name, secret.value}

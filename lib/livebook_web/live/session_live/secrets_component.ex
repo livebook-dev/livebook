@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(connected_hubs: Livebook.Hubs.fetch_connected_hubs())
+      |> assign(connected_hubs: Livebook.Hubs.get_connected_hubs())
 
     prefill_form = prefill_secret_name(socket)
 
@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= label class: "flex items-center gap-2 text-gray-600" do %>
                     <%= radio_button(f, :store, "hub",
-                      disabled: @connected_hubs === %{},
+                      disabled: @connected_hubs == [],
                       checked: @data["store"] == "hub"
                     ) %> in the Hub
                   <% end %>
@@ -306,7 +306,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp set_secret(socket, secret, "hub") do
     selected_hub = socket.assigns.data["connected_hub"]
 
-    if hub = socket.assigns.connected_hubs[selected_hub] do
+    if hub = Enum.find(socket.assigns.connected_hubs, &(&1.hub.id == selected_hub)) do
       create_secret_request =
         LivebookProto.CreateSecretRequest.new!(
           name: secret.name,
@@ -342,7 +342,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
   defp connected_hubs_options(connected_hubs, selected_hub) do
     [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
-      for {id, %{hub: %{hub_name: name}}} <- connected_hubs do
+      for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
         [key: name, value: id, selected: id == selected_hub]
       end
   end
