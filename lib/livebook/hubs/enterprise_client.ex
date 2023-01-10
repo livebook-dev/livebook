@@ -9,7 +9,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @registry Livebook.HubsRegistry
 
-  defstruct [:server, :hub, secrets: []]
+  defstruct [:server, :hub, connected?: false, secrets: []]
 
   @doc """
   Connects the Enterprise client with WebSocket server.
@@ -54,15 +54,19 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:reply, state.secrets, state}
   end
 
+  def handle_call(:connected?, _caller, state) do
+    {:reply, state.connected?, state}
+  end
+
   @impl true
   def handle_info({:connect, _, _} = message, state) do
     Hubs.broadcast_message(:connection, message)
-    {:noreply, state}
+    {:noreply, update_connection_status(state, message)}
   end
 
   def handle_info({:disconnect, :error, _} = message, state) do
     Hubs.broadcast_message(:connection, message)
-    {:noreply, state}
+    {:noreply, update_connection_status(state, message)}
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
@@ -87,6 +91,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   defp registry_name(%Enterprise{id: id}) do
     {:via, Registry, {@registry, id}}
+  end
+
+  defp update_connection_status(state, {:connect, :ok, :connected}) do
+    %{state | connected?: true}
+  end
+
+  defp update_connection_status(state, _message) do
+    %{state | connected?: false}
   end
 
   defp put_secret(state, %Secret{name: name} = secret) do
