@@ -3,7 +3,6 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
 
   import Ecto.Changeset, only: [get_field: 2, add_error: 3]
 
-  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Fly, FlyClient}
 
   @impl true
@@ -60,13 +59,9 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
               <%= text_input(f, :hub_name, class: "input") %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
-              <div class="input-label">Color</div>
-              <.hex_color_input
-                form={f}
-                field={:hub_color}
-                randomize={JS.push("randomize_color", target: @myself)}
-              />
+            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+              <div class="input-label">Emoji</div>
+              <.emoji_input form={f} field={:hub_emoji} />
             </.input_wrapper>
           </div>
 
@@ -86,7 +81,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     case FlyClient.fetch_apps(token) do
       {:ok, apps} ->
         opts = select_options(apps)
-        base = %Fly{access_token: token, hub_color: HexColor.random()}
+        base = %Fly{access_token: token, hub_emoji: "🪽"}
         changeset = Fly.change_hub(base)
 
         {:noreply,
@@ -101,10 +96,6 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         {:noreply,
          assign(socket, changeset: changeset, base: %Fly{}, select_options: [], apps: [])}
     end
-  end
-
-  def handle_event("randomize_color", _, socket) do
-    handle_event("validate", %{"fly" => %{"hub_color" => HexColor.random()}}, socket)
   end
 
   def handle_event("save", %{"fly" => params}, socket) do

@@ -1,7 +1,6 @@
 defmodule LivebookWeb.Hub.Edit.FlyComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Fly, FlyClient}
 
   @impl true
@@ -76,13 +75,9 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
                 <%= text_input(f, :hub_name, class: "input") %>
               </.input_wrapper>
 
-              <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
-                <div class="input-label">Color</div>
-                <.hex_color_input
-                  form={f}
-                  field={:hub_color}
-                  randomize={JS.push("randomize_color", target: @myself)}
-                />
+              <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+                <div class="input-label">Emoji</div>
+                <.emoji_input form={f} field={:hub_emoji} />
               </.input_wrapper>
             </div>
 
@@ -134,10 +129,6 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   end
 
   @impl true
-  def handle_event("randomize_color", _, socket) do
-    handle_event("validate", %{"fly" => %{"hub_color" => HexColor.random()}}, socket)
-  end
-
   def handle_event("save", %{"fly" => params}, socket) do
     case Fly.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->

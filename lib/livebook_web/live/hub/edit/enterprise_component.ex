@@ -1,7 +1,6 @@
 defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.Enterprise
 
   @impl true
@@ -35,13 +34,9 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-              <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
-                <div class="input-label">Color</div>
-                <.hex_color_input
-                  form={f}
-                  field={:hub_color}
-                  randomize={JS.push("randomize_color", target: @myself)}
-                />
+              <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+                <div class="input-label">Emoji</div>
+                <.emoji_input form={f} field={:hub_emoji} />
               </.input_wrapper>
             </div>
 
@@ -58,10 +53,6 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   end
 
   @impl true
-  def handle_event("randomize_color", _, socket) do
-    handle_event("validate", %{"enterprise" => %{"hub_color" => HexColor.random()}}, socket)
-  end
-
   def handle_event("save", %{"enterprise" => params}, socket) do
     case Enterprise.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->

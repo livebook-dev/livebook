@@ -3,7 +3,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   import Ecto.Changeset, only: [get_field: 2]
 
-  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Enterprise, EnterpriseClient}
 
   @impl true
@@ -82,13 +81,9 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               <%= text_input(f, :hub_name, class: "input", readonly: true) %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
-              <div class="input-label">Color</div>
-              <.hex_color_input
-                form={f}
-                field={:hub_color}
-                randomize={JS.push("randomize_color", target: @myself)}
-              />
+            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+              <div class="input-label">Emoji</div>
+              <.emoji_input form={f} field={:hub_emoji} />
             </.input_wrapper>
           </div>
 
@@ -112,7 +107,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
       token: token,
       url: url,
       hub_name: "Enterprise",
-      hub_color: HexColor.random()
+      hub_emoji: "factory"
     }
 
     {:ok, pid} = EnterpriseClient.start_link(base)
@@ -138,10 +133,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
             handle_error(reason, socket)
         end
     end
-  end
-
-  def handle_event("randomize_color", _, socket) do
-    handle_event("validate", %{"enterprise" => %{"hub_color" => HexColor.random()}}, socket)
   end
 
   def handle_event("save", %{"enterprise" => params}, socket) do
