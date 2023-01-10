@@ -8,7 +8,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   @impl true
   def update(assigns, socket) do
     if connected?(socket) do
-      EnterpriseClient.subscribe()
+      Livebook.Hubs.subscribe(:connection)
     end
 
     {:ok,

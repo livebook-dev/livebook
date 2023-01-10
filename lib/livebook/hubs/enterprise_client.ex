@@ -2,11 +2,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @moduledoc false
   use GenServer
 
+  alias Livebook.Hubs
   alias Livebook.Hubs.Enterprise
   alias Livebook.Secrets.Secret
   alias Livebook.WebSocket.Server
 
-  @pubsub_topic "enterprise"
   @registry Livebook.HubsRegistry
 
   defstruct [:server, :hub, secrets: []]
@@ -35,30 +35,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
     GenServer.call(pid, :list_cached_secrets)
   end
 
-  @doc """
-  Subscribe to WebSocket Server events.
-
-  ## Messages
-
-    * `{:connect, :ok, :connected}`
-    * `{:connect, :error, reason}`
-    * `{:secret_created, %Secret{}}`
-    * `{:secret_updated, %Secret{}}`
-
-  """
-  @spec subscribe() :: :ok | {:error, {:already_registered, pid()}}
-  def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, @pubsub_topic)
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe() :: :ok
-  def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, @pubsub_topic)
-  end
-
   ## GenServer callbacks
 
   @impl true
@@ -80,25 +56,25 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @impl true
   def handle_info({:connect, _, _} = message, state) do
-    broadcast_message(message)
+    Hubs.broadcast_message(:connection, message)
     {:noreply, state}
   end
 
   def handle_info({:disconnect, :error, _} = message, state) do
-    broadcast_message(message)
+    Hubs.broadcast_message(:connection, message)
     {:noreply, state}
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value}
-    broadcast_message({:secret_created, secret})
+    Hubs.broadcast_message(:secrets, {:secret_created, secret})
 
     {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value}
-    broadcast_message({:secret_updated, secret})
+    Hubs.broadcast_message(:secrets, {:secret_updated, secret})
 
     {:noreply, put_secret(state, secret)}
   end
@@ -108,12 +84,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   # Private
-
-  # Notifies interested processes about WebSocket Server messages.
-  # Broadcasts the given message under the `"enterprise"` topic.
-  defp broadcast_message(message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, @pubsub_topic, message)
-  end
 
   defp registry_name(%Enterprise{id: id}) do
     {:via, Registry, {@registry, id}}

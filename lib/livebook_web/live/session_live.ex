@@ -26,8 +26,7 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Secrets.subscribe()
-            # TODO: Move this to Hubs.subscribe([:secrets]) and rename all "enterprise" to "hubs"
-            EnterpriseClient.subscribe()
+            Hubs.subscribe(:secrets)
 
             {data, client_id}
           else

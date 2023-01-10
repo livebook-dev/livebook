@@ -71,7 +71,7 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = broadcast_hubs_change()
+    :ok = broadcast_message(:crud, {:hubs_metadata_changed, get_metadatas()})
 
     struct
   end
@@ -84,7 +84,7 @@ defmodule Livebook.Hubs do
       end
 
       :ok = Storage.delete(@namespace, id)
-      :ok = broadcast_hubs_change()
+      :ok = broadcast_message(:crud, {:hubs_metadata_changed, get_metadatas()})
     end
 
     :ok
@@ -98,30 +98,59 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Subscribes to updates in hubs information.
+  Subscribes to one or more subtopics in `"hubs"`.
 
   ## Messages
 
+  Topic `hubs:crud`:
+
     * `{:hubs_metadata_changed, hubs}`
 
+  Topic `hubs:connection`:
+
+    * `{:connect, :ok, :connected}`
+    * `{:connect, :error, reason}`
+    * `{:disconnect, :error, reason}`
+
+  Topic `hubs:secrets`:
+
+    * `{:secret_created, %Secret{}}`
+    * `{:secret_updated, %Secret{}}`
+
   """
-  @spec subscribe() :: :ok | {:error, term()}
-  def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs")
+  @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
+  def subscribe(topics) when is_list(topics) do
+    for topic <- topics, do: subscribe(topic)
+
+    :ok
+  end
+
+  def subscribe(topic) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs:#{topic}")
   end
 
   @doc """
   Unsubscribes from `subscribe/0`.
   """
-  @spec unsubscribe() :: :ok
-  def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs")
+  @spec unsubscribe(atom() | list(atom())) :: :ok
+  def unsubscribe(topics) when is_list(topics) do
+    for topic <- topics, do: unsubscribe(topic)
+
+    :ok
   end
 
-  # Notifies interested processes about hubs data change.
-  # Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
-  defp broadcast_hubs_change do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, get_metadatas()})
+  def unsubscribe(topic) do
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{topic}")
+  end
+
+  @doc """
+  Notifies interested processes about hubs.
+
+  Broadcasts the message under given subtopic inside `"hubs"` topic.
+  """
+  @spec broadcast_message(atom(), any()) :: :ok
+  def broadcast_message(topic, message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs:#{topic}", message)
   end
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
