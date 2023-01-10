@@ -5,6 +5,7 @@ defmodule LivebookWeb.LayoutHelpers do
   import LivebookWeb.UserHelpers
 
   alias Phoenix.LiveView.JS
+  alias Livebook.Hubs.Provider
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -179,10 +180,20 @@ defmodule LivebookWeb.LayoutHelpers do
     ~H"""
     <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
       <div class="text-lg leading-6 w-[56px] flex justify-center">
-        <%= @emoji %>
+        <span class="relative">
+          <%= @hub.emoji %>
+
+          <%= if Provider.connect(@hub.provider) do %>
+            <%= if @hub.connected? do %>
+              <div class="absolute bg-green-400 w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0" />
+            <% else %>
+              <div class="absolute bg-red-400 w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0" />
+            <% end %>
+          <% end %>
+        </span>
       </div>
       <span class="text-sm font-medium">
-        <%= @title %>
+        <%= @hub.name %>
       </span>
     <% end %>
     """
@@ -199,8 +210,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
           <%= for hub <- @hubs do %>
             <.sidebar_hub_link
-              title={hub.name}
-              emoji={hub.emoji}
+              hub={hub}
               to={Routes.hub_path(@socket, :edit, hub.id)}
               current={@current_page}
             />
