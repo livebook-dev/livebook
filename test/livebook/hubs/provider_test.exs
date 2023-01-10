@@ -10,7 +10,7 @@ defmodule Livebook.Hubs.ProviderTest do
       assert Provider.normalize(fly) == %Metadata{
                id: fly.id,
                name: fly.hub_name,
-               color: fly.hub_color,
+               emoji: fly.hub_emoji,
                provider: fly
              }
     end

@@ -37,7 +37,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         "url" => url,
         "token" => token,
         "hub_name" => "Enterprise",
-        "hub_color" => "#FF00FF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -58,7 +58,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert render(view) =~ "Hub added successfully"
 
       hubs_html = view |> element("#hubs") |> render()
-      assert hubs_html =~ ~s/style="color: #FF00FF"/
+      assert hubs_html =~ "🐈"
       assert hubs_html =~ "/hub/enterprise-#{id}"
       assert hubs_html =~ "Enterprise"
     end
@@ -135,7 +135,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         "url" => url,
         "token" => token,
         "hub_name" => "Enterprise",
-        "hub_color" => "#FFFFFF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -151,7 +151,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
              |> render_submit(%{"enterprise" => attrs}) =~ "already exists"
 
       hubs_html = view |> element("#hubs") |> render()
-      assert hubs_html =~ ~s/style="color: #{hub.hub_color}"/
+      assert hubs_html =~ hub.hub_emoji
       assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
       assert hubs_html =~ hub.hub_name
 

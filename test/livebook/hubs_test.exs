@@ -23,7 +23,7 @@ defmodule Livebook.HubsTest do
     assert Hubs.get_metadatas() == [
              %Hubs.Metadata{
                id: "fly-livebook",
-               color: fly.hub_color,
+               emoji: fly.hub_emoji,
                name: fly.hub_name,
                provider: fly
              }
@@ -60,9 +60,9 @@ defmodule Livebook.HubsTest do
 
   test "save_hub/1 updates hub" do
     fly = insert_hub(:fly, id: "fly-foo2")
-    Hubs.save_hub(%{fly | hub_color: "#FFFFFF"})
+    Hubs.save_hub(%{fly | hub_emoji: "🐈"})
 
     refute Hubs.fetch_hub!("fly-foo2") == fly
-    assert Hubs.fetch_hub!("fly-foo2").hub_color == "#FFFFFF"
+    assert Hubs.fetch_hub!("fly-foo2").hub_emoji == "🐈"
   end
 end

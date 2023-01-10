@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
         "access_token" => "dummy access token",
         "application_id" => "123456789",
         "hub_name" => "My Foo Hub",
-        "hub_color" => "#FF00FF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -55,17 +55,11 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
       assert render(view) =~ "Hub added successfully"
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ ~s/style="color: #FF00FF"/
+      hubs_html = view |> element("#hubs") |> render()
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ "/hub/fly-123456789"
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ "My Foo Hub"
+      assert hubs_html =~ "🐈"
+      assert hubs_html =~ "/hub/fly-123456789"
+      assert hubs_html =~ "My Foo Hub"
     end
 
     test "fails to create existing hub", %{conn: conn} do
@@ -87,7 +81,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
         "access_token" => "dummy access token",
         "application_id" => "foo",
         "hub_name" => "My Foo Hub",
-        "hub_color" => "#FF00FF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -102,18 +96,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
              |> element("#fly-form")
              |> render_submit(%{"fly" => attrs}) =~ "already exists"
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ ~s/style="color: #{hub.hub_color}"/
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ Routes.hub_path(conn, :edit, hub.id)
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ hub.hub_name
-
+      assert_hub(view, conn, hub)
       assert Hubs.fetch_hub!(hub.id) == hub
     end
   end
@@ -176,5 +159,13 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     }
 
     %{"data" => %{"app" => app}}
+  end
+
+  defp assert_hub(view, conn, hub) do
+    hubs_html = view |> element("#hubs") |> render()
+
+    assert hubs_html =~ hub.hub_emoji
+    assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+    assert hubs_html =~ hub.hub_name
   end
 end
