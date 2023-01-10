@@ -9,7 +9,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
   describe "enterprise" do
     setup %{url: url, token: token} do
-      id = Livebook.Utils.random_id()
+      node = EnterpriseServer.get_node()
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
       Livebook.Hubs.delete_hub("enterprise-#{id}")
 
       enterprise =
@@ -21,8 +22,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         )
 
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
-      Livebook.Hubs.EnterpriseClient.subscribe()
-      Livebook.Hubs.connect_hubs()
+      Livebook.Hubs.subscribe(:secrets)
 
       on_exit(fn ->
         Session.close(session.pid)

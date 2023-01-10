@@ -94,8 +94,13 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       stop_new_instance(name)
     end
 
-    test "fails to create existing hub", %{conn: conn, url: url, token: token} do
-      node = EnterpriseServer.get_node()
+    test "fails to create existing hub", %{test: name, conn: conn} do
+      start_new_instance(name)
+
+      node = EnterpriseServer.get_node(name)
+      url = EnterpriseServer.url(name)
+      token = EnterpriseServer.token(name)
+
       id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
       user = :erpc.call(node, Enterprise.Integration, :create_user, [])
 
@@ -156,6 +161,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ hub.hub_name
 
       assert Hubs.fetch_hub!(hub.id) == hub
+    after
+      stop_new_instance(name)
     end
   end
 

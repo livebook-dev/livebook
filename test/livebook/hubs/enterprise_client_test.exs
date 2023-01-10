@@ -6,7 +6,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
   alias Livebook.Secrets.Secret
 
   setup do
-    EnterpriseClient.subscribe()
+    Livebook.Hubs.subscribe([:connection, :secrets])
     :ok
   end
 
