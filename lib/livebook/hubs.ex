@@ -60,13 +60,26 @@ defmodule Livebook.Hubs do
   def save_hub(struct) do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
+    :ok = connect_hub(struct)
     :ok = broadcast_hubs_change()
+
     struct
   end
 
   @doc false
   def delete_hub(id) do
-    Storage.delete(@namespace, id)
+    if hub_exists?(id) do
+      hub = fetch_hub!(id)
+
+      if connected_hub = get_connected_hub(hub) do
+        GenServer.stop(connected_hub.pid)
+      end
+
+      :ok = Storage.delete(@namespace, id)
+      :ok = broadcast_hubs_change()
+    end
+
+    :ok
   end
 
   @doc false
@@ -97,13 +110,9 @@ defmodule Livebook.Hubs do
     Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs")
   end
 
-  @doc """
-  Notifies interested processes about hubs data change.
-
-  Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
-  """
-  @spec broadcast_hubs_change() :: :ok
-  def broadcast_hubs_change do
+  # Notifies interested processes about hubs data change.
+  # Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
+  defp broadcast_hubs_change do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, fetch_metadatas()})
   end
 
@@ -130,9 +139,26 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- fetch_hubs() do
-      if child_spec = Provider.connect(hub),
-        do: DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
+    for hub <- fetch_hubs(), do: connect_hub(hub)
+
+    :ok
+  end
+
+  @doc """
+  Connects to one connectable hub.
+
+  ## Example
+
+      iex> connect_hub(%Enterprise{})
+      :ok
+
+  """
+  @spec connect_hub(Provider.t()) :: :ok
+  def connect_hub(hub) do
+    IO.inspect(hub)
+
+    if child_spec = Provider.connect(hub) do
+      DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
 
     :ok
