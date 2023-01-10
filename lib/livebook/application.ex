@@ -54,6 +54,7 @@ defmodule Livebook.Application do
         clear_env_vars()
         display_startup_info()
         insert_development_hub()
+        Livebook.Hubs.connect_hubs()
         result
 
       {:error, error} ->

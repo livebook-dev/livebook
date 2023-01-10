@@ -18,4 +18,10 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec type(struct()) :: String.t()
   def type(struct)
+
+  @doc """
+  Gets the child spec of the given struct.
+  """
+  @spec connect(struct()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
+  def connect(struct)
 end

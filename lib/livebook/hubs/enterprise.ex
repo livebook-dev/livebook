@@ -126,5 +126,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def type(_), do: "enterprise"
+  def type(_enterprise), do: "enterprise"
+
+  def connect(%Livebook.Hubs.Enterprise{} = enterprise),
+    do: {Livebook.Hubs.EnterpriseClient, enterprise}
 end

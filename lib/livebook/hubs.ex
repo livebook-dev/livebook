@@ -6,11 +6,17 @@ defmodule Livebook.Hubs do
 
   @namespace :hubs
 
+  @type connected_hub :: %{
+          required(:pid) => pid(),
+          required(:hub) => Provider.t()
+        }
+  @type connected_hubs :: list(connected_hub())
+
   @doc """
   Gets a list of hubs from storage.
   """
-  @spec fetch_hubs() :: list(Provider.t())
-  def fetch_hubs do
+  @spec get_hubs() :: list(Provider.t())
+  def get_hubs do
     for fields <- Storage.all(@namespace) do
       to_struct(fields)
     end
@@ -19,10 +25,20 @@ defmodule Livebook.Hubs do
   @doc """
   Gets a list of metadatas from storage.
   """
-  @spec fetch_metadatas() :: list(Metadata.t())
-  def fetch_metadatas do
-    for hub <- fetch_hubs() do
+  @spec get_metadatas() :: list(Metadata.t())
+  def get_metadatas do
+    for hub <- get_hubs() do
       Provider.normalize(hub)
+    end
+  end
+
+  @doc """
+  Gets one hub from storage.
+  """
+  @spec get_hub(String.t()) :: {:ok, Provider.t()} | :error
+  def get_hub(id) do
+    with {:ok, data} <- Storage.fetch(@namespace, id) do
+      {:ok, to_struct(data)}
     end
   end
 
@@ -54,18 +70,29 @@ defmodule Livebook.Hubs do
   def save_hub(struct) do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
+    :ok = connect_hub(struct)
     :ok = broadcast_hubs_change()
+
     struct
   end
 
   @doc false
   def delete_hub(id) do
-    Storage.delete(@namespace, id)
+    with {:ok, hub} <- get_hub(id) do
+      if connected_hub = get_connected_hub(hub) do
+        GenServer.stop(connected_hub.pid, :shutdown)
+      end
+
+      :ok = Storage.delete(@namespace, id)
+      :ok = broadcast_hubs_change()
+    end
+
+    :ok
   end
 
   @doc false
   def clean_hubs do
-    for hub <- fetch_hubs(), do: delete_hub(hub.id)
+    for hub <- get_hubs(), do: delete_hub(hub.id)
 
     :ok
   end
@@ -91,14 +118,10 @@ defmodule Livebook.Hubs do
     Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs")
   end
 
-  @doc """
-  Notifies interested processes about hubs data change.
-
-  Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
-  """
-  @spec broadcast_hubs_change() :: :ok
-  def broadcast_hubs_change do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, fetch_metadatas()})
+  # Notifies interested processes about hubs data change.
+  # Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
+  defp broadcast_hubs_change do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, get_metadatas()})
   end
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
@@ -111,5 +134,50 @@ defmodule Livebook.Hubs do
 
   defp to_struct(%{id: "local-" <> _} = fields) do
     Provider.load(%Local{}, fields)
+  end
+
+  @doc """
+  Connects to the all available and connectable hubs.
+
+  ## Example
+
+      iex> connect_hubs()
+      :ok
+
+  """
+  @spec connect_hubs() :: :ok
+  def connect_hubs do
+    for hub <- get_hubs(), do: connect_hub(hub)
+
+    :ok
+  end
+
+  defp connect_hub(hub) do
+    if child_spec = Provider.connect(hub) do
+      DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Gets a list of connected hubs.
+
+  ## Example
+
+      iex> get_connected_hubs()
+      [%{pid: #PID<0.178.0>, hub: %Enterprise{}}, ...]
+
+  """
+  @spec get_connected_hubs() :: connected_hubs()
+  def get_connected_hubs do
+    for hub <- get_hubs(), connected = get_connected_hub(hub), do: connected
+  end
+
+  defp get_connected_hub(hub) do
+    case Registry.lookup(Livebook.HubsRegistry, hub.id) do
+      [{pid, _}] -> %{pid: pid, hub: hub}
+      [] -> nil
+    end
   end
 end

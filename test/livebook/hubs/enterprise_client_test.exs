@@ -22,7 +22,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       enterprise = build(:enterprise, url: "http://localhost:9999", token: token)
 
       EnterpriseClient.start_link(enterprise)
-      assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
+      assert_receive {:connect, :error, "connection refused"}
     end
 
     test "rejects the web socket connection with invalid credentials", %{url: url} do

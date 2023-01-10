@@ -40,20 +40,22 @@ defmodule Livebook.WebSocket.Server do
   @impl true
   def connect(_, state) do
     case Client.connect(state.url, state.headers) do
-      {:ok, conn, ref} ->
-        {:ok, %{state | http_conn: conn, ref: ref}}
+      {:ok, conn, websocket, ref} ->
+        send(state.listener, {:connect, :ok, :connected})
+        send(self(), {:loop_ping, ref})
 
-      {:error, exception} when is_exception(exception) ->
-        Logger.error("Received exception: #{Exception.message(exception)}")
-        send(state.listener, {:connect, :error, exception})
+        {:ok, %{state | http_conn: conn, ref: ref, websocket: websocket}}
+
+      {:transport_error, reason} ->
+        send(state.listener, {:connect, :error, reason})
 
         {:backoff, @backoff, state}
 
-      {:error, conn, reason} ->
-        Logger.error("Received error: #{inspect(reason)}")
-        send(state.listener, {:connect, :error, reason})
+      {:server_error, binary} ->
+        {:response, %{type: {:error, error}}} = decode_response_or_event(binary)
+        send(state.listener, {:connect, :error, error.details})
 
-        {:backoff, @backoff, %{state | http_conn: conn}}
+        {:backoff, @backoff, state}
     end
   end
 
@@ -103,39 +105,32 @@ defmodule Livebook.WebSocket.Server do
 
   def handle_info({:loop_ping, _another_ref}, state), do: {:noreply, state}
 
-  def handle_info(message, state) do
-    case Client.receive(state.http_conn, state.ref, state.websocket, message) do
-      {:ok, conn, websocket, :connected} ->
-        state = send_received({:ok, :connected}, state)
-        send(self(), {:loop_ping, state.ref})
+  def handle_info({:tcp_closed, _port} = message, state),
+    do: handle_websocket_message(message, state)
 
-        {:noreply, %{state | http_conn: conn, websocket: websocket}}
+  def handle_info({:tcp, _port, _data} = message, state),
+    do: handle_websocket_message(message, state)
 
-      {:error, conn, websocket, %Mint.TransportError{} = reason} ->
-        state = send_received({:error, reason}, state)
-
-        {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
-
-      {term, conn, websocket, data} ->
-        state = send_received({term, data}, state)
-
-        {:noreply, %{state | http_conn: conn, websocket: websocket}}
-
-      {:error, _} = error ->
-        {:noreply, send_received(error, state)}
-    end
-  end
+  def handle_info(_message, state), do: {:noreply, state}
 
   # Private
 
-  defp send_received({:ok, :connected}, state) do
-    send(state.listener, {:connect, :ok, :connected})
-    state
+  def handle_websocket_message(message, state) do
+    case Client.receive(state.http_conn, state.ref, state.websocket, message) do
+      {:ok, conn, websocket, data} ->
+        state = %{state | http_conn: conn, websocket: websocket}
+        {:noreply, send_received(data, state)}
+
+      {:server_error, conn, websocket, reason} ->
+        send(state.listener, {:connect, :error, reason})
+
+        {:connect, :receive, %{state | http_conn: conn, websocket: websocket}}
+    end
   end
 
-  defp send_received({:ok, %Client.Response{body: [], status: nil}}, state), do: state
+  defp send_received([], state), do: state
 
-  defp send_received({:ok, %Client.Response{body: binaries}}, state) do
+  defp send_received([_ | _] = binaries, state) do
     for binary <- binaries, reduce: state do
       acc ->
         case decode_response_or_event(binary) do
@@ -144,6 +139,9 @@ defmodule Livebook.WebSocket.Server do
 
           {:response, %{id: id, type: {:error, %{details: reason}}}} ->
             reply_to_id(id, {:error, reason}, acc)
+
+          {:response, %{id: id, type: {:changeset, %{errors: field_errors}}}} ->
+            reply_to_id(id, {:changeset_error, to_changeset_errors(field_errors)}, acc)
 
           {:response, %{id: id, type: result}} ->
             reply_to_id(id, result, acc)
@@ -155,39 +153,9 @@ defmodule Livebook.WebSocket.Server do
     end
   end
 
-  defp send_received({:error, :unknown}, state), do: state
-
-  defp send_received({:error, %Mint.TransportError{} = reason}, state) do
-    send(state.listener, {:connect, :error, reason})
-    state
-  end
-
-  defp send_received({:error, %Client.Response{body: binaries, status: status}}, state)
-       when binaries != [] and status != nil do
-    for binary <- binaries do
-      with {:response, body} <- decode_response_or_event(binary),
-           %{type: {:error, %{details: reason}}} <- body do
-        send(state.listener, {:connect, :error, reason})
-      end
-    end
-
-    state
-  end
-
-  defp send_received({:error, %Client.Response{body: [], status: status}}, state)
-       when status != nil do
-    reply_to_all({:error, Plug.Conn.Status.reason_phrase(status)}, state)
-  end
-
-  defp send_received({:error, %Client.Response{body: binaries, status: nil}}, state) do
-    for binary <- binaries,
-        {:response, body} <- decode_response_or_event(binary),
-        reduce: state do
-      acc ->
-        case body do
-          %{id: -1, type: {:error, %{details: reason}}} -> reply_to_all({:error, reason}, acc)
-          %{id: id, type: {:error, %{details: reason}}} -> reply_to_id(id, {:error, reason}, acc)
-        end
+  defp to_changeset_errors(field_errors) do
+    for %{field: field, details: errors} <- field_errors, into: %{} do
+      {String.to_atom(field), errors}
     end
   end
 

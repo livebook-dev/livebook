@@ -5,7 +5,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def update(assigns, socket) do
-    socket = assign(socket, assigns)
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(connected_hubs: Livebook.Hubs.get_connected_hubs())
+
     prefill_form = prefill_secret_name(socket)
 
     socket =
@@ -119,16 +123,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <% end %>
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                    <%= radio_button(f, :store, "enterprise",
-                      disabled: @enterprise_hubs == [],
-                      checked: @data["store"] == "enterprise"
-                    ) %> in the Enterprise
+                    <%= radio_button(f, :store, "hub",
+                      disabled: @connected_hubs == [],
+                      checked: @data["store"] == "hub"
+                    ) %> in the Hub
                   <% end %>
-                  <%= if @data["store"] == "enterprise" do %>
+                  <%= if @data["store"] == "hub" do %>
                     <%= select(
                       f,
-                      :enterprise_hub,
-                      enterprise_hubs_options(@enterprise_hubs, @data["enterprise_hub"]),
+                      :connected_hub,
+                      connected_hubs_options(@connected_hubs, @data["connected_hub"]),
                       class: "input"
                     ) %>
                   <% end %>
@@ -299,10 +303,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, secret, "enterprise") do
-    selected_hub = socket.assigns.data["enterprise_hub"]
+  defp set_secret(socket, secret, "hub") do
+    selected_hub = socket.assigns.data["connected_hub"]
 
-    if hub = Enum.find(socket.assigns.enterprise_hubs, &(&1.hub.id == selected_hub)) do
+    if hub = Enum.find(socket.assigns.connected_hubs, &(&1.hub.id == selected_hub)) do
       create_secret_request =
         LivebookProto.CreateSecretRequest.new!(
           name: secret.name,
@@ -314,7 +318,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         {:error, reason} -> {:error, put_flash(socket, :error, reason)}
       end
     else
-      {:error, %{errors: [{"enterprise_hub", {"can't be blank", []}}]}}
+      {:error, %{errors: [{"connected_hub", {"can't be blank", []}}]}}
     end
   end
 
@@ -336,7 +340,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
-  defp enterprise_hubs_options(connected_hubs, selected_hub) do
+  defp connected_hubs_options(connected_hubs, selected_hub) do
     [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
       for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
         [key: name, value: id, selected: id == selected_hub]

@@ -17,7 +17,7 @@ defmodule Livebook.WebSocket.ServerTest do
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, _conn} = Server.start_link(self(), "http://localhost:9999", headers)
-      refute_receive {:connect, :ok, :connected}
+      assert_receive {:connect, :error, "connection refused"}
     end
 
     test "rejects the websocket connection with invalid credentials", %{url: url} do
@@ -71,7 +71,8 @@ defmodule Livebook.WebSocket.ServerTest do
           value: ""
         )
 
-      assert Server.send_request(conn, create_secret_request) == {:error, "value: can't be blank"}
+      assert {:changeset_error, errors} = Server.send_request(conn, create_secret_request)
+      assert "can't be blank" in errors.value
     end
   end
 
@@ -105,8 +106,8 @@ defmodule Livebook.WebSocket.ServerTest do
     test "receives the disconnect message from websocket server", %{conn: conn, test: name} do
       EnterpriseServer.disconnect(name)
 
-      assert_receive {:connect, :error, %Mint.TransportError{reason: :closed}}
-      assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
+      assert_receive {:connect, :error, "socket closed"}
+      assert_receive {:connect, :error, "connection refused"}
 
       assert Process.alive?(conn)
     end
@@ -114,8 +115,8 @@ defmodule Livebook.WebSocket.ServerTest do
     test "reconnects after websocket server is up", %{test: name} do
       EnterpriseServer.disconnect(name)
 
-      assert_receive {:connect, :error, %Mint.TransportError{reason: :closed}}
-      assert_receive {:connect, :error, %Mint.TransportError{reason: :econnrefused}}
+      assert_receive {:connect, :error, "socket closed"}
+      assert_receive {:connect, :error, "connection refused"}
 
       Process.sleep(1000)
 

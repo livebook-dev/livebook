@@ -133,5 +133,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
     }
   end
 
-  def type(_), do: "fly"
+  def type(_fly), do: "fly"
+
+  def connect(_fly), do: nil
 end

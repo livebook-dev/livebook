@@ -8,6 +8,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
+  alias Livebook.Hubs
   alias Livebook.Hubs.EnterpriseClient
 
   on_mount LivebookWeb.SidebarHook
@@ -63,7 +64,7 @@ defmodule LivebookWeb.SessionLive do
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
            livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
-           enterprise_secrets: fetch_enterprise_secrets(socket),
+           enterprise_secrets: fetch_enterprise_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil
          )
@@ -421,7 +422,6 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
-          enterprise_hubs={@connected_hubs}
           livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
@@ -1450,14 +1450,14 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
     {:noreply,
      socket
-     |> assign(enterprise_secrets: fetch_enterprise_secrets(socket))
+     |> assign(enterprise_secrets: fetch_enterprise_secrets())
      |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
   end
 
   def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
     {:noreply,
      socket
-     |> assign(enterprise_secrets: fetch_enterprise_secrets(socket))
+     |> assign(enterprise_secrets: fetch_enterprise_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
@@ -2298,8 +2298,8 @@ defmodule LivebookWeb.SessionLive do
     secret in secrets
   end
 
-  defp fetch_enterprise_secrets(socket) do
-    for connected_hub <- socket.assigns.connected_hubs,
+  defp fetch_enterprise_secrets do
+    for connected_hub <- Hubs.get_connected_hubs(),
         secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
         into: %{},
         do: {secret.name, secret.value}
