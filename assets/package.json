@@ -12,6 +12,7 @@
     "@fontsource/inter": "^4.2.2",
     "@fontsource/jetbrains-mono": "^4.2.2",
     "@fontsource/red-hat-text": "^4.2.2",
+    "@joeattardi/emoji-button": "^4.6.4",
     "babel-loader": "^9.1.0",
     "crypto-js": "^4.0.0",
     "css-minimizer-webpack-plugin": "^4.0.0",
