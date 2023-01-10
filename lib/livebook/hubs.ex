@@ -15,8 +15,8 @@ defmodule Livebook.Hubs do
   @doc """
   Gets a list of hubs from storage.
   """
-  @spec fetch_hubs() :: list(Provider.t())
-  def fetch_hubs do
+  @spec get_hubs() :: list(Provider.t())
+  def get_hubs do
     for fields <- Storage.all(@namespace) do
       to_struct(fields)
     end
@@ -25,9 +25,9 @@ defmodule Livebook.Hubs do
   @doc """
   Gets a list of metadatas from storage.
   """
-  @spec fetch_metadatas() :: list(Metadata.t())
-  def fetch_metadatas do
-    for hub <- fetch_hubs() do
+  @spec get_metadatas() :: list(Metadata.t())
+  def get_metadatas do
+    for hub <- get_hubs() do
       Provider.normalize(hub)
     end
   end
@@ -37,8 +37,8 @@ defmodule Livebook.Hubs do
 
   Raises `Livebook.Storage.NotFoundError` if the hub does not exist.
   """
-  @spec fetch_hub!(String.t()) :: Provider.t()
-  def fetch_hub!(id) do
+  @spec get_hub!(String.t()) :: Provider.t()
+  def get_hub!(id) do
     Storage.fetch!(@namespace, id) |> to_struct()
   end
 
@@ -69,7 +69,7 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     if hub_exists?(id) do
-      hub = fetch_hub!(id)
+      hub = get_hub!(id)
 
       if connected_hub = get_connected_hub(hub) do
         GenServer.stop(connected_hub.pid)
@@ -84,7 +84,7 @@ defmodule Livebook.Hubs do
 
   @doc false
   def clean_hubs do
-    for hub <- fetch_hubs(), do: delete_hub(hub.id)
+    for hub <- get_hubs(), do: delete_hub(hub.id)
 
     :ok
   end
@@ -113,7 +113,7 @@ defmodule Livebook.Hubs do
   # Notifies interested processes about hubs data change.
   # Broadcasts `{:hubs_metadata_changed, hubs}` message under the `"hubs"` topic.
   defp broadcast_hubs_change do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, fetch_metadatas()})
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, get_metadatas()})
   end
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
@@ -139,7 +139,7 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- fetch_hubs(), do: connect_hub(hub)
+    for hub <- get_hubs(), do: connect_hub(hub)
 
     :ok
   end
@@ -173,7 +173,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_connected_hubs() :: connected_hubs()
   def get_connected_hubs do
-    for hub <- fetch_hubs(), reduce: [] do
+    for hub <- get_hubs(), reduce: [] do
       acc ->
         case get_connected_hub(hub) do
           nil -> acc

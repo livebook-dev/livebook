@@ -155,7 +155,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
       assert hubs_html =~ hub.hub_name
 
-      assert Hubs.fetch_hub!(hub.id) == hub
+      assert Hubs.get_hub!(hub.id) == hub
     end
   end
 
