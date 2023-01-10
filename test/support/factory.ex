@@ -17,7 +17,7 @@ defmodule Livebook.Factory do
     %Livebook.Hubs.Fly{
       id: "fly-foo-bar-baz",
       hub_name: "My Personal Hub",
-      hub_color: "#FF00FF",
+      hub_emoji: "🪽",
       access_token: Livebook.Utils.random_cookie(),
       organization_id: Livebook.Utils.random_id(),
       organization_type: "PERSONAL",
@@ -36,7 +36,7 @@ defmodule Livebook.Factory do
     %Livebook.Hubs.Enterprise{
       id: "enterprise-#{id}",
       hub_name: "Enterprise",
-      hub_color: "#FF0000",
+      hub_emoji: "🏭",
       external_id: id,
       token: Livebook.Utils.random_cookie(),
       url: "http://localhost"

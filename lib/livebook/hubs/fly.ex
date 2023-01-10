@@ -10,7 +10,7 @@ defmodule Livebook.Hubs.Fly do
           id: String.t() | nil,
           access_token: String.t() | nil,
           hub_name: String.t() | nil,
-          hub_color: String.t() | nil,
+          hub_emoji: String.t() | nil,
           organization_id: String.t() | nil,
           organization_type: String.t() | nil,
           organization_name: String.t() | nil,
@@ -20,7 +20,7 @@ defmodule Livebook.Hubs.Fly do
   embedded_schema do
     field :access_token, :string
     field :hub_name, :string
-    field :hub_color, Livebook.EctoTypes.HexColor
+    field :hub_emoji, :string
     field :organization_id, :string
     field :organization_type, :string
     field :organization_name, :string
@@ -30,7 +30,7 @@ defmodule Livebook.Hubs.Fly do
   @fields ~w(
     access_token
     hub_name
-    hub_color
+    hub_emoji
     organization_id
     organization_name
     organization_type
@@ -116,7 +116,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
       | id: fields.id,
         access_token: fields.access_token,
         hub_name: fields.hub_name,
-        hub_color: fields.hub_color,
+        hub_emoji: fields.hub_emoji,
         organization_id: fields.organization_id,
         organization_type: fields.organization_type,
         organization_name: fields.organization_name,
@@ -129,7 +129,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
       id: fly.id,
       name: fly.hub_name,
       provider: fly,
-      color: fly.hub_color
+      emoji: fly.hub_emoji
     }
   end
 
