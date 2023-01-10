@@ -145,7 +145,7 @@ defmodule Livebook.MixProject do
     [
       livebook: [
         include_executables_for: [:unix],
-        include_erts: false,
+        include_erts: System.get_env("LIVEBOOK_RELEASE_INCLUDE_ERTS", false),
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]
       ],
