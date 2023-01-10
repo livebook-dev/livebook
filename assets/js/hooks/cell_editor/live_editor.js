@@ -402,7 +402,13 @@ class LiveEditor {
             // We mutate the DOM, so we use a flag to ignore events
             // that we triggered ourselves
             if (!this.hoverContentProcessed) {
-              renderMathInElement(this.hoverContentEl);
+              renderMathInElement(this.hoverContentEl, {
+                delimiters: [
+                  { left: "$$", right: "$$", display: true },
+                  { left: "$", right: "$", display: false },
+                ],
+                throwOnError: false,
+              });
               this.hoverContentProcessed = true;
             }
           }).observe(this.hoverContentEl, { childList: true });
