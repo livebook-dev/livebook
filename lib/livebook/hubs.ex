@@ -80,7 +80,7 @@ defmodule Livebook.Hubs do
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
       if connected_hub = get_connected_hub(hub) do
-        Process.exit(connected_hub.pid, :normal)
+        GenServer.stop(connected_hub.pid, :shutdown)
       end
 
       :ok = Storage.delete(@namespace, id)
@@ -152,17 +152,7 @@ defmodule Livebook.Hubs do
     :ok
   end
 
-  @doc """
-  Connects to one connectable hub.
-
-  ## Example
-
-      iex> connect_hub(%Enterprise{})
-      :ok
-
-  """
-  @spec connect_hub(Provider.t()) :: :ok
-  def connect_hub(hub) do
+  defp connect_hub(hub) do
     if child_spec = Provider.connect(hub) do
       DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
@@ -181,33 +171,10 @@ defmodule Livebook.Hubs do
   """
   @spec get_connected_hubs() :: connected_hubs()
   def get_connected_hubs do
-    for hub <- get_hubs(), reduce: [] do
-      acc ->
-        case get_connected_hub(hub) do
-          nil -> acc
-          connected_hub -> [connected_hub | acc]
-        end
-    end
-    |> Enum.reverse()
+    for hub <- get_hubs(), connected = get_connected_hub(hub), do: connected
   end
 
-  @doc """
-  Gets one connected hub.
-
-  ## Examples
-
-      iex> get_connected_hub(%Enterprise{})
-      %{pid: #PID<0.178.0>, hub: %Enterprise{}}
-
-      iex> get_connected_hub(%Enterprise{})
-      nil
-
-      iex> get_connected_hub(%Fly{})
-      nil
-
-  """
-  @spec get_connected_hub(Provider.t()) :: connected_hub() | nil
-  def get_connected_hub(hub) do
+  defp get_connected_hub(hub) do
     case Registry.lookup(Livebook.HubsRegistry, hub.id) do
       [{pid, _}] -> %{pid: pid, hub: hub}
       [] -> nil
