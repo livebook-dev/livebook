@@ -60,7 +60,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert render(view) =~ "Hub updated successfully"
 
       assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"], hub_name: attrs["hub_name"]})
-      refute Hubs.get_hub!(hub.id) == hub
+      refute Hubs.fetch_hub!(hub.id) == hub
     end
 
     test "add env var", %{conn: conn, bypass: bypass} do
@@ -214,7 +214,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert render(view) =~ "Hub updated successfully"
 
       assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"]})
-      refute Hubs.get_hub!(hub.id) == hub
+      refute Hubs.fetch_hub!(hub.id) == hub
     end
   end
 

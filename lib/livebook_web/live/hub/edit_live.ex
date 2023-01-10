@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    hub = Hubs.get_hub!(params["id"])
+    hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
     if type == "local" do

@@ -114,7 +114,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
              |> element("#hubs")
              |> render() =~ hub.hub_name
 
-      assert Hubs.get_hub!(hub.id) == hub
+      assert Hubs.fetch_hub!(hub.id) == hub
     end
   end
 

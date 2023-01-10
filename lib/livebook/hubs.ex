@@ -37,8 +37,8 @@ defmodule Livebook.Hubs do
 
   Raises `Livebook.Storage.NotFoundError` if the hub does not exist.
   """
-  @spec get_hub!(String.t()) :: Provider.t()
-  def get_hub!(id) do
+  @spec fetch_hub!(String.t()) :: Provider.t()
+  def fetch_hub!(id) do
     Storage.fetch!(@namespace, id) |> to_struct()
   end
 
@@ -69,7 +69,7 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     if hub_exists?(id) do
-      hub = get_hub!(id)
+      hub = fetch_hub!(id)
 
       if connected_hub = get_connected_hub(hub) do
         GenServer.stop(connected_hub.pid)

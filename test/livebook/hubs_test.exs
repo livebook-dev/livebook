@@ -33,16 +33,16 @@ defmodule Livebook.HubsTest do
     assert Hubs.get_metadatas() == []
   end
 
-  test "get_hub!/1 returns one persisted fly" do
+  test "fetch_hub!/1 returns one persisted fly" do
     assert_raise Livebook.Storage.NotFoundError,
                  ~s/could not find entry in \"hubs\" with ID "fly-foo"/,
                  fn ->
-                   Hubs.get_hub!("fly-foo")
+                   Hubs.fetch_hub!("fly-foo")
                  end
 
     fly = insert_hub(:fly, id: "fly-foo")
 
-    assert Hubs.get_hub!("fly-foo") == fly
+    assert Hubs.fetch_hub!("fly-foo") == fly
   end
 
   test "hub_exists?/1" do
@@ -55,14 +55,14 @@ defmodule Livebook.HubsTest do
     fly = build(:fly, id: "fly-foo")
     Hubs.save_hub(fly)
 
-    assert Hubs.get_hub!("fly-foo") == fly
+    assert Hubs.fetch_hub!("fly-foo") == fly
   end
 
   test "save_hub/1 updates hub" do
     fly = insert_hub(:fly, id: "fly-foo2")
     Hubs.save_hub(%{fly | hub_color: "#FFFFFF"})
 
-    refute Hubs.get_hub!("fly-foo2") == fly
-    assert Hubs.get_hub!("fly-foo2").hub_color == "#FFFFFF"
+    refute Hubs.fetch_hub!("fly-foo2") == fly
+    assert Hubs.fetch_hub!("fly-foo2").hub_color == "#FFFFFF"
   end
 end
