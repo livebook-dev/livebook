@@ -9,7 +9,7 @@ const EmojiPicker = {
     const preview = document.querySelector("#emoji-preview");
     const input = document.querySelector(".emoji-picker-input");
 
-    picker.on("emoji", selection => {
+    picker.on("emoji", (selection) => {
       preview.innerHTML = selection.emoji;
       input.value = selection.emoji;
     });
