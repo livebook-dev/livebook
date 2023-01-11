@@ -81,7 +81,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     case FlyClient.fetch_apps(token) do
       {:ok, apps} ->
         opts = select_options(apps)
-        base = %Fly{access_token: token, hub_emoji: "💸"}
+        base = %Fly{access_token: token, hub_emoji: "🚀"}
         changeset = Fly.change_hub(base)
 
         {:noreply,
