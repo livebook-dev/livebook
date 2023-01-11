@@ -21,7 +21,7 @@ defmodule LivebookWeb.UserHook do
          {:user_change, %{id: id} = user},
          %{assigns: %{current_user: %{id: id}}} = socket
        ) do
-    {:cont, assign(socket, :current_user, user)}
+    {:halt, assign(socket, :current_user, user)}
   end
 
   defp info(_message, socket), do: {:cont, socket}
