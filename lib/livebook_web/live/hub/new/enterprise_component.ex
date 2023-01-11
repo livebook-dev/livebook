@@ -83,7 +83,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
             <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
               <div class="input-label">Emoji</div>
-              <.emoji_input form={f} field={:hub_emoji} />
+              <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
             </.input_wrapper>
           </div>
 

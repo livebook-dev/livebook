@@ -61,7 +61,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
 
             <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
               <div class="input-label">Emoji</div>
-              <.emoji_input form={f} field={:hub_emoji} />
+              <.emoji_input id="fly-emoji-input" form={f} field={:hub_emoji} />
             </.input_wrapper>
           </div>
 
@@ -81,7 +81,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     case FlyClient.fetch_apps(token) do
       {:ok, apps} ->
         opts = select_options(apps)
-        base = %Fly{access_token: token, hub_emoji: "🪽"}
+        base = %Fly{access_token: token, hub_emoji: "💸"}
         changeset = Fly.change_hub(base)
 
         {:noreply,

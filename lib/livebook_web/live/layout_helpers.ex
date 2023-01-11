@@ -184,11 +184,10 @@ defmodule LivebookWeb.LayoutHelpers do
           <%= @hub.emoji %>
 
           <%= if Provider.connect(@hub.provider) do %>
-            <%= if @hub.connected? do %>
-              <div class="absolute bg-green-400 w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0" />
-            <% else %>
-              <div class="absolute bg-red-400 w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0" />
-            <% end %>
+            <div class={[
+              "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
+              if(@hub.connected?, do: "bg-green-400", else: "bg-red-400")
+            ]} />
           <% end %>
         </span>
       </div>
