@@ -5,9 +5,10 @@ import { createPicker } from "picmo";
  */
 const EmojiPicker = {
   mounted() {
-    const rootElement = document.querySelector("#emoji-picker-container");
-    const preview = document.querySelector("#emoji-preview");
-    const input = document.querySelector(".emoji-picker-input");
+    const rootElement = this.el.querySelector("[data-emoji-container]");
+    const preview = this.el.querySelector("[data-emoji-preview]");
+    const input = this.el.querySelector("[data-emoji-input]");
+    const button = this.el.querySelector("[data-emoji-button]");
 
     const pickerOptions = {
       rootElement,
@@ -23,7 +24,7 @@ const EmojiPicker = {
       rootElement.classList.toggle("hidden");
     });
 
-    this.el.addEventListener("click", (_) => {
+    button.addEventListener("click", (_) => {
       rootElement.classList.toggle("hidden");
     });
   },
