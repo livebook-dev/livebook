@@ -116,7 +116,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
     receive do
       {:connect, :error, reason} ->
-        GenServer.cast(pid, :stop)
+        EnterpriseClient.stop(pid)
 
         {:noreply,
          socket
@@ -135,7 +135,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
           {:error, reason} ->
-            GenServer.stop(pid)
+            EnterpriseClient.stop(pid)
 
             {:noreply,
              socket

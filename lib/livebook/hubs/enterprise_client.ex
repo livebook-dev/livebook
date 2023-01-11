@@ -20,6 +20,16 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @doc """
+  Stops the WebSocket server.
+  """
+  @spec stop(pid()) :: :ok
+  def stop(pid) do
+    pid |> GenServer.call(:get_server) |> GenServer.stop()
+
+    :ok
+  end
+
+  @doc """
   Sends a request to the WebSocket server.
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
