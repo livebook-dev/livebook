@@ -130,4 +130,12 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
 
   def connect(%Livebook.Hubs.Enterprise{} = enterprise),
     do: {Livebook.Hubs.EnterpriseClient, enterprise}
+
+  def connected?(%Livebook.Hubs.Enterprise{id: id}) do
+    try do
+      GenServer.call({:via, Registry, {Livebook.HubsRegistry, id}}, :connected?)
+    catch
+      :exit, _ -> false
+    end
+  end
 end

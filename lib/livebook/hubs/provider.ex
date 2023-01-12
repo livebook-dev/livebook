@@ -24,4 +24,10 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec connect(struct()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
   def connect(struct)
+
+  @doc """
+  Gets the connection status of the given struct.
+  """
+  @spec connected?(struct()) :: boolean()
+  def connected?(struct)
 end

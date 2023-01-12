@@ -28,11 +28,7 @@ defmodule Livebook.Hubs do
   @spec get_metadatas() :: list(Metadata.t())
   def get_metadatas do
     for hub <- get_hubs() do
-      metadata = Provider.normalize(hub)
-
-      if Provider.connect(hub),
-        do: %{metadata | connected?: hub_connected?(hub)},
-        else: metadata
+      %{Provider.normalize(hub) | connected?: Provider.connected?(hub)}
     end
   end
 
@@ -202,14 +198,6 @@ defmodule Livebook.Hubs do
     case Registry.lookup(Livebook.HubsRegistry, hub.id) do
       [{pid, _}] -> %{pid: pid, hub: hub}
       [] -> nil
-    end
-  end
-
-  defp hub_connected?(hub) do
-    try do
-      GenServer.call({:via, Registry, {Livebook.HubsRegistry, hub.id}}, :connected?)
-    catch
-      :exit, _ -> false
     end
   end
 end
