@@ -115,7 +115,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
-      {:connect, :error, reason} ->
+      {:connection_error, reason} ->
         EnterpriseClient.stop(pid)
 
         {:noreply,
@@ -123,7 +123,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
          |> put_flash(:error, "Failed to connect with Enterprise: " <> reason)
          |> push_patch(to: Routes.hub_path(socket, :new))}
 
-      {:connect, :ok, :connected} ->
+      :hub_connected ->
         session_request =
           LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 

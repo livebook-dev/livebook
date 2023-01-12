@@ -2,7 +2,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @moduledoc false
   use GenServer
 
-  alias Livebook.Hubs
+  alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Enterprise
   alias Livebook.Secrets.Secret
   alias Livebook.WebSocket.Server
@@ -69,31 +69,37 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @impl true
-  def handle_info({:connect, _, _} = message, state) do
-    Hubs.broadcast_message(:connection, message)
-    {:noreply, update_connection_status(state, message)}
+  def handle_info({:connect, :ok, _}, state) do
+    Broadcasts.hub_connected()
+    {:noreply, %{state | connected?: true}}
   end
 
-  def handle_info({:disconnect, :error, _} = message, state) do
-    Hubs.broadcast_message(:connection, message)
-    {:noreply, update_connection_status(state, message)}
+  def handle_info({:connect, :error, reason}, state) do
+    Broadcasts.hub_connection_failed(reason)
+    {:noreply, %{state | connected?: false}}
+  end
+
+  def handle_info({:disconnect, :error, reason}, state) do
+    Broadcasts.hub_disconnection_failed(reason)
+    {:noreply, %{state | connected?: false}}
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value}
-    Hubs.broadcast_message(:secrets, {:secret_created, secret})
+    Broadcasts.secret_created(secret)
 
     {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value}
-    Hubs.broadcast_message(:secrets, {:secret_updated, secret})
+    Broadcasts.secret_updated(secret)
 
     {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:disconnect, :ok, :disconnected}, state) do
+    Broadcasts.hub_disconnected()
     {:stop, :normal, state}
   end
 
@@ -101,14 +107,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   defp registry_name(%Enterprise{id: id}) do
     {:via, Registry, {@registry, id}}
-  end
-
-  defp update_connection_status(state, {:connect, :ok, :connected}) do
-    %{state | connected?: true}
-  end
-
-  defp update_connection_status(state, _message) do
-    %{state | connected?: false}
   end
 
   defp put_secret(state, %Secret{name: name} = secret) do

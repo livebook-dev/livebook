@@ -18,15 +18,15 @@ defmodule LivebookWeb.SidebarHook do
     {:cont, socket}
   end
 
-  defp handle_info({:hubs_metadata_changed, hubs}, socket) do
-    {:halt, assign(socket, saved_hubs: hubs)}
-  end
+  @connection_events ~w(hub_connected hub_disconnected hubs_metadata_changed)a
 
-  defp handle_info({:connect, _, _}, socket) do
+  defp handle_info(event, socket) when event in @connection_events do
     {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
   end
 
-  defp handle_info({:disconnect, _, _}, socket) do
+  @error_events ~w(connection_error disconnection_error)a
+
+  defp handle_info({event, _reason}, socket) when event in @error_events do
     {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
   end
 

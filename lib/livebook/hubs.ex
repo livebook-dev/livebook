@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
 
   @namespace :hubs
 
@@ -75,7 +75,7 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = broadcast_message(:crud, {:hubs_metadata_changed, get_metadatas()})
+    :ok = Broadcasts.hubs_metadata_changed()
 
     struct
   end
@@ -88,7 +88,7 @@ defmodule Livebook.Hubs do
       end
 
       :ok = Storage.delete(@namespace, id)
-      :ok = broadcast_message(:crud, {:hubs_metadata_changed, get_metadatas()})
+      :ok = Broadcasts.hubs_metadata_changed()
     end
 
     :ok
@@ -108,13 +108,14 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:crud`:
 
-    * `{:hubs_metadata_changed, hubs}`
+    * `:hubs_metadata_changed`
 
   Topic `hubs:connection`:
 
-    * `{:connect, :ok, :connected}`
-    * `{:connect, :error, reason}`
-    * `{:disconnect, :error, reason}`
+    * `:hub_connected`
+    * `:hub_disconnected`
+    * `{:connection_error, reason}`
+    * `{:disconnection_error, reason}`
 
   Topic `hubs:secrets`:
 
@@ -145,16 +146,6 @@ defmodule Livebook.Hubs do
 
   def unsubscribe(topic) do
     Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
-  @doc """
-  Notifies interested processes about hubs.
-
-  Broadcasts the message under given subtopic inside `"hubs"` topic.
-  """
-  @spec broadcast_message(atom(), any()) :: :ok
-  def broadcast_message(topic, message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs:#{topic}", message)
   end
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
@@ -215,10 +206,10 @@ defmodule Livebook.Hubs do
   end
 
   defp hub_connected?(hub) do
-    if connected_hub = get_connected_hub(hub) do
-      GenServer.call(connected_hub.pid, :connected?)
-    else
-      false
+    try do
+      GenServer.call({:via, Registry, {Livebook.HubsRegistry, hub.id}}, :connected?)
+    catch
+      :exit, _ -> false
     end
   end
 end
