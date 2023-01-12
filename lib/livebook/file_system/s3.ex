@@ -3,26 +3,44 @@ defmodule Livebook.FileSystem.S3 do
 
   # File system backed by an S3 bucket.
 
-  defstruct [:bucket_url, :access_key_id, :secret_access_key]
+  defstruct [:bucket_url, :region, :access_key_id, :secret_access_key]
 
   @type t :: %__MODULE__{
           bucket_url: String.t(),
+          region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t()
         }
 
   @doc """
   Returns a new file system struct.
+
+  ## Options
+
+    * `:region` - the bucket region. By default the URL is assumed
+      to have the format `*.[region].[rootdomain].com` and the region
+      is inferred from that URL
+
   """
-  @spec new(String.t(), String.t(), String.t()) :: t()
-  def new(bucket_url, access_key_id, secret_access_key) do
+  @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
+  def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
+    opts = Keyword.validate!(opts, [:region])
+
     bucket_url = String.trim_trailing(bucket_url, "/")
+    region = opts[:region] || region_from_uri(bucket_url)
 
     %__MODULE__{
       bucket_url: bucket_url,
+      region: region,
       access_key_id: access_key_id,
       secret_access_key: secret_access_key
     }
+  end
+
+  defp region_from_uri(uri) do
+    # For many services the API host is of the form *.[region].[rootdomain].com
+    %{host: host} = URI.parse(uri)
+    host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
   end
 
   @doc """
@@ -36,7 +54,7 @@ defmodule Livebook.FileSystem.S3 do
         access_key_id: access_key_id,
         secret_access_key: secret_access_key
       } ->
-        {:ok, new(bucket_url, access_key_id, secret_access_key)}
+        {:ok, new(bucket_url, access_key_id, secret_access_key, region: config[:region])}
 
       _config ->
         {:error,
@@ -46,7 +64,7 @@ defmodule Livebook.FileSystem.S3 do
 
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
-    Map.take(s3, [:bucket_url, :access_key_id, :secret_access_key])
+    Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 end
 
@@ -373,7 +391,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       :aws_signature.sign_v4(
         file_system.access_key_id,
         file_system.secret_access_key,
-        region_from_uri(file_system.bucket_url),
+        file_system.region,
         "s3",
         now,
         Atom.to_string(method),
@@ -385,12 +403,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
     body = body && {"application/octet-stream", body}
     HTTP.request(method, url, headers: headers, body: body)
-  end
-
-  defp region_from_uri(uri) do
-    # For many services the API host is of the form *.[region].[rootdomain].com
-    %{host: host} = URI.parse(uri)
-    host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
   end
 
   defp decode({:ok, status, headers, body}) do
