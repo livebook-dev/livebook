@@ -44,6 +44,13 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
             ) %>
           </div>
           <div>
+            <div class="input-label">Region (optional)</div>
+            <%= text_input(f, :region,
+              value: @data["region"],
+              class: "input"
+            ) %>
+          </div>
+          <div>
             <div class="input-label">Access Key ID</div>
             <.with_password_toggle id="access-key-password-toggle">
               <%= text_input(f, :access_key_id,
@@ -97,7 +104,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
   end
 
   defp empty_data() do
-    %{"bucket_url" => "", "access_key_id" => "", "secret_access_key" => ""}
+    %{"bucket_url" => "", "region" => "", "access_key_id" => "", "secret_access_key" => ""}
   end
 
   defp data_valid?(data) do
@@ -106,6 +113,10 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
   end
 
   defp data_to_file_system(data) do
-    FileSystem.S3.new(data["bucket_url"], data["access_key_id"], data["secret_access_key"])
+    region = if(data["region"] != "", do: data["region"])
+
+    FileSystem.S3.new(data["bucket_url"], data["access_key_id"], data["secret_access_key"],
+      region: region
+    )
   end
 end
