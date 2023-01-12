@@ -16,7 +16,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec start_link(Enterprise.t()) :: GenServer.on_start()
   def start_link(%Enterprise{} = enterprise) do
-    GenServer.start_link(__MODULE__, enterprise, name: registry_name(enterprise))
+    GenServer.start_link(__MODULE__, enterprise, name: registry_name(enterprise.id))
   end
 
   @doc """
@@ -43,6 +43,18 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec list_cached_secrets(pid()) :: list(Secret.t())
   def list_cached_secrets(pid) do
     GenServer.call(pid, :list_cached_secrets)
+  end
+
+  @doc """
+  Returns if the given enterprise is connected.
+  """
+  @spec connected?(String.t()) :: boolean()
+  def connected?(id) do
+    try do
+      GenServer.call(registry_name(id), :connected?)
+    catch
+      :exit, _ -> false
+    end
   end
 
   ## GenServer callbacks
@@ -105,7 +117,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   # Private
 
-  defp registry_name(%Enterprise{id: id}) do
+  defp registry_name(id) do
     {:via, Registry, {@registry, id}}
   end
 
