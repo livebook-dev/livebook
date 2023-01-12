@@ -3,13 +3,12 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   import Ecto.Changeset, only: [get_field: 2]
 
-  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Enterprise, EnterpriseClient}
 
   @impl true
   def update(assigns, socket) do
     if connected?(socket) do
-      EnterpriseClient.subscribe()
+      Livebook.Hubs.subscribe(:connection)
     end
 
     {:ok,
@@ -82,13 +81,9 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               <%= text_input(f, :hub_name, class: "input", readonly: true) %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
-              <div class="input-label">Color</div>
-              <.hex_color_input
-                form={f}
-                field={:hub_color}
-                randomize={JS.push("randomize_color", target: @myself)}
-              />
+            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+              <div class="input-label">Emoji</div>
+              <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
             </.input_wrapper>
           </div>
 
@@ -109,20 +104,26 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     token = get_field(socket.assigns.changeset, :token)
 
     base = %Enterprise{
+      id: "enterprise-placeholder",
       token: token,
+      external_id: "placeholder",
       url: url,
       hub_name: "Enterprise",
-      hub_color: HexColor.random()
+      hub_emoji: "🏭"
     }
 
     {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
-      {:connect, :error, reason} ->
-        GenServer.stop(pid)
-        handle_error(reason, socket)
+      {:connection_error, reason} ->
+        EnterpriseClient.stop(pid)
 
-      {:connect, :ok, :connected} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to connect with Enterprise: " <> reason)
+         |> push_patch(to: Routes.hub_path(socket, :new))}
+
+      :hub_connected ->
         session_request =
           LivebookProto.SessionRequest.new!(app_version: Livebook.Config.app_version())
 
@@ -134,14 +135,14 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
           {:error, reason} ->
-            GenServer.stop(pid)
-            handle_error(reason, socket)
+            EnterpriseClient.stop(pid)
+
+            {:noreply,
+             socket
+             |> put_flash(:error, "Failed to connect with Enterprise: " <> reason)
+             |> push_patch(to: Routes.hub_path(socket, :new))}
         end
     end
-  end
-
-  def handle_event("randomize_color", _, socket) do
-    handle_event("validate", %{"enterprise" => %{"hub_color" => HexColor.random()}}, socket)
   end
 
   def handle_event("save", %{"enterprise" => params}, socket) do
@@ -167,24 +168,5 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
     {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.base, attrs))}
-  end
-
-  def handle_error(%{reason: :econnrefused}, socket) do
-    show_connect_error("Failed to connect with given URL", socket)
-  end
-
-  def handle_error(%{reason: _}, socket) do
-    show_connect_error("Failed to connect with Enterprise", socket)
-  end
-
-  def handle_error(reason, socket) do
-    show_connect_error(reason, socket)
-  end
-
-  defp show_connect_error(message, socket) do
-    {:noreply,
-     socket
-     |> put_flash(:error, message)
-     |> push_patch(to: Routes.hub_path(socket, :new))}
   end
 end

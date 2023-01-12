@@ -37,7 +37,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         "url" => url,
         "token" => token,
         "hub_name" => "Enterprise",
-        "hub_color" => "#FF00FF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -58,7 +58,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       assert render(view) =~ "Hub added successfully"
 
       hubs_html = view |> element("#hubs") |> render()
-      assert hubs_html =~ ~s/style="color: #FF00FF"/
+      assert hubs_html =~ "🐈"
       assert hubs_html =~ "/hub/enterprise-#{id}"
       assert hubs_html =~ "Enterprise"
     end
@@ -94,8 +94,13 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       stop_new_instance(name)
     end
 
-    test "fails to create existing hub", %{conn: conn, url: url, token: token} do
-      node = EnterpriseServer.get_node()
+    test "fails to create existing hub", %{test: name, conn: conn} do
+      start_new_instance(name)
+
+      node = EnterpriseServer.get_node(name)
+      url = EnterpriseServer.url(name)
+      token = EnterpriseServer.token(name)
+
       id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
       user = :erpc.call(node, Enterprise.Integration, :create_user, [])
 
@@ -135,7 +140,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
         "url" => url,
         "token" => token,
         "hub_name" => "Enterprise",
-        "hub_color" => "#FFFFFF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -151,11 +156,13 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
              |> render_submit(%{"enterprise" => attrs}) =~ "already exists"
 
       hubs_html = view |> element("#hubs") |> render()
-      assert hubs_html =~ ~s/style="color: #{hub.hub_color}"/
+      assert hubs_html =~ hub.hub_emoji
       assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
       assert hubs_html =~ hub.hub_name
 
       assert Hubs.fetch_hub!(hub.id) == hub
+    after
+      stop_new_instance(name)
     end
   end
 

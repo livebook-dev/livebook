@@ -5,6 +5,7 @@ defmodule LivebookWeb.LayoutHelpers do
   import LivebookWeb.UserHelpers
 
   alias Phoenix.LiveView.JS
+  alias Livebook.Hubs.Provider
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -165,17 +166,33 @@ defmodule LivebookWeb.LayoutHelpers do
   end
 
   defp sidebar_link(assigns) do
-    assigns = assign_new(assigns, :icon_style, fn -> nil end)
-
     ~H"""
     <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
-      <.remix_icon
-        icon={@icon}
-        class="text-lg leading-6 w-[56px] flex justify-center"
-        style={@icon_style}
-      />
+      <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" />
       <span class="text-sm font-medium">
         <%= @title %>
+      </span>
+    <% end %>
+    """
+  end
+
+  defp sidebar_hub_link(assigns) do
+    ~H"""
+    <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
+      <div class="text-lg leading-6 w-[56px] flex justify-center">
+        <span class="relative">
+          <%= @hub.emoji %>
+
+          <%= if Provider.connect(@hub.provider) do %>
+            <div class={[
+              "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
+              if(@hub.connected?, do: "bg-green-400", else: "bg-red-400")
+            ]} />
+          <% end %>
+        </span>
+      </div>
+      <span class="text-sm font-medium">
+        <%= @hub.name %>
       </span>
     <% end %>
     """
@@ -191,10 +208,8 @@ defmodule LivebookWeb.LayoutHelpers do
           </div>
 
           <%= for hub <- @hubs do %>
-            <.sidebar_link
-              title={hub.name}
-              icon="checkbox-blank-circle-fill"
-              icon_style={"color: #{hub.color}"}
+            <.sidebar_hub_link
+              hub={hub}
               to={Routes.hub_path(@socket, :edit, hub.id)}
               current={@current_page}
             />

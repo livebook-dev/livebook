@@ -2,7 +2,6 @@ defmodule LivebookWeb.FormHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
-
   use Phoenix.Component
 
   import Phoenix.HTML.Form
@@ -50,6 +49,38 @@ defmodule LivebookWeb.FormHelpers do
         <button class="icon-button absolute right-2 top-1" type="button" phx-click={@randomize}>
           <.remix_icon icon="refresh-line" class="text-xl" />
         </button>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Emoji input.
+  """
+  def emoji_input(assigns) do
+    ~H"""
+    <div id={@id} class="flex border-[1px] bg-gray-50 rounded-lg space-x-4 items-center">
+      <div id={"#{@id}-picker"} class="grid grid-cols-1 md:grid-cols-3 w-full" phx-hook="EmojiPicker">
+        <div class="place-content-start">
+          <div class="p-1 pl-3">
+            <span id={"#{@id}-preview"} data-emoji-preview><%= input_value(@form, @field) %></span>
+          </div>
+        </div>
+
+        <div />
+
+        <div class="flex items-center place-content-end">
+          <button
+            id={"#{@id}-button"}
+            type="button"
+            data-emoji-button
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] bg-white flex justify-center items-center cursor-pointer"
+          >
+            <.remix_icon icon="emotion-line" class="text-xl" />
+          </button>
+        </div>
+        <div id={"#{@id}-container"} data-emoji-container class="absolute mt-10 hidden" />
+        <%= hidden_input(@form, @field, class: "hidden emoji-picker-input", "data-emoji-input": true) %>
       </div>
     </div>
     """

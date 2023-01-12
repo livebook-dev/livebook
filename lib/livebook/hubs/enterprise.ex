@@ -12,7 +12,7 @@ defmodule Livebook.Hubs.Enterprise do
           token: String.t() | nil,
           external_id: String.t() | nil,
           hub_name: String.t() | nil,
-          hub_color: String.t() | nil
+          hub_emoji: String.t() | nil
         }
 
   embedded_schema do
@@ -20,7 +20,7 @@ defmodule Livebook.Hubs.Enterprise do
     field :token, :string
     field :external_id, :string
     field :hub_name, :string
-    field :hub_color, Livebook.EctoTypes.HexColor
+    field :hub_emoji, :string
   end
 
   @fields ~w(
@@ -28,7 +28,7 @@ defmodule Livebook.Hubs.Enterprise do
     token
     external_id
     hub_name
-    hub_color
+    hub_emoji
   )a
 
   @doc """
@@ -113,7 +113,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
         token: fields.token,
         external_id: fields.external_id,
         hub_name: fields.hub_name,
-        hub_color: fields.hub_color
+        hub_emoji: fields.hub_emoji
     }
   end
 
@@ -122,7 +122,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
       id: enterprise.id,
       name: enterprise.hub_name,
       provider: enterprise,
-      color: enterprise.hub_color
+      emoji: enterprise.hub_emoji
     }
   end
 
@@ -130,4 +130,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
 
   def connect(%Livebook.Hubs.Enterprise{} = enterprise),
     do: {Livebook.Hubs.EnterpriseClient, enterprise}
+
+  def connected?(%Livebook.Hubs.Enterprise{id: id}) do
+    Livebook.Hubs.EnterpriseClient.connected?(id)
+  end
 end

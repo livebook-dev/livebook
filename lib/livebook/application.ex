@@ -197,13 +197,11 @@ defmodule Livebook.Application do
 
   if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
     defp insert_development_hub do
-      unless Livebook.Hubs.hub_exists?("local-host") do
-        Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
-          id: "local-host",
-          hub_name: "Localhost",
-          hub_color: Livebook.EctoTypes.HexColor.random()
-        })
-      end
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
+        id: "local-host",
+        hub_name: "Localhost",
+        hub_emoji: "🏠"
+      })
     end
   else
     defp insert_development_hub, do: :ok

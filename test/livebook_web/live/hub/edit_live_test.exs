@@ -40,7 +40,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       attrs = %{
         "hub_name" => "Personal Hub",
-        "hub_color" => "#FF00FF"
+        "hub_emoji" => "🐈"
       }
 
       view
@@ -59,7 +59,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"], hub_name: attrs["hub_name"]})
+      assert_hub(view, conn, %{hub | hub_emoji: attrs["hub_emoji"], hub_name: attrs["hub_name"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
@@ -195,7 +195,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:enterprise)
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      attrs = %{"hub_color" => "#FF00FF"}
+      attrs = %{"hub_emoji" => "🐈"}
 
       view
       |> element("#enterprise-form")
@@ -213,7 +213,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"]})
+      assert_hub(view, conn, %{hub | hub_emoji: attrs["hub_emoji"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
   end
@@ -221,7 +221,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   defp assert_hub(view, conn, hub) do
     hubs_html = view |> element("#hubs") |> render()
 
-    assert hubs_html =~ ~s/style="color: #{hub.hub_color}"/
+    assert hubs_html =~ hub.hub_emoji
     assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
     assert hubs_html =~ hub.hub_name
   end

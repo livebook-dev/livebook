@@ -6,7 +6,7 @@ defmodule LivebookWeb.SidebarHook do
 
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
-      Livebook.Hubs.subscribe()
+      Livebook.Hubs.subscribe([:crud, :connection])
     end
 
     socket =
@@ -18,8 +18,16 @@ defmodule LivebookWeb.SidebarHook do
     {:cont, socket}
   end
 
-  defp handle_info({:hubs_metadata_changed, hubs}, socket) do
-    {:halt, assign(socket, saved_hubs: hubs)}
+  @connection_events ~w(hub_connected hub_disconnected hubs_metadata_changed)a
+
+  defp handle_info(event, socket) when event in @connection_events do
+    {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
+  end
+
+  @error_events ~w(connection_error disconnection_error)a
+
+  defp handle_info({event, _reason}, socket) when event in @error_events do
+    {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
   end
 
   defp handle_info(_event, socket), do: {:cont, socket}

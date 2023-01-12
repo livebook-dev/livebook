@@ -26,8 +26,7 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Secrets.subscribe()
-            # TODO: Move this to Hubs.subscribe([:secrets]) and rename all "enterprise" to "hubs"
-            EnterpriseClient.subscribe()
+            Hubs.subscribe(:secrets)
 
             {data, client_id}
           else
@@ -64,7 +63,7 @@ defmodule LivebookWeb.SessionLive do
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
            livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
-           enterprise_secrets: fetch_enterprise_secrets(),
+           hub_secrets: get_hub_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil
          )
@@ -186,7 +185,7 @@ defmodule LivebookWeb.SessionLive do
           <.secrets_list
             data_view={@data_view}
             livebook_secrets={@livebook_secrets}
-            enterprise_secrets={@enterprise_secrets}
+            hub_secrets={@hub_secrets}
             session={@session}
             socket={@socket}
           />
@@ -739,13 +738,13 @@ defmodule LivebookWeb.SessionLive do
         <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
           <div class="mt-16">
             <h3 class="uppercase text-sm font-semibold text-gray-500">
-              Enterprise secrets
+              Hub secrets
             </h3>
             <span class="text-sm text-gray-500">Available in all sessions</span>
           </div>
 
           <div class="flex flex-col space-y-4 mt-6">
-            <%= for {secret_name, secret_value} <- Enum.sort(@enterprise_secrets) do %>
+            <%= for {secret_name, secret_value} <- Enum.sort(@hub_secrets) do %>
               <div
                 class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
                 id={"enterprise-secret-#{secret_name}-wrapper"}
@@ -1450,14 +1449,14 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
     {:noreply,
      socket
-     |> assign(enterprise_secrets: fetch_enterprise_secrets())
+     |> assign(hub_secrets: get_hub_secrets())
      |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
   end
 
   def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
     {:noreply,
      socket
-     |> assign(enterprise_secrets: fetch_enterprise_secrets())
+     |> assign(hub_secrets: get_hub_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
@@ -2298,7 +2297,7 @@ defmodule LivebookWeb.SessionLive do
     secret in secrets
   end
 
-  defp fetch_enterprise_secrets do
+  defp get_hub_secrets do
     for connected_hub <- Hubs.get_connected_hubs(),
         secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
         into: %{},
