@@ -79,8 +79,9 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      if connected_hub = get_connected_hub(hub) do
-        GenServer.stop(connected_hub.pid, :shutdown)
+      with %{pid: pid} <- get_connected_hub(hub),
+           true <- Process.alive?(pid) do
+        GenServer.stop(pid, :shutdown)
       end
 
       :ok = Storage.delete(@namespace, id)
