@@ -339,9 +339,9 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("save", %{"env_var" => attrs}, socket) do
-    env_var = %Livebook.Settings.EnvVar{}
+    env_var = socket.assigns.env_var || %Livebook.Settings.EnvVar{}
 
-    case Livebook.Settings.set_env_var(socket.assigns.env_var || env_var, attrs) do
+    case Livebook.Settings.set_env_var(env_var, attrs) do
       {:ok, _} ->
         {:noreply, push_patch(socket, to: Routes.settings_path(socket, :page))}
 
