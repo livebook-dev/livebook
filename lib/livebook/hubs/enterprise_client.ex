@@ -95,14 +95,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value}
+    secret = %Secret{name: name, value: value, origin: state.hub.id}
     Broadcasts.secret_created(secret)
 
     {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value}
+    secret = %Secret{name: name, value: value, origin: state.hub.id}
     Broadcasts.secret_updated(secret)
 
     {:noreply, put_secret(state, secret)}

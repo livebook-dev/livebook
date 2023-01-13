@@ -50,6 +50,14 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:secret) do
+    %Livebook.Secrets.Secret{
+      name: "FOO",
+      value: "123",
+      origin: :system_env
+    }
+  end
+
   def build(factory_name, attrs \\ %{}) do
     factory_name |> build() |> struct!(attrs)
   end
@@ -62,6 +70,11 @@ defmodule Livebook.Factory do
     factory_name
     |> build(attrs)
     |> Livebook.Hubs.save_hub()
+  end
+
+  def insert_secret(attrs \\ %{}) do
+    secret = build(:secret, attrs)
+    Livebook.Secrets.set_secret(secret)
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

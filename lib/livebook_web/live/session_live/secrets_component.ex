@@ -295,10 +295,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(_), do: "Select secret"
 
   defp set_secret(socket, secret, "session") do
+    secret = %{secret | origin: :system_env}
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
   defp set_secret(socket, secret, "livebook") do
+    secret = %{secret | origin: :app}
     Livebook.Secrets.set_secret(secret)
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end

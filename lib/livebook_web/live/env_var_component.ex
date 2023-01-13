@@ -74,6 +74,7 @@ defmodule LivebookWeb.EnvVarComponent do
 
   @impl true
   def handle_event("validate", %{"env_var" => attrs}, socket) do
+    attrs = Map.put(attrs, "origin", :app)
     {:noreply, assign(socket, changeset: Settings.change_env_var(socket.assigns.env_var, attrs))}
   end
 end
