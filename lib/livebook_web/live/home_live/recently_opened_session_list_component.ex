@@ -1,6 +1,10 @@
 defmodule LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent do
   use LivebookWeb, :live_component
 
+  import LivebookWeb.SessionHelpers
+
+  alias Livebook.{Session, Notebook}
+
   @impl true
   def mount(socket) do
     {:ok, socket}
@@ -23,7 +27,7 @@ defmodule LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent do
           </h2>
         </div>
       </div>
-      <.session_list sessions={@sessions} socket={@socket} />
+      <.session_list sessions={@sessions} socket={@socket} myself={@myself} />
     </form>
     """
   end
@@ -60,9 +64,44 @@ defmodule LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
           </div>
+          <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
+            <button
+              class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
+              type="button"
+              aria-label="toggle edit"
+              phx-click="fork_session"
+              phx-target={@myself}
+              phx-value-id={session.id}
+            >
+              <.remix_icon icon="git-branch-line" />
+              <span>Fork</span>
+            </button>
+          </div>
         </div>
       <% end %>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("fork_session", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    %{images_dir: images_dir} = session
+    data = Session.get_data(session.pid)
+    notebook = Notebook.forked(data.notebook)
+
+    origin =
+      if data.file do
+        {:file, data.file}
+      else
+        data.origin
+      end
+
+    {:noreply,
+     create_session(socket,
+       notebook: notebook,
+       copy_images_from: images_dir,
+       origin: origin
+     )}
   end
 end
