@@ -18,12 +18,18 @@ defmodule LivebookWeb.HomeLive do
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
 
+    # TODO:
+    # current_user = socket.assigns.current_user
+    # recently_opened_sessions = Sessions.list_recently_opened_sessions(current_user)
+    recently_opened_sessions = []
+
     {:ok,
      assign(socket,
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
+       recently_opened_sessions: recently_opened_sessions,
        notebook_infos: notebook_infos,
        page_title: "Livebook",
        new_version: Livebook.UpdateCheck.new_version(),
@@ -131,6 +137,13 @@ defmodule LivebookWeb.HomeLive do
             id="session-list"
             sessions={@sessions}
             memory={@memory}
+          />
+        </div>
+        <div id="recently-opened-sessions" role="region" aria-label="recently opened sessions">
+          <.live_component
+            module={LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent}
+            id="recently-opened-session-list"
+            sessions={@recently_opened_sessions}
           />
         </div>
       </div>
