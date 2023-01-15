@@ -10,6 +10,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.JSInterop
   alias Livebook.Hubs
   alias Livebook.Hubs.EnterpriseClient
+  alias Livebook.Session.RecentlyOpened
 
   on_mount LivebookWeb.SidebarHook
 
@@ -49,6 +50,7 @@ defmodule LivebookWeb.SessionLive do
           end
 
         session = Session.get_by_pid(session_pid)
+        RecentlyOpened.save_session(socket.assigns.current_user, session)
 
         platform = platform_from_socket(socket)
 
@@ -77,6 +79,7 @@ defmodule LivebookWeb.SessionLive do
          )}
 
       :error ->
+        RecentlyOpened.delete_session(socket.assigns.current_user, session_id)
         {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
   end

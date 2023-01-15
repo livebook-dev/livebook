@@ -37,7 +37,9 @@ defmodule Livebook.Application do
         # Start the registry for managing unique connections
         {Registry, keys: :unique, name: Livebook.HubsRegistry},
         # Start the supervisor dynamically managing connections
-        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
+        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
+        # Start the server save Recently opened sessions
+        Livebook.Session.RecentlyOpened
       ] ++
         iframe_server_specs() ++
         [

@@ -5,6 +5,7 @@ defmodule LivebookWeb.HomeLive do
 
   alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
+  alias Livebook.Session.RecentlyOpened
 
   on_mount LivebookWeb.SidebarHook
 
@@ -17,11 +18,7 @@ defmodule LivebookWeb.HomeLive do
 
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
-
-    # TODO:
-    # current_user = socket.assigns.current_user
-    # recently_opened_sessions = Sessions.list_recently_opened_sessions(current_user)
-    recently_opened_sessions = []
+    recently_opened_sessions = RecentlyOpened.list_sessions(socket.assigns.current_user)
 
     {:ok,
      assign(socket,
