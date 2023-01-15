@@ -628,7 +628,7 @@ defmodule Livebook.Intellisense do
     render_line_break() |> append_inline(iodata) |> build_md(ast)
   end
 
-  defp build_md(iodata, [{:p, _, content} | ast]) do
+  defp build_md(iodata, [{tag, _, content} | ast]) when tag in [:p, :div] do
     render_paragraph(content) |> append_block(iodata) |> build_md(ast)
   end
 

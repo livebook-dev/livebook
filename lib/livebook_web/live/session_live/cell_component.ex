@@ -12,9 +12,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-cell-id={@cell_view.id}
       data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
-      data-session-path={Routes.session_path(@socket, :page, @session_id)}
+      data-session-path={~p"/sessions/#{@session_id}"}
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
+      data-eval-errored={get_in(@cell_view, [:eval, :errored])}
       data-js-empty={empty?(@cell_view.source_view)}
       data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
       data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
@@ -64,7 +65,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <:primary>
         <.cell_evaluation_button
           session_id={@session_id}
-          socket={@socket}
           cell_id={@cell_view.id}
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:primary>
       <:secondary>
         <.amplify_output_button />
-        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -98,7 +98,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <.evaluation_outputs
         cell_view={@cell_view}
-        socket={@socket}
         session_id={@session_id}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -119,7 +118,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </:primary>
       <:secondary>
-        <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
+        <.package_search_button session_id={@session_id} runtime={@runtime} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />
       </:secondary>
@@ -148,7 +147,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
         <.evaluation_outputs
           cell_view={@cell_view}
-          socket={@socket}
           session_id={@session_id}
           session_pid={@session_pid}
           client_id={@client_id}
@@ -164,7 +162,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <:primary>
         <.cell_evaluation_button
           session_id={@session_id}
-          socket={@socket}
           cell_id={@cell_view.id}
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
@@ -195,17 +192,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 session_id={@session_id}
                 client_id={@client_id}
               />
-              <%= if @cell_view.editor do %>
-                <.live_component
-                  module={LivebookWeb.SessionLive.CellEditorComponent}
-                  id={"#{@cell_view.id}-secondary"}
-                  cell_id={@cell_view.id}
-                  tag="secondary"
-                  source_view={@cell_view.editor.source_view}
-                  language={@cell_view.editor.language}
-                  rounded={@cell_view.editor.placement}
-                />
-              <% end %>
+              <.live_component
+                :if={@cell_view.editor}
+                module={LivebookWeb.SessionLive.CellEditorComponent}
+                id={"#{@cell_view.id}-secondary"}
+                cell_id={@cell_view.id}
+                tag="secondary"
+                source_view={@cell_view.editor.source_view}
+                language={@cell_view.editor.language}
+                rounded={@cell_view.editor.placement}
+              />
             </div>
           <% :dead -> %>
             <div class="info-box">
@@ -256,7 +252,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <.evaluation_outputs
         cell_view={@cell_view}
-        socket={@socket}
         session_id={@session_id}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -321,34 +316,34 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <span class="text-sm font-medium">Evaluate</span>
         <% end %>
       </button>
-      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position="bottom-left" distant>
+      <.menu id={"cell-#{@cell_id}-evaluation-menu"} position={:bottom_left} distant>
         <:toggle>
           <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
-        <:content>
+        <.menu_item variant={if(not @reevaluate_automatically, do: :selected, else: :default)}>
           <button
-            class={"menu-item #{if(not @reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")}"}
             role="menuitem"
             phx-click={
               JS.push("set_reevaluate_automatically", value: %{value: false, cell_id: @cell_id})
             }
           >
             <.remix_icon icon="check-line" class={if(@reevaluate_automatically, do: "invisible")} />
-            <span class="font-medium">Evaluate on demand</span>
+            <span>Evaluate on demand</span>
           </button>
+        </.menu_item>
+        <.menu_item variant={if(@reevaluate_automatically, do: :selected, else: :default)}>
           <button
-            class={"menu-item #{if(@reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")}"}
             role="menuitem"
             phx-click={
               JS.push("set_reevaluate_automatically", value: %{value: true, cell_id: @cell_id})
             }
           >
             <.remix_icon icon="check-line" class={if(not @reevaluate_automatically, do: "invisible")} />
-            <span class="font-medium">Reevaluate automatically</span>
+            <span>Reevaluate automatically</span>
           </button>
-        </:content>
+        </.menu_item>
       </.menu>
     </div>
     """
@@ -386,24 +381,23 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </button>
       <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
-        <.menu id="setup-menu" position="bottom-left" distant>
+        <.menu id="setup-menu" position={:bottom_left} distant>
           <:toggle>
             <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </:toggle>
-          <:content>
+          <.menu_item>
             <button
-              class="menu-item text-gray-500"
               role="menuitem"
               data-el-queue-cell-evaluation-button
               data-cell-id={@cell_id}
               data-disable-dependencies-cache
             >
               <.remix_icon icon="play-circle-fill" />
-              <span class="font-medium">Setup without cache</span>
+              <span>Setup without cache</span>
             </button>
-          </:content>
+          </.menu_item>
         </.menu>
       <% end %>
     </div>
@@ -483,13 +477,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </span>
     <% else %>
       <span class="tooltip top" data-tooltip="Add package (sp)">
-        <%= live_patch to: Routes.session_path(@socket, :package_search, @session_id),
-              class: "icon-button",
-              aria_label: "add package",
-              role: "button",
-              data_btn_package_search: true do %>
+        <.link
+          patch={~p"/sessions/#{@session_id}/package-search"}
+          class="icon-button"
+          role="button"
+          data-btn-package-search
+        >
           <.remix_icon icon="play-list-add-line" class="text-xl" />
-        <% end %>
+        </.link>
       </span>
     <% end %>
     """
@@ -518,12 +513,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_settings_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Cell settings">
-      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id),
-            class: "icon-button",
-            aria_label: "cell settings",
-            role: "button" do %>
+      <.link
+        patch={~p"/sessions/#{@session_id}/cell-settings/#{@cell_id}"}
+        class="icon-button"
+        aria-label="cell settings"
+        role="button"
+      >
         <.remix_icon icon="settings-3-line" class="text-xl" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -613,7 +610,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <LivebookWeb.Output.outputs
         outputs={@cell_view.eval.outputs}
         dom_id_map={%{}}
-        socket={@socket}
         session_id={@session_id}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -691,22 +687,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       |> assign_new(:tooltip, fn -> nil end)
 
     ~H"""
-    <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} data-tooltip={@tooltip}>
+    <div class={[@tooltip && "tooltip", "bottom distant-medium"]} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400" data-el-cell-status>
           <%= render_slot(@inner_block) %>
-          <%= if @change_indicator do %>
-            <span data-el-change-indicator>*</span>
-          <% end %>
+          <span :if={@change_indicator} data-el-change-indicator>*</span>
         </div>
         <span class="flex relative h-3 w-3">
-          <%= if @animated_circle_class do %>
-            <span class={
-              "#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
-            }>
-            </span>
-          <% end %>
-          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+          <span
+            :if={@animated_circle_class}
+            class={[
+              @animated_circle_class,
+              "animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
+            ]}
+          >
+          </span>
+          <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3"]}></span>
         </span>
       </div>
     </div>

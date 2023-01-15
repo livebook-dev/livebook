@@ -33,43 +33,40 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         phx-target={@myself}
         phx-debounce="blur"
       >
-        <.input_wrapper form={f} field={:access_token} class="flex flex-col space-y-1">
-          <div class="input-label">Access Token</div>
-          <%= password_input(f, :access_token,
-            phx_change: "fetch_data",
-            phx_debounce: "blur",
-            phx_target: @myself,
-            value: input_value(f, :access_token),
-            class: "input w-full phx-form-error:border-red-300",
-            autofocus: true,
-            spellcheck: "false",
-            autocomplete: "off"
-          ) %>
-        </.input_wrapper>
+        <.password_field
+          type="password"
+          field={f[:access_token]}
+          label="Access Token"
+          phx-change="fetch_data"
+          phx-debounce="blur"
+          phx-target={@myself}
+          autofocus
+          spellcheck="false"
+          autocomplete="off"
+        />
 
         <%= if length(@apps) > 0 do %>
-          <.input_wrapper form={f} field={:application_id} class="flex flex-col space-y-1">
-            <div class="input-label">Application</div>
-            <%= select(f, :application_id, @select_options, class: "input") %>
-          </.input_wrapper>
+          <.select_field
+            field={f[:application_id]}
+            label="Application"
+            options={@select_options}
+            prompt="Select one application"
+          />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
-              <div class="input-label">Name</div>
-              <%= text_input(f, :hub_name, class: "input") %>
-            </.input_wrapper>
-
-            <.input_wrapper form={f} field={:hub_emoji} class="flex relative flex-col space-y-1">
-              <div class="input-label">Emoji</div>
-              <.emoji_input id="fly-emoji-input" form={f} field={:hub_emoji} />
-            </.input_wrapper>
+            <.text_field field={f[:hub_name]} label="Name" />
+            <.emoji_field field={f[:hub_emoji]} label="Emoji" />
           </div>
 
-          <%= submit("Add Hub",
-            class: "button-base button-blue",
-            phx_disable_with: "Add...",
-            disabled: not @changeset.valid?
-          ) %>
+          <div>
+            <button
+              class="button-base button-blue"
+              phx-disable-with="Add..."
+              disabled={not @changeset.valid?}
+            >
+              Add Hub
+            </button>
+          </div>
         <% end %>
       </.form>
     </div>
@@ -82,7 +79,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       {:ok, apps} ->
         opts = select_options(apps)
         base = %Fly{access_token: token, hub_emoji: "🚀"}
-        changeset = Fly.change_hub(base)
+        changeset = Fly.validate_hub(base)
 
         {:noreply,
          assign(socket, changeset: changeset, base: base, select_options: opts, apps: apps)}
@@ -90,7 +87,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       {:error, _} ->
         changeset =
           %Fly{}
-          |> Fly.change_hub(%{access_token: token})
+          |> Fly.validate_hub(%{access_token: token})
           |> add_error(:access_token, "is invalid")
 
         {:noreply,
@@ -105,7 +102,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
           {:noreply,
            socket
            |> put_flash(:success, "Hub added successfully")
-           |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+           |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
         {:error, changeset} ->
           {:noreply, assign(socket, changeset: changeset)}
@@ -120,25 +117,16 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
 
     application_id = params["application_id"]
     selected_app = Enum.find(socket.assigns.apps, &(&1.application_id == application_id))
-    opts = select_options(socket.assigns.apps, application_id)
-    changeset = Fly.change_hub(selected_app || socket.assigns.base, params)
+    opts = select_options(socket.assigns.apps)
+    changeset = Fly.validate_hub(selected_app || socket.assigns.base, params)
 
     {:noreply,
      assign(socket, changeset: changeset, selected_app: selected_app, select_options: opts)}
   end
 
-  defp select_options(hubs, app_id \\ nil) do
-    disabled_option = [key: "Select one application", value: "", selected: true, disabled: true]
-
-    options =
-      for fly <- hubs do
-        [
-          key: "#{fly.organization_name} - #{fly.application_id}",
-          value: fly.application_id,
-          selected: fly.application_id == app_id
-        ]
-      end
-
-    [disabled_option] ++ options
+  defp select_options(hubs) do
+    for fly <- hubs do
+      [key: "#{fly.organization_name} - #{fly.application_id}", value: fly.application_id]
+    end
   end
 end

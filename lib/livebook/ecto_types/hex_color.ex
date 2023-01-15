@@ -2,11 +2,17 @@ defmodule Livebook.EctoTypes.HexColor do
   @moduledoc false
   use Ecto.Type
 
+  @impl true
   def type, do: :string
 
+  @impl true
   def load(value), do: {:ok, value}
+
+  @impl true
+
   def dump(value), do: {:ok, value}
 
+  @impl true
   def cast(value) do
     if valid?(value) do
       {:ok, value}

@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
+  alias LivebookWeb.{LearnHelpers, LayoutHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
   alias Livebook.Session.SessionManager
 
@@ -22,7 +22,7 @@ defmodule LivebookWeb.HomeLive do
 
     {:ok,
      assign(socket,
-       self_path: Routes.home_path(socket, :page),
+       self_path: ~p"/",
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
@@ -40,17 +40,18 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
-      socket={@socket}
-      current_page={Routes.home_path(@socket, :page)}
+      current_page={@self_path}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>
         <div class="flex space-x-2">
-          <%= live_patch("Import",
-            to: Routes.home_path(@socket, :import, "url"),
-            class: "button-base button-outlined-gray whitespace-nowrap"
-          ) %>
+          <.link
+            patch={~p"/home/import/url"}
+            class="button-base button-outlined-gray whitespace-nowrap"
+          >
+            Import
+          </.link>
           <button class="button-base button-blue" phx-click="new">
             New notebook
           </button>
@@ -60,12 +61,14 @@ defmodule LivebookWeb.HomeLive do
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <PageHelpers.title text="Home" />
+          <LayoutHelpers.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
-            <%= live_patch("Import",
-              to: Routes.home_path(@socket, :import, "url"),
-              class: "button-base button-outlined-gray whitespace-nowrap"
-            ) %>
+            <.link
+              patch={~p"/home/import/url"}
+              class="button-base button-outlined-gray whitespace-nowrap"
+            >
+              Import
+            </.link>
             <button class="button-base button-blue" phx-click="new">
               New notebook
             </button>
@@ -90,10 +93,12 @@ defmodule LivebookWeb.HomeLive do
                 <span>Fork</span>
               </button>
               <%= if file_running?(@file, @sessions) do %>
-                <%= live_redirect("Join session",
-                  to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
-                  class: "button-base button-blue"
-                ) %>
+                <.link
+                  navigate={~p"/sessions/#{session_id_by_file(@file, @sessions)}"}
+                  class="button-base button-blue"
+                >
+                  Join session
+                </.link>
               <% else %>
                 <span {open_button_tooltip_attrs(@file, @file_info)}>
                   <button
@@ -114,18 +119,15 @@ defmodule LivebookWeb.HomeLive do
             <h2 class="uppercase font-semibold text-gray-500">
               Learn
             </h2>
-            <%= live_redirect to: Routes.learn_path(@socket, :page),
-                    class: "flex items-center text-blue-600" do %>
+            <.link navigate={~p"/learn"} class="flex items-center text-blue-600">
               <span class="font-semibold">See all</span>
               <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
-            <% end %>
+            </.link>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <% # Note: it's fine to use stateless components in this comprehension,
             # because @notebook_infos never change %>
-            <%= for info <- @notebook_infos do %>
-              <LearnHelpers.notebook_card notebook_info={info} socket={@socket} />
-            <% end %>
+            <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
           </div>
         </div>
         <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
@@ -146,40 +148,52 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </LayoutHelpers.layout>
 
-    <%= if @live_action == :close_session do %>
-      <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.HomeLive.CloseSessionComponent}
-          id="close-session"
-          return_to={@self_path}
-          session={@session}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :close_session}
+      id="close-session-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.HomeLive.CloseSessionComponent}
+        id="close-session"
+        return_to={@self_path}
+        session={@session}
+      />
+    </.modal>
 
-    <%= if @live_action == :import do %>
-      <.modal id="import-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.HomeLive.ImportComponent}
-          id="import"
-          tab={@tab}
-          import_opts={@import_opts}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :import}
+      id="import-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.HomeLive.ImportComponent}
+        id="import"
+        tab={@tab}
+        import_opts={@import_opts}
+      />
+    </.modal>
 
-    <%= if @live_action == :edit_sessions do %>
-      <.modal id="edit-sessions-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.HomeLive.EditSessionsComponent}
-          id="edit-sessions"
-          action={@bulk_action}
-          return_to={@self_path}
-          sessions={@sessions}
-          selected_sessions={selected_sessions(@sessions, @selected_session_ids)}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :edit_sessions}
+      id="edit-sessions-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.HomeLive.EditSessionsComponent}
+        id="edit-sessions"
+        action={@bulk_action}
+        return_to={@self_path}
+        sessions={@sessions}
+        selected_sessions={selected_sessions(@sessions, @selected_session_ids)}
+      />
+    </.modal>
     """
   end
 
@@ -233,26 +247,27 @@ defmodule LivebookWeb.HomeLive do
 
   defp memory_notification(assigns) do
     ~H"""
-    <%= if @app_service_url && @memory.free < 30_000_000 do %>
-      <div class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center">
-        <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
-        Less than 30 MB of memory left, consider
-        <a
-          class="font-medium border-b border-gray-900 hover:border-transparent"
-          href={@app_service_url}
-          target="_blank"
-        >
-          adding more resources to the instance
-        </a>
-        or closing
-        <a
-          class="font-medium border-b border-gray-900 hover:border-transparent"
-          href="#running-sessions"
-        >
-          running sessions
-        </a>
-      </div>
-    <% end %>
+    <div
+      :if={@app_service_url && @memory.free < 30_000_000}
+      class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center"
+    >
+      <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
+      Less than 30 MB of memory left, consider
+      <a
+        class="font-medium border-b border-gray-900 hover:border-transparent"
+        href={@app_service_url}
+        target="_blank"
+      >
+        adding more resources to the instance
+      </a>
+      or closing
+      <a
+        class="font-medium border-b border-gray-900 hover:border-transparent"
+        href="#running-sessions"
+      >
+        running sessions
+      </a>
+    </div>
     """
   end
 
@@ -285,7 +300,7 @@ defmodule LivebookWeb.HomeLive do
         {:noreply, socket}
 
       {:error, _message} ->
-        {:noreply, push_patch(socket, to: Routes.home_path(socket, :import, "url", url: url))}
+        {:noreply, push_patch(socket, to: ~p"/home/import/url?url=#{url}")}
     end
   end
 
@@ -296,7 +311,7 @@ defmodule LivebookWeb.HomeLive do
 
     if file_running?(file, socket.assigns.sessions) do
       session_id = session_id_by_file(file, socket.assigns.sessions)
-      {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, session_id))}
+      {:noreply, push_navigate(socket, to: ~p"/sessions/#{session_id}")}
     else
       {:noreply, open_notebook(socket, FileSystem.File.local(path))}
     end
@@ -340,12 +355,12 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
     socket = assign(socket, selected_session_ids: params["session_ids"])
-    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "disconnect"))}
+    {:noreply, push_patch(socket, to: ~p"/home/sessions/edit_sessions/disconnect")}
   end
 
   def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
     socket = assign(socket, selected_session_ids: params["session_ids"])
-    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "close_all"))}
+    {:noreply, push_patch(socket, to: ~p"/home/sessions/edit_sessions/close_all")}
   end
 
   def handle_event("open_autosave_directory", %{}, socket) do

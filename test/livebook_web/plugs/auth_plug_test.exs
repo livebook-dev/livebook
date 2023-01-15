@@ -25,7 +25,7 @@ defmodule LivebookWeb.AuthPlugTest do
 
   describe "token authentication" do
     test "skips authentication when no token is configured", %{conn: conn} do
-      conn = get(conn, "/")
+      conn = get(conn, ~p"/")
 
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
@@ -33,30 +33,30 @@ defmodule LivebookWeb.AuthPlugTest do
 
     @tag token: "grumpycat"
     test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
-      conn = get(conn, "/")
-      assert redirected_to(conn) == "/authenticate"
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn) == ~p"/authenticate"
     end
 
     @tag token: "grumpycat"
     test "redirects to the same path when valid token is provided in query params", %{conn: conn} do
-      conn = get(conn, "/?token=grumpycat")
+      conn = get(conn, ~p"/?token=grumpycat")
 
-      assert redirected_to(conn) == "/"
+      assert redirected_to(conn) == ~p"/"
     end
 
     @tag token: "grumpycat"
     test "redirects to '/authenticate' when invalid token is provided in query params",
          %{conn: conn} do
-      conn = get(conn, "/")
-      assert redirected_to(conn) == "/authenticate"
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn) == ~p"/authenticate"
     end
 
     @tag token: "grumpycat"
     test "persists authentication across requests", %{conn: conn} do
-      conn = get(conn, "/?token=grumpycat")
+      conn = get(conn, ~p"/?token=grumpycat")
       assert get_session(conn, "80:token")
 
-      conn = get(conn, "/")
+      conn = get(conn, ~p"/")
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
     end
@@ -66,59 +66,59 @@ defmodule LivebookWeb.AuthPlugTest do
       referer = "/import?url=example.com"
 
       conn = get(conn, referer)
-      assert redirected_to(conn) == "/authenticate"
+      assert redirected_to(conn) == ~p"/authenticate"
 
-      conn = post(conn, "/authenticate", token: "grumpycat")
+      conn = post(conn, ~p"/authenticate", token: "grumpycat")
       assert redirected_to(conn) == referer
     end
 
     @tag token: "grumpycat"
     test "redirects back to '/authenticate' on invalid token", %{conn: conn} do
-      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "invalid token")
+      conn = post(conn, ~p"/authenticate?token=invalid_token")
       assert html_response(conn, 200) =~ "Authentication required"
 
-      conn = get(conn, "/")
-      assert redirected_to(conn) == "/authenticate"
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn) == ~p"/authenticate"
     end
 
     @tag token: "grumpycat"
     test "persists authentication across requests (via /authenticate)", %{conn: conn} do
-      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "grumpycat")
+      conn = post(conn, ~p"/authenticate?token=grumpycat")
       assert get_session(conn, "80:token")
 
-      conn = get(conn, "/")
+      conn = get(conn, ~p"/")
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
 
-      conn = get(conn, "/authenticate")
-      assert redirected_to(conn) == "/"
+      conn = get(conn, ~p"/authenticate")
+      assert redirected_to(conn) == ~p"/"
     end
   end
 
   describe "password authentication" do
     test "redirects to '/' if no authentication is required", %{conn: conn} do
-      conn = get(conn, "/authenticate")
-      assert redirected_to(conn) == "/"
+      conn = get(conn, ~p"/authenticate")
+      assert redirected_to(conn) == ~p"/"
     end
 
     @tag password: "grumpycat"
     test "does not crash when given a token", %{conn: conn} do
-      conn = post(conn, "/authenticate?token=grumpycat")
+      conn = post(conn, ~p"/authenticate?token=grumpycat")
       assert html_response(conn, 200) =~ "token is invalid"
     end
 
     @tag password: "grumpycat"
     test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
-      conn = get(conn, "/")
-      assert redirected_to(conn) == "/authenticate"
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn) == ~p"/authenticate"
     end
 
     @tag password: "grumpycat"
     test "redirects to '/' on valid authentication", %{conn: conn} do
-      conn = post(conn, Routes.auth_path(conn, :authenticate), password: "grumpycat")
-      assert redirected_to(conn) == "/"
+      conn = post(conn, ~p"/authenticate?password=grumpycat")
+      assert redirected_to(conn) == ~p"/"
 
-      conn = get(conn, "/")
+      conn = get(conn, ~p"/")
       assert html_response(conn, 200) =~ "New notebook"
     end
 
@@ -127,32 +127,32 @@ defmodule LivebookWeb.AuthPlugTest do
       referer = "/import?url=example.com"
 
       conn = get(conn, referer)
-      assert redirected_to(conn) == "/authenticate"
+      assert redirected_to(conn) == ~p"/authenticate"
 
-      conn = post(conn, "/authenticate", password: "grumpycat")
+      conn = post(conn, ~p"/authenticate", password: "grumpycat")
       assert redirected_to(conn) == referer
     end
 
     @tag password: "grumpycat"
     test "redirects back to '/authenticate' on invalid password", %{conn: conn} do
-      conn = post(conn, Routes.auth_path(conn, :authenticate), password: "invalid password")
+      conn = post(conn, ~p"/authenticate?password=invalid_password")
       assert html_response(conn, 200) =~ "Authentication required"
 
-      conn = get(conn, "/")
-      assert redirected_to(conn) == "/authenticate"
+      conn = get(conn, ~p"/")
+      assert redirected_to(conn) == ~p"/authenticate"
     end
 
     @tag password: "grumpycat"
     test "persists authentication across requests", %{conn: conn} do
-      conn = post(conn, Routes.auth_path(conn, :authenticate), password: "grumpycat")
+      conn = post(conn, ~p"/authenticate?password=grumpycat")
       assert get_session(conn, "80:password")
 
-      conn = get(conn, "/")
+      conn = get(conn, ~p"/")
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
 
-      conn = get(conn, "/authenticate")
-      assert redirected_to(conn) == "/"
+      conn = get(conn, ~p"/authenticate")
+      assert redirected_to(conn) == ~p"/"
     end
   end
 end

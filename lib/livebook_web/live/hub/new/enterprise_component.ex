@@ -35,64 +35,56 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         phx-target={@myself}
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.input_wrapper form={f} field={:url} class="flex flex-col space-y-1">
-            <div class="input-label">URL</div>
-            <%= text_input(f, :url,
-              class: "input w-full phx-form-error:border-red-300",
-              autofocus: true,
-              spellcheck: "false",
-              autocomplete: "off",
-              phx_debounce: "blur"
-            ) %>
-          </.input_wrapper>
-
-          <.input_wrapper form={f} field={:token} class="flex flex-col space-y-1">
-            <div class="input-label">Token</div>
-            <%= password_input(f, :token,
-              value: input_value(f, :token),
-              class: "input w-full phx-form-error:border-red-300",
-              spellcheck: "false",
-              autocomplete: "off",
-              phx_debounce: "blur"
-            ) %>
-          </.input_wrapper>
+          <.text_field
+            field={f[:url]}
+            label="URL"
+            autofocus
+            spellcheck="false"
+            autocomplete="off"
+            phx-debounce="blur"
+          />
+          <.password_field
+            type="password"
+            field={f[:token]}
+            label="Token"
+            spellcheck="false"
+            autocomplete="off"
+            phx-debounce="blur"
+          />
         </div>
 
-        <button
-          id="connect"
-          type="button"
-          phx-click="connect"
-          phx-target={@myself}
-          class="button-base button-blue"
-        >
-          Connect
-        </button>
+        <div>
+          <button
+            id="connect"
+            type="button"
+            phx-click="connect"
+            phx-target={@myself}
+            class="button-base button-blue"
+          >
+            Connect
+          </button>
+        </div>
 
         <%= if @pid do %>
           <div class="grid grid-cols-1 md:grid-cols-1">
-            <.input_wrapper form={f} field={:external_id} class="flex flex-col space-y-1">
-              <div class="input-label">ID</div>
-              <%= text_input(f, :external_id, class: "input", disabled: true) %>
-            </.input_wrapper>
+            <.password_field type="password" field={f[:external_id]} label="ID" disabled />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
-              <div class="input-label">Name</div>
-              <%= text_input(f, :hub_name, class: "input", readonly: true) %>
-            </.input_wrapper>
-
-            <.input_wrapper form={f} field={:hub_emoji} class="flex relative flex-col space-y-1">
-              <div class="input-label">Emoji</div>
-              <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
-            </.input_wrapper>
+            <.text_field field={f[:hub_name]} label="Name" readonly />
+            <.emoji_field field={f[:hub_emoji]} label="Emoji" />
           </div>
 
-          <%= submit("Add Hub",
-            class: "button-base button-blue",
-            phx_disable_with: "Add...",
-            disabled: not @changeset.valid?
-          ) %>
+          <div>
+            <button
+              class="button-base button-blue"
+              type="submit"
+              phx-disable-with="Add..."
+              disabled={not @changeset.valid?}
+            >
+              Add Hub
+            </button>
+          </div>
         <% end %>
       </.form>
     </div>
@@ -122,7 +114,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         {:noreply,
          socket
          |> put_flash(:error, "Failed to connect with Enterprise: " <> reason)
-         |> push_patch(to: Routes.hub_path(socket, :new))}
+         |> push_patch(to: ~p"/hub")}
 
       :hub_connected ->
         session_request =
@@ -131,7 +123,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         case EnterpriseClient.send_request(pid, session_request) do
           {:session, session_response} ->
             base = %{base | external_id: session_response.id}
-            changeset = Enterprise.change_hub(base)
+            changeset = Enterprise.validate_hub(base)
 
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
@@ -141,7 +133,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
             {:noreply,
              socket
              |> put_flash(:error, "Failed to connect with Enterprise: " <> reason)
-             |> push_patch(to: Routes.hub_path(socket, :new))}
+             |> push_patch(to: ~p"/hub")}
         end
     end
   end
@@ -157,7 +149,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
           {:noreply,
            socket
            |> put_flash(:success, "Hub added successfully")
-           |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+           |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
         {:error, changeset} ->
           {:noreply, assign(socket, changeset: changeset)}
@@ -168,6 +160,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   end
 
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.base, attrs))}
+    {:noreply, assign(socket, changeset: Enterprise.validate_hub(socket.assigns.base, attrs))}
   end
 end

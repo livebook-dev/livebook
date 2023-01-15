@@ -1,9 +1,10 @@
 defmodule LivebookWeb.SessionHelpers do
   import Phoenix.LiveView
 
+  use LivebookWeb, :verified_routes
+
   alias Phoenix.LiveView.Socket
   alias Livebook.Session
-  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Creates a new session, redirects on success,
@@ -24,8 +25,8 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        redirect_path = session_path(socket, session.id, opts)
-        push_redirect(socket, to: redirect_path)
+        redirect_path = session_path(session.id, opts)
+        push_navigate(socket, to: redirect_path)
 
       {:error, reason} ->
         put_flash(socket, :error, "Failed to create session: #{reason}")
@@ -35,11 +36,9 @@ defmodule LivebookWeb.SessionHelpers do
   @doc """
   Generate the session path based on the provided options.
   """
-  @spec session_path(Socket.t(), Session.id(), keyword()) :: String.t()
-  def session_path(socket, session_id, opts \\ []) do
-    socket
-    |> Routes.session_path(:page, session_id)
-    |> maybe_add_url_hash(opts)
+  @spec session_path(Session.id(), keyword()) :: String.t()
+  def session_path(session_id, opts \\ []) do
+    maybe_add_url_hash(~p"/sessions/#{session_id}", opts)
   end
 
   defp maybe_add_url_hash(redirect_path, opts) do

@@ -103,7 +103,7 @@ defmodule LivebookWeb.SessionController do
       conn
       |> cache_permanently()
       |> put_status(:moved_permanently)
-      |> redirect(to: Routes.session_path(conn, :show_cached_asset, hash, file_parts))
+      |> redirect(to: ~p"/public/sessions/assets/#{hash}/#{file_parts}")
     else
       send_resp(conn, 404, "Not found")
     end

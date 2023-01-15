@@ -2,7 +2,7 @@ defmodule LivebookWeb.AppAuthHook do
   import Phoenix.Component
   import Phoenix.LiveView
 
-  alias LivebookWeb.Router.Helpers, as: Routes
+  use LivebookWeb, :verified_routes
 
   # For apps with password, we want to store the hashed password
   # (let's call it token) in the session, as we do for the main auth.
@@ -46,7 +46,7 @@ defmodule LivebookWeb.AppAuthHook do
          assign(socket, app_authenticated?: app_authenticated?, app_settings: app_settings)}
 
       :error ->
-        {:halt, redirect(socket, to: Routes.home_path(socket, :page))}
+        {:halt, redirect(socket, to: ~p"/")}
     end
   end
 
@@ -76,7 +76,7 @@ defmodule LivebookWeb.AppAuthHook do
   @doc """
   Checks the given token is valid.
   """
-  @spec valid_auth_token?(String.t(), Livebook.Notebook.AppSettings.t()) :: String.t()
+  @spec valid_auth_token?(String.t(), Livebook.Notebook.AppSettings.t()) :: boolean()
   def valid_auth_token?(token, app_settings) do
     Plug.Crypto.secure_compare(token, get_auth_token(app_settings))
   end
@@ -84,7 +84,7 @@ defmodule LivebookWeb.AppAuthHook do
   @doc """
   Checks if the given password is valid.
   """
-  @spec valid_password?(String.t(), Livebook.Notebook.AppSettings.t()) :: String.t()
+  @spec valid_password?(String.t(), Livebook.Notebook.AppSettings.t()) :: boolean()
   def valid_password?(password, app_settings) do
     Plug.Crypto.secure_compare(password, app_settings.password)
   end

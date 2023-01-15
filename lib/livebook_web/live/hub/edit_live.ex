@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.EditLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{PageHelpers, LayoutHelpers}
+  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
 
@@ -31,31 +31,29 @@ defmodule LivebookWeb.Hub.EditLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
-      socket={@socket}
-      current_page={Routes.hub_path(@socket, :edit, @hub.id)}
+      current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div class="flex relative">
-          <PageHelpers.title text="Edit Hub" socket={@socket} />
+          <LayoutHelpers.title text="Edit Hub" />
 
-          <%= if @type != "personal" do %>
-            <button
-              phx-click={
-                with_confirm(
-                  JS.push("delete_hub", value: %{id: @hub.id}),
-                  title: "Delete hub",
-                  description: "Are you sure you want to delete this hub?",
-                  confirm_text: "Delete",
-                  confirm_icon: "close-circle-line"
-                )
-              }
-              class="absolute right-0 button-base bg-red-500"
-            >
-              Delete hub
-            </button>
-          <% end %>
+          <button
+            :if={@type != "personal"}
+            phx-click={
+              with_confirm(
+                JS.push("delete_hub", value: %{id: @hub.id}),
+                title: "Delete hub",
+                description: "Are you sure you want to delete this hub?",
+                confirm_text: "Delete",
+                confirm_icon: "close-circle-line"
+              )
+            }
+            class="absolute right-0 button-base button-red"
+          >
+            Delete hub
+          </button>
         </div>
 
         <%= case @type do %>
@@ -92,6 +90,6 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply,
      socket
      |> put_flash(:success, "Hub deleted successfully")
-     |> push_redirect(to: "/")}
+     |> push_navigate(to: "/")}
   end
 end

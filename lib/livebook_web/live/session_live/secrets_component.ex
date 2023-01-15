@@ -5,15 +5,30 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   alias Livebook.Secrets
   alias Livebook.Secrets.Secret
   alias Livebook.Session
+  alias Livebook.EctoTypes.SecretOrigin
+
+  @impl true
+  def mount(socket) do
+    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:secrets]))}
+  end
 
   @impl true
   def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    secret_name = socket.assigns[:prefill_secret_name]
+
     socket =
       socket
-      |> assign(assigns)
-      |> assign(hubs: Livebook.Hubs.get_hubs([:secrets]))
+      |> assign_new(:changeset, fn ->
+        attrs = %{name: secret_name, value: nil, origin: :session}
+        Secrets.change_secret(%Secret{}, attrs)
+      end)
+      |> assign_new(:grant_access_secret, fn ->
+        Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name))
+      end)
 
-    {:ok, assign(socket, prefill_assigns(socket))}
+    {:ok, socket}
   end
 
   @impl true
@@ -23,54 +38,46 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
-      <%= if @grant_access_name do %>
-        <.grant_access_message
-          secret_name={@grant_access_name}
-          secret_origin={@grant_access_origin}
-          target={@myself}
-        />
-      <% end %>
+      <.grant_access_message
+        :if={@grant_access_secret}
+        secret={@grant_access_secret}
+        target={@myself}
+      />
       <div class="flex flex-columns gap-4">
-        <%= if @select_secret_ref do %>
-          <div class="basis-1/2 grow-0 pr-4 border-r">
-            <div class="flex flex-col space-y-4">
-              <p class="text-gray-800">
-                Choose a secret
-              </p>
-              <div class="flex flex-wrap">
-                <%= for {secret_name, _} <- Enum.sort(@secrets) do %>
-                  <.secret_with_badge
-                    secret_name={secret_name}
-                    secret_origin="session"
-                    stored="Session"
-                    action="select_secret"
-                    active={secret_name == @prefill_secret_name}
-                    target={@myself}
-                  />
-                <% end %>
-                <%= for secret <- @saved_secrets do %>
-                  <.secret_with_badge
-                    secret_name={secret.name}
-                    secret_store={store(secret)}
-                    secret_origin={origin(secret)}
-                    stored={stored(secret)}
-                    action="select_secret"
-                    active={false}
-                    target={@myself}
-                  />
-                <% end %>
-                <%= if @secrets == %{} and @saved_secrets == [] do %>
-                  <div class="w-full text-center text-gray-400 border rounded-lg p-8">
-                    <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
-                    <span class="mt-1 block text-sm text-gray-700">
-                      Secrets not found. <br /> Add to see them here.
-                    </span>
-                  </div>
-                <% end %>
+        <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
+          <div class="flex flex-col space-y-4">
+            <p class="text-gray-800">
+              Choose a secret
+            </p>
+            <div class="flex flex-wrap">
+              <.secret_with_badge
+                :for={{secret_name, _} <- Enum.sort(@secrets)}
+                secret_name={secret_name}
+                secret_origin={:session}
+                stored="Session"
+                active={secret_name == @prefill_secret_name}
+                target={@myself}
+              />
+              <.secret_with_badge
+                :for={secret <- @saved_secrets}
+                secret_name={secret.name}
+                secret_origin={secret.origin}
+                stored={stored(secret)}
+                active={false}
+                target={@myself}
+              />
+              <div
+                :if={@secrets == %{} and @saved_secrets == []}
+                class="w-full text-center text-gray-400 border rounded-lg p-8"
+              >
+                <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
+                <span class="mt-1 block text-sm text-gray-700">
+                  Secrets not found. <br /> Add to see them here.
+                </span>
               </div>
             </div>
           </div>
-        <% end %>
+        </div>
         <.form
           :let={f}
           for={@changeset}
@@ -81,103 +88,49 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
-            <%= if @select_secret_ref do %>
-              <p class="text-gray-700">
-                Add new secret
-              </p>
-            <% end %>
-            <.input_wrapper form={f} field={:name}>
-              <div class="input-label">
-                <label for={input_id(f, :name)}>
-                  Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
-                </label>
-              </div>
-
-              <%= text_input(f, :name,
-                class: "input w-full phx-form-error:border-red-300",
-                autofocus: !@has_prefill,
-                spellcheck: "false",
-                autocomplete: "off",
-                phx_debounce: "blur"
-              ) %>
-            </.input_wrapper>
-            <.input_wrapper form={f} field={:value}>
-              <div class="input-label"><label for={input_id(f, :value)}>Value</label></div>
-              <%= text_input(f, :value,
-                class: "input",
-                autofocus: @has_prefill,
-                spellcheck: "false",
-                autocomplete: "off",
-                phx_debounce: "blur"
-              ) %>
-            </.input_wrapper>
-            <.input_wrapper form={f} field={:origin}>
-              <div class="input-label"><label for={input_id(f, :origin)}>Storage</label></div>
-              <div class="my-2 space-y-1 text-sm">
-                <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :origin, "session") %> only this session
-                <% end %>
-
-                <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :origin, "app") %> in the Livebook app
-                <% end %>
-
-                <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
-                  <%= for hub <- @hubs do %>
-                    <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                      <%= radio_button(f, :origin, "hub-#{hub.id}") %> in <%= hub.hub_emoji %> <%= hub.hub_name %>
-                    <% end %>
-                  <% end %>
-                <% end %>
-              </div>
-            </.input_wrapper>
+            <p :if={@select_secret_ref} class="text-gray-700">
+              Add new secret
+            </p>
+            <.text_field
+              field={f[:name]}
+              label="Name (alphanumeric and underscore)"
+              autofocus={@prefill_secret_name == nil}
+              spellcheck="false"
+              autocomplete="off"
+              phx-debounce="blur"
+            />
+            <.text_field
+              field={f[:value]}
+              label="Value"
+              autofocus={@prefill_secret_name != nil}
+              spellcheck="false"
+              autocomplete="off"
+              phx-debounce="blur"
+            />
+            <.radio_field
+              field={f[:origin]}
+              label="Storage"
+              options={
+                [{"session", "only this session"}, {"app", "in the Livebook app"}] ++
+                  if Livebook.Config.feature_flag_enabled?(:hub) do
+                    for hub <- @hubs, do: {"hub-#{hub.id}", "in #{hub.hub_emoji} #{hub.hub_name}"}
+                  else
+                    []
+                  end
+              }
+            />
             <div class="flex space-x-2">
-              <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
+              <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
                 <.remix_icon icon="add-line" class="align-middle" />
                 <span class="font-normal">Add</span>
               </button>
-              <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+              <.link patch={@return_to} class="button-base button-outlined-gray">
+                Cancel
+              </.link>
             </div>
           </div>
         </.form>
       </div>
-    </div>
-    """
-  end
-
-  defp secret_with_badge(%{secret_store: "hub"} = assigns) do
-    ~H"""
-    <div
-      role="button"
-      class={[
-        "flex justify-between w-full font-mono text-sm p-2 border-b cursor-pointer",
-        if @active do
-          "bg-blue-100 text-blue-700"
-        else
-          "text-gray-700 hover:bg-gray-100"
-        end
-      ]}
-      phx-value-name={@secret_name}
-      phx-value-origin={"hub-" <> @secret_origin}
-      phx-target={@target}
-      phx-click={@action}
-    >
-      <%= @secret_name %>
-      <span class={[
-        "inline-flex items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100",
-        if @active do
-          "bg-indigo-100 text-blue-800"
-        else
-          "bg-gray-100 text-gray-800"
-        end
-      ]}>
-        <%= if @active do %>
-          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
-            <circle cx="4" cy="4" r="3" />
-          </svg>
-        <% end %>
-        <%= @stored %>
-      </span>
     </div>
     """
   end
@@ -195,9 +148,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-name={@secret_name}
-      phx-value-origin={@secret_store}
+      phx-value-origin={SecretOrigin.encode(@secret_origin)}
       phx-target={@target}
-      phx-click={@action}
+      phx-click="select_secret"
     >
       <%= @secret_name %>
       <span class={[
@@ -208,11 +161,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           "bg-gray-100 text-gray-800"
         end
       ]}>
-        <%= if @active do %>
-          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
-            <circle cx="4" cy="4" r="3" />
-          </svg>
-        <% end %>
+        <svg
+          :if={@active}
+          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
+          fill="currentColor"
+          viewBox="0 0 8 8"
+        >
+          <circle cx="4" cy="4" r="3" />
+        </svg>
         <%= @stored %>
       </span>
     </div>
@@ -230,41 +186,29 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
-              <%= if @secret_origin in ["app", "startup"] do %>
+              <%= if @secret.origin in [:app, :startup] do %>
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
-                  <span class="font-semibold text-white"><%= @secret_name %></span>
+                  <span class="font-semibold text-white"><%= @secret.name %></span>
                   in your Livebook app. Allow this session to access it?
                 </span>
               <% else %>
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
-                  <span class="font-semibold text-white"><%= @secret_name %></span>
+                  <span class="font-semibold text-white"><%= @secret.name %></span>
                   in your Livebook Hub. Allow this session to access it?
                 </span>
               <% end %>
             </div>
-            <%= if @secret_origin in ["app", "startup"] do %>
-              <button
-                class="button-base button-gray"
-                phx-click="grant_access"
-                phx-value-name={@secret_name}
-                phx-value-origin={@secret_origin}
-                phx-target={@target}
-              >
-                Grant access
-              </button>
-            <% else %>
-              <button
-                class="button-base button-gray"
-                phx-click="grant_access"
-                phx-value-name={@secret_name}
-                phx-value-origin={"hub-" <> @secret_origin}
-                phx-target={@target}
-              >
-                Grant access
-              </button>
-            <% end %>
+            <button
+              class="button-base button-gray"
+              phx-click="grant_access"
+              phx-value-name={@secret.name}
+              phx-value-origin={SecretOrigin.encode(@secret.origin)}
+              phx-target={@target}
+            >
+              Grant access
+            </button>
           </div>
         </div>
       </div>
@@ -272,42 +216,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     """
   end
 
-  defp prefill_assigns(socket) do
-    secret_name = socket.assigns[:prefill_secret_name]
-    attrs = %{name: secret_name, value: nil, origin: "session"}
-
-    assigns = %{
-      changeset: Secrets.change_secret(%Secret{}, attrs),
-      title: title(socket),
-      grant_access_name: nil,
-      grant_access_origin: "app",
-      has_prefill: !is_nil(secret_name)
-    }
-
-    case Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name)) do
-      %Secret{name: name, origin: {:hub, id}} ->
-        %{assigns | grant_access_name: name, grant_access_origin: id}
-
-      %Secret{name: name, origin: origin} ->
-        %{assigns | grant_access_name: name, grant_access_origin: to_string(origin)}
-
-      nil ->
-        assigns
-    end
-  end
-
-  defp store(%{origin: {:hub, _id}}), do: "hub"
-  defp store(%{origin: origin}), do: to_string(origin)
-
-  defp origin(%{origin: {:hub, id}}), do: id
-  defp origin(%{origin: origin}), do: to_string(origin)
-
   defp stored(%{origin: {:hub, _}}), do: "Hub"
   defp stored(%{origin: origin}) when origin in [:app, :startup], do: "Livebook"
 
   @impl true
   def handle_event("save", %{"secret" => attrs}, socket) do
-    with {:ok, secret} <- Secrets.validate_secret(build_attrs(attrs)),
+    with {:ok, secret} <- Secrets.update_secret(%Secret{}, attrs),
          :ok <- set_secret(socket, secret) do
       {:noreply,
        socket
@@ -319,8 +233,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("select_secret", %{"name" => secret_name} = attrs, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, build_origin(attrs), socket)
+  def handle_event("select_secret", %{"name" => secret_name, "origin" => origin}, socket) do
+    {:ok, origin} = SecretOrigin.decode(origin)
+    grant_access(socket.assigns.saved_secrets, secret_name, origin, socket)
 
     {:noreply,
      socket
@@ -329,11 +244,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("validate", %{"secret" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Secrets.change_secret(%Secret{}, build_attrs(attrs)))}
+    changeset =
+      %Secret{}
+      |> Secrets.change_secret(attrs)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("grant_access", %{"name" => secret_name} = attrs, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, build_origin(attrs), socket)
+  def handle_event("grant_access", %{"name" => secret_name, "origin" => origin}, socket) do
+    {:ok, origin} = SecretOrigin.decode(origin)
+    grant_access(socket.assigns.saved_secrets, secret_name, origin, socket)
 
     {:noreply,
      socket
@@ -350,13 +271,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
-
-  defp build_origin(%{"origin" => "hub-" <> id}), do: {:hub, id}
-  defp build_origin(%{"origin" => store}), do: String.to_existing_atom(store)
-
-  defp build_attrs(%{"name" => name, "value" => value} = attrs) do
-    %{name: name, value: value, origin: build_origin(attrs)}
-  end
 
   defp set_secret(socket, %Secret{origin: :session} = secret) do
     Session.set_secret(socket.assigns.session.pid, secret)

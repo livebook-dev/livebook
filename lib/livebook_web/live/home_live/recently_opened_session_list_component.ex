@@ -57,7 +57,7 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
         <div class="py-4 flex items-center border-b border-gray-300" data-test-session-id={session.id}>
           <div class="grow flex flex-col items-start">
             <%= live_redirect(session.notebook_name,
-              to: Routes.session_path(@socket, :page, session.id),
+              to: ~p"/sessions/#{session.id}",
               class: "font-semibold text-gray-800 hover:text-gray-900"
             ) %>
             <div class="text-gray-600 text-sm">

@@ -56,7 +56,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       </div>
       <div class="hidden flex justify-center" data-camera-preview></div>
       <div class="mt-4 flex items-center justify-center gap-4">
-        <.menu id={"#{@id}-camera-select-menu"} position="bottom-left">
+        <.menu id={"#{@id}-camera-select-menu"} position={:bottom_left}>
           <:toggle>
             <button
               class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
@@ -66,9 +66,13 @@ defmodule LivebookWeb.Output.ImageInputComponent do
               <span>Open camera</span>
             </button>
           </:toggle>
-          <:content>
-            <div data-camera-list></div>
-          </:content>
+          <div data-camera-list>
+            <.menu_item>
+              <button role="menuitem" data-camera-id>
+                <span class="font-medium" data-label></span>
+              </button>
+            </.menu_item>
+          </div>
         </.menu>
         <button
           class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"

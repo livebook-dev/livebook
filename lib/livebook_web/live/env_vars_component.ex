@@ -11,23 +11,17 @@ defmodule LivebookWeb.EnvVarsComponent do
     ~H"""
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
-        <%= for env_var <- @env_vars do %>
-          <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-            <.env_var_info
-              socket={@socket}
-              env_var={env_var}
-              edit_label={@edit_label}
-              target={@target}
-            />
-          </div>
-        <% end %>
+        <div
+          :for={env_var <- @env_vars}
+          class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
+        >
+          <.env_var_info env_var={env_var} edit_label={@edit_label} target={@target} />
+        </div>
       </div>
       <div class="flex">
-        <%= live_patch("Add environment variable",
-          to: @add_env_var_path,
-          id: "add-env-var",
-          class: "button-base button-blue"
-        ) %>
+        <.link patch={@add_env_var_path} class="button-base button-blue" id="add-env-var">
+          Add environment variable
+        </.link>
       </div>
     </div>
     """
@@ -49,18 +43,19 @@ defmodule LivebookWeb.EnvVarsComponent do
               <.remix_icon icon="more-2-fill" class="text-xl" />
             </button>
           </:toggle>
-          <:content>
+          <.menu_item>
             <button
               id={"env-var-#{@env_var.name}-edit"}
               type="button"
               phx-click={JS.push("edit_env_var", value: %{env_var: @env_var.name})}
               phx-target={@target}
               role="menuitem"
-              class="menu-item text-gray-600"
             >
               <.remix_icon icon="file-edit-line" />
-              <span class="font-medium"><%= @edit_label %></span>
+              <span><%= @edit_label %></span>
             </button>
+          </.menu_item>
+          <.menu_item variant={:danger}>
             <button
               id={"env-var-#{@env_var.name}-delete"}
               type="button"
@@ -75,12 +70,11 @@ defmodule LivebookWeb.EnvVarsComponent do
               }
               phx-target={@target}
               role="menuitem"
-              class="menu-item text-red-600"
             >
               <.remix_icon icon="delete-bin-line" />
-              <span class="font-medium">Delete</span>
+              <span>Delete</span>
             </button>
-          </:content>
+          </.menu_item>
         </.menu>
       </div>
     </div>

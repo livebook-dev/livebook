@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.NewLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{PageHelpers, LayoutHelpers}
+  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
   alias Phoenix.LiveView.JS
 
   on_mount LivebookWeb.SidebarHook
@@ -17,15 +17,10 @@ defmodule LivebookWeb.Hub.NewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
-      socket={@socket}
-      current_page={Routes.hub_path(@socket, :new)}
-      current_user={@current_user}
-      saved_hubs={@saved_hubs}
-    >
+    <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
-          <PageHelpers.title text="Add Hub" socket={@socket} />
+          <LayoutHelpers.title text="Add Hub" />
           <p class="mt-4 text-gray-700">
             Manage your Livebooks in the cloud with Hubs.
           </p>
@@ -49,7 +44,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <.card_item id="enterprise" selected={@selected_type} title="Livebook Enterprise">
               <:logo>
                 <img
-                  src={Routes.static_path(@socket, "/images/enterprise.png")}
+                  src="/images/enterprise.png"
                   class="max-h-full max-w-[75%]"
                   alt="Livebook Enterprise logo"
                 />
@@ -61,21 +56,23 @@ defmodule LivebookWeb.Hub.NewLive do
           </div>
         </div>
 
-        <%= if @selected_type do %>
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              2. Configure your Hub
-            </h2>
+        <div :if={@selected_type} class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+            2. Configure your Hub
+          </h2>
 
-            <%= if @selected_type == "fly" do %>
-              <.live_component module={LivebookWeb.Hub.New.FlyComponent} id="fly-form" />
-            <% end %>
+          <.live_component
+            :if={@selected_type == "fly"}
+            module={LivebookWeb.Hub.New.FlyComponent}
+            id="fly-form"
+          />
 
-            <%= if @selected_type == "enterprise" do %>
-              <.live_component module={LivebookWeb.Hub.New.EnterpriseComponent} id="enterprise-form" />
-            <% end %>
-          </div>
-        <% end %>
+          <.live_component
+            :if={@selected_type == "enterprise"}
+            module={LivebookWeb.Hub.New.EnterpriseComponent}
+            id="enterprise-form"
+          />
+        </div>
       </div>
     </LayoutHelpers.layout>
     """
@@ -85,13 +82,19 @@ defmodule LivebookWeb.Hub.NewLive do
     ~H"""
     <div
       id={@id}
-      class={"flex card-item flex-col " <> card_item_bg_color(@id, @selected)}
+      class="flex flex-col cursor-pointer"
       phx-click={JS.push("select_type", value: %{value: @id})}
     >
-      <div class="flex items-center justify-center card-item-logo p-6 border-2 rounded-t-2xl h-[150px]">
+      <div class={[
+        "flex items-center justify-center p-6 border-2 rounded-t-2xl h-[150px]",
+        if(@id == @selected, do: "border-gray-200", else: "border-gray-100")
+      ]}>
         <%= render_slot(@logo) %>
       </div>
-      <div class="card-item-body px-6 py-4 rounded-b-2xl grow">
+      <div class={[
+        "px-6 py-4 rounded-b-2xl grow",
+        if(@id == @selected, do: "bg-gray-200", else: "bg-gray-100")
+      ]}>
         <p class="text-gray-800 font-semibold cursor-pointer">
           <%= @title %>
         </p>
@@ -103,9 +106,6 @@ defmodule LivebookWeb.Hub.NewLive do
     </div>
     """
   end
-
-  defp card_item_bg_color(id, selected) when id == selected, do: "selected"
-  defp card_item_bg_color(_id, _selected), do: ""
 
   @impl true
   def handle_event("select_type", %{"value" => service}, socket) do

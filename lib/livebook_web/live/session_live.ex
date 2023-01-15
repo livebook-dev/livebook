@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Hubs
   alias Livebook.Session.SessionManager
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive do
         {:ok,
          socket
          |> assign(
-           self_path: Routes.session_path(socket, :page, session.id),
+           self_path: ~p"/sessions/#{session.id}",
            session: session,
            client_id: client_id,
            platform: platform,
@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive do
 
       :error ->
         SessionManager.delete_session(session_id)
-        {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
+        {:ok, redirect(socket, to: ~p"/")}
     end
   end
 
@@ -116,9 +116,9 @@ defmodule LivebookWeb.SessionLive do
         data-el-sidebar
       >
         <span>
-          <%= live_redirect to: Routes.home_path(@socket, :page), aria_label: "go to homepage" do %>
-            <img src={Routes.static_path(@socket, "/images/logo.png")} height="40" width="40" alt="" />
-          <% end %>
+          <.link navigate={~p"/"} aria-label="go to homepage">
+            <img src={~p"/images/logo.png"} height="40" width="40" alt="" />
+          </.link>
         </span>
 
         <.button_item
@@ -144,7 +144,10 @@ defmodule LivebookWeb.SessionLive do
           />
           <div
             data-el-app-indicator
-            class={"absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 #{app_status_color(@data_view.apps_status)} pointer-events-none"}
+            class={[
+              "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
+              app_status_color(@data_view.apps_status)
+            ]}
           />
         </div>
         <.button_item
@@ -155,7 +158,7 @@ defmodule LivebookWeb.SessionLive do
         <.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
-          path={Routes.session_path(@socket, :bin, @session.id)}
+          path={~p"/sessions/#{@session.id}/bin"}
           active={@live_action == :bin}
           link_attrs={[data_btn_show_bin: true]}
         />
@@ -165,7 +168,7 @@ defmodule LivebookWeb.SessionLive do
         <.link_item
           icon="keyboard-box-fill"
           label="Keyboard shortcuts (?)"
-          path={Routes.session_path(@socket, :shortcuts, @session.id)}
+          path={~p"/sessions/#{@session.id}/shortcuts"}
           active={@live_action == :shortcuts}
           link_attrs={[data_btn_show_shortcuts: true]}
         />
@@ -195,12 +198,13 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
         <div data-el-secrets-list>
-          <.secrets_list
-            data_view={@data_view}
+          <.live_component
+            module={LivebookWeb.SessionLive.SecretsListComponent}
+            id="secrets-list"
+            session={@session}
             saved_secrets={@saved_secrets}
             hubs={@saved_hubs}
-            session={@session}
-            socket={@socket}
+            secrets={@data_view.secrets}
           />
         </div>
         <div data-el-app-info>
@@ -213,13 +217,12 @@ defmodule LivebookWeb.SessionLive do
           />
         </div>
         <div data-el-runtime-info>
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
+          <.runtime_info data_view={@data_view} session={@session} />
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <LivebookWeb.SessionLive.IndicatorsComponent.render
-          socket={@socket}
           session_id={@session.id}
           file={@data_view.file}
           dirty={@data_view.dirty}
@@ -254,37 +257,36 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="more-2-fill" class="text-xl" />
                 </button>
               </:toggle>
-              <:content>
-                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu-item text-gray-500",
-                      role: "menuitem" do %>
+              <.menu_item>
+                <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
                   <.remix_icon icon="download-2-line" />
-                  <span class="font-medium">Export</span>
-                <% end %>
-                <button class="menu-item text-gray-500" role="menuitem" phx-click="erase_outputs">
+                  <span>Export</span>
+                </.link>
+              </.menu_item>
+              <.menu_item>
+                <button role="menuitem" phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
-                  <span class="font-medium">Erase outputs</span>
+                  <span>Erase outputs</span>
                 </button>
-                <button class="menu-item text-gray-500" role="menuitem" phx-click="fork_session">
+              </.menu_item>
+              <.menu_item>
+                <button role="menuitem" phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
-                  <span class="font-medium">Fork</span>
+                  <span>Fork</span>
                 </button>
-                <a
-                  class="menu-item text-gray-500"
-                  role="menuitem"
-                  href={live_dashboard_process_path(@socket, @session.pid)}
-                  target="_blank"
-                >
+              </.menu_item>
+              <.menu_item>
+                <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
-                  <span class="font-medium">See on Dashboard</span>
+                  <span>See on Dashboard</span>
                 </a>
-                <%= live_redirect to: Routes.home_path(@socket, :close_session, @session.id),
-                      class: "menu-item text-red-600",
-                      role: "menuitem" do %>
+              </.menu_item>
+              <.menu_item variant={:danger}>
+                <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
                   <.remix_icon icon="close-circle-line" />
-                  <span class="font-medium">Close</span>
-                <% end %>
-              </:content>
+                  <span>Close</span>
+                </.link>
+              </.menu_item>
             </.menu>
           </div>
           <div>
@@ -301,160 +303,191 @@ defmodule LivebookWeb.SessionLive do
             />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
-            <%= if @data_view.section_views == [] do %>
-              <div class="flex justify-center">
-                <button class="button-base button-small" phx-click="append_section">
-                  + Section
-                </button>
-              </div>
-            <% end %>
-            <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <.live_component
-                module={LivebookWeb.SessionLive.SectionComponent}
-                id={section_view.id}
-                index={index}
-                session_id={@session.id}
-                session_pid={@session.pid}
-                client_id={@client_id}
-                runtime={@data_view.runtime}
-                smart_cell_definitions={@data_view.smart_cell_definitions}
-                installing?={@data_view.installing?}
-                allowed_uri_schemes={@allowed_uri_schemes}
-                section_view={section_view}
-              />
-            <% end %>
+            <div :if={@data_view.section_views == []} class="flex justify-center">
+              <button class="button-base button-small" phx-click="append_section">
+                + Section
+              </button>
+            </div>
+            <.live_component
+              :for={{section_view, index} <- Enum.with_index(@data_view.section_views)}
+              module={LivebookWeb.SessionLive.SectionComponent}
+              id={section_view.id}
+              index={index}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              runtime={@data_view.runtime}
+              smart_cell_definitions={@data_view.smart_cell_definitions}
+              installing?={@data_view.installing?}
+              allowed_uri_schemes={@allowed_uri_schemes}
+              section_view={section_view}
+            />
             <div style="height: 80vh"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <.current_user_modal return_to={@self_path} current_user={@current_user} />
+    <.current_user_modal current_user={@current_user} />
 
-    <%= if @live_action == :runtime_settings do %>
-      <.modal id="runtime-settings-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.RuntimeComponent}
-          id="runtime-settings"
-          session={@session}
-          runtime={@data_view.runtime}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :runtime_settings}
+      id="runtime-settings-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.RuntimeComponent}
+        id="runtime-settings"
+        session={@session}
+        runtime={@data_view.runtime}
+      />
+    </.modal>
 
-    <%= if @live_action == :file_settings do %>
-      <.modal id="persistence-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <%= live_render(@socket, LivebookWeb.SessionLive.PersistenceLive,
-          id: "persistence",
-          session: %{
-            "session" => @session,
-            "file" => @data_view.file,
-            "persist_outputs" => @data_view.persist_outputs,
-            "autosave_interval_s" => @data_view.autosave_interval_s
-          }
-        ) %>
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :file_settings}
+      id="persistence-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={@self_path}
+    >
+      <%= live_render(@socket, LivebookWeb.SessionLive.PersistenceLive,
+        id: "persistence",
+        session: %{
+          "session" => @session,
+          "file" => @data_view.file,
+          "persist_outputs" => @data_view.persist_outputs,
+          "autosave_interval_s" => @data_view.autosave_interval_s
+        }
+      ) %>
+    </.modal>
 
-    <%= if @live_action == :shortcuts do %>
-      <.modal id="shortcuts-modal" show class="w-full max-w-6xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.ShortcutsComponent}
-          id="shortcuts"
-          platform={@platform}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :shortcuts}
+      id="shortcuts-modal"
+      show
+      class="w-full max-w-6xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.ShortcutsComponent}
+        id="shortcuts"
+        platform={@platform}
+      />
+    </.modal>
 
-    <%= if @live_action == :cell_settings do %>
-      <.modal id="cell-settings-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component
-          module={settings_component_for(@cell)}
-          id="cell-settings"
-          session={@session}
-          return_to={@self_path}
-          cell={@cell}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :cell_settings}
+      id="cell-settings-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={settings_component_for(@cell)}
+        id="cell-settings"
+        session={@session}
+        return_to={@self_path}
+        cell={@cell}
+      />
+    </.modal>
 
-    <%= if @live_action == :cell_upload do %>
-      <.modal id="cell-upload-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.CellUploadComponent}
-          id="cell-upload"
-          session={@session}
-          return_to={@self_path}
-          uploads={@uploads}
-          cell_upload_metadata={@cell_upload_metadata}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :cell_upload}
+      id="cell-upload-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.CellUploadComponent}
+        id="cell-upload"
+        session={@session}
+        return_to={@self_path}
+        uploads={@uploads}
+        cell_upload_metadata={@cell_upload_metadata}
+      />
+    </.modal>
 
-    <%= if @live_action == :delete_section do %>
-      <.modal id="delete-section-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.DeleteSectionComponent}
-          id="delete-section"
-          session={@session}
-          return_to={@self_path}
-          section={@section}
-          is_first={@section.id == @first_section_id}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :delete_section}
+      id="delete-section-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.DeleteSectionComponent}
+        id="delete-section"
+        session={@session}
+        return_to={@self_path}
+        section={@section}
+        is_first={@section.id == @first_section_id}
+      />
+    </.modal>
 
-    <%= if @live_action == :bin do %>
-      <.modal id="bin-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.BinComponent}
-          id="bin"
-          session={@session}
-          return_to={@self_path}
-          bin_entries={@data_view.bin_entries}
-        />
-      </.modal>
-    <% end %>
+    <.modal :if={@live_action == :bin} id="bin-modal" show class="w-full max-w-4xl" patch={@self_path}>
+      <.live_component
+        module={LivebookWeb.SessionLive.BinComponent}
+        id="bin"
+        session={@session}
+        return_to={@self_path}
+        bin_entries={@data_view.bin_entries}
+      />
+    </.modal>
 
-    <%= if @live_action == :export do %>
-      <.modal id="export-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.ExportComponent}
-          id="export"
-          session={@session}
-          tab={@tab}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :export}
+      id="export-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.ExportComponent}
+        id="export"
+        session={@session}
+        tab={@tab}
+      />
+    </.modal>
 
-    <%= if @live_action == :package_search do %>
-      <.modal id="package-search-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
-          id: "package-search",
-          session: %{
-            "session" => @session,
-            "runtime" => @data_view.runtime,
-            "return_to" => @self_path
-          }
-        ) %>
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :package_search}
+      id="package-search-modal"
+      show
+      class="w-full max-w-xl"
+      patch={@self_path}
+    >
+      <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
+        id: "package-search",
+        session: %{
+          "session" => @session,
+          "runtime" => @data_view.runtime,
+          "return_to" => @self_path
+        }
+      ) %>
+    </.modal>
 
-    <%= if @live_action == :secrets do %>
-      <.modal id="secrets-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component
-          module={LivebookWeb.SessionLive.SecretsComponent}
-          id="secrets"
-          session={@session}
-          secrets={@data_view.secrets}
-          saved_secrets={@saved_secrets}
-          prefill_secret_name={@prefill_secret_name}
-          select_secret_ref={@select_secret_ref}
-          select_secret_options={@select_secret_options}
-          return_to={@self_path}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :secrets}
+      id="secrets-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.SecretsComponent}
+        id="secrets"
+        session={@session}
+        secrets={@data_view.secrets}
+        saved_secrets={@saved_secrets}
+        prefill_secret_name={@prefill_secret_name}
+        select_secret_ref={@select_secret_ref}
+        select_secret_options={@select_secret_options}
+        return_to={@self_path}
+      />
+    </.modal>
     """
   end
 
@@ -477,11 +510,17 @@ defmodule LivebookWeb.SessionLive do
 
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
-      <%= live_patch [to: @path,
-            class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}",
-            aria_label: @label] ++ @link_attrs do %>
+      <.link
+        patch={@path}
+        class={[
+          "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center",
+          @active && "text-gray-50 bg-gray-700"
+        ]}
+        aria-label={@label}
+        {@link_attrs}
+      >
         <.remix_icon icon={@icon} class="text-2xl" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -493,33 +532,32 @@ defmodule LivebookWeb.SessionLive do
         Sections
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for section_item <- @data_view.sections_items do %>
-          <div class="flex items-center">
-            <button
-              class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
-              data-el-sections-list-item
-              data-section-id={section_item.id}
-            >
-              <span class="flex items-center space-x-1">
-                <span><%= section_item.name %></span>
-                <%= if section_item.parent do %>
-                  <% # Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                  # consequently we show the tooltip wrapped to a fixed number of characters %>
-                  <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                    <.remix_icon
-                      icon="git-branch-line"
-                      class="text-lg font-normal leading-none flip-horizontally"
-                    />
-                  </span>
-                <% end %>
+        <div :for={section_item <- @data_view.sections_items} class="flex items-center">
+          <button
+            class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
+            data-el-sections-list-item
+            data-section-id={section_item.id}
+          >
+            <span class="flex items-center space-x-1">
+              <span><%= section_item.name %></span>
+              <% # Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+              # consequently we show the tooltip wrapped to a fixed number of characters %>
+              <span
+                :if={section_item.parent}
+                {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
+              >
+                <.remix_icon
+                  icon="git-branch-line"
+                  class="text-lg font-normal leading-none flip-horizontally"
+                />
               </span>
-            </button>
-            <.session_status
-              status={elem(section_item.status, 0)}
-              cell_id={elem(section_item.status, 1)}
-            />
-          </div>
-        <% end %>
+            </span>
+          </button>
+          <.session_status
+            status={elem(section_item.status, 0)}
+            cell_id={elem(section_item.status, 1)}
+          />
+        </div>
       </div>
       <button
         class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
@@ -545,282 +583,46 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </div>
       <div class="flex flex-col mt-5 space-y-4">
-        <%= for {client_id, user} <- @data_view.clients do %>
-          <div
-            class="flex items-center justify-between space-x-2"
-            id={"clients-list-item-#{client_id}"}
-            data-el-clients-list-item
-            data-client-id={client_id}
-          >
-            <button
-              class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-              disabled={client_id == @client_id}
-              data-el-client-link
-            >
-              <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
-              <span class="text-left"><%= user.name || "Anonymous" %></span>
-            </button>
-            <%= if client_id != @client_id do %>
-              <span
-                class="tooltip left"
-                data-tooltip="Follow this user"
-                data-el-client-follow-toggle
-                data-meta="follow"
-              >
-                <button class="icon-button" aria-label="follow this user">
-                  <.remix_icon icon="pushpin-line" class="text-lg" />
-                </button>
-              </span>
-              <span
-                class="tooltip left"
-                data-tooltip="Unfollow this user"
-                data-el-client-follow-toggle
-                data-meta="unfollow"
-              >
-                <button class="icon-button" aria-label="unfollow this user">
-                  <.remix_icon icon="pushpin-fill" class="text-lg" />
-                </button>
-              </span>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    """
-  end
-
-  defp secrets_list(assigns) do
-    ~H"""
-    <div class="flex flex-col grow">
-      <div class="flex justify-between items-center">
-        <h3 class="uppercase text-sm font-semibold text-gray-500">
-          Secrets
-        </h3>
-        <.secrets_info_icon />
-      </div>
-      <span class="text-sm text-gray-500">Available only to this session</span>
-      <div class="flex flex-col">
-        <div class="flex flex-col space-y-4 mt-6">
-          <%= for {secret_name, secret_value} <- Enum.sort(@data_view.secrets) do %>
-            <div
-              class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-              id={"session-secret-#{secret_name}-wrapper"}
-            >
-              <span
-                class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
-                id={"session-secret-#{secret_name}-title"}
-                phx-click={
-                  JS.toggle(to: "#session-secret-#{secret_name}-title")
-                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
-                  |> JS.add_class("bg-gray-100",
-                    to: "#session-secret-#{secret_name}-wrapper"
-                  )
-                }
-              >
-                <%= secret_name %>
-              </span>
-              <div
-                class="flex flex-col text-gray-800 hidden"
-                id={"session-secret-#{secret_name}-detail"}
-                phx-click={
-                  JS.toggle(to: "#session-secret-#{secret_name}-title")
-                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
-                  |> JS.remove_class("bg-gray-100",
-                    to: "#session-secret-#{secret_name}-wrapper"
-                  )
-                }
-              >
-                <div class="flex flex-col">
-                  <span class="text-sm font-mono break-all flex-row cursor-pointer">
-                    <%= secret_name %>
-                  </span>
-                  <div class="flex flex-row justify-between items-center my-1">
-                    <span class="text-sm font-mono break-all flex-row">
-                      <%= secret_value %>
-                    </span>
-                    <button
-                      id={"session-secret-#{secret_name}-delete"}
-                      type="button"
-                      phx-click={
-                        with_confirm(
-                          JS.push("delete_session_secret", value: %{secret_name: secret_name}),
-                          title: "Delete session secret - #{secret_name}",
-                          description: "Are you sure you want to delete this session secret?",
-                          confirm_text: "Delete",
-                          confirm_icon: "delete-bin-6-line"
-                        )
-                      }
-                      class="hover:text-red-600"
-                    >
-                      <.remix_icon icon="delete-bin-line" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-
-        <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
-              class: "inline-flex items-center justify-center p-8 py-1 mt-6 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
-              aria_label: "add secret",
-              role: "button" do %>
-          <.remix_icon icon="add-line" class="text-lg align-center" />
-          <span>New secret</span>
-        <% end %>
-
-        <div class="mt-16">
-          <h3 class="uppercase text-sm font-semibold text-gray-500">
-            App secrets
-          </h3>
-          <span class="text-sm text-gray-500">
-            <%= if @saved_secrets == [] do %>
-              No secrets stored in Livebook so far
-            <% else %>
-              Toggle to share with this session
-            <% end %>
-          </span>
-        </div>
-
-        <div class="flex flex-col space-y-4 mt-6">
-          <%= for secret when secret.origin in [:app, :startup] <- @saved_secrets do %>
-            <.secrets_item
-              secret={secret}
-              prefix={to_string(secret.origin)}
-              data_secrets={@data_view.secrets}
-              hubs={@hubs}
-            />
-          <% end %>
-        </div>
-
-        <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
-          <div class="mt-16">
-            <h3 class="uppercase text-sm font-semibold text-gray-500">
-              Hub secrets
-            </h3>
-            <span class="text-sm text-gray-500">
-              <%= if @saved_secrets == [] do %>
-                No secrets stored in Livebook so far
-              <% else %>
-                Toggle to share with this session
-              <% end %>
-            </span>
-          </div>
-
-          <div class="flex flex-col space-y-4 mt-6">
-            <%= for %{origin: {:hub, id}} = secret <- @saved_secrets do %>
-              <.secrets_item
-                secret={secret}
-                prefix={"hub-#{id}"}
-                data_secrets={@data_view.secrets}
-                hubs={@hubs}
-              />
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-    """
-  end
-
-  defp secrets_item(assigns) do
-    ~H"""
-    <div
-      class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-      id={"#{@prefix}-secret-#{@secret.name}-wrapper"}
-    >
-      <div class="flex" id={"#{@prefix}-secret-#{@secret.name}-title"}>
-        <span
-          class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
-          phx-click={
-            JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-title", display: "flex")
-            |> JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-detail", display: "flex")
-            |> JS.add_class("bg-gray-100",
-              to: "##{@prefix}-secret-#{@secret.name}-wrapper"
-            )
-          }
+        <div
+          :for={{client_id, user} <- @data_view.clients}
+          class="flex items-center justify-between space-x-2"
+          id={"clients-list-item-#{client_id}"}
+          data-el-clients-list-item
+          data-client-id={client_id}
         >
-          <%= @secret.name %>
-        </span>
-        <.switch_checkbox
-          name="toggle_secret"
-          checked={secret_toggled?(@secret, @data_secrets)}
-          label={secret_label(@secret, @hubs)}
-          tooltip={secret_tooltip(@secret, @hubs)}
-          phx-click="toggle_secret"
-          phx-value-secret_name={@secret.name}
-          phx-value-secret_value={@secret.value}
-        />
-      </div>
-      <div class="flex flex-col text-gray-800 hidden" id={"#{@prefix}-secret-#{@secret.name}-detail"}>
-        <div class="flex flex-col">
-          <div class="flex justify-between items-center">
+          <button
+            class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+            disabled={client_id == @client_id}
+            data-el-client-link
+          >
+            <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
+            <span class="text-left"><%= user.name || "Anonymous" %></span>
+          </button>
+          <%= if client_id != @client_id do %>
             <span
-              class="text-sm font-mono w-full break-all flex-row cursor-pointer"
-              phx-click={
-                JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-title", display: "flex")
-                |> JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-detail", display: "flex")
-                |> JS.remove_class("bg-gray-100",
-                  to: "##{@prefix}-secret-#{@secret.name}-wrapper"
-                )
-              }
+              class="tooltip left"
+              data-tooltip="Follow this user"
+              data-el-client-follow-toggle
+              data-meta="follow"
             >
-              <%= @secret.name %>
-            </span>
-            <.switch_checkbox
-              name="toggle_secret"
-              checked={secret_toggled?(@secret, @data_secrets)}
-              label={secret_label(@secret, @hubs)}
-              tooltip={secret_tooltip(@secret, @hubs)}
-              phx-click="toggle_secret"
-              phx-value-secret_name={@secret.name}
-              phx-value-secret_value={@secret.value}
-            />
-          </div>
-          <div class="flex flex-row justify-between items-center my-1">
-            <span class="text-sm font-mono break-all flex-row">
-              <%= @secret.value %>
-            </span>
-            <%= if @secret.origin == :app do %>
-              <button
-                id={"#{@prefix}-secret-#{@secret.name}-delete"}
-                type="button"
-                phx-click={
-                  with_confirm(
-                    JS.push("delete_app_secret", value: %{secret_name: @secret.name}),
-                    title: "Delete app secret - #{@secret.name}",
-                    description: "Are you sure you want to delete this app secret?",
-                    confirm_text: "Delete",
-                    confirm_icon: "delete-bin-6-line"
-                  )
-                }
-                class="hover:text-red-600"
-              >
-                <.remix_icon icon="delete-bin-line" />
+              <button class="icon-button" aria-label="follow this user">
+                <.remix_icon icon="pushpin-line" class="text-lg" />
               </button>
-            <% end %>
-          </div>
+            </span>
+            <span
+              class="tooltip left"
+              data-tooltip="Unfollow this user"
+              data-el-client-follow-toggle
+              data-meta="unfollow"
+            >
+              <button class="icon-button" aria-label="unfollow this user">
+                <.remix_icon icon="pushpin-fill" class="text-lg" />
+              </button>
+            </span>
+          <% end %>
         </div>
       </div>
     </div>
-    """
-  end
-
-  defp secrets_info_icon(assigns) do
-    ~H"""
-    <span
-      class="icon-button p-0 cursor-pointer tooltip bottom-left"
-      data-tooltip={
-        ~S'''
-        Secrets are a safe way to share credentials
-        and tokens with notebooks. They are often
-        accessed by Smart cells and can be read as
-        environment variables using the LB_ prefix.
-        '''
-      }
-    >
-      <.remix_icon icon="question-line" class="text-xl leading-none" />
-    </span>
     """
   end
 
@@ -831,16 +633,19 @@ defmodule LivebookWeb.SessionLive do
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Runtime
         </h3>
-        <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button p-0" do %>
+        <.link patch={~p"/sessions/#{@session.id}/settings/runtime"} class="icon-button p-0">
           <.remix_icon icon="settings-3-line text-xl" />
-        <% end %>
+        </.link>
       </div>
       <div class="flex flex-col mt-2 space-y-4">
         <div class="flex flex-col space-y-3">
-          <%= for {label, value} <- Runtime.describe(@data_view.runtime) do %>
-            <.labeled_text label={label} one_line><%= value %></.labeled_text>
-          <% end %>
+          <.labeled_text
+            :for={{label, value} <- Runtime.describe(@data_view.runtime)}
+            label={label}
+            one_line
+          >
+            <%= value %>
+          </.labeled_text>
         </div>
         <div class="flex space-x-2">
           <%= if Runtime.connected?(@data_view.runtime) do %>
@@ -860,10 +665,12 @@ defmodule LivebookWeb.SessionLive do
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
             </button>
-            <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button-base button-outlined-gray bg-transparent" do %>
+            <.link
+              patch={~p"/sessions/#{@session.id}/settings/runtime"}
+              class="button-base button-outlined-gray bg-transparent"
+            >
               Configure
-            <% end %>
+            </.link>
           <% end %>
         </div>
         <%= if uses_memory?(@session.memory_usage) do %>
@@ -895,18 +702,19 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </div>
       <div class="w-full h-8 flex flex-row py-1 gap-0.5">
-        <%= for {type, memory} <- @runtime_memory  do %>
-          <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
-        <% end %>
+        <div
+          :for={{type, memory} <- @runtime_memory}
+          class={["h-6", memory_color(type)]}
+          style={"width: #{memory.percentage}%"}
+        >
+        </div>
       </div>
       <div class="flex flex-col py-1">
-        <%= for {type, memory} <- @runtime_memory do %>
-          <div class="flex flex-row items-center">
-            <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
-            <span class="capitalize text-gray-700"><%= type %></span>
-            <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
-          </div>
-        <% end %>
+        <div :for={{type, memory} <- @runtime_memory} class="flex flex-row items-center">
+          <span class={["w-4 h-4 mr-2 rounded", memory_color(type)]}></span>
+          <span class="capitalize text-gray-700"><%= type %></span>
+          <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
+        </div>
         <div class="flex rounded justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
           Total: <%= format_bytes(@memory_usage.runtime.total) %>
         </div>
@@ -940,13 +748,15 @@ defmodule LivebookWeb.SessionLive do
     ~H"""
     <div class="flex items-center space-x-1">
       <span class="flex relative h-3 w-3">
-        <%= if @animated_circle_class do %>
-          <span class={
-            "#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
-          }>
-          </span>
-        <% end %>
-        <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+        <span
+          :if={@animated_circle_class}
+          class={[
+            @animated_circle_class,
+            "animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
+          ]}
+        >
+        </span>
+        <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3"]}></span>
       </span>
     </div>
     """
@@ -1145,13 +955,7 @@ defmodule LivebookWeb.SessionLive do
 
         {:ok, section} ->
           push_patch(socket,
-            to:
-              Routes.session_path(
-                socket,
-                :delete_section,
-                socket.assigns.session.id,
-                section.id
-              )
+            to: ~p"/sessions/#{socket.assigns.session.id}/delete-section/#{section.id}"
           )
 
         :error ->
@@ -1258,10 +1062,7 @@ defmodule LivebookWeb.SessionLive do
       Session.save(socket.assigns.session.pid)
       {:noreply, socket}
     else
-      {:noreply,
-       push_patch(socket,
-         to: Routes.session_path(socket, :file_settings, socket.assigns.session.id)
-       )}
+      {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/file")}
     end
   end
 
@@ -1377,36 +1178,8 @@ defmodule LivebookWeb.SessionLive do
 
     {:noreply,
      push_patch(socket,
-       to:
-         Routes.session_path(socket, :secrets, socket.assigns.session.id,
-           preselect_name: preselect_name
-         )
+       to: ~p"/sessions/#{socket.assigns.session.id}/secrets?preselect_name=#{preselect_name}"
      )}
-  end
-
-  def handle_event(
-        "toggle_secret",
-        %{"secret-name" => secret_name, "secret-value" => secret_value, "value" => "true"},
-        socket
-      ) do
-    secret = %{name: secret_name, value: secret_value}
-    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
-    {:noreply, socket}
-  end
-
-  def handle_event("toggle_secret", %{"secret-name" => secret_name}, socket) do
-    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
-    {:noreply, socket}
-  end
-
-  def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
-    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
-    {:noreply, socket}
-  end
-
-  def handle_event("delete_app_secret", %{"secret_name" => secret_name}, socket) do
-    Livebook.Secrets.unset_secret(secret_name)
-    {:noreply, socket}
   end
 
   @impl true
@@ -1465,7 +1238,7 @@ defmodule LivebookWeb.SessionLive do
     {:noreply,
      socket
      |> put_flash(:info, "Session has been closed")
-     |> push_redirect(to: Routes.home_path(socket, :page))}
+     |> push_navigate(to: ~p"/")}
   end
 
   def handle_info({:runtime_intellisense_response, ref, request, response}, socket) do
@@ -1569,10 +1342,8 @@ defmodule LivebookWeb.SessionLive do
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
-            redirect_path =
-              session_path(socket, session_id, url_hash: get_url_hash(requested_url))
-
-            push_redirect(socket, to: redirect_path)
+            redirect_path = session_path(session_id, url_hash: get_url_hash(requested_url))
+            push_navigate(socket, to: redirect_path)
 
           {:error, :none} ->
             open_notebook(socket, origin, fallback_locations, requested_url)
@@ -1686,7 +1457,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp redirect_to_self(socket) do
-    push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session.id))
+    push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")
   end
 
   defp handle_operation(socket, operation) do
@@ -2271,22 +2042,8 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp secret_toggled?(secret, secrets) do
-    Map.has_key?(secrets, secret.name) and secrets[secret.name] == secret.value
-  end
-
   defp get_saved_secrets do
     Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
-  end
-
-  defp secret_label(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).emoji
-  defp secret_label(_, _), do: nil
-
-  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).name
-  defp secret_tooltip(_, _), do: nil
-
-  defp fetch_hub!(id, hubs) do
-    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
 
   defp app_status_color(nil), do: "bg-gray-400"

@@ -20,7 +20,9 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           <%= button_label(@action) %>
         </button>
-        <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+        <.link patch={@return_to} class="button-base button-outlined-gray">
+          Cancel
+        </.link>
       </div>
     </div>
     """

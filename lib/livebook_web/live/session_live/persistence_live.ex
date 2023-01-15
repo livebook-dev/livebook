@@ -62,22 +62,22 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           class="flex flex-col space-y-4 items-start max-w-full"
         >
           <div class="flex flex-col space-y-4">
-            <.switch_checkbox
+            <.switch_field
               name="persist_outputs"
               label="Persist outputs"
-              checked={@new_attrs.persist_outputs}
+              value={@new_attrs.persist_outputs}
             />
             <div class="flex space-x-2 items-center">
               <span class="text-gray-700 whitespace-nowrap">Autosave</span>
-              <.select
+              <.select_field
                 name="autosave_interval_s"
-                selected={@new_attrs.autosave_interval_s}
+                value={@new_attrs.autosave_interval_s || ""}
                 options={[
-                  {5, "every 5 seconds"},
-                  {30, "every 30 seconds"},
-                  {60, "every minute"},
-                  {600, "every 10 minutes"},
-                  {nil, "never"}
+                  {"every 5 seconds", "5"},
+                  {"every 30 seconds", "30"},
+                  {"every minute", "60"},
+                  {"every 10 minutes", "600"},
+                  {"never", ""}
                 ]}
               />
             </div>
@@ -96,16 +96,13 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           >
             Save
           </button>
-          <%= live_patch("Cancel",
-            to: Routes.session_path(@socket, :page, @session.id),
-            class: "button-base button-outlined-gray"
-          ) %>
+          <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+            Cancel
+          </.link>
         </div>
-        <%= if @saved_file do %>
-          <button class="button-base button-outlined-red" phx-click="stop_saving">
-            Stop saving to file
-          </button>
-        <% end %>
+        <button :if={@saved_file} class="button-base button-outlined-red" phx-click="stop_saving">
+          Stop saving to file
+        </button>
       </div>
     </div>
     """
@@ -133,8 +130,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   def handle_event("stop_saving", %{}, socket) do
     Session.set_file(socket.assigns.session.pid, nil)
 
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session.id))}
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
   end
 
   @impl true
@@ -181,7 +177,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     Session.save_sync(assigns.session.pid)
 
-    {:noreply, push_patch(socket, to: Routes.session_path(socket, :page, assigns.session.id))}
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{assigns.session.id}")}
   end
 
   defp parse_optional_integer(string) do

@@ -82,7 +82,6 @@ defmodule LivebookWeb.Output.FrameComponent do
           <LivebookWeb.Output.outputs
             outputs={@outputs}
             dom_id_map={@persistent_id_map}
-            socket={@socket}
             session_id={@session_id}
             session_pid={@session_pid}
             input_values={@input_values}

@@ -41,30 +41,25 @@ defmodule LivebookWeb.EnvVarComponent do
         spellcheck="false"
       >
         <div class="flex flex-col space-y-4">
-          <.input_wrapper form={f} field={:name} class="flex flex-col space-y-1">
-            <div class="input-label">
-              Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
-            </div>
-            <%= text_input(f, :name, class: "input", autofocus: @operation == :new) %>
-          </.input_wrapper>
-          <.input_wrapper form={f} field={:value} class="flex flex-col space-y-1">
-            <div class="input-label">Value</div>
-            <%= text_input(f, :value, class: "input", autofocus: @operation == :edit) %>
-          </.input_wrapper>
-
-          <%= text_input(f, :operation, type: "hidden", value: @operation) %>
-
+          <.text_field
+            field={f[:name]}
+            label="Name (alphanumeric and underscore)"
+            autofocus={@operation == :new}
+          />
+          <.text_field field={f[:value]} label="Value" autofocus={@operation == :edit} />
+          <.hidden_field field={f[:operation]} value={@operation} />
           <div class="flex space-x-2">
-            <%= submit("Save",
-              class: "button-base button-blue",
-              disabled: not @changeset.valid?,
-              phx_disabled_with: "Adding..."
-            ) %>
-            <%= live_patch("Cancel",
-              to: @return_to,
-              type: "button",
-              class: "button-base button-outlined-gray"
-            ) %>
+            <button
+              class="button-base button-blue"
+              type="submit"
+              phx-disable-with="Adding..."
+              disable={not @changeset.valid?}
+            >
+              Save
+            </button>
+            <.link patch={@return_to} class="button-base button-outlined-gray">
+              Cancel
+            </.link>
           </div>
         </div>
       </.form>
@@ -74,6 +69,11 @@ defmodule LivebookWeb.EnvVarComponent do
 
   @impl true
   def handle_event("validate", %{"env_var" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Settings.change_env_var(socket.assigns.env_var, attrs))}
+    changeset =
+      socket.assigns.env_var
+      |> Settings.change_env_var(attrs)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset: changeset)}
   end
 end

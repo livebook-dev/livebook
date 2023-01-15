@@ -34,17 +34,18 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-              <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
-                <div class="input-label">Emoji</div>
-                <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
-              </.input_wrapper>
+              <.emoji_field field={f[:hub_emoji]} label="Emoji" />
             </div>
-
-            <%= submit("Update Hub",
-              class: "button-base button-blue",
-              phx_disable_with: "Updating...",
-              disabled: not @changeset.valid?
-            ) %>
+            <div>
+              <button
+                class="button-base button-blue"
+                type="submit"
+                phx-disable-with="Updating..."
+                disabled={not @changeset.valid?}
+              >
+                Update Hub
+              </button>
+            </div>
           </.form>
         </div>
       </div>
@@ -59,7 +60,7 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
         {:noreply,
          socket
          |> put_flash(:success, "Hub updated successfully")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+         |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
@@ -67,6 +68,6 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   end
 
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign(socket, changeset: Enterprise.validate_hub(socket.assigns.hub, attrs))}
   end
 end

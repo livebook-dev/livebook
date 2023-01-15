@@ -26,10 +26,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :image}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
@@ -47,10 +46,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :audio}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
         id={"#{@id}-input"}
@@ -66,10 +64,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :file}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.FileInputComponent}
         id={"#{@id}-input"}
@@ -88,36 +85,37 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
-      <.input id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
+      </.label>
+      <.input_output id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
     </form>
     """
   end
 
-  defp input(%{attrs: %{type: :select}} = assigns) do
+  defp input_output(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select data-el-input class="input input-select" name="value">
-      <%= for {{key, label}, idx} <- Enum.with_index(@attrs.options) do %>
-        <option value={idx} selected={@value == key}>
-          <%= label %>
-        </option>
-      <% end %>
+    <select data-el-input class="input w-60" name="value">
+      <option
+        :for={{{key, label}, idx} <- Enum.with_index(@attrs.options)}
+        value={idx}
+        selected={@value == key}
+      >
+        <%= label %>
+      </option>
     </select>
     """
   end
 
-  defp input(%{attrs: %{type: :checkbox}} = assigns) do
+  defp input_output(%{attrs: %{type: :checkbox}} = assigns) do
     ~H"""
     <div class="mt-1">
-      <.switch_checkbox data-el-input name="value" checked={@value} />
+      <.switch_field data-el-input name="value" value={@value} />
     </div>
     """
   end
 
-  defp input(%{attrs: %{type: :range}} = assigns) do
+  defp input_output(%{attrs: %{type: :range}} = assigns) do
     ~H"""
     <div class="flex items-center space-x-2">
       <div><%= @attrs.min %></div>
@@ -140,12 +138,12 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input(%{attrs: %{type: :textarea}} = assigns) do
+  defp input_output(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
     <textarea
       id={@id}
       data-el-input
-      class={"input min-h-[38px] max-h-[300px] tiny-scrollbar #{if(@attrs[:monospace], do: "font-mono")}"}
+      class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs[:monospace] && "font-mono"]}
       name="value"
       phx-hook="TextareaAutosize"
       phx-debounce="blur"
@@ -155,7 +153,7 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input(%{attrs: %{type: :password}} = assigns) do
+  defp input_output(%{attrs: %{type: :password}} = assigns) do
     ~H"""
     <.with_password_toggle id={"#{@id}-password-toggle"}>
       <input
@@ -173,7 +171,8 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input(%{attrs: %{type: type}} = assigns) when type in [:number, :color, :url, :text] do
+  defp input_output(%{attrs: %{type: type}} = assigns)
+       when type in [:number, :color, :url, :text] do
     ~H"""
     <input
       type={html_input_type(@attrs.type)}
@@ -189,7 +188,7 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input(assigns) do
+  defp input_output(assigns) do
     ~H"""
     <div class="text-red-600">
       Unknown input type <%= @attrs.type %>

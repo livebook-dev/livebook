@@ -1,15 +1,17 @@
-body {
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-}
+@layer base {
+  body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  }
 
-/* Remove the default outline on focused elements */
-:focus,
-button:focus {
-  outline: none;
-}
+  /* Remove the default outline on focused elements */
+  :focus,
+  button:focus {
+    outline: none;
+  }
 
-menu {
-  margin: 0;
-  padding: 0;
+  menu {
+    margin: 0;
+    padding: 0;
+  }
 }

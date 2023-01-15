@@ -6,7 +6,7 @@ defmodule LivebookWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, {LivebookWeb.LayoutView, :root}
+    plug :put_root_layout, {LivebookWeb.Layouts, :root}
     # Because LIVEBOOK_SECRET_KEY_BASE authentication is randomly
     # generated, the odds of getting a CSRFProtection is quite high
     # and exceptions can lead to a poor user experience.

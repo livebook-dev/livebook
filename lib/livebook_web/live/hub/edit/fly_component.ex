@@ -70,22 +70,18 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
-                <div class="input-label">Name</div>
-                <%= text_input(f, :hub_name, class: "input") %>
-              </.input_wrapper>
-
-              <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
-                <div class="input-label">Emoji</div>
-                <.emoji_input id="fly-emoji-input" form={f} field={:hub_emoji} />
-              </.input_wrapper>
+              <.text_field field={f[:hub_name]} label="Name" />
+              <.emoji_field field={f[:hub_emoji]} label="Emoji" />
             </div>
-
-            <%= submit("Update Hub",
-              class: "button-base button-blue",
-              phx_disable_with: "Updating...",
-              disabled: not @changeset.valid?
-            ) %>
+            <div>
+              <button
+                class="button-base button-blue"
+                phx-disable-with="Updating..."
+                disabled={not @changeset.valid?}
+              >
+                Update Hub
+              </button>
+            </div>
           </.form>
         </div>
 
@@ -98,32 +94,31 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             module={LivebookWeb.EnvVarsComponent}
             id="env-vars"
             env_vars={@env_vars}
-            return_to={Routes.hub_path(@socket, :edit, @hub.id)}
-            add_env_var_path={Routes.hub_path(@socket, :add_env_var, @hub.id)}
+            return_to={~p"/hub/#{@hub.id}"}
+            add_env_var_path={~p"/hub/#{@hub.id}/env-var/new"}
             edit_label="Replace"
             target={@myself}
           />
         </div>
       </div>
 
-      <%= if @live_action in [:add_env_var, :edit_env_var] do %>
-        <.modal
-          id="env-var-modal"
-          show
-          class="w-full max-w-3xl"
-          target={@myself}
-          patch={Routes.hub_path(@socket, :edit, @hub.id)}
-        >
-          <.live_component
-            module={LivebookWeb.EnvVarComponent}
-            id="env-var"
-            on_save={JS.push("save_env_var", target: @myself)}
-            env_var={@env_var}
-            headline="Configute your Fly application system environment variables"
-            return_to={Routes.hub_path(@socket, :edit, @hub.id)}
-          />
-        </.modal>
-      <% end %>
+      <.modal
+        :if={@live_action in [:add_env_var, :edit_env_var]}
+        id="env-var-modal"
+        show
+        class="w-full max-w-3xl"
+        target={@myself}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.EnvVarComponent}
+          id="env-var"
+          on_save={JS.push("save_env_var", target: @myself)}
+          env_var={@env_var}
+          headline="Configute your Fly application system environment variables"
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
     </div>
     """
   end
@@ -135,7 +130,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         {:noreply,
          socket
          |> put_flash(:success, "Hub updated successfully")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+         |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
@@ -143,7 +138,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   end
 
   def handle_event("validate", %{"fly" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Fly.change_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign(socket, changeset: Fly.validate_hub(socket.assigns.hub, attrs))}
   end
 
   # EnvVar component callbacks
@@ -162,7 +157,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         {:noreply,
          socket
          |> put_flash(:success, message)
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
 
       {:error, _} ->
         message =
@@ -173,13 +168,12 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         {:noreply,
          socket
          |> put_flash(:error, message)
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
     end
   end
 
   def handle_event("edit_env_var", %{"env_var" => key}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.hub_path(socket, :edit_env_var, socket.assigns.hub.id, key))}
+    {:noreply, push_patch(socket, to: ~p"/hub/#{socket.assigns.hub.id}/env-var/edit/#{key}")}
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
@@ -188,13 +182,13 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         {:noreply,
          socket
          |> put_flash(:success, "Environment variable deleted")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
 
       {:error, _} ->
         {:noreply,
          socket
          |> put_flash(:error, "Failed to delete environment variable")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
     end
   end
 end

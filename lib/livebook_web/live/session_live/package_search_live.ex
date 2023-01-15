@@ -59,9 +59,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
               <div class="ml-2">No results</div>
             </div>
           <% true -> %>
-            <%= for {package, idx} <- Enum.with_index(@packages) do %>
-              <.package package={package} idx={idx} />
-            <% end %>
+            <.package :for={{package, idx} <- Enum.with_index(@packages)} package={package} idx={idx} />
         <% end %>
       </div>
     </div>

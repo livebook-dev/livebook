@@ -6,7 +6,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
   alias Livebook.Hubs
 
   test "render hub selection cards", %{conn: conn} do
-    {:ok, _view, html} = live(conn, Routes.hub_path(conn, :new))
+    {:ok, _view, html} = live(conn, ~p"/hub")
 
     assert html =~ "Fly"
     assert html =~ "Livebook Enterprise"
@@ -16,7 +16,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     test "persists new hub", %{conn: conn} do
       fly_bypass("123456789")
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      {:ok, view, _html} = live(conn, ~p"/hub")
 
       assert view
              |> element("#fly")
@@ -61,7 +61,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       hub = insert_hub(:fly, id: "fly-foo", application_id: "foo")
       fly_bypass(hub.application_id)
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      {:ok, view, _html} = live(conn, ~p"/hub")
 
       assert view
              |> element("#fly")
@@ -91,7 +91,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
              |> element("#fly-form")
              |> render_submit(%{"fly" => attrs}) =~ "already exists"
 
-      assert_hub(view, conn, hub)
+      assert_hub(view, hub)
       assert Hubs.fetch_hub!(hub.id) == hub
     end
   end
@@ -156,11 +156,11 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     %{"data" => %{"app" => app}}
   end
 
-  defp assert_hub(view, conn, hub) do
+  defp assert_hub(view, hub) do
     hubs_html = view |> element("#hubs") |> render()
 
     assert hubs_html =~ hub.hub_emoji
-    assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+    assert hubs_html =~ ~p"/hub/#{hub.id}"
     assert hubs_html =~ hub.hub_name
   end
 end

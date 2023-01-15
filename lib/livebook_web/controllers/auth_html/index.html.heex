@@ -1,0 +1,53 @@
+<div class="h-screen flex items-center justify-center bg-gray-900">
+  <div class="flex flex-col space-y-4 items-center">
+    <a href={~p"/"}>
+      <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
+    </a>
+    <div class="text-2xl text-gray-50">
+      Authentication required
+    </div>
+
+    <div class="max-w-2xl text-center text-gray-300">
+      <span :if={@auth_mode == :password}>
+        Type password to access the Livebook.
+      </span>
+      <span :if={@auth_mode == :token}>
+        Please check out the console for authentication URL or type the token directly
+        here.<br />To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
+        environment variable.
+      </span>
+    </div>
+    <div class="text-2xl text-gray-50 w-full pt-2">
+      <form method="post" class="flex flex-col space-y-4 items-center">
+        <input type="hidden" value={Phoenix.Controller.get_csrf_token()} name="_csrf_token" />
+        <div phx-feedback-for={@auth_mode} class={["w-[20ch]", @errors != [] && "show-errors"]}>
+          <input
+            :if={@auth_mode == :password}
+            type="password"
+            name="password"
+            class="input"
+            placeholder="Password"
+            autofocus
+          />
+          <input
+            :if={@auth_mode == :token}
+            type="text"
+            name="token"
+            class="input"
+            placeholder="Token"
+            autofocus
+          />
+          <span
+            :for={error <- @errors}
+            class="mt-1 hidden text-red-600 text-sm phx-form-error:block"
+          >
+            <%= translate_error(error) %>
+          </span>
+        </div>
+        <button type="submit" class="button-base button-blue">
+          Authenticate
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
