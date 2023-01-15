@@ -43,10 +43,15 @@ defmodule LivebookWeb.HomeLive do
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>
-        <a aria-label="new-notebook" class="flex items-center cursor-pointer" phx-click="new">
-          <.remix_icon icon="add-line" />
-          <span class="pl-2">New notebook</span>
-        </a>
+        <div class="flex space-x-2">
+          <%= live_patch("Import",
+            to: Routes.home_path(@socket, :import, "url"),
+            class: "button-base button-outlined-gray whitespace-nowrap"
+          ) %>
+          <button class="button-base button-blue" phx-click="new">
+            New notebook
+          </button>
+        </div>
       </:topbar_action>
       <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />

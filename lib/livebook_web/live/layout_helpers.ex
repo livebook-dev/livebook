@@ -39,12 +39,14 @@ defmodule LivebookWeb.LayoutHelpers do
             </button>
           </div>
 
-          <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
+          <div>
             <%= if @topbar_action == [] do %>
-              <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
-                <.remix_icon icon="home-6-line" />
-                <span class="pl-2">Home</span>
-              <% end %>
+              <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
+                <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
+                  <.remix_icon icon="home-6-line" />
+                  <span class="pl-2">Home</span>
+                <% end %>
+              </div>
             <% else %>
               <%= render_slot(@topbar_action) %>
             <% end %>
