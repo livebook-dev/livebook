@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../elixirkit_dotnet/ElixirKit.csproj" />
+  </ItemGroup>
+
+</Project>

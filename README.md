@@ -252,6 +252,28 @@ MIX_ENV=prod mix escript.build
 ./livebook server
 ```
 
+### Livebook Desktop
+
+For macOS, run:
+
+```shell
+# Test macOS app locally
+(cd rel/app/macos && ./run.sh)
+
+# Build macOS installer
+.github/scripts/app/build_macos.sh
+```
+
+For Windows, run:
+
+```shell
+# Test Windows app locally
+(cd rel/app/windows && ./run.sh)
+
+# Build Windows installer
+.github/scripts/app/build_windows.sh
+```
+
 ## Sponsors
 
 Livebook development is sponsored by:

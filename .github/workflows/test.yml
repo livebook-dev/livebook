@@ -5,7 +5,7 @@ on:
     branches:
       - main
 env:
-  otp: "25.0"
+  otp: "25.0.4"
   elixir: "1.14.2"
 jobs:
   main:
@@ -101,12 +101,18 @@ jobs:
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-      - name: Cache Bootstrap
+      - name: Cache Bootstrap OTP
         uses: actions/cache@v3
         with:
-          path: tmp
-          key: ${{ runner.os }}-app-${{ hashFiles('.github/scripts/app/bootstrap_mac.sh') }}
-      - name: Bootstrap
-        run: bash .github/scripts/app/bootstrap_mac.sh
+          path: elixirkit/otp_bootstrap/_build/otp-rel-${{ env.otp }}-openssl-1.1.1s-macos-universal
+          key: ${{ runner.os }}-bootstrap-${{ env.otp }}-${{ hashFiles('elixirkit/otp_bootstrap/build.sh') }}
+      - name: Cache Elixir
+        uses: actions/cache@v3
+        with:
+          path: _build/elixir-${{ env.elixir }}
+          key: ${{ runner.os }}-elixir-${{ env.elixir }}
       - name: Build the app
-        run: bash .github/scripts/app/build_mac.sh
+        run: .github/scripts/app/build_macos.sh
+        env:
+          OTP_VERSION: ${{ env.otp }}
+          ELIXIR_VERSION: ${{ env.elixir }}

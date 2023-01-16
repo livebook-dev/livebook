@@ -79,11 +79,11 @@ defmodule Standalone do
     download_elixir_at_destination(standalone_destination, elixir_version)
 
     filenames =
-      case AppBundler.os() do
-        :macos ->
+      case :os.type() do
+        {:unix, :darwin} ->
           ["elixir", "elixirc", "mix", "iex"]
 
-        :windows ->
+        {:win32, _} ->
           ["elixir.bat", "elixirc.bat", "mix.bat", "iex.bat"]
       end
 
