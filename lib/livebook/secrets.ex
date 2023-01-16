@@ -32,6 +32,16 @@ defmodule Livebook.Secrets do
   end
 
   @doc """
+  Gets a secret from storage.
+  """
+  @spec get_secret(String.t()) :: {:ok, Secret.t()} | :error
+  def get_secret(id) do
+    with {:ok, fields} <- Storage.fetch(:secrets, id) do
+      {:ok, to_struct(fields)}
+    end
+  end
+
+  @doc """
   Checks if the secret already exists.
   """
   @spec secret_exists?(String.t()) :: boolean()
@@ -66,8 +76,7 @@ defmodule Livebook.Secrets do
   """
   @spec unset_secret(String.t()) :: :ok
   def unset_secret(id) do
-    if secret_exists?(id) do
-      secret = fetch_secret!(id)
+    with {:ok, secret} <- get_secret(id) do
       Storage.delete(:secrets, id)
       broadcast_secrets_change({:unset_secret, secret})
     end
