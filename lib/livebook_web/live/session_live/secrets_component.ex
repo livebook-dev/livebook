@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs.EnterpriseClient
+  alias Livebook.Secrets.Secret
 
   @impl true
   def update(assigns, socket) do
@@ -46,7 +47,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 Choose a secret
               </p>
               <div class="flex flex-wrap">
-                <%= for {secret_name, _} <- Enum.sort(@secrets) do %>
+                <%= for %{name: secret_name, origin: :system_env} <- Enum.sort(@secrets) do %>
                   <.secret_with_badge
                     secret_name={secret_name}
                     stored="Session"
@@ -55,7 +56,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= for {secret_name, _} <- livebook_only_secrets(@secrets, @livebook_secrets) do %>
+                <%= for %{name: secret_name, origin: :app} <- @livebook_secrets do %>
                   <.secret_with_badge
                     secret_name={secret_name}
                     stored="Livebook"
@@ -64,7 +65,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= if @secrets == %{} and @livebook_secrets == %{} do %>
+                <%= for %{name: secret_name, origin: origin} when is_binary(origin) <- @hub_secrets do %>
+                  <.secret_with_badge
+                    secret_name={secret_name}
+                    stored="Hub"
+                    action="select_livebook_secret"
+                    active={false}
+                    target={@myself}
+                  />
+                <% end %>
+                <%= if @secrets == [] and @livebook_secrets == [] and @hub_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
@@ -223,8 +233,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
-    with {:ok, secret} <- Livebook.Secrets.validate_secret(data),
-         :ok <- set_secret(socket, secret, data["store"]) do
+    with attrs <- build_attrs(data),
+         {:ok, secret} <- Livebook.Secrets.validate_secret(attrs),
+         :ok <- set_secret(socket, secret) do
       {:noreply,
        socket
        |> push_patch(to: socket.assigns.return_to)
@@ -273,42 +284,52 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp prefill_secret_name(socket) do
-    if unavailable_secret?(
-         socket.assigns.prefill_secret_name,
-         socket.assigns.secrets,
-         socket.assigns.livebook_secrets
-       ),
-       do: socket.assigns.prefill_secret_name,
-       else: ""
+    if unavailable_secret?(socket, socket.assigns.prefill_secret_name),
+      do: socket.assigns.prefill_secret_name,
+      else: ""
   end
 
-  defp unavailable_secret?(nil, _, _), do: false
-  defp unavailable_secret?("", _, _), do: false
+  defp unavailable_secret?(_socket, nil), do: false
+  defp unavailable_secret?(_socket, ""), do: false
 
-  defp unavailable_secret?(preselect_name, secrets, livebook_secrets) do
-    not Map.has_key?(secrets, preselect_name) and
-      not Map.has_key?(livebook_secrets, preselect_name)
+  defp unavailable_secret?(socket, preselect_name) do
+    not session?(socket, preselect_name) and
+      not livebook?(socket, preselect_name) and
+      not hub?(socket, preselect_name)
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(socket, secret, "session") do
-    secret = %{secret | origin: :system_env}
+  defp build_attrs(%{
+         "name" => name,
+         "value" => value,
+         "store" => "hub",
+         "connected_hub" => hub_id
+       }) do
+    %{name: name, value: value, origin: hub_id}
+  end
+
+  defp build_attrs(%{"name" => name, "value" => value, "store" => "livebook"}) do
+    %{name: name, value: value, origin: :app}
+  end
+
+  defp build_attrs(%{"name" => name, "value" => value, "store" => "session"}) do
+    %{name: name, value: value, origin: :system_env}
+  end
+
+  defp set_secret(socket, %Secret{origin: :system_env} = secret) do
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, secret, "livebook") do
-    secret = %{secret | origin: :app}
+  defp set_secret(socket, %Secret{origin: :app} = secret) do
     Livebook.Secrets.set_secret(secret)
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, secret, "hub") do
-    selected_hub = socket.assigns.data["connected_hub"]
-
-    if hub = Enum.find(socket.assigns.connected_hubs, &(&1.hub.id == selected_hub)) do
+  defp set_secret(socket, %Secret{origin: hub_id} = secret) when is_binary(hub_id) do
+    if hub = Enum.find(socket.assigns.connected_hubs, &(&1.hub.id == hub_id)) do
       create_secret_request =
         LivebookProto.CreateSecretRequest.new!(
           name: secret.name,
@@ -326,19 +347,28 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp grant_access(secret_name, socket) do
     secret_value = socket.assigns.livebook_secrets[secret_name]
-    secret = %{name: secret_name, value: secret_value}
-    set_secret(socket.assigns.session.pid, secret, "session")
+    secret = %Secret{name: secret_name, value: secret_value, origin: :app}
+
+    set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp livebook_only_secrets(secrets, livebook_secrets) do
-    Enum.reject(livebook_secrets, &(&1 in secrets)) |> Enum.sort()
-  end
-
-  defp must_grant_access(%{assigns: %{prefill_secret_name: prefill_secret_name}} = socket) do
-    if not Map.has_key?(socket.assigns.secrets, prefill_secret_name) and
-         Map.has_key?(socket.assigns.livebook_secrets, prefill_secret_name) do
-      prefill_secret_name
+  defp must_grant_access(%{assigns: %{prefill_secret_name: secret_name}} = socket) do
+    if not session?(socket, secret_name) and
+         (livebook?(socket, secret_name) or hub?(socket, secret_name)) do
+      secret_name
     end
+  end
+
+  defp session?(socket, secret_name) do
+    Enum.any?(socket.assigns.secrets, &(&1.name == secret_name and &1.origin == :system_env))
+  end
+
+  defp livebook?(socket, secret_name) do
+    Enum.any?(socket.assigns.livebook_secrets, &(&1.name == secret_name and &1.origin == :app))
+  end
+
+  defp hub?(socket, secret_name) do
+    Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret_name and is_binary(&1.origin)))
   end
 
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()

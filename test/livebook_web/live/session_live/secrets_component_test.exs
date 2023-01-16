@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       |> render_submit(attrs)
 
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
-      assert has_element?(view, "#enterprise-secret-#{attrs.data.name}-title")
+      assert has_element?(view, "#hub-secret-#{attrs.data.name}-title")
     end
   end
 end
