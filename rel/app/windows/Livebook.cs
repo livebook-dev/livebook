@@ -27,12 +27,7 @@ static class LivebookMain
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new LivebookApp(url));
 
-            if (!ElixirKit.API.HasExited)
-            {
-                ElixirKit.API.Publish("shutdown", "");
-            }
-
-            var code = ElixirKit.API.WaitForExit();
+            var code = ElixirKit.API.Stop();
             if (code == 0) { return; }
             var message = $"Livebook exited with exit code {code}.\r\nLogs available at: {getLogPath()}";
             MessageBox.Show(new Form() { TopMost = true }, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);

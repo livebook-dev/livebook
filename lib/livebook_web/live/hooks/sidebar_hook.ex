@@ -7,8 +7,6 @@ defmodule LivebookWeb.SidebarHook do
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
       Livebook.Hubs.subscribe([:crud, :connection])
-
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "app_events")
     end
 
     socket =
@@ -18,10 +16,6 @@ defmodule LivebookWeb.SidebarHook do
       |> attach_hook(:shutdown, :handle_event, &handle_event/3)
 
     {:cont, socket}
-  end
-
-  defp handle_info(:app_shutdown, socket) do
-    handle_event("shutdown", %{}, socket)
   end
 
   @connection_events ~w(hub_connected hub_disconnected hubs_metadata_changed)a

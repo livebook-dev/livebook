@@ -18,12 +18,6 @@ if Mix.target() == :app do
       {:noreply, state}
     end
 
-    @impl true
-    def handle_info({:event, "shutdown", ""}, state) do
-      Phoenix.PubSub.broadcast(Livebook.PubSub, "app_events", :app_shutdown)
-      {:noreply, state}
-    end
-
     defp open("") do
       open(LivebookWeb.Endpoint.access_url())
     end
