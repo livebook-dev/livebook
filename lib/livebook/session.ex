@@ -65,6 +65,7 @@ defmodule Livebook.Session do
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
+  alias Livebook.Secrets.Secret
 
   @timeout :infinity
   @main_container_ref :main_flow
@@ -515,7 +516,7 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret addition request to the server.
   """
-  @spec set_secret(pid(), map()) :: :ok
+  @spec set_secret(pid(), Secret.t()) :: :ok
   def set_secret(pid, secret) do
     GenServer.cast(pid, {:set_secret, self(), secret})
   end
@@ -523,7 +524,7 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret deletion request to the server.
   """
-  @spec unset_secret(pid(), map()) :: :ok
+  @spec unset_secret(pid(), String.t()) :: :ok
   def unset_secret(pid, secret_name) do
     GenServer.cast(pid, {:unset_secret, self(), secret_name})
   end
@@ -1177,16 +1178,14 @@ defmodule Livebook.Session do
 
   def handle_info({:env_var_set, env_var}, state) do
     if Runtime.connected?(state.data.runtime) do
-      Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
+      set_runtime_secret(state, env_var_to_secret(env_var))
     end
 
     {:noreply, state}
   end
 
   def handle_info({:env_var_unset, env_var}, state) do
-    if Runtime.connected?(state.data.runtime) do
-      Runtime.delete_system_envs(state.data.runtime, [env_var.name])
-    end
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [env_var.name])
 
     {:noreply, state}
   end
@@ -1665,24 +1664,37 @@ defmodule Livebook.Session do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
 
-  defp set_runtime_secret(state, secret) do
-    secret = {"LB_#{secret.name}", secret.value}
+  defp set_runtime_secret(state, %Secret{} = secret) when secret.origin in [nil, :system_env] do
+    secret = %{secret | name: "LB_" <> secret.name}
+    Runtime.put_system_envs(state.data.runtime, [secret])
+  end
+
+  defp set_runtime_secret(state, %Secret{} = secret) do
     Runtime.put_system_envs(state.data.runtime, [secret])
   end
 
   defp set_runtime_secrets(state, secrets) do
-    secrets = Enum.map(secrets, fn {name, value} -> {"LB_#{name}", value} end)
+    secrets =
+      Enum.map(secrets, fn
+        %Secret{origin: :system_env} = secret -> %{secret | name: "LB_" <> secret.name}
+        %Secret{} = secret -> secret
+      end)
+
     Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
+  defp set_runtime_env_vars(state) do
+    env_vars = for env_var <- Livebook.Settings.fetch_env_vars(), do: env_var_to_secret(env_var)
+
+    Runtime.put_system_envs(state.data.runtime, env_vars)
+  end
+
   defp delete_runtime_secrets(state, secret_names) do
-    secret_names = Enum.map(secret_names, &"LB_#{&1}")
     Runtime.delete_system_envs(state.data.runtime, secret_names)
   end
 
-  defp set_runtime_env_vars(state) do
-    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.name, &1.value})
-    Runtime.put_system_envs(state.data.runtime, env_vars)
+  defp env_var_to_secret(%Livebook.Settings.EnvVar{name: name, value: value}) do
+    %Secret{name: name, value: value, origin: :app}
   end
 
   defp notify_update(state) do

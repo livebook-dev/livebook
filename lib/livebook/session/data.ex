@@ -125,7 +125,7 @@ defmodule Livebook.Session.Data do
 
   @type index :: non_neg_integer()
 
-  @type secret :: %{name: String.t(), value: String.t()}
+  @type secret :: Livebook.Secret.t()
 
   # Snapshot holds information about the cell evaluation dependencies,
   # including parent cells and inputs. Whenever the snapshot changes,
@@ -216,7 +216,7 @@ defmodule Livebook.Session.Data do
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
-      secrets: %{}
+      secrets: []
     }
 
     data
@@ -1601,12 +1601,15 @@ defmodule Livebook.Session.Data do
   end
 
   defp set_secret({data, _} = data_actions, secret) do
-    secrets = Map.put(data.secrets, secret.name, secret.value)
+    secrets = [
+      secret | Enum.reject(data.secrets, &(&1.name == secret.name and &1.origin == secret.origin))
+    ]
+
     set!(data_actions, secrets: secrets)
   end
 
   defp unset_secret({data, _} = data_actions, secret_name) do
-    secrets = Map.delete(data.secrets, secret_name)
+    secrets = Enum.reject(data.secrets, &(&1.name == secret_name))
     set!(data_actions, secrets: secrets)
   end
 

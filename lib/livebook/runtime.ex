@@ -533,7 +533,7 @@ defprotocol Livebook.Runtime do
   @doc """
   Sets the given environment variables.
   """
-  @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
+  @spec put_system_envs(t(), list(Livebook.Secrets.Secret.t())) :: :ok
   def put_system_envs(runtime, envs)
 
   @doc """
