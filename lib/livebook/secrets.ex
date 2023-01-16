@@ -16,7 +16,7 @@ defmodule Livebook.Secrets do
     temporary_secrets = :persistent_term.get(@temporary_key, [])
 
     for fields <- Storage.all(:secrets) do
-      struct!(Secret, Map.delete(fields, :id))
+      to_struct(fields)
     end
     |> Enum.concat(temporary_secrets)
     |> Enum.sort()
@@ -29,7 +29,17 @@ defmodule Livebook.Secrets do
   @spec fetch_secret!(String.t()) :: Secret.t()
   def fetch_secret!(id) do
     fields = Storage.fetch!(:secrets, id)
-    struct!(Secret, Map.delete(fields, :id))
+    to_struct(fields)
+  end
+
+  @doc """
+  Gets a secret from storage.
+  """
+  @spec get_secret(String.t()) :: {:ok, Secret.t()} | :error
+  def get_secret(id) do
+    with {:ok, fields} <- Storage.fetch(:secrets, id) do
+      {:ok, to_struct(fields)}
+    end
   end
 
   @doc """
@@ -54,10 +64,12 @@ defmodule Livebook.Secrets do
   """
   @spec set_secret(Secret.t()) :: Secret.t()
   def set_secret(secret) do
-    attributes = secret |> Map.from_struct() |> Map.to_list()
-    :ok = Storage.insert(:secrets, secret.name, attributes)
+    attributes = Map.from_struct(secret)
+
+    :ok = Storage.insert(:secrets, secret.name, Map.to_list(attributes))
     :ok = broadcast_secrets_change({:set_secret, secret})
-    secret
+
+    to_struct(attributes)
   end
 
   @doc """
@@ -65,8 +77,7 @@ defmodule Livebook.Secrets do
   """
   @spec unset_secret(String.t()) :: :ok
   def unset_secret(id) do
-    if secret_exists?(id) do
-      secret = fetch_secret!(id)
+    with {:ok, secret} <- get_secret(id) do
       Storage.delete(:secrets, id)
       broadcast_secrets_change({:unset_secret, secret})
     end
@@ -106,5 +117,10 @@ defmodule Livebook.Secrets do
 
   defp broadcast_secrets_change(message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "secrets", message)
+  end
+
+  defp to_struct(%{name: name, value: value} = fields) do
+    origin = fields[:origin] || :system_env
+    struct!(Secret, name: name, value: value, origin: origin)
   end
 end
