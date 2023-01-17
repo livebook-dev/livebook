@@ -23,4 +23,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Local do
   def connect(_local), do: nil
 
   def connected?(_local), do: false
+
+  def disconnect(_local), do: :ok
 end

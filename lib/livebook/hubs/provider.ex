@@ -30,4 +30,10 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec connected?(struct()) :: boolean()
   def connected?(struct)
+
+  @doc """
+  Disconnects the given struct.
+  """
+  @spec disconnect(struct()) :: :ok
+  def disconnect(struct)
 end

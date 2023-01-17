@@ -134,4 +134,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
   def connected?(%Livebook.Hubs.Enterprise{id: id}) do
     Livebook.Hubs.EnterpriseClient.connected?(id)
   end
+
+  def disconnect(%Livebook.Hubs.Enterprise{id: id}) do
+    Livebook.Hubs.EnterpriseClient.stop(id)
+  end
 end

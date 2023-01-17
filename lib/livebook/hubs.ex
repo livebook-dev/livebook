@@ -79,11 +79,7 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      with %{pid: pid} <- get_connected_hub(hub),
-           true <- Process.alive?(pid) do
-        GenServer.stop(pid, :shutdown)
-      end
-
+      :ok = Provider.disconnect(hub)
       :ok = Storage.delete(@namespace, id)
       :ok = Broadcasts.hubs_metadata_changed()
     end
