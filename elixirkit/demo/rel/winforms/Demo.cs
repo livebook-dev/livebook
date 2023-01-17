@@ -5,39 +5,34 @@ static class DemoMain
     [STAThread]
     static void Main()
     {
-        var api = new ElixirKit.API(id: "com.example.Demo");
-
-        if (api.MainInstance)
+        if (ElixirKit.API.IsMainInstance("com.example.Demo"))
         {
-            api.Start(name: "demo", exited: (exitCode) =>
+            ElixirKit.API.Start(name: "demo", exited: (exitCode) =>
             {
                 Application.Exit();
             });
 
             Application.ApplicationExit += (sender, args) =>
             {
-                api.Stop();
+                ElixirKit.API.Stop();
             };
 
-            api.Publish("log", "Hello from Windows Forms!");
+            ElixirKit.API.Publish("log", "Hello from Windows Forms!");
 
             ApplicationConfiguration.Initialize();
-            Application.Run(new DemoForm(api));
+            Application.Run(new DemoForm());
         }
         else
         {
-            api.Publish("log", "Hello from another instance!");
+            ElixirKit.API.Publish("log", "Hello from another instance!");
         }
     }
 }
 
 class DemoForm : Form
 {
-    ElixirKit.API api;
-
-    public DemoForm(ElixirKit.API api)
+    public DemoForm()
     {
-        this.api = api;
         InitializeComponent();
     }
 
@@ -47,7 +42,7 @@ class DemoForm : Form
 
     private void button_Click(object? sender, EventArgs e)
     {
-        api.Publish("log", "button pressed!");
+        ElixirKit.API.Publish("log", "button pressed!");
     }
 
     // WinForms boilerplate below.
