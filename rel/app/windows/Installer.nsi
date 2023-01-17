@@ -23,8 +23,7 @@ RequestExecutionLevel admin
 
 Function .onInit
 ${IfNot} ${AtLeastWin10}
-  MessageBox mb_iconStop "Livebook requires Windows 10+"
-  Abort
+  MessageBox mb_iconStop "It is recommended to run Livebook on Windows 10+"
 ${EndIf}
 FunctionEnd
 
