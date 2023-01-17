@@ -5,7 +5,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
   alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
-  alias Livebook.Secrets.Secret
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -1027,62 +1026,66 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "secrets" do
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      secret = build(:secret, name: "FOO", value: "123", origin: :system_env)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "foo", value: "123", store: "session"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
 
-      assert %{secrets: %{"FOO" => "123"}} = Session.get_data(session.pid)
+      assert secret in Session.get_data(session.pid).secrets
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      secret = build(:secret, name: "BAR", value: "456", origin: :app)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "bar", value: "456", store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
 
-      assert %Secret{name: "BAR", value: "456", origin: :app} in Livebook.Secrets.fetch_secrets()
+      assert secret in Livebook.Secrets.fetch_secrets()
     end
 
     test "syncs secrets", %{conn: conn, session: session} do
-      insert_secret(name: "FOO", value: "123")
+      session_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", origin: :app)
+
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "456", store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
 
-      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
-
-      assert %Secret{name: "FOO", value: "456", origin: :app} in Livebook.Secrets.fetch_secrets()
+      assert secret in Session.get_data(session.pid).secrets
+      assert secret in Livebook.Secrets.fetch_secrets()
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+      Session.set_secret(session.pid, session_secret)
+
+      secret = build(:secret, name: "FOO", value: "789", origin: :app)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "789", store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
 
-      assert %{secrets: %{"FOO" => "789"}} = Session.get_data(session.pid)
-
-      assert %Secret{name: "FOO", value: "789", origin: :app} in Livebook.Secrets.fetch_secrets()
+      assert secret in Session.get_data(session.pid).secrets
+      assert secret in Livebook.Secrets.fetch_secrets()
     end
 
     test "never syncs secrets when updating from session", %{conn: conn, session: session} do
-      insert_secret(name: "FOO", value: "123")
+      session_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", origin: :system_env)
+
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+      Session.set_secret(session.pid, session_secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "456", store: "session"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
 
-      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
-
-      refute %Secret{name: "FOO", value: "456", origin: :system_env} in Livebook.Secrets.fetch_secrets()
-
-      assert %Secret{name: "FOO", value: "123", origin: :system_env} in Livebook.Secrets.fetch_secrets()
+      assert secret in Session.get_data(session.pid).secrets
+      refute secret in Livebook.Secrets.fetch_secrets()
+      assert session_secret in Livebook.Secrets.fetch_secrets()
     end
 
     test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
@@ -1101,7 +1104,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "loads secret from temporary storage", %{conn: conn, session: session} do
-      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :temporary)
+      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :startup)
       Livebook.Secrets.set_temporary_secrets([secret])
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")

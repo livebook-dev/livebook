@@ -517,7 +517,7 @@ defmodule Livebook.Session do
   Sends a secret addition request to the server.
   """
   @spec set_secret(pid(), Secret.t()) :: :ok
-  def set_secret(pid, secret) do
+  def set_secret(pid, %Secret{} = secret) do
     GenServer.cast(pid, {:set_secret, self(), secret})
   end
 
