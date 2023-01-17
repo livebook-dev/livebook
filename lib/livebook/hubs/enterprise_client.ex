@@ -8,6 +8,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   alias Livebook.WebSocket.ClientConnection
 
   @registry Livebook.HubsRegistry
+  @supervisor Livebook.HubsSupervisor
 
   defstruct [:server, :hub, connected?: false, secrets: []]
 
@@ -22,10 +23,15 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Stops the WebSocket server.
   """
-  @spec stop(pid()) :: :ok
-  def stop(pid) do
-    pid |> GenServer.call(:get_server) |> GenServer.stop()
-    GenServer.stop(pid)
+  @spec stop(String.t()) :: :ok
+  def stop(id) do
+    if pid = GenServer.whereis(registry_name(id)) do
+      DynamicSupervisor.terminate_child(@supervisor, pid)
+    end
+
+    :ok
+  catch
+    :exit, _ -> :ok
   end
 
   @doc """
@@ -51,8 +57,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   def connected?(id) do
     GenServer.call(registry_name(id), :connected?)
   catch
-    :exit, _ ->
-      false
+    :exit, _ -> false
   end
 
   ## GenServer callbacks

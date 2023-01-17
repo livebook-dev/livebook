@@ -122,7 +122,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
     receive do
       {:hub_connection_failed, reason} ->
-        EnterpriseClient.stop(pid)
+        EnterpriseClient.stop(base.id)
 
         {:noreply,
          socket
@@ -141,7 +141,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
           {:error, reason} ->
-            EnterpriseClient.stop(pid)
+            EnterpriseClient.stop(base.id)
 
             {:noreply,
              socket
