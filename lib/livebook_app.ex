@@ -8,8 +8,9 @@ if Mix.target() == :app do
 
     @impl true
     def init(_) do
-      {:ok, _} = ElixirKit.start()
-      {:ok, nil}
+      {:ok, pid} = ElixirKit.start()
+      ref = Process.monitor(pid)
+      {:ok, %{ref: ref}}
     end
 
     @impl true
@@ -19,7 +20,7 @@ if Mix.target() == :app do
     end
 
     @impl true
-    def handle_info(:shutdown, state) do
+    def handle_info({:DOWN, ref, :process, _, :shutdown}, state) when ref == state.ref do
       Livebook.Config.shutdown()
       {:noreply, state}
     end
