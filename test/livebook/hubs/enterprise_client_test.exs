@@ -35,20 +35,17 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
   end
 
   describe "handle events" do
-    setup %{url: url, token: token} do
+    setup %{test: test, url: url, token: token} do
       node = EnterpriseServer.get_node()
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
-      hub_id = "enterprise-#{id}"
+      hub_id = "enterprise-#{test}"
 
-      enterprise =
-        insert_hub(:enterprise,
-          id: hub_id,
-          external_id: id,
-          url: url,
-          token: token
-        )
+      insert_hub(:enterprise,
+        id: hub_id,
+        external_id: to_string(test),
+        url: url,
+        token: token
+      )
 
-      EnterpriseClient.start_link(enterprise)
       assert_receive :hub_connected
 
       {:ok, node: node, hub_id: hub_id}
