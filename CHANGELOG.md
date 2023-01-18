@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.8.1](https://github.com/livebook-dev/livebook/tree/v0.8.1) (2023-01-18)
+
+### Added
+
+- Docker images with CUDA libraries ([#1578](https://github.com/livebook-dev/livebook/pull/1578) and [#1590](https://github.com/livebook-dev/livebook/pull/1590))
+- Support for capturing images from camera in the image input ([#1595](https://github.com/livebook-dev/livebook/pull/1595))
+- Support for audio input ([#1610](https://github.com/livebook-dev/kino/pull/1610))
+- Added an option to run the Setup cell with no cache ([#1616](https://github.com/livebook-dev/livebook/pull/1616))
+- Loading `LB_` environment variables as Livebook secrets ([#1615](https://github.com/livebook-dev/livebook/pull/1615))
+- Support for file input ([#1622](https://github.com/livebook-dev/livebook/pull/1622))
+- Support for specifying S3 region explicitly when adding a file system ([#1638](https://github.com/livebook-dev/livebook/pull/1638))
+
+### Changed
+
+- Don't track :rand and :random keys in process dictionary ([#1599](https://github.com/livebook-dev/livebook/pull/1599))
+- Optimized iframe-based outputs and Smart cells to load only once in viewport ([#1607](https://github.com/livebook-dev/livebook/pull/1607))
+- Changed image upload to a block item instead of a button in the Markdown editor ([#1439](https://github.com/livebook-dev/livebook/pull/1439))
+- Made automatic reevaluation accessible in evaluation menu ([#1628](https://github.com/livebook-dev/livebook/pull/1628))
+- Rebuilt Livebook Desktop ([#1641](https://github.com/livebook-dev/livebook/pull/1641))
+
+### Fixed
+
+- Redefining a module after evaluator crash ([#1582](https://github.com/livebook-dev/livebook/pull/1582))
+- Rendering inline math in on-hover docs ([#1635](https://github.com/livebook-dev/livebook/pull/1635))
+- Import notebook button not missing on small screens ([#1643](https://github.com/livebook-dev/livebook/pull/1643))
+- Windows false positive security errors ([#1641](https://github.com/livebook-dev/livebook/pull/1641))
+
 ## [v0.8.0](https://github.com/livebook-dev/livebook/tree/v0.8.0) (2022-12-08)
 
 ### Added
