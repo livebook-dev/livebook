@@ -175,20 +175,6 @@ defmodule Livebook do
   end
 
   @doc """
-  Gracefully stops Livebook.
-  """
-  def shutdown do
-    case Livebook.Config.shutdown_callback() do
-      {m, f, a} ->
-        Phoenix.PubSub.broadcast(Livebook.PubSub, "sidebar", :shutdown)
-        apply(m, f, a)
-
-      nil ->
-        :ok
-    end
-  end
-
-  @doc """
   Parses the given Live Markdown document and converts it to Elixir
   source code.
 

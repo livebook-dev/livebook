@@ -39,7 +39,7 @@ defmodule LivebookWeb.SidebarHook do
   defp handle_info(_event, socket), do: {:cont, socket}
 
   defp handle_event("shutdown", _params, socket) do
-    Livebook.shutdown()
+    Livebook.Config.shutdown()
     shutdown(socket)
   end
 

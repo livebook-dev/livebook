@@ -116,6 +116,20 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Shuts down the system, if possible.
+  """
+  def shutdown do
+    case Livebook.Config.shutdown_callback() do
+      {m, f, a} ->
+        Phoenix.PubSub.broadcast(Livebook.PubSub, "sidebar", :shutdown)
+        apply(m, f, a)
+
+      nil ->
+        :ok
+    end
+  end
+
+  @doc """
   Returns an mfa if there's a way to shut down the system.
   """
   @spec shutdown_callback() :: mfa() | nil

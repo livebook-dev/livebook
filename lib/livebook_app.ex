@@ -20,7 +20,7 @@ if Mix.target() == :app do
 
     @impl true
     def handle_info({:event, "shutdown", ""}, state) do
-      Livebook.shutdown()
+      Livebook.Config.shutdown()
       {:noreply, state}
     end
 
