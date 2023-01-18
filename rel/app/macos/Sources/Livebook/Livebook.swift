@@ -62,12 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        if ElixirKit.API.isRunning {
-            NSStatusBar.system.removeStatusItem(statusItem)
-
-            ElixirKit.API.publish("shutdown", "")
-            ElixirKit.API.waitUntilExit()
-        }
+        ElixirKit.API.stop()
     }
 
     func application(_ app: NSApplication, open urls: [URL]) {
