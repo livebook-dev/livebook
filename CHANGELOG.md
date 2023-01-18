@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Redefining a module after evaluator crash ([#1582](https://github.com/livebook-dev/livebook/pull/1582))
 - Rendering inline math in on-hover docs ([#1635](https://github.com/livebook-dev/livebook/pull/1635))
-- Import notebook button not missing on small screens ([#1643](https://github.com/livebook-dev/livebook/pull/1643))
+- Import notebook button missing on small screens ([#1643](https://github.com/livebook-dev/livebook/pull/1643))
 - Windows false positive security errors ([#1641](https://github.com/livebook-dev/livebook/pull/1641))
 
 ## [v0.8.0](https://github.com/livebook-dev/livebook/tree/v0.8.0) (2022-12-08)
