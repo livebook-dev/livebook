@@ -18,6 +18,12 @@ if Mix.target() == :app do
       {:noreply, state}
     end
 
+    @impl true
+    def handle_info({:event, "shutdown", ""}, state) do
+      Livebook.shutdown()
+      {:noreply, state}
+    end
+
     defp open("") do
       open(LivebookWeb.Endpoint.access_url())
     end
