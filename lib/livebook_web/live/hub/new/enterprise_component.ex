@@ -116,7 +116,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
-      {:connection_error, reason} ->
+      {:hub_connection_failed, reason} ->
         EnterpriseClient.stop(base.id)
 
         {:noreply,
