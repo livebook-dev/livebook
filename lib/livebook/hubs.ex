@@ -110,8 +110,8 @@ defmodule Livebook.Hubs do
 
     * `:hub_connected`
     * `:hub_disconnected`
-    * `{:connection_error, reason}`
-    * `{:disconnection_error, reason}`
+    * `{:hub_connection_failed, reason}`
+    * `{:hub_disconnection_failed, reason}`
 
   Topic `hubs:secrets`:
 
