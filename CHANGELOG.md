@@ -23,6 +23,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Changed image upload to a block item instead of a button in the Markdown editor ([#1439](https://github.com/livebook-dev/livebook/pull/1439))
 - Made automatic reevaluation accessible in evaluation menu ([#1628](https://github.com/livebook-dev/livebook/pull/1628))
 - Rebuilt Livebook Desktop ([#1641](https://github.com/livebook-dev/livebook/pull/1641))
+  - \[macOS\] Don't include wx, observer, debugger, et, jinterface and odbc in the vendored OTP
+  - \[macOS\] Add "View Logs" button to the error dialog when Livebook crashes
+  - \[macOS\]\[Windows\] Display "Livebook is shutting down" flash on app shutdown
+  - \[Windows\] Rewrite in C# and build with dotnet CLI to avoid most Windows security errors
+  - \[Windows\] Log release stdin/stdout to `%LOCALAPPDATA%\Livebook\Logs\Livebook.log`
+  - \[Windows\] The installer now performs basic Erlang smoke tests
 
 ### Fixed
 
