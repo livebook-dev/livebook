@@ -24,7 +24,6 @@ defmodule ElixirKit.Server do
 
   @impl true
   def handle_info({:tcp_closed, socket}, state) when socket == state.socket do
-    System.stop()
     {:stop, :shutdown, state}
   end
 end
