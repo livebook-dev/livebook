@@ -24,7 +24,10 @@ defmodule Demo.Server do
   @impl true
   def init(_) do
     Process.flag(:trap_exit, true)
-    {:ok, server_pid} = ElixirKit.start()
+
+    {:ok, pid} = ElixirKit.start()
+    ref = Process.monitor(pid)
+
     log("init")
 
     Task.start(fn ->
@@ -36,7 +39,7 @@ defmodule Demo.Server do
       System.stop()
     end)
 
-    {:ok, %{server_pid: server_pid}}
+    {:ok, %{ref: ref}}
   end
 
   @impl true
@@ -46,8 +49,9 @@ defmodule Demo.Server do
   end
 
   @impl true
-  def handle_info({:EXIT, pid, :shutdown}, state) when pid == state.server_pid do
-    {:noreply, state}
+  def handle_info({:DOWN, ref, :process, _, :shutdown}, state) when ref == state.ref do
+    System.stop()
+    {:stop, :shutdown, state}
   end
 
   @impl true
