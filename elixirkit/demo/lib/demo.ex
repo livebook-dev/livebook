@@ -28,11 +28,13 @@ defmodule Demo.Server do
     {:ok, pid} = ElixirKit.start()
     ref = Process.monitor(pid)
 
-    log("init")
+    ElixirKit.publish("log", "Hello from Elixir!")
 
     Task.start(fn ->
       for i <- 5..1//-1 do
-        log("Stopping in #{i}...")
+        message = "Stopping in #{i}..."
+        log(message)
+        ElixirKit.publish("log", message)
         Process.sleep(1000)
       end
 

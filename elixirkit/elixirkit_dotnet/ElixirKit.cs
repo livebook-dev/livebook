@@ -10,6 +10,10 @@ using System.Net.Sockets;
 
 namespace ElixirKit;
 
+public delegate void ExitHandler(int ExitCode);
+
+public delegate void EventHandler(string Name, string Data);
+
 public static class API
 {
     private static Release? release;
@@ -30,14 +34,6 @@ public static class API
         API.id = id;
         mutex = new Mutex(true, id, out mainInstance);
         return mainInstance;
-    }
-
-    static void ensureMainInstance()
-    {
-        if (!mainInstance)
-        {
-            throw new Exception("Not on main instance");
-        }
     }
 
     public static bool HasExited {
@@ -86,12 +82,25 @@ public static class API
     {
         if (mainInstance)
         {
-            release!.Publish(name, data);
+            release!.Send($"{name}:{data}");
         }
         else
         {
-            var message = Release.EncodeEventMessage(name, data);
-            PipeWriteLine(message);
+            PipeWriteLine($"{name}:{data}");
+        }
+    }
+
+    public static void Subscribe(EventHandler handler)
+    {
+        ensureMainInstance();
+        release!.Subscribe(handler);
+    }
+
+    static void ensureMainInstance()
+    {
+        if (!mainInstance)
+        {
+            throw new Exception("Not on main instance");
         }
     }
 
@@ -114,29 +123,25 @@ public static class API
     }
 }
 
-public delegate void ExitHandler(int ExitCode);
-
 internal class Release
 {
-    Process startProcess;
-    NetworkStream stream;
-    TcpListener listener;
-    TcpClient client;
+    Process process;
+    Logger logger;
+    Listener listener;
+    Client client;
 
     internal bool HasExited {
         get {
-            return startProcess.HasExited;
+            return process.HasExited;
         }
     }
 
     public Release(string name, ExitHandler? exited = null, string? logPath = null)
     {
-        var endpoint = new IPEndPoint(IPAddress.Loopback, 0);
-        listener = new(endpoint);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        logger = new Logger(logPath);
+        listener = new Listener();
 
-        startProcess = new Process()
+        process = new Process()
         {
             StartInfo = new ProcessStartInfo()
             {
@@ -149,85 +154,69 @@ internal class Release
             }
         };
 
-        startProcess.StartInfo.Arguments = "start";
-        startProcess.StartInfo.EnvironmentVariables.Add("ELIXIRKIT_PORT", $"{port}");
+        if (logPath != null)
+        {
+            logger.Capture(process);
+        }
+
+        process.StartInfo.Arguments = "start";
+        process.StartInfo.EnvironmentVariables.Add("ELIXIRKIT_PORT", $"{listener.Port}");
 
         if (exited != null)
         {
-            startProcess.EnableRaisingEvents = true;
-            startProcess.Exited += (sender, args) =>
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, args) =>
             {
-                exited(startProcess.ExitCode);
+                exited(process.ExitCode);
             };
         }
 
-        startProcess.OutputDataReceived += (sender, e) =>
+        process.OutputDataReceived += (sender, e) =>
         {
             if (!String.IsNullOrEmpty(e.Data)) { Console.WriteLine(e.Data); }
         };
 
-        startProcess.ErrorDataReceived += (sender, e) =>
+        process.ErrorDataReceived += (sender, e) =>
         {
             if (!String.IsNullOrEmpty(e.Data)) { Console.Error.WriteLine(e.Data); }
         };
 
-        if (logPath != null)
-        {
-            var logWriter = File.AppendText(logPath);
-            logWriter.AutoFlush = true;
+        logger.Capture(process);
 
-            startProcess.OutputDataReceived += (sender, e) =>
-            {
-                if (!String.IsNullOrEmpty(e.Data)) { logWriter.WriteLine(e.Data); }
-            };
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
-            startProcess.ErrorDataReceived += (sender, e) =>
-            {
-                if (!String.IsNullOrEmpty(e.Data)) { logWriter.WriteLine(e.Data); }
-            };
-        }
-
-        startProcess.Start();
-        startProcess.BeginOutputReadLine();
-        startProcess.BeginErrorReadLine();
-
-        client = listener.AcceptTcpClient();
-        stream = client.GetStream();
+        var tcpClient = listener.TcpListener.AcceptTcpClient();
+        client = new Client(tcpClient);
     }
 
-    internal static string EncodeEventMessage(string name, string data)
+    public void Send(string message)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(data);
-        var encoded = System.Convert.ToBase64String(bytes);
-        return $"event:{name}:{encoded}";
+        client.Send(message);
     }
 
-    public void Publish(string name, string data) {
-        Send(EncodeEventMessage(name, data));
-    }
-
-    internal void Send(string message)
+    public void Subscribe(EventHandler handler)
     {
-        var bytes = Encoding.UTF8.GetBytes(message + "\n");
-        stream.Write(bytes, 0, bytes.Length);
+        client.Subscribe(handler);
     }
 
     public int Stop()
     {
         if (HasExited)
         {
-            return startProcess!.ExitCode;
+            return process!.ExitCode;
         }
 
-        client.Close();
-        listener.Stop();
+        client.TcpClient.Close();
+        listener.TcpListener.Stop();
         return WaitForExit();
     }
 
     public int WaitForExit()
     {
-        startProcess!.WaitForExit();
-        return startProcess!.ExitCode;
+        process!.WaitForExit();
+        return process!.ExitCode;
     }
 
     private string relScript(string name)
@@ -243,5 +232,102 @@ internal class Release
         {
             return Path.Combine(dir, "rel", "bin", name);
         }
+    }
+}
+
+internal class Logger {
+    private StreamWriter? writer;
+
+    public Logger(string? path)
+    {
+        if (path != null)
+        {
+            writer = File.AppendText(path);
+            writer.AutoFlush = true;
+        }
+    }
+
+    public void Capture(Process process)
+    {
+        if (writer != null)
+        {
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if (!String.IsNullOrEmpty(e.Data)) { writer.WriteLine(e.Data); }
+            };
+
+            process.ErrorDataReceived += (sender, e) =>
+            {
+                if (!String.IsNullOrEmpty(e.Data)) { writer.WriteLine(e.Data); }
+            };
+        }
+    }
+}
+
+internal class Listener
+{
+    public int Port;
+    public TcpListener TcpListener;
+
+    public Listener()
+    {
+        var endpoint = new IPEndPoint(IPAddress.Loopback, 0);
+        TcpListener = new(endpoint);
+        TcpListener.Start();
+        Port = ((IPEndPoint)TcpListener.LocalEndpoint).Port;
+    }
+}
+
+internal class Client
+{
+    public TcpClient TcpClient;
+    private NetworkStream stream;
+
+    public Client(TcpClient tcpClient)
+    {
+        TcpClient = tcpClient;
+        stream = tcpClient.GetStream();
+    }
+
+    public void Send(string payload)
+    {
+        var payloadBytes = System.Text.Encoding.UTF8.GetBytes(payload);
+        var size = System.Convert.ToUInt32(IPAddress.HostToNetworkOrder(payloadBytes.Length));
+        var headerBytes = BitConverter.GetBytes(size);
+        stream.Write(headerBytes, 0, headerBytes.Length);
+        stream.Write(payloadBytes, 0, payloadBytes.Length);
+    }
+
+    public void Subscribe(EventHandler handler)
+    {
+        var t = new Task(() => {
+            receiveMessage(handler);
+        });
+
+        t.Start();
+    }
+
+    private void receiveMessage(EventHandler handler)
+    {
+        var sizeBuf = new byte[4];
+        var sizeBytesRead = stream.Read(sizeBuf, 0, sizeBuf.Length);
+
+        // socket is closed
+        if (sizeBytesRead == 0) { return; }
+
+        var size = IPAddress.NetworkToHostOrder((int)BitConverter.ToUInt32(sizeBuf, 0));
+        var payloadBuf = new byte[size];
+        var payloadBytesRead = stream.Read(payloadBuf, 0, size);
+
+        // socket is closed
+        if (payloadBytesRead == 0) { return; }
+
+        var payload = System.Text.Encoding.UTF8.GetString(payloadBuf);
+        var parts = payload.Split(new char[] {':'}, 2);
+        var name = parts[0];
+        var data = parts[1];
+
+        handler(name, data);
+        receiveMessage(handler);
     }
 }
