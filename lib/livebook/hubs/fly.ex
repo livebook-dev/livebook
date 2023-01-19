@@ -110,7 +110,7 @@ defmodule Livebook.Hubs.Fly do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
-  def load(%Livebook.Hubs.Fly{} = fly, fields) do
+  def load(fly, fields) do
     %{
       fly
       | id: fields.id,
@@ -124,7 +124,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
     }
   end
 
-  def normalize(%Livebook.Hubs.Fly{} = fly) do
+  def normalize(fly) do
     %Livebook.Hubs.Metadata{
       id: fly.id,
       name: fly.hub_name,
