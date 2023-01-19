@@ -5,6 +5,8 @@ defprotocol Livebook.Hubs.Provider do
 
   @type capability :: :connect | :secrets
   @type capabilities :: list(capability())
+  @type changeset_errors :: list({String.t(), {Stirng.t(), list()}})
+
   @doc """
   Normalize given struct to `Livebook.Hubs.Metadata` struct.
   """
@@ -52,4 +54,10 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec get_secrets(struct()) :: list(Secret.t())
   def get_secrets(struct)
+
+  @doc """
+  Creates a secret of  the given struct.
+  """
+  @spec create_secret(struct(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def create_secret(struct, secret)
 end

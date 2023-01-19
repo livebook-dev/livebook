@@ -12,6 +12,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   defstruct [:server, :hub, connected?: false, secrets: []]
 
+  @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
+
   @doc """
   Connects the Enterprise client with WebSocket server.
   """
@@ -37,7 +39,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Sends a request to the WebSocket server.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
+  @spec send_request(String.t() | registry_name() | pid(), WebSocket.proto()) :: {atom(), term()}
+  def send_request(id, %_struct{} = data) when is_binary(id) do
+    send_request(registry_name(id), data)
+  end
+
   def send_request(pid, %_struct{} = data) do
     ClientConnection.send_request(GenServer.call(pid, :get_server), data)
   end

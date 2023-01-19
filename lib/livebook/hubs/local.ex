@@ -29,4 +29,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Local do
   def capabilities(_local), do: []
 
   def get_secrets(_local), do: []
+
+  def create_secret(_local, _secret), do: :ok
 end
