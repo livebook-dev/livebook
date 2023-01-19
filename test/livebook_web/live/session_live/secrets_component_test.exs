@@ -65,7 +65,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           name: secret.name,
           value: secret.value,
           store: "hub",
-          connected_hub: enterprise.id
+          hub_id: enterprise.id
         }
       }
 

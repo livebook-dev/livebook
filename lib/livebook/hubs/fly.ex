@@ -140,4 +140,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
   def connected?(_fly), do: false
 
   def disconnect(_fly), do: :ok
+
+  def capabilities(_fly), do: []
+
+  def get_secrets(_fly), do: []
 end

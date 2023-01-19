@@ -1,6 +1,10 @@
 defprotocol Livebook.Hubs.Provider do
   @moduledoc false
 
+  alias Livebook.Secrets.Secret
+
+  @type capability :: :connect | :secrets
+  @type capabilities :: list(capability())
   @doc """
   Normalize given struct to `Livebook.Hubs.Metadata` struct.
   """
@@ -36,4 +40,16 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec disconnect(struct()) :: :ok
   def disconnect(struct)
+
+  @doc """
+  Gets the capabilities of the given struct.
+  """
+  @spec capabilities(struct()) :: capabilities()
+  def capabilities(struct)
+
+  @doc """
+  Gets the secrets of the given struct.
+  """
+  @spec get_secrets(struct()) :: list(Secret.t())
+  def get_secrets(struct)
 end

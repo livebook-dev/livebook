@@ -139,4 +139,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
   def disconnect(enterprise) do
     EnterpriseClient.stop(enterprise.id)
   end
+
+  def capabilities(_enterprise), do: [:connect, :secrets]
+
+  def get_secrets(enterprise) do
+    EnterpriseClient.get_secrets(enterprise.id)
+  end
 end
