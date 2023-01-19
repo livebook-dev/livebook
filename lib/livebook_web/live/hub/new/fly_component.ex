@@ -59,9 +59,9 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
               <%= text_input(f, :hub_name, class: "input") %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+            <.input_wrapper form={f} field={:hub_emoji} class="flex relative flex-col space-y-1">
               <div class="input-label">Emoji</div>
-              <.emoji_input id="fly-emoji-input" form={f} field={:hub_emoji} />
+              <.emoji_input id="fly-emoji-input" form={f} field={:hub_emoji} container_class="mt-1" />
             </.input_wrapper>
           </div>
 
