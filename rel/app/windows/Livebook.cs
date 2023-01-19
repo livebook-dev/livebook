@@ -21,15 +21,17 @@ static class LivebookMain
             url = uri.AbsoluteUri;
         }
 
+        var logPath = getLogPath();
+
         if (ElixirKit.API.IsMainInstance("dev.livebook.Livebook"))
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new LivebookApp(url));
+            Application.Run(new LivebookApp(url, logPath));
 
             var code = ElixirKit.API.Stop();
             if (code == 0) { return; }
-            var message = $"Livebook exited with exit code {code}.\r\nLogs available at: {getLogPath()}";
+            var message = $"Livebook exited with exit code {code}.\r\nLogs available at: {logPath}";
             MessageBox.Show(new Form() { TopMost = true }, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         else
@@ -54,13 +56,23 @@ class DummyForm : Form {}
 class LivebookApp : ApplicationContext
 {
     private NotifyIcon notifyIcon;
+    private string? url;
+    private string logPath;
 
-    public LivebookApp(string url)
+    public LivebookApp(string url, string logPath)
     {
+        this.logPath = logPath;
+
         ThreadExit += threadExit;
 
         ContextMenuStrip menu = new ContextMenuStrip();
         menu.Items.Add("Open", null, openClicked);
+
+        var copyURLButton = menu.Items.Add("Copy URL", null, copyURLClicked);
+        copyURLButton.Enabled = false;
+
+        menu.Items.Add("View Logs", null, viewLogsClicked);
+        menu.Items.Add("Settings", null, openSettingsClicked);
         menu.Items.Add("Quit", null, quitClicked);
         notifyIcon = new NotifyIcon()
         {
@@ -71,7 +83,6 @@ class LivebookApp : ApplicationContext
         };
         notifyIcon.Click += notifyIconClicked;
 
-        var logPath = LivebookMain.getLogPath();
         Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
         ElixirKit.API.Start(
@@ -82,6 +93,20 @@ class LivebookApp : ApplicationContext
                 Application.Exit();
             }
         );
+
+        ElixirKit.API.Subscribe((name, data) =>
+        {
+            switch (name)
+            {
+                case "url":
+                    copyURLButton.Enabled = true;
+                    this.url = data;
+                    break;
+
+                default:
+                    throw new Exception($"unknown event {name}");
+            }
+        });
 
         ElixirKit.API.Publish("open", url);
     }
@@ -97,22 +122,33 @@ class LivebookApp : ApplicationContext
 
         if (mouseEventArgs.Button == MouseButtons.Left)
         {
-            open();
+            ElixirKit.API.Publish("open", "");
         }
     }
 
     private void openClicked(object? sender, EventArgs e)
     {
-        open();
+        ElixirKit.API.Publish("open", "");
+    }
+
+    private void copyURLClicked(object? sender, EventArgs e)
+    {
+        System.Windows.Forms.Clipboard.SetText(url!);
+    }
+
+    private void viewLogsClicked(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Process.Start(logPath);
+    }
+
+    private void openSettingsClicked(object? sender, EventArgs e)
+    {
+        ElixirKit.API.Publish("open", "/settings");
     }
 
     private void quitClicked(object? sender, EventArgs e)
     {
         notifyIcon.Visible = false;
         Application.Exit();
-    }
-
-    private void open() {
-        ElixirKit.API.Publish("open", "");
     }
 }

@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var logPath: String!
     private var launchedByOpenURL = false
     private var initialURLs: [URL] = []
+    private var url: String?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         logPath = "\(NSHomeDirectory())/Library/Logs/Livebook.log"
@@ -54,11 +55,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let button = statusItem.button!
         button.image = NSImage(named: "MenuBarIcon")
         let menu = NSMenu()
+
+        let copyURLItem = NSMenuItem(title: "Copy URL", action: nil, keyEquivalent: "c")
+
         menu.items = [
             NSMenuItem(title: "Open", action: #selector(open), keyEquivalent: "o"),
+            copyURLItem,
+            NSMenuItem(title: "View Logs", action: #selector(viewLogs), keyEquivalent: "l"),
+            NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","),
             NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         ]
         statusItem.menu = menu
+
+        ElixirKit.API.addObserver(queue: .main) { (name, data) in
+            switch name {
+            case "url":
+                copyURLItem.action = #selector(self.copyURL)
+                self.url = data
+            default:
+                fatalError("unknown event \(name)")
+            }
+        }
+
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -82,7 +100,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc
+    func copyURL() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setData(url!.data(using: .utf8), forType: NSPasteboard.PasteboardType.URL)
+    }
+
+    @objc
     func viewLogs() {
         NSWorkspace.shared.open(NSURL.fileURL(withPath: logPath))
+    }
+
+    @objc
+    func openSettings() {
+        ElixirKit.API.publish("open", "/settings")
     }
 }
