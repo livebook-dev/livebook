@@ -10,6 +10,9 @@ if Mix.target() == :app do
     def init(_) do
       {:ok, pid} = ElixirKit.start()
       ref = Process.monitor(pid)
+
+      ElixirKit.publish("url", LivebookWeb.Endpoint.access_url())
+
       {:ok, %{ref: ref}}
     end
 
@@ -38,6 +41,12 @@ if Mix.target() == :app do
     defp open("livebook://" <> rest) do
       "https://#{rest}"
       |> Livebook.Utils.notebook_import_url()
+      |> open()
+    end
+
+    defp open("/settings") do
+      %{LivebookWeb.Endpoint.access_struct_url() | path: "/settings"}
+      |> to_string()
       |> open()
     end
 
