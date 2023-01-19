@@ -5,6 +5,8 @@ public class API {
     static var process: Process?
     private static var release: Release?
 
+    static let didReceiveEvent = NSNotification.Name("elixirkit.event")
+
     public static var isRunning: Bool {
         get {
             release != nil && release!.isRunning;
@@ -16,32 +18,40 @@ public class API {
     }
 
     public static func publish(_ name: String, _ data: String) {
-        release!.publish(name, data)
+        release?.publish(name, data)
     }
 
     public static func stop() {
-        release!.stop();
+        release?.stop();
     }
 
     public static func waitUntilExit() {
-        release!.waitUntilExit();
+        release?.waitUntilExit();
+    }
+
+    public static func addObserver(queue: OperationQueue?, using: @escaping (((String, String)) -> Void)) {
+        NotificationCenter.default.addObserver(forName: didReceiveEvent, object: nil, queue: queue) { n in
+            let (name, data) = n.object! as! (String, String)
+            using((name, data))
+        }
     }
 }
 
 private class Release {
+    let process: Process
+    let logger: Logger
     let listener: NWListener
-    let startProcess: Process
+    var connection: Connection?
     let semaphore = DispatchSemaphore(value: 0)
-    var logHandle: FileHandle?
-    var connection: NWConnection?
 
     var isRunning: Bool {
         get {
-            startProcess.isRunning
+            process.isRunning
         }
     }
 
     init(name: String, logPath: String? = nil, terminationHandler: ((Process) -> Void)? = nil) {
+        logger = Logger(logPath: logPath)
         listener = try! NWListener(using: .tcp, on: .any)
 
         let bundle = Bundle.main
@@ -54,45 +64,17 @@ private class Release {
             rootDir = bundle.bundlePath
         }
 
-        startProcess = Process()
+        process = Process()
+        process.launchPath = "\(rootDir)/rel/bin/\(name)"
+        process.arguments = ["start"]
+        process.terminationHandler = terminationHandler
 
         if logPath != nil {
-            let logPath = logPath!
-            let fm = FileManager.default
-            if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Data()) }
-            logHandle = FileHandle(forUpdatingAtPath: logPath)!
-            logHandle!.seekToEndOfFile()
-
-            let stdout = Pipe()
-            let stderr = Pipe()
-            startProcess.standardOutput = stdout
-            startProcess.standardError = stderr
-            let stdouth = stdout.fileHandleForReading
-            let stderrh = stderr.fileHandleForReading
-            stdouth.waitForDataInBackgroundAndNotify()
-            stderrh.waitForDataInBackgroundAndNotify()
-
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(receiveStdout(n:)),
-                name: NSNotification.Name.NSFileHandleDataAvailable,
-                object: stdouth
-            )
-
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(receiveStderr(n:)),
-                name: NSNotification.Name.NSFileHandleDataAvailable,
-                object: stderrh
-            )
+            logger.capture(process: process)
         }
 
-        startProcess.launchPath = "\(rootDir)/rel/bin/\(name)"
-        startProcess.arguments = ["start"]
-        startProcess.terminationHandler = terminationHandler
-
         listener.stateUpdateHandler = stateDidChange(to:)
-        listener.newConnectionHandler = didAccept(connection:)
+        listener.newConnectionHandler = didAccept(conn:)
         listener.start(queue: .global())
 
         let timeout = DispatchTime.now() + DispatchTimeInterval.seconds(5)
@@ -102,45 +84,92 @@ private class Release {
         }
     }
 
-    func stateDidChange(to state: NWListener.State) {
+    public func stop() {
+        connection!.cancel()
+        listener.cancel()
+        waitUntilExit()
+    }
+
+    public func waitUntilExit() {
+        process.waitUntilExit()
+    }
+
+    public func publish(_ name: String, _ data: String) {
+        connection!.send("\(name):\(data)")
+    }
+
+    private func stateDidChange(to state: NWListener.State) {
          switch state {
          case .ready:
             start(port: listener.port!.rawValue.description)
 
          case .failed(let error):
-             print("Server error: \(error.localizedDescription)")
+             print("Listener error: \(error.localizedDescription)")
              exit(EXIT_FAILURE)
          default:
              break
          }
     }
 
-    func start(port: String) {
+    private func start(port: String) {
         var env = ProcessInfo.processInfo.environment
         env["ELIXIRKIT_PORT"] = port
-        startProcess.environment = env
-        try! startProcess.run()
+        process.environment = env
+        try! process.run()
     }
 
-    func didAccept(connection: NWConnection) {
-        self.connection = connection
-        self.connection!.start(queue: .main)
+    private func didAccept(conn: NWConnection) {
+        self.connection = Connection(conn: conn, logger: logger)
         semaphore.signal()
     }
+}
 
-    func send(_ string: String) {
-        connection!.send(
-            content: (string + "\n").data(using: .utf8),
-            completion: .contentProcessed { error in
-                if error != nil {
-                    print(error!)
-                }
-            }
+// Logs to stdout and a log file (if given)
+private class Logger {
+    var logHandle: FileHandle?
+
+    init(logPath: String?) {
+        if let logPath = logPath {
+            let fm = FileManager.default
+            if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Data()) }
+            logHandle = FileHandle(forUpdatingAtPath: logPath)!
+            logHandle!.seekToEndOfFile()
+        }
+    }
+
+    public func capture(process: Process) {
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+        let stdouth = stdout.fileHandleForReading
+        let stderrh = stderr.fileHandleForReading
+        stdouth.waitForDataInBackgroundAndNotify()
+        stderrh.waitForDataInBackgroundAndNotify()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(receiveStdout(n:)),
+            name: NSNotification.Name.NSFileHandleDataAvailable,
+            object: stdouth
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(receiveStderr(n:)),
+            name: NSNotification.Name.NSFileHandleDataAvailable,
+            object: stderrh
         )
     }
 
+    public func puts(_ string: String) {
+        let data = (string + "\n").data(using: .utf8)!
+        logHandle?.write(data)
+        FileHandle.standardOutput.write(data)
+    }
+
     @objc
-    func receiveStdout(n: NSNotification) {
+    private func receiveStdout(n: NSNotification) {
         let h = n.object as! FileHandle
         let data = h.availableData
         if !data.isEmpty {
@@ -151,29 +180,107 @@ private class Release {
     }
 
     @objc
-    func receiveStderr(n: NSNotification) {
+    private func receiveStderr(n: NSNotification) {
         let h = n.object as! FileHandle
         let data = h.availableData
         if !data.isEmpty {
-            logHandle!.write(data)
             FileHandle.standardError.write(data)
+            logHandle!.write(data)
             h.waitForDataInBackgroundAndNotify()
         }
     }
+}
 
-    public func publish(_ name: String, _ data: String) {
-        let encoded = data.data(using: .utf8)!.base64EncodedString()
-        let message = "event:\(name):\(encoded)"
-        send(message)
+private struct Connection {
+    let conn: NWConnection
+    let logger: Logger
+
+    init(conn: NWConnection, logger: Logger) {
+        self.logger = logger
+        self.conn = conn
+        self.conn.stateUpdateHandler = stateDidChange(to:)
+        self.conn.start(queue: .main)
     }
 
-    public func stop() {
-        connection!.cancel()
-        listener.cancel()
-        waitUntilExit()
+    func stateDidChange(to state: NWConnection.State) {
+        switch state {
+        case .ready:
+            receiveEventMessage()
+
+        case .failed(let error):
+            logger.puts("\(error)")
+            exit(EXIT_FAILURE)
+
+        default:
+            break
+        }
     }
 
-    public func waitUntilExit() {
-        startProcess.waitUntilExit()
+    // Receives event message from the socket and posts it as a notification.
+    // A message contains a header which is a big endian uint32 that is the length of the payload that follows.
+    func receiveEventMessage() {
+        conn.receive(minimumIncompleteLength: 4, maximumLength: 4) { (data, _context, isComplete, error) in
+            if (isComplete) {
+                return
+            }
+
+            if let error = error {
+                switch error {
+                case .posix(POSIXError.ECANCELED):
+                    // socket is closed, ignore.
+                    ()
+                default:
+                    logger.puts("\(error)")
+                }
+
+                return
+            }
+
+            let size = Int(data!.withUnsafeBytes { pointer in CFSwapInt32BigToHost(pointer.load(as: UInt32.self)) })
+            self.conn.receive(minimumIncompleteLength: size, maximumLength: size) { (payload, _context, isComplete, error) in
+                if (isComplete) {
+                    return
+                }
+
+                if let error = error {
+                    switch error {
+                    case .posix(POSIXError.ECANCELED):
+                        // socket is closed, ignore.
+                        ()
+                    default:
+                        logger.puts("\(error)")
+                    }
+
+                    return
+                }
+
+                let parts = payload!.split(separator: UInt8(ascii:":"), maxSplits: 1)
+                let eventName = String(data: parts[0], encoding: .utf8)!
+                let eventData = String(data: parts[1], encoding: .utf8)!
+                NotificationCenter.default.post(name: API.didReceiveEvent, object: (eventName, eventData))
+
+                self.receiveEventMessage()
+            }
+        }
+    }
+
+    func send(_ string: String) {
+        var message = Data()
+        let data = string.data(using: .utf8)!
+        withUnsafeBytes(of: UInt32(data.count).bigEndian) { message.append(contentsOf: $0) }
+        message.append(data)
+
+        conn.send(
+            content: message,
+            completion: .contentProcessed { error in
+                if error != nil {
+                    print(error!)
+                }
+            }
+        )
+    }
+
+    func cancel() {
+        conn.cancel()
     }
 }
