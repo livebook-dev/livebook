@@ -1,7 +1,6 @@
 defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.EnterpriseClient
   alias Livebook.Secrets.Secret
 
   @impl true
@@ -9,7 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(connected_hubs: Livebook.Hubs.get_connected_hubs())
+      |> assign(hubs: Livebook.Hubs.get_connected_hubs([:secrets]))
 
     prefill_form = prefill_secret_name(socket)
 
@@ -134,17 +133,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= label class: "flex items-center gap-2 text-gray-600" do %>
                     <%= radio_button(f, :store, "hub",
-                      disabled: @connected_hubs == [],
+                      disabled: @hubs == [],
                       checked: @data["store"] == "hub"
                     ) %> in the Hub
                   <% end %>
                   <%= if @data["store"] == "hub" do %>
-                    <%= select(
-                      f,
-                      :connected_hub,
-                      connected_hubs_options(@connected_hubs, @data["connected_hub"]),
-                      class: "input"
-                    ) %>
+                    <%= select(f, :hub_id, hubs_options(@hubs, @data["hub_id"]), class: "input") %>
                   <% end %>
                 <% end %>
               </div>
@@ -306,7 +300,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
          "name" => name,
          "value" => value,
          "store" => "hub",
-         "connected_hub" => hub_id
+         "hub_id" => hub_id
        }) do
     %{name: name, value: value, origin: hub_id}
   end
@@ -371,11 +365,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret_name and is_binary(&1.origin)))
   end
 
-  # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
-  defp connected_hubs_options(connected_hubs, selected_hub) do
+  defp hubs_options(hubs, hub_id) do
     [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
-      for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
-        [key: name, value: id, selected: id == selected_hub]
+      for hub <- hubs do
+        [key: hub.hub_name, value: hub.id, selected: hub.id == hub_id]
       end
   end
 end

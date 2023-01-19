@@ -3,6 +3,7 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Secrets.Secret
 
   @namespace :hubs
 
@@ -164,7 +165,9 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs(), do: connect_hub(hub)
+    for hub <- get_hubs(),
+        capability?(hub, :connect),
+        do: connect_hub(hub)
 
     :ok
   end
@@ -183,18 +186,55 @@ defmodule Livebook.Hubs do
   ## Example
 
       iex> get_connected_hubs()
-      [%{pid: #PID<0.178.0>, hub: %Enterprise{}}, ...]
+      [%Enterprise{}, ...]
 
   """
-  @spec get_connected_hubs() :: connected_hubs()
+  @spec get_connected_hubs() :: list(Provider.t())
   def get_connected_hubs do
-    for hub <- get_hubs(), connected = get_connected_hub(hub), do: connected
+    for hub <- get_hubs(),
+        capability?(hub, :connect),
+        Provider.connected?(hub),
+        into: [],
+        do: hub
   end
 
-  defp get_connected_hub(hub) do
-    case Registry.lookup(Livebook.HubsRegistry, hub.id) do
-      [{pid, _}] -> %{pid: pid, hub: hub}
-      [] -> nil
-    end
+  @doc """
+  Gets a list of connected hubs with given capabilities.
+
+  ## Example
+
+      iex> get_connected_hubs([:secrets])
+      [%Enterprise{}, ...]
+
+  """
+  @spec get_connected_hubs(Provider.capabilities()) :: list(Provider.t())
+  def get_connected_hubs(capabilities) do
+    capabilities = Enum.reject(capabilities, &(&1 == :connect))
+
+    for hub <- get_connected_hubs(),
+        capability?(hub, capabilities),
+        into: [],
+        do: hub
+  end
+
+  @doc """
+  Gets a list of hub secrets.
+
+  It gets from all hubs with secret management.
+  """
+  @spec get_secrets() :: list(Secret.t())
+  def get_secrets do
+    for hub <- get_connected_hubs([:secrets]),
+        secret <- Provider.get_secrets(hub),
+        into: [],
+        do: secret
+  end
+
+  defp capability?(hub, capabilities) when is_list(capabilities) do
+    Enum.all?(capabilities, &capability?(hub, &1))
+  end
+
+  defp capability?(hub, capability) when is_atom(capability) do
+    capability in Provider.capabilities(hub)
   end
 end

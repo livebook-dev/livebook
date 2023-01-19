@@ -25,4 +25,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Local do
   def connected?(_local), do: false
 
   def disconnect(_local), do: :ok
+
+  def capabilities(_local), do: []
+
+  def get_secrets(_local), do: []
 end

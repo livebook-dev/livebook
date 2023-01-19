@@ -45,9 +45,9 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Returns a list of cached secrets.
   """
-  @spec list_cached_secrets(pid()) :: list(Secret.t())
-  def list_cached_secrets(pid) do
-    GenServer.call(pid, :list_cached_secrets)
+  @spec get_secrets(String.t()) :: list(Secret.t())
+  def get_secrets(id) do
+    GenServer.call(registry_name(id), :get_secrets)
   end
 
   @doc """
@@ -75,7 +75,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:reply, state.server, state}
   end
 
-  def handle_call(:list_cached_secrets, _caller, state) do
+  def handle_call(:get_secrets, _caller, state) do
     {:reply, state.secrets, state}
   end
 
