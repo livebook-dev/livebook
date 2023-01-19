@@ -144,4 +144,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
   def capabilities(_fly), do: []
 
   def get_secrets(_fly), do: []
+
+  def create_secret(_fly, _secret), do: :ok
 end

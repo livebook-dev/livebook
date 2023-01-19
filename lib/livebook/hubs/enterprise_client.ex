@@ -37,7 +37,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Sends a request to the WebSocket server.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
+  @spec send_request(String.t() | pid(), WebSocket.proto()) :: {atom(), term()}
+  def send_request(id, %_struct{} = data) when is_binary(id) do
+    id
+    |> registry_name()
+    |> GenServer.whereis()
+    |> send_request(data)
+  end
+
   def send_request(pid, %_struct{} = data) do
     ClientConnection.send_request(GenServer.call(pid, :get_server), data)
   end

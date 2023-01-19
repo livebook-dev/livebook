@@ -230,6 +230,20 @@ defmodule Livebook.Hubs do
         do: secret
   end
 
+  @doc """
+  Creates a secret for given hub.
+  """
+  @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
+  def create_secret(%Secret{} = secret) do
+    with {:ok, hub} <- get_hub(secret.origin),
+         true <- capability?(hub, :secrets) do
+      Provider.create_secret(hub, secret)
+    else
+      :error -> {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
+      false -> {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+    end
+  end
+
   defp capability?(hub, capabilities) when is_list(capabilities) do
     Enum.all?(capabilities, &capability?(hub, &1))
   end
