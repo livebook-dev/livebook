@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
-  alias Livebook.Hubs.EnterpriseClient
 
   on_mount LivebookWeb.SidebarHook
 
@@ -63,7 +62,7 @@ defmodule LivebookWeb.SessionLive do
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
            livebook_secrets: Secrets.fetch_secrets(),
-           hub_secrets: get_hub_secrets(),
+           hub_secrets: Hubs.get_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil
          )
@@ -747,19 +746,25 @@ defmodule LivebookWeb.SessionLive do
           </div>
 
           <div class="flex flex-col space-y-4 mt-6">
-            <%= for %{origin: origin} = secret when is_binary(origin) <- Enum.sort(@hub_secrets) do %>
+            <%= for secret when is_binary(secret.origin) <- Enum.sort(@hub_secrets) do %>
               <div
                 class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-                id={"hub-secret-#{secret.name}-wrapper"}
+                id={"hub-#{secret.origin}-secret-#{secret.name}-wrapper"}
               >
-                <div class="flex" id={"hub-secret-#{secret.name}-title"}>
+                <div class="flex" id={"hub-#{secret.origin}-secret-#{secret.name}-title"}>
                   <span
                     class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
                     phx-click={
-                      JS.toggle(to: "#hub-secret-#{secret.name}-title", display: "flex")
-                      |> JS.toggle(to: "#hub-secret-#{secret.name}-detail", display: "flex")
+                      JS.toggle(
+                        to: "#hub-#{secret.origin}-secret-#{secret.name}-title",
+                        display: "flex"
+                      )
+                      |> JS.toggle(
+                        to: "#hub-#{secret.origin}-secret-#{secret.name}-detail",
+                        display: "flex"
+                      )
                       |> JS.add_class("bg-gray-100",
-                        to: "#hub-secret-#{secret.name}-wrapper"
+                        to: "#hub-#{secret.origin}-secret-#{secret.name}-wrapper"
                       )
                     }
                   >
@@ -767,6 +772,7 @@ defmodule LivebookWeb.SessionLive do
                   </span>
                   <.switch_checkbox
                     name="toggle_secret"
+                    label={hub_emoji(secret.origin)}
                     checked={is_secret_on_session?(secret, @data_view.secrets)}
                     phx-click="toggle_secret"
                     phx-value-secret_name={secret.name}
@@ -776,17 +782,23 @@ defmodule LivebookWeb.SessionLive do
                 </div>
                 <div
                   class="flex flex-col text-gray-800 hidden"
-                  id={"hub-secret-#{secret.name}-detail"}
+                  id={"hub-#{secret.origin}-secret-#{secret.name}-detail"}
                 >
                   <div class="flex flex-col">
                     <div class="flex justify-between items-center">
                       <span
                         class="text-sm font-mono w-full break-all flex-row cursor-pointer"
                         phx-click={
-                          JS.toggle(to: "#hub-secret-#{secret.name}-title", display: "flex")
-                          |> JS.toggle(to: "#hub-secret-#{secret.name}-detail", display: "flex")
+                          JS.toggle(
+                            to: "#hub-#{secret.origin}-secret-#{secret.name}-title",
+                            display: "flex"
+                          )
+                          |> JS.toggle(
+                            to: "#hub-#{secret.origin}-secret-#{secret.name}-detail",
+                            display: "flex"
+                          )
                           |> JS.remove_class("bg-gray-100",
-                            to: "#hub-secret-#{secret.name}-wrapper"
+                            to: "#hub-#{secret.origin}-secret-#{secret.name}-wrapper"
                           )
                         }
                       >
@@ -794,6 +806,7 @@ defmodule LivebookWeb.SessionLive do
                       </span>
                       <.switch_checkbox
                         name="toggle_secret"
+                        label={hub_emoji(secret.origin)}
                         checked={is_secret_on_session?(secret, @data_view.secrets)}
                         phx-click="toggle_secret"
                         phx-value-secret_name={secret.name}
@@ -1460,17 +1473,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_created, %{origin: hub_id}}, socket) when is_binary(hub_id) do
     {:noreply,
      socket
-     |> assign(hub_secrets: get_hub_secrets())
+     |> assign(hub_secrets: Hubs.get_secrets())
      |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
   end
 
-  def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_updated, %{origin: hub_id}}, socket) when is_binary(hub_id) do
     {:noreply,
      socket
-     |> assign(hub_secrets: get_hub_secrets())
+     |> assign(hub_secrets: Hubs.get_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
@@ -2315,13 +2328,6 @@ defmodule LivebookWeb.SessionLive do
     secret in secrets
   end
 
-  defp get_hub_secrets do
-    for connected_hub <- Hubs.get_connected_hubs(),
-        secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
-        into: [],
-        do: secret
-  end
-
   defp toggle_secret(socket, %{"secret-name" => name} = attrs) do
     {secrets, origin} =
       case attrs do
@@ -2335,6 +2341,13 @@ defmodule LivebookWeb.SessionLive do
       Livebook.Session.set_secret(socket.assigns.session.pid, secret)
     else
       Livebook.Session.unset_secret(socket.assigns.session.pid, secret.name)
+    end
+  end
+
+  defp hub_emoji(id) do
+    case Hubs.get_hub(id) do
+      {:ok, hub} -> hub.hub_emoji
+      :error -> "🚫"
     end
   end
 end
