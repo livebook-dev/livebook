@@ -49,6 +49,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= for %{name: secret_name, origin: :system_env} <- Enum.sort(@secrets) do %>
                   <.secret_with_badge
                     secret_name={secret_name}
+                    origin="system_env"
                     stored="Session"
                     action="select_secret"
                     active={secret_name == @prefill_secret_name}
@@ -58,6 +59,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= for %{name: secret_name, origin: :app} <- @livebook_secrets do %>
                   <.secret_with_badge
                     secret_name={secret_name}
+                    origin="app"
                     stored="Livebook"
                     action="select_livebook_secret"
                     active={false}
@@ -67,8 +69,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= for %{name: secret_name, origin: origin} when is_binary(origin) <- @hub_secrets do %>
                   <.secret_with_badge
                     secret_name={secret_name}
+                    origin={origin}
                     stored="Hub"
-                    action="select_livebook_secret"
+                    action="select_hub_secret"
                     active={false}
                     target={@myself}
                   />
@@ -170,6 +173,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-secret_name={@secret_name}
+      phx-value-origin={@origin}
       phx-target={@target}
       phx-click={@action}
     >
@@ -245,14 +249,31 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   def handle_event("select_secret", %{"secret_name" => secret_name}, socket) do
     {:noreply,
-     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+     socket
+     |> push_patch(to: socket.assigns.return_to)
+     |> push_secret_selected(secret_name)}
   end
 
   def handle_event("select_livebook_secret", %{"secret_name" => secret_name}, socket) do
-    grant_access(secret_name, socket)
+    grant_access(socket.assigns.livebook_secrets, secret_name, :app, socket)
 
     {:noreply,
-     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+     socket
+     |> push_patch(to: socket.assigns.return_to)
+     |> push_secret_selected(secret_name)}
+  end
+
+  def handle_event(
+        "select_hub_secret",
+        %{"secret_name" => secret_name, "origin" => hub_id},
+        socket
+      ) do
+    grant_access(socket.assigns.hub_secrets, secret_name, hub_id, socket)
+
+    {:noreply,
+     socket
+     |> push_patch(to: socket.assigns.return_to)
+     |> push_secret_selected(secret_name)}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
@@ -265,10 +286,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
-    grant_access(secret_name, socket)
+    grant_access(socket.assigns.livebook_secrets, secret_name, :app, socket)
 
     {:noreply,
-     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+     socket
+     |> push_patch(to: socket.assigns.return_to)
+     |> push_secret_selected(secret_name)}
   end
 
   defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
@@ -326,11 +349,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Livebook.Hubs.create_secret(secret)
   end
 
-  defp grant_access(secret_name, socket) do
-    secret_value = socket.assigns.livebook_secrets[secret_name]
-    secret = %Secret{name: secret_name, value: secret_value, origin: :app}
+  defp grant_access(secrets, secret_name, origin, socket) do
+    secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
-    set_secret(socket.assigns.session.pid, secret)
+    if secret,
+      do: set_secret(socket, secret),
+      else: :ok
   end
 
   defp must_grant_access(%{assigns: %{prefill_secret_name: secret_name}} = socket) do
