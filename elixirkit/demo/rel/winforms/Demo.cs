@@ -19,6 +19,19 @@ static class DemoMain
 
             ElixirKit.API.Publish("log", "Hello from Windows Forms!");
 
+            ElixirKit.API.Subscribe((name, data) =>
+            {
+                switch (name)
+                {
+                    case "log":
+                        Console.WriteLine($"[client] {data}");
+                        break;
+
+                    default:
+                        throw new Exception($"unknown event {name}");
+                }
+            });
+
             ApplicationConfiguration.Initialize();
             Application.Run(new DemoForm());
         }

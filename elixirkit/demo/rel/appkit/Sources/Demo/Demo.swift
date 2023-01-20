@@ -24,6 +24,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         ElixirKit.API.publish("log", "Hello from AppKit!")
 
+        ElixirKit.API.addObserver(queue: .main) { (name, data) in
+            switch name {
+            case "log":
+                print("[client] " + data)
+            default:
+                fatalError("unknown event \(name)")
+            }
+        }
+
         let menuItemOne = NSMenuItem()
         menuItemOne.submenu = NSMenu(title: "Demo")
         menuItemOne.submenu?.items = [
