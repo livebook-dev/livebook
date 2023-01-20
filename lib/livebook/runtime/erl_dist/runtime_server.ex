@@ -20,6 +20,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   alias Livebook.Runtime.Evaluator
   alias Livebook.Runtime
   alias Livebook.Runtime.ErlDist
+  alias Livebook.Secrets.Secret
+  alias Livebook.Settings.EnvVar
 
   @await_owner_timeout 5_000
   @memory_usage_interval 15_000
@@ -254,7 +256,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Sets the given environment variables.
   """
-  @spec put_system_envs(pid(), list(Livebook.Secrets.Secret.t())) :: :ok
+  @spec put_system_envs(pid(), list(Secret.t() | EnvVar.t())) :: :ok
   def put_system_envs(pid, envs) do
     GenServer.cast(pid, {:put_system_envs, envs})
   end
@@ -262,9 +264,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Unsets the given environment variables.
   """
-  @spec delete_system_envs(pid(), list(String.t())) :: :ok
-  def delete_system_envs(pid, names) do
-    GenServer.cast(pid, {:delete_system_envs, names})
+  @spec delete_system_envs(pid(), list(Secret.t() | EnvVar.t())) :: :ok
+  def delete_system_envs(pid, envs) do
+    GenServer.cast(pid, {:delete_system_envs, envs})
   end
 
   @doc """
@@ -590,11 +592,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:delete_system_envs, names}, state) do
-    names
+  def handle_cast({:delete_system_envs, envs}, state) do
+    envs
     |> Enum.map(fn
-      "PATH" -> {"PATH", state.base_env_path}
-      name -> {name, nil}
+      %{name: "PATH"} ->
+        {"PATH", state.base_env_path}
+
+      %{name: name} ->
+        {name, nil}
     end)
     |> System.put_env()
 

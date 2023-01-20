@@ -166,7 +166,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     RuntimeServer.put_system_envs(runtime.server_pid, envs)
   end
 
-  def delete_system_envs(runtime, names) do
-    RuntimeServer.delete_system_envs(runtime.server_pid, names)
+  def delete_system_envs(runtime, envs) do
+    RuntimeServer.delete_system_envs(runtime.server_pid, envs)
   end
 end

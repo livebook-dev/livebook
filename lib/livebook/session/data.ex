@@ -185,7 +185,7 @@ defmodule Livebook.Session.Data do
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
           | {:set_secret, client_id(), secret()}
-          | {:unset_secret, client_id(), String.t()}
+          | {:unset_secret, client_id(), secret()}
 
   @type action ::
           :connect_runtime
@@ -764,10 +764,10 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:unset_secret, _client_id, secret_name}) do
+  def apply_operation(data, {:unset_secret, _client_id, secret}) do
     data
     |> with_actions()
-    |> unset_secret(secret_name)
+    |> unset_secret(secret)
     |> wrap_ok()
   end
 
@@ -1608,8 +1608,8 @@ defmodule Livebook.Session.Data do
     set!(data_actions, secrets: secrets)
   end
 
-  defp unset_secret({data, _} = data_actions, secret_name) do
-    secrets = Enum.reject(data.secrets, &(&1.name == secret_name))
+  defp unset_secret({data, _} = data_actions, secret) do
+    secrets = Enum.reject(data.secrets, &(&1.name == secret.name and &1.origin == secret.origin))
     set!(data_actions, secrets: secrets)
   end
 

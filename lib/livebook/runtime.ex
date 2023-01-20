@@ -7,6 +7,9 @@ defprotocol Livebook.Runtime do
   # evaluation, which could be running on a different node, however
   # the protocol does not require that.
 
+  alias Livebook.Secrets.Secret
+  alias Livebook.Settings.EnvVar
+
   @typedoc """
   An arbitrary term identifying an evaluation container.
 
@@ -533,12 +536,12 @@ defprotocol Livebook.Runtime do
   @doc """
   Sets the given environment variables.
   """
-  @spec put_system_envs(t(), list(Livebook.Secrets.Secret.t())) :: :ok
+  @spec put_system_envs(t(), list(Secret.t() | EnvVar.t())) :: :ok
   def put_system_envs(runtime, envs)
 
   @doc """
   Unsets the given environment variables.
   """
-  @spec delete_system_envs(t(), list(String.t())) :: :ok
-  def delete_system_envs(runtime, names)
+  @spec delete_system_envs(t(), list(Secret.t() | EnvVar.t())) :: :ok
+  def delete_system_envs(runtime, envs)
 end

@@ -66,6 +66,7 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
   alias Livebook.Secrets.Secret
+  alias Livebook.Settings.EnvVar
 
   @timeout :infinity
   @main_container_ref :main_flow
@@ -86,6 +87,7 @@ defmodule Livebook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
+          session_secrets: list(Secret.t()),
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
@@ -524,9 +526,9 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret deletion request to the server.
   """
-  @spec unset_secret(pid(), String.t()) :: :ok
-  def unset_secret(pid, secret_name) do
-    GenServer.cast(pid, {:unset_secret, self(), secret_name})
+  @spec unset_secret(pid(), Secret.t()) :: :ok
+  def unset_secret(pid, %Secret{} = secret) do
+    GenServer.cast(pid, {:unset_secret, self(), secret})
   end
 
   @doc """
@@ -616,6 +618,7 @@ defmodule Livebook.Session do
       state = %{
         session_id: id,
         data: data,
+        session_secrets: [],
         client_pids_with_id: %{},
         created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
@@ -1015,9 +1018,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:unset_secret, client_pid, secret_name}, state) do
+  def handle_cast({:unset_secret, client_pid, secret}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:unset_secret, client_id, secret_name}
+    operation = {:unset_secret, client_id, secret}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1177,15 +1180,13 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:env_var_set, env_var}, state) do
-    if Runtime.connected?(state.data.runtime) do
-      set_runtime_secret(state, env_var_to_secret(env_var))
-    end
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, env_var)
 
     {:noreply, state}
   end
 
   def handle_info({:env_var_unset, env_var}, state) do
-    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [env_var.name])
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [env_var])
 
     {:noreply, state}
   end
@@ -1500,12 +1501,16 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_secret, _client_id, secret}) do
     if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
-    state
+
+    set_session_secret(state, secret)
   end
 
-  defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
-    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
+  defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret}) do
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret])
+
     state
+    |> unset_session_secret(secret)
+    |> maybe_set_another_secret(secret)
   end
 
   defp after_operation(state, _prev_state, _operation), do: state
@@ -1664,37 +1669,56 @@ defmodule Livebook.Session do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
 
-  defp set_runtime_secret(state, %Secret{} = secret) when secret.origin in [nil, :system_env] do
-    secret = %{secret | name: "LB_" <> secret.name}
-    Runtime.put_system_envs(state.data.runtime, [secret])
-  end
-
-  defp set_runtime_secret(state, %Secret{} = secret) do
-    Runtime.put_system_envs(state.data.runtime, [secret])
+  defp set_runtime_secret(state, secret) do
+    Runtime.put_system_envs(state.data.runtime, [set_env_prefix(secret)])
   end
 
   defp set_runtime_secrets(state, secrets) do
-    secrets =
-      Enum.map(secrets, fn
-        %Secret{origin: :system_env} = secret -> %{secret | name: "LB_" <> secret.name}
-        %Secret{} = secret -> secret
-      end)
-
+    secrets = for secret <- secrets, do: set_env_prefix(secret)
     Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
   defp set_runtime_env_vars(state) do
-    env_vars = for env_var <- Livebook.Settings.fetch_env_vars(), do: env_var_to_secret(env_var)
-
+    env_vars = Livebook.Settings.fetch_env_vars()
     Runtime.put_system_envs(state.data.runtime, env_vars)
   end
 
-  defp delete_runtime_secrets(state, secret_names) do
-    Runtime.delete_system_envs(state.data.runtime, secret_names)
+  defp delete_runtime_secrets(state, secrets) do
+    secrets = for secret <- secrets, do: set_env_prefix(secret)
+    Runtime.delete_system_envs(state.data.runtime, secrets)
   end
 
-  defp env_var_to_secret(%Livebook.Settings.EnvVar{name: name, value: value}) do
-    %Secret{name: name, value: value, origin: :app}
+  defp set_env_prefix(%EnvVar{} = env_var), do: env_var
+  defp set_env_prefix(%Secret{} = secret), do: %{secret | name: "LB_#{secret.name}"}
+
+  defp set_session_secret(state, %Secret{origin: :system_env} = secret) do
+    session_secrets = Enum.reject(state.session_secrets, &(&1.name == secret.name))
+    %{state | session_secrets: [secret | session_secrets]}
+  end
+
+  defp set_session_secret(state, _secret), do: state
+
+  defp unset_session_secret(state, %Secret{origin: :system_env} = secret) do
+    %{state | session_secrets: Enum.reject(state.session_secrets, &(&1.name == secret.name))}
+  end
+
+  defp unset_session_secret(state, _secret), do: state
+
+  defp maybe_set_another_secret(state, %Secret{} = secret) do
+    data_secrets = state.data.secrets
+    session_secrets = state.session_secrets
+    find_fun = &(&1.name == secret.name and &1.origin != secret.origin)
+
+    data_secret = Enum.find(data_secrets, find_fun)
+    session_secret = Enum.find(session_secrets, find_fun)
+
+    cond do
+      session_secret != nil -> set_runtime_secret(state, session_secret)
+      data_secret != nil -> set_runtime_secret(state, data_secret)
+      :else -> :ok
+    end
+
+    state
   end
 
   defp notify_update(state) do

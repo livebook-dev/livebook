@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive do
 
             Session.subscribe(session_id)
             Secrets.subscribe()
-            Hubs.subscribe(:secrets)
+            Hubs.subscribe([:connection, :secrets])
 
             {data, client_id}
           else
@@ -1459,12 +1459,22 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
-    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
+    secret =
+      Enum.find(
+        socket.assigns.data_view.secrets,
+        &(&1.name == secret_name and &1.origin == :system_env)
+      )
+
+    if secret do
+      Livebook.Session.unset_secret(socket.assigns.session.pid, secret)
+    end
+
     {:noreply, socket}
   end
 
   def handle_event("delete_app_secret", %{"secret_name" => secret_name}, socket) do
     Livebook.Secrets.unset_secret(secret_name)
+
     {:noreply, socket}
   end
 
@@ -1485,6 +1495,18 @@ defmodule LivebookWeb.SessionLive do
      socket
      |> assign(hub_secrets: Hubs.get_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
+  end
+
+  @connection_events ~w(hub_connected hub_disconnected hubs_metadata_changed)a
+
+  def handle_info(event, socket) when event in @connection_events do
+    {:noreply, assign(socket, hub_secrets: Hubs.get_secrets())}
+  end
+
+  @error_events ~w(hub_connection_failed hub_disconnection_failed)a
+
+  def handle_info({event, _reason}, socket) when event in @error_events do
+    {:noreply, assign(socket, hub_secrets: Hubs.get_secrets())}
   end
 
   def handle_info({:error, error}, socket) do
@@ -2340,7 +2362,7 @@ defmodule LivebookWeb.SessionLive do
     if attrs["value"] == "true" do
       Livebook.Session.set_secret(socket.assigns.session.pid, secret)
     else
-      Livebook.Session.unset_secret(socket.assigns.session.pid, secret.name)
+      Livebook.Session.unset_secret(socket.assigns.session.pid, secret)
     end
   end
 
