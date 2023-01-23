@@ -53,7 +53,7 @@ defmodule Livebook.Runtime.Attached do
     end
   end
 
-  @elixir_version_requirement Keyword.fetch!(Livebook.MixProject.project(), :elixir)
+  @elixir_version_requirement Keyword.fetch!(Mix.Project.config(), :elixir)
 
   defp check_attached_node_version(node) do
     attached_node_version = :erpc.call(node, System, :version, [])
