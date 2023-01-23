@@ -62,7 +62,7 @@ defmodule Livebook.Runtime.Attached do
       :ok
     else
       {:error,
-       "the node uses Elixir #{attached_node_version}, but #{@elixir_version_requirement} is required"
+       "the node uses Elixir #{attached_node_version}, but #{@elixir_version_requirement} is required"}
     end
   end
 
