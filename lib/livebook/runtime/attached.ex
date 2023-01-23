@@ -39,17 +39,30 @@ defmodule Livebook.Runtime.Attached do
     # Set cookie for connecting to this specific node
     Node.set_cookie(node, cookie)
 
-    case Node.ping(node) do
-      :pong ->
-        server_pid =
-          Livebook.Runtime.ErlDist.initialize(node,
-            node_manager_opts: [parent_node: node(), capture_orphan_logs: false]
-          )
+    with :pong <- Node.ping(node),
+         :ok <- check_attached_node_version(node) do
+      server_pid =
+        Livebook.Runtime.ErlDist.initialize(node,
+          node_manager_opts: [parent_node: node(), capture_orphan_logs: false]
+        )
 
-        {:ok, %{runtime | node: node, server_pid: server_pid}}
+      {:ok, %{runtime | node: node, server_pid: server_pid}}
+    else
+      :pang -> {:error, "node #{inspect(node)} is unreachable"}
+      {:error, msg} -> {:error, msg}
+    end
+  end
 
-      :pang ->
-        {:error, "node #{inspect(node)} is unreachable"}
+  @elixir_version_requirement Keyword.fetch!(Mix.Project.config(), :elixir)
+
+  defp check_attached_node_version(node) do
+    attached_node_version = :erpc.call(node, System, :version, [])
+
+    if Version.match?(attached_node_version, @elixir_version_requirement) do
+      :ok
+    else
+      {:error,
+       "the node uses Elixir #{attached_node_version}, but #{@elixir_version_requirement} is required"}
     end
   end
 
