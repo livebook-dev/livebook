@@ -4,68 +4,75 @@ defmodule Livebook.Session.RecentlyOpened do
   use GenServer
 
   alias Livebook.Session
-  alias Livebook.Users.User
   alias Livebook.Storage
 
   @namespace :recently_opened_sessions
   @max_size 10
 
+  @type state :: %{
+          required(Session.id()) => %{
+            session: Session.t(),
+            latest_opened_at: DateTime.t()
+          }
+        }
+
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
-  def list_sessions(user) do
-    GenServer.call(__MODULE__, {:list_sessions, user})
+  def list_sessions() do
+    GenServer.call(__MODULE__, :list_sessions)
   end
 
-  @spec save_session(User.t(), Session.t()) :: :ok
-  def save_session(user, session) do
-    GenServer.cast(__MODULE__, {:save_session, user, session})
+  @spec save_session(Session.t()) :: :ok
+  def save_session(session) do
+    GenServer.cast(__MODULE__, {:save_session, session, DateTime.utc_now()})
   end
 
-  @spec delete_session(User.t(), Session.id()) :: :ok
-  def delete_session(user, session_id) do
-    GenServer.cast(__MODULE__, {:delete_session, user, session_id})
+  @spec delete_session(Session.id()) :: :ok
+  def delete_session(session_id) do
+    GenServer.cast(__MODULE__, {:delete_session, session_id})
   end
 
   @impl true
   def init(_) do
     state =
       Storage.all(@namespace)
-      |> Map.new(&{&1.id, &1.sessions})
+      |> Map.new(&{&1.id, %{session: &1.session, latest_opened_at: &1.latest_opened_at}})
 
     {:ok, state}
   end
 
   @impl true
-  def handle_call({:list_sessions, user}, _from, state) do
-    {:reply, Map.get(state, user.id, []), state}
+  def handle_call(:list_sessions, _from, state) do
+    sessions = Enum.map(state, fn {_id, info} -> info.session end)
+    {:reply, sessions, state}
   end
 
   @impl true
-  def handle_cast({:save_session, user, session}, state) do
-    new_state =
-      Map.update(state, user.id, [session], fn sessions ->
-        sessions
-        |> Kernel.--([session])
-        |> List.insert_at(0, session)
-        |> Enum.take(@max_size)
-      end)
+  def handle_cast({:save_session, session, latest_opened_at}, state) do
+    session_info = %{session: session, latest_opened_at: latest_opened_at}
+    Storage.insert(@namespace, session.id, session_info)
+    new_state = Map.put(state, session.id, session_info)
 
-    Storage.insert(@namespace, user.id, sessions: new_state[user.id])
+    stale_session_id =
+      case new_state do
+        state when map_size(state) <= @max_size ->
+          nil
 
-    {:noreply, new_state}
+        state ->
+          [{id, _} | _] = Enum.sort_by(state, fn {_id, info} -> info.latest_opened_at end)
+          id
+      end
+
+    Storage.delete(@namespace, stale_session_id)
+    {:noreply, Map.delete(new_state, stale_session_id)}
   end
 
   @impl true
-  def handle_cast({:delete_session, user, session_id}, state) do
-    new_state =
-      Map.update(state, user.id, [], fn sessions ->
-        Enum.reject(sessions, &(&1.id == session_id))
-      end)
-
-    Storage.insert(@namespace, user.id, sessions: new_state[user.id])
-
+  def handle_cast({:delete_session, session_id}, state) do
+    Storage.delete(@namespace, session_id)
+    new_state = Map.delete(state, session_id)
     {:noreply, new_state}
   end
 end

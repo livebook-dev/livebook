@@ -50,7 +50,7 @@ defmodule LivebookWeb.SessionLive do
           end
 
         session = Session.get_by_pid(session_pid)
-        RecentlyOpened.save_session(socket.assigns.current_user, session)
+        RecentlyOpened.save_session(session)
 
         platform = platform_from_socket(socket)
 
@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive do
          )}
 
       :error ->
-        RecentlyOpened.delete_session(socket.assigns.current_user, session_id)
+        RecentlyOpened.delete_session(session_id)
         {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
   end

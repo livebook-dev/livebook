@@ -18,7 +18,7 @@ defmodule LivebookWeb.HomeLive do
 
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
-    recently_opened_sessions = RecentlyOpened.list_sessions(socket.assigns.current_user)
+    recently_opened_sessions = RecentlyOpened.list_sessions()
 
     {:ok,
      assign(socket,
