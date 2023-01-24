@@ -25,8 +25,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec stop(pid()) :: :ok
   def stop(pid) do
     pid |> GenServer.call(:get_server) |> GenServer.stop()
-
-    :ok
+    GenServer.stop(pid)
   end
 
   @doc """
