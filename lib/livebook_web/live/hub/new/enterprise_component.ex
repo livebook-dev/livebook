@@ -33,7 +33,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         phx-submit="save"
         phx-change="validate"
         phx-target={@myself}
-        phx-debounce="blur"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <.input_wrapper form={f} field={:url} class="flex flex-col space-y-1">
@@ -42,7 +41,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               class: "input w-full phx-form-error:border-red-300",
               autofocus: true,
               spellcheck: "false",
-              autocomplete: "off"
+              autocomplete: "off",
+              phx_debounce: "blur"
             ) %>
           </.input_wrapper>
 
@@ -52,7 +52,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               value: get_field(@changeset, :token),
               class: "input w-full phx-form-error:border-red-300",
               spellcheck: "false",
-              autocomplete: "off"
+              autocomplete: "off",
+              phx_debounce: "blur"
             ) %>
           </.input_wrapper>
         </div>
