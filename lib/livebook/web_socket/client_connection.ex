@@ -1,4 +1,4 @@
-defmodule Livebook.WebSocket.Server do
+defmodule Livebook.WebSocket.ClientConnection do
   @moduledoc false
   use Connection
 
@@ -13,7 +13,7 @@ defmodule Livebook.WebSocket.Server do
   defstruct [:url, :listener, :headers, :http_conn, :websocket, :ref, id: 0, reply: %{}]
 
   @doc """
-  Starts a new WebSocket Server connection with given URL and headers.
+  Starts a new WebSocket connection with given URL and headers.
   """
   @spec start_link(pid(), String.t(), Mint.Types.headers()) :: GenServer.on_start()
   def start_link(listener, url, headers \\ []) do

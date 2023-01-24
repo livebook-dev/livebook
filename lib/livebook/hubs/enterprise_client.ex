@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Enterprise
   alias Livebook.Secrets.Secret
-  alias Livebook.WebSocket.Server
+  alias Livebook.WebSocket.ClientConnection
 
   @registry Livebook.HubsRegistry
 
@@ -33,7 +33,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
   def send_request(pid, %_struct{} = data) do
-    Server.send_request(GenServer.call(pid, :get_server), data)
+    ClientConnection.send_request(GenServer.call(pid, :get_server), data)
   end
 
   @doc """
@@ -60,7 +60,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def init(%Enterprise{url: url, token: token} = enterprise) do
     headers = [{"X-Auth-Token", token}]
-    {:ok, pid} = Server.start_link(self(), url, headers)
+    {:ok, pid} = ClientConnection.start_link(self(), url, headers)
 
     {:ok, %__MODULE__{hub: enterprise, server: pid}}
   end
