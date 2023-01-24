@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Docker images with CUDA libraries ([#1578](https://github.com/livebook-dev/livebook/pull/1578) and [#1590](https://github.com/livebook-dev/livebook/pull/1590))
 - Support for capturing images from camera in the image input ([#1595](https://github.com/livebook-dev/livebook/pull/1595))
-- Support for audio input ([#1610](https://github.com/livebook-dev/kino/pull/1610))
+- Support for audio input ([#1610](https://github.com/livebook-dev/livebook/pull/1610))
 - Added an option to run the Setup cell with no cache ([#1616](https://github.com/livebook-dev/livebook/pull/1616))
 - Loading `LB_` environment variables as Livebook secrets ([#1615](https://github.com/livebook-dev/livebook/pull/1615))
 - Support for file input ([#1622](https://github.com/livebook-dev/livebook/pull/1622))
