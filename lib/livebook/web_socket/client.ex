@@ -10,16 +10,6 @@ defmodule Livebook.WebSocket.Client do
   @type frame :: Mint.WebSocket.frame() | Mint.WebSocket.shorthand_frame()
   @type ref :: Mint.Types.request_ref()
 
-  defmodule Response do
-    defstruct [:status, :headers, body: []]
-
-    @type t :: %__MODULE__{
-            body: list(Livebook.WebSocket.Response.t()),
-            status: Mint.Types.status() | nil,
-            headers: Mint.Types.headers() | nil
-          }
-  end
-
   defguard is_frame(value) when value in [:close, :ping] or elem(value, 0) == :binary
 
   @doc """
