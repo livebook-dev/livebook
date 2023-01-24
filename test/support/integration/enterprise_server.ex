@@ -6,6 +6,11 @@ defmodule Livebook.EnterpriseServer do
 
   @name __MODULE__
   @timeout 10_000
+  @default_enterprise_dir "../enterprise"
+
+  def available?() do
+    System.get_env("ENTERPRISE_PATH") != nil or File.exists?(@default_enterprise_dir)
+  end
 
   def start(name \\ @name, opts \\ []) do
     GenServer.start(__MODULE__, opts, name: name)
@@ -46,7 +51,7 @@ defmodule Livebook.EnterpriseServer do
 
   @impl true
   def init(opts) do
-    state = struct(__MODULE__, opts)
+    state = struct!(__MODULE__, opts)
 
     {:ok, %{state | node: enterprise_node()}, {:continue, :start_enterprise}}
   end
@@ -204,7 +209,7 @@ defmodule Livebook.EnterpriseServer do
   end
 
   defp app_dir do
-    System.get_env("ENTERPRISE_PATH", "../enterprise")
+    System.get_env("ENTERPRISE_PATH", @default_enterprise_dir)
   end
 
   defp app_port do
