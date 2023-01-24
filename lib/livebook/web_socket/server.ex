@@ -15,8 +15,7 @@ defmodule Livebook.WebSocket.Server do
   @doc """
   Starts a new WebSocket Server connection with given URL and headers.
   """
-  @spec start_link(pid(), String.t(), Mint.Types.headers()) ::
-          {:ok, pid()} | {:error, {:already_started, pid()}}
+  @spec start_link(pid(), String.t(), Mint.Types.headers()) :: GenServer.on_start()
   def start_link(listener, url, headers \\ []) do
     Connection.start_link(__MODULE__, {listener, url, headers})
   end
@@ -33,7 +32,7 @@ defmodule Livebook.WebSocket.Server do
 
   @impl true
   def init({listener, url, headers}) do
-    state = struct!(__MODULE__, listener: listener, url: url, headers: headers)
+    state = %__MODULE__{listener: listener, url: url, headers: headers}
     {:connect, :init, state}
   end
 

@@ -14,7 +14,10 @@ defmodule Livebook.EnterpriseIntegrationCase do
   end
 
   setup_all do
-    EnterpriseServer.start()
+    case EnterpriseServer.start() do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
+    end
 
     {:ok,
      url: EnterpriseServer.url(), token: EnterpriseServer.token(), user: EnterpriseServer.user()}

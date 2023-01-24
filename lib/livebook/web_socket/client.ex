@@ -31,8 +31,7 @@ defmodule Livebook.WebSocket.Client do
           | {:server_error, list(binary())}
   def connect(url, headers \\ []) do
     uri = URI.parse(url)
-    http_scheme = parse_http_scheme(uri)
-    ws_scheme = parse_ws_scheme(uri)
+    {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port),
@@ -43,11 +42,8 @@ defmodule Livebook.WebSocket.Client do
     end
   end
 
-  defp parse_http_scheme(uri) when uri.scheme in ["http", "ws"], do: :http
-  defp parse_http_scheme(uri) when uri.scheme in ["https", "wss"], do: :https
-
-  defp parse_ws_scheme(uri) when uri.scheme in ["http", "ws"], do: :ws
-  defp parse_ws_scheme(uri) when uri.scheme in ["https", "wss"], do: :wss
+  defp parse_scheme(uri) when uri.scheme in ["http", "ws"], do: {:http, :ws}
+  defp parse_scheme(uri) when uri.scheme in ["https", "wss"], do: {:https, :wss}
 
   defp receive_upgrade(conn, ref, state) do
     with {:ok, conn} <- Mint.HTTP.set_mode(conn, :passive),

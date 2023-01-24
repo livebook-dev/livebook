@@ -49,11 +49,10 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec connected?(String.t()) :: boolean()
   def connected?(id) do
-    try do
-      GenServer.call(registry_name(id), :connected?)
-    catch
-      :exit, _ -> false
-    end
+    GenServer.call(registry_name(id), :connected?)
+  catch
+    :exit, _ ->
+      false
   end
 
   ## GenServer callbacks
