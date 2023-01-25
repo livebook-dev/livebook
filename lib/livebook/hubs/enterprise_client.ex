@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Enterprise
   alias Livebook.Secrets.Secret
-  alias Livebook.WebSocket.Server
+  alias Livebook.WebSocket.ClientConnection
 
   @registry Livebook.HubsRegistry
 
@@ -25,8 +25,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec stop(pid()) :: :ok
   def stop(pid) do
     pid |> GenServer.call(:get_server) |> GenServer.stop()
-
-    :ok
+    GenServer.stop(pid)
   end
 
   @doc """
@@ -34,7 +33,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
   def send_request(pid, %_struct{} = data) do
-    Server.send_request(GenServer.call(pid, :get_server), data)
+    ClientConnection.send_request(GenServer.call(pid, :get_server), data)
   end
 
   @doc """
@@ -50,11 +49,10 @@ defmodule Livebook.Hubs.EnterpriseClient do
   """
   @spec connected?(String.t()) :: boolean()
   def connected?(id) do
-    try do
-      GenServer.call(registry_name(id), :connected?)
-    catch
-      :exit, _ -> false
-    end
+    GenServer.call(registry_name(id), :connected?)
+  catch
+    :exit, _ ->
+      false
   end
 
   ## GenServer callbacks
@@ -62,7 +60,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def init(%Enterprise{url: url, token: token} = enterprise) do
     headers = [{"X-Auth-Token", token}]
-    {:ok, pid} = Server.start_link(self(), url, headers)
+    {:ok, pid} = ClientConnection.start_link(self(), url, headers)
 
     {:ok, %__MODULE__{hub: enterprise, server: pid}}
   end
