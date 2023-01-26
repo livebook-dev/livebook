@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
   describe "enterprise" do
     setup %{url: url, token: token} do
       node = EnterpriseServer.get_node()
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       hub_id = "enterprise-#{id}"
 
       Livebook.Hubs.subscribe([:connection, :secrets])

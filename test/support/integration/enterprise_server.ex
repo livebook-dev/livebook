@@ -29,7 +29,7 @@ defmodule Livebook.EnterpriseServer do
   end
 
   def get_node(name \\ @name) do
-    GenServer.call(name, :fetch_node)
+    GenServer.call(name, :fetch_node, @timeout)
   end
 
   def drop_database(name \\ @name) do
@@ -261,8 +261,8 @@ defmodule Livebook.EnterpriseServer do
   defp env(app_port, state_env) do
     env = %{
       "MIX_ENV" => "livebook",
-      "LIVEBOOK_ENTERPRISE_PORT" => to_string(app_port),
-      "LIVEBOOK_ENTERPRISE_DEBUG" => debug()
+      "PORT" => to_string(app_port),
+      "DEBUG" => debug()
     }
 
     if state_env do
