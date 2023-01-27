@@ -104,6 +104,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
     assert_received {:runtime_evaluation_output, :ref, {:text, "[1, 2, 3]"}}
   end
 
+  test "supports direct livebook output forwarding for a specific client", %{io: io} do
+    livebook_put_output_to(io, "client1", {:text, "[1, 2, 3]"})
+
+    assert_received {:runtime_evaluation_output_to, "client1", :ref, {:text, "[1, 2, 3]"}}
+  end
+
   describe "token requests" do
     test "returns different tokens for subsequent calls", %{io: io} do
       IOProxy.configure(io, :ref1, "cell1")
@@ -153,6 +159,10 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
   defp livebook_put_output(io, output) do
     io_request(io, {:livebook_put_output, output})
+  end
+
+  defp livebook_put_output_to(io, client_id, output) do
+    io_request(io, {:livebook_put_output_to, client_id, output})
   end
 
   defp livebook_get_input_value(io, input_id) do
