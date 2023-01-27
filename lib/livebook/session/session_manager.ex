@@ -1,4 +1,4 @@
-defmodule Livebook.Session.RecentlyOpened do
+defmodule Livebook.Session.SessionManager do
   @moduledoc false
 
   use GenServer

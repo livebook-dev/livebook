@@ -39,7 +39,7 @@ defmodule Livebook.Application do
         # Start the supervisor dynamically managing connections
         {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
         # Start the server save Recently opened sessions
-        Livebook.Session.RecentlyOpened
+        Livebook.Session.SessionManager
       ] ++
         iframe_server_specs() ++
         [

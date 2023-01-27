@@ -5,9 +5,9 @@ defmodule LivebookWeb.HomeLive do
 
   alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
-  alias Livebook.Session.RecentlyOpened
+  alias Livebook.Session.SessionManager
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(params, _session, socket) do
@@ -18,7 +18,7 @@ defmodule LivebookWeb.HomeLive do
 
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
-    recently_opened_sessions = RecentlyOpened.list_sessions()
+    recently_opened_sessions = SessionManager.list_sessions()
 
     {:ok,
      assign(socket,
@@ -138,7 +138,7 @@ defmodule LivebookWeb.HomeLive do
         </div>
         <div id="recently-opened-sessions" role="region" aria-label="recently opened sessions">
           <.live_component
-            module={LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent}
+            module={LivebookWeb.HomeLive.SessionManagerSessionListComponent}
             id="recently-opened-session-list"
             sessions={@recently_opened_sessions}
           />

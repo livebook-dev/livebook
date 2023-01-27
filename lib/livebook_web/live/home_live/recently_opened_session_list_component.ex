@@ -1,4 +1,4 @@
-defmodule LivebookWeb.HomeLive.RecentlyOpenedSessionListComponent do
+defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
   use LivebookWeb, :live_component
 
   import LivebookWeb.SessionHelpers
