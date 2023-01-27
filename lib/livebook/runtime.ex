@@ -255,7 +255,7 @@ defprotocol Livebook.Runtime do
   @type smart_cell_attrs :: map()
 
   @typedoc """
-  Marks an part of smart cell source.
+  Marks a part of smart cell source.
 
   Both the offset ans size are expressed in bytes.
   """

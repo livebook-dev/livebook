@@ -1849,7 +1849,7 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:smart_cell_started, _client_id, _cell_id, _delta, _js_view, _editor}
+         {:smart_cell_started, _client_id, _cell_id, _delta, _chunks, _js_view, _editor}
        ) do
     prune_cell_sources(socket)
   end
