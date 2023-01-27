@@ -2354,6 +2354,7 @@ defmodule LivebookWeb.SessionLive do
     {secrets, origin} =
       case attrs do
         %{"secret-origin" => "app"} -> {socket.assigns.livebook_secrets, :app}
+        %{"secret-origin" => "startup"} -> {socket.assigns.livebook_secrets, :startup}
         %{"secret-origin" => hub_id} -> {socket.assigns.hub_secrets, hub_id}
       end
 
