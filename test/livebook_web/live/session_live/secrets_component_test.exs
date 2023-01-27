@@ -65,7 +65,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           name: secret.name,
           value: secret.value,
           store: "hub",
-          connected_hub: enterprise.id
+          hub_id: enterprise.id
         }
       }
 
@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       |> render_submit(attrs)
 
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
-      assert has_element?(view, "#hub-secret-#{attrs.data.name}-title")
+      assert has_element?(view, "#hub-#{enterprise.id}-secret-#{attrs.data.name}-title")
     end
   end
 end
