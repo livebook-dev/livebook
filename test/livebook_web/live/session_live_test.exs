@@ -476,6 +476,30 @@ defmodule LivebookWeb.SessionLiveTest do
       assert content =~ "Updated frame"
       refute content =~ "In frame"
     end
+
+    test "client specific output is sent only to one target", %{conn: conn, session: session} do
+      user1 = build(:user, name: "Jake Peralta")
+      {_, client_id} = Session.register_client(session.pid, self(), user1)
+
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      send(
+        session.pid,
+        {:runtime_evaluation_output_to, client_id, cell_id, {:stdout, "line 1\n"}}
+      )
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      refute render(view) =~ "line 1"
+    end
   end
 
   describe "smart cells" do

@@ -1054,6 +1054,20 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info({:runtime_evaluation_output_to, client_id, cell_id, output}, state) do
+    client_pid =
+      Enum.find_value(state.client_pids_with_id, fn {pid, id} ->
+        id == client_id && pid
+      end)
+
+    if client_pid do
+      operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
+      send(client_pid, {:operation, operation})
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
