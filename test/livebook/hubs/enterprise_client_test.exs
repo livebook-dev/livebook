@@ -35,35 +35,42 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
   end
 
   describe "handle events" do
-    setup %{url: url, token: token} do
-      enterprise = build(:enterprise, url: url, token: token)
-      EnterpriseClient.start_link(enterprise)
+    setup %{test: test, url: url, token: token} do
+      node = EnterpriseServer.get_node()
+      hub_id = "enterprise-#{test}"
+
+      insert_hub(:enterprise,
+        id: hub_id,
+        external_id: to_string(test),
+        url: url,
+        token: token
+      )
+
       assert_receive :hub_connected
 
-      :ok
+      {:ok, node: node, hub_id: hub_id}
     end
 
-    test "receives a secret_created event" do
+    test "receives a secret_created event", %{node: node, hub_id: id} do
       name = "API_TOKEN_ID"
       value = Livebook.Utils.random_id()
-      node = EnterpriseServer.get_node()
       :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
-      assert_receive {:secret_created, %Secret{name: ^name, value: ^value}}
+      assert_receive {:secret_created, %Secret{name: ^name, value: ^value, origin: {:hub, ^id}}}
     end
 
-    test "receives a secret_updated event" do
+    test "receives a secret_updated event", %{node: node, hub_id: id} do
       name = "SUPER_SUDO_USER"
       value = "JakePeralta"
-      node = EnterpriseServer.get_node()
       secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
-      assert_receive {:secret_created, %Secret{name: ^name, value: ^value}}
+      assert_receive {:secret_created, %Secret{name: ^name, value: ^value, origin: {:hub, ^id}}}
 
       new_value = "ChonkyCat"
       :erpc.call(node, Enterprise.Integration, :update_secret, [secret, new_value])
 
-      assert_receive {:secret_updated, %Secret{name: ^name, value: ^new_value}}
+      assert_receive {:secret_updated,
+                      %Secret{name: ^name, value: ^new_value, origin: {:hub, ^id}}}
     end
   end
 end

@@ -69,16 +69,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         }
       }
 
-      view
-      |> element(~s{form[phx-submit="save"]})
-      |> render_change(attrs)
-
-      view
-      |> element(~s{form[phx-submit="save"]})
-      |> render_submit(attrs)
+      form = element(view, ~s{form[phx-submit="save"]})
+      render_change(form, attrs)
+      render_submit(form, attrs)
 
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
-      assert has_element?(view, "#enterprise-secret-#{attrs.data.name}-title")
+      assert has_element?(view, "#hub-#{enterprise.id}-secret-#{attrs.data.name}-title")
     end
   end
 end
