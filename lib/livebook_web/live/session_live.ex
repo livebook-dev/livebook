@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
+           livebook_secrets: Secrets.get_secrets(),
            hub_secrets: get_hub_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil

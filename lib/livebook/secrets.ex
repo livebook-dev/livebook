@@ -11,8 +11,8 @@ defmodule Livebook.Secrets do
   @doc """
   Get the secrets list from storage.
   """
-  @spec fetch_secrets() :: list(Secret.t())
-  def fetch_secrets do
+  @spec get_secrets() :: list(Secret.t())
+  def get_secrets do
     temporary_secrets = :persistent_term.get(@temporary_key, [])
 
     for fields <- Storage.all(:secrets) do

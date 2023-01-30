@@ -10,22 +10,22 @@ defmodule Livebook.SecretsTest do
       secret = %Secret{name: "FOO", value: "111"}
 
       Secrets.set_secret(secret)
-      assert secret in Secrets.fetch_secrets()
+      assert secret in Secrets.get_secrets()
 
       Secrets.unset_secret(secret.name)
-      refute secret in Secrets.fetch_secrets()
+      refute secret in Secrets.get_secrets()
     end
 
     test "returns a list of secrets from temporary storage" do
       secret = %Secret{name: "BAR", value: "222"}
 
       Secrets.set_temporary_secrets([secret])
-      assert secret in Secrets.fetch_secrets()
+      assert secret in Secrets.get_secrets()
 
       # We can't delete from temporary storage, since it will be deleted
       # on next startup, if not provided
       Secrets.unset_secret(secret.name)
-      assert secret in Secrets.fetch_secrets()
+      assert secret in Secrets.get_secrets()
     end
   end
 
