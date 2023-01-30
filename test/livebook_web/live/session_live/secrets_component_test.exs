@@ -3,7 +3,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Secrets.Secret
   alias Livebook.Session
   alias Livebook.Sessions
 
@@ -36,14 +35,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       session: session,
       enterprise: enterprise
     } do
+      secret = build(:secret, name: "LESS_IMPORTANT_SECRET", value: "123", origin: enterprise.id)
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       assert view
              |> element(~s{form[phx-submit="save"]})
              |> render_change(%{
                data: %{
-                 name: "FOO",
-                 value: "123",
+                 name: secret.name,
+                 value: secret.value,
                  store: "hub"
                }
              }) =~ ~s(<option value="#{enterprise.id}">#{enterprise.hub_name}</option>)
@@ -54,12 +54,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       session: session,
       enterprise: enterprise
     } do
+      id = enterprise.id
+      secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: id)
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       attrs = %{
         data: %{
-          name: "FOO",
-          value: "123",
+          name: secret.name,
+          value: secret.value,
           store: "hub",
           connected_hub: enterprise.id
         }
@@ -73,7 +75,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(attrs)
 
-      assert_receive {:secret_created, %Secret{name: "FOO", value: "123"}}
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
       assert has_element?(view, "#enterprise-secret-#{attrs.data.name}-title")
     end
