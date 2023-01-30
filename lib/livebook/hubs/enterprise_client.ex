@@ -95,14 +95,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value}
+    secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
     Broadcasts.secret_created(secret)
 
     {:noreply, put_secret(state, secret)}
   end
 
   def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value}
+    secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
     Broadcasts.secret_updated(secret)
 
     {:noreply, put_secret(state, secret)}
@@ -119,7 +119,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:via, Registry, {@registry, id}}
   end
 
-  defp put_secret(state, %Secret{name: name} = secret) do
-    %{state | secrets: [secret | Enum.reject(state.secrets, &(&1.name == name))]}
+  defp put_secret(state, secret) do
+    secrets = Enum.reject(state.secrets, &(&1.name == secret.name and &1.origin == secret.origin))
+    %{state | secrets: [secret | secrets]}
   end
 end
