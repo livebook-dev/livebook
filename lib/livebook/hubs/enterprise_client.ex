@@ -120,7 +120,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   defp put_secret(state, secret) do
-    secrets = Enum.reject(state.secrets, &(&1.name == secret.name and &1.origin == secret.origin))
-    %{state | secrets: [secret | secrets]}
+    %{state | secrets: [secret | Enum.reject(state.secrets, &(&1.name == secret.name))]}
   end
 end

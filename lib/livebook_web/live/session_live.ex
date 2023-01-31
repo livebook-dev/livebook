@@ -576,50 +576,50 @@ defmodule LivebookWeb.SessionLive do
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for %{origin: :session} = secret <- Enum.sort(@data_view.secrets) do %>
+          <%= for {secret_name, secret_value} <- Enum.sort(@data_view.secrets) do %>
             <div
               class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-              id={"session-secret-#{secret.name}-wrapper"}
+              id={"session-secret-#{secret_name}-wrapper"}
             >
               <span
                 class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
-                id={"session-secret-#{secret.name}-title"}
+                id={"session-secret-#{secret_name}-title"}
                 phx-click={
-                  JS.toggle(to: "#session-secret-#{secret.name}-title")
-                  |> JS.toggle(to: "#session-secret-#{secret.name}-detail")
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
                   |> JS.add_class("bg-gray-100",
-                    to: "#session-secret-#{secret.name}-wrapper"
+                    to: "#session-secret-#{secret_name}-wrapper"
                   )
                 }
               >
-                <%= secret.name %>
+                <%= secret_name %>
               </span>
               <div
                 class="flex flex-col text-gray-800 hidden"
-                id={"session-secret-#{secret.name}-detail"}
+                id={"session-secret-#{secret_name}-detail"}
                 phx-click={
-                  JS.toggle(to: "#session-secret-#{secret.name}-title")
-                  |> JS.toggle(to: "#session-secret-#{secret.name}-detail")
+                  JS.toggle(to: "#session-secret-#{secret_name}-title")
+                  |> JS.toggle(to: "#session-secret-#{secret_name}-detail")
                   |> JS.remove_class("bg-gray-100",
-                    to: "#session-secret-#{secret.name}-wrapper"
+                    to: "#session-secret-#{secret_name}-wrapper"
                   )
                 }
               >
                 <div class="flex flex-col">
                   <span class="text-sm font-mono break-all flex-row cursor-pointer">
-                    <%= secret.name %>
+                    <%= secret_name %>
                   </span>
                   <div class="flex flex-row justify-between items-center my-1">
                     <span class="text-sm font-mono break-all flex-row">
-                      <%= secret.value %>
+                      <%= secret_value %>
                     </span>
                     <button
-                      id={"session-secret-#{secret.name}-delete"}
+                      id={"session-secret-#{secret_name}-delete"}
                       type="button"
                       phx-click={
                         with_confirm(
-                          JS.push("delete_session_secret", value: %{secret_name: secret.name}),
-                          title: "Delete session secret - #{secret.name}",
+                          JS.push("delete_session_secret", value: %{secret_name: secret_name}),
+                          title: "Delete session secret - #{secret_name}",
                           description: "Are you sure you want to delete this session secret?",
                           confirm_text: "Delete",
                           confirm_icon: "delete-bin-6-line"
@@ -658,7 +658,7 @@ defmodule LivebookWeb.SessionLive do
         </div>
 
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for secret <- Enum.sort(@livebook_secrets) do %>
+          <%= for secret <- @livebook_secrets do %>
             <div
               class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
               id={"app-secret-#{secret.name}-wrapper"}

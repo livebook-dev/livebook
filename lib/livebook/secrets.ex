@@ -111,6 +111,7 @@ defmodule Livebook.Secrets do
   end
 
   defp to_struct(%{name: name, value: value} = fields) do
+    # Previously stored secrets were all `:app`-based secrets
     %Secret{name: name, value: value, origin: fields[:origin] || :app}
   end
 end

@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     secret_name={secret_name}
                     origin="app"
                     stored="Livebook"
-                    action="select_livebook_secret"
+                    action="select_secret"
                     active={false}
                     target={@myself}
                   />
@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     secret_name={secret_name}
                     origin={origin}
                     stored="Hub"
-                    action="select_hub_secret"
+                    action="select_secret"
                     active={false}
                     target={@myself}
                   />
@@ -132,7 +132,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> only this session
                 <% end %>
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "livebook", checked: @data["store"] == "livebook") %> in the Livebook app
+                  <%= radio_button(f, :store, "app", checked: @data["store"] == "app") %> in the Livebook app
                 <% end %>
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= label class: "flex items-center gap-2 text-gray-600" do %>
@@ -253,14 +253,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("select_secret", %{"secret_name" => secret_name}, socket) do
+  def handle_event(
+        "select_secret",
+        %{"secret_name" => secret_name, "origin" => "session"},
+        socket
+      ) do
     {:noreply,
      socket
      |> push_patch(to: socket.assigns.return_to)
      |> push_secret_selected(secret_name)}
   end
 
-  def handle_event("select_livebook_secret", %{"secret_name" => secret_name}, socket) do
+  def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => "app"}, socket) do
     grant_access(socket.assigns.livebook_secrets, secret_name, :app, socket)
 
     {:noreply,
@@ -269,12 +273,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
      |> push_secret_selected(secret_name)}
   end
 
-  def handle_event(
-        "select_hub_secret",
-        %{"secret_name" => secret_name, "origin" => hub_id},
-        socket
-      ) do
-    grant_access(socket.assigns.hub_secrets, secret_name, hub_id, socket)
+  def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => hub_id}, socket) do
+    grant_access(socket.assigns.hub_secrets, secret_name, {:hub, hub_id}, socket)
 
     {:noreply,
      socket
@@ -317,7 +317,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp unavailable_secret?(socket, preselect_name) do
     not session?(socket, preselect_name) and
-      not livebook?(socket, preselect_name) and
+      not app?(socket, preselect_name) and
       not hub?(socket, preselect_name)
   end
 
@@ -325,21 +325,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp build_attrs(%{
-         "name" => name,
-         "value" => value,
-         "store" => "hub",
-         "connected_hub" => hub_id
-       }) do
-    %{name: name, value: value, origin: {:hub, hub_id}}
-  end
+  defp build_origin(%{"store" => "session"}), do: :session
+  defp build_origin(%{"store" => "app"}), do: :app
+  defp build_origin(%{"store" => "hub", "connected_hub" => id}), do: {:hub, id}
 
-  defp build_attrs(%{"name" => name, "value" => value, "store" => "livebook"}) do
-    %{name: name, value: value, origin: :app}
-  end
-
-  defp build_attrs(%{"name" => name, "value" => value, "store" => "session"}) do
-    %{name: name, value: value, origin: :session}
+  defp build_attrs(%{"name" => name, "value" => value} = attrs) do
+    %{name: name, value: value, origin: build_origin(attrs)}
   end
 
   defp set_secret(socket, %Secret{origin: :session} = secret) do
@@ -378,7 +369,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp must_grant_access(%{assigns: %{prefill_secret_name: secret_name}} = socket) do
     if not session?(socket, secret_name) and
-         (livebook?(socket, secret_name) or hub?(socket, secret_name)) do
+         (app?(socket, secret_name) or hub?(socket, secret_name)) do
       secret_name
     end
   end
@@ -387,7 +378,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Enum.any?(socket.assigns.secrets, &(elem(&1, 0) == secret_name))
   end
 
-  defp livebook?(socket, secret_name) do
+  defp app?(socket, secret_name) do
     Enum.any?(socket.assigns.livebook_secrets, &(&1.name == secret_name and &1.origin == :app))
   end
 

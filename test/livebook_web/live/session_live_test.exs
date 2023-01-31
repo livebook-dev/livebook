@@ -1050,13 +1050,13 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "secrets" do
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "FOO", value: "123", origin: :system_env)
+      secret = build(:secret, name: "FOO", value: "123", origin: :session)
 
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
 
-      assert {secret.name, secret.value} in Session.get_data(session.pid).secrets
+      assert_session_secret(view, session.pid, secret)
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session} do
@@ -1065,7 +1065,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
 
       assert secret in Livebook.Secrets.get_secrets()
     end
@@ -1078,9 +1078,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
 
-      assert {secret.name, secret.value} in Session.get_data(session.pid).secrets
+      assert_session_secret(view, session.pid, secret)
       assert secret in Livebook.Secrets.get_secrets()
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
@@ -1090,26 +1090,26 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "livebook"}})
+      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
 
-      assert {secret.name, secret.value} in Session.get_data(session.pid).secrets
+      assert_session_secret(view, session.pid, secret)
       assert secret in Livebook.Secrets.get_secrets()
     end
 
     test "never syncs secrets when updating from session", %{conn: conn, session: session} do
-      session_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456", origin: :system_env)
+      app_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", origin: :session)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, session_secret)
+      Session.set_secret(session.pid, app_secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
 
-      assert {secret.name, secret.value} in Session.get_data(session.pid).secrets
+      assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Secrets.get_secrets()
-      assert session_secret in Livebook.Secrets.get_secrets()
+      assert app_secret in Livebook.Secrets.get_secrets()
     end
 
     test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
@@ -1284,5 +1284,20 @@ defmodule LivebookWeb.SessionLiveTest do
   defp close_session_by_id(session_id) do
     {:ok, session} = Sessions.fetch_session(session_id)
     Session.close(session.pid)
+  end
+
+  defp assert_session_secret(view, session_pid, secret) do
+    selector =
+      case secret do
+        %{name: name, origin: :session} -> "#session-secret-#{name}-title"
+        %{name: name, origin: :app} -> "#app-secret-#{name}-title"
+        %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-title"
+      end
+
+    assert has_element?(view, selector)
+    secrets = Session.get_data(session_pid).secrets
+
+    assert Map.has_key?(secrets, secret.name)
+    assert secrets[secret.name] == secret.value
   end
 end

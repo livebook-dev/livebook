@@ -2,9 +2,9 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   @moduledoc false
   use Ecto.Type
 
-  @type t :: :session | :startup | :app | {:hub, String.t()}
+  @type t :: nil | :session | :startup | :app | {:hub, String.t()}
 
-  def type, do: :any
+  def type, do: :string
 
   def load("session"), do: {:ok, :session}
   def load("app"), do: {:ok, :app}

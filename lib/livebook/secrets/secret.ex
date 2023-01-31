@@ -6,8 +6,8 @@ defmodule Livebook.Secrets.Secret do
   alias Livebook.EctoTypes.SecretOrigin
 
   @type t :: %__MODULE__{
-          name: String.t(),
-          value: String.t(),
+          name: String.t() | nil,
+          value: String.t() | nil,
           origin: SecretOrigin.t()
         }
 
