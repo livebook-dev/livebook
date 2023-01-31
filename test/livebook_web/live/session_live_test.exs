@@ -1127,19 +1127,13 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
-    test "Add secret for unavailable secrets using 'Add secret' button",
+    test "adding an unavailable secret using 'Add secret' button",
          %{conn: conn, session: session} do
       secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", origin: :session)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
-
-      cell_id =
-        insert_text_cell(
-          session.pid,
-          section_id,
-          :code,
-          ~s{System.fetch_env!("LB_#{secret.name}")}
-        )
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
@@ -1148,8 +1142,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
 
-      add_secret_button =
-        element(view, "a[href='#{expected_url}'][role='button'][aria-label='add secret']")
+      add_secret_button = element(view, "a[href='#{expected_url}']")
 
       assert has_element?(add_secret_button)
       render_click(add_secret_button)
@@ -1171,19 +1164,13 @@ defmodule LivebookWeb.SessionLiveTest do
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
 
-    test "Grant access for unavailable secrets using 'Add secret' button",
+    test "granting access for unavailable secret using 'Add secret' button",
          %{conn: conn, session: session} do
       secret = insert_secret(name: "UNAVAILABLESECRET", value: "123456")
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
-
-      cell_id =
-        insert_text_cell(
-          session.pid,
-          section_id,
-          :code,
-          ~s{System.fetch_env!("LB_#{secret.name}")}
-        )
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
@@ -1192,8 +1179,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
 
-      add_secret_button =
-        element(view, "a[href='#{expected_url}'][role='button'][aria-label='add secret']")
+      add_secret_button = element(view, "a[href='#{expected_url}']")
 
       assert has_element?(add_secret_button)
       assert secret in Livebook.Secrets.get_secrets()
