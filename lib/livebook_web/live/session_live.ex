@@ -422,6 +422,7 @@ defmodule LivebookWeb.SessionLive do
           session={@session}
           secrets={@data_view.secrets}
           livebook_secrets={@livebook_secrets}
+          hub_secrets={@hub_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           select_secret_options={@select_secret_options}
@@ -1446,14 +1447,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_created, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
      |> assign(hub_secrets: get_hub_secrets())
      |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
   end
 
-  def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
      |> assign(hub_secrets: get_hub_secrets())
