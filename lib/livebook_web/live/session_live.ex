@@ -2316,7 +2316,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp is_secret_on_session?(secret, secrets) do
-    secret in secrets
+    Map.has_key?(secrets, secret.name)
   end
 
   defp get_hub_secrets do
