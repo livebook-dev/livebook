@@ -57,27 +57,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= for %{name: secret_name, origin: :app} <- @livebook_secrets do %>
+                <%= for secret <- @saved_secrets do %>
                   <.secret_with_badge
-                    secret_name={secret_name}
-                    origin="app"
-                    stored="Livebook"
+                    secret_name={secret.name}
+                    origin={origin(secret)}
+                    stored={stored(secret)}
                     action="select_secret"
                     active={false}
                     target={@myself}
                   />
                 <% end %>
-                <%= for %{name: secret_name, origin: origin} when is_binary(origin) <- @hub_secrets do %>
-                  <.secret_with_badge
-                    secret_name={secret_name}
-                    origin={origin}
-                    stored="Hub"
-                    action="select_secret"
-                    active={false}
-                    target={@myself}
-                  />
-                <% end %>
-                <%= if @secrets == %{} and @livebook_secrets == [] and @hub_secrets == [] do %>
+                <%= if @secrets == %{} and @saved_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
@@ -235,6 +225,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     """
   end
 
+  defp origin(%{origin: {:hub, id}}), do: id
+  defp origin(%{origin: origin}), do: to_string(origin)
+
+  defp stored(%{origin: {:hub, _}}), do: "Hub"
+  defp stored(%{origin: origin}) when origin in [:app, :startup], do: "Livebook"
+
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
     with attrs <- build_attrs(data),
@@ -265,7 +261,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => "app"}, socket) do
-    grant_access(socket.assigns.livebook_secrets, secret_name, :app, socket)
+    grant_access(socket.assigns.saved_secrets, secret_name, :app, socket)
 
     {:noreply,
      socket
@@ -274,7 +270,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => hub_id}, socket) do
-    grant_access(socket.assigns.hub_secrets, secret_name, {:hub, hub_id}, socket)
+    grant_access(socket.assigns.saved_secrets, secret_name, {:hub, hub_id}, socket)
 
     {:noreply,
      socket
@@ -292,7 +288,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
-    grant_access(socket.assigns.livebook_secrets, secret_name, :app, socket)
+    grant_access(socket.assigns.saved_secrets, secret_name, :app, socket)
 
     {:noreply,
      socket
@@ -379,11 +375,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp app?(socket, secret_name) do
-    Enum.any?(socket.assigns.livebook_secrets, &(&1.name == secret_name and &1.origin == :app))
+    Enum.any?(
+      socket.assigns.saved_secrets,
+      &(&1.name == secret_name and &1.origin in [:app, :startup])
+    )
   end
 
   defp hub?(socket, secret_name) do
-    Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret_name))
+    Enum.any?(socket.assigns.saved_secrets, &(&1.name == secret_name))
   end
 
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()

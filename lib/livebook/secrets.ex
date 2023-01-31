@@ -19,7 +19,6 @@ defmodule Livebook.Secrets do
       to_struct(fields)
     end
     |> Enum.concat(temporary_secrets)
-    |> Enum.sort()
   end
 
   @doc """
