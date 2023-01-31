@@ -10,7 +10,7 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   def load("app"), do: {:ok, :app}
   def load("startup"), do: {:ok, :startup}
 
-  def load(id) when is_binary(id) do
+  def load("hub-" <> id) do
     if hub_secret?(id),
       do: {:ok, {:hub, id}},
       else: :error
@@ -21,10 +21,9 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   def dump(:session), do: {:ok, "session"}
   def dump(:app), do: {:ok, "app"}
   def dump(:startup), do: {:ok, "startup"}
-  def dump({:hub, id}) when is_binary(id), do: dump(id)
 
-  def dump(id) when is_binary(id) do
-    if hub_secret?(id), do: {:ok, id}, else: :error
+  def dump({:hub, id}) when is_binary(id) do
+    if hub_secret?(id), do: {:ok, "hub-#{id}"}, else: :error
   end
 
   def dump(_), do: :error

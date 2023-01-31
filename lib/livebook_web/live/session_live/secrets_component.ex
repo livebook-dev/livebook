@@ -392,7 +392,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp hub?(socket, secret_name) do
-    Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret_name and is_binary(&1.origin)))
+    Enum.any?(socket.assigns.hub_secrets, &(&1.name == secret_name))
   end
 
   # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
