@@ -3,26 +3,27 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Secrets.Secret
   alias Livebook.Session
   alias Livebook.Sessions
 
   describe "enterprise" do
     setup %{url: url, token: token} do
       node = EnterpriseServer.get_node()
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
-      Livebook.Hubs.delete_hub("enterprise-#{id}")
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
+      hub_id = "enterprise-#{id}"
+
+      Livebook.Hubs.subscribe([:connection, :secrets])
+      Livebook.Hubs.delete_hub(hub_id)
 
       enterprise =
         insert_hub(:enterprise,
-          id: "enterprise-#{id}",
+          id: hub_id,
           external_id: id,
           url: url,
           token: token
         )
 
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
-      Livebook.Hubs.subscribe(:secrets)
 
       on_exit(fn ->
         Session.close(session.pid)
@@ -36,14 +37,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       session: session,
       enterprise: enterprise
     } do
+      secret = build(:secret, name: "LESS_IMPORTANT_SECRET", value: "123", origin: enterprise.id)
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       assert view
              |> element(~s{form[phx-submit="save"]})
              |> render_change(%{
                data: %{
-                 name: "FOO",
-                 value: "123",
+                 name: secret.name,
+                 value: secret.value,
                  store: "hub"
                }
              }) =~ ~s(<option value="#{enterprise.id}">#{enterprise.hub_name}</option>)
@@ -54,28 +56,25 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       session: session,
       enterprise: enterprise
     } do
+      id = enterprise.id
+      secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: id)
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       attrs = %{
         data: %{
-          name: "FOO",
-          value: "123",
+          name: secret.name,
+          value: secret.value,
           store: "hub",
           connected_hub: enterprise.id
         }
       }
 
-      view
-      |> element(~s{form[phx-submit="save"]})
-      |> render_change(attrs)
+      form = element(view, ~s{form[phx-submit="save"]})
+      render_change(form, attrs)
+      render_submit(form, attrs)
 
-      view
-      |> element(~s{form[phx-submit="save"]})
-      |> render_submit(attrs)
-
-      assert_receive {:secret_created, %Secret{name: "FOO", value: "123"}}
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
-      assert has_element?(view, "#enterprise-secret-#{attrs.data.name}-title")
+      assert has_element?(view, "#hub-#{enterprise.id}-secret-#{attrs.data.name}-title")
     end
   end
 end

@@ -40,7 +40,6 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       headers = [{"X-Auth-Token", token}]
 
       {:ok, conn} = ClientConnection.start_link(self(), url, headers)
-
       assert_receive {:connect, :ok, :connected}
 
       {:ok, conn: conn}
@@ -80,27 +79,16 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
 
   describe "reconnect event" do
     setup %{test: name} do
-      suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
-      app_port = Enum.random(1000..9000) |> to_string()
-
-      {:ok, _} =
-        EnterpriseServer.start(name,
-          env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
-          app_port: app_port
-        )
+      start_new_instance(name)
 
       url = EnterpriseServer.url(name)
       token = EnterpriseServer.token(name)
       headers = [{"X-Auth-Token", token}]
 
       assert {:ok, conn} = ClientConnection.start_link(self(), url, headers)
-
       assert_receive {:connect, :ok, :connected}
 
-      on_exit(fn ->
-        EnterpriseServer.disconnect(name)
-        EnterpriseServer.drop_database(name)
-      end)
+      on_exit(fn -> stop_new_instance(name) end)
 
       {:ok, conn: conn}
     end
@@ -134,7 +122,6 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       headers = [{"X-Auth-Token", token}]
 
       {:ok, _conn} = ClientConnection.start_link(self(), url, headers)
-
       assert_receive {:connect, :ok, :connected}
 
       :ok

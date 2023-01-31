@@ -187,7 +187,7 @@ defmodule Livebook.Application do
     secrets =
       for {"LB_" <> name = var, value} <- System.get_env() do
         System.delete_env(var)
-        %Livebook.Secrets.Secret{name: name, value: value}
+        %Livebook.Secrets.Secret{name: name, value: value, origin: :startup}
       end
 
     Livebook.Secrets.set_temporary_secrets(secrets)

@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   describe "enterprise" do
     test "persists new hub", %{conn: conn, url: url, token: token} do
       node = EnterpriseServer.get_node()
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       Livebook.Hubs.delete_hub("enterprise-#{id}")
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
@@ -101,7 +101,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       url = EnterpriseServer.url(name)
       token = EnterpriseServer.token(name)
 
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, [])
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       user = :erpc.call(node, Enterprise.Integration, :create_user, [])
 
       another_token =
@@ -164,21 +164,5 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
     after
       stop_new_instance(name)
     end
-  end
-
-  defp start_new_instance(name) do
-    suffix = Ecto.UUID.generate() |> :erlang.phash2() |> to_string()
-    app_port = Enum.random(1000..9000) |> to_string()
-
-    {:ok, _} =
-      EnterpriseServer.start(name,
-        env: %{"ENTERPRISE_DB_SUFFIX" => suffix},
-        app_port: app_port
-      )
-  end
-
-  defp stop_new_instance(name) do
-    EnterpriseServer.disconnect(name)
-    EnterpriseServer.drop_database(name)
   end
 end
