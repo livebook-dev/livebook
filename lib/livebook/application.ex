@@ -124,7 +124,15 @@ defmodule Livebook.Application do
     unless Livebook.Config.longname() do
       [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split(~c"@")
 
-      with {:ok, nodenames} <- :erl_epmd.names(hostname),
+      # erl_epmd names do not support ipv6 resolution by default,
+      # unless inet6 is configured, so we attempt both.
+      gethostbyname =
+        with {:error, _} <- :inet.gethostbyname(hostname, :inet, :infinity),
+             {:error, _} <- :inet.gethostbyname(hostname, :inet6, :infinity),
+             do: :error
+
+      with {:ok, hostent(h_addr_list: [epmd_addr | _])} <- gethostbyname,
+           {:ok, nodenames} <- :erl_epmd.names(epmd_addr),
            true <- List.keymember?(nodenames, nodename, 0) do
         :ok
       else
