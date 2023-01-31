@@ -30,7 +30,7 @@ defmodule LivebookWeb.SidebarHook do
     {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
   end
 
-  @error_events ~w(connection_error disconnection_error)a
+  @error_events ~w(hub_connection_failed hub_disconnection_failed)a
 
   defp handle_info({event, _reason}, socket) when event in @error_events do
     {:halt, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}

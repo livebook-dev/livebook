@@ -82,9 +82,14 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               <%= text_input(f, :hub_name, class: "input", readonly: true) %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+            <.input_wrapper form={f} field={:hub_emoji} class="flex relative flex-col space-y-1">
               <div class="input-label">Emoji</div>
-              <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
+              <.emoji_input
+                id="enterprise-emoji-input"
+                form={f}
+                field={:hub_emoji}
+                container_class="mt-10"
+              />
             </.input_wrapper>
           </div>
 
@@ -116,7 +121,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
-      {:connection_error, reason} ->
+      {:hub_connection_failed, reason} ->
         EnterpriseClient.stop(pid)
 
         {:noreply,
