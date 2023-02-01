@@ -82,7 +82,7 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = Broadcasts.hubs_metadata_changed()
+    :ok = Broadcasts.hub_changed()
 
     struct
   end
@@ -92,7 +92,7 @@ defmodule Livebook.Hubs do
     with {:ok, hub} <- get_hub(id) do
       :ok = Provider.disconnect(hub)
       :ok = Storage.delete(@namespace, id)
-      :ok = Broadcasts.hubs_metadata_changed()
+      :ok = Broadcasts.hub_changed()
     end
 
     :ok
@@ -112,7 +112,7 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:crud`:
 
-    * `:hubs_metadata_changed`
+    * `:hub_changed`
 
   Topic `hubs:connection`:
 
