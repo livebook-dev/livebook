@@ -55,6 +55,7 @@ defmodule LivebookWeb.Output.ControlComponent do
         id={@id}
         attrs={@attrs}
         input_values={@input_values}
+        session_pid={@session_pid}
         client_id={@client_id}
       />
     </div>

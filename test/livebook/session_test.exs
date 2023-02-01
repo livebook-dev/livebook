@@ -469,6 +469,104 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "register_file/4" do
+    @tag :tmp_dir
+    test "schedules old file for deletion when a file is registered for existing key",
+         %{tmp_dir: tmp_dir} do
+      session = start_session(registered_file_deletion_delay: 0)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+      {:ok, old_file_id} = Session.register_file(session.pid, source_path, "key")
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), old_file_id})
+      assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
+
+      source_path = Path.join(tmp_dir, "new.txt")
+      File.write!(source_path, "content")
+      {:ok, new_file_id} = Session.register_file(session.pid, source_path, "key")
+
+      send(session.pid, {:runtime_file_lookup, self(), new_file_id})
+      assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
+
+      Process.sleep(10)
+
+      refute File.exists?(old_path)
+      assert File.exists?(new_path)
+    end
+
+    @tag :tmp_dir
+    test "schedules file for deletion when a linked client leaves", %{tmp_dir: tmp_dir} do
+      session = start_session(registered_file_deletion_delay: 0)
+
+      client_pid =
+        spawn_link(fn ->
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      user = Livebook.Users.User.new()
+      {_data, client_id} = Session.register_client(session.pid, client_pid, user)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+
+      {:ok, file_id} =
+        Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+
+      send(client_pid, :stop)
+
+      Process.sleep(10)
+
+      refute File.exists?(path)
+    end
+
+    @tag :tmp_dir
+    test "schedules file for deletion when the corresponding input is removed",
+         %{tmp_dir: tmp_dir} do
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :file,
+        label: "File",
+        default: nil,
+        destination: :noop,
+        accept: :any
+      }
+
+      cell = %{Notebook.Cell.new(:code) | outputs: [{1, {:input, input}}]}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
+
+      session = start_session(notebook: notebook, registered_file_deletion_delay: 0)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+
+      {:ok, file_id} = Session.register_file(session.pid, source_path, "key")
+
+      Session.set_input_value(session.pid, "input1", %{file_id: file_id, client_name: "data.txt"})
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+
+      Session.erase_outputs(session.pid)
+
+      Process.sleep(10)
+
+      refute File.exists?(path)
+    end
+  end
+
   describe "close/1" do
     @tag :tmp_dir
     test "saves the notebook and notifies subscribers once the session is closed",

@@ -98,6 +98,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         cell_view={@cell_view}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
       />
     </.cell_body>
@@ -147,6 +148,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_view={@cell_view}
           socket={@socket}
           session_id={@session_id}
+          session_pid={@session_pid}
           client_id={@client_id}
         />
       </div>
@@ -253,6 +255,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         cell_view={@cell_view}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
       />
     </.cell_body>
@@ -609,6 +612,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         dom_id_map={%{}}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
         input_values={@cell_view.eval.input_values}
       />

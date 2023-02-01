@@ -140,6 +140,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               module={LivebookWeb.SessionLive.CellComponent}
               id={cell_view.id}
               session_id={@session_id}
+              session_pid={@session_pid}
               client_id={@client_id}
               runtime={@runtime}
               installing?={@installing?}

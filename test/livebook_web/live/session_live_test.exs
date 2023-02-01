@@ -408,15 +408,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
 
-      assert File.read!(value.path) == "content"
-      assert value.client_name == "data.txt"
+      assert %{file_id: file_id, client_name: "data.txt"} = value
 
-      # When the input disappears, the file should be removed
-
-      Session.erase_outputs(session.pid)
-      wait_for_session_update(session.pid)
-
-      refute File.exists?(value.path)
+      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      assert File.read!(path) == "content"
     end
   end
 
@@ -625,7 +621,7 @@ defmodule LivebookWeb.SessionLiveTest do
         "editor_auto_completion" => false
       })
 
-      assert_reply view, %{"ref" => nil}
+      assert_reply(view, %{"ref" => nil})
     end
 
     test "replies with completion reference and then sends asynchronous response",
@@ -647,7 +643,7 @@ defmodule LivebookWeb.SessionLiveTest do
         "editor_auto_completion" => false
       })
 
-      assert_reply view, %{"ref" => ref}
+      assert_reply(view, %{"ref" => ref})
       assert ref != nil
 
       assert_push_event(

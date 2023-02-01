@@ -42,6 +42,8 @@ defmodule LivebookWeb.Output.ControlFormComponent do
           id={"#{@id}-#{input_attrs.id}"}
           attrs={input_attrs}
           input_values={@input_values}
+          session_pid={@session_pid}
+          client_id={@client_id}
           local={true}
         />
       <% end %>
