@@ -703,15 +703,14 @@ defmodule LivebookWeb.SessionLive do
         >
           <%= @secret.name %>
         </span>
-        <%= if @secret.origin in [:app, :startup] do %>
-          <.switch_checkbox
-            name="toggle_secret"
-            checked={is_secret_on_session?(@secret, @data_secrets)}
-            phx-click="toggle_secret"
-            phx-value-secret_name={@secret.name}
-            phx-value-secret_value={@secret.value}
-          />
-        <% end %>
+        <.switch_checkbox
+          name="toggle_secret"
+          checked={is_secret_on_session?(@secret, @data_secrets)}
+          label={secret_label(@secret)}
+          phx-click="toggle_secret"
+          phx-value-secret_name={@secret.name}
+          phx-value-secret_value={@secret.value}
+        />
       </div>
       <div class="flex flex-col text-gray-800 hidden" id={"#{@prefix}-secret-#{@secret.name}-detail"}>
         <div class="flex flex-col">
@@ -728,15 +727,14 @@ defmodule LivebookWeb.SessionLive do
             >
               <%= @secret.name %>
             </span>
-            <%= if @secret.origin in [:app, :startup] do %>
-              <.switch_checkbox
-                name="toggle_secret"
-                checked={is_secret_on_session?(@secret, @data_secrets)}
-                phx-click="toggle_secret"
-                phx-value-secret_name={@secret.name}
-                phx-value-secret_value={@secret.value}
-              />
-            <% end %>
+            <.switch_checkbox
+              name="toggle_secret"
+              checked={is_secret_on_session?(@secret, @data_secrets)}
+              label={secret_label(@secret)}
+              phx-click="toggle_secret"
+              phx-value-secret_name={@secret.name}
+              phx-value-secret_value={@secret.value}
+            />
           </div>
           <div class="flex flex-row justify-between items-center my-1">
             <span class="text-sm font-mono break-all flex-row">
@@ -2278,4 +2276,7 @@ defmodule LivebookWeb.SessionLive do
   defp get_saved_secrets do
     Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
   end
+
+  defp secret_label(%{origin: {:hub, id}}), do: Hubs.fetch_hub!(id).hub_emoji
+  defp secret_label(_), do: nil
 end

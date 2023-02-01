@@ -1365,7 +1365,6 @@ defmodule LivebookWeb.SessionLiveTest do
       case secret do
         %{name: name, origin: :session} -> "#session-secret-#{name}-title"
         %{name: name, origin: :app} -> "#app-secret-#{name}-title"
-        %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-title"
       end
 
     assert has_element?(view, selector)

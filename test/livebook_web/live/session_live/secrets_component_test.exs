@@ -31,32 +31,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       {:ok, enterprise: enterprise, session: session}
     end
 
-    test "shows the connected hubs dropdown", %{
-      conn: conn,
-      session: session,
-      enterprise: enterprise
-    } do
-      secret = build(:secret, name: "LESS_IMPORTANT_SECRET", value: "123", origin: enterprise.id)
-      {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
-
-      assert view
-             |> element(~s{form[phx-submit="save"]})
-             |> render_change(%{
-               data: %{
-                 name: secret.name,
-                 value: secret.value,
-                 store: "hub"
-               }
-             }) =~ ~s(<option value="#{enterprise.id}">#{enterprise.hub_name}</option>)
-    end
-
-    test "creates a secret on Enterprise hub", %{
-      conn: conn,
-      session: session,
-      enterprise: enterprise
-    } do
+    test "creates a secret on Enterprise hub",
+         %{conn: conn, session: session, enterprise: enterprise} do
       id = enterprise.id
-      secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: id)
+      secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: {:hub, id})
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       attrs = %{
@@ -72,8 +50,41 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       render_change(form, attrs)
       render_submit(form, attrs)
 
+      assert_receive {:secret_created, ^secret}
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
       assert has_element?(view, "#hub-#{enterprise.id}-secret-#{attrs.data.name}-title")
+
+      assert has_element?(
+               view,
+               "#hub-#{enterprise.id}-secret-#{secret.name}-title span",
+               enterprise.hub_emoji
+             )
+    end
+
+    test "toggle a secret from Enterprise hub",
+         %{conn: conn, session: session, enterprise: enterprise, node: node} do
+      secret =
+        build(:secret,
+          name: "POSTGRES_PASSWORD",
+          value: "postgres",
+          origin: {:hub, enterprise.id}
+        )
+
+      {:ok, view, _html} = live(conn, Routes.session_path(conn, :page, session.id))
+
+      :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
+      assert_receive {:secret_created, ^secret}
+
+      Session.set_secret(session.pid, secret)
+      assert_session_secret(view, session.pid, secret)
+    end
+
+    defp assert_session_secret(view, session_pid, %{origin: {:hub, id}} = secret) do
+      secrets = Session.get_data(session_pid).secrets
+
+      assert has_element?(view, "#hub-#{id}-secret-#{secret.name}-title")
+      assert Map.has_key?(secrets, secret.name)
+      assert secrets[secret.name] == secret.value
     end
   end
 end
