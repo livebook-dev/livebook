@@ -282,7 +282,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, :app, socket)
+    cond do
+      app?(socket, secret_name) ->
+        grant_access(socket.assigns.saved_secrets, secret_name, :app, socket)
+
+      hub?(socket, secret_name) ->
+        grant_access(socket.assigns.saved_secrets, secret_name, :hub, socket)
+    end
 
     {:noreply,
      socket
@@ -336,11 +342,19 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Livebook.Hubs.create_secret(secret)
   end
 
+  defp grant_access(secrets, secret_name, :hub, socket) do
+    secret = Enum.find(secrets, &(&1.name == secret_name and match?({:hub, _}, &1.origin)))
+
+    if secret,
+      do: Livebook.Session.set_secret(socket.assigns.session.pid, secret),
+      else: :ok
+  end
+
   defp grant_access(secrets, secret_name, origin, socket) do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
     if secret,
-      do: set_secret(socket, secret),
+      do: Livebook.Session.set_secret(socket.assigns.session.pid, secret),
       else: :ok
   end
 

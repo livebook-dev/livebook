@@ -1,14 +1,21 @@
 defmodule LivebookWeb.SessionLive.SecretsComponentTest do
   use Livebook.EnterpriseIntegrationCase, async: true
 
+  import Livebook.SessionHelpers
   import Phoenix.LiveViewTest
 
   alias Livebook.Session
   alias Livebook.Sessions
 
   describe "enterprise" do
-    setup %{url: url, token: token} do
-      id = Livebook.Utils.random_short_id()
+    setup %{test: name} do
+      start_new_instance(name)
+
+      node = EnterpriseServer.get_node(name)
+      url = EnterpriseServer.url(name)
+      token = EnterpriseServer.token(name)
+
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       hub_id = "enterprise-#{id}"
 
       Livebook.Hubs.subscribe([:connection, :secrets])
@@ -25,10 +32,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
 
       on_exit(fn ->
+        Livebook.Hubs.delete_hub(hub_id)
         Session.close(session.pid)
+        stop_new_instance(name)
       end)
 
-      {:ok, enterprise: enterprise, session: session}
+      {:ok, enterprise: enterprise, session: session, node: node}
     end
 
     test "creates a secret on Enterprise hub",
@@ -79,12 +88,98 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert_session_secret(view, session.pid, secret)
     end
 
-    defp assert_session_secret(view, session_pid, %{origin: {:hub, id}} = secret) do
-      secrets = Session.get_data(session_pid).secrets
+    test "adding an unavailable secret using 'Add secret' button",
+         %{conn: conn, session: session, enterprise: enterprise} do
+      secret =
+        build(:secret,
+          name: "PGPASS",
+          value: "postgres",
+          origin: {:hub, enterprise.id}
+        )
 
-      assert has_element?(view, "#hub-#{id}-secret-#{secret.name}-title")
-      assert Map.has_key?(secrets, secret.name)
-      assert secrets[secret.name] == secret.value
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+
+      assert has_element?(add_secret_button)
+      render_click(add_secret_button)
+
+      secrets_component = with_target(view, "#secrets-modal")
+      form_element = element(secrets_component, "form[phx-submit='save']")
+
+      assert has_element?(form_element)
+
+      render_submit(form_element, %{
+        data: %{
+          value: secret.value,
+          store: "hub",
+          hub_id: enterprise.id
+        }
+      })
+
+      assert_receive {:secret_created, ^secret}
+      Session.set_secret(session.pid, secret)
+      assert_session_secret(view, session.pid, secret)
+      refute secret in Livebook.Secrets.get_secrets()
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+
+    test "granting access for unavailable secret using 'Add secret' button",
+         %{conn: conn, session: session, enterprise: enterprise, node: node} do
+      secret =
+        build(:secret,
+          name: "MYSQL_PASS",
+          value: "admin",
+          origin: {:hub, enterprise.id}
+        )
+
+      :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
+
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+
+      assert has_element?(add_secret_button)
+      assert secret in Livebook.Hubs.get_secrets()
+
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+      grant_access_button = element(secrets_component, "button", "Grant access")
+      render_click(grant_access_button)
+
+      assert_session_secret(view, session.pid, secret)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
   end
 end
