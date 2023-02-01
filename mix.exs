@@ -131,7 +131,7 @@ defmodule Livebook.MixProject do
   defp releases do
     [
       livebook: [
-        include_executables_for: [:unix],
+        include_executables_for: [:unix, :windows],
         include_erts: false,
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]

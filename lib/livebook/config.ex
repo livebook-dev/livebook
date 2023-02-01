@@ -292,6 +292,25 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses node and distribution type from env.
+  """
+  def node!(node_env, distribution_env) do
+    case {System.get_env(node_env), System.get_env(distribution_env, "sname")} do
+      {nil, _} ->
+        nil
+
+      {name, "name"} ->
+        {:longnames, String.to_atom(name)}
+
+      {sname, "sname"} ->
+        {:shortnames, String.to_atom(sname)}
+
+      {_, other} ->
+        abort!(~s(#{distribution_env} must be one of "name" or "sname", got "#{other}"))
+    end
+  end
+
+  @doc """
   Parses and validates the password from env.
   """
   def password!(env) do

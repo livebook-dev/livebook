@@ -160,6 +160,10 @@ defmodule Livebook do
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
              Livebook.Utils.random_cookie()
 
+    if node = Livebook.Config.node!("LIVEBOOK_NODE", "LIVEBOOK_DISTRIBUTION") do
+      config :livebook, :node, node
+    end
+
     if app_service_name = Livebook.Config.app_service_name!("LIVEBOOK_APP_SERVICE_NAME") do
       config :livebook, :app_service_name, app_service_name
 
