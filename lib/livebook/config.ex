@@ -292,6 +292,25 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses a long or short node name from env.
+  """
+  def node!({longname_env, shortname_env}) do
+    case {System.get_env(longname_env), System.get_env(shortname_env)} do
+      {nil, nil} ->
+        nil
+
+      {longname, nil} ->
+        {:longnames, String.to_atom(longname)}
+
+      {nil, shortname} ->
+        {:shortnames, String.to_atom(shortname)}
+
+      _ ->
+        abort!("#{longname_env} and #{shortname_env} are mutually exclusive, please specify only one of them")
+    end
+  end
+
+  @doc """
   Parses and validates the password from env.
   """
   def password!(env) do

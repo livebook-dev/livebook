@@ -164,6 +164,12 @@ The following environment variables configure Livebook:
   * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
+  * LIVEBOOK_NAME - sets the node name for running Livebook in a cluster.
+    Note that only this or LIVEBOOK_SNAME can be set.
+
+  * LIVEBOOK_SNAME - sets the node shortname for running Livebook in a cluster.
+    Note that only this or LIVEBOOK_NAME can be set.
+
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 
