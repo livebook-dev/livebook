@@ -353,9 +353,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp grant_access(secrets, secret_name, origin, socket) do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
-    if secret,
-      do: Livebook.Session.set_secret(socket.assigns.session.pid, secret),
-      else: :ok
+    if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
   defp must_grant_access(%{assigns: %{prefill_secret_name: secret_name}} = socket) do
