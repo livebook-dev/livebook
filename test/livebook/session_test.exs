@@ -491,7 +491,7 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
 
-      Process.sleep(10)
+      Process.sleep(50)
 
       refute File.exists?(old_path)
       assert File.exists?(new_path)
@@ -524,7 +524,7 @@ defmodule Livebook.SessionTest do
 
       send(client_pid, :stop)
 
-      Process.sleep(10)
+      Process.sleep(50)
 
       refute File.exists?(path)
     end
@@ -564,7 +564,7 @@ defmodule Livebook.SessionTest do
 
       Session.erase_outputs(session.pid)
 
-      Process.sleep(10)
+      Process.sleep(50)
 
       refute File.exists?(path)
     end
