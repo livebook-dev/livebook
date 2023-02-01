@@ -2272,7 +2272,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp is_secret_on_session?(secret, secrets) do
-    Map.has_key?(secrets, secret.name)
+    Map.has_key?(secrets, secret.name) && secrets[secret.name] == secret.value
   end
 
   defp get_saved_secrets do
