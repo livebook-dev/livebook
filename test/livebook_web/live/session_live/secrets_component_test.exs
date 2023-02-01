@@ -148,8 +148,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           origin: {:hub, enterprise.id}
         )
 
-      :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
-
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -161,8 +159,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
-
       add_secret_button = element(view, "a[href='#{expected_url}']")
+
+      :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
+      assert_receive {:secret_created, ^secret}, 10_000
 
       assert has_element?(add_secret_button)
       assert secret in Livebook.Hubs.get_secrets()
