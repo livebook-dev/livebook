@@ -105,7 +105,9 @@ defmodule Livebook.Hubs.Enterprise do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
-  def load(%Livebook.Hubs.Enterprise{} = enterprise, fields) do
+  alias Livebook.Hubs.EnterpriseClient
+
+  def load(enterprise, fields) do
     %{
       enterprise
       | id: fields.id,
@@ -117,7 +119,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def normalize(%Livebook.Hubs.Enterprise{} = enterprise) do
+  def normalize(enterprise) do
     %Livebook.Hubs.Metadata{
       id: enterprise.id,
       name: enterprise.hub_name,
@@ -128,10 +130,35 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
 
   def type(_enterprise), do: "enterprise"
 
-  def connect(%Livebook.Hubs.Enterprise{} = enterprise),
-    do: {Livebook.Hubs.EnterpriseClient, enterprise}
+  def connect(enterprise), do: {EnterpriseClient, enterprise}
 
-  def connected?(%Livebook.Hubs.Enterprise{id: id}) do
-    Livebook.Hubs.EnterpriseClient.connected?(id)
+  def connected?(enterprise) do
+    EnterpriseClient.connected?(enterprise.id)
+  end
+
+  def disconnect(enterprise) do
+    EnterpriseClient.stop(enterprise.id)
+  end
+
+  def capabilities(_enterprise), do: [:connect, :secrets]
+
+  def get_secrets(enterprise) do
+    EnterpriseClient.get_secrets(enterprise.id)
+  end
+
+  def create_secret(enterprise, %Livebook.Secrets.Secret{name: name, value: value}) do
+    create_secret_request = LivebookProto.CreateSecretRequest.new!(name: name, value: value)
+
+    case EnterpriseClient.send_request(enterprise.id, create_secret_request) do
+      {:create_secret, _} ->
+        :ok
+
+      {:changeset_error, errors} ->
+        errors =
+          for {field, values} <- errors,
+              do: {to_string(field), values}
+
+        {:error, %{errors: errors}}
+    end
   end
 end

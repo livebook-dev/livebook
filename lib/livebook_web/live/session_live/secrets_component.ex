@@ -1,7 +1,6 @@
 defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.EnterpriseClient
   alias Livebook.Secrets.Secret
 
   @impl true
@@ -9,7 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(connected_hubs: Livebook.Hubs.get_connected_hubs())
+      |> assign(hubs: Livebook.Hubs.get_hubs([:secrets]))
 
     prefill_form = prefill_secret_name(socket)
 
@@ -127,17 +126,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= label class: "flex items-center gap-2 text-gray-600" do %>
                     <%= radio_button(f, :store, "hub",
-                      disabled: @connected_hubs == [],
+                      disabled: @hubs == [],
                       checked: @data["store"] == "hub"
                     ) %> in the Hub
                   <% end %>
                   <%= if @data["store"] == "hub" do %>
-                    <%= select(
-                      f,
-                      :connected_hub,
-                      connected_hubs_options(@connected_hubs, @data["connected_hub"]),
-                      class: "input"
-                    ) %>
+                    <%= select(f, :hub_id, hubs_options(@hubs, @data["hub_id"]), class: "input") %>
                   <% end %>
                 <% end %>
               </div>
@@ -323,7 +317,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp build_origin(%{"store" => "session"}), do: :session
   defp build_origin(%{"store" => "app"}), do: :app
-  defp build_origin(%{"store" => "hub", "connected_hub" => id}), do: {:hub, id}
+  defp build_origin(%{"store" => "hub", "hub_id" => id}), do: {:hub, id}
 
   defp build_attrs(%{"name" => name, "value" => value} = attrs) do
     %{name: name, value: value, origin: build_origin(attrs)}
@@ -338,21 +332,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
-    if hub = Enum.find(socket.assigns.connected_hubs, &(&1.hub.id == id)) do
-      create_secret_request =
-        LivebookProto.CreateSecretRequest.new!(
-          name: secret.name,
-          value: secret.value
-        )
-
-      case EnterpriseClient.send_request(hub.pid, create_secret_request) do
-        {:create_secret, _} -> :ok
-        {:error, reason} -> {:error, put_flash(socket, :error, reason)}
-      end
-    else
-      {:error, %{errors: [{"connected_hub", {"can't be blank", []}}]}}
-    end
+  defp set_secret(_socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
+    Livebook.Hubs.create_secret(secret)
   end
 
   defp grant_access(secrets, secret_name, origin, socket) do
@@ -385,11 +366,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Enum.any?(socket.assigns.saved_secrets, &(&1.name == secret_name))
   end
 
-  # TODO: Livebook.Hubs.fetch_hubs_with_secrets_storage()
-  defp connected_hubs_options(connected_hubs, selected_hub) do
+  defp hubs_options(hubs, hub_id) do
     [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
-      for %{hub: %{id: id, hub_name: name}} <- connected_hubs do
-        [key: name, value: id, selected: id == selected_hub]
+      for hub <- hubs do
+        [key: hub.hub_name, value: hub.id, selected: hub.id == hub_id]
       end
   end
 end

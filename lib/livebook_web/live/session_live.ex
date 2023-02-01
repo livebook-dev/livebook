@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
-  alias Livebook.Hubs.EnterpriseClient
 
   on_mount LivebookWeb.SidebarHook
 
@@ -2277,11 +2276,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp get_saved_secrets do
-    hub_secrets =
-      for connected_hub <- Hubs.get_connected_hubs(),
-          secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
-          do: secret
-
-    Enum.sort(hub_secrets ++ Secrets.get_secrets())
+    Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
   end
 end

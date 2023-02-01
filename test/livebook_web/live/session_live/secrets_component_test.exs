@@ -8,8 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
   describe "enterprise" do
     setup %{url: url, token: token} do
-      node = EnterpriseServer.get_node()
-      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
+      id = Livebook.Utils.random_short_id()
       hub_id = "enterprise-#{id}"
 
       Livebook.Hubs.subscribe([:connection, :secrets])
@@ -65,7 +64,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           name: secret.name,
           value: secret.value,
           store: "hub",
-          connected_hub: enterprise.id
+          hub_id: enterprise.id
         }
       }
 

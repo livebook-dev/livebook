@@ -8,8 +8,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   alias Livebook.WebSocket.ClientConnection
 
   @registry Livebook.HubsRegistry
+  @supervisor Livebook.HubsSupervisor
 
   defstruct [:server, :hub, connected?: false, secrets: []]
+
+  @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
   @doc """
   Connects the Enterprise client with WebSocket server.
@@ -22,16 +25,23 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Stops the WebSocket server.
   """
-  @spec stop(pid()) :: :ok
-  def stop(pid) do
-    pid |> GenServer.call(:get_server) |> GenServer.stop()
-    GenServer.stop(pid)
+  @spec stop(String.t()) :: :ok
+  def stop(id) do
+    if pid = GenServer.whereis(registry_name(id)) do
+      DynamicSupervisor.terminate_child(@supervisor, pid)
+    end
+
+    :ok
   end
 
   @doc """
   Sends a request to the WebSocket server.
   """
-  @spec send_request(pid(), WebSocket.proto()) :: {atom(), term()}
+  @spec send_request(String.t() | registry_name() | pid(), WebSocket.proto()) :: {atom(), term()}
+  def send_request(id, %_struct{} = data) when is_binary(id) do
+    send_request(registry_name(id), data)
+  end
+
   def send_request(pid, %_struct{} = data) do
     ClientConnection.send_request(GenServer.call(pid, :get_server), data)
   end
@@ -39,9 +49,9 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Returns a list of cached secrets.
   """
-  @spec list_cached_secrets(pid()) :: list(Secret.t())
-  def list_cached_secrets(pid) do
-    GenServer.call(pid, :list_cached_secrets)
+  @spec get_secrets(String.t()) :: list(Secret.t())
+  def get_secrets(id) do
+    GenServer.call(registry_name(id), :get_secrets)
   end
 
   @doc """
@@ -51,8 +61,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   def connected?(id) do
     GenServer.call(registry_name(id), :connected?)
   catch
-    :exit, _ ->
-      false
+    :exit, _ -> false
   end
 
   ## GenServer callbacks
@@ -70,7 +79,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:reply, state.server, state}
   end
 
-  def handle_call(:list_cached_secrets, _caller, state) do
+  def handle_call(:get_secrets, _caller, state) do
     {:reply, state.secrets, state}
   end
 

@@ -3,6 +3,7 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Secrets.Secret
 
   @namespace :hubs
 
@@ -20,6 +21,16 @@ defmodule Livebook.Hubs do
     for fields <- Storage.all(@namespace) do
       to_struct(fields)
     end
+  end
+
+  @doc """
+  Gets a list of hubs from storage with given capabilities.
+  """
+  @spec get_hubs(Provider.capabilities()) :: list(Provider.t())
+  def get_hubs(capabilities) do
+    for hub <- get_hubs(),
+        capability?(hub, capabilities),
+        do: hub
   end
 
   @doc """
@@ -79,10 +90,7 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      if connected_hub = get_connected_hub(hub) do
-        GenServer.stop(connected_hub.pid, :shutdown)
-      end
-
+      :ok = Provider.disconnect(hub)
       :ok = Storage.delete(@namespace, id)
       :ok = Broadcasts.hubs_metadata_changed()
     end
@@ -167,7 +175,9 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs(), do: connect_hub(hub)
+    for hub <- get_hubs(),
+        capability?(hub, [:connect]),
+        do: connect_hub(hub)
 
     :ok
   end
@@ -181,23 +191,36 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of connected hubs.
+  Gets a list of hub secrets.
 
-  ## Example
-
-      iex> get_connected_hubs()
-      [%{pid: #PID<0.178.0>, hub: %Enterprise{}}, ...]
-
+  It gets from all hubs with secret management.
   """
-  @spec get_connected_hubs() :: connected_hubs()
-  def get_connected_hubs do
-    for hub <- get_hubs(), connected = get_connected_hub(hub), do: connected
+  @spec get_secrets() :: list(Secret.t())
+  def get_secrets do
+    for hub <- get_hubs([:secrets]),
+        secret <- Provider.get_secrets(hub),
+        do: secret
   end
 
-  defp get_connected_hub(hub) do
-    case Registry.lookup(Livebook.HubsRegistry, hub.id) do
-      [{pid, _}] -> %{pid: pid, hub: hub}
-      [] -> nil
+  @doc """
+  Creates a secret for given hub.
+  """
+  @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
+  def create_secret(%Secret{origin: {:hub, id}} = secret) do
+    case get_hub(id) do
+      {:ok, hub} ->
+        if capability?(hub, [:secrets]) do
+          Provider.create_secret(hub, secret)
+        else
+          {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+        end
+
+      :error ->
+        {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
     end
+  end
+
+  defp capability?(hub, capabilities) do
+    capabilities -- Provider.capabilities(hub) == []
   end
 end
