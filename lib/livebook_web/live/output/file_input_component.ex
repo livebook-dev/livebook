@@ -59,7 +59,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
     if entry.done? do
       socket
       |> consume_uploaded_entries(:file, fn %{path: path}, entry ->
-        {:ok, file_id} =
+        {:ok, file_ref} =
           if socket.assigns.local do
             key = "#{socket.assigns.input_id}-#{socket.assigns.client_id}"
 
@@ -71,11 +71,11 @@ defmodule LivebookWeb.Output.FileInputComponent do
             Livebook.Session.register_file(socket.assigns.session_pid, path, key)
           end
 
-        {:ok, {file_id, entry.client_name}}
+        {:ok, {file_ref, entry.client_name}}
       end)
       |> case do
-        [{file_id, client_name}] ->
-          value = %{file_id: file_id, client_name: client_name}
+        [{file_ref, client_name}] ->
+          value = %{file_ref: file_ref, client_name: client_name}
 
           send_update(LivebookWeb.Output.InputComponent,
             id: socket.assigns.input_component_id,

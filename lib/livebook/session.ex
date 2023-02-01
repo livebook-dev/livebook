@@ -569,16 +569,16 @@ defmodule Livebook.Session do
 
   """
   @spec register_file(pid(), String.t(), String.t(), keyword()) ::
-          {:ok, file_id :: String.t()} | :error
+          {:ok, Runtime.file_ref()} | :error
   def register_file(pid, source_path, key, opts \\ []) do
     opts = Keyword.validate!(opts, [:linked_client_id])
 
-    %{file_id: file_id, path: path} = GenServer.call(pid, :register_file_init)
+    %{file_ref: file_ref, path: path} = GenServer.call(pid, :register_file_init)
 
     with :ok <- File.mkdir_p(Path.dirname(path)),
          :ok <- File.cp(source_path, path) do
-      GenServer.cast(pid, {:register_file_finish, file_id, key, opts[:linked_client_id]})
-      {:ok, file_id}
+      GenServer.cast(pid, {:register_file_finish, file_ref, key, opts[:linked_client_id]})
+      {:ok, file_ref}
     else
       _ -> :error
     end
@@ -765,8 +765,9 @@ defmodule Livebook.Session do
 
   def handle_call(:register_file_init, _from, state) do
     file_id = Utils.random_id()
-    path = registered_file_path(state.session_id, file_id)
-    reply = %{file_id: file_id, path: path}
+    file_ref = {:file, file_id}
+    path = registered_file_path(state.session_id, file_ref)
+    reply = %{file_ref: file_ref, path: path}
     {:reply, reply, state}
   end
 
@@ -1067,21 +1068,21 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
-  def handle_cast({:register_file_finish, file_id, key, linked_client_id}, state) do
+  def handle_cast({:register_file_finish, file_ref, key, linked_client_id}, state) do
     {current_info, state} = pop_in(state.registered_files[key])
 
     if current_info do
-      schedule_file_deletion(state, current_info.file_id)
+      schedule_file_deletion(state, current_info.file_ref)
     end
 
     state =
       if linked_client_id == nil or Map.has_key?(state.data.clients_map, linked_client_id) do
         put_in(state.registered_files[key], %{
-          file_id: file_id,
+          file_ref: file_ref,
           linked_client_id: linked_client_id
         })
       else
-        schedule_file_deletion(state, file_id)
+        schedule_file_deletion(state, file_ref)
         state
       end
 
@@ -1158,10 +1159,12 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_file_lookup, reply_to, file_id}, state) do
-    path = registered_file_path(state.session_id, file_id)
+  def handle_info({:runtime_file_lookup, reply_to, file_ref}, state) do
+    path = registered_file_path(state.session_id, file_ref)
 
     if File.exists?(path) do
+      {:file, file_id} = file_ref
+
       Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
         send(reply_to, {:runtime_file_lookup_reply, {:ok, path}})
       end)
@@ -1278,18 +1281,19 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:delete_registered_file, file_id}, state) do
-    path = registered_file_path(state.session_id, file_id)
+  def handle_info({:delete_registered_file, file_ref}, state) do
+    path = registered_file_path(state.session_id, file_ref)
 
     case File.rm_rf(path) do
       {:ok, _} ->
         if Runtime.connected?(state.data.runtime) do
+          {:file, file_id} = file_ref
           Runtime.revoke_file(state.data.runtime, file_id)
         end
 
       {:error, _, _} ->
         # Deletion may fail if the file is still open, so we retry later
-        schedule_file_deletion(state, path)
+        schedule_file_deletion(state, file_ref)
     end
 
     {:noreply, state}
@@ -1692,7 +1696,7 @@ defmodule Livebook.Session do
     for {_input_id, value} <- input_values do
       case value do
         value when is_file_input_value(value) ->
-          schedule_file_deletion(state, value.file_id)
+          schedule_file_deletion(state, value.file_ref)
 
         _ ->
           :ok
@@ -1884,15 +1888,15 @@ defmodule Livebook.Session do
     end
   end
 
-  defp registered_file_path(session_id, file_id) do
+  defp registered_file_path(session_id, {:file, file_id}) do
     %{path: session_dir} = session_tmp_dir(session_id)
     Path.join([session_dir, "registered_files", file_id])
   end
 
-  defp schedule_file_deletion(state, file_id) do
+  defp schedule_file_deletion(state, file_ref) do
     Process.send_after(
       self(),
-      {:delete_registered_file, file_id},
+      {:delete_registered_file, file_ref},
       state.registered_file_deletion_delay
     )
   end
@@ -1904,7 +1908,7 @@ defmodule Livebook.Session do
       end)
 
     for {_key, info} <- client_files do
-      schedule_file_deletion(state, info.file_id)
+      schedule_file_deletion(state, info.file_ref)
     end
 
     %{state | registered_files: Map.new(other_files)}
