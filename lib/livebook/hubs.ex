@@ -90,10 +90,19 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      :ok = Provider.disconnect(hub)
-      :ok = Storage.delete(@namespace, id)
       :ok = Broadcasts.hub_changed()
+      :ok = Storage.delete(@namespace, id)
+      :ok = disconnect_hub(hub)
     end
+
+    :ok
+  end
+
+  defp disconnect_hub(hub) do
+    Task.async(fn ->
+      Process.sleep(30_000)
+      :ok = Provider.disconnect(hub)
+    end)
 
     :ok
   end
