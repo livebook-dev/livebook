@@ -337,16 +337,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Livebook.Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(_socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
-    Livebook.Hubs.create_secret(secret)
-  end
-
-  defp grant_access(secrets, secret_name, :hub, socket) do
-    secret = Enum.find(secrets, &(&1.name == secret_name and match?({:hub, _}, &1.origin)))
-
-    if secret,
-      do: Livebook.Session.set_secret(socket.assigns.session.pid, secret),
-      else: :ok
+  defp set_secret(socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
+    with :ok <- Livebook.Hubs.create_secret(secret) do
+      Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    end
   end
 
   defp grant_access(secrets, secret_name, origin, socket) do

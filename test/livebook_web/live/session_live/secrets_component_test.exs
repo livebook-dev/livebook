@@ -127,7 +127,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       })
 
       assert_receive {:secret_created, ^secret}
-      Session.set_secret(session.pid, secret)
       assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Secrets.get_secrets()
 
