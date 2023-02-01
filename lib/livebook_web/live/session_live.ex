@@ -1445,6 +1445,10 @@ defmodule LivebookWeb.SessionLive do
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
   end
 
+  def handle_info(:hubs_changed, socket) do
+    {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
+  end
+
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
 
