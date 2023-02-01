@@ -707,6 +707,7 @@ defmodule LivebookWeb.SessionLive do
           name="toggle_secret"
           checked={is_secret_on_session?(@secret, @data_secrets)}
           label={secret_label(@secret)}
+          tooltip={secret_tooltip(@secret)}
           phx-click="toggle_secret"
           phx-value-secret_name={@secret.name}
           phx-value-secret_value={@secret.value}
@@ -731,6 +732,7 @@ defmodule LivebookWeb.SessionLive do
               name="toggle_secret"
               checked={is_secret_on_session?(@secret, @data_secrets)}
               label={secret_label(@secret)}
+              tooltip={secret_tooltip(@secret)}
               phx-click="toggle_secret"
               phx-value-secret_name={@secret.name}
               phx-value-secret_value={@secret.value}
@@ -2279,4 +2281,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp secret_label(%{origin: {:hub, id}}), do: Hubs.fetch_hub!(id).hub_emoji
   defp secret_label(_), do: nil
+
+  defp secret_tooltip(%{origin: {:hub, id}}), do: Hubs.fetch_hub!(id).hub_name
+  defp secret_tooltip(_), do: nil
 end
