@@ -292,21 +292,21 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses a long or short node name from env.
+  Parses node and distribution type from env.
   """
-  def node!({longname_env, shortname_env}) do
-    case {System.get_env(longname_env), System.get_env(shortname_env)} do
-      {nil, nil} ->
+  def node!(node_env, distribution_env) do
+    case {System.get_env(node_env), System.get_env(distribution_env, "sname")} do
+      {nil, _} ->
         nil
 
-      {longname, nil} ->
-        {:longnames, String.to_atom(longname)}
+      {name, "name"} ->
+        {:longnames, String.to_atom(name)}
 
-      {nil, shortname} ->
-        {:shortnames, String.to_atom(shortname)}
+      {sname, "sname"} ->
+        {:shortnames, String.to_atom(sname)}
 
-      _ ->
-        abort!("#{longname_env} and #{shortname_env} are mutually exclusive, please specify only one of them")
+      {_, other} ->
+        abort!(~s(#{distribution_env} must be one of "name" or "sname", got "#{other}"))
     end
   end
 

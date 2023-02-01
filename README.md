@@ -164,11 +164,12 @@ The following environment variables configure Livebook:
   * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
-  * LIVEBOOK_NAME - sets the node name for running Livebook in a cluster.
-    Note that only this or LIVEBOOK_SNAME can be set.
+  * LIVEBOOK_NODE - sets the node name for running Livebook in a cluster. Note that
+    this sets RELEASE_NODE if present when creating a release.
 
-  * LIVEBOOK_SNAME - sets the node shortname for running Livebook in a cluster.
-    Note that only this or LIVEBOOK_NAME can be set.
+  * LIVEBOOK_DISTRIBUTION - sets the node distribution for running Livebook in a
+    cluster. Must be "name" (long names) or "sname" (short names). Note that this
+    sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
@@ -229,11 +230,6 @@ The following environment variables configure Livebook:
     must run with HTTPS.
 
 <!-- Environment variables -->
-
-If running Livebook as a Docker image or an Elixir release, [the environment
-variables used by Elixir releases are also available](
-https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
-The notables ones are `RELEASE_NODE` and `RELEASE_DISTRIBUTION`.
 
 If running Livebook via the command line, run `livebook server --help` to see
 all CLI-specific options.
