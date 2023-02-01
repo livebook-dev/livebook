@@ -77,7 +77,9 @@ defmodule LivebookWeb.Output.InputComponent do
         value={@value}
         accept={@attrs.accept}
         input_id={@attrs.id}
-        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        local={@local}
       />
     </div>
     """

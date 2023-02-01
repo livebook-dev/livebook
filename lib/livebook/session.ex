@@ -127,6 +127,11 @@ defmodule Livebook.Session do
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
       Defaults to `Livebook.Settings.autosave_path/0`
+
+    * `:registered_file_deletion_delay` - the time to wait before
+      deleting a registered file that is no longer in use. Defaults
+      to `15_000`
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -551,6 +556,35 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Copies the given file into a session-owned location.
+
+  Only the most recent file for the given `key` is kept, old files
+  are marked for deletion and removed after a short time.
+
+  ## Options
+
+    * `:linked_client_id` - id of the session client to link the file
+      to. When the client leaves the session, all of their linked files
+      are marked for deletion
+
+  """
+  @spec register_file(pid(), String.t(), String.t(), keyword()) ::
+          {:ok, file_id :: String.t()} | :error
+  def register_file(pid, source_path, key, opts \\ []) do
+    opts = Keyword.validate!(opts, [:linked_client_id])
+
+    %{file_id: file_id, path: path} = GenServer.call(pid, :register_file_init)
+
+    with :ok <- File.mkdir_p(Path.dirname(path)),
+         :ok <- File.cp(source_path, path) do
+      GenServer.cast(pid, {:register_file_finish, file_id, key, opts[:linked_client_id]})
+      {:ok, file_id}
+    else
+      _ -> :error
+    end
+  end
+
+  @doc """
   Closes one or more sessions.
 
   This results in saving the file and broadcasting
@@ -623,7 +657,9 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
-        worker_pid: worker_pid
+        worker_pid: worker_pid,
+        registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
+        registered_files: %{}
       }
 
       {:ok, state}
@@ -725,6 +761,13 @@ defmodule Livebook.Session do
 
   def handle_call(:save_sync, _from, state) do
     {:reply, :ok, maybe_save_notebook_sync(state)}
+  end
+
+  def handle_call(:register_file_init, _from, state) do
+    file_id = Utils.random_id()
+    path = registered_file_path(state.session_id, file_id)
+    reply = %{file_id: file_id, path: path}
+    {:reply, reply, state}
   end
 
   def handle_call(:close, _from, state) do
@@ -1024,6 +1067,27 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
+  def handle_cast({:register_file_finish, file_id, key, linked_client_id}, state) do
+    {current_info, state} = pop_in(state.registered_files[key])
+
+    if current_info do
+      schedule_file_deletion(state, current_info.file_id)
+    end
+
+    state =
+      if linked_client_id == nil or Map.has_key?(state.data.clients_map, linked_client_id) do
+        put_in(state.registered_files[key], %{
+          file_id: file_id,
+          linked_client_id: linked_client_id
+        })
+      else
+        schedule_file_deletion(state, file_id)
+        state
+      end
+
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
     broadcast_error(
@@ -1080,21 +1144,30 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
-    state =
+    {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
         state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
-
-        prepare_input_value(input_id, value, state.data, fn value ->
-          send(reply_to, {:runtime_evaluation_input_reply, {:ok, value}})
-        end)
-
-        state
+        {{:ok, value}, state}
       else
-        _ ->
-          send(reply_to, {:runtime_evaluation_input_reply, :error})
-          state
+        _ -> {:error, state}
       end
+
+    send(reply_to, {:runtime_evaluation_input_reply, reply})
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_lookup, reply_to, file_id}, state) do
+    path = registered_file_path(state.session_id, file_id)
+
+    if File.exists?(path) do
+      Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+        send(reply_to, {:runtime_file_lookup_reply, {:ok, path}})
+      end)
+    else
+      send(reply_to, {:runtime_file_lookup_reply, :error})
+    end
 
     {:noreply, state}
   end
@@ -1205,6 +1278,23 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:delete_registered_file, file_id}, state) do
+    path = registered_file_path(state.session_id, file_id)
+
+    case File.rm_rf(path) do
+      {:ok, _} ->
+        if Runtime.connected?(state.data.runtime) do
+          Runtime.revoke_file(state.data.runtime, file_id)
+        end
+
+      {:error, _, _} ->
+        # Deletion may fail if the file is still open, so we retry later
+        schedule_file_deletion(state, path)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1292,15 +1382,6 @@ defmodule Livebook.Session do
     else
       :error
     end
-  end
-
-  @doc """
-  Returns a local path to the given file input file.
-  """
-  @spec local_file_input_path(id(), Data.input_id()) :: String.t()
-  def local_file_input_path(session_id, input_id) do
-    %{path: session_dir} = session_tmp_dir(session_id)
-    Path.join([session_dir, "file_inputs", input_id])
   end
 
   defp encode_path_component(component) do
@@ -1478,7 +1559,7 @@ defmodule Livebook.Session do
       Livebook.Users.unsubscribe(user_id)
     end
 
-    state
+    delete_client_files(state, client_id)
   end
 
   defp after_operation(state, _prev_state, {:delete_cell, _client_id, cell_id}) do
@@ -1608,14 +1689,10 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:clean_up_input_values, input_values}) do
-    for {input_id, value} <- input_values do
+    for {_input_id, value} <- input_values do
       case value do
         value when is_file_input_value(value) ->
-          if Runtime.connected?(state.data.runtime) do
-            Runtime.revoke_file(state.data.runtime, input_id)
-          end
-
-          File.rm(value.path)
+          schedule_file_deletion(state, value.file_id)
 
         _ ->
           :ok
@@ -1650,17 +1727,6 @@ defmodule Livebook.Session do
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
-  end
-
-  defp prepare_input_value(input_id, value, data, on_value) when is_file_input_value(value) do
-    Runtime.transfer_file(data.runtime, value.path, input_id, fn path ->
-      value = %{path: path, client_name: value.client_name}
-      on_value.(value)
-    end)
-  end
-
-  defp prepare_input_value(_input_id, value, _data, on_value) do
-    on_value.(value)
   end
 
   defp broadcast_operation(session_id, operation) do
@@ -1816,6 +1882,32 @@ defmodule Livebook.Session do
         File.rm_rf!(path)
         raise "failed to extract archive to #{path}, reason: #{inspect(reason)}"
     end
+  end
+
+  defp registered_file_path(session_id, file_id) do
+    %{path: session_dir} = session_tmp_dir(session_id)
+    Path.join([session_dir, "registered_files", file_id])
+  end
+
+  defp schedule_file_deletion(state, file_id) do
+    Process.send_after(
+      self(),
+      {:delete_registered_file, file_id},
+      state.registered_file_deletion_delay
+    )
+  end
+
+  defp delete_client_files(state, client_id) do
+    {client_files, other_files} =
+      Enum.split_with(state.registered_files, fn {_key, info} ->
+        info.linked_client_id == client_id
+      end)
+
+    for {_key, info} <- client_files do
+      schedule_file_deletion(state, info.file_id)
+    end
+
+    %{state | registered_files: Map.new(other_files)}
   end
 
   @doc """

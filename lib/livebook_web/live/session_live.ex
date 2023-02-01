@@ -270,6 +270,7 @@ defmodule LivebookWeb.SessionLive do
               module={LivebookWeb.SessionLive.CellComponent}
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
+              session_pid={@session.pid}
               client_id={@client_id}
               runtime={@data_view.runtime}
               installing?={@data_view.installing?}
@@ -290,6 +291,7 @@ defmodule LivebookWeb.SessionLive do
                 id={section_view.id}
                 index={index}
                 session_id={@session.id}
+                session_pid={@session.pid}
                 client_id={@client_id}
                 runtime={@data_view.runtime}
                 smart_cell_definitions={@data_view.smart_cell_definitions}

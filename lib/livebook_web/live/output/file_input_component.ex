@@ -59,26 +59,23 @@ defmodule LivebookWeb.Output.FileInputComponent do
     if entry.done? do
       socket
       |> consume_uploaded_entries(:file, fn %{path: path}, entry ->
-        destination_path =
-          Livebook.Session.local_file_input_path(
-            socket.assigns.session_id,
-            socket.assigns.input_id
-          )
+        {:ok, file_id} =
+          if socket.assigns.local do
+            key = "#{socket.assigns.input_id}-#{socket.assigns.client_id}"
 
-        destination_path |> Path.dirname() |> File.mkdir_p!()
-        File.cp!(path, destination_path)
+            Livebook.Session.register_file(socket.assigns.session_pid, path, key,
+              linked_client_id: socket.assigns.client_id
+            )
+          else
+            key = "#{socket.assigns.input_id}-global"
+            Livebook.Session.register_file(socket.assigns.session_pid, path, key)
+          end
 
-        {:ok, {destination_path, entry.client_name}}
+        {:ok, {file_id, entry.client_name}}
       end)
       |> case do
-        [{path, client_name}] ->
-          # The path is always the same, so we include a random version
-          # to reflect a new value
-          value = %{
-            path: path,
-            client_name: client_name,
-            version: Livebook.Utils.random_short_id()
-          }
+        [{file_id, client_name}] ->
+          value = %{file_id: file_id, client_name: client_name}
 
           send_update(LivebookWeb.Output.InputComponent,
             id: socket.assigns.input_component_id,

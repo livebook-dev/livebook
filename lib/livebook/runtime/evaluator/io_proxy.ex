@@ -260,6 +260,21 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {input_cache[input_id], %{state | input_cache: input_cache}}
   end
 
+  defp io_request({:livebook_get_file_path, file_id}, state) do
+    # We could cache forever, but we don't want the cache to pile up
+    # indefinitely, so we just reuse the input cache is cleared for
+    # ever evaluation
+
+    cache_id = {:file_path, file_id}
+
+    input_cache =
+      Map.put_new_lazy(state.input_cache, cache_id, fn ->
+        request_file_path(file_id, state)
+      end)
+
+    {input_cache[cache_id], %{state | input_cache: input_cache}}
+  end
+
   # Token is a unique, reevaluation-safe opaque identifier
   defp io_request(:livebook_generate_token, state) do
     token = {state.ref, state.token_count}
@@ -342,6 +357,25 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
         {:ok, value}
 
       {:runtime_evaluation_input_reply, :error} ->
+        Process.demonitor(ref, [:flush])
+        {:error, :not_found}
+
+      {:DOWN, ^ref, :process, _object, _reason} ->
+        {:error, :terminated}
+    end
+  end
+
+  defp request_file_path(file_id, state) do
+    send(state.send_to, {:runtime_file_lookup, self(), file_id})
+
+    ref = Process.monitor(state.send_to)
+
+    receive do
+      {:runtime_file_lookup_reply, {:ok, path}} ->
+        Process.demonitor(ref, [:flush])
+        {:ok, path}
+
+      {:runtime_file_lookup_reply, :error} ->
         Process.demonitor(ref, [:flush])
         {:error, :not_found}
 
