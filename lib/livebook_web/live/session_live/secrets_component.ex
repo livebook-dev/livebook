@@ -243,28 +243,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event(
-        "select_secret",
-        %{"secret_name" => secret_name, "origin" => "session"},
-        socket
-      ) do
-    {:noreply,
-     socket
-     |> push_patch(to: socket.assigns.return_to)
-     |> push_secret_selected(secret_name)}
-  end
-
-  def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => "app"}, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, :app, socket)
-
-    {:noreply,
-     socket
-     |> push_patch(to: socket.assigns.return_to)
-     |> push_secret_selected(secret_name)}
-  end
-
-  def handle_event("select_secret", %{"secret_name" => secret_name, "origin" => hub_id}, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, {:hub, hub_id}, socket)
+  def handle_event("select_secret", %{"secret_name" => secret_name} = attrs, socket) do
+    grant_access(socket.assigns.saved_secrets, secret_name, build_origin(attrs), socket)
 
     {:noreply,
      socket
