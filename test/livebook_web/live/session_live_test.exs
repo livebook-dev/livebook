@@ -408,9 +408,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
 
-      assert %{file_id: file_id, client_name: "data.txt"} = value
+      assert %{file_ref: file_ref, client_name: "data.txt"} = value
 
-      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
       assert File.read!(path) == "content"
     end

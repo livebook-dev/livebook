@@ -477,18 +477,18 @@ defmodule Livebook.SessionTest do
 
       source_path = Path.join(tmp_dir, "old.txt")
       File.write!(source_path, "content")
-      {:ok, old_file_id} = Session.register_file(session.pid, source_path, "key")
+      {:ok, old_file_ref} = Session.register_file(session.pid, source_path, "key")
 
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), old_file_id})
+      send(session.pid, {:runtime_file_lookup, self(), old_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
 
       source_path = Path.join(tmp_dir, "new.txt")
       File.write!(source_path, "content")
-      {:ok, new_file_id} = Session.register_file(session.pid, source_path, "key")
+      {:ok, new_file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      send(session.pid, {:runtime_file_lookup, self(), new_file_id})
+      send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
 
       Process.sleep(10)
@@ -514,12 +514,12 @@ defmodule Livebook.SessionTest do
       source_path = Path.join(tmp_dir, "old.txt")
       File.write!(source_path, "content")
 
-      {:ok, file_id} =
+      {:ok, file_ref} =
         Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
 
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       send(client_pid, :stop)
@@ -550,13 +550,16 @@ defmodule Livebook.SessionTest do
       source_path = Path.join(tmp_dir, "old.txt")
       File.write!(source_path, "content")
 
-      {:ok, file_id} = Session.register_file(session.pid, source_path, "key")
+      {:ok, file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      Session.set_input_value(session.pid, "input1", %{file_id: file_id, client_name: "data.txt"})
+      Session.set_input_value(session.pid, "input1", %{
+        file_ref: file_ref,
+        client_name: "data.txt"
+      })
 
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), file_id})
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       Session.erase_outputs(session.pid)

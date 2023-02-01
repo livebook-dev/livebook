@@ -269,13 +269,13 @@ defprotocol Livebook.Runtime do
   @type editor :: %{language: String.t(), placement: :bottom | :top, source: String.t()}
 
   @typedoc """
-  An opaque file identifier.
+  An opaque file reference.
 
-  Such identifier can be obtained from a file input, for example.
+  Such reference can be obtained from a file input, for example.
 
   The runtime may ask for the file by sending a request:
 
-    * `{:runtime_file_lookup, reply_to, file_id}`
+    * `{:runtime_file_lookup, reply_to, file_ref}`
 
   to which the runtime owner is supposed to reply with
   `{:runtime_file_lookup_reply, reply}` where `reply` is either
@@ -283,7 +283,7 @@ defprotocol Livebook.Runtime do
   that `path` should be accessible within the runtime and can be
   obtained using `transfer_file/4`.
   """
-  @type file_id :: String.t()
+  @type file_ref :: {:file, id :: String.t()}
 
   @doc """
   Returns relevant information about the runtime.

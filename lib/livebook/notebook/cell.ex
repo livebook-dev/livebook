@@ -89,5 +89,5 @@ defmodule Livebook.Notebook.Cell do
   Checks if the given term is a file input value (info map).
   """
   defguard is_file_input_value(value)
-           when is_map_key(value, :file_id) and is_map_key(value, :client_name)
+           when is_map_key(value, :file_ref) and is_map_key(value, :client_name)
 end
