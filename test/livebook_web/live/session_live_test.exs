@@ -1113,7 +1113,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert app_secret in Livebook.Secrets.get_secrets()
     end
 
-    test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
+    test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
       secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", origin: :session)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
@@ -1130,7 +1130,7 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
-    test "adding an unavailable secret using 'Add secret' button",
+    test "adding a missing secret using 'Add secret' button",
          %{conn: conn, session: session} do
       secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", origin: :session)
       Session.subscribe(session.id)

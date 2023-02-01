@@ -88,7 +88,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert_session_secret(view, session.pid, secret)
     end
 
-    test "adding an unavailable secret using 'Add secret' button",
+    test "adding a missing secret using 'Add secret' button",
          %{conn: conn, session: session, enterprise: enterprise} do
       secret =
         build(:secret,
@@ -139,7 +139,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
 
-    test "granting access for unavailable secret using 'Add secret' button",
+    test "granting access for missing secret using 'Add secret' button",
          %{conn: conn, session: session, enterprise: enterprise, node: node} do
       secret =
         build(:secret,
