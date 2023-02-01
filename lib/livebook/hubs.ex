@@ -221,7 +221,6 @@ defmodule Livebook.Hubs do
   end
 
   defp capability?(hub, capabilities) do
-    capabilities = List.wrap(capabilities)
     capabilities -- Provider.capabilities(hub) == []
   end
 end
