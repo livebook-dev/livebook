@@ -5,7 +5,7 @@ defprotocol Livebook.Hubs.Provider do
 
   @type capability :: :connect | :secrets
   @type capabilities :: list(capability())
-  @type changeset_errors :: list({String.t(), {Stirng.t(), list()}})
+  @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
 
   @doc """
   Normalize given hub to `Livebook.Hubs.Metadata` struct.

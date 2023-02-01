@@ -24,6 +24,16 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
+  Gets a list of hubs from storage with given capabilities.
+  """
+  @spec get_hubs(Provider.capabilities()) :: list(Provider.t())
+  def get_hubs(capabilities) do
+    for hub <- get_hubs(),
+        capability?(hub, capabilities),
+        do: hub
+  end
+
+  @doc """
   Gets a list of metadatas from storage.
   """
   @spec get_metadatas() :: list(Metadata.t())
@@ -166,7 +176,7 @@ defmodule Livebook.Hubs do
   @spec connect_hubs() :: :ok
   def connect_hubs do
     for hub <- get_hubs(),
-        capability?(hub, :connect),
+        capability?(hub, [:connect]),
         do: connect_hub(hub)
 
     :ok
@@ -181,50 +191,14 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of connected hubs.
-
-  ## Example
-
-      iex> get_connected_hubs()
-      [%Enterprise{}, ...]
-
-  """
-  @spec get_connected_hubs() :: list(Provider.t())
-  def get_connected_hubs do
-    for hub <- get_hubs(),
-        capability?(hub, :connect),
-        Provider.connected?(hub),
-        into: [],
-        do: hub
-  end
-
-  @doc """
-  Gets a list of connected hubs with given capabilities.
-
-  ## Example
-
-      iex> get_connected_hubs([:secrets])
-      [%Enterprise{}, ...]
-
-  """
-  @spec get_connected_hubs(Provider.capabilities()) :: list(Provider.t())
-  def get_connected_hubs(capabilities) do
-    for hub <- get_connected_hubs(),
-        capability?(hub, capabilities -- [:connect]),
-        into: [],
-        do: hub
-  end
-
-  @doc """
   Gets a list of hub secrets.
 
   It gets from all hubs with secret management.
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_connected_hubs([:secrets]),
+    for hub <- get_hubs([:secrets]),
         secret <- Provider.get_secrets(hub),
-        into: [],
         do: secret
   end
 
@@ -233,20 +207,21 @@ defmodule Livebook.Hubs do
   """
   @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
   def create_secret(%Secret{origin: {:hub, id}} = secret) do
-    with {:ok, hub} <- get_hub(id),
-         true <- capability?(hub, :secrets) do
-      Provider.create_secret(hub, secret)
-    else
-      :error -> {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
-      false -> {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+    case get_hub(id) do
+      {:ok, hub} ->
+        if capability?(hub, [:secrets]) do
+          Provider.create_secret(hub, secret)
+        else
+          {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+        end
+
+      :error ->
+        {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
     end
   end
 
-  defp capability?(hub, capabilities) when is_list(capabilities) do
-    Enum.all?(capabilities, &capability?(hub, &1))
-  end
-
-  defp capability?(hub, capability) when is_atom(capability) do
-    capability in Provider.capabilities(hub)
+  defp capability?(hub, capabilities) do
+    capabilities = List.wrap(capabilities)
+    capabilities -- Provider.capabilities(hub) == []
   end
 end

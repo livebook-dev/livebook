@@ -32,8 +32,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
     end
 
     :ok
-  catch
-    :exit, _ -> :ok
   end
 
   @doc """

@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(hubs: Livebook.Hubs.get_connected_hubs([:secrets]))
+      |> assign(hubs: Livebook.Hubs.get_hubs([:secrets]))
 
     prefill_form = prefill_secret_name(socket)
 
