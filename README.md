@@ -164,12 +164,8 @@ The following environment variables configure Livebook:
   * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
-  * LIVEBOOK_NODE - sets the node name for running Livebook in a cluster. Note that
-    this sets RELEASE_NODE if present when creating a release.
-
-  * LIVEBOOK_DISTRIBUTION - sets the node distribution for running Livebook in a
-    cluster. Must be "name" (long names) or "sname" (short names). Note that this
-    sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
+  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
+    Useful when deploying behind a reverse proxy.
 
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
@@ -181,6 +177,10 @@ The following environment variables configure Livebook:
     when none is started explicitly for the given notebook. Must be either
     "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)
     or "embedded" (Embedded). Defaults to "standalone".
+
+  * LIVEBOOK_DISTRIBUTION - sets the node distribution for running Livebook in a
+    cluster. Must be "name" (long names) or "sname" (short names). Note that this
+    sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
   * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
@@ -199,8 +199,8 @@ The following environment variables configure Livebook:
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
 
-  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
-    Useful when deploying behind a reverse proxy.
+  * LIVEBOOK_NODE - sets the node name for running Livebook in a cluster. Note that
+    this sets RELEASE_NODE if present when creating a release.
 
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
