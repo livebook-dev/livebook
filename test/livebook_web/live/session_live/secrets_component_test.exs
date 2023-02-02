@@ -97,6 +97,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           origin: {:hub, enterprise.id}
         )
 
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -105,31 +107,31 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
+      # Enters the session to check if the button exists
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-
       expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
       add_secret_button = element(view, "a[href='#{expected_url}']")
-
       assert has_element?(add_secret_button)
-      render_click(add_secret_button)
 
+      # Clicks the button and fills the form to create a new secret
+      # that prefilled the name with the received from exception.
+      render_click(add_secret_button)
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
-
       assert has_element?(form_element)
+      data = %{value: secret.value, store: "hub", hub_id: enterprise.id}
+      render_submit(form_element, %{data: data})
 
-      render_submit(form_element, %{
-        data: %{
-          value: secret.value,
-          store: "hub",
-          hub_id: enterprise.id
-        }
-      })
-
+      # Checks we received the secret created event from Enterprise
       assert_receive {:secret_created, ^secret}
-      assert_session_secret(view, session.pid, secret)
-      refute secret in Livebook.Secrets.get_secrets()
 
+      # Checks if the secret is persisted
+      assert secret in Livebook.Hubs.get_secrets()
+
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
@@ -147,6 +149,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           origin: {:hub, enterprise.id}
         )
 
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -155,17 +159,24 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
+      # Enters the session to check if the button exists
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-
       expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
       add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
 
+      # Persist the secret from the Enterprise
       :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
+
+      # Grant we receive the event, even with eventually delay
       assert_receive {:secret_created, ^secret}, 10_000
 
-      assert has_element?(add_secret_button)
+      # Checks if the secret is persisted
       assert secret in Livebook.Hubs.get_secrets()
 
+      # Clicks the button and checks if the 'Grant access' banner
+      # is being shown, so clicks it's button to set the app secret
+      # to the session, allowing the user to fetches the secret.
       render_click(add_secret_button)
       secrets_component = with_target(view, "#secrets-modal")
 
@@ -174,8 +185,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       grant_access_button = element(secrets_component, "button", "Grant access")
       render_click(grant_access_button)
 
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
       assert_session_secret(view, session.pid, secret)
-
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
