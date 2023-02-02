@@ -281,12 +281,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       has_prefill: !is_nil(secret_name)
     }
 
-    case get_secret(socket, secret_name) do
-      %Secret{name: name, origin: :app} ->
-        %{assigns | grant_access_name: name}
-
+    case Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name)) do
       %Secret{name: name, origin: {:hub, id}} ->
         %{assigns | grant_access_name: name, grant_access_origin: id}
+
+      %Secret{name: name, origin: origin} ->
+        %{assigns | grant_access_name: name, grant_access_origin: to_string(origin)}
 
       nil ->
         assigns
@@ -384,20 +384,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
     if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
-  defp get_secret(socket, secret_name) do
-    get_app_secret(socket, secret_name) || get_hub_secret(socket, secret_name)
-  end
-
-  defp get_app_secret(socket, secret_name) do
-    fun = &(&1.name == secret_name and &1.origin in [:app, :startup])
-    Enum.find(socket.assigns.saved_secrets, fun)
-  end
-
-  defp get_hub_secret(socket, secret_name) do
-    fun = &(&1.name == secret_name and match?({:hub, _}, &1.origin))
-    Enum.find(socket.assigns.saved_secrets, fun)
   end
 
   defp hubs_options(hubs, hub_id) do
