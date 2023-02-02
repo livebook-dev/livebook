@@ -2294,13 +2294,13 @@ defmodule LivebookWeb.SessionLive do
     Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
   end
 
-  defp secret_label(%{origin: {:hub, id}}, hubs), do: get_hub(id, hubs).emoji
+  defp secret_label(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).emoji
   defp secret_label(_, _), do: nil
 
-  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: get_hub(id, hubs).name
+  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).name
   defp secret_tooltip(_, _), do: nil
 
-  defp get_hub(id, hubs) do
+  defp fetch_hub!(id, hubs) do
     Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
 end
