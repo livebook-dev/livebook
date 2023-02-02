@@ -226,7 +226,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
-              <%= if @secret_origin == "app" do %>
+              <%= if @secret_origin in ["app", "startup"] do %>
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
                   <span class="font-semibold text-white"><%= @secret_name %></span>
@@ -240,12 +240,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 </span>
               <% end %>
             </div>
-            <%= if @secret_origin == "app" do %>
+            <%= if @secret_origin in ["app", "startup"] do %>
               <button
                 class="button-base button-gray"
                 phx-click="grant_access"
                 phx-value-name={@secret_name}
-                phx-value-store="app"
+                phx-value-store={@secret_origin}
                 phx-target={@target}
               >
                 Grant access
@@ -314,9 +314,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     else
       {:error, %{errors: errors}} ->
         {:noreply, assign(socket, errors: errors)}
-
-      {:error, socket} ->
-        {:noreply, socket}
     end
   end
 
@@ -357,9 +354,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp build_origin(%{"store" => "session"}), do: :session
-  defp build_origin(%{"store" => "app"}), do: :app
   defp build_origin(%{"store" => "hub", "hub_id" => id}), do: {:hub, id}
+  defp build_origin(%{"store" => store}), do: String.to_existing_atom(store)
 
   defp build_attrs(%{"name" => name, "value" => value} = attrs) do
     %{name: name, value: value, origin: build_origin(attrs)}

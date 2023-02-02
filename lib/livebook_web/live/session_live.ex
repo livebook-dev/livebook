@@ -658,7 +658,7 @@ defmodule LivebookWeb.SessionLive do
           <%= for secret when secret.origin in [:app, :startup] <- @saved_secrets do %>
             <.secrets_item
               secret={secret}
-              prefix="app"
+              prefix={to_string(secret.origin)}
               data_secrets={@data_view.secrets}
               hubs={@hubs}
             />

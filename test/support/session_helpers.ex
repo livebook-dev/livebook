@@ -58,6 +58,7 @@ defmodule Livebook.SessionHelpers do
       case secret do
         %{name: name, origin: :session} -> "#session-secret-#{name}-title"
         %{name: name, origin: :app} -> "#app-secret-#{name}-title"
+        %{name: name, origin: :startup} -> "#startup-secret-#{name}-title"
         %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-title"
       end
 
