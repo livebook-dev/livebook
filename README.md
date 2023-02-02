@@ -231,6 +231,15 @@ The following environment variables configure Livebook:
 
 <!-- Environment variables -->
 
+When running Livebook Desktop, Livebook will invoke on boot a file named
+`~/.livebookdesktop.sh` on macOS or `%USERPROFILE%\.livebookdesktop.bat`
+on Windows. This file can set environment variables used by Livebook,
+such as [the `PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable)),
+or to configure the Erlang VM, for instance, by setting
+`ERL_AFLAGS="-proto_dist inet6_tcp"` if you need Livebook to run over IPv6.
+Be careful when modifying said files, Livebook may be unable to start if
+configured incorrectly.
+
 If running Livebook via the command line, run `livebook server --help` to see
 all CLI-specific options.
 
