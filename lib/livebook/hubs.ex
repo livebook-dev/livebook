@@ -99,7 +99,7 @@ defmodule Livebook.Hubs do
   end
 
   defp disconnect_hub(hub) do
-    Task.async(fn ->
+    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
       Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)

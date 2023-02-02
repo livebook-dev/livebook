@@ -48,6 +48,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= for secret <- @saved_secrets do %>
                   <.secret_with_badge
                     secret_name={secret.name}
+                    secret_store={store(secret)}
                     secret_origin={origin(secret)}
                     stored={stored(secret)}
                     action="select_secret"
@@ -139,6 +140,44 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     """
   end
 
+  defp secret_with_badge(%{secret_store: "hub"} = assigns) do
+    ~H"""
+    <div
+      role="button"
+      class={[
+        "flex justify-between w-full font-mono text-sm p-2 border-b cursor-pointer",
+        if @active do
+          "bg-blue-100 text-blue-700"
+        else
+          "text-gray-700 hover:bg-gray-100"
+        end
+      ]}
+      phx-value-name={@secret_name}
+      phx-value-store="hub"
+      phx-value-hub_id={@secret_origin}
+      phx-target={@target}
+      phx-click={@action}
+    >
+      <%= @secret_name %>
+      <span class={[
+        "inline-flex items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100",
+        if @active do
+          "bg-indigo-100 text-blue-800"
+        else
+          "bg-gray-100 text-gray-800"
+        end
+      ]}>
+        <%= if @active do %>
+          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
+            <circle cx="4" cy="4" r="3" />
+          </svg>
+        <% end %>
+        <%= @stored %>
+      </span>
+    </div>
+    """
+  end
+
   defp secret_with_badge(assigns) do
     ~H"""
     <div
@@ -151,8 +190,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           "text-gray-700 hover:bg-gray-100"
         end
       ]}
-      phx-value-secret_name={@secret_name}
-      phx-value-secret_origin={@secret_origin}
+      phx-value-name={@secret_name}
+      phx-value-store={@secret_store}
       phx-target={@target}
       phx-click={@action}
     >
@@ -201,15 +240,28 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 </span>
               <% end %>
             </div>
-            <button
-              class="button-base button-gray"
-              phx-click="grant_access"
-              phx-value-secret_name={@secret_name}
-              phx-value-secret_origin={@secret_origin}
-              phx-target={@target}
-            >
-              Grant access
-            </button>
+            <%= if @secret_origin == "app" do %>
+              <button
+                class="button-base button-gray"
+                phx-click="grant_access"
+                phx-value-name={@secret_name}
+                phx-value-store="app"
+                phx-target={@target}
+              >
+                Grant access
+              </button>
+            <% else %>
+              <button
+                class="button-base button-gray"
+                phx-click="grant_access"
+                phx-value-name={@secret_name}
+                phx-value-store="hub"
+                phx-value-hub_id={@secret_origin}
+                phx-target={@target}
+              >
+                Grant access
+              </button>
+            <% end %>
           </div>
         </div>
       </div>
@@ -217,10 +269,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     """
   end
 
-  defp prefill_assigns(%{assgins: %{data: %{"name" => _}}} = socket), do: socket
-
   defp prefill_assigns(socket) do
-    secret_name = prefill_secret_name(socket)
+    secret_name = socket.assigns[:prefill_secret_name]
 
     assigns = %{
       data: %{"name" => secret_name, "value" => "", "store" => "session"},
@@ -228,7 +278,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       title: title(socket),
       grant_access_name: nil,
       grant_access_origin: "app",
-      has_prefill: secret_name != ""
+      has_prefill: !is_nil(secret_name)
     }
 
     case get_secret(socket, secret_name) do
@@ -242,6 +292,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         assigns
     end
   end
+
+  defp store(%{origin: {:hub, _id}}), do: "hub"
+  defp store(%{origin: origin}), do: to_string(origin)
 
   defp origin(%{origin: {:hub, id}}), do: id
   defp origin(%{origin: origin}), do: to_string(origin)
@@ -267,7 +320,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("select_secret", %{"secret_name" => secret_name} = attrs, socket) do
+  def handle_event("select_secret", %{"name" => secret_name} = attrs, socket) do
     grant_access(socket.assigns.saved_secrets, secret_name, build_origin(attrs), socket)
 
     {:noreply,
@@ -285,7 +338,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("grant_access", %{"secret_name" => secret_name} = attrs, socket) do
+  def handle_event("grant_access", %{"name" => secret_name} = attrs, socket) do
     grant_access(socket.assigns.saved_secrets, secret_name, build_origin(attrs), socket)
 
     {:noreply,
@@ -300,26 +353,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp prefill_secret_name(socket) do
-    if unavailable_secret?(socket, socket.assigns.prefill_secret_name),
-      do: socket.assigns.prefill_secret_name,
-      else: ""
-  end
-
-  defp unavailable_secret?(_socket, nil), do: false
-  defp unavailable_secret?(_socket, ""), do: false
-
-  defp unavailable_secret?(socket, preselect_name) do
-    get_secret(socket, preselect_name) != []
-  end
-
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp build_origin(%{"secret_name" => _, "secret_origin" => "session"}), do: :session
-  defp build_origin(%{"secret_name" => _, "secret_origin" => "app"}), do: :app
-  defp build_origin(%{"secret_name" => _, "secret_origin" => id}), do: {:hub, id}
   defp build_origin(%{"store" => "session"}), do: :session
   defp build_origin(%{"store" => "app"}), do: :app
   defp build_origin(%{"store" => "hub", "hub_id" => id}), do: {:hub, id}
@@ -350,20 +387,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp get_secret(socket, secret_name) do
-    session_secret = get_session_secret(socket, secret_name)
-    app_secret = get_app_secret(socket, secret_name)
-    hub_secret = get_hub_secret(socket, secret_name)
-
-    secrets = [session_secret, app_secret, hub_secret]
-
-    case Enum.reject(secrets, &is_nil/1) do
-      [] -> nil
-      [secret | _] -> secret
-    end
-  end
-
-  defp get_session_secret(socket, secret_name) do
-    Enum.find(socket.assigns.secrets, &(elem(&1, 0) == secret_name))
+    get_app_secret(socket, secret_name) || get_hub_secret(socket, secret_name)
   end
 
   defp get_app_secret(socket, secret_name) do

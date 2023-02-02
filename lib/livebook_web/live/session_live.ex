@@ -2300,5 +2300,7 @@ defmodule LivebookWeb.SessionLive do
   defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: get_hub(id, hubs).name
   defp secret_tooltip(_, _), do: nil
 
-  defp get_hub(id, hubs), do: Enum.find(hubs, &(&1.id == id))
+  defp get_hub(id, hubs) do
+    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
+  end
 end

@@ -1189,6 +1189,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       render_click(add_secret_button)
       secrets_component = with_target(view, "#secrets-modal")
+
+      assert render(secrets_component) =~ "in your Livebook app. Allow this session to access it?"
+
       grant_access_button = element(secrets_component, "button", "Grant access")
       render_click(grant_access_button)
 
