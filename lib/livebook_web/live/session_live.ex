@@ -2016,15 +2016,29 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cells_status(cells, data) do
+    eval_infos =
+      for cell <- cells,
+          Cell.evaluable?(cell),
+          info = data.cell_infos[cell.id].eval,
+          do: Map.put(info, :id, cell.id)
+
+    most_recent =
+      eval_infos
+      |> Enum.filter(& &1.evaluation_end)
+      |> Enum.max_by(& &1.evaluation_end, DateTime, fn -> nil end)
+
     cond do
-      evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
+      evaluating = Enum.find(eval_infos, &(&1.status == :evaluating)) ->
         {:evaluating, evaluating.id}
 
-      stale = Enum.find(cells, &stale?(&1, data)) ->
+      most_recent != nil and most_recent.errored ->
+        {:errored, most_recent.id}
+
+      stale = Enum.find(eval_infos, &(&1.validity == :stale)) ->
         {:stale, stale.id}
 
-      evaluated = Enum.find(Enum.reverse(cells), &evaluated?(&1, data)) ->
-        {:evaluated, evaluated.id}
+      most_recent != nil ->
+        {:evaluated, most_recent.id}
 
       true ->
         {:fresh, nil}
@@ -2038,18 +2052,6 @@ defmodule LivebookWeb.SessionLive do
       |> Enum.map(fn {cell, _} -> cell end)
 
     cells_status(cells, data)
-  end
-
-  defp evaluating?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :status]) == :evaluating
-  end
-
-  defp stale?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :stale
-  end
-
-  defp evaluated?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :evaluated
   end
 
   defp section_views(sections, data) do

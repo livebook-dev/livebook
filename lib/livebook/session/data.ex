@@ -94,6 +94,7 @@ defmodule Livebook.Session.Data do
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
+          evaluation_end: DateTime.t() | nil,
           evaluation_number: non_neg_integer(),
           outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
@@ -1062,7 +1063,8 @@ defmodule Livebook.Session.Data do
             evaluation_time_ms: metadata.evaluation_time_ms,
             identifiers_used: metadata.identifiers_used,
             identifiers_defined: metadata.identifiers_defined,
-            bound_to_input_ids: eval_info.new_bound_to_input_ids
+            bound_to_input_ids: eval_info.new_bound_to_input_ids,
+            evaluation_end: DateTime.utc_now()
         }
       end)
       |> update_cell_evaluation_snapshot(cell, section)
@@ -1251,7 +1253,8 @@ defmodule Livebook.Session.Data do
             data: data,
             # This is a rough estimate, the exact time is measured in the
             # evaluator itself
-            evaluation_start: DateTime.utc_now()
+            evaluation_start: DateTime.utc_now(),
+            evaluation_end: nil
         }
       end)
       |> set_section_info!(section.id,
@@ -1800,6 +1803,7 @@ defmodule Livebook.Session.Data do
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
+      evaluation_end: nil,
       evaluation_number: 0,
       outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
