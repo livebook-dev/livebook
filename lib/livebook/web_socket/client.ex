@@ -18,7 +18,7 @@ defmodule Livebook.WebSocket.Client do
   @spec connect(String.t(), list({String.t(), String.t()})) ::
           {:ok, conn(), websocket(), ref()}
           | {:transport_error, String.t()}
-          | {:server_error, list(binary())}
+          | {:server_error, String.t()}
   def connect(url, headers \\ []) do
     uri = URI.parse(url)
     {http_scheme, ws_scheme} = parse_scheme(uri)
@@ -28,7 +28,12 @@ defmodule Livebook.WebSocket.Client do
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
       receive_upgrade(conn, ref, state)
     else
-      {:error, exception} -> {:transport_error, Exception.message(exception)}
+      {:error, exception} ->
+        {:transport_error, Exception.message(exception)}
+
+      {:error, conn, exception} ->
+        Mint.HTTP.close(conn)
+        {:transport_error, Exception.message(exception)}
     end
   end
 
@@ -40,6 +45,10 @@ defmodule Livebook.WebSocket.Client do
          {:ok, conn, responses} <- Mint.WebSocket.recv(conn, 0, 5_000) do
       handle_upgrade_responses(responses, conn, ref, state)
     else
+      {:error, exception} ->
+        Mint.HTTP.close(conn)
+        {:transport_error, Exception.message(exception)}
+
       {:error, _websocket, exception, []} ->
         Mint.HTTP.close(conn)
         {:transport_error, Exception.message(exception)}
@@ -81,6 +90,10 @@ defmodule Livebook.WebSocket.Client do
          {:ok, conn} <- Mint.HTTP.set_mode(conn, :active) do
       {:ok, conn, websocket, ref}
     else
+      {:error, exception} ->
+        Mint.HTTP.close(conn)
+        {:transport_error, Exception.message(exception)}
+
       {:error, conn, %UpgradeFailureError{}} ->
         Mint.HTTP.close(conn)
         {:server_error, state.body |> Enum.reverse() |> IO.iodata_to_binary()}
