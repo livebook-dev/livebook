@@ -112,10 +112,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   end
 
   @impl true
-  def handle_event("clear_file", %{}, socket) do
-    {:noreply, socket |> put_new_file(nil) |> assign(draft_file: nil)}
-  end
-
   def handle_event(
         "set_options",
         %{"persist_outputs" => persist_outputs, "autosave_interval_s" => autosave_interval_s},
@@ -143,7 +139,24 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   @impl true
   def handle_info({:set_file, file, _file_info}, socket) do
-    {:noreply, assign(socket, draft_file: file)}
+    current_file_system = socket.assigns.draft_file.file_system
+
+    autosave_interval_s =
+      case file.file_system do
+        ^current_file_system ->
+          socket.assigns.new_attrs.autosave_interval_s
+
+        %FileSystem.Local{} ->
+          Livebook.Notebook.default_autosave_interval_s()
+
+        _other ->
+          nil
+      end
+
+    {:noreply,
+     socket
+     |> assign(draft_file: file)
+     |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
   end
 
   def handle_info(:confirm_file, socket) do
@@ -166,9 +179,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       Session.set_notebook_attributes(assigns.session.pid, diff)
     end
 
-    if draft_file do
-      Session.save_sync(assigns.session.pid)
-    end
+    Session.save_sync(assigns.session.pid)
 
     {:noreply, push_patch(socket, to: Routes.session_path(socket, :page, assigns.session.id))}
   end
@@ -178,31 +189,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       {number, _} -> number
       :error -> nil
     end
-  end
-
-  defp put_new_file(socket, file) do
-    new_attrs = socket.assigns.new_attrs
-    current_file_system = new_attrs.file && new_attrs.file.file_system
-    new_file_system = file && file.file_system
-
-    autosave_interval_s =
-      case new_file_system do
-        ^current_file_system ->
-          new_attrs.autosave_interval_s
-
-        nil ->
-          Livebook.Notebook.default_autosave_interval_s()
-
-        %FileSystem.Local{} ->
-          Livebook.Notebook.default_autosave_interval_s()
-
-        _other ->
-          nil
-      end
-
-    socket
-    |> put_new_attr(:file, file)
-    |> put_new_attr(:autosave_interval_s, autosave_interval_s)
   end
 
   defp put_new_attr(socket, key, value) do
