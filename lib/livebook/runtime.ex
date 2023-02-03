@@ -78,6 +78,7 @@ defprotocol Livebook.Runtime do
   dependencies between evaluations and avoids unnecessary reevaluations.
   """
   @type evaluation_response_metadata :: %{
+          errored: boolean(),
           evaluation_time_ms: non_neg_integer(),
           code_error: code_error(),
           memory_usage: runtime_memory(),

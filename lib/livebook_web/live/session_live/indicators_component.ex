@@ -190,6 +190,21 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
+  defp global_status(%{status: :errored} = assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Go to last evaluated cell">
+      <button
+        class="border-red-300 icon-button icon-outlined-button hover:bg-red-50 focus:bg-red-50"
+        aria-label="go to last evaluated cell"
+        data-el-focus-cell-button
+        data-target={@cell_id}
+      >
+        <.remix_icon icon="loader-3-line" class="text-xl text-red-400" />
+      </button>
+    </span>
+    """
+  end
+
   defp global_status(%{status: :stale} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to first stale cell">

@@ -68,6 +68,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
           reevaluate_automatically={@cell_view.reevaluate_automatically}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
         />
       </:primary>
       <:secondary>
@@ -167,6 +168,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
           reevaluate_automatically={false}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
         />
       </:primary>
       <:secondary>
@@ -307,7 +309,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-cell-id={@cell_id}
       >
         <%= cond do %>
-          <% @reevaluate_automatically and @validity in [:evaluated, :stale] -> %>
+          <% @reevaluates_automatically -> %>
             <.remix_icon icon="check-line" class="text-xl" />
             <span class="text-sm font-medium">Reevaluates automatically</span>
           <% @validity == :evaluated -> %>
@@ -653,7 +655,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
     <.status_indicator
-      circle_class="bg-green-bright-400"
+      circle_class={if(@cell_view.eval.errored, do: "bg-red-400", else: "bg-green-bright-400")}
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}
     >

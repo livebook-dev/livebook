@@ -88,11 +88,13 @@ defmodule Livebook.Session.Data do
   @type cell_eval_info :: %{
           validity: cell_evaluation_validity(),
           status: cell_evaluation_status(),
+          errored: boolean(),
           snapshot: snapshot(),
           evaluation_digest: String.t() | nil,
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
+          evaluation_end: DateTime.t() | nil,
           evaluation_number: non_neg_integer(),
           outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
@@ -1051,19 +1053,29 @@ defmodule Livebook.Session.Data do
   end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
-    data_actions
-    |> update_cell_eval_info!(cell.id, fn eval_info ->
-      %{
-        eval_info
-        | status: :ready,
-          evaluation_time_ms: metadata.evaluation_time_ms,
-          identifiers_used: metadata.identifiers_used,
-          identifiers_defined: metadata.identifiers_defined,
-          bound_to_input_ids: eval_info.new_bound_to_input_ids
-      }
-    end)
-    |> update_cell_evaluation_snapshot(cell, section)
-    |> set_section_info!(section.id, evaluating_cell_id: nil)
+    data_actions =
+      data_actions
+      |> update_cell_eval_info!(cell.id, fn eval_info ->
+        %{
+          eval_info
+          | status: :ready,
+            errored: metadata.errored,
+            evaluation_time_ms: metadata.evaluation_time_ms,
+            identifiers_used: metadata.identifiers_used,
+            identifiers_defined: metadata.identifiers_defined,
+            bound_to_input_ids: eval_info.new_bound_to_input_ids,
+            evaluation_end: DateTime.utc_now()
+        }
+      end)
+      |> update_cell_evaluation_snapshot(cell, section)
+      |> set_section_info!(section.id, evaluating_cell_id: nil)
+
+    if metadata.errored and not Map.get(cell, :continue_on_error, false) do
+      data_actions
+      |> unqueue_child_cells_evaluation(cell)
+    else
+      data_actions
+    end
   end
 
   defp update_cell_evaluation_snapshot({data, _} = data_actions, cell, section) do
@@ -1241,7 +1253,8 @@ defmodule Livebook.Session.Data do
             data: data,
             # This is a rough estimate, the exact time is measured in the
             # evaluator itself
-            evaluation_start: DateTime.utc_now()
+            evaluation_start: DateTime.utc_now(),
+            evaluation_end: nil
         }
       end)
       |> set_section_info!(section.id,
@@ -1786,9 +1799,11 @@ defmodule Livebook.Session.Data do
     %{
       validity: :fresh,
       status: :ready,
+      errored: false,
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
+      evaluation_end: nil,
       evaluation_number: 0,
       outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
@@ -1797,7 +1812,8 @@ defmodule Livebook.Session.Data do
       identifiers_defined: %{},
       snapshot: nil,
       evaluation_snapshot: nil,
-      data: nil
+      data: nil,
+      reevaluates_automatically: false
     }
   end
 
@@ -1923,6 +1939,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    |> update_reevaluates_automatically()
     # After updating validity there may be new stale cells, so we check
     # if any of them is configured for automatic reevaluation
     |> maybe_queue_reevaluating_cells()
@@ -2066,15 +2083,45 @@ defmodule Livebook.Session.Data do
     end)
   end
 
+  defp update_reevaluates_automatically({data, _} = data_actions) do
+    eval_parents = cell_evaluation_parents(data)
+
+    cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
+    cell_lookup = for {cell, _section} <- cells_with_section, into: %{}, do: {cell.id, cell}
+
+    reduce(data_actions, cells_with_section, fn data_actions, {cell, _section} ->
+      info = data.cell_infos[cell.id]
+
+      # Note that we disable automatic reevaluation if any evaluation
+      # parent errored (unless continue-on-error is enabled)
+      reevaluates_automatically =
+        Map.get(cell, :reevaluate_automatically, false) and
+          info.eval.validity in [:evaluated, :stale] and
+          not Enum.any?(eval_parents[cell.id], fn parent_id ->
+            errored? = data.cell_infos[parent_id].eval.errored
+            continue_on_error? = Map.get(cell_lookup[parent_id], :continue_on_error, false)
+            errored? and not continue_on_error?
+          end)
+
+      if reevaluates_automatically == info.eval.reevaluates_automatically do
+        data_actions
+      else
+        update_cell_eval_info!(
+          data_actions,
+          cell.id,
+          &%{&1 | reevaluates_automatically: reevaluates_automatically}
+        )
+      end
+    end)
+  end
+
   defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
     cells_to_reevaluate =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-
-        info.eval.status == :ready and info.eval.validity == :stale and
-          Map.get(cell, :reevaluate_automatically, false)
+        match?(%{status: :ready, validity: :stale, reevaluates_automatically: true}, info.eval)
       end)
 
     data_actions

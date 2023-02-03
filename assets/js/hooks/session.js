@@ -280,6 +280,7 @@ const Session = {
   faviconForEvaluationStatus(evaluationStatus) {
     if (evaluationStatus === "evaluating") return "favicon-evaluating";
     if (evaluationStatus === "stale") return "favicon-stale";
+    if (evaluationStatus === "errored") return "favicon-errored";
     return "favicon";
   },
 
