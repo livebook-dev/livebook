@@ -254,6 +254,8 @@ defmodule Livebook.Application do
     end
   end
 
+  @dialyzer {:no_return, iframe_port_in_use: 1}
+
   defp iframe_port_in_use(port) do
     Livebook.Config.abort!(
       "Failed to start Livebook iframe server because port #{port} is already in use"
