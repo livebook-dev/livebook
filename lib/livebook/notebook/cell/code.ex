@@ -13,7 +13,7 @@ defmodule Livebook.Notebook.Cell.Code do
 
   @type t :: %__MODULE__{
           id: Cell.id(),
-          source: String.t(),
+          source: String.t() | :__pruned__,
           outputs: list(Cell.indexed_output()),
           disable_formatting: boolean(),
           reevaluate_automatically: boolean()

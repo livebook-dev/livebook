@@ -132,7 +132,7 @@ defmodule Livebook.Config do
   @doc """
   Returns an mfa if there's a way to shut down the system.
   """
-  @spec shutdown_callback() :: mfa() | nil
+  @spec shutdown_callback() :: {module(), atom(), list()} | nil
   def shutdown_callback() do
     Application.fetch_env!(:livebook, :shutdown_callback)
   end

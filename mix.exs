@@ -153,6 +153,8 @@ defmodule Livebook.MixProject do
     release
   end
 
+  @compile {:no_warn_undefined, Standalone}
+
   defp standalone_erlang_elixir(release) do
     Code.require_file("rel/app/standalone.exs")
 
