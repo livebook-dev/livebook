@@ -75,6 +75,8 @@ Mix.install(
 )
 ```
 
+You would put this code snippet inside your notebook's setup.
+
 ## Runtimes
 
 Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
