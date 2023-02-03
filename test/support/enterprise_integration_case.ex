@@ -23,7 +23,10 @@ defmodule Livebook.EnterpriseIntegrationCase do
     end
 
     {:ok,
-     url: EnterpriseServer.url(), token: EnterpriseServer.token(), user: EnterpriseServer.user()}
+     url: EnterpriseServer.url(),
+     token: EnterpriseServer.token(),
+     user: EnterpriseServer.user(),
+     node: EnterpriseServer.get_node()}
   end
 
   def start_new_instance(name) do

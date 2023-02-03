@@ -183,6 +183,7 @@ defmodule LivebookWeb.SessionLive do
           <.secrets_list
             data_view={@data_view}
             saved_secrets={@saved_secrets}
+            hubs={@saved_hubs}
             session={@session}
             socket={@socket}
           />
@@ -657,7 +658,12 @@ defmodule LivebookWeb.SessionLive do
 
         <div class="flex flex-col space-y-4 mt-6">
           <%= for secret when secret.origin in [:app, :startup] <- @saved_secrets do %>
-            <.secrets_item secret={secret} prefix="app" data_secrets={@data_view.secrets} />
+            <.secrets_item
+              secret={secret}
+              prefix={to_string(secret.origin)}
+              data_secrets={@data_view.secrets}
+              hubs={@hubs}
+            />
           <% end %>
         </div>
 
@@ -677,7 +683,12 @@ defmodule LivebookWeb.SessionLive do
 
           <div class="flex flex-col space-y-4 mt-6">
             <%= for %{origin: {:hub, id}} = secret <- @saved_secrets do %>
-              <.secrets_item secret={secret} prefix={"hub-#{id}"} data_secrets={@data_view.secrets} />
+              <.secrets_item
+                secret={secret}
+                prefix={"hub-#{id}"}
+                data_secrets={@data_view.secrets}
+                hubs={@hubs}
+              />
             <% end %>
           </div>
         <% end %>
@@ -705,15 +716,15 @@ defmodule LivebookWeb.SessionLive do
         >
           <%= @secret.name %>
         </span>
-        <%= if @secret.origin in [:app, :startup] do %>
-          <.switch_checkbox
-            name="toggle_secret"
-            checked={is_secret_on_session?(@secret, @data_secrets)}
-            phx-click="toggle_secret"
-            phx-value-secret_name={@secret.name}
-            phx-value-secret_value={@secret.value}
-          />
-        <% end %>
+        <.switch_checkbox
+          name="toggle_secret"
+          checked={secret_toggled?(@secret, @data_secrets)}
+          label={secret_label(@secret, @hubs)}
+          tooltip={secret_tooltip(@secret, @hubs)}
+          phx-click="toggle_secret"
+          phx-value-secret_name={@secret.name}
+          phx-value-secret_value={@secret.value}
+        />
       </div>
       <div class="flex flex-col text-gray-800 hidden" id={"#{@prefix}-secret-#{@secret.name}-detail"}>
         <div class="flex flex-col">
@@ -730,15 +741,15 @@ defmodule LivebookWeb.SessionLive do
             >
               <%= @secret.name %>
             </span>
-            <%= if @secret.origin in [:app, :startup] do %>
-              <.switch_checkbox
-                name="toggle_secret"
-                checked={is_secret_on_session?(@secret, @data_secrets)}
-                phx-click="toggle_secret"
-                phx-value-secret_name={@secret.name}
-                phx-value-secret_value={@secret.value}
-              />
-            <% end %>
+            <.switch_checkbox
+              name="toggle_secret"
+              checked={secret_toggled?(@secret, @data_secrets)}
+              label={secret_label(@secret, @hubs)}
+              tooltip={secret_tooltip(@secret, @hubs)}
+              phx-click="toggle_secret"
+              phx-value-secret_name={@secret.name}
+              phx-value-secret_value={@secret.value}
+            />
           </div>
           <div class="flex flex-row justify-between items-center my-1">
             <span class="text-sm font-mono break-all flex-row">
@@ -1434,6 +1445,10 @@ defmodule LivebookWeb.SessionLive do
      socket
      |> assign(saved_secrets: get_saved_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
+  end
+
+  def handle_info(:hubs_changed, socket) do
+    {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
   end
 
   def handle_info({:error, error}, socket) do
@@ -2273,11 +2288,21 @@ defmodule LivebookWeb.SessionLive do
     :ok
   end
 
-  defp is_secret_on_session?(secret, secrets) do
-    Map.has_key?(secrets, secret.name)
+  defp secret_toggled?(secret, secrets) do
+    Map.has_key?(secrets, secret.name) and secrets[secret.name] == secret.value
   end
 
   defp get_saved_secrets do
     Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
+  end
+
+  defp secret_label(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).emoji
+  defp secret_label(_, _), do: nil
+
+  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).name
+  defp secret_tooltip(_, _), do: nil
+
+  defp fetch_hub!(id, hubs) do
+    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
 end

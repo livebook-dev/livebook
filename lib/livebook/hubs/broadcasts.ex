@@ -12,9 +12,9 @@ defmodule Livebook.Hubs.Broadcasts do
   @doc """
   Broadcasts when hubs changed under `hubs:crud` topic
   """
-  @spec hubs_metadata_changed() :: broadcast()
-  def hubs_metadata_changed do
-    broadcast(@crud_topic, :hubs_metadata_changed)
+  @spec hub_changed() :: broadcast()
+  def hub_changed do
+    broadcast(@crud_topic, :hub_changed)
   end
 
   @doc """

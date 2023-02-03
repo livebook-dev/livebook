@@ -82,7 +82,7 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = Broadcasts.hubs_metadata_changed()
+    :ok = Broadcasts.hub_changed()
 
     struct
   end
@@ -90,10 +90,19 @@ defmodule Livebook.Hubs do
   @doc false
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      :ok = Provider.disconnect(hub)
+      :ok = Broadcasts.hub_changed()
       :ok = Storage.delete(@namespace, id)
-      :ok = Broadcasts.hubs_metadata_changed()
+      :ok = disconnect_hub(hub)
     end
+
+    :ok
+  end
+
+  defp disconnect_hub(hub) do
+    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      Process.sleep(30_000)
+      :ok = Provider.disconnect(hub)
+    end)
 
     :ok
   end
@@ -112,7 +121,7 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:crud`:
 
-    * `:hubs_metadata_changed`
+    * `:hub_changed`
 
   Topic `hubs:connection`:
 
