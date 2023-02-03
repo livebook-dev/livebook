@@ -15,7 +15,14 @@ defmodule Livebook.Session.DataTest do
   defp eval_meta(opts \\ []) do
     uses = opts[:uses] || []
     defines = opts[:defines] || %{}
-    %{evaluation_time_ms: 10, identifiers_used: uses, identifiers_defined: defines}
+    errored = Keyword.get(opts, :errored, false)
+
+    %{
+      errored: errored,
+      evaluation_time_ms: 10,
+      identifiers_used: uses,
+      identifiers_defined: defines
+    }
   end
 
   describe "new/1" do
@@ -2038,8 +2045,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       operation =
-        {:add_cell_evaluation_response, @cid, "c1", @eval_resp,
-         eval_meta(%{defines: %{"c1" => 1}})}
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(defines: %{"c1" => 1})}
 
       assert {:ok,
               %{
@@ -2169,6 +2175,98 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{status: :ready, validity: :evaluated}},
                   "c2" => %{eval: %{status: :ready, validity: :fresh}}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "unqueues child cells if the evaluation errored" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_cell, @cid, "s2", 0, :code, "c3", %{}},
+          {:insert_cell, @cid, "s2", 1, :code, "c4", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2", "c3", "c4"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{eval: %{status: :ready, validity: :fresh}},
+                  "c3" => %{eval: %{status: :ready, validity: :fresh}},
+                  "c4" => %{eval: %{status: :ready, validity: :fresh}}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil},
+                  "s2" => %{evaluating_cell_id: nil}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "disables child cells automatic reevaluation if the evaluation errored" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => ["c1"], "c3" => ["c2"]}
+          ),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{eval: %{status: :ready}},
+                  "c3" => %{eval: %{status: :ready, reevaluates_automatically: false}}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "re-enables child cells automatic reevaluation if errored evaluation is fixed" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_cell_attributes, @cid, "c3", %{reevaluate_automatically: true}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c3"],
+            uses: %{"c2" => ["c1"], "c3" => ["c2"]}
+          ),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)},
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{eval: %{status: :evaluating}},
+                  "c3" => %{eval: %{status: :queued, reevaluates_automatically: true}}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c2"}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end

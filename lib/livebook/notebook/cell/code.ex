@@ -6,7 +6,14 @@ defmodule Livebook.Notebook.Cell.Code do
   # It consists of text content that the user can edit
   # and produces some output once evaluated.
 
-  defstruct [:id, :source, :outputs, :disable_formatting, :reevaluate_automatically]
+  defstruct [
+    :id,
+    :source,
+    :outputs,
+    :disable_formatting,
+    :reevaluate_automatically,
+    :continue_on_error
+  ]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -16,7 +23,8 @@ defmodule Livebook.Notebook.Cell.Code do
           source: String.t(),
           outputs: list(Cell.indexed_output()),
           disable_formatting: boolean(),
-          reevaluate_automatically: boolean()
+          reevaluate_automatically: boolean(),
+          continue_on_error: boolean()
         }
 
   @doc """
@@ -29,7 +37,8 @@ defmodule Livebook.Notebook.Cell.Code do
       source: "",
       outputs: [],
       disable_formatting: false,
-      reevaluate_automatically: false
+      reevaluate_automatically: false,
+      continue_on_error: false
     }
   end
 end

@@ -2127,6 +2127,8 @@ defmodule LivebookWeb.SessionLive do
       outputs: cell.outputs,
       validity: eval_info.validity,
       status: eval_info.status,
+      errored: eval_info.errored,
+      reevaluates_automatically: eval_info.reevaluates_automatically,
       evaluation_time_ms: eval_info.evaluation_time_ms,
       evaluation_start: eval_info.evaluation_start,
       evaluation_digest: encode_digest(eval_info.evaluation_digest),

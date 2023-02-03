@@ -7,7 +7,12 @@ defmodule Livebook.SessionTest do
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
 
-  @eval_meta %{evaluation_time_ms: 10, identifiers_used: [], identifiers_defined: %{}}
+  @eval_meta %{
+    errored: false,
+    evaluation_time_ms: 10,
+    identifiers_used: [],
+    identifiers_defined: %{}
+  }
 
   setup do
     session = start_session()

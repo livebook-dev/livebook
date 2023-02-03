@@ -393,6 +393,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {"reevaluate_automatically", reevaluate_automatically}, attrs ->
         Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
 
+      {"continue_on_error", continue_on_error}, attrs ->
+        Map.put(attrs, :continue_on_error, continue_on_error)
+
       _entry, attrs ->
         attrs
     end)

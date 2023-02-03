@@ -12,6 +12,7 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
       |> assign(assigns)
       |> assign_new(:disable_formatting, fn -> cell.disable_formatting end)
       |> assign_new(:reevaluate_automatically, fn -> cell.reevaluate_automatically end)
+      |> assign_new(:continue_on_error, fn -> cell.continue_on_error end)
 
     {:ok, socket}
   end
@@ -38,6 +39,13 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
             checked={@reevaluate_automatically}
           />
         </div>
+        <div class="w-full flex-col space-y-6 mt-4">
+          <.switch_checkbox
+            name="continue_on_error"
+            label="Continue on error"
+            checked={@continue_on_error}
+          />
+        </div>
         <div class="mt-8 flex justify-begin space-x-2">
           <button class="button-base button-blue" type="submit">
             Save
@@ -54,16 +62,19 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
         "save",
         %{
           "enable_formatting" => enable_formatting,
-          "reevaluate_automatically" => reevaluate_automatically
+          "reevaluate_automatically" => reevaluate_automatically,
+          "continue_on_error" => continue_on_error
         },
         socket
       ) do
     disable_formatting = enable_formatting == "false"
     reevaluate_automatically = reevaluate_automatically == "true"
+    continue_on_error = continue_on_error == "true"
 
     Session.set_cell_attributes(socket.assigns.session.pid, socket.assigns.cell.id, %{
       disable_formatting: disable_formatting,
-      reevaluate_automatically: reevaluate_automatically
+      reevaluate_automatically: reevaluate_automatically,
+      continue_on_error: continue_on_error
     })
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}

@@ -466,6 +466,7 @@ defmodule Livebook.Runtime.Evaluator do
     output = state.formatter.format_result(result)
 
     metadata = %{
+      errored: elem(result, 0) == :error,
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
       code_error: code_error,
