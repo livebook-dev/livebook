@@ -71,10 +71,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         <.form
           :let={f}
           for={:data}
-          phx-submit="save"
-          phx-change="validate"
-          autocomplete="off"
           phx-target={@myself}
+          phx-change="validate"
+          phx-submit="save"
+          autocomplete="off"
           errors={@errors}
           class="basis-1/2 grow"
         >
@@ -86,8 +86,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <% end %>
             <.input_wrapper form={f} field={:name}>
               <div class="input-label">
-                Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+                <label for={input_id(f, :name)}>
+                  Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+                </label>
               </div>
+
               <%= text_input(f, :name,
                 value: @data["name"],
                 class: "input",
@@ -96,7 +99,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               ) %>
             </.input_wrapper>
             <.input_wrapper form={f} field={:value}>
-              <div class="input-label">Value</div>
+              <div class="input-label"><label for={input_id(f, :value)}>Value</label></div>
               <%= text_input(f, :value,
                 value: @data["value"],
                 class: "input",
@@ -107,21 +110,21 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <div>
               <div class="input-label">Storage</div>
               <div class="my-2 space-y-1 text-sm">
-                <%= label  class: "flex items-center gap-2 text-gray-600" do %>
+                <%= label class: "flex items-center gap-2 text-gray-600" do %>
                   <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> only this session
                 <% end %>
+
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
                   <%= radio_button(f, :store, "app", checked: @data["store"] == "app") %> in the Livebook app
                 <% end %>
+
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
-                  <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                    <%= radio_button(f, :store, "hub",
-                      disabled: @hubs == [],
-                      checked: @data["store"] == "hub"
-                    ) %> in the Hub
-                  <% end %>
-                  <%= if @data["store"] == "hub" do %>
-                    <%= select(f, :hub_id, hubs_options(@hubs, @data["hub_id"]), class: "input") %>
+                  <%= for hub <- @hubs do %>
+                    <%= label class: "flex items-center gap-2 text-gray-600" do %>
+                      <%= radio_button(f, :store, "hub-#{hub.id}",
+                        checked: @data["store"] == "hub-#{hub.id}"
+                      ) %> in <%= hub.hub_emoji %> <%= hub.hub_name %>
+                    <% end %>
                   <% end %>
                 <% end %>
               </div>
@@ -313,6 +316,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
        |> push_secret_selected(secret.name)}
     else
       {:error, %{errors: errors}} ->
+        errors =
+          for {name, messages} <- errors, message <- messages do
+            {String.to_existing_atom(name), {message, []}}
+          end
+
         {:noreply, assign(socket, errors: errors)}
     end
   end
@@ -354,7 +362,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp build_origin(%{"store" => "hub", "hub_id" => id}), do: {:hub, id}
+  defp build_origin(%{"store" => "hub-" <> id}), do: {:hub, id}
   defp build_origin(%{"store" => store}), do: String.to_existing_atom(store)
 
   defp build_attrs(%{"name" => name, "value" => value} = attrs) do
@@ -380,12 +388,5 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
     if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
-  defp hubs_options(hubs, hub_id) do
-    [[key: "Select one Hub", value: "", selected: true, disabled: true]] ++
-      for hub <- hubs do
-        [key: hub.hub_name, value: hub.id, selected: hub.id == hub_id]
-      end
   end
 end
