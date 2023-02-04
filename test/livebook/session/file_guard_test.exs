@@ -33,7 +33,7 @@ defmodule Livebook.Session.FileGuardTest do
     assert :ok = FileGuard.lock(file, self())
   end
 
-  test "file is automatically unloacked when the owner process termiantes" do
+  test "file is automatically unloacked when the owner process terminates" do
     file = FileSystem.File.local(p("/some/path"))
 
     owner = spawn(fn -> :ok end)
