@@ -162,4 +162,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
         {:error, %{errors: errors}}
     end
   end
+
+  def connection_error(enterprise) do
+    EnterpriseClient.get_connection_error(enterprise.id)
+  end
 end

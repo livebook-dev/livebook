@@ -10,7 +10,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
 
-  defstruct [:server, :hub, connected?: false, secrets: []]
+  defstruct [:server, :hub, :connection_error, connected?: false, secrets: []]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
@@ -55,6 +55,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @doc """
+  Returns the latest error from connection.
+  """
+  @spec get_connection_error(String.t()) :: Secret.t() | nil
+  def get_connection_error(id) do
+    GenServer.call(registry_name(id), :get_connection_error)
+  end
+
+  @doc """
   Returns if the given enterprise is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -83,6 +91,10 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:reply, state.secrets, state}
   end
 
+  def handle_call(:get_connection_error, _caller, state) do
+    {:reply, state.connection_error, state}
+  end
+
   def handle_call(:connected?, _caller, state) do
     {:reply, state.connected?, state}
   end
@@ -90,17 +102,17 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def handle_info({:connect, :ok, _}, state) do
     Broadcasts.hub_connected()
-    {:noreply, %{state | connected?: true}}
+    {:noreply, %{state | connected?: true, connection_error: nil}}
   end
 
   def handle_info({:connect, :error, reason}, state) do
     Broadcasts.hub_connection_failed(reason)
-    {:noreply, %{state | connected?: false}}
+    {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
   def handle_info({:disconnect, :error, reason}, state) do
     Broadcasts.hub_disconnection_failed(reason)
-    {:noreply, %{state | connected?: false}}
+    {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do

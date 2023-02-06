@@ -184,18 +184,49 @@ defmodule LivebookWeb.LayoutHelpers do
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
           <%= @hub.emoji %>
-
-          <%= if Provider.connect(@hub.provider) do %>
-            <div class={[
-              "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
-              if(@hub.connected?, do: "bg-green-400", else: "bg-red-400")
-            ]} />
-          <% end %>
         </span>
       </div>
       <span class="text-sm font-medium">
         <%= @hub.name %>
       </span>
+    <% end %>
+    """
+  end
+
+  defp sidebar_hub_link_with_tooltip(assigns) do
+    ~H"""
+    <%= if tooltip = Provider.connection_error(@hub.provider) do %>
+      <%= live_redirect to: @to, data_tooltip: tooltip, class: "tooltip top h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
+        <div class="text-lg leading-6 w-[56px] flex justify-center">
+          <span class="relative">
+            <%= @hub.emoji %>
+
+            <div class={[
+              "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
+              if(@hub.connected?, do: "bg-green-400", else: "bg-red-400")
+            ]} />
+          </span>
+        </div>
+        <span class="text-sm font-medium">
+          <%= @hub.name %>
+        </span>
+      <% end %>
+    <% else %>
+      <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
+        <div class="text-lg leading-6 w-[56px] flex justify-center">
+          <span class="relative">
+            <%= @hub.emoji %>
+
+            <div class={[
+              "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-0",
+              if(@hub.connected?, do: "bg-green-400", else: "bg-red-400")
+            ]} />
+          </span>
+        </div>
+        <span class="text-sm font-medium">
+          <%= @hub.name %>
+        </span>
+      <% end %>
     <% end %>
     """
   end
@@ -210,11 +241,19 @@ defmodule LivebookWeb.LayoutHelpers do
           </div>
 
           <%= for hub <- @hubs do %>
-            <.sidebar_hub_link
-              hub={hub}
-              to={Routes.hub_path(@socket, :edit, hub.id)}
-              current={@current_page}
-            />
+            <%= if Provider.connect(hub.provider) do %>
+              <.sidebar_hub_link_with_tooltip
+                hub={hub}
+                to={Routes.hub_path(@socket, :edit, hub.id)}
+                current={@current_page}
+              />
+            <% else %>
+              <.sidebar_hub_link
+                hub={hub}
+                to={Routes.hub_path(@socket, :edit, hub.id)}
+                current={@current_page}
+              />
+            <% end %>
           <% end %>
 
           <.sidebar_link
