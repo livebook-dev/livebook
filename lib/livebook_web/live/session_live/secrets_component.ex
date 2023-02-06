@@ -1,7 +1,10 @@
 defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Hubs
+  alias Livebook.Secrets
   alias Livebook.Secrets.Secret
+  alias Livebook.Session
 
   @impl true
   def update(assigns, socket) do
@@ -70,12 +73,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         <% end %>
         <.form
           :let={f}
-          for={:data}
+          for={@changeset}
           phx-target={@myself}
           phx-change="validate"
           phx-submit="save"
           autocomplete="off"
-          errors={@errors}
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
@@ -92,43 +94,43 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               </div>
 
               <%= text_input(f, :name,
-                value: @data["name"],
-                class: "input",
+                class: "input w-full phx-form-error:border-red-300",
                 autofocus: !@has_prefill,
-                spellcheck: "false"
+                spellcheck: "false",
+                autocomplete: "off",
+                phx_debounce: "blur"
               ) %>
             </.input_wrapper>
             <.input_wrapper form={f} field={:value}>
               <div class="input-label"><label for={input_id(f, :value)}>Value</label></div>
               <%= text_input(f, :value,
-                value: @data["value"],
                 class: "input",
                 autofocus: @has_prefill,
-                spellcheck: "false"
+                spellcheck: "false",
+                autocomplete: "off",
+                phx_debounce: "blur"
               ) %>
             </.input_wrapper>
-            <div>
-              <div class="input-label">Storage</div>
+            <.input_wrapper form={f} field={:origin}>
+              <div class="input-label"><label for={input_id(f, :origin)}>Storage</label></div>
               <div class="my-2 space-y-1 text-sm">
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> only this session
+                  <%= radio_button(f, :origin, "session") %> only this session
                 <% end %>
 
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "app", checked: @data["store"] == "app") %> in the Livebook app
+                  <%= radio_button(f, :origin, "app") %> in the Livebook app
                 <% end %>
 
                 <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
                   <%= for hub <- @hubs do %>
                     <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                      <%= radio_button(f, :store, "hub-#{hub.id}",
-                        checked: @data["store"] == "hub-#{hub.id}"
-                      ) %> in <%= hub.hub_emoji %> <%= hub.hub_name %>
+                      <%= radio_button(f, :origin, "hub-#{hub.id}") %> in <%= hub.hub_emoji %> <%= hub.hub_name %>
                     <% end %>
                   <% end %>
                 <% end %>
               </div>
-            </div>
+            </.input_wrapper>
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
                 <.remix_icon icon="add-line" class="align-middle" />
@@ -156,8 +158,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-name={@secret_name}
-      phx-value-store="hub"
-      phx-value-hub_id={@secret_origin}
+      phx-value-origin={"hub-" <> @secret_origin}
       phx-target={@target}
       phx-click={@action}
     >
@@ -194,7 +195,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-name={@secret_name}
-      phx-value-store={@secret_store}
+      phx-value-origin={@secret_store}
       phx-target={@target}
       phx-click={@action}
     >
@@ -248,7 +249,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 class="button-base button-gray"
                 phx-click="grant_access"
                 phx-value-name={@secret_name}
-                phx-value-store={@secret_origin}
+                phx-value-origin={@secret_origin}
                 phx-target={@target}
               >
                 Grant access
@@ -258,8 +259,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 class="button-base button-gray"
                 phx-click="grant_access"
                 phx-value-name={@secret_name}
-                phx-value-store="hub"
-                phx-value-hub_id={@secret_origin}
+                phx-value-origin={"hub-" <> @secret_origin}
                 phx-target={@target}
               >
                 Grant access
@@ -274,10 +274,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp prefill_assigns(socket) do
     secret_name = socket.assigns[:prefill_secret_name]
+    attrs = %{name: secret_name, value: nil, origin: "session"}
 
     assigns = %{
-      data: %{"name" => secret_name, "value" => "", "store" => "session"},
-      errors: [{"value", {"can't be blank", []}}],
+      changeset: Secrets.change_secret(%Secret{}, attrs),
       title: title(socket),
       grant_access_name: nil,
       grant_access_origin: "app",
@@ -306,22 +306,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp stored(%{origin: origin}) when origin in [:app, :startup], do: "Livebook"
 
   @impl true
-  def handle_event("save", %{"data" => data}, socket) do
-    with attrs <- build_attrs(data),
-         {:ok, secret} <- Livebook.Secrets.validate_secret(attrs),
+  def handle_event("save", %{"secret" => attrs}, socket) do
+    with {:ok, secret} <- Secrets.validate_secret(build_attrs(attrs)),
          :ok <- set_secret(socket, secret) do
       {:noreply,
        socket
        |> push_patch(to: socket.assigns.return_to)
        |> push_secret_selected(secret.name)}
     else
-      {:error, %{errors: errors}} ->
-        errors =
-          for {name, messages} <- errors, message <- messages do
-            {String.to_existing_atom(name), {message, []}}
-          end
-
-        {:noreply, assign(socket, errors: errors)}
+      {:error, changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
     end
   end
 
@@ -334,13 +328,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
      |> push_secret_selected(secret_name)}
   end
 
-  def handle_event("validate", %{"data" => data}, socket) do
-    socket = assign(socket, data: data)
-
-    case Livebook.Secrets.validate_secret(data) do
-      {:ok, _secret} -> {:noreply, assign(socket, errors: [])}
-      {:error, changeset} -> {:noreply, assign(socket, errors: changeset.errors)}
-    end
+  def handle_event("validate", %{"secret" => attrs}, socket) do
+    {:noreply, assign(socket, changeset: Secrets.change_secret(%Secret{}, build_attrs(attrs)))}
   end
 
   def handle_event("grant_access", %{"name" => secret_name} = attrs, socket) do
@@ -362,25 +351,25 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp build_origin(%{"store" => "hub-" <> id}), do: {:hub, id}
-  defp build_origin(%{"store" => store}), do: String.to_existing_atom(store)
+  defp build_origin(%{"origin" => "hub-" <> id}), do: {:hub, id}
+  defp build_origin(%{"origin" => store}), do: String.to_existing_atom(store)
 
   defp build_attrs(%{"name" => name, "value" => value} = attrs) do
     %{name: name, value: value, origin: build_origin(attrs)}
   end
 
   defp set_secret(socket, %Secret{origin: :session} = secret) do
-    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    Session.set_secret(socket.assigns.session.pid, secret)
   end
 
   defp set_secret(socket, %Secret{origin: :app} = secret) do
-    Livebook.Secrets.set_secret(secret)
-    Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    Secrets.set_secret(secret)
+    Session.set_secret(socket.assigns.session.pid, secret)
   end
 
   defp set_secret(socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
-    with :ok <- Livebook.Hubs.create_secret(secret) do
-      Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    with :ok <- Hubs.create_secret(secret) do
+      Session.set_secret(socket.assigns.session.pid, secret)
     end
   end
 

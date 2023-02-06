@@ -4,14 +4,15 @@ defmodule Livebook.Hubs.ProviderTest do
   alias Livebook.Hubs.{Fly, Metadata, Provider}
 
   describe "Fly" do
-    test "normalize/1" do
+    test "to_metadata/1" do
       fly = build(:fly)
 
-      assert Provider.normalize(fly) == %Metadata{
+      assert Provider.to_metadata(fly) == %Metadata{
                id: fly.id,
                name: fly.hub_name,
                emoji: fly.hub_emoji,
-               provider: fly
+               provider: fly,
+               connected?: false
              }
     end
 

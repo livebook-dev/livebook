@@ -140,7 +140,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
-          {:error, reason} ->
+          {:transport_error, reason} ->
             EnterpriseClient.stop(base.id)
 
             {:noreply,

@@ -124,20 +124,19 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
     }
   end
 
-  def normalize(fly) do
+  def to_metadata(fly) do
     %Livebook.Hubs.Metadata{
       id: fly.id,
       name: fly.hub_name,
       provider: fly,
-      emoji: fly.hub_emoji
+      emoji: fly.hub_emoji,
+      connected?: false
     }
   end
 
   def type(_fly), do: "fly"
 
-  def connect(_fly), do: nil
-
-  def connected?(_fly), do: false
+  def connection_spec(_fly), do: nil
 
   def disconnect(_fly), do: :ok
 
@@ -146,4 +145,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
   def get_secrets(_fly), do: []
 
   def create_secret(_fly, _secret), do: :ok
+
+  def connection_error(_fly), do: nil
 end

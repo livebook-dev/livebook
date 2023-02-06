@@ -10,7 +10,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:fly_metadata) do
-    :fly |> build() |> Livebook.Hubs.Provider.normalize()
+    :fly |> build() |> Livebook.Hubs.Provider.to_metadata()
   end
 
   def build(:fly) do
@@ -27,7 +27,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:enterprise_metadata) do
-    :enterprise |> build() |> Livebook.Hubs.Provider.normalize()
+    :enterprise |> build() |> Livebook.Hubs.Provider.to_metadata()
   end
 
   def build(:enterprise) do

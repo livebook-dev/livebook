@@ -119,22 +119,19 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def normalize(enterprise) do
+  def to_metadata(enterprise) do
     %Livebook.Hubs.Metadata{
       id: enterprise.id,
       name: enterprise.hub_name,
       provider: enterprise,
-      emoji: enterprise.hub_emoji
+      emoji: enterprise.hub_emoji,
+      connected?: EnterpriseClient.connected?(enterprise.id)
     }
   end
 
   def type(_enterprise), do: "enterprise"
 
-  def connect(enterprise), do: {EnterpriseClient, enterprise}
-
-  def connected?(enterprise) do
-    EnterpriseClient.connected?(enterprise.id)
-  end
+  def connection_spec(enterprise), do: {EnterpriseClient, enterprise}
 
   def disconnect(enterprise) do
     EnterpriseClient.stop(enterprise.id)
@@ -146,19 +143,35 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     EnterpriseClient.get_secrets(enterprise.id)
   end
 
-  def create_secret(enterprise, %Livebook.Secrets.Secret{name: name, value: value}) do
-    create_secret_request = LivebookProto.CreateSecretRequest.new!(name: name, value: value)
+  def create_secret(enterprise, secret) do
+    create_secret_request =
+      LivebookProto.CreateSecretRequest.new!(name: secret.name, value: secret.value)
 
     case EnterpriseClient.send_request(enterprise.id, create_secret_request) do
       {:create_secret, _} ->
         :ok
 
       {:changeset_error, errors} ->
-        errors =
-          for {field, values} <- errors,
-              do: {to_string(field), values}
+        changeset =
+          for {field, messages} <- errors,
+              message <- messages,
+              reduce: secret do
+            acc ->
+              Livebook.Secrets.add_secret_error(acc, field, message)
+          end
 
-        {:error, %{errors: errors}}
+        {:error, changeset}
+
+      {:transport_error, reason} ->
+        message = "#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"
+        changeset = Livebook.Secrets.add_secret_error(secret, :origin, message)
+
+        {:error, changeset}
     end
+  end
+
+  def connection_error(enterprise) do
+    reason = EnterpriseClient.get_connection_error(enterprise.id)
+    "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
   end
 end

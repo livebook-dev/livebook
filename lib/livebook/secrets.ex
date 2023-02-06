@@ -1,7 +1,7 @@
 defmodule Livebook.Secrets do
   @moduledoc false
 
-  import Ecto.Changeset, only: [apply_action: 2]
+  import Ecto.Changeset, only: [apply_action: 2, add_error: 3, get_field: 2, put_change: 3]
 
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
@@ -50,12 +50,55 @@ defmodule Livebook.Secrets do
   end
 
   @doc """
-  Validates a secret map and either returns a struct struct or changeset.
+  Validates a secret map and either returns a tuple.
+
+  ## Examples
+
+      iex> validate_secret(%{name: "FOO", value: "bar", origin: "session"})
+      {:ok, %Secret{}}
+
+      iex> validate_secret(%{})
+      {:error, %Ecto.Changeset{}}
+
   """
   @spec validate_secret(map()) :: {:ok, Secret.t()} | {:error, Ecto.Changeset.t()}
   def validate_secret(attrs) do
-    changeset = Secret.changeset(%Secret{}, attrs)
-    apply_action(changeset, :validate)
+    %Secret{}
+    |> Secret.changeset(attrs)
+    |> apply_action(:validate)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking secret changes.
+  """
+  @spec change_secret(Secret.t(), map()) :: Ecto.Changeset.t()
+  def change_secret(%Secret{} = secret, attrs) do
+    secret
+    |> Secret.changeset(attrs)
+    |> Map.replace!(:action, :validate)
+    |> normalize_origin()
+  end
+
+  defp normalize_origin(changeset) do
+    case get_field(changeset, :origin) do
+      {:hub, id} -> put_change(changeset, :origin, "hub-#{id}")
+      _ -> changeset
+    end
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` with errors.
+  """
+  @spec add_secret_error(Ecto.Changeset.t() | Secret.t(), atom(), String.t()) ::
+          Ecto.Changeset.t()
+  def add_secret_error(%Secret{} = secret, field, message) do
+    secret
+    |> change_secret(%{})
+    |> add_error(field, message)
+  end
+
+  def add_secret_error(%Ecto.Changeset{} = changeset, field, message) do
+    add_error(changeset, field, message)
   end
 
   @doc """

@@ -3,6 +3,7 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
@@ -39,7 +40,7 @@ defmodule Livebook.Hubs do
   @spec get_metadatas() :: list(Metadata.t())
   def get_metadatas do
     for hub <- get_hubs() do
-      %{Provider.normalize(hub) | connected?: Provider.connected?(hub)}
+      Provider.to_metadata(hub)
     end
   end
 
@@ -128,7 +129,6 @@ defmodule Livebook.Hubs do
     * `:hub_connected`
     * `:hub_disconnected`
     * `{:hub_connection_failed, reason}`
-    * `{:hub_disconnection_failed, reason}`
 
   Topic `hubs:secrets`:
 
@@ -192,7 +192,7 @@ defmodule Livebook.Hubs do
   end
 
   defp connect_hub(hub) do
-    if child_spec = Provider.connect(hub) do
+    if child_spec = Provider.connection_spec(hub) do
       DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
 
@@ -221,11 +221,11 @@ defmodule Livebook.Hubs do
         if capability?(hub, [:secrets]) do
           Provider.create_secret(hub, secret)
         else
-          {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+          {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
         end
 
       :error ->
-        {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
+        {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
     end
   end
 
