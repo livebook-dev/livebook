@@ -8,7 +8,7 @@ defmodule Livebook.WebSocket.ClientConnection do
   alias Livebook.WebSocket.Client
 
   @timeout 10_000
-  @backoff 1_490
+  @backoff 5_000
 
   defstruct [:url, :listener, :headers, :http_conn, :websocket, :ref, id: 0, reply: %{}]
 

@@ -113,7 +113,7 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       # Wait until the server is up again
       assert EnterpriseServer.reconnect(name) == :ok
 
-      assert_receive {:connect, :ok, :connected}, 3000
+      assert_receive {:connect, :ok, :connected}, 5000
     end
   end
 
