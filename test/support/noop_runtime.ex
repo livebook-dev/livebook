@@ -26,7 +26,12 @@ defmodule Livebook.Runtime.NoopRuntime do
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _), do: make_ref()
 
-    def read_file(_, _), do: raise("not implemented")
+    def read_file(_, path) do
+      case File.read(path) do
+        {:ok, binary} -> {:ok, binary}
+        {:error, reason} -> "failed to read the file, got: #{inspect(reason)}"
+      end
+    end
 
     def transfer_file(_runtime, path, _file_id, callback) do
       callback.(path)
