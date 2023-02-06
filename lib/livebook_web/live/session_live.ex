@@ -963,23 +963,16 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
-  def handle_params(
-        %{"path_parts" => path_parts},
-        requested_url,
-        %{assigns: %{live_action: :catch_all}} = socket
-      ) do
-    if socket.assigns.policy.edit do
-      path_parts =
-        Enum.map(path_parts, fn
-          "__parent__" -> ".."
-          part -> part
-        end)
+  def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
+      when socket.assigns.live_action == :catch_all do
+    path_parts =
+      Enum.map(path_parts, fn
+        "__parent__" -> ".."
+        part -> part
+      end)
 
-      path = Path.join(path_parts)
-      {:noreply, handle_relative_path(socket, path, requested_url)}
-    else
-      {:noreply, socket |> put_flash(:error, "No access to navigate") |> redirect_to_self()}
-    end
+    path = Path.join(path_parts)
+    {:noreply, handle_relative_path(socket, path, requested_url)}
   end
 
   def handle_params(%{"tab" => tab}, _url, socket)
@@ -1010,7 +1003,6 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event("append_section", %{}, socket) do
-    assert_policy!(socket, :edit)
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)
 
@@ -1018,8 +1010,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_section_below", params, socket) do
-    assert_policy!(socket, :edit)
-
     with {:ok, section, index} <-
            section_with_next_index(
              socket.private.data.notebook,
@@ -1037,21 +1027,18 @@ defmodule LivebookWeb.SessionLive do
         %{"section_id" => section_id, "parent_id" => parent_id},
         socket
       ) do
-    assert_policy!(socket, :edit)
     Session.set_section_parent(socket.assigns.session.pid, section_id, parent_id)
 
     {:noreply, socket}
   end
 
   def handle_event("unset_section_parent", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.unset_section_parent(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_below", params, socket) do
-    assert_policy!(socket, :edit)
     {type, attrs} = cell_type_and_attrs_from_params(params)
 
     with {:ok, section, index} <-
@@ -1067,14 +1054,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("set_notebook_name", %{"value" => name}, socket) do
-    assert_policy!(socket, :edit)
     name = normalize_name(name)
     Session.set_notebook_name(socket.assigns.session.pid, name)
 
@@ -1082,7 +1067,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("set_section_name", %{"metadata" => section_id, "value" => name}, socket) do
-    assert_policy!(socket, :edit)
     name = normalize_name(name)
     Session.set_section_name(socket.assigns.session.pid, section_id, name)
 
@@ -1094,7 +1078,6 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "tag" => tag, "delta" => delta, "revision" => revision},
         socket
       ) do
-    assert_policy!(socket, :edit)
     tag = String.to_atom(tag)
     delta = Delta.from_compressed(delta)
     Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, revision)
@@ -1107,7 +1090,6 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "tag" => tag, "revision" => revision},
         socket
       ) do
-    assert_policy!(socket, :read)
     tag = String.to_atom(tag)
     Session.report_cell_revision(socket.assigns.session.pid, cell_id, tag, revision)
 
@@ -1115,7 +1097,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
-    assert_policy!(socket, :edit)
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session.pid, cell_id, offset)
 
@@ -1123,7 +1104,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
-    assert_policy!(socket, :edit)
     offset = ensure_integer(offset)
     Session.move_section(socket.assigns.session.pid, section_id, offset)
 
@@ -1131,8 +1111,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :edit)
-
     socket =
       case Notebook.fetch_section(socket.private.data.notebook, section_id) do
         {:ok, %{cells: []} = section} ->
@@ -1158,14 +1136,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("recover_smart_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :read)
     Session.recover_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
@@ -1176,8 +1152,6 @@ defmodule LivebookWeb.SessionLive do
         %{"kind" => kind, "variant_idx" => variant_idx},
         socket
       ) do
-    assert_policy!(socket, :edit)
-
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
          {:ok, variant} <- Enum.fetch(variants, variant_idx) do
@@ -1195,7 +1169,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
-    assert_policy!(socket, :execute)
     data = socket.private.data
 
     {status, socket} =
@@ -1219,28 +1192,24 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_section_evaluation", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_section_evaluation(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
 
   def handle_event("queue_full_evaluation", %{"forced_cell_ids" => forced_cell_ids}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_full_evaluation(socket.assigns.session.pid, forced_cell_ids)
 
     {:noreply, socket}
   end
 
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :execute)
     Session.cancel_cell_evaluation(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("queue_cells_reevaluation", %{}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_cells_reevaluation(socket.assigns.session.pid)
 
     {:noreply, socket}
@@ -1251,8 +1220,6 @@ defmodule LivebookWeb.SessionLive do
         %{"value" => value, "cell_id" => cell_id},
         socket
       ) do
-    assert_policy!(socket, :edit)
-
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
       reevaluate_automatically: value
     })
@@ -1261,8 +1228,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("save", %{}, socket) do
-    assert_policy!(socket, :edit)
-
     if socket.private.data.file do
       Session.save(socket.assigns.session.pid)
       {:noreply, socket}
@@ -1275,19 +1240,16 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("reconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {_, socket} = maybe_reconnect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("connect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {_, socket} = connect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("setup_default_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {status, socket} = connect_runtime(socket)
 
     if status == :ok do
@@ -1298,14 +1260,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
-    assert_policy!(socket, :read)
-
     request =
       case params do
         %{"type" => "completion", "hint" => hint} ->
@@ -1352,7 +1311,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
-    assert_policy!(socket, :read)
     %{pid: pid, images_dir: images_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
     data = Session.get_data(pid)
@@ -1361,14 +1319,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("erase_outputs", %{}, socket) do
-    assert_policy!(socket, :execute)
     Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("location_report", report, socket) do
-    assert_policy!(socket, :read)
-
     Phoenix.PubSub.broadcast_from(
       Livebook.PubSub,
       self(),
@@ -2282,14 +2237,6 @@ defmodule LivebookWeb.SessionLive do
          value: bytes
        }}
     end)
-  end
-
-  defp assert_policy!(socket, key) do
-    unless socket.assigns.policy |> Map.fetch!(key) do
-      raise "policy not allowed"
-    end
-
-    :ok
   end
 
   defp secret_toggled?(secret, secrets) do
