@@ -43,10 +43,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   def send_request(pid, %_struct{} = data) do
-    if GenServer.call(pid, :connected?) do
-      ClientConnection.send_request(GenServer.call(pid, :get_server), data)
-    else
-      {:transport_error, "connection refused"}
+    with {:ok, server} <- GenServer.call(pid, :fetch_server) do
+      ClientConnection.send_request(server, data)
     end
   end
 
@@ -87,8 +85,12 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @impl true
-  def handle_call(:get_server, _caller, state) do
-    {:reply, state.server, state}
+  def handle_call(:fetch_server, _caller, state) do
+    if state.connected? do
+      {:reply, {:ok, state.server}, state}
+    else
+      {:reply, {:transport_error, state.connection_error}, state}
+    end
   end
 
   def handle_call(:get_secrets, _caller, state) do
