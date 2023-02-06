@@ -1037,6 +1037,32 @@ defmodule Livebook.SessionTest do
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"
   end
 
+  test "successfully fetches assets for client-specific outputs", %{session: session} do
+    Session.subscribe(session.id)
+
+    {_section_id, cell_id} = insert_section_and_cell(session.pid)
+
+    runtime = connected_noop_runtime()
+    Session.set_runtime(session.pid, runtime)
+
+    archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
+    hash = "test-" <> Livebook.Utils.random_id()
+    assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
+    js_output = {:js, %{js_view: %{assets: assets_info}}}
+    frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
+
+    user = Livebook.Users.User.new()
+    {_, client_id} = Session.register_client(session.pid, self(), user)
+
+    # Send client-specific output
+    send(session.pid, {:runtime_evaluation_output_to, client_id, cell_id, frame_output})
+
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^frame_output}}
+
+    # The assets should be available
+    assert :ok = Session.fetch_assets(session.pid, hash)
+  end
+
   defp start_session(opts \\ []) do
     opts = Keyword.merge([id: Utils.random_id()], opts)
     pid = start_supervised!({Session, opts}, id: opts[:id])

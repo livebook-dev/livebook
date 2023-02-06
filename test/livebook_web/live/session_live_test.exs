@@ -473,7 +473,7 @@ defmodule LivebookWeb.SessionLiveTest do
       refute content =~ "In frame"
     end
 
-    test "client specific output is sent only to one target", %{conn: conn, session: session} do
+    test "client-specific output is sent only to one target", %{conn: conn, session: session} do
       user1 = build(:user, name: "Jake Peralta")
       {_, client_id} = Session.register_client(session.pid, self(), user1)
 

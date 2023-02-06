@@ -85,12 +85,20 @@ defmodule Livebook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
+          client_pids_with_id: %{pid() => Data.client_id()},
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
+          autosave_path: String.t(),
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          worker_pid: pid(),
+          registered_file_deletion_delay: pos_integer(),
+          registered_files: %{
+            String.t() => %{file_ref: Runtime.file_ref(), linked_client_id: Data.client_id()}
+          },
+          client_id_with_assets: %{Data.client_id() => map()}
         }
 
   @type memory_usage ::
@@ -243,7 +251,7 @@ defmodule Livebook.Session do
         end
 
         # Fetch assets in a separate process and avoid several
-        # simultaneous fateches of the same assets
+        # simultaneous fetches of the same assets
         case Livebook.Utils.UniqueTask.run(hash, fun) do
           :ok -> :ok
           :error -> {:error, "failed to fetch assets"}
@@ -659,7 +667,8 @@ defmodule Livebook.Session do
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
         worker_pid: worker_pid,
         registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
-        registered_files: %{}
+        registered_files: %{},
+        client_id_with_assets: %{}
       }
 
       {:ok, state}
@@ -737,7 +746,11 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:get_runtime_and_archive_path, hash}, _from, state) do
-    assets_info = Notebook.find_asset_info(state.data.notebook, hash)
+    # Lookup assets in the notebook and possibly client-specific outputs
+    assets_info =
+      Notebook.find_asset_info(state.data.notebook, hash) ||
+        Enum.find_value(state.client_id_with_assets, fn {_client_id, assets} -> assets[hash] end)
+
     runtime = state.data.runtime
 
     reply =
@@ -1125,10 +1138,18 @@ defmodule Livebook.Session do
         id == client_id && pid
       end)
 
-    if client_pid do
-      operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
-      send(client_pid, {:operation, operation})
-    end
+    state =
+      if client_pid do
+        operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
+        send(client_pid, {:operation, operation})
+
+        # Keep track of assets infos, so we can look them up when fetching
+        for assets_info <- Cell.find_assets_in_output(output), reduce: state do
+          state -> put_in(state.client_id_with_assets[client_id][assets_info.hash], assets_info)
+        end
+      else
+        state
+      end
 
     {:noreply, state}
   end
@@ -1548,10 +1569,12 @@ defmodule Livebook.Session do
     |> schedule_autosave()
   end
 
-  defp after_operation(state, prev_state, {:client_join, _client_id, user}) do
+  defp after_operation(state, prev_state, {:client_join, client_id, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
       Livebook.Users.subscribe(user.id)
     end
+
+    state = put_in(state.client_id_with_assets[client_id], %{})
 
     state
   end
@@ -1563,7 +1586,10 @@ defmodule Livebook.Session do
       Livebook.Users.unsubscribe(user_id)
     end
 
-    delete_client_files(state, client_id)
+    state = delete_client_files(state, client_id)
+    {_, state} = pop_in(state.client_id_with_assets[client_id])
+
+    state
   end
 
   defp after_operation(state, _prev_state, {:delete_cell, _client_id, cell_id}) do
