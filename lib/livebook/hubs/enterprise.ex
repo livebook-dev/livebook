@@ -125,17 +125,13 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
       name: enterprise.hub_name,
       provider: enterprise,
       emoji: enterprise.hub_emoji,
-      connected?: connected?(enterprise)
+      connected?: EnterpriseClient.connected?(enterprise.id)
     }
   end
 
   def type(_enterprise), do: "enterprise"
 
   def connection_spec(enterprise), do: {EnterpriseClient, enterprise}
-
-  def connected?(enterprise) do
-    EnterpriseClient.connected?(enterprise.id)
-  end
 
   def disconnect(enterprise) do
     EnterpriseClient.stop(enterprise.id)

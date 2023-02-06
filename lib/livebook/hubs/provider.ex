@@ -33,12 +33,6 @@ defprotocol Livebook.Hubs.Provider do
   def connection_spec(hub)
 
   @doc """
-  Gets the connection status of the given hub.
-  """
-  @spec connected?(t()) :: boolean()
-  def connected?(hub)
-
-  @doc """
   Disconnects the given hub.
   """
   @spec disconnect(t()) :: :ok
