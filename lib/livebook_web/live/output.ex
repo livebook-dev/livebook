@@ -99,6 +99,7 @@ defmodule LivebookWeb.Output do
          id: id,
          socket: socket,
          session_id: session_id,
+         session_pid: session_pid,
          input_values: input_values,
          client_id: client_id
        }) do
@@ -121,6 +122,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       socket: socket,
       session_id: session_id,
+      session_pid: session_pid,
       input_values: input_values,
       client_id: client_id
     }
@@ -160,6 +162,7 @@ defmodule LivebookWeb.Output do
               dom_id_map={%{}}
               socket={@socket}
               session_id={@session_id}
+              session_pid={@session_pid}
               input_values={@input_values}
               client_id={@client_id}
             />
@@ -173,6 +176,7 @@ defmodule LivebookWeb.Output do
   defp render_output({:grid, outputs, info}, %{
          id: id,
          session_id: session_id,
+         session_pid: session_pid,
          socket: socket,
          input_values: input_values,
          client_id: client_id
@@ -187,6 +191,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       socket: socket,
       session_id: session_id,
+      session_pid: session_pid,
       input_values: input_values,
       client_id: client_id
     }
@@ -206,6 +211,7 @@ defmodule LivebookWeb.Output do
               dom_id_map={%{}}
               socket={@socket}
               session_id={@session_id}
+              session_pid={@session_pid}
               input_values={@input_values}
               client_id={@client_id}
             />
