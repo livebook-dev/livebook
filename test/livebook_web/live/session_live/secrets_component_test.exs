@@ -47,11 +47,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
 
       attrs = %{
-        data: %{
+        secret: %{
           name: secret.name,
           value: secret.value,
-          store: "hub",
-          hub_id: enterprise.id
+          origin: "hub-#{enterprise.id}"
         }
       }
 
@@ -61,7 +60,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
       assert_receive {:secret_created, ^secret}
       assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
-      assert has_element?(view, "#hub-#{enterprise.id}-secret-#{attrs.data.name}-title")
+      assert has_element?(view, "#hub-#{enterprise.id}-secret-#{secret.name}-title")
 
       assert has_element?(
                view,
@@ -119,8 +118,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
       assert has_element?(form_element)
-      data = %{value: secret.value, store: "hub", hub_id: enterprise.id}
-      render_submit(form_element, %{data: data})
+      attrs = %{value: secret.value, origin: "hub-#{enterprise.id}"}
+      render_submit(form_element, %{secret: attrs})
 
       # Checks we received the secret created event from Enterprise
       assert_receive {:secret_created, ^secret}

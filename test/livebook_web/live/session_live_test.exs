@@ -1051,7 +1051,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
 
       assert_session_secret(view, session.pid, secret)
     end
@@ -1062,7 +1062,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
       assert secret in Livebook.Secrets.get_secrets()
     end
@@ -1075,7 +1075,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
       assert_session_secret(view, session.pid, secret)
       assert secret in Livebook.Secrets.get_secrets()
@@ -1087,7 +1087,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "app"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
       assert_session_secret(view, session.pid, secret)
       assert secret in Livebook.Secrets.get_secrets()
@@ -1102,7 +1102,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: secret.name, value: secret.value, store: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
 
       assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Secrets.get_secrets()
@@ -1152,7 +1152,7 @@ defmodule LivebookWeb.SessionLiveTest do
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
       assert has_element?(form_element)
-      render_submit(form_element, %{data: %{value: secret.value, store: "session"}})
+      render_submit(form_element, %{secret: %{value: secret.value, origin: "session"}})
 
       # Checks if the secret isn't an app secret
       refute secret in Livebook.Secrets.get_secrets()
