@@ -29,7 +29,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def read_file(_, path) do
       case File.read(path) do
         {:ok, binary} -> {:ok, binary}
-        {:error, reason} -> "failed to read the file, got: #{inspect(reason)}"
+        {:error, reason} -> {:error, "failed to read the file, got: #{inspect(reason)}"}
       end
     end
 
