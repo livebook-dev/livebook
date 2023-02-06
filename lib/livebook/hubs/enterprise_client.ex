@@ -43,7 +43,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   def send_request(pid, %_struct{} = data) do
-    ClientConnection.send_request(GenServer.call(pid, :get_server), data)
+    if GenServer.call(pid, :connected?) do
+      ClientConnection.send_request(GenServer.call(pid, :get_server), data)
+    else
+      {:transport_error, "connection refused"}
+    end
   end
 
   @doc """

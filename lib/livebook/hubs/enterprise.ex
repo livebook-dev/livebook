@@ -155,11 +155,12 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
         :ok
 
       {:changeset_error, errors} ->
-        errors =
-          for {field, values} <- errors,
-              do: {to_string(field), values}
-
+        errors = for {field, values} <- errors, do: {field, values}
         {:error, %{errors: errors}}
+
+      {:transport_error, reason} ->
+        {:error,
+         %{errors: [store: ["#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"]]}}
     end
   end
 

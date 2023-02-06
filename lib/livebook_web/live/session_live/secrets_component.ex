@@ -107,8 +107,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
-            <div>
-              <div class="input-label">Storage</div>
+            <.input_wrapper form={f} field={:store}>
+              <div class="input-label"><label for={input_id(f, :store)}>Storage</label></div>
               <div class="my-2 space-y-1 text-sm">
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
                   <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> only this session
@@ -128,7 +128,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   <% end %>
                 <% end %>
               </div>
-            </div>
+            </.input_wrapper>
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
                 <.remix_icon icon="add-line" class="align-middle" />
@@ -318,10 +318,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       {:error, %{errors: errors}} ->
         errors =
           for {name, messages} <- errors, message <- messages do
-            {String.to_existing_atom(name), {message, []}}
+            if is_atom(name),
+              do: {name, {message, []}},
+              else: {String.to_existing_atom(name), {message, []}}
           end
 
-        {:noreply, assign(socket, errors: errors)}
+        {:noreply, assign(socket, data: data, errors: errors)}
     end
   end
 

@@ -221,11 +221,11 @@ defmodule Livebook.Hubs do
         if capability?(hub, [:secrets]) do
           Provider.create_secret(hub, secret)
         else
-          {:error, %{errors: [{"hub_id", {"is invalid", []}}]}}
+          {:error, %{errors: [store: ["is invalid"]]}}
         end
 
       :error ->
-        {:error, %{errors: [{"hub_id", {"doest not exists", []}}]}}
+        {:error, %{errors: [store: ["does not exist"]]}}
     end
   end
 
