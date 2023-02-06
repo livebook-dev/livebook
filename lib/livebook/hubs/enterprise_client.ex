@@ -110,11 +110,6 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
-  def handle_info({:disconnect, :error, reason}, state) do
-    Broadcasts.hub_disconnection_failed(reason)
-    {:noreply, %{state | connected?: false, connection_error: reason}}
-  end
-
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
     Broadcasts.secret_created(secret)
