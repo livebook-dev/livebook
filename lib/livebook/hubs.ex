@@ -39,7 +39,7 @@ defmodule Livebook.Hubs do
   @spec get_metadatas() :: list(Metadata.t())
   def get_metadatas do
     for hub <- get_hubs() do
-      %{Provider.normalize(hub) | connected?: Provider.connected?(hub)}
+      Provider.to_metadata(hub)
     end
   end
 

@@ -119,12 +119,13 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def normalize(enterprise) do
+  def to_metadata(enterprise) do
     %Livebook.Hubs.Metadata{
       id: enterprise.id,
       name: enterprise.hub_name,
       provider: enterprise,
-      emoji: enterprise.hub_emoji
+      emoji: enterprise.hub_emoji,
+      connected?: connected?(enterprise)
     }
   end
 

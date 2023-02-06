@@ -8,10 +8,10 @@ defprotocol Livebook.Hubs.Provider do
   @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
 
   @doc """
-  Normalize given hub to `Livebook.Hubs.Metadata` struct.
+  Transforms given hub to `Livebook.Hubs.Metadata` struct.
   """
-  @spec normalize(struct()) :: Livebook.Hubs.Metadata.t()
-  def normalize(struct)
+  @spec to_metadata(struct()) :: Livebook.Hubs.Metadata.t()
+  def to_metadata(struct)
 
   @doc """
   Loads fields into given hub.
