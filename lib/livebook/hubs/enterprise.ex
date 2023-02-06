@@ -147,20 +147,30 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     EnterpriseClient.get_secrets(enterprise.id)
   end
 
-  def create_secret(enterprise, %Livebook.Secrets.Secret{name: name, value: value}) do
-    create_secret_request = LivebookProto.CreateSecretRequest.new!(name: name, value: value)
+  def create_secret(enterprise, secret) do
+    create_secret_request =
+      LivebookProto.CreateSecretRequest.new!(name: secret.name, value: secret.value)
 
     case EnterpriseClient.send_request(enterprise.id, create_secret_request) do
       {:create_secret, _} ->
         :ok
 
       {:changeset_error, errors} ->
-        errors = for {field, values} <- errors, do: {field, values}
-        {:error, %{errors: errors}}
+        changeset =
+          for {field, messages} <- errors,
+              message <- messages,
+              reduce: secret do
+            acc ->
+              Livebook.Secrets.add_secret_error(acc, field, message)
+          end
+
+        {:error, changeset}
 
       {:transport_error, reason} ->
-        {:error,
-         %{errors: [store: ["#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"]]}}
+        message = "#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"
+        changeset = Livebook.Secrets.add_secret_error(secret, :origin, message)
+
+        {:error, changeset}
     end
   end
 

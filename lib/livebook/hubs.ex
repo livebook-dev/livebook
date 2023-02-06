@@ -3,6 +3,7 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
@@ -221,11 +222,11 @@ defmodule Livebook.Hubs do
         if capability?(hub, [:secrets]) do
           Provider.create_secret(hub, secret)
         else
-          {:error, %{errors: [store: ["is invalid"]]}}
+          {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
         end
 
       :error ->
-        {:error, %{errors: [store: ["does not exist"]]}}
+        {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
     end
   end
 
