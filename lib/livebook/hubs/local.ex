@@ -21,7 +21,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Local do
 
   def type(_local), do: "local"
 
-  def connect(_local), do: nil
+  def connection_spec(_local), do: nil
 
   def connected?(_local), do: false
 

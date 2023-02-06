@@ -129,7 +129,6 @@ defmodule Livebook.Hubs do
     * `:hub_connected`
     * `:hub_disconnected`
     * `{:hub_connection_failed, reason}`
-    * `{:hub_disconnection_failed, reason}`
 
   Topic `hubs:secrets`:
 
@@ -193,7 +192,7 @@ defmodule Livebook.Hubs do
   end
 
   defp connect_hub(hub) do
-    if child_spec = Provider.connect(hub) do
+    if child_spec = Provider.connection_spec(hub) do
       DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
 

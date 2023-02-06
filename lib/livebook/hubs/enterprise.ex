@@ -131,7 +131,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
 
   def type(_enterprise), do: "enterprise"
 
-  def connect(enterprise), do: {EnterpriseClient, enterprise}
+  def connection_spec(enterprise), do: {EnterpriseClient, enterprise}
 
   def connected?(enterprise) do
     EnterpriseClient.connected?(enterprise.id)
@@ -175,6 +175,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
   end
 
   def connection_error(enterprise) do
-    EnterpriseClient.get_connection_error(enterprise.id)
+    reason = EnterpriseClient.get_connection_error(enterprise.id)
+    "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
   end
 end

@@ -29,8 +29,8 @@ defprotocol Livebook.Hubs.Provider do
   @doc """
   Gets the child spec of the given hub.
   """
-  @spec connect(t()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
-  def connect(hub)
+  @spec connection_spec(t()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
+  def connection_spec(hub)
 
   @doc """
   Gets the connection status of the given hub.
