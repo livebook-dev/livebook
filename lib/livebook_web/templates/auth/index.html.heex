@@ -16,8 +16,9 @@
       <%= if @auth_mode == :password do %>
         Type password to access the Livebook.
       <% else %>
-        Please check out the console for authentication URL
-        or type the token directly here.
+        Please check out the console for authentication URL or type the token directly
+        here.<br />To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
+        environment variable.
       <% end %>
     </div>
     <div class="text-2xl text-gray-50 w-full pt-2">
