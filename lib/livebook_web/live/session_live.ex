@@ -783,7 +783,7 @@ defmodule LivebookWeb.SessionLive do
   defp secrets_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button cursor-pointer tooltip bottom-left"
+      class="icon-button p-0 cursor-pointer tooltip bottom-left"
       data-tooltip={
         ~S'''
         Secrets are a safe way to share credentials
@@ -806,7 +806,7 @@ defmodule LivebookWeb.SessionLive do
           Runtime
         </h3>
         <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button" do %>
+              class: "icon-button p-0" do %>
           <.remix_icon icon="settings-3-line text-xl" />
         <% end %>
       </div>
