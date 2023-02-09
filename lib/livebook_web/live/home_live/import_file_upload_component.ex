@@ -28,7 +28,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
         <div
           class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48"
           phx-hook="Dropzone"
-          id="upload-file-dropzone"
+          id="import-file-upload-dropzone"
         >
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
