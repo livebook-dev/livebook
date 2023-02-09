@@ -35,7 +35,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
         class="inline-flex flex-col gap-4 p-4 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer"
         phx-drop-target={@uploads.file.ref}
         phx-hook="Dropzone"
-        id="upload-file-dropzone"
+        id={"#{@id}-upload-dropzone"}
       >
         <div class="flex justify-center text-gray-500">
           <%= if @value do %>
