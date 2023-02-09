@@ -3,7 +3,7 @@ import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
 import { theme, highContrast } from "./theme";
 
-import { PieceTreeTextBufferFactory } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
+import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
 
 // Force LF for line ending.
 //
@@ -25,9 +25,23 @@ import { PieceTreeTextBufferFactory } from "monaco-editor/esm/vs/editor/common/m
 //
 // [1]: https://github.com/microsoft/vscode/blob/34f184263de048a6283af1d9eb9faab84da4547d/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts#L27-L40
 // [2]: https://github.com/microsoft/vscode/issues/127
-if (PieceTreeTextBufferFactory.prototype._getEOL) {
-  PieceTreeTextBufferFactory.prototype._getEOL = function (defaultEOL) {
-    return "\n";
+if (PieceTreeTextBufferBuilder.prototype.finish) {
+  const original = PieceTreeTextBufferBuilder.prototype.finish;
+
+  // We don't have access to the factory class directly, so we override
+  // the builder, such that we modify the factory object once created
+  PieceTreeTextBufferBuilder.prototype.finish = function (...args) {
+    const factory = original.apply(this, args);
+
+    if (factory._getEOL) {
+      factory._getEOL = function (defaultEOL) {
+        return "\n";
+      };
+    } else {
+      throw new Error("failed to override line endings to LF");
+    }
+
+    return factory;
   };
 } else {
   throw new Error("failed to override line endings to LF");
