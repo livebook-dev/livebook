@@ -40,20 +40,22 @@ defmodule LivebookWeb.Hub.EditLive do
         <div class="flex relative">
           <PageHelpers.title text="Edit Hub" socket={@socket} />
 
-          <button
-            phx-click={
-              with_confirm(
-                JS.push("delete_hub", value: %{id: @hub.id}),
-                title: "Delete hub",
-                description: "Are you sure you want to delete this hub?",
-                confirm_text: "Delete",
-                confirm_icon: "close-circle-line"
-              )
-            }
-            class="absolute right-0 button-base bg-red-500"
-          >
-            Delete hub
-          </button>
+          <%= if @type != "personal" do %>
+            <button
+              phx-click={
+                with_confirm(
+                  JS.push("delete_hub", value: %{id: @hub.id}),
+                  title: "Delete hub",
+                  description: "Are you sure you want to delete this hub?",
+                  confirm_text: "Delete",
+                  confirm_icon: "close-circle-line"
+                )
+              }
+              class="absolute right-0 button-base bg-red-500"
+            >
+              Delete hub
+            </button>
+          <% end %>
         </div>
 
         <%= case @type do %>
