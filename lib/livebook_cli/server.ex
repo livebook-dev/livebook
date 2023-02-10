@@ -192,7 +192,7 @@ defmodule LivebookCLI.Server do
     name: :string,
     port: :integer,
     home: :string,
-    sname: :string,
+    sname: :string
   ]
 
   @aliases [
