@@ -44,8 +44,23 @@ defmodule LivebookWeb.Hub.EditLive do
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
-        <div>
+        <div class="flex relative">
           <PageHelpers.title text="Edit Hub" socket={@socket} />
+
+          <button
+            phx-click={
+              with_confirm(
+                JS.push("delete_hub", value: %{id: @hub.id}),
+                title: "Delete hub",
+                description: "Are you sure you want to delete this hub?",
+                confirm_text: "Delete",
+                confirm_icon: "close-circle-line"
+              )
+            }
+            class="absolute right-0 button-base bg-red-500"
+          >
+            Delete hub
+          </button>
         </div>
 
         <%= if @type == "fly" do %>
@@ -68,5 +83,15 @@ defmodule LivebookWeb.Hub.EditLive do
       </div>
     </LayoutHelpers.layout>
     """
+  end
+
+  @impl true
+  def handle_event("delete_hub", %{"id" => id}, socket) do
+    Hubs.delete_hub(id)
+
+    {:noreply,
+     socket
+     |> put_flash(:success, "Hub deleted successfully")
+     |> push_redirect(to: "/")}
   end
 end
