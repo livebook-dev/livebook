@@ -62,6 +62,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec get_connection_error(String.t()) :: Secret.t() | nil
   def get_connection_error(id) do
     GenServer.call(registry_name(id), :get_connection_error)
+  catch
+    :exit, _ -> "connection refused"
   end
 
   @doc """
