@@ -88,7 +88,10 @@ defmodule Livebook.Hubs do
     struct
   end
 
-  @doc false
+  @doc """
+  Deletes a hub from given id.
+  """
+  @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
       :ok = Broadcasts.hub_changed()
