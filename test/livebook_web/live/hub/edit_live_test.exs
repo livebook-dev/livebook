@@ -73,14 +73,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      assert html =~ "Manage app on Fly"
-      assert html =~ "https://fly.io/apps/#{hub.application_id}"
-
-      assert html =~ "Environment Variables"
-      refute html =~ "FOO_ENV_VAR"
-      assert html =~ "LIVEBOOK_PASSWORD"
-      assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
-
       assert {:ok, view, _html} =
                view
                |> render_click("delete_hub", %{"id" => hub_id})
