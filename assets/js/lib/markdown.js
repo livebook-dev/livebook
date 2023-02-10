@@ -25,11 +25,16 @@ import { escapeHtml } from "../lib/utils";
  * Renders markdown content in the given container.
  */
 class Markdown {
-  constructor(container, content, { baseUrl = null, emptyText = "" } = {}) {
+  constructor(
+    container,
+    content,
+    { baseUrl = null, emptyText = "", extraProtocol = [] } = {}
+  ) {
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
     this.emptyText = emptyText;
+    this.extraProtocol = extraProtocol;
 
     this._render();
   }
@@ -62,7 +67,7 @@ class Markdown {
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
         .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
-        .use(rehypeSanitize, sanitizeSchema())
+        .use(rehypeSanitize, sanitizeSchema(this.extraProtocol))
         .use(rehypeKatex)
         .use(rehypeMermaid)
         .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
@@ -98,14 +103,19 @@ export default Markdown;
 
 // Plugins
 
-function sanitizeSchema() {
+function sanitizeSchema(extraProtocol) {
   // Allow class and style attributes on tags for syntax highlighting,
   // remarkMath tags, or user-written styles
+
   return {
     ...defaultSchema,
     attributes: {
       ...defaultSchema.attributes,
       "*": [...(defaultSchema.attributes["*"] || []), "className", "style"],
+    },
+    protocols: {
+      ...defaultSchema.protocols,
+      href: [...defaultSchema.protocols.href, ...extraProtocol],
     },
   };
 }

@@ -1,6 +1,7 @@
 defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
+  alias Livebook.Settings
   alias LivebookWeb.{LayoutHelpers, PageHelpers}
 
   on_mount LivebookWeb.SidebarHook
@@ -16,6 +17,7 @@ defmodule LivebookWeb.SettingsLive do
        file_systems: Livebook.Settings.file_systems(),
        env_vars: Livebook.Settings.fetch_env_vars() |> Enum.sort(),
        env_var: nil,
+       protocol: Settings.fetch_custom_protocol(),
        autosave_path_state: %{
          file: autosave_dir(),
          dialog_opened?: false
@@ -137,6 +139,22 @@ defmodule LivebookWeb.SettingsLive do
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
               add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
+            />
+          </div>
+          <!-- Protocol  -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Custom Protocol
+            </h2>
+            <p class="mt-4 text-gray-700">
+              Add custom protocol to this Livebook instance, which are available inside your notebooks.
+              Enter the protocols below and separate with a comma.
+            </p>
+            <.live_component
+              module={LivebookWeb.ProtocolsComponent}
+              id="protocols"
+              protocol={@protocol}
+              return_to={Routes.settings_path(@socket, :page)}
             />
           </div>
         </div>
