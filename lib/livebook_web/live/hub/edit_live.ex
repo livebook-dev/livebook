@@ -17,21 +17,14 @@ defmodule LivebookWeb.Hub.EditLive do
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
-    if type == "local" do
-      {:noreply,
-       socket
-       |> redirect(to: "/")
-       |> put_flash(:warning, "You can't edit the localhost Hub")}
-    else
-      {:noreply,
-       assign(socket,
-         hub: hub,
-         type: type,
-         page_title: "Livebook - Hub",
-         params: params,
-         env_var_id: params["env_var_id"]
-       )}
-    end
+    {:noreply,
+     assign(socket,
+       hub: hub,
+       type: type,
+       page_title: "Livebook - Hub",
+       params: params,
+       env_var_id: params["env_var_id"]
+     )}
   end
 
   @impl true
@@ -63,22 +56,27 @@ defmodule LivebookWeb.Hub.EditLive do
           </button>
         </div>
 
-        <%= if @type == "fly" do %>
-          <.live_component
-            module={LivebookWeb.Hub.Edit.FlyComponent}
-            hub={@hub}
-            id="fly-form"
-            live_action={@live_action}
-            env_var_id={@env_var_id}
-          />
-        <% end %>
-
-        <%= if @type == "enterprise" do %>
-          <.live_component
-            module={LivebookWeb.Hub.Edit.EnterpriseComponent}
-            hub={@hub}
-            id="enterprise-form"
-          />
+        <%= case @type do %>
+          <% "fly" -> %>
+            <.live_component
+              module={LivebookWeb.Hub.Edit.FlyComponent}
+              hub={@hub}
+              id="fly-form"
+              live_action={@live_action}
+              env_var_id={@env_var_id}
+            />
+          <% "personal" -> %>
+            <.live_component
+              module={LivebookWeb.Hub.Edit.PersonalComponent}
+              hub={@hub}
+              id="personal-form"
+            />
+          <% "enterprise" -> %>
+            <.live_component
+              module={LivebookWeb.Hub.Edit.EnterpriseComponent}
+              hub={@hub}
+              id="enterprise-form"
+            />
         <% end %>
       </div>
     </LayoutHelpers.layout>
