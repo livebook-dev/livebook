@@ -89,7 +89,7 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Deletes a hub from given id.
+  Deletes a hub with the given id.
   """
   @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
