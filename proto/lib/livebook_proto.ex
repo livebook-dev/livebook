@@ -35,6 +35,18 @@ defmodule LivebookProto do
   end
 
   @doc """
+  Builds a create secret request struct.
+  """
+  @spec build_create_secret_request(keyword()) :: CreateSecretRequest.t()
+  defdelegate build_create_secret_request(fields), to: CreateSecretRequest, as: :new!
+
+  @doc """
+  Builds a session request struct.
+  """
+  @spec build_session_request(keyword()) :: SessionRequest.t()
+  defdelegate build_session_request(fields), to: SessionRequest, as: :new!
+
+  @doc """
   Builds a response with given data and id.
   """
   @spec build_response(response_proto(), integer()) :: Response.t()
