@@ -57,6 +57,14 @@ defmodule Livebook.Hubs.Broadcasts do
     broadcast(@secrets_topic, {:secret_updated, secret})
   end
 
+  @doc """
+  Broadcasts under `hubs:secrets` topic when hub received a deleted secret.
+  """
+  @spec secret_deleted(Secret.t()) :: broadcast()
+  def secret_deleted(%Secret{} = secret) do
+    broadcast(@secrets_topic, {:secret_deleted, secret})
+  end
+
   defp broadcast(topic, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, topic, message)
   end
