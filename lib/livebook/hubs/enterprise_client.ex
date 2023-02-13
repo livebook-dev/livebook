@@ -126,6 +126,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
+  def handle_info({:disconnect, :ok, :disconnected}, state) do
+    Broadcasts.hub_disconnected()
+    {:stop, :normal, state}
+  end
+
   def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
     secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
     Broadcasts.secret_created(secret)
@@ -147,9 +152,19 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:noreply, remove_secret(state, secret)}
   end
 
-  def handle_info({:disconnect, :ok, :disconnected}, state) do
-    Broadcasts.hub_disconnected()
-    {:stop, :normal, state}
+  def handle_info({:event, :session_created, session_created}, state) do
+    hub =
+      case Enterprise.update_hub(state.hub, %{hub_name: session_created.name}) do
+        {:ok, hub} -> hub
+        {:error, _} -> state.hub
+      end
+
+    secrets =
+      for %{name: name, value: value} <- session_created.secrets do
+        %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
+      end
+
+    {:noreply, %{state | hub: hub, secrets: secrets}}
   end
 
   # Private

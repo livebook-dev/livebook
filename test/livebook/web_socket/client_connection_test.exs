@@ -108,10 +108,10 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
     setup %{url: url, token: token} do
       headers = [{"X-Auth-Token", token}]
 
-      {:ok, _conn} = ClientConnection.start_link(self(), url, headers)
+      {:ok, conn} = ClientConnection.start_link(self(), url, headers)
       assert_receive {:connect, :ok, :connected}
 
-      :ok
+      {:ok, conn: conn}
     end
 
     test "receives a secret_created event" do
@@ -147,6 +147,24 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       :erpc.call(node, Enterprise.Integration, :delete_secret, [secret])
 
       assert_receive {:event, :secret_deleted, %{name: ^name, value: ^value}}
+    end
+
+    test "receives a session_created event", %{conn: conn, node: node} do
+      data = LivebookProto.build_session_request(app_version: Livebook.Config.app_version())
+      assert {:session, _} = ClientConnection.send_request(conn, data)
+
+      id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
+      name = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_NAME"])
+
+      assert_receive {:event, :session_created, %{id: ^id, name: ^name, secrets: []}}
+
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, ["SESSION", "123"])
+      assert_receive {:event, :secret_created, %{name: "SESSION", value: "123"}}
+
+      assert {:session, _} = ClientConnection.send_request(conn, data)
+
+      assert_receive {:event, :session_created, %{id: ^id, name: ^name, secrets: secrets}}
+      assert LivebookProto.Secret.new!(name: secret.name, value: secret.value) in secrets
     end
   end
 end
