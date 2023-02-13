@@ -51,7 +51,7 @@ defprotocol Livebook.Hubs.Provider do
   def get_secrets(hub)
 
   @doc """
-  Creates a secret of  the given hub.
+  Creates a secret of the given hub.
   """
   @spec create_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
   def create_secret(hub, secret)
