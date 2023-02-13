@@ -19,7 +19,7 @@ defmodule Livebook.SecretsTest do
     test "returns a list of secrets from temporary storage" do
       secret = build(:secret, name: "FOO", value: "222", origin: :startup)
 
-      Secrets.set_temporary_secrets([secret])
+      Secrets.set_startup_secrets([secret])
       assert secret in Secrets.get_secrets()
 
       # We can't delete from temporary storage, since it will be deleted
