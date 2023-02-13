@@ -94,9 +94,11 @@ defmodule Livebook.Hubs do
   @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      :ok = Broadcasts.hub_changed()
-      :ok = Storage.delete(@namespace, id)
-      :ok = disconnect_hub(hub)
+      if Provider.type(hub) != "personal" do
+        :ok = Broadcasts.hub_changed()
+        :ok = Storage.delete(@namespace, id)
+        :ok = disconnect_hub(hub)
+      end
     end
 
     :ok

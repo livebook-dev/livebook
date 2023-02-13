@@ -11,26 +11,20 @@ defmodule Livebook.HubsTest do
 
   test "get_hubs/0 returns a list of persisted hubs" do
     fly = insert_hub(:fly, id: "fly-baz")
-    assert Hubs.get_hubs() == [fly]
+    assert fly in Hubs.get_hubs()
 
     Hubs.delete_hub("fly-baz")
-    assert Hubs.get_hubs() == []
+    refute fly in Hubs.get_hubs()
   end
 
   test "get_metadata/0 returns a list of persisted hubs normalized" do
     fly = insert_hub(:fly, id: "fly-livebook")
+    metadata = Hubs.Provider.to_metadata(fly)
 
-    assert Hubs.get_metadatas() == [
-             %Hubs.Metadata{
-               id: "fly-livebook",
-               emoji: fly.hub_emoji,
-               name: fly.hub_name,
-               provider: fly
-             }
-           ]
+    assert metadata in Hubs.get_metadatas()
 
     Hubs.delete_hub("fly-livebook")
-    assert Hubs.get_metadatas() == []
+    refute metadata in Hubs.get_metadatas()
   end
 
   test "fetch_hub!/1 returns one persisted fly" do

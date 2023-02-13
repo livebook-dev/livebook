@@ -204,11 +204,13 @@ defmodule Livebook.Application do
   end
 
   defp insert_personal_hub do
-    Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
-      id: "personal-hub",
-      hub_name: "My Hub",
-      hub_emoji: "🏠"
-    })
+    unless Livebook.Hubs.hub_exists?("personal-hub") do
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
+        id: "personal-hub",
+        hub_name: "My Hub",
+        hub_emoji: "🏠"
+      })
+    end
   end
 
   defp iframe_server_specs() do

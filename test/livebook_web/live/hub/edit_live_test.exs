@@ -71,7 +71,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: hub_id, application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
       assert {:ok, view, _html} =
                view

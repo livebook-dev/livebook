@@ -45,8 +45,8 @@ defmodule Livebook.Hubs.Personal do
     end
   end
 
-  defp changeset(fly, attrs) do
-    fly
+  defp changeset(personal, attrs) do
+    personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
     |> put_change(:id, "personal-hub")

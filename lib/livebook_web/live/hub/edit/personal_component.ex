@@ -42,7 +42,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
                 <div class="input-label">Emoji</div>
                 <.emoji_input
-                  id="fly-emoji-input"
+                  id="personal-emoji-input"
                   form={f}
                   field={:hub_emoji}
                   container_class="mt-10"
