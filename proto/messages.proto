@@ -28,6 +28,11 @@ message SecretUpdated {
   string value = 2;
 }
 
+message SecretDeleted {
+  string name = 1;
+  string value = 2;
+}
+
 message SessionRequest {
   string app_version = 1;
 }
@@ -70,5 +75,6 @@ message Event {
   oneof type {
     SecretCreated secret_created = 100;
     SecretUpdated secret_updated = 101;
+    SecretDeleted secret_deleted = 102;
   }
 }

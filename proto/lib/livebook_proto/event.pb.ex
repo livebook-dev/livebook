@@ -13,4 +13,9 @@ defmodule LivebookProto.Event do
     type: LivebookProto.SecretUpdated,
     json_name: "secretUpdated",
     oneof: 0
+
+  field :secret_deleted, 102,
+    type: LivebookProto.SecretDeleted,
+    json_name: "secretDeleted",
+    oneof: 0
 end
