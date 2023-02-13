@@ -5,14 +5,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
   alias Livebook.Hubs
 
-  setup do
-    on_exit(fn ->
-      Hubs.clean_hubs()
-    end)
-
-    :ok
-  end
-
   describe "fly" do
     setup do
       bypass = Bypass.open()
@@ -68,7 +60,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       app_id = Livebook.Utils.random_short_id()
       hub_id = "fly-#{app_id}"
 
-      hub = insert_hub(:fly, id: hub_id, application_id: app_id)
+      hub = insert_hub(:fly, id: hub_id, hub_name: "My Deletable Hub", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
@@ -80,7 +72,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       hubs_html = view |> element("#hubs") |> render()
 
-      refute hubs_html =~ hub.hub_emoji
       refute hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
       refute hubs_html =~ hub.hub_name
 

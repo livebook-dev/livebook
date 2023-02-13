@@ -94,11 +94,10 @@ defmodule Livebook.Hubs do
   @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      if Provider.type(hub) != "personal" do
-        :ok = Broadcasts.hub_changed()
-        :ok = Storage.delete(@namespace, id)
-        :ok = disconnect_hub(hub)
-      end
+      true = Provider.type(hub) != "personal"
+      :ok = Broadcasts.hub_changed()
+      :ok = Storage.delete(@namespace, id)
+      :ok = disconnect_hub(hub)
     end
 
     :ok
@@ -109,13 +108,6 @@ defmodule Livebook.Hubs do
       Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)
-
-    :ok
-  end
-
-  @doc false
-  def clean_hubs do
-    for hub <- get_hubs(), do: delete_hub(hub.id)
 
     :ok
   end
