@@ -18,4 +18,9 @@ defmodule LivebookProto.Event do
     type: LivebookProto.SecretDeleted,
     json_name: "secretDeleted",
     oneof: 0
+
+  field :session_created, 103,
+    type: LivebookProto.SessionCreated,
+    json_name: "sessionCreated",
+    oneof: 0
 end

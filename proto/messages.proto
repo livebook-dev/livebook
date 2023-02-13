@@ -5,6 +5,11 @@ message User {
   string email = 2;
 }
 
+message Secret {
+  string name = 1;
+  string value = 2;
+}
+
 message Error {
   string details = 1;
 }
@@ -31,6 +36,12 @@ message SecretUpdated {
 message SecretDeleted {
   string name = 1;
   string value = 2;
+}
+
+message SessionCreated {
+  string id = 1;
+  string name = 2;
+  repeated Secret secrets = 3;
 }
 
 message SessionRequest {
@@ -76,5 +87,6 @@ message Event {
     SecretCreated secret_created = 100;
     SecretUpdated secret_updated = 101;
     SecretDeleted secret_deleted = 102;
+    SessionCreated session_created = 103;
   }
 }
