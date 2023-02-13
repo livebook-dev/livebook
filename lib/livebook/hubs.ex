@@ -211,20 +211,21 @@ defmodule Livebook.Hubs do
   @doc """
   Creates a secret for given hub.
   """
-  @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
+  @spec create_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
   def create_secret(%Secret{origin: {:hub, id}} = secret) do
     case get_hub(id) do
       {:ok, hub} ->
-        if capability?(hub, [:secrets]) do
-          Provider.create_secret(hub, secret)
-        else
-          {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
-        end
+        if capability?(hub, [:create_secret]),
+          do: Provider.create_secret(hub, secret),
+          else: {:error, add_invalid_origin_error(secret)}
 
       :error ->
-        {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
+        {:error, add_invalid_origin_error(secret)}
     end
   end
+
+  defp add_invalid_origin_error(secret),
+    do: {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
 
   defp capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
