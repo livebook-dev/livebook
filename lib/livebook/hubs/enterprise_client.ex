@@ -59,9 +59,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @doc """
   Returns the latest error from connection.
   """
-  @spec get_connection_error(String.t()) :: Secret.t() | nil
+  @spec get_connection_error(String.t()) :: String.t() | nil
   def get_connection_error(id) do
     GenServer.call(registry_name(id), :get_connection_error)
+  catch
+    :exit, _ -> "connection refused"
   end
 
   @doc """
