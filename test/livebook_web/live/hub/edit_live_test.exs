@@ -63,6 +63,30 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
+    test "deletes hub", %{conn: conn, bypass: bypass} do
+      {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :mount} end)
+      app_id = Livebook.Utils.random_short_id()
+      hub_id = "fly-#{app_id}"
+
+      hub = insert_hub(:fly, id: hub_id, application_id: app_id)
+      fly_bypass(bypass, app_id, pid)
+
+      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+
+      assert {:ok, view, _html} =
+               view
+               |> render_click("delete_hub", %{"id" => hub_id})
+               |> follow_redirect(conn)
+
+      hubs_html = view |> element("#hubs") |> render()
+
+      refute hubs_html =~ hub.hub_emoji
+      refute hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+      refute hubs_html =~ hub.hub_name
+
+      assert Hubs.get_hub(hub_id) == :error
+    end
+
     test "add env var", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :mount} end)
 
