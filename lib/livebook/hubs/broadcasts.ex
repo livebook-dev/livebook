@@ -42,14 +42,6 @@ defmodule Livebook.Hubs.Broadcasts do
   end
 
   @doc """
-  Broadcasts when hub had an error when disconnecting under `hubs:connection` topic
-  """
-  @spec hub_disconnection_failed(String.t()) :: broadcast()
-  def hub_disconnection_failed(reason) when is_binary(reason) do
-    broadcast(@connection_topic, {:hub_disconnection_failed, reason})
-  end
-
-  @doc """
   Broadcasts under `hubs:secrets` topic when hub received a new secret.
   """
   @spec secret_created(Secret.t()) :: broadcast()
