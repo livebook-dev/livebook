@@ -177,6 +177,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     end
   end
 
+  def update_secret(_enterprise, _secret), do: :ok
+
+  def delete_secret(_enterprise, _secret), do: :ok
+
   def connection_error(enterprise) do
     reason = EnterpriseClient.get_connection_error(enterprise.id)
     "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."

@@ -57,6 +57,18 @@ defprotocol Livebook.Hubs.Provider do
   def create_secret(hub, secret)
 
   @doc """
+  Updates a secret of the given hub.
+  """
+  @spec update_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def update_secret(hub, secret)
+
+  @doc """
+  Deletes a secret of the given hub.
+  """
+  @spec delete_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def delete_secret(hub, secret)
+
+  @doc """
   Gets the connection error from hub.
   """
   @spec connection_error(t()) :: String.t() | nil
