@@ -87,6 +87,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @impl true
+  def handle_continue(:create_session, state) do
+    data = LivebookProto.build_session_request(app_version: Livebook.Config.app_version())
+    {:session, _} = ClientConnection.send_request(state.server, data)
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_call(:fetch_server, _caller, state) do
     if state.connected? do
       {:reply, {:ok, state.server}, state}
@@ -110,7 +118,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def handle_info({:connect, :ok, _}, state) do
     Broadcasts.hub_connected()
-    {:noreply, %{state | connected?: true, connection_error: nil}}
+    {:noreply, %{state | connected?: true, connection_error: nil}, {:continue, :create_session}}
   end
 
   def handle_info({:connect, :error, reason}, state) do
