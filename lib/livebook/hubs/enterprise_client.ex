@@ -132,6 +132,13 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:noreply, put_secret(state, secret)}
   end
 
+  def handle_info({:event, :secret_deleted, %{name: name, value: value}}, state) do
+    secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
+    Broadcasts.secret_deleted(secret)
+
+    {:noreply, remove_secret(state, secret)}
+  end
+
   def handle_info({:disconnect, :ok, :disconnected}, state) do
     Broadcasts.hub_disconnected()
     {:stop, :normal, state}
@@ -144,6 +151,11 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   defp put_secret(state, secret) do
-    %{state | secrets: [secret | Enum.reject(state.secrets, &(&1.name == secret.name))]}
+    state = remove_secret(state, secret)
+    %{state | secrets: [secret | state.secrets]}
+  end
+
+  defp remove_secret(state, secret) do
+    %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
   end
 end

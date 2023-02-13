@@ -72,5 +72,17 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       assert_receive {:secret_updated,
                       %Secret{name: ^name, value: ^new_value, origin: {:hub, ^id}}}
     end
+
+    test "receives a secret_deleted event", %{node: node, hub_id: id} do
+      name = "SUPER_DELETE"
+      value = "JakePeralta"
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
+
+      assert_receive {:secret_created, %Secret{name: ^name, value: ^value, origin: {:hub, ^id}}}
+
+      :erpc.call(node, Enterprise.Integration, :delete_secret, [secret])
+
+      assert_receive {:secret_deleted, %Secret{name: ^name, value: ^value, origin: {:hub, ^id}}}
+    end
   end
 end

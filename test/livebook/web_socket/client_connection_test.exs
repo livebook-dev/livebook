@@ -136,5 +136,17 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
 
       assert_receive {:event, :secret_updated, %{name: ^name, value: ^new_value}}
     end
+
+    test "receives a secret_deleted event", %{node: node} do
+      name = "DELETE_ME"
+      value = "JakePeralta"
+      secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
+
+      assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
+
+      :erpc.call(node, Enterprise.Integration, :delete_secret, [secret])
+
+      assert_receive {:event, :secret_deleted, %{name: ^name, value: ^value}}
+    end
   end
 end
