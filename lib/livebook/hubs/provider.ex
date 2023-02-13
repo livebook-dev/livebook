@@ -3,7 +3,7 @@ defprotocol Livebook.Hubs.Provider do
 
   alias Livebook.Secrets.Secret
 
-  @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Local.t()
+  @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Personal.t()
   @type capability :: :connect | :secrets
   @type capabilities :: list(capability())
   @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
