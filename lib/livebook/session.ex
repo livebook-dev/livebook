@@ -52,6 +52,7 @@ defmodule Livebook.Session do
     :origin,
     :notebook_name,
     :file,
+    :mode,
     :images_dir,
     :created_at,
     :memory_usage
@@ -77,6 +78,7 @@ defmodule Livebook.Session do
           origin: Notebook.ContentLoader.location() | nil,
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
+          mode: Data.session_mode(),
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
           memory_usage: memory_usage()
@@ -140,6 +142,9 @@ defmodule Livebook.Session do
       deleting a registered file that is no longer in use. Defaults
       to `15_000`
 
+    * `:mode` - the mode in which the session operates, either `:default`
+      or `:app`. Defaults to `:default`
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -202,6 +207,21 @@ defmodule Livebook.Session do
   @spec subscribe(id()) :: :ok | {:error, term()}
   def subscribe(session_id) do
     Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+  end
+
+  @doc """
+  Subscribes to app session messages.
+
+  ## Messages
+
+    * `{:app_status_changed, session_id, status}`
+    * `{:app_registration_changed, session_id, registered}`
+    * `{:app_terminated, session_id}`
+
+  """
+  @spec app_subscribe(id()) :: :ok | {:error, term()}
+  def app_subscribe(session_id) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps:#{session_id}")
   end
 
   @doc """
@@ -623,6 +643,41 @@ defmodule Livebook.Session do
     |> Enum.map(&:gen_server.wait_response(&1, :infinity))
   end
 
+  @doc """
+  Sends a app settings update request to the server.
+  """
+  @spec set_app_settings(pid(), Notebook.AppSettings.t()) :: :ok
+  def set_app_settings(pid, app_settings) do
+    GenServer.cast(pid, {:set_app_settings, self(), app_settings})
+  end
+
+  @doc """
+  Sends a app deployment request to the server.
+  """
+  @spec deploy_app(pid()) :: :ok
+  def deploy_app(pid) do
+    GenServer.cast(pid, {:deploy_app, self()})
+  end
+
+  @doc """
+  Sends a app build request to the server.
+  """
+  @spec app_build(pid()) :: :ok
+  def app_build(pid) do
+    GenServer.cast(pid, {:app_build, self()})
+  end
+
+  @doc """
+  Sends a app shutdown request to the server.
+
+  The shutdown is graceful, so the app only terminates once all of the
+  currently connected clients leave.
+  """
+  @spec app_shutdown(pid()) :: :ok
+  def app_shutdown(pid) do
+    GenServer.cast(pid, {:app_shutdown, self()})
+  end
+
   ## Callbacks
 
   @impl true
@@ -679,9 +734,9 @@ defmodule Livebook.Session do
     notebook = Keyword.get_lazy(opts, :notebook, &default_notebook/0)
     file = opts[:file]
     origin = opts[:origin]
+    mode = opts[:mode] || :default
 
-    data = Data.new(notebook)
-    data = %{data | origin: origin}
+    data = Data.new(notebook: notebook, origin: origin, mode: mode)
 
     if file do
       case FileGuard.lock(file, self()) do
@@ -785,8 +840,7 @@ defmodule Livebook.Session do
   end
 
   def handle_call(:close, _from, state) do
-    maybe_save_notebook_sync(state)
-    broadcast_message(state.session_id, :session_closed)
+    before_close(state)
 
     {:stop, :shutdown, :ok, state}
   end
@@ -1102,6 +1156,51 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_cast({:set_app_settings, client_pid, app_settings}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_app_settings, client_id, app_settings}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:deploy_app, _client_pid}, state) do
+    state =
+      if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
+        # TODO: we need to allow the app to access secrets
+        opts = [notebook: state.data.notebook, mode: :app]
+
+        case Livebook.Sessions.create_session(opts) do
+          {:ok, session} ->
+            app_subscribe(session.id)
+            app_build(session.pid)
+            operation = {:add_app, @client_id, session.id, session.pid}
+            handle_operation(state, operation)
+
+          {:error, reason} ->
+            broadcast_error(
+              state.session_id,
+              "failed to create app session - #{Exception.format_exit(reason)}"
+            )
+
+            state
+        end
+      else
+        state
+      end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:app_build, _client_pid}, state) do
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
+    operation = {:queue_cells_evaluation, @client_id, cell_ids}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:app_shutdown, _client_pid}, state) do
+    operation = {:app_shutdown, @client_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
     broadcast_error(
@@ -1320,6 +1419,26 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:app_status_changed, session_id, status}, state) do
+    operation = {:set_app_status, @client_id, session_id, status}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:app_registration_changed, session_id, registered}, state) do
+    operation = {:set_app_registered, @client_id, session_id, registered}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:app_terminated, session_id}, state) do
+    operation = {:delete_app, @client_id, session_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info(:close, state) do
+    before_close(state)
+    {:stop, :shutdown, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1341,6 +1460,7 @@ defmodule Livebook.Session do
       origin: state.data.origin,
       notebook_name: state.data.notebook.name,
       file: state.data.file,
+      mode: state.data.mode,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
       memory_usage: state.memory_usage
@@ -1634,6 +1754,12 @@ defmodule Livebook.Session do
     state
   end
 
+  defp after_operation(state, _prev_state, {:app_shutdown, _client_id}) do
+    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
+
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
@@ -1732,6 +1858,40 @@ defmodule Livebook.Session do
     state
   end
 
+  defp handle_action(state, :app_broadcast_status) do
+    status = state.data.app_data.status
+    broadcast_app_message(state.session_id, {:app_status_changed, state.session_id, status})
+
+    state
+  end
+
+  defp handle_action(state, :app_register) do
+    Livebook.Apps.register(self(), state.data.notebook.app_settings.slug)
+    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, true})
+
+    state
+  end
+
+  defp handle_action(state, :app_recover) do
+    if Runtime.connected?(state.data.runtime) do
+      {:ok, _} = Runtime.disconnect(state.data.runtime)
+    end
+
+    new_runtime = Livebook.Runtime.duplicate(state.data.runtime)
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
+
+    state
+    |> handle_operation({:erase_outputs, @client_id})
+    |> handle_operation({:set_runtime, @client_id, new_runtime})
+    |> handle_operation({:queue_cells_evaluation, @client_id, cell_ids})
+  end
+
+  defp handle_action(state, :app_terminate) do
+    send(self(), :close)
+
+    state
+  end
+
   defp handle_action(state, _action), do: state
 
   defp start_evaluation(state, cell, section) do
@@ -1771,6 +1931,10 @@ defmodule Livebook.Session do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
+  defp broadcast_app_message(session_id, message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{session_id}", message)
+  end
+
   defp put_memory_usage(state, runtime) do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
@@ -1802,7 +1966,7 @@ defmodule Livebook.Session do
     state
   end
 
-  defp maybe_save_notebook_async(state) do
+  defp maybe_save_notebook_async(state) when state.data.mode == :default do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
@@ -1822,7 +1986,9 @@ defmodule Livebook.Session do
     end
   end
 
-  defp maybe_save_notebook_sync(state) do
+  defp maybe_save_notebook_async(state), do: state
+
+  defp maybe_save_notebook_sync(state) when state.data.mode == :default do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
@@ -1833,6 +1999,8 @@ defmodule Livebook.Session do
       state
     end
   end
+
+  defp maybe_save_notebook_sync(state), do: state
 
   defp should_save_notebook?(state) do
     state.data.dirty and state.save_task_pid == nil
@@ -1938,6 +2106,15 @@ defmodule Livebook.Session do
     end
 
     %{state | registered_files: Map.new(other_files)}
+  end
+
+  defp before_close(state) do
+    maybe_save_notebook_sync(state)
+    broadcast_message(state.session_id, :session_closed)
+
+    if state.data.mode == :app do
+      broadcast_app_message(state.session_id, {:app_terminated, state.session_id})
+    end
   end
 
   @doc """

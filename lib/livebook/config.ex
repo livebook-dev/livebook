@@ -18,12 +18,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the runtime module and `init` args used to start
-  the default runtime.
+  Returns the default runtime.
   """
   @spec default_runtime() :: Livebook.Runtime.t()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
+  end
+
+  @doc """
+  Returns the default runtime for app sessions.
+  """
+  @spec default_app_runtime() :: Livebook.Runtime.t()
+  def default_app_runtime() do
+    Application.fetch_env!(:livebook, :default_app_runtime)
   end
 
   @doc """

@@ -15,7 +15,7 @@ defmodule LivebookWeb.HomeLive do
       Livebook.SystemResources.subscribe()
     end
 
-    sessions = Sessions.list_sessions()
+    sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,

@@ -144,6 +144,19 @@ defmodule LivebookWeb.SessionLive do
           active={@live_action == :bin}
           link_attrs={[data_btn_show_bin: true]}
         />
+        <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
+          <div class="relative">
+            <.button_item
+              icon="rocket-line"
+              label="App settings (sa)"
+              button_attrs={[data_el_app_info_toggle: true]}
+            />
+            <div
+              data-el-app-indicator
+              class={"absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 #{app_status_color(@data_view.apps_status)} pointer-events-none"}
+            />
+          </div>
+        <% end %>
 
         <div class="grow"></div>
 
@@ -191,6 +204,17 @@ defmodule LivebookWeb.SessionLive do
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
         </div>
+        <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
+          <div data-el-app-info>
+            <.live_component
+              module={LivebookWeb.SessionLive.AppInfoComponent}
+              id="app-info"
+              session={@session}
+              settings={@data_view.app_settings}
+              apps={@data_view.apps}
+            />
+          </div>
+        <% end %>
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
@@ -1981,7 +2005,10 @@ defmodule LivebookWeb.SessionLive do
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
-      secrets: data.secrets
+      secrets: data.secrets,
+      apps_status: apps_status(data),
+      app_settings: data.notebook.app_settings,
+      apps: data.apps
     }
   end
 
@@ -2130,6 +2157,9 @@ defmodule LivebookWeb.SessionLive do
     Map.take(data.input_values, input_ids)
   end
 
+  defp apps_status(%{apps: []}), do: nil
+  defp apps_status(%{apps: [app | _]}), do: app.status
+
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
@@ -2256,4 +2286,10 @@ defmodule LivebookWeb.SessionLive do
   defp fetch_hub!(id, hubs) do
     Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
+
+  defp app_status_color(nil), do: "bg-gray-400"
+  defp app_status_color(:booting), do: "bg-blue-500"
+  defp app_status_color(:running), do: "bg-green-bright-400"
+  defp app_status_color(:error), do: "bg-red-400"
+  defp app_status_color(:shutting_down), do: "bg-gray-500"
 end
