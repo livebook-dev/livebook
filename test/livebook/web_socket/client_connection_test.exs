@@ -114,19 +114,17 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       {:ok, conn: conn}
     end
 
-    test "receives a secret_created event" do
+    test "receives a secret_created event", %{node: node} do
       name = "MY_SECRET_ID"
       value = Livebook.Utils.random_id()
-      node = EnterpriseServer.get_node()
       :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
     end
 
-    test "receives a secret_updated event" do
+    test "receives a secret_updated event", %{node: node} do
       name = "API_USERNAME"
       value = "JakePeralta"
-      node = EnterpriseServer.get_node()
       secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
 
       assert_receive {:event, :secret_created, %{name: ^name, value: ^value}}
