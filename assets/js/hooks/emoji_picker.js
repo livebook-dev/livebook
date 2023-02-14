@@ -10,10 +10,7 @@ const EmojiPicker = {
     const input = this.el.querySelector("[data-emoji-input]");
 
     const picker = createPopup(
-      {
-        showSearch: false,
-        showPreview: false,
-      },
+      { showPreview: false },
       {
         triggerElement: button,
         referenceElement: button,
