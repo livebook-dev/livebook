@@ -188,9 +188,17 @@ defmodule Livebook.Config do
   @doc """
   Returns the feature flag list.
   """
-  @spec feature_flags() :: keyword(boolean()) | []
-  def feature_flags do
+  @spec feature_flags() :: keyword(boolean())
+  def feature_flags() do
     @feature_flags
+  end
+
+  @doc """
+  Returns enabled feature flags.
+  """
+  @spec enabled_feature_flags() :: list()
+  def enabled_feature_flags() do
+    for {flag, enabled?} <- feature_flags(), enabled?, do: flag
   end
 
   @doc """

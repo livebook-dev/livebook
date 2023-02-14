@@ -8,6 +8,7 @@ import {
   cancelEvent,
   isElementInViewport,
   isElementHidden,
+  isFeatureFlagEnabled,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
@@ -119,9 +120,11 @@ const Session = {
       this.toggleRuntimeInfo()
     );
 
-    this.getElement("app-info-toggle").addEventListener("click", (event) =>
-      this.toggleAppInfo()
-    );
+    if (isFeatureFlagEnabled("apps")) {
+      this.getElement("app-info-toggle").addEventListener("click", (event) =>
+        this.toggleAppInfo()
+      );
+    }
 
     this.getElement("notebook").addEventListener("scroll", (event) =>
       this.updateSectionListHighlight()
@@ -376,7 +379,9 @@ const Session = {
       } else if (keyBuffer.tryMatch(["s", "r"])) {
         this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "a"])) {
-        this.toggleAppInfo();
+        if (isFeatureFlagEnabled("apps")) {
+          this.toggleAppInfo();
+        }
       } else if (keyBuffer.tryMatch(["s", "b"])) {
         this.showBin();
       } else if (keyBuffer.tryMatch(["s", "p"])) {

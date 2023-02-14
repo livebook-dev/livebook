@@ -223,3 +223,15 @@ export function base64ToBuffer(base64) {
 
   return bytes.buffer;
 }
+
+export function isFeatureFlagEnabled(feature) {
+  const features = document
+    .querySelector("body")
+    .getAttribute("data-feature-flags", "");
+
+  if (features.legnth === 0) {
+    return false;
+  } else {
+    return features.split(",").includes(feature);
+  }
+}
