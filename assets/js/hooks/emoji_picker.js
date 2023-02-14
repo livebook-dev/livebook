@@ -1,31 +1,33 @@
-import { createPicker } from "picmo";
+import { createPopup } from "@picmo/popup-picker";
 
 /**
  * A hook for the emoji picker input.
  */
 const EmojiPicker = {
   mounted() {
-    const rootElement = this.el.querySelector("[data-emoji-container]");
+    const button = this.el.querySelector("[data-emoji-button]");
     const preview = this.el.querySelector("[data-emoji-preview]");
     const input = this.el.querySelector("[data-emoji-input]");
-    const button = this.el.querySelector("[data-emoji-button]");
 
-    const pickerOptions = {
-      rootElement,
-      showSearch: false,
-      showPreview: false,
-    };
-
-    const picker = createPicker(pickerOptions);
+    const picker = createPopup(
+      {
+        showSearch: false,
+        showPreview: false,
+      },
+      {
+        triggerElement: button,
+        referenceElement: button,
+        position: "bottom",
+      }
+    );
 
     picker.addEventListener("emoji:select", ({ emoji }) => {
       preview.innerHTML = emoji;
       input.value = emoji;
-      rootElement.classList.toggle("hidden");
     });
 
     button.addEventListener("click", (_) => {
-      rootElement.classList.toggle("hidden");
+      picker.toggle();
     });
   },
 };
