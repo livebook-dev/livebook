@@ -145,7 +145,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     EnterpriseClient.stop(enterprise.id)
   end
 
-  def capabilities(_enterprise), do: ~w(connect secrets list_secret create_secret)a
+  def capabilities(_enterprise), do: ~w(connect secrets list_secrets create_secret)a
 
   def get_secrets(enterprise) do
     EnterpriseClient.get_secrets(enterprise.id)

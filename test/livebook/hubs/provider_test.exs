@@ -28,7 +28,7 @@ defmodule Livebook.Hubs.ProviderTest do
     test "capabilities/1", %{hub: hub} do
       assert Provider.capabilities(hub) == [
                :connect,
-               :list_secret,
+               :list_secrets,
                :create_secret,
                :update_secret,
                :delete_secret
