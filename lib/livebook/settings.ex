@@ -269,15 +269,4 @@ defmodule Livebook.Settings do
   """
   @spec default_file_system_home() :: FileSystem.File.t()
   def default_file_system_home(), do: FileSystem.File.new(default_file_system())
-
-  def save_custom_protocol(protocol) do
-    storage().insert(:settings, "protocols", protocol: protocol)
-  end
-
-  def fetch_custom_protocol() do
-    case storage().fetch_key(:settings, "protocols", :protocol) do
-      {:ok, protocol} -> protocol
-      :error -> ""
-    end
-  end
 end

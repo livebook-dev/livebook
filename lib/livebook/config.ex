@@ -194,6 +194,11 @@ defmodule Livebook.Config do
     @feature_flags[key]
   end
 
+  @spec custom_protocol() :: String.t() | nil
+  def custom_protocol() do
+    Application.fetch_env!(:livebook, :custom_protocol)
+  end
+
   ## Parsing
 
   @doc """
@@ -429,5 +434,9 @@ defmodule Livebook.Config do
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
+  end
+
+  def custom_protocol!(env) do
+    System.get_env(env)
   end
 end

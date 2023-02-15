@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Settings, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
+  alias Livebook.{Config, Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
@@ -64,7 +64,7 @@ defmodule LivebookWeb.SessionLive do
            saved_secrets: get_saved_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil,
-           protocols: Settings.fetch_custom_protocol()
+           protocols: Config.custom_protocol()
          )
          |> assign_private(data: data)
          |> prune_outputs()
