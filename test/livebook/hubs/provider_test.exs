@@ -30,6 +30,7 @@ defmodule Livebook.Hubs.ProviderTest do
                :connect,
                :list_secret,
                :create_secret,
+               :update_secret,
                :delete_secret
              ]
     end
