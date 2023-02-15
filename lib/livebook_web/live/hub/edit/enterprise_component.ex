@@ -31,7 +31,6 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             phx-submit="save"
             phx-change="validate"
             phx-target={@myself}
-            phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
               <.emoji_field field={f[:hub_emoji]} label="Emoji" />

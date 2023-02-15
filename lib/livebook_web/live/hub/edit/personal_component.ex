@@ -31,7 +31,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             phx-submit="save"
             phx-change="validate"
             phx-target={@myself}
-            phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <.text_field field={f[:hub_name]} label="Name" />
