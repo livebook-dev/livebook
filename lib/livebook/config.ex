@@ -194,9 +194,11 @@ defmodule Livebook.Config do
     @feature_flags[key]
   end
 
-  @spec custom_protocol() :: String.t() | nil
-  def custom_protocol() do
-    Application.fetch_env!(:livebook, :custom_protocol)
+  def allowed_uri_schemes() do
+    case schemes = Application.fetch_env!(:livebook, :allowed_uri_schemes) do
+      [] -> ""
+      _ -> String.to_charlist(schemes)
+    end
   end
 
   ## Parsing
@@ -436,7 +438,7 @@ defmodule Livebook.Config do
     System.halt(1)
   end
 
-  def custom_protocol!(env) do
+  def allowed_uri_schemes!(env) do
     System.get_env(env)
   end
 end

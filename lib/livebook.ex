@@ -177,8 +177,8 @@ defmodule Livebook do
       config :livebook, :update_instructions_url, update_instructions_url
     end
 
-    if custom_protocol = Livebook.Config.custom_protocol!("LIVEBOOK_ALLOW_URI_SCHEMES") do
-      config :livebook, :custom_protocol, custom_protocol
+    if allowed_uri_schemes = Livebook.Config.allowed_uri_schemes!("LIVEBOOK_ALLOW_URI_SCHEMES") do
+      config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
   end
 

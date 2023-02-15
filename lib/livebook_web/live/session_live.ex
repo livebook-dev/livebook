@@ -64,7 +64,7 @@ defmodule LivebookWeb.SessionLive do
            saved_secrets: get_saved_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil,
-           protocols: Config.custom_protocol()
+           protocols: Config.allowed_uri_schemes()
          )
          |> assign_private(data: data)
          |> prune_outputs()
