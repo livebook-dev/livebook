@@ -39,22 +39,12 @@ defmodule LivebookCLI.Server do
     ## Available options
 
       --cookie             Sets a cookie for the app distributed node
-      --data-path          The directory to store Livebook configuration,
-                           defaults to "livebook" under the default user data directory
-      --default-runtime    Sets the runtime type that is used by default when none is started
-                           explicitly for the given notebook, defaults to standalone
-                           Supported options:
-                             * standalone - Elixir standalone
-                             * attached:NODE:COOKIE - Attached
-                             * embedded - Embedded
       --home               The home path for the Livebook instance
       --ip                 The ip address to start the web application on, defaults to 127.0.0.1
                            Must be a valid IPv4 or IPv6 address
-      --name               Set a name for the app distributed node
-      --no-token           Disable token authentication, enabled by default
-                           If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
+      --name               Sets a name for the app distributed node
       -p, --port           The port to start the web application on, defaults to 8080
-      --sname              Set a short name for the app distributed node
+      --sname              Sets a short name for the app distributed node
 
     The --help option can be given to print this notice.
 
@@ -197,15 +187,12 @@ defmodule LivebookCLI.Server do
   end
 
   @switches [
-    data_path: :string,
     cookie: :string,
-    default_runtime: :string,
     ip: :string,
     name: :string,
     port: :integer,
     home: :string,
-    sname: :string,
-    token: :boolean
+    sname: :string
   ]
 
   @aliases [
@@ -225,14 +212,6 @@ defmodule LivebookCLI.Server do
   end
 
   defp opts_to_config([], config), do: config
-
-  defp opts_to_config([{:token, false} | opts], config) do
-    if Livebook.Config.auth_mode() == :token do
-      opts_to_config(opts, [{:livebook, :authentication_mode, :disabled} | config])
-    else
-      opts_to_config(opts, config)
-    end
-  end
 
   defp opts_to_config([{:port, port} | opts], config) do
     opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [port: port]} | config])
@@ -265,16 +244,6 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([{:cookie, cookie} | opts], config) do
     cookie = String.to_atom(cookie)
     opts_to_config(opts, [{:livebook, :cookie, cookie} | config])
-  end
-
-  defp opts_to_config([{:default_runtime, default_runtime} | opts], config) do
-    default_runtime = Livebook.Config.default_runtime!("--default-runtime", default_runtime)
-    opts_to_config(opts, [{:livebook, :default_runtime, default_runtime} | config])
-  end
-
-  defp opts_to_config([{:data_path, path} | opts], config) do
-    data_path = Livebook.Config.writable_dir!("--data-path", path)
-    opts_to_config(opts, [{:livebook, :data_path, data_path} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)

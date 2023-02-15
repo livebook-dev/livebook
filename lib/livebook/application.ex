@@ -53,7 +53,7 @@ defmodule Livebook.Application do
         load_lb_env_vars()
         clear_env_vars()
         display_startup_info()
-        insert_development_hub()
+        insert_personal_hub()
         Livebook.Hubs.connect_hubs()
         result
 
@@ -203,16 +203,14 @@ defmodule Livebook.Application do
     defp app_specs, do: []
   end
 
-  if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
-    defp insert_development_hub do
-      Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
-        id: "local-host",
-        hub_name: "Localhost",
+  defp insert_personal_hub do
+    unless Livebook.Hubs.hub_exists?("personal-hub") do
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
+        id: "personal-hub",
+        hub_name: "My Hub",
         hub_emoji: "🏠"
       })
     end
-  else
-    defp insert_development_hub, do: :ok
   end
 
   defp iframe_server_specs() do

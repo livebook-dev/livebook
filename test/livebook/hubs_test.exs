@@ -3,46 +3,34 @@ defmodule Livebook.HubsTest do
 
   alias Livebook.Hubs
 
-  setup do
-    on_exit(&Hubs.clean_hubs/0)
-
-    :ok
-  end
-
   test "get_hubs/0 returns a list of persisted hubs" do
     fly = insert_hub(:fly, id: "fly-baz")
-    assert Hubs.get_hubs() == [fly]
+    assert fly in Hubs.get_hubs()
 
     Hubs.delete_hub("fly-baz")
-    assert Hubs.get_hubs() == []
+    refute fly in Hubs.get_hubs()
   end
 
   test "get_metadata/0 returns a list of persisted hubs normalized" do
     fly = insert_hub(:fly, id: "fly-livebook")
+    metadata = Hubs.Provider.to_metadata(fly)
 
-    assert Hubs.get_metadatas() == [
-             %Hubs.Metadata{
-               id: "fly-livebook",
-               emoji: fly.hub_emoji,
-               name: fly.hub_name,
-               provider: fly
-             }
-           ]
+    assert metadata in Hubs.get_metadatas()
 
     Hubs.delete_hub("fly-livebook")
-    assert Hubs.get_metadatas() == []
+    refute metadata in Hubs.get_metadatas()
   end
 
   test "fetch_hub!/1 returns one persisted fly" do
     assert_raise Livebook.Storage.NotFoundError,
-                 ~s/could not find entry in \"hubs\" with ID "fly-foo"/,
+                 ~s/could not find entry in \"hubs\" with ID "fly-exception-foo"/,
                  fn ->
-                   Hubs.fetch_hub!("fly-foo")
+                   Hubs.fetch_hub!("fly-exception-foo")
                  end
 
-    fly = insert_hub(:fly, id: "fly-foo")
+    fly = insert_hub(:fly, id: "fly-exception-foo")
 
-    assert Hubs.fetch_hub!("fly-foo") == fly
+    assert Hubs.fetch_hub!("fly-exception-foo") == fly
   end
 
   test "hub_exists?/1" do

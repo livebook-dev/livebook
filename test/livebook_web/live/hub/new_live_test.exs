@@ -5,11 +5,6 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   alias Livebook.Hubs
 
-  setup do
-    on_exit(&Hubs.clean_hubs/0)
-    :ok
-  end
-
   test "render hub selection cards", %{conn: conn} do
     {:ok, _view, html} = live(conn, Routes.hub_path(conn, :new))
 

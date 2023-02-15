@@ -1,11 +1,11 @@
-defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
+defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.Enterprise
+  alias Livebook.Hubs.Personal
 
   @impl true
   def update(assigns, socket) do
-    changeset = Enterprise.change_hub(assigns.hub)
+    changeset = Personal.change_hub(assigns.hub)
 
     {:ok,
      socket
@@ -33,10 +33,15 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             phx-target={@myself}
             phx-debounce="blur"
           >
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
+                <div class="input-label">Name</div>
+                <%= text_input(f, :hub_name, class: "input") %>
+              </.input_wrapper>
+
               <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
                 <div class="input-label">Emoji</div>
-                <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
+                <.emoji_input id="personal-emoji-input" form={f} field={:hub_emoji} />
               </.input_wrapper>
             </div>
 
@@ -53,8 +58,8 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   end
 
   @impl true
-  def handle_event("save", %{"enterprise" => params}, socket) do
-    case Enterprise.update_hub(socket.assigns.hub, params) do
+  def handle_event("save", %{"personal" => params}, socket) do
+    case Personal.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->
         {:noreply,
          socket
@@ -66,7 +71,7 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
     end
   end
 
-  def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.hub, attrs))}
+  def handle_event("validate", %{"personal" => attrs}, socket) do
+    {:noreply, assign(socket, changeset: Personal.change_hub(socket.assigns.hub, attrs))}
   end
 end

@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider}
   alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
@@ -88,9 +88,13 @@ defmodule Livebook.Hubs do
     struct
   end
 
-  @doc false
+  @doc """
+  Deletes a hub with the given id.
+  """
+  @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
+      true = Provider.type(hub) != "personal"
       :ok = Broadcasts.hub_changed()
       :ok = Storage.delete(@namespace, id)
       :ok = disconnect_hub(hub)
@@ -104,13 +108,6 @@ defmodule Livebook.Hubs do
       Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)
-
-    :ok
-  end
-
-  @doc false
-  def clean_hubs do
-    for hub <- get_hubs(), do: delete_hub(hub.id)
 
     :ok
   end
@@ -169,8 +166,8 @@ defmodule Livebook.Hubs do
     Provider.load(%Enterprise{}, fields)
   end
 
-  defp to_struct(%{id: "local-" <> _} = fields) do
-    Provider.load(%Local{}, fields)
+  defp to_struct(%{id: "personal-" <> _} = fields) do
+    Provider.load(%Personal{}, fields)
   end
 
   @doc """
