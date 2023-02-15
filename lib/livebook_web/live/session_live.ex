@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Config, Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
@@ -64,7 +64,7 @@ defmodule LivebookWeb.SessionLive do
            saved_secrets: get_saved_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil,
-           protocols: Config.allowed_uri_schemes() |> Enum.join(",")
+           allowed_uri_schemes: Livebook.Config.allowed_uri_schemes()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -271,9 +271,9 @@ defmodule LivebookWeb.SessionLive do
               session_id={@session.id}
               session_pid={@session.pid}
               client_id={@client_id}
-              protocols={@protocols}
               runtime={@data_view.runtime}
               installing?={@data_view.installing?}
+              allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={@data_view.setup_cell_view}
             />
           </div>
@@ -291,12 +291,12 @@ defmodule LivebookWeb.SessionLive do
                 id={section_view.id}
                 index={index}
                 session_id={@session.id}
-                protocols={@protocols}
                 session_pid={@session.pid}
                 client_id={@client_id}
                 runtime={@data_view.runtime}
                 smart_cell_definitions={@data_view.smart_cell_definitions}
                 installing?={@data_view.installing?}
+                allowed_uri_schemes={@allowed_uri_schemes}
                 section_view={section_view}
               />
             <% end %>

@@ -125,7 +125,10 @@ const Cell = {
         "data-smart-cell-js-view-ref",
         null
       ),
-      protocols: getAttributeOrThrow(this.el, "data-protocols"),
+      allowedUriSchemes: getAttributeOrThrow(
+        this.el,
+        "data-allowed-uri-schemes"
+      ),
     };
   },
 
@@ -217,7 +220,7 @@ const Cell = {
         const markdown = new Markdown(markdownContainer, source, {
           baseUrl: this.props.sessionPath,
           emptyText: "Empty markdown cell",
-          extraProtocol: this.props.protocols.replace(/\s+/g, "").split(","),
+          allowedUriSchemes: this.props.allowedUriSchemes.split(","),
         });
 
         liveEditor.onChange((newSource) => {

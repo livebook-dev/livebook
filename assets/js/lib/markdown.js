@@ -28,13 +28,13 @@ class Markdown {
   constructor(
     container,
     content,
-    { baseUrl = null, emptyText = "", extraProtocol = [] } = {}
+    { baseUrl = null, emptyText = "", allowedUriSchemes = [] } = {}
   ) {
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
     this.emptyText = emptyText;
-    this.extraProtocol = extraProtocol;
+    this.allowedUriSchemes = allowedUriSchemes;
 
     this._render();
   }
@@ -67,7 +67,7 @@ class Markdown {
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
         .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
-        .use(rehypeSanitize, sanitizeSchema(this.extraProtocol))
+        .use(rehypeSanitize, sanitizeSchema(this.allowedUriSchemes))
         .use(rehypeKatex)
         .use(rehypeMermaid)
         .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
@@ -103,7 +103,7 @@ export default Markdown;
 
 // Plugins
 
-function sanitizeSchema(extraProtocol) {
+function sanitizeSchema(allowedUriSchemes) {
   // Allow class and style attributes on tags for syntax highlighting,
   // remarkMath tags, or user-written styles
 
@@ -115,7 +115,7 @@ function sanitizeSchema(extraProtocol) {
     },
     protocols: {
       ...defaultSchema.protocols,
-      href: [...defaultSchema.protocols.href, ...extraProtocol],
+      href: [...defaultSchema.protocols.href, ...allowedUriSchemes],
     },
   };
 }

@@ -10,7 +10,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
       data-cell-id={@cell_view.id}
-      data-protocols={@protocols}
       data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
@@ -18,6 +17,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
       data-js-empty={empty?(@cell_view.source_view)}
       data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
+      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
     >
       <%= render_cell(assigns) %>
     </div>

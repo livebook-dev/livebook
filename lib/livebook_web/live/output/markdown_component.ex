@@ -2,6 +2,11 @@ defmodule LivebookWeb.Output.MarkdownComponent do
   use LivebookWeb, :live_component
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, allowed_uri_schemes: Livebook.Config.allowed_uri_schemes())}
+  end
+
+  @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
@@ -20,6 +25,7 @@ defmodule LivebookWeb.Output.MarkdownComponent do
       phx-hook="MarkdownRenderer"
       data-id={@id}
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
+      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
     >
     </div>
     """
