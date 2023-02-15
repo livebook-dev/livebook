@@ -176,6 +176,10 @@ defmodule Livebook do
          Livebook.Config.update_instructions_url!("LIVEBOOK_UPDATE_INSTRUCTIONS_URL") do
       config :livebook, :update_instructions_url, update_instructions_url
     end
+
+    if allowed_uri_schemes = Livebook.Config.allowed_uri_schemes!("LIVEBOOK_ALLOW_URI_SCHEMES") do
+      config :livebook, :allowed_uri_schemes, allowed_uri_schemes
+    end
   end
 
   @doc """

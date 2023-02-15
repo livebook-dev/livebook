@@ -229,6 +229,11 @@ The following environment variables configure Livebook:
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
 
+  * LIVEBOOK_ALLOW_URI_SCHEMES - sets addtional extra hyperlink protocols to 
+    the Markdown content. Livebook sanitizes links in Markdown, allowing only a few 
+    standard protocols by default (such as http and https). Set a comma-separated list of 
+    protocols to configure additional protocols.
+
 <!-- Environment variables -->
 
 When running Livebook Desktop, Livebook will invoke on boot a file named

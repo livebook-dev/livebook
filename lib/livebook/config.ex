@@ -194,6 +194,14 @@ defmodule Livebook.Config do
     @feature_flags[key]
   end
 
+  @doc """
+  Return list of added uri schemes.
+  """
+  @spec allowed_uri_schemes() :: []
+  def allowed_uri_schemes() do
+    Application.fetch_env!(:livebook, :allowed_uri_schemes)
+  end
+
   ## Parsing
 
   @doc """
@@ -429,5 +437,14 @@ defmodule Livebook.Config do
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
+  end
+
+  @doc """
+  Parses and validates allowed URI schemes from env.
+  """
+  def allowed_uri_schemes!(env) do
+    if schemes = System.get_env(env) do
+      String.split(schemes, ",", trim: true)
+    end
   end
 end

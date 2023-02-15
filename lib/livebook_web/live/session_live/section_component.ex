@@ -142,6 +142,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               session_id={@session_id}
               session_pid={@session_pid}
               client_id={@client_id}
+              protocols={@protocols}
               runtime={@runtime}
               installing?={@installing?}
               cell_view={cell_view}
