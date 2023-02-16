@@ -141,11 +141,14 @@ defmodule Livebook.Storage.Ets do
   defp table_name(), do: :persistent_term.get(__MODULE__)
 
   defp load_or_create_table() do
-    config_file_path()
+    path = config_file_path()
+
+    path
     |> String.to_charlist()
     |> :ets.file2tab()
     |> case do
       {:ok, tab} ->
+        Logger.info("Reading storage from #{path}")
         tab
 
       {:error, reason} ->
