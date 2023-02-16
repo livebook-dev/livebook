@@ -85,8 +85,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def disconnect(_personal), do: raise("not implemented")
 
-  def capabilities(_personal),
-    do: ~w(connect list_secrets create_secret update_secret delete_secret)a
+  def capabilities(_personal), do: ~w(list_secrets create_secret update_secret delete_secret)a
 
   def get_secrets(_personal) do
     Secrets.get_secrets()

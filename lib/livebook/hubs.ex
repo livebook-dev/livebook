@@ -181,9 +181,7 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs(),
-        capability?(hub, [:connect]),
-        do: connect_hub(hub)
+    for hub <- get_hubs([:connect]), do: connect_hub(hub)
 
     :ok
   end
