@@ -1163,9 +1163,10 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:deploy_app, _client_pid}, state) do
+    # In the initial state app settings are empty, hence not valid,
+    # so we double-check that we can actually deploy
     state =
       if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-        # TODO: we need to allow the app to access secrets
         opts = [notebook: state.data.notebook, mode: :app]
 
         case Livebook.Sessions.create_session(opts) do
