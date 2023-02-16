@@ -3,7 +3,6 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider}
-  alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
