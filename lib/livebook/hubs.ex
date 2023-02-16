@@ -211,12 +211,10 @@ defmodule Livebook.Hubs do
   """
   @spec create_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
   def create_secret(%Secret{origin: {:hub, id}} = secret) do
-    with {:ok, hub} <- get_hub(id),
-         true <- capability?(hub, [:create_secret]) do
-      Provider.create_secret(hub, secret)
-    else
-      _ -> {:error, add_invalid_origin_error(secret)}
-    end
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:create_secret])
+
+    Provider.create_secret(hub, secret)
   end
 
   @doc """
@@ -224,12 +222,10 @@ defmodule Livebook.Hubs do
   """
   @spec update_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
   def update_secret(%Secret{origin: {:hub, id}} = secret) do
-    with {:ok, hub} <- get_hub(id),
-         true <- capability?(hub, [:update_secret]) do
-      Provider.update_secret(hub, secret)
-    else
-      _ -> {:error, add_invalid_origin_error(secret)}
-    end
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:update_secret])
+
+    Provider.update_secret(hub, secret)
   end
 
   @doc """
@@ -237,16 +233,11 @@ defmodule Livebook.Hubs do
   """
   @spec delete_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
   def delete_secret(%Secret{origin: {:hub, id}} = secret) do
-    with {:ok, hub} <- get_hub(id),
-         true <- capability?(hub, [:delete_secret]) do
-      Provider.delete_secret(hub, secret)
-    else
-      _ -> {:error, add_invalid_origin_error(secret)}
-    end
-  end
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:delete_secret])
 
-  defp add_invalid_origin_error(secret),
-    do: {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
+    Provider.delete_secret(hub, secret)
+  end
 
   defp capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
