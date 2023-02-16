@@ -132,18 +132,6 @@ defmodule LivebookWeb.SessionLive do
           label="Secrets (se)"
           button_attrs={[data_el_secrets_list_toggle: true]}
         />
-        <.button_item
-          icon="cpu-line"
-          label="Runtime settings (sr)"
-          button_attrs={[data_el_runtime_info_toggle: true]}
-        />
-        <.link_item
-          icon="delete-bin-6-fill"
-          label="Bin (sb)"
-          path={Routes.session_path(@socket, :bin, @session.id)}
-          active={@live_action == :bin}
-          link_attrs={[data_btn_show_bin: true]}
-        />
         <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
           <div class="relative">
             <.button_item
@@ -157,6 +145,18 @@ defmodule LivebookWeb.SessionLive do
             />
           </div>
         <% end %>
+        <.button_item
+          icon="cpu-line"
+          label="Runtime settings (sr)"
+          button_attrs={[data_el_runtime_info_toggle: true]}
+        />
+        <.link_item
+          icon="delete-bin-6-fill"
+          label="Bin (sb)"
+          path={Routes.session_path(@socket, :bin, @session.id)}
+          active={@live_action == :bin}
+          link_attrs={[data_btn_show_bin: true]}
+        />
 
         <div class="grow"></div>
 
@@ -201,9 +201,6 @@ defmodule LivebookWeb.SessionLive do
             socket={@socket}
           />
         </div>
-        <div data-el-runtime-info>
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
-        </div>
         <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
           <div data-el-app-info>
             <.live_component
@@ -215,6 +212,9 @@ defmodule LivebookWeb.SessionLive do
             />
           </div>
         <% end %>
+      </div>
+      <div data-el-runtime-info>
+        <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>

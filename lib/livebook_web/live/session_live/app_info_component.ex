@@ -101,18 +101,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                   <% end %>
                 </.labeled_text>
               </div>
-              <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
-                <span class="tooltip top" data-tooltip="Shutdown">
-                  <button
-                    class="icon-button"
-                    aria-label="shutdown app"
-                    phx-click={
-                      JS.push("shutdown_app", value: %{session_id: app.session_id}, target: @myself)
-                    }
-                  >
-                    <.remix_icon icon="shut-down-line" class="text-lg" />
-                  </button>
-                </span>
+              <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
                 <span class="tooltip top" data-tooltip="Debug">
                   <a
                     class="icon-button"
@@ -122,6 +111,17 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                   >
                     <.remix_icon icon="terminal-line" class="text-lg" />
                   </a>
+                </span>
+                <span class="tooltip top" data-tooltip="Shutdown">
+                  <button
+                    class="icon-button"
+                    aria-label="shutdown app"
+                    phx-click={
+                      JS.push("shutdown_app", value: %{session_id: app.session_id}, target: @myself)
+                    }
+                  >
+                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                  </button>
                 </span>
               </div>
             </div>

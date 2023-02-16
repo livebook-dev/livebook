@@ -374,14 +374,14 @@ const Session = {
         this.toggleSectionsList();
       } else if (keyBuffer.tryMatch(["s", "e"])) {
         this.toggleSecretsList();
-      } else if (keyBuffer.tryMatch(["s", "u"])) {
-        this.toggleClientsList();
-      } else if (keyBuffer.tryMatch(["s", "r"])) {
-        this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "a"])) {
         if (isFeatureFlagEnabled("apps")) {
           this.toggleAppInfo();
         }
+      } else if (keyBuffer.tryMatch(["s", "u"])) {
+        this.toggleClientsList();
+      } else if (keyBuffer.tryMatch(["s", "r"])) {
+        this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "b"])) {
         this.showBin();
       } else if (keyBuffer.tryMatch(["s", "p"])) {
@@ -725,12 +725,12 @@ const Session = {
     this.toggleSidePanelContent("secrets-list");
   },
 
-  toggleRuntimeInfo() {
-    this.toggleSidePanelContent("runtime-info");
-  },
-
   toggleAppInfo() {
     this.toggleSidePanelContent("app-info");
+  },
+
+  toggleRuntimeInfo() {
+    this.toggleSidePanelContent("runtime-info");
   },
 
   toggleSidePanelContent(name) {
