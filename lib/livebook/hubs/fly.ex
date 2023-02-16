@@ -146,7 +146,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
 
   def connection_spec(_fly), do: nil
 
-  def disconnect(_fly), do: :ok
+  def disconnect(_fly), do: raise("not implemented")
 
   def capabilities(_fly), do: []
 
@@ -158,5 +158,5 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
 
   def delete_secret(_fly, _secret), do: :ok
 
-  def connection_error(_fly), do: nil
+  def connection_error(_fly), do: raise("not implemented")
 end

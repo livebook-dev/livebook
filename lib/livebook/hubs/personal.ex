@@ -83,7 +83,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def connection_spec(_personal), do: nil
 
-  def disconnect(_personal), do: :ok
+  def disconnect(_personal), do: raise("not implemented")
 
   def capabilities(_personal),
     do: ~w(connect list_secrets create_secret update_secret delete_secret)a
@@ -107,5 +107,5 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     :ok = Broadcasts.secret_deleted(secret)
   end
 
-  def connection_error(_personal), do: nil
+  def connection_error(_personal), do: raise("not implemented")
 end

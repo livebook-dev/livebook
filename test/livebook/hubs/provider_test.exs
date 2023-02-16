@@ -22,7 +22,7 @@ defmodule Livebook.Hubs.ProviderTest do
     end
 
     test "disconnect/1", %{hub: hub} do
-      assert Provider.disconnect(hub) == :ok
+      assert_raise RuntimeError, "not implemented", fn -> Provider.disconnect(hub) end
     end
 
     test "capabilities/1", %{hub: hub} do
@@ -72,7 +72,7 @@ defmodule Livebook.Hubs.ProviderTest do
     end
 
     test "connection_error/1", %{hub: hub} do
-      refute Provider.connection_error(hub)
+      assert_raise RuntimeError, "not implemented", fn -> Provider.connection_error(hub) end
     end
   end
 end
