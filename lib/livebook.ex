@@ -135,6 +135,8 @@ defmodule Livebook do
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
              Livebook.Runtime.ElixirStandalone.new()
 
+    config :livebook, :default_app_runtime, Livebook.Runtime.ElixirStandalone.new()
+
     config :livebook,
            :runtime_modules,
            [

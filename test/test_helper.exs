@@ -10,6 +10,7 @@ Livebook.Runtime.ErlDist.NodeManager.start(
 # cheaper to run. Other runtimes can be tested by starting
 # and setting them explicitly
 Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())
+Application.put_env(:livebook, :default_app_runtime, Livebook.Runtime.Embedded.new())
 
 Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.ElixirStandalone,

@@ -119,6 +119,10 @@ const Session = {
       this.toggleRuntimeInfo()
     );
 
+    this.getElement("app-info-toggle").addEventListener("click", (event) =>
+      this.toggleAppInfo()
+    );
+
     this.getElement("notebook").addEventListener("scroll", (event) =>
       this.updateSectionListHighlight()
     );
@@ -367,6 +371,8 @@ const Session = {
         this.toggleSectionsList();
       } else if (keyBuffer.tryMatch(["s", "e"])) {
         this.toggleSecretsList();
+      } else if (keyBuffer.tryMatch(["s", "a"])) {
+        this.toggleAppInfo();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
@@ -712,6 +718,10 @@ const Session = {
 
   toggleSecretsList() {
     this.toggleSidePanelContent("secrets-list");
+  },
+
+  toggleAppInfo() {
+    this.toggleSidePanelContent("app-info");
   },
 
   toggleRuntimeInfo() {

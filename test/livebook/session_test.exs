@@ -926,7 +926,7 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       data =
         data_after_operations!(data, [
@@ -955,7 +955,7 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       data =
         data_after_operations!(data, [
@@ -970,7 +970,7 @@ defmodule Livebook.SessionTest do
 
     test "given cell in main flow returns an empty list if there is no previous cell" do
       %{setup_section: %{cells: [setup_cell]}} = notebook = Notebook.new()
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       assert [] = Session.parent_locators_for_cell(data, setup_cell)
     end
@@ -984,7 +984,7 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       assert [] = Session.parent_locators_for_cell(data, cell3)
 
@@ -1061,6 +1061,69 @@ defmodule Livebook.SessionTest do
 
     # The assets should be available
     assert :ok = Session.fetch_assets(session.pid, hash)
+  end
+
+  describe "apps" do
+    test "deploying an app under the same slug terminates the old one", %{session: session} do
+      Session.subscribe(session.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      Session.deploy_app(session.pid)
+      assert_receive {:operation, {:add_app, _, app1_session_id, _app1_session_pid}}
+      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, true}}
+
+      Session.app_subscribe(app1_session_id)
+
+      Session.deploy_app(session.pid)
+      assert_receive {:operation, {:add_app, _, app2_session_id, app2_session_pid}}
+      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, false}}
+      assert_receive {:operation, {:set_app_registered, _, ^app2_session_id, true}}
+
+      assert_receive {:app_terminated, ^app1_session_id}
+
+      assert {:ok, %{id: ^app2_session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
+
+      Session.app_shutdown(app2_session_pid)
+    end
+
+    test "recovers on failure", %{test: test} do
+      code =
+        quote do
+          # This test uses the Embedded runtime, so we can target the
+          # process by name, this way make the scenario predictable
+          # and avoid long sleeps
+          Process.register(self(), unquote(test))
+        end
+        |> Macro.to_string()
+
+      cell = %{Notebook.Cell.new(:code) | source: code}
+      section = %{Notebook.Section.new() | cells: [cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Session.subscribe(session.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      Session.deploy_app(session.pid)
+
+      assert_receive {:operation, {:add_app, _, app_session_id, app_session_pid}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+
+      Process.exit(Process.whereis(test), :shutdown)
+
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :error}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :booting}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+
+      Session.app_shutdown(app_session_pid)
+    end
   end
 
   defp start_session(opts \\ []) do

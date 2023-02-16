@@ -5,7 +5,6 @@ defmodule Livebook.Session.DataTest do
 
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook}
-  alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
   @eval_resp {:ok, [1, 2, 3]}
@@ -46,7 +45,8 @@ defmodule Livebook.Session.DataTest do
           ]
       }
 
-      assert %{cell_infos: %{"c1" => %{}}, section_infos: %{"s1" => %{}}} = Data.new(notebook)
+      assert %{cell_infos: %{"c1" => %{}}, section_infos: %{"s1" => %{}}} =
+               Data.new(notebook: notebook)
     end
 
     test "called with a notebook, computes cell snapshots" do
@@ -61,7 +61,9 @@ defmodule Livebook.Session.DataTest do
           ]
       }
 
-      assert %{cell_infos: %{"c1" => %{eval: %{snapshot: snapshot}}}} = Data.new(notebook)
+      assert %{cell_infos: %{"c1" => %{eval: %{snapshot: snapshot}}}} =
+               Data.new(notebook: notebook)
+
       assert snapshot != nil
     end
   end
@@ -412,7 +414,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{
                   sections: [
-                    %{cells: [%Cell.Code{id: "c1"}]}
+                    %{cells: [%Notebook.Cell.Code{id: "c1"}]}
                   ]
                 },
                 cell_infos: %{"c1" => _}
@@ -3703,6 +3705,227 @@ defmodule Livebook.Session.DataTest do
       operation = {:mark_as_not_dirty, @cid}
 
       assert {:ok, %{dirty: false}, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_app_settings" do
+    test "updates notebook app settings" do
+      data = Data.new()
+
+      settings = %{Notebook.AppSettings.new() | slug: "new-slug"}
+      operation = {:set_app_settings, @cid, settings}
+
+      assert {:ok, %{notebook: %{app_settings: ^settings}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :add_app" do
+    test "adds app to the app list" do
+      settings = %{Notebook.AppSettings.new() | slug: "slug"}
+
+      data =
+        data_after_operations!([
+          {:set_app_settings, @cid, settings}
+        ])
+
+      operation = {:add_app, @cid, "as1", self()}
+
+      assert {:ok, %{apps: [%{session_id: "as1", settings: ^settings}]}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_app_status" do
+    test "returns an error given invalid app session id" do
+      data = Data.new()
+      operation = {:set_app_status, @cid, "as1", :running}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates status of the given app" do
+      data =
+        data_after_operations!([
+          {:add_app, @cid, "as1", self()},
+          {:add_app, @cid, "as2", self()}
+        ])
+
+      operation = {:set_app_status, @cid, "as2", :running}
+
+      assert {:ok, %{apps: [%{status: :running}, %{status: :booting}]}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_app_registered" do
+    test "returns an error given invalid app session id" do
+      data = Data.new()
+      operation = {:set_app_registered, @cid, "as1", true}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates registration flag of the given app" do
+      data =
+        data_after_operations!([
+          {:add_app, @cid, "as1", self()},
+          {:add_app, @cid, "as2", self()}
+        ])
+
+      operation = {:set_app_registered, @cid, "as2", true}
+
+      assert {:ok, %{apps: [%{registered: true}, %{registered: false}]}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :delete_app" do
+    test "returns an error given invalid app session id" do
+      data = Data.new()
+      operation = {:delete_app, @cid, "as1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "deletes app from the app list" do
+      data =
+        data_after_operations!([
+          {:add_app, @cid, "as1", self()},
+          {:add_app, @cid, "as2", self()}
+        ])
+
+      operation = {:delete_app, @cid, "as1"}
+
+      assert {:ok, %{apps: [%{session_id: "as2"}]}, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :app_shutdown" do
+    test "returns an error if not in app mode" do
+      data = Data.new()
+      operation = {:app_shutdown, @cid}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates app status" do
+      data = Data.new(mode: :app)
+
+      operation = {:app_shutdown, @cid}
+
+      assert {:ok, %{app_data: %{status: :shutting_down}},
+              [:app_broadcast_status, :app_terminate]} = Data.apply_operation(data, operation)
+    end
+
+    test "does not return terminate action if there are clients" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:client_join, @cid, User.new()}
+        ])
+
+      operation = {:app_shutdown, @cid}
+
+      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_broadcast_status]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 app status transitions" do
+    test "keeps status as :booting when an intermediate evaluation finishes" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
+
+      assert {:ok, %{app_data: %{status: :booting}}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :error when an evaluation fails" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)}
+
+      assert {:ok, %{app_data: %{status: :error}}, [:app_broadcast_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :running when all evaluation finishes and returns register action" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1"]),
+          {:queue_cells_evaluation, @cid, ["c2"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
+
+      assert {:ok, %{app_data: %{status: :running}}, [:app_broadcast_status, :app_register]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :error when evaluation is aborted and returns recover action" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2"])
+        ])
+
+      operation = {:reflect_main_evaluation_failure, @cid}
+
+      assert {:ok, %{app_data: %{status: :error}}, [:app_broadcast_status, :app_recover]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status back to :running after recovery" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2"]),
+          {:reflect_main_evaluation_failure, @cid},
+          evaluate_cells_operations(["setup", "c1"]),
+          {:queue_cells_evaluation, @cid, ["c2"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
+
+      assert {:ok, %{app_data: %{status: :running}}, [:app_broadcast_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "when the app is shutting down and the last client leaves, returns terminate action" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:client_join, @cid, User.new()},
+          {:app_shutdown, @cid}
+        ])
+
+      operation = {:client_leave, @cid}
+
+      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_terminate]} =
+               Data.apply_operation(data, operation)
     end
   end
 
