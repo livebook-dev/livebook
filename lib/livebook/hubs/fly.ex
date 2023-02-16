@@ -152,10 +152,13 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
 
   def get_secrets(_fly), do: []
 
+  # TODO: Implement the FlyClient.set_secrets/2
   def create_secret(_fly, _secret), do: :ok
 
+  # TODO: Implement the FlyClient.set_secrets/2
   def update_secret(_fly, _secret), do: :ok
 
+  # TODO: Implement the FlyClient.unset_secrets/2
   def delete_secret(_fly, _secret), do: :ok
 
   def connection_error(_fly), do: raise("not implemented")
