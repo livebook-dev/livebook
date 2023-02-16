@@ -132,19 +132,17 @@ defmodule LivebookWeb.SessionLive do
           label="Secrets (se)"
           button_attrs={[data_el_secrets_list_toggle: true]}
         />
-        <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
-          <div class="relative">
-            <.button_item
-              icon="rocket-line"
-              label="App settings (sa)"
-              button_attrs={[data_el_app_info_toggle: true]}
-            />
-            <div
-              data-el-app-indicator
-              class={"absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 #{app_status_color(@data_view.apps_status)} pointer-events-none"}
-            />
-          </div>
-        <% end %>
+        <div class="relative">
+          <.button_item
+            icon="rocket-line"
+            label="App settings (sa)"
+            button_attrs={[data_el_app_info_toggle: true]}
+          />
+          <div
+            data-el-app-indicator
+            class={"absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 #{app_status_color(@data_view.apps_status)} pointer-events-none"}
+          />
+        </div>
         <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
@@ -201,17 +199,15 @@ defmodule LivebookWeb.SessionLive do
             socket={@socket}
           />
         </div>
-        <%= if Livebook.Config.feature_flag_enabled?(:apps) do %>
-          <div data-el-app-info>
-            <.live_component
-              module={LivebookWeb.SessionLive.AppInfoComponent}
-              id="app-info"
-              session={@session}
-              settings={@data_view.app_settings}
-              apps={@data_view.apps}
-            />
-          </div>
-        <% end %>
+        <div data-el-app-info>
+          <.live_component
+            module={LivebookWeb.SessionLive.AppInfoComponent}
+            id="app-info"
+            session={@session}
+            settings={@data_view.app_settings}
+            apps={@data_view.apps}
+          />
+        </div>
       </div>
       <div data-el-runtime-info>
         <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
