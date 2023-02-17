@@ -34,13 +34,13 @@ defmodule LivebookWeb.AppAuthLive do
         </div>
 
         <div class="max-w-2xl text-center text-gray-700">
-          <span>Type password to access the app or</span>
+          <span>Type the app password to access it or</span>
           <a
             class="border-b border-gray-700 hover:border-none"
             href={
               Routes.auth_path(@socket, :index, redirect_to: Routes.app_path(@socket, :page, @slug))
             }
-          >sign into Livebook</a>.
+          >login into Livebook</a>.
         </div>
         <div class="text-2xl text-gray-800 w-full pt-2">
           <form class="flex flex-col space-y-4 items-center" phx-submit="authenticate">
