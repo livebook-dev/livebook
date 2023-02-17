@@ -37,7 +37,11 @@ defmodule LivebookWeb.AppLive do
   end
 
   def mount(%{"slug" => slug}, _session, socket) do
-    {:ok, assign(socket, slug: slug)}
+    if connected?(socket) do
+      {:ok, push_navigate(socket, to: Routes.app_auth_path(socket, :page, slug))}
+    else
+      {:ok, socket}
+    end
   end
 
   # Puts the given assigns in `socket.private`,
@@ -109,7 +113,7 @@ defmodule LivebookWeb.AppLive do
 
   def render(assigns) do
     ~H"""
-    <div class="flex justify-center items-center h-screen w-screen" data-app-slug={@slug}>
+    <div class="flex justify-center items-center h-screen w-screen">
       <img
         src={Routes.static_path(@socket, "/images/logo.png")}
         height="128"

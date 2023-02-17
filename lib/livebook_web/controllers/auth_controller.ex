@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AuthController do
   use LivebookWeb, :controller
 
-  plug :require_unauthenticated
+  plug(:require_unauthenticated)
 
   alias LivebookWeb.AuthPlug
 
@@ -46,7 +46,8 @@ defmodule LivebookWeb.AuthController do
   end
 
   defp render_form_error(conn, auth_mode) do
-    index(conn, %{"errors" => [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]})
+    errors = [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]
+    render(conn, "index.html", errors: errors, auth_mode: auth_mode)
   end
 
   defp redirect_to(conn) do

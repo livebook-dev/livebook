@@ -106,13 +106,6 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :user]
 
       live "/apps/:slug", AppLive, :page
-    end
-  end
-
-  live_session :apps_auth, on_mount: [LivebookWeb.UserHook] do
-    scope "/", LivebookWeb do
-      pipe_through [:browser, :user]
-
       live "/apps/:slug/authenticate", AppAuthLive, :page
     end
   end

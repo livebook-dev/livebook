@@ -2,7 +2,34 @@ defmodule LivebookWeb.AppAuthHook do
   import Phoenix.Component
   import Phoenix.LiveView
 
-  alias LivebookWeb.Router.Helpers, as: Routes
+  # For apps with password, we want to store the hashed password
+  # (let's call it token) in the session, as we do for the main auth.
+  # However, the session uses cookies, which have a ~4kb size limit.
+  # We could use multiple cookies, however there are also limits on
+  # the number of cookies, and we don't want the browser to clear
+  # them all at some point. Additionally, accumulating cookies for
+  # all apps would imply larger payloads on every regular request.
+  #
+  # Since we don't have any persistence on the server side, the other
+  # option is to use the browser local storage and manage it through
+  # JavaScript. Therefore, the whole auth is built using LiveView.
+  # The flows are:
+  #
+  #   * unauthenticated - the auth LiveView shows a regular form and
+  #     validates the user-provided password. Once the password is
+  #     correct, it pushes an event to the client to store the token.
+  #     Once the token is stored it redirects to the app page.
+  #
+  #   * authenticated - on dead render the app LiveView renders just
+  #     a loading screen. On the client side, provided it's the app
+  #     page, we read the token from local storage (if stored) and
+  #     send it in mount connect params via the socket. Then on the
+  #     server we use that token to authenticate.
+  #
+  # This module defines a hook that sets the `:app_authenticated?`
+  # assign to reflect the current authentication state. For public
+  # apps (or in case the user has full access) it is set to `true`
+  # on both dead and live render.
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
     case Livebook.Apps.fetch_settings_by_slug(slug) do
@@ -10,20 +37,10 @@ defmodule LivebookWeb.AppAuthHook do
         {:cont, assign(socket, app_authenticated?: true)}
 
       {:ok, %{access_type: :protected} = app_settings} ->
-        cond do
-          livebook_authenticated?(session, socket) ->
-            {:cont, assign(socket, app_authenticated?: true)}
+        app_authenticated? =
+          livebook_authenticated?(session, socket) or has_valid_token?(socket, app_settings)
 
-          connected?(socket) ->
-            if has_valid_token?(socket, app_settings) do
-              {:cont, assign(socket, app_authenticated?: true)}
-            else
-              {:halt, push_navigate(socket, to: Routes.app_auth_path(socket, :page, slug))}
-            end
-
-          true ->
-            {:cont, assign(socket, app_authenticated?: false)}
-        end
+        {:cont, assign(socket, app_authenticated?: app_authenticated?)}
 
       :error ->
         {:halt, socket}
@@ -36,14 +53,36 @@ defmodule LivebookWeb.AppAuthHook do
   end
 
   defp has_valid_token?(socket, app_settings) do
-    connect_params = get_connect_params(socket)
+    connect_params = get_connect_params(socket) || %{}
 
     if token = connect_params["app_auth_token"] do
-      password_hash = Base.decode64!(token)
-      reference_hash = :crypto.hash(:sha256, app_settings.password)
-      Plug.Crypto.secure_compare(password_hash, reference_hash)
+      valid_auth_token?(token, app_settings)
     else
       false
     end
+  end
+
+  @doc """
+  Generates auth token that can be sent to the client.
+  """
+  @spec get_auth_token(Livebook.Notebook.AppSettings.t()) :: String.t()
+  def get_auth_token(app_settings) do
+    :crypto.hash(:sha256, app_settings.password) |> Base.encode64()
+  end
+
+  @doc """
+  Checks the given token is valid.
+  """
+  @spec valid_auth_token?(String.t(), Livebook.Notebook.AppSettings.t()) :: String.t()
+  def valid_auth_token?(token, app_settings) do
+    Plug.Crypto.secure_compare(token, get_auth_token(app_settings))
+  end
+
+  @doc """
+  Checks if the given password is valid.
+  """
+  @spec valid_password?(String.t(), Livebook.Notebook.AppSettings.t()) :: String.t()
+  def valid_password?(password, app_settings) do
+    Plug.Crypto.secure_compare(password, app_settings.password)
   end
 end

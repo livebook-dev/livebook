@@ -7,10 +7,10 @@ export function storeAppAuthToken(slug, token) {
 }
 
 export function loadAppAuthToken() {
-  const element = document.querySelector(`[data-app-slug]`);
+  const path = window.location.pathname;
 
-  if (element) {
-    const slug = element.getAttribute("data-app-slug");
+  if (path.startsWith("/apps/")) {
+    const slug = path.split("/")[2];
     const token = load(APP_AUTH_TOKEN_PREFIX + slug);
 
     if (token) {

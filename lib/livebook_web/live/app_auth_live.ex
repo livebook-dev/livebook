@@ -2,7 +2,7 @@ defmodule LivebookWeb.AppAuthLive do
   use LivebookWeb, :live_view
 
   @impl true
-  def mount(%{"slug" => slug}, _session, socket) do
+  def mount(%{"slug" => slug}, _session, socket) when not socket.assigns.app_authenticated? do
     case Livebook.Apps.fetch_settings_by_slug(slug) do
       {:ok, app_settings} ->
         {:ok, assign(socket, slug: slug, app_settings: app_settings, password: "", errors: [])}
@@ -10,6 +10,10 @@ defmodule LivebookWeb.AppAuthLive do
       :error ->
         {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
+  end
+
+  def mount(%{"slug" => slug}, _session, socket) do
+    {:ok, push_navigate(socket, to: Routes.app_path(socket, :page, slug))}
   end
 
   @impl true
@@ -70,19 +74,15 @@ defmodule LivebookWeb.AppAuthLive do
 
   @impl true
   def handle_event("authenticate", %{"password" => password}, socket) do
-    valid? = Plug.Crypto.secure_compare(password, socket.assigns.app_settings.password)
+    socket =
+      if LivebookWeb.AppAuthHook.valid_password?(password, socket.assigns.app_settings) do
+        token = LivebookWeb.AppAuthHook.get_auth_token(socket.assigns.app_settings)
+        push_event(socket, "persist_app_auth", %{"slug" => socket.assigns.slug, "token" => token})
+      else
+        assign(socket, password: password, errors: [{"app password is invalid", []}])
+      end
 
-    if valid? do
-      token = :crypto.hash(:sha256, socket.assigns.app_settings.password) |> Base.encode64()
-
-      {:noreply,
-       push_event(socket, "persist_app_auth", %{
-         "slug" => socket.assigns.slug,
-         "token" => token
-       })}
-    else
-      {:noreply, assign(socket, password: password, errors: [{"app password is invalid", []}])}
-    end
+    {:noreply, socket}
   end
 
   def handle_event("app_auth_persisted", %{}, socket) do
