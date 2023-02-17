@@ -30,7 +30,7 @@ defmodule LivebookWeb.AppAuthLive do
           />
         </a>
         <div class="text-2xl text-gray-800">
-          Authentication required
+          This app is password-protected
         </div>
 
         <div class="max-w-2xl text-center text-gray-700">
