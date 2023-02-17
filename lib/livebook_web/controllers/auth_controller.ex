@@ -15,8 +15,14 @@ defmodule LivebookWeb.AuthController do
     end
   end
 
-  def index(conn, params) do
-    render(conn, "index.html", auth_mode: Livebook.Config.auth_mode(), errors: params["errors"])
+  def index(conn, %{"redirect_to" => path}) do
+    conn
+    |> put_session(:redirect_to, path)
+    |> redirect(to: current_path(conn, %{}))
+  end
+
+  def index(conn, _params) do
+    render(conn, "index.html", errors: [], auth_mode: Livebook.Config.auth_mode())
   end
 
   def authenticate(conn, %{"password" => password}) do

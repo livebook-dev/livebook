@@ -1,5 +1,7 @@
-defmodule LivebookWeb.AppAuthPlugTest do
-  use LivebookWeb.ConnCase, async: false
+defmodule LivebookWeb.AppAuthLiveTest do
+  use LivebookWeb.ConnCase, async: true
+
+  import Phoenix.LiveViewTest
 
   setup ctx do
     {slug, session} = create_app(ctx[:app_settings] || %{})
@@ -39,13 +41,14 @@ defmodule LivebookWeb.AppAuthPlugTest do
     {slug, session}
   end
 
+  # Integration tests for the authentication scenarios
+
   describe "public app" do
     @describetag app_settings: %{access_type: :public}
 
     test "does not require authentication", %{conn: conn, slug: slug} do
-      conn = get(conn, "/apps/#{slug}")
-      assert conn.status == 200
-      assert conn.resp_body =~ "Untitled notebook"
+      {:ok, view, _} = live(conn, "/apps/#{slug}")
+      assert render(view) =~ "Untitled notebook"
     end
   end
 
@@ -54,37 +57,53 @@ defmodule LivebookWeb.AppAuthPlugTest do
     @describetag app_settings: %{access_type: :protected, password: "long_app_password"}
 
     test "redirect to auth page when not authenticated", %{conn: conn, slug: slug} do
-      conn = get(conn, "/apps/#{slug}")
-      assert redirected_to(conn) == "/apps/#{slug}/authenticate"
+      {:error, {:live_redirect, %{kind: :push, to: to}}} = live(conn, "/apps/#{slug}")
+      assert to == "/apps/#{slug}/authenticate"
     end
 
-    test "redirects back to auth on invalid password", %{conn: conn, slug: slug} do
-      conn = post(conn, "/apps/#{slug}/authenticate", password: "invalid password")
-      assert html_response(conn, 200) =~ "Authentication required"
+    test "shows an error on invalid password", %{conn: conn, slug: slug} do
+      {:ok, view, _} = live(conn, "/apps/#{slug}/authenticate")
 
-      conn = get(conn, "/apps/#{slug}")
-      assert redirected_to(conn) == "/apps/#{slug}/authenticate"
+      assert view
+             |> element("form")
+             |> render_submit(%{password: "invalid password"}) =~ "app password is invalid"
     end
 
     test "persists authentication across requests", %{conn: conn, slug: slug} do
-      conn = post(conn, "/apps/#{slug}/authenticate", password: "long_app_password")
-      assert redirected_to(conn) == "/apps/#{slug}"
-      assert get_session(conn, "80:app_password:#{slug}")
+      {:ok, view, _} = live(conn, "/apps/#{slug}/authenticate")
 
-      conn = get(conn, "/apps/#{slug}")
-      assert conn.status == 200
-      assert conn.resp_body =~ "Untitled notebook"
+      view
+      |> element("form")
+      |> render_submit(%{password: "long_app_password"})
 
-      conn = get(conn, "/apps/#{slug}/authenticate")
-      assert redirected_to(conn) == "/apps/#{slug}"
+      # The token is stored on the client
+
+      assert_push_event(view, "persist_app_auth", %{"slug" => ^slug, "token" => token})
+
+      assert {:error, {:live_redirect, %{kind: :push, to: to}}} =
+               render_hook(view, "app_auth_persisted")
+
+      assert to == "/apps/#{slug}"
+
+      # Then, the client passes the token in connect params
+
+      {:ok, view, _} =
+        conn
+        |> put_connect_params(%{"app_auth_token" => token})
+        |> live("/apps/#{slug}")
+
+      assert render(view) =~ "Untitled notebook"
     end
 
     test "redirects to the app page when authenticating in Livebook", %{conn: conn, slug: slug} do
-      conn = get(conn, "/apps/#{slug}/authenticate/global")
+      conn = get(conn, "/authenticate?redirect_to=/apps/#{slug}")
       assert redirected_to(conn) == "/authenticate"
 
       conn = post(conn, "/authenticate", password: "long_livebook_password")
       assert redirected_to(conn) == "/apps/#{slug}"
+
+      {:ok, view, _} = live(conn, "/apps/#{slug}")
+      assert render(view) =~ "Untitled notebook"
     end
   end
 end
