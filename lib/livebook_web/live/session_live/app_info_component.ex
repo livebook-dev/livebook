@@ -1,6 +1,7 @@
 defmodule LivebookWeb.SessionLive.AppInfoComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Notebook.AppSettings
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @impl true
@@ -13,7 +14,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     changeset =
       case socket.assigns do
         %{changeset: changeset} when changeset.data == assigns.settings -> changeset
-        _ -> Livebook.Notebook.AppSettings.change(assigns.settings)
+        _ -> AppSettings.change(assigns.settings)
       end
 
     {:ok,
@@ -67,13 +68,44 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               phx-target={@myself}
               autocomplete="off"
             >
-              <.input_wrapper form={f} field={:slug} class="flex flex-col space-y-1">
-                <div class="input-label">Slug</div>
-                <%= text_input(f, :slug, class: "input", spellcheck: "false", phx_debounce: "blur") %>
-              </.input_wrapper>
+              <div class="flex flex-col space-y-4">
+                <.input_wrapper form={f} field={:slug} class="flex flex-col space-y-1">
+                  <div class="input-label">Slug</div>
+                  <%= text_input(f, :slug, class: "input", spellcheck: "false", phx_debounce: "blur") %>
+                </.input_wrapper>
+                <.input_wrapper form={f} field={:access_type} class="flex flex-col space-y-1">
+                  <.switch_checkbox
+                    id={input_id(f, :access_type)}
+                    name={input_name(f, :access_type)}
+                    label="Password-protected"
+                    checked={Ecto.Changeset.get_field(@changeset, :access_type) == :protected}
+                    checked_value="protected"
+                    unchecked_value="public"
+                  />
+                </.input_wrapper>
+                <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
+                  <.input_wrapper form={f} field={:password} class="flex flex-col space-y-1">
+                    <.with_password_toggle id={input_id(f, :password) <> "-toggle"}>
+                      <%= password_input(f, :password,
+                        value: input_value(f, :password),
+                        class: "input",
+                        spellcheck: "false",
+                        phx_debounce: "blur"
+                      ) %>
+                    </.with_password_toggle>
+                  </.input_wrapper>
+                <% end %>
+              </div>
               <div class="mt-5 flex space-x-2">
                 <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
                   Deploy
+                </button>
+                <button
+                  class="button-base button-outlined-gray bg-transparent"
+                  type="reset"
+                  name="reset"
+                >
+                  Reset
                 </button>
               </div>
             </.form>
@@ -194,10 +226,19 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"app_settings" => params}, socket) do
-    changeset = Livebook.Notebook.AppSettings.change(socket.assigns.settings, params)
+  def handle_event("validate", %{"_target" => ["reset"]}, socket) do
+    settings = AppSettings.new()
+    Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
+    {:noreply, assign(socket, changeset: AppSettings.change(settings))}
+  end
 
-    with {:ok, settings} <- Livebook.Notebook.AppSettings.update(socket.assigns.settings, params) do
+  def handle_event("validate", %{"app_settings" => params}, socket) do
+    changeset =
+      socket.assigns.settings
+      |> AppSettings.change(params)
+      |> Map.put(:action, :validate)
+
+    with {:ok, settings} <- AppSettings.update(socket.assigns.settings, params) do
       Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
     end
 
@@ -205,7 +246,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   end
 
   def handle_event("deploy", %{"app_settings" => params}, socket) do
-    case Livebook.Notebook.AppSettings.update(socket.assigns.settings, params) do
+    case AppSettings.update(socket.assigns.settings, params) do
       {:ok, settings} ->
         Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
 

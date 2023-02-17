@@ -209,9 +209,9 @@ defmodule LivebookWeb.SessionLive do
             apps={@data_view.apps}
           />
         </div>
-      </div>
-      <div data-el-runtime-info>
-        <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
+        <div data-el-runtime-info>
+          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
+        </div>
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>

@@ -2,14 +2,25 @@ defmodule LivebookWeb.JSViewChannel do
   use Phoenix.Channel
 
   @impl true
-  def join("js_view", %{"session_id" => session_id, "client_id" => client_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, client_id: client_id, ref_with_info: %{})}
+  def join("js_view", %{"session_token" => session_token}, socket) do
+    case Phoenix.Token.verify(LivebookWeb.Endpoint, "session", session_token) do
+      {:ok, data} ->
+        {:ok,
+         assign(socket,
+           session_id: data.session_id,
+           client_id: data.client_id,
+           ref_with_info: %{}
+         )}
+
+      _error ->
+        {:error, %{reason: "invalid token"}}
+    end
   end
 
   @impl true
-  def handle_in("connect", %{"session_token" => session_token, "ref" => ref, "id" => id}, socket) do
-    {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js view", session_token)
-    %{pid: pid} = data
+  def handle_in("connect", %{"connect_token" => connect_token, "ref" => ref, "id" => id}, socket) do
+    {:ok, %{pid: pid}} =
+      Phoenix.Token.verify(LivebookWeb.Endpoint, "js-view-connect", connect_token)
 
     send(pid, {:connect, self(), %{origin: socket.assigns.client_id, ref: ref}})
 

@@ -193,6 +193,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Returns the current app settings.
+  """
+  @spec get_app_settings(pid()) :: Notebook.AppSettings.t()
+  def get_app_settings(pid) do
+    GenServer.call(pid, :get_app_settings, @timeout)
+  end
+
+  @doc """
   Subscribes to session messages.
 
   ## Messages
@@ -825,6 +833,10 @@ defmodule Livebook.Session do
 
   def handle_call(:get_notebook, _from, state) do
     {:reply, state.data.notebook, state}
+  end
+
+  def handle_call(:get_app_settings, _from, state) do
+    {:reply, state.data.notebook.app_settings, state}
   end
 
   def handle_call(:save_sync, _from, state) do

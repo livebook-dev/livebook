@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.New.FlyComponent do
   use LivebookWeb, :live_component
 
-  import Ecto.Changeset, only: [get_field: 2, add_error: 3]
+  import Ecto.Changeset, only: [add_error: 3]
 
   alias Livebook.Hubs.{Fly, FlyClient}
 
@@ -39,7 +39,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
             phx_change: "fetch_data",
             phx_debounce: "blur",
             phx_target: @myself,
-            value: access_token(@changeset),
+            value: input_value(f, :access_token),
             class: "input w-full phx-form-error:border-red-300",
             autofocus: true,
             spellcheck: "false",
@@ -141,6 +141,4 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
 
     [disabled_option] ++ options
   end
-
-  defp access_token(changeset), do: get_field(changeset, :access_token)
 end
