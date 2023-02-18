@@ -7,7 +7,7 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
-    %{pid: session_pid, id: session_id} = socket.assigns.app_settings
+    {:ok, %{pid: session_pid, id: session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
 
     {data, client_id} =
       if connected?(socket) do
