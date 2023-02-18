@@ -6,37 +6,41 @@ defmodule LivebookWeb.AppLive do
   alias Livebook.Notebook.Cell
 
   @impl true
-  def mount(%{"slug" => slug}, _session, socket) do
-    case Livebook.Apps.fetch_session_by_slug(slug) do
-      {:ok, %{pid: session_pid, id: session_id}} ->
+  def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
+    {:ok, %{pid: session_pid, id: session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
+
+    {data, client_id} =
+      if connected?(socket) do
         {data, client_id} =
-          if connected?(socket) do
-            {data, client_id} =
-              Session.register_client(session_pid, self(), socket.assigns.current_user)
+          Session.register_client(session_pid, self(), socket.assigns.current_user)
 
-            Session.subscribe(session_id)
+        Session.subscribe(session_id)
 
-            {data, client_id}
-          else
-            data = Session.get_data(session_pid)
-            {data, nil}
-          end
+        {data, client_id}
+      else
+        data = Session.get_data(session_pid)
+        {data, nil}
+      end
 
-        session = Session.get_by_pid(session_pid)
+    session = Session.get_by_pid(session_pid)
 
-        {:ok,
-         socket
-         |> assign(
-           slug: slug,
-           session: session,
-           page_title: get_page_title(data.notebook.name),
-           client_id: client_id,
-           data_view: data_to_view(data)
-         )
-         |> assign_private(data: data)}
+    {:ok,
+     socket
+     |> assign(
+       slug: slug,
+       session: session,
+       page_title: get_page_title(data.notebook.name),
+       client_id: client_id,
+       data_view: data_to_view(data)
+     )
+     |> assign_private(data: data)}
+  end
 
-      :error ->
-        {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
+  def mount(%{"slug" => slug}, _session, socket) do
+    if connected?(socket) do
+      {:ok, push_navigate(socket, to: Routes.app_auth_path(socket, :page, slug))}
+    else
+      {:ok, socket}
     end
   end
 
@@ -49,7 +53,7 @@ defmodule LivebookWeb.AppLive do
   end
 
   @impl true
-  def render(assigns) do
+  def render(assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="grow overflow-y-auto relative" data-el-notebook>
       <div
@@ -103,6 +107,20 @@ defmodule LivebookWeb.AppLive do
           <div style="height: 80vh"></div>
         <% end %>
       </div>
+    </div>
+    """
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div class="flex justify-center items-center h-screen w-screen">
+      <img
+        src={Routes.static_path(@socket, "/images/logo.png")}
+        height="128"
+        width="128"
+        alt="livebook"
+        class="animate-pulse"
+      />
     </div>
     """
   end

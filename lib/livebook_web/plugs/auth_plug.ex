@@ -25,6 +25,7 @@ defmodule LivebookWeb.AuthPlug do
   @doc """
   Stores in the session the secret for the given mode.
   """
+  @spec store(Plug.Conn.t(), Livebook.Config.auth_mode(), String.t()) :: Plug.Conn.t()
   def store(conn, mode, value) do
     conn
     |> put_session(key(conn.port, mode), hash(value))

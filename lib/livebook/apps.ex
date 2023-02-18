@@ -53,5 +53,20 @@ defmodule Livebook.Apps do
     end
   end
 
+  @doc """
+  Looks up app session with the given slug and returns its settings.
+  """
+  @spec fetch_settings_by_slug(String.t()) :: {:ok, Livebook.Notebook.AppSettings.t()} | :error
+  def fetch_settings_by_slug(slug) do
+    case :global.whereis_name(name(slug)) do
+      :undefined ->
+        :error
+
+      pid ->
+        app_settings = Session.get_app_settings(pid)
+        {:ok, app_settings}
+    end
+  end
+
   defp name(slug), do: {:app, slug}
 end

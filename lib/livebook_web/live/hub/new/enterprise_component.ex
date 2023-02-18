@@ -49,7 +49,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
           <.input_wrapper form={f} field={:token} class="flex flex-col space-y-1">
             <div class="input-label">Token</div>
             <%= password_input(f, :token,
-              value: get_field(@changeset, :token),
+              value: input_value(f, :token),
               class: "input w-full phx-form-error:border-red-300",
               spellcheck: "false",
               autocomplete: "off",

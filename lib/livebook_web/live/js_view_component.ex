@@ -21,9 +21,8 @@ defmodule LivebookWeb.JSViewComponent do
         Routes.session_path(@socket, :show_asset, @session_id, @js_view.assets.hash, [])
       }
       data-js-path={@js_view.assets.js_path}
-      data-session-token={session_token(@js_view.pid)}
-      data-session-id={@session_id}
-      data-client-id={@client_id}
+      data-session-token={session_token(@session_id, @client_id)}
+      data-connect-token={connect_token(@js_view.pid)}
       data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}
       data-iframe-url={Livebook.Config.iframe_url()}
       data-timeout-message={@timeout_message}
@@ -32,7 +31,14 @@ defmodule LivebookWeb.JSViewComponent do
     """
   end
 
-  defp session_token(pid) do
-    Phoenix.Token.sign(LivebookWeb.Endpoint, "js view", %{pid: pid})
+  defp session_token(session_id, client_id) do
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "session", %{
+      session_id: session_id,
+      client_id: client_id
+    })
+  end
+
+  defp connect_token(pid) do
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "js-view-connect", %{pid: pid})
   end
 end

@@ -1,3 +1,4 @@
+import AppAuth from "./app_auth";
 import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
@@ -21,6 +22,7 @@ import UserForm from "./user_form";
 import VirtualizedLines from "./virtualized_lines";
 
 export default {
+  AppAuth,
   AudioInput,
   Cell,
   CellEditor,

@@ -26,6 +26,10 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
+  pipeline :user do
+    plug LivebookWeb.UserPlug
+  end
+
   pipeline :js_view_assets do
     plug :put_secure_browser_headers
     plug :within_iframe_secure_headers
@@ -86,8 +90,6 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/images/:image", SessionController, :show_image
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
-
-      live "/apps/:slug", AppLive, :page
     end
 
     # Public authenticated URLs that people may be directed to
@@ -96,6 +98,15 @@ defmodule LivebookWeb.Router do
 
       live "/import", HomeLive, :public_import
       live "/open", HomeLive, :public_open
+    end
+  end
+
+  live_session :apps, on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook] do
+    scope "/", LivebookWeb do
+      pipe_through [:browser, :user]
+
+      live "/apps/:slug", AppLive, :page
+      live "/apps/:slug/authenticate", AppAuthLive, :page
     end
   end
 
