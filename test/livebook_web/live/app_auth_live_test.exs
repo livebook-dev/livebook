@@ -118,4 +118,8 @@ defmodule LivebookWeb.AppAuthLiveTest do
       assert to == "/apps/#{slug}"
     end
   end
+
+  test "redirects to homepage when accessing non-existent app", %{conn: conn} do
+    assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/apps/nonexistent")
+  end
 end

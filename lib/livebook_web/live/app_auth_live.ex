@@ -3,13 +3,7 @@ defmodule LivebookWeb.AppAuthLive do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when not socket.assigns.app_authenticated? do
-    case Livebook.Apps.fetch_settings_by_slug(slug) do
-      {:ok, app_settings} ->
-        {:ok, assign(socket, slug: slug, app_settings: app_settings, password: "", errors: [])}
-
-      :error ->
-        {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
-    end
+    {:ok, assign(socket, slug: slug, password: "", errors: [])}
   end
 
   def mount(%{"slug" => slug}, _session, socket) do

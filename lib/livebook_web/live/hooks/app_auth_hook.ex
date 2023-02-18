@@ -2,6 +2,8 @@ defmodule LivebookWeb.AppAuthHook do
   import Phoenix.Component
   import Phoenix.LiveView
 
+  alias LivebookWeb.Router.Helpers, as: Routes
+
   # For apps with password, we want to store the hashed password
   # (let's call it token) in the session, as we do for the main auth.
   # However, the session uses cookies, which have a ~4kb size limit.
@@ -33,17 +35,18 @@ defmodule LivebookWeb.AppAuthHook do
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
     case Livebook.Apps.fetch_settings_by_slug(slug) do
-      {:ok, %{access_type: :public}} ->
-        {:cont, assign(socket, app_authenticated?: true)}
+      {:ok, %{access_type: :public} = app_settings} ->
+        {:cont, assign(socket, app_authenticated?: true, app_settings: app_settings)}
 
       {:ok, %{access_type: :protected} = app_settings} ->
         app_authenticated? =
           livebook_authenticated?(session, socket) or has_valid_token?(socket, app_settings)
 
-        {:cont, assign(socket, app_authenticated?: app_authenticated?)}
+        {:cont,
+         assign(socket, app_authenticated?: app_authenticated?, app_settings: app_settings)}
 
       :error ->
-        {:halt, socket}
+        {:halt, redirect(socket, to: Routes.home_path(socket, :page))}
     end
   end
 
