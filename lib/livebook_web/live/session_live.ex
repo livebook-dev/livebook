@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Hubs
   alias Livebook.Session.SessionManager
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do

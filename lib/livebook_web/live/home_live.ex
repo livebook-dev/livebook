@@ -7,7 +7,7 @@ defmodule LivebookWeb.HomeLive do
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
   alias Livebook.Session.SessionManager
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(params, _session, socket) do
