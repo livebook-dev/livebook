@@ -105,7 +105,9 @@ defmodule Livebook.Hubs.Enterprise do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
-  def load(%Livebook.Hubs.Enterprise{} = enterprise, fields) do
+  alias Livebook.Hubs.EnterpriseClient
+
+  def load(enterprise, fields) do
     %{
       enterprise
       | id: fields.id,
@@ -117,21 +119,59 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     }
   end
 
-  def normalize(%Livebook.Hubs.Enterprise{} = enterprise) do
+  def to_metadata(enterprise) do
     %Livebook.Hubs.Metadata{
       id: enterprise.id,
       name: enterprise.hub_name,
       provider: enterprise,
-      emoji: enterprise.hub_emoji
+      emoji: enterprise.hub_emoji,
+      connected?: EnterpriseClient.connected?(enterprise.id)
     }
   end
 
   def type(_enterprise), do: "enterprise"
 
-  def connect(%Livebook.Hubs.Enterprise{} = enterprise),
-    do: {Livebook.Hubs.EnterpriseClient, enterprise}
+  def connection_spec(enterprise), do: {EnterpriseClient, enterprise}
 
-  def connected?(%Livebook.Hubs.Enterprise{id: id}) do
-    Livebook.Hubs.EnterpriseClient.connected?(id)
+  def disconnect(enterprise) do
+    EnterpriseClient.stop(enterprise.id)
+  end
+
+  def capabilities(_enterprise), do: [:connect, :secrets]
+
+  def get_secrets(enterprise) do
+    EnterpriseClient.get_secrets(enterprise.id)
+  end
+
+  def create_secret(enterprise, secret) do
+    create_secret_request =
+      LivebookProto.CreateSecretRequest.new!(name: secret.name, value: secret.value)
+
+    case EnterpriseClient.send_request(enterprise.id, create_secret_request) do
+      {:create_secret, _} ->
+        :ok
+
+      {:changeset_error, errors} ->
+        changeset =
+          for {field, messages} <- errors,
+              message <- messages,
+              reduce: secret do
+            acc ->
+              Livebook.Secrets.add_secret_error(acc, field, message)
+          end
+
+        {:error, changeset}
+
+      {:transport_error, reason} ->
+        message = "#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"
+        changeset = Livebook.Secrets.add_secret_error(secret, :origin, message)
+
+        {:error, changeset}
+    end
+  end
+
+  def connection_error(enterprise) do
+    reason = EnterpriseClient.get_connection_error(enterprise.id)
+    "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
   end
 end

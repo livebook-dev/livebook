@@ -17,6 +17,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
       data-js-empty={empty?(@cell_view.source_view)}
       data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
+      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
     >
       <%= render_cell(assigns) %>
     </div>
@@ -68,6 +69,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
           reevaluate_automatically={@cell_view.reevaluate_automatically}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
         />
       </:primary>
       <:secondary>
@@ -98,6 +100,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         cell_view={@cell_view}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
       />
     </.cell_body>
@@ -147,6 +150,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_view={@cell_view}
           socket={@socket}
           session_id={@session_id}
+          session_pid={@session_pid}
           client_id={@client_id}
         />
       </div>
@@ -165,6 +169,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           validity={@cell_view.eval.validity}
           status={@cell_view.eval.status}
           reevaluate_automatically={false}
+          reevaluates_automatically={@cell_view.eval.reevaluates_automatically}
         />
       </:primary>
       <:secondary>
@@ -253,6 +258,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         cell_view={@cell_view}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
       />
     </.cell_body>
@@ -304,7 +310,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-cell-id={@cell_id}
       >
         <%= cond do %>
-          <% @reevaluate_automatically and @validity in [:evaluated, :stale] -> %>
+          <% @reevaluates_automatically -> %>
             <.remix_icon icon="check-line" class="text-xl" />
             <span class="text-sm font-medium">Reevaluates automatically</span>
           <% @validity == :evaluated -> %>
@@ -609,6 +615,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         dom_id_map={%{}}
         socket={@socket}
         session_id={@session_id}
+        session_pid={@session_pid}
         client_id={@client_id}
         input_values={@cell_view.eval.input_values}
       />
@@ -649,7 +656,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
     <.status_indicator
-      circle_class="bg-green-bright-400"
+      circle_class={if(@cell_view.eval.errored, do: "bg-red-400", else: "bg-green-bright-400")}
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}
     >

@@ -10,11 +10,11 @@ defmodule Livebook.Notebook.Cell.Smart do
 
   @type t :: %__MODULE__{
           id: Cell.id(),
-          source: String.t(),
+          source: String.t() | :__pruned__,
           chunks: Livebook.Runtime.chunks() | nil,
           outputs: list(Cell.indexed_output()),
-          kind: String.t(),
-          attrs: attrs(),
+          kind: String.t() | nil,
+          attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,
           editor: Livebook.Runtime.editor() | nil
         }

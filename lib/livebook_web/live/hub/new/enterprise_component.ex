@@ -33,7 +33,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         phx-submit="save"
         phx-change="validate"
         phx-target={@myself}
-        phx-debounce="blur"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <.input_wrapper form={f} field={:url} class="flex flex-col space-y-1">
@@ -42,17 +41,19 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               class: "input w-full phx-form-error:border-red-300",
               autofocus: true,
               spellcheck: "false",
-              autocomplete: "off"
+              autocomplete: "off",
+              phx_debounce: "blur"
             ) %>
           </.input_wrapper>
 
           <.input_wrapper form={f} field={:token} class="flex flex-col space-y-1">
             <div class="input-label">Token</div>
             <%= password_input(f, :token,
-              value: get_field(@changeset, :token),
+              value: input_value(f, :token),
               class: "input w-full phx-form-error:border-red-300",
               spellcheck: "false",
-              autocomplete: "off"
+              autocomplete: "off",
+              phx_debounce: "blur"
             ) %>
           </.input_wrapper>
         </div>
@@ -81,7 +82,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
               <%= text_input(f, :hub_name, class: "input", readonly: true) %>
             </.input_wrapper>
 
-            <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
+            <.input_wrapper form={f} field={:hub_emoji} class="flex relative flex-col space-y-1">
               <div class="input-label">Emoji</div>
               <.emoji_input id="enterprise-emoji-input" form={f} field={:hub_emoji} />
             </.input_wrapper>
@@ -115,8 +116,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
     {:ok, pid} = EnterpriseClient.start_link(base)
 
     receive do
-      {:connection_error, reason} ->
-        EnterpriseClient.stop(pid)
+      {:hub_connection_failed, reason} ->
+        EnterpriseClient.stop(base.id)
 
         {:noreply,
          socket
@@ -134,8 +135,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
-          {:error, reason} ->
-            EnterpriseClient.stop(pid)
+          {:transport_error, reason} ->
+            EnterpriseClient.stop(base.id)
 
             {:noreply,
              socket

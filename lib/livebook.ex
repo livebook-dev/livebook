@@ -135,6 +135,8 @@ defmodule Livebook do
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
              Livebook.Runtime.ElixirStandalone.new()
 
+    config :livebook, :default_app_runtime, Livebook.Runtime.ElixirStandalone.new()
+
     config :livebook,
            :runtime_modules,
            [
@@ -160,6 +162,10 @@ defmodule Livebook do
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
              Livebook.Utils.random_cookie()
 
+    if node = Livebook.Config.node!("LIVEBOOK_NODE", "LIVEBOOK_DISTRIBUTION") do
+      config :livebook, :node, node
+    end
+
     if app_service_name = Livebook.Config.app_service_name!("LIVEBOOK_APP_SERVICE_NAME") do
       config :livebook, :app_service_name, app_service_name
 
@@ -171,6 +177,10 @@ defmodule Livebook do
     if update_instructions_url =
          Livebook.Config.update_instructions_url!("LIVEBOOK_UPDATE_INSTRUCTIONS_URL") do
       config :livebook, :update_instructions_url, update_instructions_url
+    end
+
+    if allowed_uri_schemes = Livebook.Config.allowed_uri_schemes!("LIVEBOOK_ALLOW_URI_SCHEMES") do
+      config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
   end
 

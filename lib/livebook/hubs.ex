@@ -2,7 +2,9 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Local, Metadata, Provider}
+  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider}
+  alias Livebook.Secrets
+  alias Livebook.Secrets.Secret
 
   @namespace :hubs
 
@@ -23,12 +25,22 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
+  Gets a list of hubs from storage with given capabilities.
+  """
+  @spec get_hubs(Provider.capabilities()) :: list(Provider.t())
+  def get_hubs(capabilities) do
+    for hub <- get_hubs(),
+        capability?(hub, capabilities),
+        do: hub
+  end
+
+  @doc """
   Gets a list of metadatas from storage.
   """
   @spec get_metadatas() :: list(Metadata.t())
   def get_metadatas do
     for hub <- get_hubs() do
-      %{Provider.normalize(hub) | connected?: Provider.connected?(hub)}
+      Provider.to_metadata(hub)
     end
   end
 
@@ -71,28 +83,31 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = Broadcasts.hubs_metadata_changed()
+    :ok = Broadcasts.hub_changed()
 
     struct
   end
 
-  @doc false
+  @doc """
+  Deletes a hub with the given id.
+  """
+  @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
     with {:ok, hub} <- get_hub(id) do
-      if connected_hub = get_connected_hub(hub) do
-        GenServer.stop(connected_hub.pid, :shutdown)
-      end
-
+      true = Provider.type(hub) != "personal"
+      :ok = Broadcasts.hub_changed()
       :ok = Storage.delete(@namespace, id)
-      :ok = Broadcasts.hubs_metadata_changed()
+      :ok = disconnect_hub(hub)
     end
 
     :ok
   end
 
-  @doc false
-  def clean_hubs do
-    for hub <- get_hubs(), do: delete_hub(hub.id)
+  defp disconnect_hub(hub) do
+    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      Process.sleep(30_000)
+      :ok = Provider.disconnect(hub)
+    end)
 
     :ok
   end
@@ -104,14 +119,13 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:crud`:
 
-    * `:hubs_metadata_changed`
+    * `:hub_changed`
 
   Topic `hubs:connection`:
 
     * `:hub_connected`
     * `:hub_disconnected`
-    * `{:connection_error, reason}`
-    * `{:disconnection_error, reason}`
+    * `{:hub_connection_failed, reason}`
 
   Topic `hubs:secrets`:
 
@@ -152,8 +166,8 @@ defmodule Livebook.Hubs do
     Provider.load(%Enterprise{}, fields)
   end
 
-  defp to_struct(%{id: "local-" <> _} = fields) do
-    Provider.load(%Local{}, fields)
+  defp to_struct(%{id: "personal-" <> _} = fields) do
+    Provider.load(%Personal{}, fields)
   end
 
   @doc """
@@ -167,13 +181,15 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs(), do: connect_hub(hub)
+    for hub <- get_hubs(),
+        capability?(hub, [:connect]),
+        do: connect_hub(hub)
 
     :ok
   end
 
   defp connect_hub(hub) do
-    if child_spec = Provider.connect(hub) do
+    if child_spec = Provider.connection_spec(hub) do
       DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
     end
 
@@ -181,23 +197,36 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of connected hubs.
+  Gets a list of hub secrets.
 
-  ## Example
-
-      iex> get_connected_hubs()
-      [%{pid: #PID<0.178.0>, hub: %Enterprise{}}, ...]
-
+  It gets from all hubs with secret management.
   """
-  @spec get_connected_hubs() :: connected_hubs()
-  def get_connected_hubs do
-    for hub <- get_hubs(), connected = get_connected_hub(hub), do: connected
+  @spec get_secrets() :: list(Secret.t())
+  def get_secrets do
+    for hub <- get_hubs([:secrets]),
+        secret <- Provider.get_secrets(hub),
+        do: secret
   end
 
-  defp get_connected_hub(hub) do
-    case Registry.lookup(Livebook.HubsRegistry, hub.id) do
-      [{pid, _}] -> %{pid: pid, hub: hub}
-      [] -> nil
+  @doc """
+  Creates a secret for given hub.
+  """
+  @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
+  def create_secret(%Secret{origin: {:hub, id}} = secret) do
+    case get_hub(id) do
+      {:ok, hub} ->
+        if capability?(hub, [:secrets]) do
+          Provider.create_secret(hub, secret)
+        else
+          {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
+        end
+
+      :error ->
+        {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
     end
+  end
+
+  defp capability?(hub, capabilities) do
+    capabilities -- Provider.capabilities(hub) == []
   end
 end

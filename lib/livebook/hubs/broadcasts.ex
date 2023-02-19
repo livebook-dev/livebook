@@ -12,9 +12,9 @@ defmodule Livebook.Hubs.Broadcasts do
   @doc """
   Broadcasts when hubs changed under `hubs:crud` topic
   """
-  @spec hubs_metadata_changed() :: broadcast()
-  def hubs_metadata_changed do
-    broadcast(@crud_topic, :hubs_metadata_changed)
+  @spec hub_changed() :: broadcast()
+  def hub_changed do
+    broadcast(@crud_topic, :hub_changed)
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Livebook.Hubs.Broadcasts do
   """
   @spec hub_connection_failed(String.t()) :: broadcast()
   def hub_connection_failed(reason) when is_binary(reason) do
-    broadcast(@connection_topic, {:connection_error, reason})
+    broadcast(@connection_topic, {:hub_connection_failed, reason})
   end
 
   @doc """
@@ -46,7 +46,7 @@ defmodule Livebook.Hubs.Broadcasts do
   """
   @spec hub_disconnection_failed(String.t()) :: broadcast()
   def hub_disconnection_failed(reason) when is_binary(reason) do
-    broadcast(@connection_topic, {:disconnection_error, reason})
+    broadcast(@connection_topic, {:hub_disconnection_failed, reason})
   end
 
   @doc """

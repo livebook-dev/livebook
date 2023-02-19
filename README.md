@@ -164,6 +164,9 @@ The following environment variables configure Livebook:
   * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
+  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
+    Useful when deploying behind a reverse proxy.
+
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 
@@ -174,6 +177,10 @@ The following environment variables configure Livebook:
     when none is started explicitly for the given notebook. Must be either
     "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)
     or "embedded" (Embedded). Defaults to "standalone".
+
+  * LIVEBOOK_DISTRIBUTION - sets the node distribution for running Livebook in a
+    cluster. Must be "name" (long names) or "sname" (short names). Note that this
+    sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
   * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
@@ -192,8 +199,8 @@ The following environment variables configure Livebook:
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
 
-  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
-    Useful when deploying behind a reverse proxy.
+  * LIVEBOOK_NODE - sets the node name for running Livebook in a cluster. Note that
+    this sets RELEASE_NODE if present when creating a release.
 
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
@@ -222,12 +229,28 @@ The following environment variables configure Livebook:
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
 
+  * LIVEBOOK_ALLOW_URI_SCHEMES - sets additional allowed hyperlink schemes to the
+    Markdown content. Livebook sanitizes links in Markdown, allowing only a few
+    standard schemes by default (such as http and https). Set it to a comma-separated
+    list of schemes.
+
 <!-- Environment variables -->
 
-If running Livebook as a Docker image or an Elixir release, [the environment
-variables used by Elixir releases are also available](
-https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
-The notables ones are `RELEASE_NODE` and `RELEASE_DISTRIBUTION`.
+When running Livebook Desktop, Livebook will invoke on boot a file named
+`~/.livebookdesktop.sh` on macOS or `%USERPROFILE%\.livebookdesktop.bat`
+on Windows. This file can set environment variables used by Livebook,
+such as:
+
+  * [the `PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable))
+
+  * set `LIVEBOOK_DISTRIBUTION=name` to enable notebooks to communicate
+    with nodes in other machines
+
+  * or to configure the Erlang VM, for instance, by setting
+    `ERL_AFLAGS="-proto_dist inet6_tcp"` if you need Livebook to run over IPv6
+
+Be careful when modifying said files, Livebook may be unable to start if
+configured incorrectly.
 
 If running Livebook via the command line, run `livebook server --help` to see
 all CLI-specific options.
@@ -250,6 +273,28 @@ mix test
 # To test escript
 MIX_ENV=prod mix escript.build
 ./livebook server
+```
+
+### Livebook Desktop
+
+For macOS, run:
+
+```shell
+# Test macOS app locally
+(cd rel/app/macos && ./run.sh)
+
+# Build macOS installer
+.github/scripts/app/build_macos.sh
+```
+
+For Windows, run:
+
+```shell
+# Test Windows app locally
+(cd rel/app/windows && ./run.sh)
+
+# Build Windows installer
+.github/scripts/app/build_windows.sh
 ```
 
 ## Sponsors

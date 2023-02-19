@@ -55,7 +55,7 @@ defmodule Livebook.Application do
         load_lb_env_vars()
         clear_env_vars()
         display_startup_info()
-        insert_development_hub()
+        insert_personal_hub()
         Livebook.Hubs.connect_hubs()
         result
 
@@ -126,7 +126,15 @@ defmodule Livebook.Application do
     unless Livebook.Config.longname() do
       [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split(~c"@")
 
-      with {:ok, nodenames} <- :erl_epmd.names(hostname),
+      # erl_epmd names do not support ipv6 resolution by default,
+      # unless inet6 is configured, so we attempt both.
+      gethostbyname =
+        with {:error, _} <- :inet.gethostbyname(hostname, :inet, :infinity),
+             {:error, _} <- :inet.gethostbyname(hostname, :inet6, :infinity),
+             do: :error
+
+      with {:ok, hostent(h_addr_list: [epmd_addr | _])} <- gethostbyname,
+           {:ok, nodenames} <- :erl_epmd.names(epmd_addr),
            true <- List.keymember?(nodenames, nodename, 0) do
         :ok
       else
@@ -181,7 +189,7 @@ defmodule Livebook.Application do
     secrets =
       for {"LB_" <> name = var, value} <- System.get_env() do
         System.delete_env(var)
-        %Livebook.Secrets.Secret{name: name, value: value}
+        %Livebook.Secrets.Secret{name: name, value: value, origin: :startup}
       end
 
     Livebook.Secrets.set_temporary_secrets(secrets)
@@ -197,16 +205,14 @@ defmodule Livebook.Application do
     defp app_specs, do: []
   end
 
-  if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
-    defp insert_development_hub do
-      Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
-        id: "local-host",
-        hub_name: "Localhost",
+  defp insert_personal_hub do
+    unless Livebook.Hubs.hub_exists?("personal-hub") do
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
+        id: "personal-hub",
+        hub_name: "My Hub",
         hub_emoji: "🏠"
       })
     end
-  else
-    defp insert_development_hub, do: :ok
   end
 
   defp iframe_server_specs() do
@@ -247,6 +253,8 @@ defmodule Livebook.Application do
         error
     end
   end
+
+  @dialyzer {:no_return, iframe_port_in_use: 1}
 
   defp iframe_port_in_use(port) do
     Livebook.Config.abort!(

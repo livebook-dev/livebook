@@ -75,7 +75,7 @@ defmodule LivebookWeb.Output.FrameComponent do
     <div id={"frame-output-#{@id}"}>
       <%= if @output_count == 0 do %>
         <div class="text-gray-300 p-4 rounded-lg border border-gray-200">
-          Empty output frame
+          Nothing here...
         </div>
       <% else %>
         <div id={"frame-outputs-#{@id}-#{@counter}"} phx-update="append">
@@ -84,6 +84,7 @@ defmodule LivebookWeb.Output.FrameComponent do
             dom_id_map={@persistent_id_map}
             socket={@socket}
             session_id={@session_id}
+            session_pid={@session_pid}
             input_values={@input_values}
             client_id={@client_id}
           />

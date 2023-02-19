@@ -26,6 +26,10 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
+  pipeline :user do
+    plug LivebookWeb.UserPlug
+  end
+
   pipeline :js_view_assets do
     plug :put_secure_browser_headers
     plug :within_iframe_secure_headers
@@ -50,8 +54,7 @@ defmodule LivebookWeb.Router do
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
   end
 
-  live_session :default,
-    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, {LivebookWeb.PolicyHook, :private}] do
+  live_session :default, on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
@@ -95,6 +98,15 @@ defmodule LivebookWeb.Router do
 
       live "/import", HomeLive, :public_import
       live "/open", HomeLive, :public_open
+    end
+  end
+
+  live_session :apps, on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook] do
+    scope "/", LivebookWeb do
+      pipe_through [:browser, :user]
+
+      live "/apps/:slug", AppLive, :page
+      live "/apps/:slug/authenticate", AppAuthLive, :page
     end
   end
 

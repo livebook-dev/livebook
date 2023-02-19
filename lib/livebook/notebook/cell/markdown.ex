@@ -13,7 +13,7 @@ defmodule Livebook.Notebook.Cell.Markdown do
 
   @type t :: %__MODULE__{
           id: Cell.id(),
-          source: String.t()
+          source: String.t() | :__pruned__
         }
 
   @doc """

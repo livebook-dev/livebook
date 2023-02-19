@@ -33,7 +33,8 @@ config :livebook,
   shutdown_callback: nil,
   storage: Livebook.Storage.Ets,
   update_instructions_url: nil,
-  within_iframe: false
+  within_iframe: false,
+  allowed_uri_schemes: []
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

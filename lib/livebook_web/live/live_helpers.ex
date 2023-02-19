@@ -277,29 +277,41 @@ defmodule LivebookWeb.LiveHelpers do
       <.switch_checkbox
         name="likes_cats"
         label="I very much like cats"
+        tooltip="Cats"
         checked={@likes_cats} />
   """
   def switch_checkbox(assigns) do
     assigns =
       assigns
       |> assign_new(:label, fn -> nil end)
+      |> assign_new(:tooltip, fn -> nil end)
       |> assign_new(:disabled, fn -> false end)
+      |> assign_new(:checked_value, fn -> "true" end)
+      |> assign_new(:unchecked_value, fn -> "false" end)
       |> assign_new(:class, fn -> "" end)
       |> assign(
         :attrs,
-        assigns_to_attributes(assigns, [:label, :name, :checked, :disabled, :class])
+        assigns_to_attributes(assigns, [
+          :label,
+          :name,
+          :checked,
+          :disabled,
+          :checked_value,
+          :unchecked_value,
+          :class
+        ])
       )
 
     ~H"""
     <div class="flex items-center gap-1 sm:gap-3 justify-between">
       <%= if @label do %>
-        <span class="text-gray-700"><%= @label %></span>
+        <span class="text-gray-700 tooltip top" data-tooltip={@tooltip}><%= @label %></span>
       <% end %>
       <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
-        <input type="hidden" value="false" name={@name} />
+        <input type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
-          value="true"
+          value={@checked_value}
           class={"switch-button__checkbox #{@class}"}
           name={@name}
           checked={@checked}

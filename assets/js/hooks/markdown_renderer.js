@@ -15,6 +15,7 @@ const MarkdownRenderer = {
 
     const markdown = new Markdown(this.el, "", {
       baseUrl: this.props.sessionPath,
+      allowedUriSchemes: this.props.allowedUriSchemes.split(","),
     });
 
     this.handleEvent(
@@ -29,6 +30,10 @@ const MarkdownRenderer = {
     return {
       id: getAttributeOrThrow(this.el, "data-id"),
       sessionPath: getAttributeOrThrow(this.el, "data-session-path"),
+      allowedUriSchemes: getAttributeOrThrow(
+        this.el,
+        "data-allowed-uri-schemes"
+      ),
     };
   },
 };

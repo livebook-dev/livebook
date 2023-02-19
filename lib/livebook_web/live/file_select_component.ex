@@ -185,7 +185,7 @@ defmodule LivebookWeb.FileSelectComponent do
         class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
         tabindex="-1"
         phx-hook="Dropzone"
-        id="upload-file-dropzone"
+        id="file-select-upload-dropzone"
       >
         <form phx-change="file_validate" phx-drop-target={@uploads.folder.ref} phx-target={@myself}>
           <%= live_file_input(@uploads.folder, class: "hidden", aria_labelledby: "import-from-file") %>

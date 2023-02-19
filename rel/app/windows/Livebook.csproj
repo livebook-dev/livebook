@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
+    <OutDir>bin/Livebook-$(Configuration)</OutDir>
+    <PublishDir>bin/Livebook-$(Configuration)</PublishDir>
+    <TargetFramework>net4.6-windows</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <SelfContained>false</SelfContained>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon>Resources/AppIcon.ico</ApplicationIcon>
+    <ApplicationManifest>App.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../elixirkit/elixirkit_dotnet/ElixirKit.csproj" />
+  </ItemGroup>
+
+</Project>

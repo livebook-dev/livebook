@@ -49,7 +49,7 @@ defmodule Livebook.Notebook.Cell do
   def evaluable?(_cell), do: false
 
   @doc """
-  Extracts all inputs from the given output.
+  Extracts all inputs from the given indexed output.
   """
   @spec find_inputs_in_output(indexed_output()) :: list(input_attrs :: map())
   def find_inputs_in_output(output)
@@ -67,6 +67,20 @@ defmodule Livebook.Notebook.Cell do
   end
 
   def find_inputs_in_output(_output), do: []
+
+  @doc """
+  Extract all asset infos from the given non-indexed output.
+  """
+  @spec find_assets_in_output(Livebook.Runtime.output()) :: list(asset_info :: map())
+  def find_assets_in_output(output)
+
+  def find_assets_in_output({:js, %{js_view: %{assets: assets_info}}}), do: [assets_info]
+
+  def find_assets_in_output({type, outputs, _}) when type in [:frame, :tabs, :grid] do
+    Enum.flat_map(outputs, &find_assets_in_output/1)
+  end
+
+  def find_assets_in_output(_), do: []
 
   @setup_cell_id "setup"
 
@@ -89,5 +103,5 @@ defmodule Livebook.Notebook.Cell do
   Checks if the given term is a file input value (info map).
   """
   defguard is_file_input_value(value)
-           when is_map_key(value, :path) and is_map_key(value, :client_name)
+           when is_map_key(value, :file_ref) and is_map_key(value, :client_name)
 end

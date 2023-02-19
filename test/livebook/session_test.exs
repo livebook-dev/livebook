@@ -7,7 +7,12 @@ defmodule Livebook.SessionTest do
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
 
-  @eval_meta %{evaluation_time_ms: 10, identifiers_used: [], identifiers_defined: %{}}
+  @eval_meta %{
+    errored: false,
+    evaluation_time_ms: 10,
+    identifiers_used: [],
+    identifiers_defined: %{}
+  }
 
   setup do
     session = start_session()
@@ -469,6 +474,107 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "register_file/4" do
+    @tag :tmp_dir
+    test "schedules old file for deletion when a file is registered for existing key",
+         %{tmp_dir: tmp_dir} do
+      session = start_session(registered_file_deletion_delay: 0)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+      {:ok, old_file_ref} = Session.register_file(session.pid, source_path, "key")
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), old_file_ref})
+      assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
+
+      source_path = Path.join(tmp_dir, "new.txt")
+      File.write!(source_path, "content")
+      {:ok, new_file_ref} = Session.register_file(session.pid, source_path, "key")
+
+      send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
+      assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
+
+      Process.sleep(50)
+
+      refute File.exists?(old_path)
+      assert File.exists?(new_path)
+    end
+
+    @tag :tmp_dir
+    test "schedules file for deletion when a linked client leaves", %{tmp_dir: tmp_dir} do
+      session = start_session(registered_file_deletion_delay: 0)
+
+      client_pid =
+        spawn_link(fn ->
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      user = Livebook.Users.User.new()
+      {_data, client_id} = Session.register_client(session.pid, client_pid, user)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+
+      {:ok, file_ref} =
+        Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+
+      send(client_pid, :stop)
+
+      Process.sleep(50)
+
+      refute File.exists?(path)
+    end
+
+    @tag :tmp_dir
+    test "schedules file for deletion when the corresponding input is removed",
+         %{tmp_dir: tmp_dir} do
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :file,
+        label: "File",
+        default: nil,
+        destination: :noop,
+        accept: :any
+      }
+
+      cell = %{Notebook.Cell.new(:code) | outputs: [{1, {:input, input}}]}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
+
+      session = start_session(notebook: notebook, registered_file_deletion_delay: 0)
+
+      source_path = Path.join(tmp_dir, "old.txt")
+      File.write!(source_path, "content")
+
+      {:ok, file_ref} = Session.register_file(session.pid, source_path, "key")
+
+      Session.set_input_value(session.pid, "input1", %{
+        file_ref: file_ref,
+        client_name: "data.txt"
+      })
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+
+      Session.erase_outputs(session.pid)
+
+      Process.sleep(50)
+
+      refute File.exists?(path)
+    end
+  end
+
   describe "close/1" do
     @tag :tmp_dir
     test "saves the notebook and notifies subscribers once the session is closed",
@@ -820,7 +926,7 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       data =
         data_after_operations!(data, [
@@ -849,7 +955,7 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       data =
         data_after_operations!(data, [
@@ -864,7 +970,7 @@ defmodule Livebook.SessionTest do
 
     test "given cell in main flow returns an empty list if there is no previous cell" do
       %{setup_section: %{cells: [setup_cell]}} = notebook = Notebook.new()
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       assert [] = Session.parent_locators_for_cell(data, setup_cell)
     end
@@ -878,7 +984,7 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
+      data = Data.new(notebook: notebook)
 
       assert [] = Session.parent_locators_for_cell(data, cell3)
 
@@ -929,6 +1035,95 @@ defmodule Livebook.SessionTest do
 
     assert [notebook_path] = Path.wildcard(notebook_glob)
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"
+  end
+
+  test "successfully fetches assets for client-specific outputs", %{session: session} do
+    Session.subscribe(session.id)
+
+    {_section_id, cell_id} = insert_section_and_cell(session.pid)
+
+    runtime = connected_noop_runtime()
+    Session.set_runtime(session.pid, runtime)
+
+    archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
+    hash = "test-" <> Livebook.Utils.random_id()
+    assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
+    js_output = {:js, %{js_view: %{assets: assets_info}}}
+    frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
+
+    user = Livebook.Users.User.new()
+    {_, client_id} = Session.register_client(session.pid, self(), user)
+
+    # Send client-specific output
+    send(session.pid, {:runtime_evaluation_output_to, client_id, cell_id, frame_output})
+
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^frame_output}}
+
+    # The assets should be available
+    assert :ok = Session.fetch_assets(session.pid, hash)
+  end
+
+  describe "apps" do
+    test "deploying an app under the same slug terminates the old one", %{session: session} do
+      Session.subscribe(session.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      Session.deploy_app(session.pid)
+      assert_receive {:operation, {:add_app, _, app1_session_id, _app1_session_pid}}
+      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, true}}
+
+      Session.app_subscribe(app1_session_id)
+
+      Session.deploy_app(session.pid)
+      assert_receive {:operation, {:add_app, _, app2_session_id, app2_session_pid}}
+      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, false}}
+      assert_receive {:operation, {:set_app_registered, _, ^app2_session_id, true}}
+
+      assert_receive {:app_terminated, ^app1_session_id}
+
+      assert {:ok, %{id: ^app2_session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
+
+      Session.app_shutdown(app2_session_pid)
+    end
+
+    test "recovers on failure", %{test: test} do
+      code =
+        quote do
+          # This test uses the Embedded runtime, so we can target the
+          # process by name, this way make the scenario predictable
+          # and avoid long sleeps
+          Process.register(self(), unquote(test))
+        end
+        |> Macro.to_string()
+
+      cell = %{Notebook.Cell.new(:code) | source: code}
+      section = %{Notebook.Section.new() | cells: [cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Session.subscribe(session.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      Session.deploy_app(session.pid)
+
+      assert_receive {:operation, {:add_app, _, app_session_id, app_session_pid}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+
+      Process.exit(Process.whereis(test), :shutdown)
+
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :error}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :booting}}
+      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+
+      Session.app_shutdown(app_session_pid)
+    end
   end
 
   defp start_session(opts \\ []) do

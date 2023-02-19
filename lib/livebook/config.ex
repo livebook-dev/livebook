@@ -18,12 +18,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the runtime module and `init` args used to start
-  the default runtime.
+  Returns the default runtime.
   """
   @spec default_runtime() :: Livebook.Runtime.t()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
+  end
+
+  @doc """
+  Returns the default runtime for app sessions.
+  """
+  @spec default_app_runtime() :: Livebook.Runtime.t()
+  def default_app_runtime() do
+    Application.fetch_env!(:livebook, :default_app_runtime)
   end
 
   @doc """
@@ -116,9 +123,23 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Shuts down the system, if possible.
+  """
+  def shutdown do
+    case Livebook.Config.shutdown_callback() do
+      {m, f, a} ->
+        Phoenix.PubSub.broadcast(Livebook.PubSub, "sidebar", :shutdown)
+        apply(m, f, a)
+
+      nil ->
+        :ok
+    end
+  end
+
+  @doc """
   Returns an mfa if there's a way to shut down the system.
   """
-  @spec shutdown_callback() :: mfa() | nil
+  @spec shutdown_callback() :: {module(), atom(), list()} | nil
   def shutdown_callback() do
     Application.fetch_env!(:livebook, :shutdown_callback)
   end
@@ -167,9 +188,17 @@ defmodule Livebook.Config do
   @doc """
   Returns the feature flag list.
   """
-  @spec feature_flags() :: keyword(boolean()) | []
-  def feature_flags do
+  @spec feature_flags() :: keyword(boolean())
+  def feature_flags() do
     @feature_flags
+  end
+
+  @doc """
+  Returns enabled feature flags.
+  """
+  @spec enabled_feature_flags() :: list()
+  def enabled_feature_flags() do
+    for {flag, enabled?} <- feature_flags(), enabled?, do: flag
   end
 
   @doc """
@@ -178,6 +207,14 @@ defmodule Livebook.Config do
   @spec feature_flag_enabled?(atom()) :: boolean()
   def feature_flag_enabled?(key) do
     @feature_flags[key]
+  end
+
+  @doc """
+  Return list of additional allowed hyperlink schemes.
+  """
+  @spec allowed_uri_schemes() :: list(String.t())
+  def allowed_uri_schemes() do
+    Application.fetch_env!(:livebook, :allowed_uri_schemes)
   end
 
   ## Parsing
@@ -278,6 +315,25 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses node and distribution type from env.
+  """
+  def node!(node_env, distribution_env) do
+    case {System.get_env(node_env), System.get_env(distribution_env, "sname")} do
+      {nil, _} ->
+        nil
+
+      {name, "name"} ->
+        {:longnames, String.to_atom(name)}
+
+      {sname, "sname"} ->
+        {:shortnames, String.to_atom(sname)}
+
+      {_, other} ->
+        abort!(~s(#{distribution_env} must be one of "name" or "sname", got "#{other}"))
+    end
+  end
+
+  @doc """
   Parses and validates the password from env.
   """
   def password!(env) do
@@ -363,6 +419,15 @@ defmodule Livebook.Config do
         abort!(
           ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
+    end
+  end
+
+  @doc """
+  Parses and validates allowed URI schemes from env.
+  """
+  def allowed_uri_schemes!(env) do
+    if schemes = System.get_env(env) do
+      String.split(schemes, ",", trim: true)
     end
   end
 

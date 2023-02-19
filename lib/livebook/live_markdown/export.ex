@@ -68,11 +68,8 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp notebook_metadata(notebook) do
-    put_unless_default(
-      %{},
-      Map.take(notebook, [:persist_outputs, :autosave_interval_s]),
-      Map.take(Notebook.new(), [:persist_outputs, :autosave_interval_s])
-    )
+    keys = [:persist_outputs, :autosave_interval_s]
+    put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
   end
 
   defp render_section(section, notebook, ctx) do
@@ -148,11 +145,8 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp cell_metadata(%Cell.Code{} = cell) do
-    put_unless_default(
-      %{},
-      Map.take(cell, [:disable_formatting, :reevaluate_automatically]),
-      Map.take(Cell.Code.new(), [:disable_formatting, :reevaluate_automatically])
-    )
+    keys = [:disable_formatting, :reevaluate_automatically, :continue_on_error]
+    put_unless_default(%{}, Map.take(cell, keys), Map.take(Cell.Code.new(), keys))
   end
 
   defp cell_metadata(_cell), do: %{}

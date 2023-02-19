@@ -52,6 +52,7 @@ defmodule Livebook.Session do
     :origin,
     :notebook_name,
     :file,
+    :mode,
     :images_dir,
     :created_at,
     :memory_usage
@@ -77,6 +78,7 @@ defmodule Livebook.Session do
           origin: Notebook.ContentLoader.location() | nil,
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
+          mode: Data.session_mode(),
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
           memory_usage: memory_usage()
@@ -85,12 +87,20 @@ defmodule Livebook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
+          client_pids_with_id: %{pid() => Data.client_id()},
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
+          autosave_path: String.t(),
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          worker_pid: pid(),
+          registered_file_deletion_delay: pos_integer(),
+          registered_files: %{
+            String.t() => %{file_ref: Runtime.file_ref(), linked_client_id: Data.client_id()}
+          },
+          client_id_with_assets: %{Data.client_id() => map()}
         }
 
   @type memory_usage ::
@@ -127,6 +137,14 @@ defmodule Livebook.Session do
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
       Defaults to `Livebook.Settings.autosave_path/0`
+
+    * `:registered_file_deletion_delay` - the time to wait before
+      deleting a registered file that is no longer in use. Defaults
+      to `15_000`
+
+    * `:mode` - the mode in which the session operates, either `:default`
+      or `:app`. Defaults to `:default`
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -175,6 +193,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Returns the current app settings.
+  """
+  @spec get_app_settings(pid()) :: Notebook.AppSettings.t()
+  def get_app_settings(pid) do
+    GenServer.call(pid, :get_app_settings, @timeout)
+  end
+
+  @doc """
   Subscribes to session messages.
 
   ## Messages
@@ -189,6 +215,21 @@ defmodule Livebook.Session do
   @spec subscribe(id()) :: :ok | {:error, term()}
   def subscribe(session_id) do
     Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+  end
+
+  @doc """
+  Subscribes to app session messages.
+
+  ## Messages
+
+    * `{:app_status_changed, session_id, status}`
+    * `{:app_registration_changed, session_id, registered}`
+    * `{:app_terminated, session_id}`
+
+  """
+  @spec app_subscribe(id()) :: :ok | {:error, term()}
+  def app_subscribe(session_id) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps:#{session_id}")
   end
 
   @doc """
@@ -238,7 +279,7 @@ defmodule Livebook.Session do
         end
 
         # Fetch assets in a separate process and avoid several
-        # simultaneous fateches of the same assets
+        # simultaneous fetches of the same assets
         case Livebook.Utils.UniqueTask.run(hash, fun) do
           :ok -> :ok
           :error -> {:error, "failed to fetch assets"}
@@ -551,6 +592,35 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Copies the given file into a session-owned location.
+
+  Only the most recent file for the given `key` is kept, old files
+  are marked for deletion and removed after a short time.
+
+  ## Options
+
+    * `:linked_client_id` - id of the session client to link the file
+      to. When the client leaves the session, all of their linked files
+      are marked for deletion
+
+  """
+  @spec register_file(pid(), String.t(), String.t(), keyword()) ::
+          {:ok, Runtime.file_ref()} | :error
+  def register_file(pid, source_path, key, opts \\ []) do
+    opts = Keyword.validate!(opts, [:linked_client_id])
+
+    %{file_ref: file_ref, path: path} = GenServer.call(pid, :register_file_init)
+
+    with :ok <- File.mkdir_p(Path.dirname(path)),
+         :ok <- File.cp(source_path, path) do
+      GenServer.cast(pid, {:register_file_finish, file_ref, key, opts[:linked_client_id]})
+      {:ok, file_ref}
+    else
+      _ -> :error
+    end
+  end
+
+  @doc """
   Closes one or more sessions.
 
   This results in saving the file and broadcasting
@@ -579,6 +649,41 @@ defmodule Livebook.Session do
     list
     |> Enum.map(&:gen_server.send_request(&1, request))
     |> Enum.map(&:gen_server.wait_response(&1, :infinity))
+  end
+
+  @doc """
+  Sends a app settings update request to the server.
+  """
+  @spec set_app_settings(pid(), Notebook.AppSettings.t()) :: :ok
+  def set_app_settings(pid, app_settings) do
+    GenServer.cast(pid, {:set_app_settings, self(), app_settings})
+  end
+
+  @doc """
+  Sends a app deployment request to the server.
+  """
+  @spec deploy_app(pid()) :: :ok
+  def deploy_app(pid) do
+    GenServer.cast(pid, {:deploy_app, self()})
+  end
+
+  @doc """
+  Sends a app build request to the server.
+  """
+  @spec app_build(pid()) :: :ok
+  def app_build(pid) do
+    GenServer.cast(pid, {:app_build, self()})
+  end
+
+  @doc """
+  Sends a app shutdown request to the server.
+
+  The shutdown is graceful, so the app only terminates once all of the
+  currently connected clients leave.
+  """
+  @spec app_shutdown(pid()) :: :ok
+  def app_shutdown(pid) do
+    GenServer.cast(pid, {:app_shutdown, self()})
   end
 
   ## Callbacks
@@ -623,7 +728,10 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
-        worker_pid: worker_pid
+        worker_pid: worker_pid,
+        registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
+        registered_files: %{},
+        client_id_with_assets: %{}
       }
 
       {:ok, state}
@@ -634,9 +742,9 @@ defmodule Livebook.Session do
     notebook = Keyword.get_lazy(opts, :notebook, &default_notebook/0)
     file = opts[:file]
     origin = opts[:origin]
+    mode = opts[:mode] || :default
 
-    data = Data.new(notebook)
-    data = %{data | origin: origin}
+    data = Data.new(notebook: notebook, origin: origin, mode: mode)
 
     if file do
       case FileGuard.lock(file, self()) do
@@ -701,7 +809,11 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:get_runtime_and_archive_path, hash}, _from, state) do
-    assets_info = Notebook.find_asset_info(state.data.notebook, hash)
+    # Lookup assets in the notebook and possibly client-specific outputs
+    assets_info =
+      Notebook.find_asset_info(state.data.notebook, hash) ||
+        Enum.find_value(state.client_id_with_assets, fn {_client_id, assets} -> assets[hash] end)
+
     runtime = state.data.runtime
 
     reply =
@@ -723,13 +835,24 @@ defmodule Livebook.Session do
     {:reply, state.data.notebook, state}
   end
 
+  def handle_call(:get_app_settings, _from, state) do
+    {:reply, state.data.notebook.app_settings, state}
+  end
+
   def handle_call(:save_sync, _from, state) do
     {:reply, :ok, maybe_save_notebook_sync(state)}
   end
 
+  def handle_call(:register_file_init, _from, state) do
+    file_id = Utils.random_id()
+    file_ref = {:file, file_id}
+    path = registered_file_path(state.session_id, file_ref)
+    reply = %{file_ref: file_ref, path: path}
+    {:reply, reply, state}
+  end
+
   def handle_call(:close, _from, state) do
-    maybe_save_notebook_sync(state)
-    broadcast_message(state.session_id, :session_closed)
+    before_close(state)
 
     {:stop, :shutdown, :ok, state}
   end
@@ -1024,6 +1147,73 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
+  def handle_cast({:register_file_finish, file_ref, key, linked_client_id}, state) do
+    {current_info, state} = pop_in(state.registered_files[key])
+
+    if current_info do
+      schedule_file_deletion(state, current_info.file_ref)
+    end
+
+    state =
+      if linked_client_id == nil or Map.has_key?(state.data.clients_map, linked_client_id) do
+        put_in(state.registered_files[key], %{
+          file_ref: file_ref,
+          linked_client_id: linked_client_id
+        })
+      else
+        schedule_file_deletion(state, file_ref)
+        state
+      end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:set_app_settings, client_pid, app_settings}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_app_settings, client_id, app_settings}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:deploy_app, _client_pid}, state) do
+    # In the initial state app settings are empty, hence not valid,
+    # so we double-check that we can actually deploy
+    state =
+      if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
+        opts = [notebook: state.data.notebook, mode: :app]
+
+        case Livebook.Sessions.create_session(opts) do
+          {:ok, session} ->
+            app_subscribe(session.id)
+            app_build(session.pid)
+            operation = {:add_app, @client_id, session.id, session.pid}
+            handle_operation(state, operation)
+
+          {:error, reason} ->
+            broadcast_error(
+              state.session_id,
+              "failed to create app session - #{Exception.format_exit(reason)}"
+            )
+
+            state
+        end
+      else
+        state
+      end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:app_build, _client_pid}, state) do
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
+    operation = {:queue_cells_evaluation, @client_id, cell_ids}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:app_shutdown, _client_pid}, state) do
+    operation = {:app_shutdown, @client_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
     broadcast_error(
@@ -1054,6 +1244,28 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info({:runtime_evaluation_output_to, client_id, cell_id, output}, state) do
+    client_pid =
+      Enum.find_value(state.client_pids_with_id, fn {pid, id} ->
+        id == client_id && pid
+      end)
+
+    state =
+      if client_pid do
+        operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
+        send(client_pid, {:operation, operation})
+
+        # Keep track of assets infos, so we can look them up when fetching
+        for assets_info <- Cell.find_assets_in_output(output), reduce: state do
+          state -> put_in(state.client_id_with_assets[client_id][assets_info.hash], assets_info)
+        end
+      else
+        state
+      end
+
+    {:noreply, state}
+  end
+
   def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
@@ -1066,21 +1278,32 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
-    state =
+    {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
         state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
-
-        prepare_input_value(input_id, value, state.data, fn value ->
-          send(reply_to, {:runtime_evaluation_input_reply, {:ok, value}})
-        end)
-
-        state
+        {{:ok, value}, state}
       else
-        _ ->
-          send(reply_to, {:runtime_evaluation_input_reply, :error})
-          state
+        _ -> {:error, state}
       end
+
+    send(reply_to, {:runtime_evaluation_input_reply, reply})
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_lookup, reply_to, file_ref}, state) do
+    path = registered_file_path(state.session_id, file_ref)
+
+    if File.exists?(path) do
+      {:file, file_id} = file_ref
+
+      Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+        send(reply_to, {:runtime_file_lookup_reply, {:ok, path}})
+      end)
+    else
+      send(reply_to, {:runtime_file_lookup_reply, :error})
+    end
 
     {:noreply, state}
   end
@@ -1191,6 +1414,44 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:delete_registered_file, file_ref}, state) do
+    path = registered_file_path(state.session_id, file_ref)
+
+    case File.rm_rf(path) do
+      {:ok, _} ->
+        if Runtime.connected?(state.data.runtime) do
+          {:file, file_id} = file_ref
+          Runtime.revoke_file(state.data.runtime, file_id)
+        end
+
+      {:error, _, _} ->
+        # Deletion may fail if the file is still open, so we retry later
+        schedule_file_deletion(state, file_ref)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:app_status_changed, session_id, status}, state) do
+    operation = {:set_app_status, @client_id, session_id, status}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:app_registration_changed, session_id, registered}, state) do
+    operation = {:set_app_registered, @client_id, session_id, registered}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:app_terminated, session_id}, state) do
+    operation = {:delete_app, @client_id, session_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info(:close, state) do
+    before_close(state)
+    {:stop, :shutdown, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1212,6 +1473,7 @@ defmodule Livebook.Session do
       origin: state.data.origin,
       notebook_name: state.data.notebook.name,
       file: state.data.file,
+      mode: state.data.mode,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
       memory_usage: state.memory_usage
@@ -1278,15 +1540,6 @@ defmodule Livebook.Session do
     else
       :error
     end
-  end
-
-  @doc """
-  Returns a local path to the given file input file.
-  """
-  @spec local_file_input_path(id(), Data.input_id()) :: String.t()
-  def local_file_input_path(session_id, input_id) do
-    %{path: session_dir} = session_tmp_dir(session_id)
-    Path.join([session_dir, "file_inputs", input_id])
   end
 
   defp encode_path_component(component) do
@@ -1449,10 +1702,12 @@ defmodule Livebook.Session do
     |> schedule_autosave()
   end
 
-  defp after_operation(state, prev_state, {:client_join, _client_id, user}) do
+  defp after_operation(state, prev_state, {:client_join, client_id, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
       Livebook.Users.subscribe(user.id)
     end
+
+    state = put_in(state.client_id_with_assets[client_id], %{})
 
     state
   end
@@ -1463,6 +1718,9 @@ defmodule Livebook.Session do
     unless Map.has_key?(state.data.users_map, user_id) do
       Livebook.Users.unsubscribe(user_id)
     end
+
+    state = delete_client_files(state, client_id)
+    {_, state} = pop_in(state.client_id_with_assets[client_id])
 
     state
   end
@@ -1506,6 +1764,12 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
     if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:app_shutdown, _client_id}) do
+    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
+
     state
   end
 
@@ -1594,19 +1858,49 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:clean_up_input_values, input_values}) do
-    for {input_id, value} <- input_values do
+    for {_input_id, value} <- input_values do
       case value do
         value when is_file_input_value(value) ->
-          if Runtime.connected?(state.data.runtime) do
-            Runtime.revoke_file(state.data.runtime, input_id)
-          end
-
-          File.rm(value.path)
+          schedule_file_deletion(state, value.file_ref)
 
         _ ->
           :ok
       end
     end
+
+    state
+  end
+
+  defp handle_action(state, :app_broadcast_status) do
+    status = state.data.app_data.status
+    broadcast_app_message(state.session_id, {:app_status_changed, state.session_id, status})
+
+    state
+  end
+
+  defp handle_action(state, :app_register) do
+    Livebook.Apps.register(self(), state.data.notebook.app_settings.slug)
+    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, true})
+
+    state
+  end
+
+  defp handle_action(state, :app_recover) do
+    if Runtime.connected?(state.data.runtime) do
+      {:ok, _} = Runtime.disconnect(state.data.runtime)
+    end
+
+    new_runtime = Livebook.Runtime.duplicate(state.data.runtime)
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
+
+    state
+    |> handle_operation({:erase_outputs, @client_id})
+    |> handle_operation({:set_runtime, @client_id, new_runtime})
+    |> handle_operation({:queue_cells_evaluation, @client_id, cell_ids})
+  end
+
+  defp handle_action(state, :app_terminate) do
+    send(self(), :close)
 
     state
   end
@@ -1638,17 +1932,6 @@ defmodule Livebook.Session do
     handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
   end
 
-  defp prepare_input_value(input_id, value, data, on_value) when is_file_input_value(value) do
-    Runtime.transfer_file(data.runtime, value.path, input_id, fn path ->
-      value = %{path: path, client_name: value.client_name}
-      on_value.(value)
-    end)
-  end
-
-  defp prepare_input_value(_input_id, value, _data, on_value) do
-    on_value.(value)
-  end
-
   defp broadcast_operation(session_id, operation) do
     broadcast_message(session_id, {:operation, operation})
   end
@@ -1659,6 +1942,10 @@ defmodule Livebook.Session do
 
   defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
+  end
+
+  defp broadcast_app_message(session_id, message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{session_id}", message)
   end
 
   defp put_memory_usage(state, runtime) do
@@ -1692,7 +1979,7 @@ defmodule Livebook.Session do
     state
   end
 
-  defp maybe_save_notebook_async(state) do
+  defp maybe_save_notebook_async(state) when state.data.mode == :default do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
@@ -1712,7 +1999,9 @@ defmodule Livebook.Session do
     end
   end
 
-  defp maybe_save_notebook_sync(state) do
+  defp maybe_save_notebook_async(state), do: state
+
+  defp maybe_save_notebook_sync(state) when state.data.mode == :default do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
@@ -1723,6 +2012,8 @@ defmodule Livebook.Session do
       state
     end
   end
+
+  defp maybe_save_notebook_sync(state), do: state
 
   defp should_save_notebook?(state) do
     state.data.dirty and state.save_task_pid == nil
@@ -1801,6 +2092,41 @@ defmodule Livebook.Session do
       {:error, reason} ->
         File.rm_rf!(path)
         raise "failed to extract archive to #{path}, reason: #{inspect(reason)}"
+    end
+  end
+
+  defp registered_file_path(session_id, {:file, file_id}) do
+    %{path: session_dir} = session_tmp_dir(session_id)
+    Path.join([session_dir, "registered_files", file_id])
+  end
+
+  defp schedule_file_deletion(state, file_ref) do
+    Process.send_after(
+      self(),
+      {:delete_registered_file, file_ref},
+      state.registered_file_deletion_delay
+    )
+  end
+
+  defp delete_client_files(state, client_id) do
+    {client_files, other_files} =
+      Enum.split_with(state.registered_files, fn {_key, info} ->
+        info.linked_client_id == client_id
+      end)
+
+    for {_key, info} <- client_files do
+      schedule_file_deletion(state, info.file_ref)
+    end
+
+    %{state | registered_files: Map.new(other_files)}
+  end
+
+  defp before_close(state) do
+    maybe_save_notebook_sync(state)
+    broadcast_message(state.session_id, :session_closed)
+
+    if state.data.mode == :app do
+      broadcast_app_message(state.session_id, {:app_terminated, state.session_id})
     end
   end
 

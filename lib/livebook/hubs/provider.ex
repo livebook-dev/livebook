@@ -1,33 +1,64 @@
 defprotocol Livebook.Hubs.Provider do
   @moduledoc false
 
-  @doc """
-  Normalize given struct to `Livebook.Hubs.Metadata` struct.
-  """
-  @spec normalize(struct()) :: Livebook.Hubs.Metadata.t()
-  def normalize(struct)
+  alias Livebook.Secrets.Secret
+
+  @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Local.t()
+  @type capability :: :connect | :secrets
+  @type capabilities :: list(capability())
+  @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
 
   @doc """
-  Loads fields into given struct.
+  Transforms given hub to `Livebook.Hubs.Metadata` struct.
   """
-  @spec load(struct(), map() | keyword()) :: struct()
-  def load(struct, fields)
+  @spec to_metadata(t()) :: Livebook.Hubs.Metadata.t()
+  def to_metadata(hub)
 
   @doc """
-  Gets the type from struct.
+  Loads fields into given hub.
   """
-  @spec type(struct()) :: String.t()
-  def type(struct)
+  @spec load(t(), map() | keyword()) :: struct()
+  def load(hub, fields)
 
   @doc """
-  Gets the child spec of the given struct.
+  Gets the type from hub.
   """
-  @spec connect(struct()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
-  def connect(struct)
+  @spec type(t()) :: String.t()
+  def type(hub)
 
   @doc """
-  Gets the connection status of the given struct.
+  Gets the child spec of the given hub.
   """
-  @spec connected?(struct()) :: boolean()
-  def connected?(struct)
+  @spec connection_spec(t()) :: Supervisor.child_spec() | module() | {module(), any()} | nil
+  def connection_spec(hub)
+
+  @doc """
+  Disconnects the given hub.
+  """
+  @spec disconnect(t()) :: :ok
+  def disconnect(hub)
+
+  @doc """
+  Gets the capabilities of the given hub.
+  """
+  @spec capabilities(t()) :: capabilities()
+  def capabilities(hub)
+
+  @doc """
+  Gets the secrets of the given hub.
+  """
+  @spec get_secrets(t()) :: list(Secret.t())
+  def get_secrets(hub)
+
+  @doc """
+  Creates a secret of  the given hub.
+  """
+  @spec create_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def create_secret(hub, secret)
+
+  @doc """
+  Gets the connection error from hub.
+  """
+  @spec connection_error(t()) :: String.t() | nil
+  def connection_error(hub)
 end

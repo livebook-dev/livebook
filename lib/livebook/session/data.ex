@@ -31,17 +31,20 @@ defmodule Livebook.Session.Data do
     :smart_cell_definitions,
     :clients_map,
     :users_map,
-    :secrets
+    :secrets,
+    :mode,
+    :apps,
+    :app_data
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
   alias Livebook.Users.User
-  alias Livebook.Notebook.{Cell, Section}
+  alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
-          origin: String.t() | nil,
+          origin: Notebook.ContentLoader.location() | nil,
           file: FileSystem.File.t() | nil,
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
@@ -52,7 +55,10 @@ defmodule Livebook.Session.Data do
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
-          secrets: list(secret())
+          secrets: %{(name :: String.t()) => value :: String.t()},
+          mode: session_mode(),
+          apps: list(app()),
+          app_data: nil | app_data()
         }
 
   @type section_info :: %{
@@ -88,11 +94,13 @@ defmodule Livebook.Session.Data do
   @type cell_eval_info :: %{
           validity: cell_evaluation_validity(),
           status: cell_evaluation_status(),
+          errored: boolean(),
           snapshot: snapshot(),
           evaluation_digest: String.t() | nil,
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
+          evaluation_end: DateTime.t() | nil,
           evaluation_number: non_neg_integer(),
           outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
@@ -134,6 +142,23 @@ defmodule Livebook.Session.Data do
   @type snapshot :: term()
 
   @type input_reading :: {input_id(), input_value :: term()}
+
+  @type session_mode :: :default | :app
+
+  @type app :: %{
+          session_id: Livebook.Session.id(),
+          session_pid: pid(),
+          settings: Livebook.Notebook.AppSettings.t(),
+          status: app_status(),
+          registered: boolean()
+        }
+
+  @type app_status :: :booting | :running | :error | :shutting_down
+
+  @type app_data :: %{
+          status: app_status(),
+          registered: boolean()
+        }
 
   # Note that all operations carry the id of whichever client
   # originated the operation. Some operations like :apply_cell_delta
@@ -186,6 +211,12 @@ defmodule Livebook.Session.Data do
           | {:mark_as_not_dirty, client_id()}
           | {:set_secret, client_id(), secret()}
           | {:unset_secret, client_id(), String.t()}
+          | {:set_app_settings, client_id(), AppSettings.t()}
+          | {:add_app, client_id(), Livebook.Session.id(), pid()}
+          | {:set_app_status, client_id(), Livebook.Session.id(), app_status()}
+          | {:set_app_registered, client_id(), Livebook.Session.id(), boolean()}
+          | {:delete_app, client_id(), Livebook.Session.id()}
+          | {:app_shutdown, client_id()}
 
   @type action ::
           :connect_runtime
@@ -197,26 +228,51 @@ defmodule Livebook.Session.Data do
              parent :: {Cell.t(), Section.t()} | nil}
           | {:broadcast_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
           | {:clean_up_input_values, %{input_id() => term()}}
+          | :app_broadcast_status
+          | :app_register
+          | :app_recover
+          | :app_terminate
 
   @doc """
   Returns a fresh notebook session state.
   """
-  @spec new(Notebook.t()) :: t()
-  def new(notebook \\ Notebook.new()) do
+  @spec new(keyword()) :: t()
+  def new(opts \\ []) do
+    opts =
+      opts
+      |> Keyword.validate!([:notebook, origin: nil, mode: :default])
+      |> Keyword.put_new_lazy(:notebook, &Notebook.new/0)
+
+    notebook = opts[:notebook]
+
+    default_runtime =
+      case opts[:mode] do
+        :app -> Livebook.Config.default_app_runtime()
+        _ -> Livebook.Config.default_runtime()
+      end
+
+    app_data =
+      if opts[:mode] == :app do
+        %{status: :booting, registered: false}
+      end
+
     data = %__MODULE__{
       notebook: notebook,
-      origin: nil,
+      origin: opts[:origin],
       file: nil,
       dirty: true,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
       input_values: initial_input_values(notebook),
       bin_entries: [],
-      runtime: Livebook.Config.default_runtime(),
+      runtime: default_runtime,
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
-      secrets: %{}
+      secrets: %{},
+      mode: opts[:mode],
+      apps: [],
+      app_data: app_data
     }
 
     data
@@ -459,6 +515,7 @@ defmodule Livebook.Session.Data do
       end)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
+      |> app_compute_status()
       |> wrap_ok()
     else
       :error
@@ -502,6 +559,7 @@ defmodule Livebook.Session.Data do
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> mark_dirty_if_persisting_outputs()
+      |> app_compute_status()
       |> wrap_ok()
     else
       _ -> :error
@@ -528,6 +586,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> clear_main_evaluation()
     |> update_smart_cell_bases(data)
+    |> app_compute_status()
     |> wrap_ok()
   end
 
@@ -537,6 +596,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> clear_section_evaluation(section)
       |> update_smart_cell_bases(data)
+      |> app_compute_status()
       |> wrap_ok()
     end
   end
@@ -548,6 +608,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> cancel_cell_evaluation(cell, section)
       |> update_smart_cell_bases(data)
+      |> app_compute_status()
       |> wrap_ok()
     else
       _ -> :error
@@ -650,6 +711,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> client_leave(client_id)
+      |> app_maybe_terminate()
       |> wrap_ok()
     else
       _ -> :error
@@ -732,6 +794,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_runtime(data, runtime)
+    |> app_compute_status()
     |> wrap_ok()
   end
 
@@ -769,6 +832,65 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> unset_secret(secret_name)
     |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_app_settings, _client_id, settings}) do
+    data
+    |> with_actions()
+    |> set_app_settings(settings)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:add_app, _client_id, session_id, session_pid}) do
+    data
+    |> with_actions()
+    |> add_app(session_id, session_pid)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_app_status, _client_id, session_id, status}) do
+    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
+      data
+      |> with_actions()
+      |> set_app_status(app, status)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_app_registered, _client_id, session_id, registered}) do
+    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
+      data
+      |> with_actions()
+      |> set_app_registered(app, registered)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:delete_app, _client_id, session_id}) do
+    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
+      data
+      |> with_actions()
+      |> delete_app(app)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:app_shutdown, _client_id}) do
+    with :app <- data.mode do
+      data
+      |> with_actions()
+      |> app_shutdown()
+      |> app_maybe_terminate()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
   end
 
   # ===
@@ -1051,19 +1173,29 @@ defmodule Livebook.Session.Data do
   end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
-    data_actions
-    |> update_cell_eval_info!(cell.id, fn eval_info ->
-      %{
-        eval_info
-        | status: :ready,
-          evaluation_time_ms: metadata.evaluation_time_ms,
-          identifiers_used: metadata.identifiers_used,
-          identifiers_defined: metadata.identifiers_defined,
-          bound_to_input_ids: eval_info.new_bound_to_input_ids
-      }
-    end)
-    |> update_cell_evaluation_snapshot(cell, section)
-    |> set_section_info!(section.id, evaluating_cell_id: nil)
+    data_actions =
+      data_actions
+      |> update_cell_eval_info!(cell.id, fn eval_info ->
+        %{
+          eval_info
+          | status: :ready,
+            errored: metadata.errored,
+            evaluation_time_ms: metadata.evaluation_time_ms,
+            identifiers_used: metadata.identifiers_used,
+            identifiers_defined: metadata.identifiers_defined,
+            bound_to_input_ids: eval_info.new_bound_to_input_ids,
+            evaluation_end: DateTime.utc_now()
+        }
+      end)
+      |> update_cell_evaluation_snapshot(cell, section)
+      |> set_section_info!(section.id, evaluating_cell_id: nil)
+
+    if metadata.errored and not Map.get(cell, :continue_on_error, false) do
+      data_actions
+      |> unqueue_child_cells_evaluation(cell)
+    else
+      data_actions
+    end
   end
 
   defp update_cell_evaluation_snapshot({data, _} = data_actions, cell, section) do
@@ -1241,7 +1373,8 @@ defmodule Livebook.Session.Data do
             data: data,
             # This is a rough estimate, the exact time is measured in the
             # evaluator itself
-            evaluation_start: DateTime.utc_now()
+            evaluation_start: DateTime.utc_now(),
+            evaluation_end: nil
         }
       end)
       |> set_section_info!(section.id,
@@ -1610,6 +1743,57 @@ defmodule Livebook.Session.Data do
     set!(data_actions, secrets: secrets)
   end
 
+  defp set_app_settings({data, _} = data_actions, settings) do
+    set!(data_actions, notebook: %{data.notebook | app_settings: settings})
+  end
+
+  defp add_app({data, _} = data_actions, session_id, session_pid) do
+    app = %{
+      session_id: session_id,
+      session_pid: session_pid,
+      settings: data.notebook.app_settings,
+      status: :booting,
+      registered: false
+    }
+
+    set!(data_actions, apps: [app | data.apps])
+  end
+
+  defp set_app_status(data_actions, app, status) do
+    update_app!(data_actions, app.session_id, &%{&1 | status: status})
+  end
+
+  defp set_app_registered(data_actions, app, registered) do
+    update_app!(data_actions, app.session_id, &%{&1 | registered: registered})
+  end
+
+  defp delete_app({data, _} = data_actions, app) do
+    apps = Enum.reject(data.apps, &(&1.session_id == app.session_id))
+    set!(data_actions, apps: apps)
+  end
+
+  defp app_shutdown(data_actions) do
+    data_actions
+    |> set_app_data!(status: :shutting_down, registered: false)
+    |> add_action(:app_broadcast_status)
+  end
+
+  defp app_maybe_terminate({data, _} = data_actions) do
+    if data.mode == :app and data.app_data.status == :shutting_down and data.clients_map == %{} do
+      add_action(data_actions, :app_terminate)
+    else
+      data_actions
+    end
+  end
+
+  defp fetch_app_by_session_id(data, session_id) do
+    if app = Enum.find(data.apps, &(&1.session_id == session_id)) do
+      {:ok, app}
+    else
+      :error
+    end
+  end
+
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do
     data_actions
     |> set!(smart_cell_definitions: smart_cell_definitions)
@@ -1786,9 +1970,11 @@ defmodule Livebook.Session.Data do
     %{
       validity: :fresh,
       status: :ready,
+      errored: false,
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
+      evaluation_end: nil,
       evaluation_number: 0,
       outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
@@ -1797,7 +1983,8 @@ defmodule Livebook.Session.Data do
       identifiers_defined: %{},
       snapshot: nil,
       evaluation_snapshot: nil,
-      data: nil
+      data: nil,
+      reevaluates_automatically: false
     }
   end
 
@@ -1856,6 +2043,25 @@ defmodule Livebook.Session.Data do
 
   defp valid_attrs_for?(struct, attrs) do
     Enum.all?(attrs, fn {key, _} -> Map.has_key?(struct, key) end)
+  end
+
+  defp update_app!({data, _} = data_actions, session_id, fun) do
+    apps =
+      Enum.map(data.apps, fn
+        %{session_id: ^session_id} = app -> fun.(app)
+        app -> app
+      end)
+
+    set!(data_actions, apps: apps)
+  end
+
+  defp set_app_data!({data, _} = data_actions, changes) do
+    app_data =
+      Enum.reduce(changes, data.app_data, fn {key, value}, app_data ->
+        Map.replace!(app_data, key, value)
+      end)
+
+    set!(data_actions, app_data: app_data)
   end
 
   @doc """
@@ -1923,6 +2129,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    |> update_reevaluates_automatically()
     # After updating validity there may be new stale cells, so we check
     # if any of them is configured for automatic reevaluation
     |> maybe_queue_reevaluating_cells()
@@ -2066,15 +2273,45 @@ defmodule Livebook.Session.Data do
     end)
   end
 
+  defp update_reevaluates_automatically({data, _} = data_actions) do
+    eval_parents = cell_evaluation_parents(data)
+
+    cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
+    cell_lookup = for {cell, _section} <- cells_with_section, into: %{}, do: {cell.id, cell}
+
+    reduce(data_actions, cells_with_section, fn data_actions, {cell, _section} ->
+      info = data.cell_infos[cell.id]
+
+      # Note that we disable automatic reevaluation if any evaluation
+      # parent errored (unless continue-on-error is enabled)
+      reevaluates_automatically =
+        Map.get(cell, :reevaluate_automatically, false) and
+          info.eval.validity in [:evaluated, :stale] and
+          not Enum.any?(eval_parents[cell.id], fn parent_id ->
+            errored? = data.cell_infos[parent_id].eval.errored
+            continue_on_error? = Map.get(cell_lookup[parent_id], :continue_on_error, false)
+            errored? and not continue_on_error?
+          end)
+
+      if reevaluates_automatically == info.eval.reevaluates_automatically do
+        data_actions
+      else
+        update_cell_eval_info!(
+          data_actions,
+          cell.id,
+          &%{&1 | reevaluates_automatically: reevaluates_automatically}
+        )
+      end
+    end)
+  end
+
   defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
     cells_to_reevaluate =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-
-        info.eval.status == :ready and info.eval.validity == :stale and
-          Map.get(cell, :reevaluate_automatically, false)
+        match?(%{status: :ready, validity: :stale, reevaluates_automatically: true}, info.eval)
       end)
 
     data_actions
@@ -2083,6 +2320,54 @@ defmodule Livebook.Session.Data do
       |> queue_prerequisite_cells_evaluation(cell.id)
       |> queue_cell_evaluation(cell, section)
     end)
+  end
+
+  defp app_compute_status({data, _} = data_actions)
+       when data.mode != :app,
+       do: data_actions
+
+  defp app_compute_status({data, _} = data_actions)
+       when data.app_data.status == :shutting_down,
+       do: data_actions
+
+  defp app_compute_status({data, _} = data_actions) do
+    status =
+      data.notebook
+      |> Notebook.evaluable_cells_with_section()
+      |> Enum.find_value(:running, fn {cell, _section} ->
+        case data.cell_infos[cell.id].eval do
+          %{validity: :aborted} -> :error
+          %{errored: true} -> :error
+          %{validity: :fresh} -> :booting
+          %{status: :evaluating} -> :booting
+          _ -> nil
+        end
+      end)
+
+    data_actions =
+      if data.app_data.status == status do
+        data_actions
+      else
+        add_action(data_actions, :app_broadcast_status)
+      end
+
+    data_actions =
+      if not data.app_data.registered and status == :running do
+        data_actions
+        |> set_app_data!(registered: true)
+        |> add_action(:app_register)
+      else
+        data_actions
+      end
+
+    data_actions =
+      if data.app_data.status == :running and status == :error do
+        add_action(data_actions, :app_recover)
+      else
+        data_actions
+      end
+
+    set_app_data!(data_actions, status: status)
   end
 
   @doc """

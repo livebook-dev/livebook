@@ -58,8 +58,8 @@ Mix project. This is possible from Elixir v1.14 with the help of `Mix.install/2`
 
 As an example, imagine you have created a notebook inside your current project,
 at `notebooks/example.livemd`. In order to run within the root Mix project, using
-the same configuration and dependencies versions, your `Mix.install/2` should look
-like this:
+the same configuration and dependencies versions, you can change your notebook
+setup cell to invoke `Mix.install/2` with the following arguments:
 
 <!-- livebook:{"force_markdown":true} -->
 

@@ -79,8 +79,7 @@ defmodule LivebookWeb.FormHelpers do
             <.remix_icon icon="emotion-line" class="text-xl" />
           </button>
         </div>
-        <div id={"#{@id}-container"} data-emoji-container class="absolute mt-10 hidden" />
-        <%= hidden_input(@form, @field, class: "hidden emoji-picker-input", "data-emoji-input": true) %>
+        <%= hidden_input(@form, @field, class: "hidden emoji-picker-input", data_emoji_input: true) %>
       </div>
     </div>
     """

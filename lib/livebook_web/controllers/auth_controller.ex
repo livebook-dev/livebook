@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AuthController do
   use LivebookWeb, :controller
 
-  plug :require_unauthenticated
+  plug(:require_unauthenticated)
 
   alias LivebookWeb.AuthPlug
 
@@ -15,8 +15,14 @@ defmodule LivebookWeb.AuthController do
     end
   end
 
-  def index(conn, params) do
-    render(conn, "index.html", auth_mode: Livebook.Config.auth_mode(), errors: params["errors"])
+  def index(conn, %{"redirect_to" => path}) do
+    conn
+    |> put_session(:redirect_to, path)
+    |> redirect(to: current_path(conn, %{}))
+  end
+
+  def index(conn, _params) do
+    render(conn, "index.html", errors: [], auth_mode: Livebook.Config.auth_mode())
   end
 
   def authenticate(conn, %{"password" => password}) do
@@ -40,7 +46,8 @@ defmodule LivebookWeb.AuthController do
   end
 
   defp render_form_error(conn, auth_mode) do
-    index(conn, %{"errors" => [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]})
+    errors = [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]
+    render(conn, "index.html", errors: errors, auth_mode: auth_mode)
   end
 
   defp redirect_to(conn) do

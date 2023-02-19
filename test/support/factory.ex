@@ -10,7 +10,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:fly_metadata) do
-    :fly |> build() |> Livebook.Hubs.Provider.normalize()
+    :fly |> build() |> Livebook.Hubs.Provider.to_metadata()
   end
 
   def build(:fly) do
@@ -27,7 +27,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:enterprise_metadata) do
-    :enterprise |> build() |> Livebook.Hubs.Provider.normalize()
+    :enterprise |> build() |> Livebook.Hubs.Provider.to_metadata()
   end
 
   def build(:enterprise) do
@@ -50,6 +50,14 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:secret) do
+    %Livebook.Secrets.Secret{
+      name: "FOO",
+      value: "123",
+      origin: :app
+    }
+  end
+
   def build(factory_name, attrs \\ %{}) do
     factory_name |> build() |> struct!(attrs)
   end
@@ -62,6 +70,11 @@ defmodule Livebook.Factory do
     factory_name
     |> build(attrs)
     |> Livebook.Hubs.save_hub()
+  end
+
+  def insert_secret(attrs \\ %{}) do
+    secret = build(:secret, attrs)
+    Livebook.Secrets.set_secret(secret)
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

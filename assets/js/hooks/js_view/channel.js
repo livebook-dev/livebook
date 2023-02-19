@@ -13,13 +13,10 @@ let channel = null;
 /**
  * Returns channel used for all JS views in the current session.
  */
-export function getChannel(sessionId, clientId) {
+export function getChannel(sessionToken) {
   if (!channel) {
     socket.connect();
-    channel = socket.channel("js_view", {
-      session_id: sessionId,
-      client_id: clientId,
-    });
+    channel = socket.channel("js_view", { session_token: sessionToken });
     channel.join();
   }
 

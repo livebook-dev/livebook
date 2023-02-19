@@ -1,11 +1,11 @@
 defmodule LivebookWeb.SessionLiveTest do
   use LivebookWeb.ConnCase, async: true
 
+  import Livebook.SessionHelpers
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
-  alias Livebook.Secrets.Secret
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -409,15 +409,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
 
-      assert File.read!(value.path) == "content"
-      assert value.client_name == "data.txt"
+      assert %{file_ref: file_ref, client_name: "data.txt"} = value
 
-      # When the input disappears, the file should be removed
-
-      Session.erase_outputs(session.pid)
-      wait_for_session_update(session.pid)
-
-      refute File.exists?(value.path)
+      send(session.pid, {:runtime_file_lookup, self(), file_ref})
+      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      assert File.read!(path) == "content"
     end
   end
 
@@ -475,6 +471,30 @@ defmodule LivebookWeb.SessionLiveTest do
       content = render(view)
       assert content =~ "Updated frame"
       refute content =~ "In frame"
+    end
+
+    test "client-specific output is sent only to one target", %{conn: conn, session: session} do
+      user1 = build(:user, name: "Jake Peralta")
+      {_, client_id} = Session.register_client(session.pid, self(), user1)
+
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      send(
+        session.pid,
+        {:runtime_evaluation_output_to, client_id, cell_id, {:stdout, "line 1\n"}}
+      )
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      refute render(view) =~ "line 1"
     end
   end
 
@@ -602,7 +622,7 @@ defmodule LivebookWeb.SessionLiveTest do
         "editor_auto_completion" => false
       })
 
-      assert_reply view, %{"ref" => nil}
+      assert_reply(view, %{"ref" => nil})
     end
 
     test "replies with completion reference and then sends asynchronous response",
@@ -624,7 +644,7 @@ defmodule LivebookWeb.SessionLiveTest do
         "editor_auto_completion" => false
       })
 
-      assert_reply view, %{"ref" => ref}
+      assert_reply(view, %{"ref" => ref})
       assert ref != nil
 
       assert_push_event(
@@ -902,7 +922,7 @@ defmodule LivebookWeb.SessionLiveTest do
         |> Plug.Conn.resp(200, "# My notebook")
       end)
 
-      index_url = url(bypass.port) <> "/index.livemd"
+      index_url = bypass_url(bypass.port) <> "/index.livemd"
       {:ok, session} = Sessions.create_session(origin: {:url, index_url})
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
@@ -930,7 +950,7 @@ defmodule LivebookWeb.SessionLiveTest do
         |> Plug.Conn.resp(200, "# My notebook")
       end)
 
-      index_url = url(bypass.port) <> "/index.livemd"
+      index_url = bypass_url(bypass.port) <> "/index.livemd"
       {:ok, session} = Sessions.create_session(origin: {:url, index_url})
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
@@ -950,7 +970,7 @@ defmodule LivebookWeb.SessionLiveTest do
         Plug.Conn.resp(conn, 500, "Error")
       end)
 
-      index_url = url(bypass.port) <> "/index.livemd"
+      index_url = bypass_url(bypass.port) <> "/index.livemd"
 
       {:ok, session} = Sessions.create_session(origin: {:url, index_url})
 
@@ -1027,65 +1047,74 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "secrets" do
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      secret = build(:secret, name: "FOO", value: "123", origin: :session)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "foo", value: "123", store: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
 
-      assert %{secrets: %{"FOO" => "123"}} = Session.get_data(session.pid)
+      assert_session_secret(view, session.pid, secret)
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      secret = build(:secret, name: "BAR", value: "456", origin: :app)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "bar", value: "456", store: "livebook"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
-      assert %Secret{name: "BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
+      assert secret in Livebook.Secrets.get_secrets()
     end
 
     test "syncs secrets", %{conn: conn, session: session} do
-      Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
+      session_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", origin: :app)
+
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "456", store: "livebook"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
-      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
-      assert %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
+      assert_session_secret(view, session.pid, secret)
+      assert secret in Livebook.Secrets.get_secrets()
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+      Session.set_secret(session.pid, session_secret)
+
+      secret = build(:secret, name: "FOO", value: "789", origin: :app)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "789", store: "livebook"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "app"}})
 
-      assert %{secrets: %{"FOO" => "789"}} = Session.get_data(session.pid)
-      assert %Secret{name: "FOO", value: "789"} in Livebook.Secrets.fetch_secrets()
+      assert_session_secret(view, session.pid, secret)
+      assert secret in Livebook.Secrets.get_secrets()
     end
 
     test "never syncs secrets when updating from session", %{conn: conn, session: session} do
-      Livebook.Secrets.set_secret(%Secret{name: "FOO", value: "123"})
+      app_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", origin: :session)
+
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, %{name: "FOO", value: "123"})
+      Session.set_secret(session.pid, app_secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "FOO", value: "456", store: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
 
-      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
-
-      refute %Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
-      assert %Secret{name: "FOO", value: "123"} in Livebook.Secrets.fetch_secrets()
+      assert_session_secret(view, session.pid, secret)
+      refute secret in Livebook.Secrets.get_secrets()
+      assert app_secret in Livebook.Secrets.get_secrets()
     end
 
-    test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
+    test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
+      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", origin: :session)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.fetch_env!("LB_FOO")})
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
@@ -1097,14 +1126,168 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
+    test "adding a missing secret using 'Add secret' button",
+         %{conn: conn, session: session} do
+      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", origin: :session)
+
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      # Enters the session to check if the button exists
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
+
+      # Clicks the button and fills the form to create a new secret
+      # that prefilled the name with the received from exception.
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+      form_element = element(secrets_component, "form[phx-submit='save']")
+      assert has_element?(form_element)
+      render_submit(form_element, %{secret: %{value: secret.value, origin: "session"}})
+
+      # Checks if the secret isn't an app secret
+      refute secret in Livebook.Secrets.get_secrets()
+
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+
+    test "granting access for unavailable secret using 'Add secret' button",
+         %{conn: conn, session: session} do
+      secret = insert_secret(name: "UNAVAILABLESECRET", value: "123456")
+
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      # Enters the session to check if the button exists
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
+
+      # Checks if the secret is persisted
+      assert secret in Livebook.Secrets.get_secrets()
+
+      # Clicks the button and checks if the 'Grant access' banner
+      # is being shown, so clicks it's button to set the app secret
+      # to the session, allowing the user to fetches the secret.
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+
+      assert render(secrets_component) =~ "in your Livebook app. Allow this session to access it?"
+
+      grant_access_button = element(secrets_component, "button", "Grant access")
+      render_click(grant_access_button)
+
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+
     test "loads secret from temporary storage", %{conn: conn, session: session} do
-      secret = %Secret{name: "FOOBARBAZ", value: "ChonkyCat"}
+      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :startup)
       Livebook.Secrets.set_temporary_secrets([secret])
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-      assert render(view) =~ secret.name
-      assert render(view) =~ secret.value
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      # Sets the secret directly
+      Session.set_secret(session.pid, secret)
+
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+
+    test "granting access for unavailable startup secret using 'Add secret' button",
+         %{conn: conn, session: session} do
+      secret = build(:secret, name: "MYSTARTUPSECRET", value: "ChonkyCat", origin: :startup)
+      Livebook.Secrets.set_temporary_secrets([secret])
+
+      # Subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      # Enters the session to check if the button exists
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
+
+      # Checks if the secret is persisted
+      assert secret in Livebook.Secrets.get_secrets()
+
+      # Clicks the button and checks if the 'Grant access' banner
+      # is being shown, so clicks it's button to set the app secret
+      # to the session, allowing the user to fetches the secret.
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+
+      assert render(secrets_component) =~ "in your Livebook app. Allow this session to access it?"
+
+      grant_access_button = element(secrets_component, "button", "Grant access")
+      render_click(grant_access_button)
+
+      # Checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
   end
 
@@ -1204,55 +1387,53 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  # Helpers
+  describe "apps" do
+    test "deploying an app", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-  defp wait_for_session_update(session_pid) do
-    # This call is synchronous, so it gives the session time
-    # for handling the previously sent change messages.
-    Session.get_data(session_pid)
-    :ok
-  end
+      section_id = insert_section(session.pid)
 
-  # Utils for sending session requests, waiting for the change to be applied
-  # and retrieving new ids if applicable.
+      insert_cell_with_output(session.pid, section_id, {:markdown, "Hello from the app!"})
 
-  defp insert_section(session_pid) do
-    Session.insert_section(session_pid, 0)
-    %{notebook: %{sections: [section]}} = Session.get_data(session_pid)
-    section.id
-  end
+      slug = Livebook.Utils.random_short_id()
 
-  defp insert_text_cell(session_pid, section_id, type, content \\ "") do
-    Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
-    %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_pid)
-    cell.id
-  end
+      view
+      |> element(~s/[data-el-app-info] form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug}})
 
-  defp evaluate_setup(session_pid) do
-    Session.queue_cell_evaluation(session_pid, "setup")
-    assert_receive {:operation, {:add_cell_evaluation_response, _, "setup", _, _}}
-  end
+      assert_receive {:operation, {:add_app, _, _, app_session_pid}}
+      assert_receive {:operation, {:set_app_registered, _, _, true}}
 
-  defp insert_cell_with_output(session_pid, section_id, output) do
-    code =
-      quote do
-        send(
-          Process.group_leader(),
-          {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
-        )
-      end
-      |> Macro.to_string()
+      assert render(view) =~ "/apps/#{slug}"
 
-    cell_id = insert_text_cell(session_pid, section_id, :code, code)
-    Session.queue_cell_evaluation(session_pid, cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
-    cell_id
-  end
+      {:ok, view, _} = live(conn, "/apps/#{slug}")
 
-  defp url(port), do: "http://localhost:#{port}"
+      assert_push_event(view, "markdown_renderer:" <> _, %{content: "Hello from the app!"})
 
-  defp close_session_by_id(session_id) do
-    {:ok, session} = Sessions.fetch_session(session_id)
-    Session.close(session.pid)
+      Session.app_shutdown(app_session_pid)
+    end
+
+    test "terminating an app", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+      Session.deploy_app(session.pid)
+
+      assert_receive {:operation, {:add_app, _, _, _}}
+      assert_receive {:operation, {:set_app_registered, _, _, true}}
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> element(~s/[data-el-app-info] button[aria-label="shutdown app"]/)
+      |> render_click()
+
+      assert_receive {:operation, {:delete_app, _, _}}
+
+      refute render(view) =~ "/apps/#{slug}"
+    end
   end
 end

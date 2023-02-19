@@ -46,11 +46,11 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-js-path` - a relative path for the initial view-specific
  *     JS module
  *
- *   * `data-session-token` - token is sent in the "connect" message
- *     to the channel
+ *   * `data-session-token` - a session-specific token passed when
+ *     joining the JS view channel
  *
- *   * `data-session-id` - the identifier of the session that this
- *     view belongs go
+ *   * `data-connect-token` - a JS view specific token passed in the
+ *     "connect" message to the channel
  *
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
@@ -75,7 +75,7 @@ const JSView = {
 
     this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
-    this.channel = getChannel(this.props.sessionId, this.props.clientId);
+    this.channel = getChannel(this.props.sessionToken);
 
     this.iframeActions = this.createIframe();
 
@@ -139,7 +139,7 @@ const JSView = {
     this.channel.push(
       "connect",
       {
-        session_token: this.props.sessionToken,
+        connect_token: this.props.connectToken,
         ref: this.props.ref,
         id: this.id,
       },
@@ -175,8 +175,7 @@ const JSView = {
       assetsBasePath: getAttributeOrThrow(this.el, "data-assets-base-path"),
       jsPath: getAttributeOrThrow(this.el, "data-js-path"),
       sessionToken: getAttributeOrThrow(this.el, "data-session-token"),
-      sessionId: getAttributeOrThrow(this.el, "data-session-id"),
-      clientId: getAttributeOrThrow(this.el, "data-client-id"),
+      connectToken: getAttributeOrThrow(this.el, "data-connect-token"),
       iframePort: getAttributeOrThrow(
         this.el,
         "data-iframe-local-port",

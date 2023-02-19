@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
-  alias Livebook.Hubs.EnterpriseClient
   alias Livebook.Session.SessionManager
 
   on_mount(LivebookWeb.SidebarHook)
@@ -64,10 +63,10 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value}),
-           hub_secrets: get_hub_secrets(),
+           saved_secrets: get_saved_secrets(),
            select_secret_ref: nil,
-           select_secret_options: nil
+           select_secret_options: nil,
+           allowed_uri_schemes: Livebook.Config.allowed_uri_schemes()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -137,6 +136,17 @@ defmodule LivebookWeb.SessionLive do
           label="Secrets (se)"
           button_attrs={[data_el_secrets_list_toggle: true]}
         />
+        <div class="relative">
+          <.button_item
+            icon="rocket-line"
+            label="App settings (sa)"
+            button_attrs={[data_el_app_info_toggle: true]}
+          />
+          <div
+            data-el-app-indicator
+            class={"absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 #{app_status_color(@data_view.apps_status)} pointer-events-none"}
+          />
+        </div>
         <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
@@ -187,10 +197,19 @@ defmodule LivebookWeb.SessionLive do
         <div data-el-secrets-list>
           <.secrets_list
             data_view={@data_view}
-            livebook_secrets={@livebook_secrets}
-            hub_secrets={@hub_secrets}
+            saved_secrets={@saved_secrets}
+            hubs={@saved_hubs}
             session={@session}
             socket={@socket}
+          />
+        </div>
+        <div data-el-app-info>
+          <.live_component
+            module={LivebookWeb.SessionLive.AppInfoComponent}
+            id="app-info"
+            session={@session}
+            settings={@data_view.app_settings}
+            apps={@data_view.apps}
           />
         </div>
         <div data-el-runtime-info>
@@ -273,9 +292,11 @@ defmodule LivebookWeb.SessionLive do
               module={LivebookWeb.SessionLive.CellComponent}
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
+              session_pid={@session.pid}
               client_id={@client_id}
               runtime={@data_view.runtime}
               installing?={@data_view.installing?}
+              allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={@data_view.setup_cell_view}
             />
           </div>
@@ -293,10 +314,12 @@ defmodule LivebookWeb.SessionLive do
                 id={section_view.id}
                 index={index}
                 session_id={@session.id}
+                session_pid={@session.pid}
                 client_id={@client_id}
                 runtime={@data_view.runtime}
                 smart_cell_definitions={@data_view.smart_cell_definitions}
                 installing?={@data_view.installing?}
+                allowed_uri_schemes={@allowed_uri_schemes}
                 section_view={section_view}
               />
             <% end %>
@@ -424,7 +447,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
-          livebook_secrets={@livebook_secrets}
+          saved_secrets={@saved_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           select_secret_options={@select_secret_options}
@@ -578,7 +601,7 @@ defmodule LivebookWeb.SessionLive do
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for {secret_name, secret_value} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
+          <%= for {secret_name, secret_value} <- Enum.sort(@data_view.secrets) do %>
             <div
               class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
               id={"session-secret-#{secret_name}-wrapper"}
@@ -651,7 +674,7 @@ defmodule LivebookWeb.SessionLive do
             App secrets
           </h3>
           <span class="text-sm text-gray-500">
-            <%= if @livebook_secrets == [] do %>
+            <%= if @saved_secrets == [] do %>
               No secrets stored in Livebook so far
             <% else %>
               Toggle to share with this session
@@ -660,81 +683,13 @@ defmodule LivebookWeb.SessionLive do
         </div>
 
         <div class="flex flex-col space-y-4 mt-6">
-          <%= for {secret_name, secret_value} = secret <- Enum.sort(@livebook_secrets) do %>
-            <div
-              class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-              id={"app-secret-#{secret_name}-wrapper"}
-            >
-              <div class="flex" id={"app-secret-#{secret_name}-title"}>
-                <span
-                  class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
-                  phx-click={
-                    JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
-                    |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
-                    |> JS.add_class("bg-gray-100",
-                      to: "#app-secret-#{secret_name}-wrapper"
-                    )
-                  }
-                >
-                  <%= secret_name %>
-                </span>
-                <.switch_checkbox
-                  name="toggle_secret"
-                  checked={is_secret_on_session?(secret, @data_view.secrets)}
-                  phx-click="toggle_secret"
-                  phx-value-secret_name={secret_name}
-                  phx-value-secret_value={secret_value}
-                />
-              </div>
-              <div class="flex flex-col text-gray-800 hidden" id={"app-secret-#{secret_name}-detail"}>
-                <div class="flex flex-col">
-                  <div class="flex justify-between items-center">
-                    <span
-                      class="text-sm font-mono w-full break-all flex-row cursor-pointer"
-                      phx-click={
-                        JS.toggle(to: "#app-secret-#{secret_name}-title", display: "flex")
-                        |> JS.toggle(to: "#app-secret-#{secret_name}-detail", display: "flex")
-                        |> JS.remove_class("bg-gray-100",
-                          to: "#app-secret-#{secret_name}-wrapper"
-                        )
-                      }
-                    >
-                      <%= secret_name %>
-                    </span>
-                    <.switch_checkbox
-                      name="toggle_secret"
-                      checked={is_secret_on_session?(secret, @data_view.secrets)}
-                      phx-click="toggle_secret"
-                      phx-value-secret_name={secret_name}
-                      phx-value-secret_value={secret_value}
-                    />
-                  </div>
-                  <div class="flex flex-row justify-between items-center my-1">
-                    <span class="text-sm font-mono break-all flex-row">
-                      <%= secret_value %>
-                    </span>
-                    <%= if Secrets.secret_exists?(secret_name) do %>
-                      <button
-                        id={"app-secret-#{secret_name}-delete"}
-                        type="button"
-                        phx-click={
-                          with_confirm(
-                            JS.push("delete_app_secret", value: %{secret_name: secret_name}),
-                            title: "Delete app secret - #{secret_name}",
-                            description: "Are you sure you want to delete this app secret?",
-                            confirm_text: "Delete",
-                            confirm_icon: "delete-bin-6-line"
-                          )
-                        }
-                        class="hover:text-red-600"
-                      >
-                        <.remix_icon icon="delete-bin-line" />
-                      </button>
-                    <% end %>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <%= for secret when secret.origin in [:app, :startup] <- @saved_secrets do %>
+            <.secrets_item
+              secret={secret}
+              prefix={to_string(secret.origin)}
+              data_secrets={@data_view.secrets}
+              hubs={@hubs}
+            />
           <% end %>
         </div>
 
@@ -743,51 +698,23 @@ defmodule LivebookWeb.SessionLive do
             <h3 class="uppercase text-sm font-semibold text-gray-500">
               Hub secrets
             </h3>
-            <span class="text-sm text-gray-500">Available in all sessions</span>
+            <span class="text-sm text-gray-500">
+              <%= if @saved_secrets == [] do %>
+                No secrets stored in Livebook so far
+              <% else %>
+                Toggle to share with this session
+              <% end %>
+            </span>
           </div>
 
           <div class="flex flex-col space-y-4 mt-6">
-            <%= for {secret_name, secret_value} <- Enum.sort(@hub_secrets) do %>
-              <div
-                class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
-                id={"enterprise-secret-#{secret_name}-wrapper"}
-              >
-                <span
-                  class="text-sm font-mono break-all w-full cursor-pointer hover:text-gray-800"
-                  id={"enterprise-secret-#{secret_name}-title"}
-                  phx-click={
-                    JS.toggle(to: "#enterprise-secret-#{secret_name}-title")
-                    |> JS.toggle(to: "#enterprise-secret-#{secret_name}-detail")
-                    |> JS.add_class("bg-gray-100",
-                      to: "#enterprise-secret-#{secret_name}-wrapper"
-                    )
-                  }
-                >
-                  <%= secret_name %>
-                </span>
-                <div
-                  class="flex flex-col text-gray-800 hidden"
-                  id={"enterprise-secret-#{secret_name}-detail"}
-                  phx-click={
-                    JS.toggle(to: "#enterprise-secret-#{secret_name}-title")
-                    |> JS.toggle(to: "#enterprise-secret-#{secret_name}-detail")
-                    |> JS.remove_class("bg-gray-100",
-                      to: "#enterprise-secret-#{secret_name}-wrapper"
-                    )
-                  }
-                >
-                  <div class="flex flex-col">
-                    <span class="text-sm font-mono break-all flex-row cursor-pointer">
-                      <%= secret_name %>
-                    </span>
-                    <div class="flex flex-row justify-between items-center my-1">
-                      <span class="text-sm font-mono break-all flex-row">
-                        <%= secret_value %>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <%= for %{origin: {:hub, id}} = secret <- @saved_secrets do %>
+              <.secrets_item
+                secret={secret}
+                prefix={"hub-#{id}"}
+                data_secrets={@data_view.secrets}
+                hubs={@hubs}
+              />
             <% end %>
           </div>
         <% end %>
@@ -796,10 +723,93 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
+  defp secrets_item(assigns) do
+    ~H"""
+    <div
+      class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
+      id={"#{@prefix}-secret-#{@secret.name}-wrapper"}
+    >
+      <div class="flex" id={"#{@prefix}-secret-#{@secret.name}-title"}>
+        <span
+          class="text-sm font-mono break-all w-full cursor-pointer flex flex-row justify-between items-center hover:text-gray-800"
+          phx-click={
+            JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-title", display: "flex")
+            |> JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-detail", display: "flex")
+            |> JS.add_class("bg-gray-100",
+              to: "##{@prefix}-secret-#{@secret.name}-wrapper"
+            )
+          }
+        >
+          <%= @secret.name %>
+        </span>
+        <.switch_checkbox
+          name="toggle_secret"
+          checked={secret_toggled?(@secret, @data_secrets)}
+          label={secret_label(@secret, @hubs)}
+          tooltip={secret_tooltip(@secret, @hubs)}
+          phx-click="toggle_secret"
+          phx-value-secret_name={@secret.name}
+          phx-value-secret_value={@secret.value}
+        />
+      </div>
+      <div class="flex flex-col text-gray-800 hidden" id={"#{@prefix}-secret-#{@secret.name}-detail"}>
+        <div class="flex flex-col">
+          <div class="flex justify-between items-center">
+            <span
+              class="text-sm font-mono w-full break-all flex-row cursor-pointer"
+              phx-click={
+                JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-title", display: "flex")
+                |> JS.toggle(to: "##{@prefix}-secret-#{@secret.name}-detail", display: "flex")
+                |> JS.remove_class("bg-gray-100",
+                  to: "##{@prefix}-secret-#{@secret.name}-wrapper"
+                )
+              }
+            >
+              <%= @secret.name %>
+            </span>
+            <.switch_checkbox
+              name="toggle_secret"
+              checked={secret_toggled?(@secret, @data_secrets)}
+              label={secret_label(@secret, @hubs)}
+              tooltip={secret_tooltip(@secret, @hubs)}
+              phx-click="toggle_secret"
+              phx-value-secret_name={@secret.name}
+              phx-value-secret_value={@secret.value}
+            />
+          </div>
+          <div class="flex flex-row justify-between items-center my-1">
+            <span class="text-sm font-mono break-all flex-row">
+              <%= @secret.value %>
+            </span>
+            <%= if @secret.origin == :app do %>
+              <button
+                id={"#{@prefix}-secret-#{@secret.name}-delete"}
+                type="button"
+                phx-click={
+                  with_confirm(
+                    JS.push("delete_app_secret", value: %{secret_name: @secret.name}),
+                    title: "Delete app secret - #{@secret.name}",
+                    description: "Are you sure you want to delete this app secret?",
+                    confirm_text: "Delete",
+                    confirm_icon: "delete-bin-6-line"
+                  )
+                }
+                class="hover:text-red-600"
+              >
+                <.remix_icon icon="delete-bin-line" />
+              </button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp secrets_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button cursor-pointer tooltip bottom-left"
+      class="icon-button p-0 cursor-pointer tooltip bottom-left"
       data-tooltip={
         ~S'''
         Secrets are a safe way to share credentials
@@ -822,7 +832,7 @@ defmodule LivebookWeb.SessionLive do
           Runtime
         </h3>
         <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button" do %>
+              class: "icon-button p-0" do %>
           <.remix_icon icon="settings-3-line text-xl" />
         <% end %>
       </div>
@@ -979,23 +989,16 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
-  def handle_params(
-        %{"path_parts" => path_parts},
-        requested_url,
-        %{assigns: %{live_action: :catch_all}} = socket
-      ) do
-    if socket.assigns.policy.edit do
-      path_parts =
-        Enum.map(path_parts, fn
-          "__parent__" -> ".."
-          part -> part
-        end)
+  def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
+      when socket.assigns.live_action == :catch_all do
+    path_parts =
+      Enum.map(path_parts, fn
+        "__parent__" -> ".."
+        part -> part
+      end)
 
-      path = Path.join(path_parts)
-      {:noreply, handle_relative_path(socket, path, requested_url)}
-    else
-      {:noreply, socket |> put_flash(:error, "No access to navigate") |> redirect_to_self()}
-    end
+    path = Path.join(path_parts)
+    {:noreply, handle_relative_path(socket, path, requested_url)}
   end
 
   def handle_params(%{"tab" => tab}, _url, socket)
@@ -1026,7 +1029,6 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event("append_section", %{}, socket) do
-    assert_policy!(socket, :edit)
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)
 
@@ -1034,8 +1036,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_section_below", params, socket) do
-    assert_policy!(socket, :edit)
-
     with {:ok, section, index} <-
            section_with_next_index(
              socket.private.data.notebook,
@@ -1053,21 +1053,18 @@ defmodule LivebookWeb.SessionLive do
         %{"section_id" => section_id, "parent_id" => parent_id},
         socket
       ) do
-    assert_policy!(socket, :edit)
     Session.set_section_parent(socket.assigns.session.pid, section_id, parent_id)
 
     {:noreply, socket}
   end
 
   def handle_event("unset_section_parent", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.unset_section_parent(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_below", params, socket) do
-    assert_policy!(socket, :edit)
     {type, attrs} = cell_type_and_attrs_from_params(params)
 
     with {:ok, section, index} <-
@@ -1083,14 +1080,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("set_notebook_name", %{"value" => name}, socket) do
-    assert_policy!(socket, :edit)
     name = normalize_name(name)
     Session.set_notebook_name(socket.assigns.session.pid, name)
 
@@ -1098,7 +1093,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("set_section_name", %{"metadata" => section_id, "value" => name}, socket) do
-    assert_policy!(socket, :edit)
     name = normalize_name(name)
     Session.set_section_name(socket.assigns.session.pid, section_id, name)
 
@@ -1110,7 +1104,6 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "tag" => tag, "delta" => delta, "revision" => revision},
         socket
       ) do
-    assert_policy!(socket, :edit)
     tag = String.to_atom(tag)
     delta = Delta.from_compressed(delta)
     Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, revision)
@@ -1123,7 +1116,6 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "tag" => tag, "revision" => revision},
         socket
       ) do
-    assert_policy!(socket, :read)
     tag = String.to_atom(tag)
     Session.report_cell_revision(socket.assigns.session.pid, cell_id, tag, revision)
 
@@ -1131,7 +1123,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
-    assert_policy!(socket, :edit)
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session.pid, cell_id, offset)
 
@@ -1139,7 +1130,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
-    assert_policy!(socket, :edit)
     offset = ensure_integer(offset)
     Session.move_section(socket.assigns.session.pid, section_id, offset)
 
@@ -1147,8 +1137,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :edit)
-
     socket =
       case Notebook.fetch_section(socket.private.data.notebook, section_id) do
         {:ok, %{cells: []} = section} ->
@@ -1174,14 +1162,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("recover_smart_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :read)
     Session.recover_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
     Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
@@ -1192,8 +1178,6 @@ defmodule LivebookWeb.SessionLive do
         %{"kind" => kind, "variant_idx" => variant_idx},
         socket
       ) do
-    assert_policy!(socket, :edit)
-
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
          {:ok, variant} <- Enum.fetch(variants, variant_idx) do
@@ -1211,7 +1195,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
-    assert_policy!(socket, :execute)
     data = socket.private.data
 
     {status, socket} =
@@ -1235,28 +1218,24 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_section_evaluation", %{"section_id" => section_id}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_section_evaluation(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
 
   def handle_event("queue_full_evaluation", %{"forced_cell_ids" => forced_cell_ids}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_full_evaluation(socket.assigns.session.pid, forced_cell_ids)
 
     {:noreply, socket}
   end
 
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :execute)
     Session.cancel_cell_evaluation(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("queue_cells_reevaluation", %{}, socket) do
-    assert_policy!(socket, :execute)
     Session.queue_cells_reevaluation(socket.assigns.session.pid)
 
     {:noreply, socket}
@@ -1267,8 +1246,6 @@ defmodule LivebookWeb.SessionLive do
         %{"value" => value, "cell_id" => cell_id},
         socket
       ) do
-    assert_policy!(socket, :edit)
-
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
       reevaluate_automatically: value
     })
@@ -1277,8 +1254,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("save", %{}, socket) do
-    assert_policy!(socket, :edit)
-
     if socket.private.data.file do
       Session.save(socket.assigns.session.pid)
       {:noreply, socket}
@@ -1291,19 +1266,16 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("reconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {_, socket} = maybe_reconnect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("connect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {_, socket} = connect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("setup_default_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     {status, socket} = connect_runtime(socket)
 
     if status == :ok do
@@ -1314,14 +1286,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :edit)
     Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
-    assert_policy!(socket, :read)
-
     request =
       case params do
         %{"type" => "completion", "hint" => hint} ->
@@ -1368,7 +1337,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
-    assert_policy!(socket, :read)
     %{pid: pid, images_dir: images_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
     data = Session.get_data(pid)
@@ -1377,14 +1345,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("erase_outputs", %{}, socket) do
-    assert_policy!(socket, :execute)
     Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
   def handle_event("location_report", report, socket) do
-    assert_policy!(socket, :read)
-
     Phoenix.PubSub.broadcast_from(
       Livebook.PubSub,
       self(),
@@ -1449,18 +1414,22 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_created, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
-     |> assign(hub_secrets: get_hub_secrets())
+     |> assign(saved_secrets: get_saved_secrets())
      |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
   end
 
-  def handle_info({:secret_updated, %Secrets.Secret{}}, socket) do
+  def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
-     |> assign(hub_secrets: get_hub_secrets())
+     |> assign(saved_secrets: get_saved_secrets())
      |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
+  end
+
+  def handle_info(:hubs_changed, socket) do
+    {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
   end
 
   def handle_info({:error, error}, socket) do
@@ -1546,15 +1515,23 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:set_secret, secret}, socket) do
-    livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
+    saved_secrets =
+      Enum.reject(
+        socket.assigns.saved_secrets,
+        &(&1.name == secret.name and &1.origin == secret.origin)
+      )
 
-    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
+    {:noreply, assign(socket, saved_secrets: [secret | saved_secrets])}
   end
 
   def handle_info({:unset_secret, secret}, socket) do
-    livebook_secrets = Map.delete(socket.assigns.livebook_secrets, secret.name)
+    saved_secrets =
+      Enum.reject(
+        socket.assigns.saved_secrets,
+        &(&1.name == secret.name and &1.origin == secret.origin)
+      )
 
-    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
+    {:noreply, assign(socket, saved_secrets: saved_secrets)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -1852,7 +1829,7 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:smart_cell_started, _client_id, _cell_id, _delta, _js_view, _editor}
+         {:smart_cell_started, _client_id, _cell_id, _delta, _chunks, _js_view, _editor}
        ) do
     prune_cell_sources(socket)
   end
@@ -2030,20 +2007,37 @@ defmodule LivebookWeb.SessionLive do
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
-      secrets: data.secrets
+      secrets: data.secrets,
+      apps_status: apps_status(data),
+      app_settings: data.notebook.app_settings,
+      apps: data.apps
     }
   end
 
   defp cells_status(cells, data) do
+    eval_infos =
+      for cell <- cells,
+          Cell.evaluable?(cell),
+          info = data.cell_infos[cell.id].eval,
+          do: Map.put(info, :id, cell.id)
+
+    most_recent =
+      eval_infos
+      |> Enum.filter(& &1.evaluation_end)
+      |> Enum.max_by(& &1.evaluation_end, DateTime, fn -> nil end)
+
     cond do
-      evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
+      evaluating = Enum.find(eval_infos, &(&1.status == :evaluating)) ->
         {:evaluating, evaluating.id}
 
-      stale = Enum.find(cells, &stale?(&1, data)) ->
+      most_recent != nil and most_recent.errored ->
+        {:errored, most_recent.id}
+
+      stale = Enum.find(eval_infos, &(&1.validity == :stale)) ->
         {:stale, stale.id}
 
-      evaluated = Enum.find(Enum.reverse(cells), &evaluated?(&1, data)) ->
-        {:evaluated, evaluated.id}
+      most_recent != nil ->
+        {:evaluated, most_recent.id}
 
       true ->
         {:fresh, nil}
@@ -2057,18 +2051,6 @@ defmodule LivebookWeb.SessionLive do
       |> Enum.map(fn {cell, _} -> cell end)
 
     cells_status(cells, data)
-  end
-
-  defp evaluating?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :status]) == :evaluating
-  end
-
-  defp stale?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :stale
-  end
-
-  defp evaluated?(cell, data) do
-    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :evaluated
   end
 
   defp section_views(sections, data) do
@@ -2146,6 +2128,8 @@ defmodule LivebookWeb.SessionLive do
       outputs: cell.outputs,
       validity: eval_info.validity,
       status: eval_info.status,
+      errored: eval_info.errored,
+      reevaluates_automatically: eval_info.reevaluates_automatically,
       evaluation_time_ms: eval_info.evaluation_time_ms,
       evaluation_start: eval_info.evaluation_start,
       evaluation_digest: encode_digest(eval_info.evaluation_digest),
@@ -2174,6 +2158,9 @@ defmodule LivebookWeb.SessionLive do
 
     Map.take(data.input_values, input_ids)
   end
+
+  defp apps_status(%{apps: []}), do: nil
+  defp apps_status(%{apps: [app | _]}), do: app.status
 
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
@@ -2284,26 +2271,27 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp assert_policy!(socket, key) do
-    unless socket.assigns.policy |> Map.fetch!(key) do
-      raise "policy not allowed"
-    end
-
-    :ok
+  defp secret_toggled?(secret, secrets) do
+    Map.has_key?(secrets, secret.name) and secrets[secret.name] == secret.value
   end
 
-  defp session_only_secrets(secrets, livebook_secrets) do
-    Enum.reject(secrets, &(&1 in livebook_secrets)) |> Enum.sort()
+  defp get_saved_secrets do
+    Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
   end
 
-  defp is_secret_on_session?(secret, secrets) do
-    secret in secrets
+  defp secret_label(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).emoji
+  defp secret_label(_, _), do: nil
+
+  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).name
+  defp secret_tooltip(_, _), do: nil
+
+  defp fetch_hub!(id, hubs) do
+    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
 
-  defp get_hub_secrets do
-    for connected_hub <- Hubs.get_connected_hubs(),
-        secret <- EnterpriseClient.list_cached_secrets(connected_hub.pid),
-        into: %{},
-        do: {secret.name, secret.value}
-  end
+  defp app_status_color(nil), do: "bg-gray-400"
+  defp app_status_color(:booting), do: "bg-blue-500"
+  defp app_status_color(:running), do: "bg-green-bright-400"
+  defp app_status_color(:error), do: "bg-red-400"
+  defp app_status_color(:shutting_down), do: "bg-gray-500"
 end

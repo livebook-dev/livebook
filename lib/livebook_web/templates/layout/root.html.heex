@@ -20,7 +20,10 @@
     >
     </script>
   </head>
-  <body class="bg-white">
+  <body
+    class="bg-white"
+    data-feature-flags={Livebook.Config.enabled_feature_flags() |> Enum.join(",")}
+  >
     <%= @inner_content %>
   </body>
 </html>

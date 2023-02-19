@@ -5,9 +5,10 @@ defmodule LivebookWeb.Socket do
 
   @impl true
   def connect(_params, socket, info) do
-    auth_mode = Livebook.Config.auth_mode()
-
-    if LivebookWeb.AuthPlug.authenticated?(info.session || %{}, info.uri.port, auth_mode) do
+    # The session is present only if the CSRF token is valid. We rely
+    # on CSRF token, because we don't check connection origin as noted
+    # in LivebookWeb.Endpoint.
+    if info.session do
       {:ok, socket}
     else
       :error

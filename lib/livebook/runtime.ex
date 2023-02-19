@@ -78,6 +78,7 @@ defprotocol Livebook.Runtime do
   dependencies between evaluations and avoids unnecessary reevaluations.
   """
   @type evaluation_response_metadata :: %{
+          errored: boolean(),
           evaluation_time_ms: non_neg_integer(),
           code_error: code_error(),
           memory_usage: runtime_memory(),
@@ -255,7 +256,7 @@ defprotocol Livebook.Runtime do
   @type smart_cell_attrs :: map()
 
   @typedoc """
-  Marks an part of smart cell source.
+  Marks a part of smart cell source.
 
   Both the offset ans size are expressed in bytes.
   """
@@ -267,6 +268,23 @@ defprotocol Livebook.Runtime do
   Smart cell editor configuration.
   """
   @type editor :: %{language: String.t(), placement: :bottom | :top, source: String.t()}
+
+  @typedoc """
+  An opaque file reference.
+
+  Such reference can be obtained from a file input, for example.
+
+  The runtime may ask for the file by sending a request:
+
+    * `{:runtime_file_lookup, reply_to, file_ref}`
+
+  to which the runtime owner is supposed to reply with
+  `{:runtime_file_lookup_reply, reply}` where `reply` is either
+  `{:ok, path}` or `:error` if no matching file can be found. Note
+  that `path` should be accessible within the runtime and can be
+  obtained using `transfer_file/4`.
+  """
+  @type file_ref :: {:file, id :: String.t()}
 
   @doc """
   Returns relevant information about the runtime.

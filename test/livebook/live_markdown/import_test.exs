@@ -19,7 +19,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"disable_formatting":true,"reevaluate_automatically":true} -->
+    <!-- livebook:{"continue_on_error":true,"disable_formatting":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -80,6 +80,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    %Cell.Code{
                      disable_formatting: true,
                      reevaluate_automatically: true,
+                     continue_on_error: true,
                      source: """
                      Enum.to_list(1..10)\
                      """

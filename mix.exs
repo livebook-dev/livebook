@@ -2,7 +2,7 @@ defmodule Livebook.MixProject do
   use Mix.Project
 
   @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
-  @version "0.8.0"
+  @version "0.8.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   @app_elixir_version "1.14.2"
@@ -30,15 +30,10 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications:
-        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
-          extra_applications(Mix.target()),
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
       env: Application.get_all_env(:livebook)
     ]
   end
-
-  defp extra_applications(:app), do: [:wx]
-  defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: elixirc_paths(:dev) ++ ["test/support"]
   defp elixirc_paths(_), do: ["lib", "proto/lib"]
@@ -111,7 +106,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp target_deps(:app), do: [{:app_bundler, path: "app_bundler"}]
+  defp target_deps(:app), do: [{:elixirkit, path: "elixirkit"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -134,17 +129,9 @@ defmodule Livebook.MixProject do
   ## Releases
 
   defp releases do
-    macos_notarization = macos_notarization()
-
-    additional_paths = [
-      "rel/vendor/otp/erts-#{:erlang.system_info(:version)}/bin",
-      "rel/vendor/otp/bin",
-      "rel/vendor/elixir/bin"
-    ]
-
     [
       livebook: [
-        include_executables_for: [:unix],
+        include_executables_for: [:unix, :windows],
         include_erts: false,
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]
@@ -155,57 +142,18 @@ defmodule Livebook.MixProject do
         steps: [
           :assemble,
           &remove_cookie/1,
-          &standalone_erlang_elixir/1,
-          &AppBundler.bundle/1
-        ],
-        app: [
-          name: "Livebook",
-          url_schemes: ["livebook"],
-          document_types: [
-            [
-              name: "LiveMarkdown",
-              extensions: ["livemd"],
-              macos: [
-                icon_path: "rel/app/icon.png",
-                role: "Editor"
-              ],
-              windows: [
-                icon_path: "rel/app/icon.ico"
-              ]
-            ]
-          ],
-          macos: [
-            app_type: :agent,
-            icon_path: "rel/app/icon-macos.png",
-            build_dmg: macos_notarization != nil,
-            notarization: macos_notarization,
-            additional_paths: additional_paths ++ ["/usr/local/bin"]
-          ],
-          windows: [
-            icon_path: "rel/app/icon.ico",
-            build_installer: true,
-            additional_paths: additional_paths
-          ]
+          &standalone_erlang_elixir/1
         ]
       ]
     ]
-  end
-
-  defp macos_notarization do
-    identity = System.get_env("NOTARIZE_IDENTITY")
-    team_id = System.get_env("NOTARIZE_TEAM_ID")
-    apple_id = System.get_env("NOTARIZE_APPLE_ID")
-    password = System.get_env("NOTARIZE_PASSWORD")
-
-    if identity && team_id && apple_id && password do
-      [identity: identity, team_id: team_id, apple_id: apple_id, password: password]
-    end
   end
 
   defp remove_cookie(release) do
     File.rm!(Path.join(release.path, "releases/COOKIE"))
     release
   end
+
+  @compile {:no_warn_undefined, Standalone}
 
   defp standalone_erlang_elixir(release) do
     Code.require_file("rel/app/standalone.exs")

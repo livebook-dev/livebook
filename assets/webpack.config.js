@@ -60,6 +60,7 @@ module.exports = (env, options) => {
           "css",
           "javascript",
         ],
+        globalAPI: true,
       }),
     ],
     optimization: {

@@ -14,6 +14,7 @@ import { LiveSocket } from "phoenix_live_view";
 import hooks from "./hooks";
 import { morphdomOptions } from "./dom";
 import { loadUserData } from "./lib/user";
+import { loadAppAuthToken } from "./lib/app";
 import { settingsStore } from "./lib/settings";
 import { registerTopbar, registerGlobalEventHandlers } from "./events";
 
@@ -30,6 +31,7 @@ const liveSocket = new LiveSocket(
         _csrf_token: csrfToken,
         // Pass the most recent user data to the LiveView in `connect_params`
         user_data: loadUserData(),
+        app_auth_token: loadAppAuthToken(),
       };
     },
     hooks: hooks,

@@ -4,8 +4,8 @@ defmodule Livebook.Settings.EnvVar do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-          name: String.t(),
-          value: String.t()
+          name: String.t() | nil,
+          value: String.t() | nil
         }
 
   @primary_key {:name, :string, autogenerate: false}
