@@ -24,13 +24,15 @@ export function renderMermaid(definition) {
   return importMermaid().then((mermaid) => {
     injectFontAwesomeIfNeeded(definition);
 
-    try {
-      const svg = mermaid.render(getId(), definition);
-      cache.set(hash, svg);
-      return svg;
-    } catch (e) {
-      return `<div class="error-box whitespace-pre-wrap"><span class="font-semibold">Mermaid</span>\n${e.message}</div>`;
-    }
+    return mermaid
+      .renderAsync(getId(), definition)
+      .then((svg) => {
+        cache.set(hash, svg);
+        return svg;
+      })
+      .catch((error) => {
+        return `<div class="error-box whitespace-pre-wrap"><span class="font-semibold">Mermaid</span>\n${e.message}</div>`;
+      });
   });
 }
 
