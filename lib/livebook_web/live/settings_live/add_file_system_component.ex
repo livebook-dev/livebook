@@ -27,7 +27,8 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
       <% end %>
       <.form
         :let={f}
-        for={:data}
+        for={%{}}
+        as={:data}
         phx-target={@myself}
         phx-submit="add"
         phx-change="validate"

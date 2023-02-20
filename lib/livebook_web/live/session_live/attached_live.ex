@@ -50,7 +50,8 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       </p>
       <.form
         :let={f}
-        for={:data}
+        for={%{}}
+        as={:data}
         phx-submit="init"
         phx-change="validate"
         autocomplete="off"

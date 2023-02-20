@@ -31,7 +31,8 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
       </p>
       <.form
         :let={f}
-        for={:data}
+        for={%{}}
+        as={:data}
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}

@@ -16,7 +16,8 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
       </p>
       <.form
         :let={f}
-        for={:data}
+        for={%{}}
+        as={:data}
         id="import-content"
         phx-submit="import"
         phx-change="validate"
