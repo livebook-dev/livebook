@@ -1251,6 +1251,9 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{contents: [file_read]} = Intellisense.get_details(":file.read()", 8, context)
       assert file_read =~ "Typical error reasons:"
+
+      assert %{contents: [crypto]} = Intellisense.get_details(":crypto", 5, context)
+      assert crypto =~ "This module provides a set of cryptographic functions."
     end
 
     @tag :erl_docs
