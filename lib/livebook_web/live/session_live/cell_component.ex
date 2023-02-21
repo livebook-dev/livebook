@@ -15,6 +15,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
+      data-eval-errored={get_in(@cell_view, [:eval, :errored])}
       data-js-empty={empty?(@cell_view.source_view)}
       data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
       data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
