@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{LayoutHelpers, PageHelpers}
+  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
 
   on_mount LivebookWeb.SidebarHook
 
@@ -30,8 +30,7 @@ defmodule LivebookWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
-      socket={@socket}
-      current_page={Routes.settings_path(@socket, :page)}
+      current_page={~p"/settings"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
@@ -39,7 +38,7 @@ defmodule LivebookWeb.SettingsLive do
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <PageHelpers.title text="System settings" />
+            <LayoutHelpers.title text="System settings" />
             <p class="mt-4 text-gray-700">
               Here you can change global Livebook configuration. Keep in mind
               that this configuration gets persisted and will be restored on application
@@ -53,17 +52,15 @@ defmodule LivebookWeb.SettingsLive do
             </h2>
             <div class="flex flex-col sm:flex-row gap-4 sm:gap-12 items-center justify-center sm:justify-between border border-gray-200 rounded-lg p-4">
               <div class="flex justify-center sm:items-center space-x-12">
-                <%= if app_name = Livebook.Config.app_service_name() do %>
-                  <.labeled_text label="Application">
-                    <%= if app_url = Livebook.Config.app_service_url() do %>
-                      <a href={app_url} class="underline hover:no-underline" target="_blank">
-                        <%= app_name %>
-                      </a>
-                    <% else %>
+                <.labeled_text :if={app_name = Livebook.Config.app_service_name()} label="Application">
+                  <%= if app_url = Livebook.Config.app_service_url() do %>
+                    <a href={app_url} class="underline hover:no-underline" target="_blank">
                       <%= app_name %>
-                    <% end %>
-                  </.labeled_text>
-                <% end %>
+                    </a>
+                  <% else %>
+                    <%= app_name %>
+                  <% end %>
+                </.labeled_text>
                 <.labeled_text label="Livebook">
                   v<%= Application.spec(:livebook, :vsn) %>
                 </.labeled_text>
@@ -73,11 +70,10 @@ defmodule LivebookWeb.SettingsLive do
               </div>
 
               <div class="self-center">
-                <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
-                                    class: "button-base button-outlined-gray" do %>
+                <.link navigate={~p"/dashboard"} class="button-base button-outlined-gray">
                   <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
                   <span>Open dashboard</span>
-                <% end %>
+                </.link>
               </div>
             </div>
           </div>
@@ -87,10 +83,10 @@ defmodule LivebookWeb.SettingsLive do
               Updates
             </h2>
             <form class="mt-4" phx-change="save" onsubmit="return false;">
-              <.switch_checkbox
+              <.switch_field
                 name="update_check_enabled"
                 label="Show banner when a new Livebook version is available"
-                checked={@update_check_enabled}
+                value={@update_check_enabled}
               />
             </form>
           </div>
@@ -116,7 +112,6 @@ defmodule LivebookWeb.SettingsLive do
             </p>
             <LivebookWeb.SettingsLive.FileSystemsComponent.render
               file_systems={@file_systems}
-              socket={@socket}
               default_file_system_id={@default_file_system_id}
             />
           </div>
@@ -135,15 +130,15 @@ defmodule LivebookWeb.SettingsLive do
               module={LivebookWeb.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
-              return_to={Routes.settings_path(@socket, :page)}
-              add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
+              return_to={~p"/settings"}
+              add_env_var_path={~p"/settings/env-var/new"}
             />
           </div>
         </div>
         <!-- User settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <PageHelpers.title text="User settings" />
+            <LayoutHelpers.title text="User settings" />
             <p class="mt-4 text-gray-700">
               The configuration in this section changes only your Livebook
               experience and is saved in your browser.
@@ -160,26 +155,26 @@ defmodule LivebookWeb.SettingsLive do
               phx-hook="EditorSettings"
               phx-update="ignore"
             >
-              <.switch_checkbox
+              <.switch_field
                 name="editor_auto_completion"
                 label="Show completion list while typing"
-                checked={false}
+                value={false}
               />
-              <.switch_checkbox
+              <.switch_field
                 name="editor_auto_signature"
                 label="Show function signature while typing"
-                checked={false}
+                value={false}
               />
-              <.switch_checkbox name="editor_font_size" label="Increase font size" checked={false} />
-              <.switch_checkbox
+              <.switch_field name="editor_font_size" label="Increase font size" value={false} />
+              <.switch_field
                 name="editor_high_contrast"
                 label="Use high contrast theme"
-                checked={false}
+                value={false}
               />
-              <.switch_checkbox
+              <.switch_field
                 name="editor_markdown_word_wrap"
                 label="Wrap words in Markdown"
-                checked={false}
+                value={false}
               />
             </div>
           </div>
@@ -187,38 +182,35 @@ defmodule LivebookWeb.SettingsLive do
       </div>
     </LayoutHelpers.layout>
 
-    <%= if @live_action == :add_file_system do %>
-      <.modal
-        id="add-file-system-modal"
-        show
-        class="w-full max-w-3xl"
-        patch={Routes.settings_path(@socket, :page)}
-      >
-        <.live_component
-          module={LivebookWeb.SettingsLive.AddFileSystemComponent}
-          id="add-file-system"
-          return_to={Routes.settings_path(@socket, :page)}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action == :add_file_system}
+      id="add-file-system-modal"
+      show
+      class="w-full max-w-3xl"
+      patch={~p"/settings"}
+    >
+      <.live_component
+        module={LivebookWeb.SettingsLive.AddFileSystemComponent}
+        id="add-file-system"
+        return_to={~p"/settings"}
+      />
+    </.modal>
 
-    <%= if @live_action in [:add_env_var, :edit_env_var] do %>
-      <.modal
-        id="env-var-modal"
-        show
-        class="w-full max-w-3xl"
-        on_close={JS.push("clear_env_var")}
-        patch={Routes.settings_path(@socket, :page)}
-      >
-        <.live_component
-          module={LivebookWeb.EnvVarComponent}
-          id="env-var"
-          env_var={@env_var}
-          headline="Configure your application global environment variables."
-          return_to={Routes.settings_path(@socket, :page)}
-        />
-      </.modal>
-    <% end %>
+    <.modal
+      :if={@live_action in [:add_env_var, :edit_env_var]}
+      id="env-var-modal"
+      show
+      class="w-full max-w-3xl"
+      patch={~p"/settings"}
+    >
+      <.live_component
+        module={LivebookWeb.EnvVarComponent}
+        id="env-var"
+        env_var={@env_var}
+        headline="Configure your application global environment variables."
+        return_to={~p"/settings"}
+      />
+    </.modal>
     """
   end
 
@@ -343,7 +335,7 @@ defmodule LivebookWeb.SettingsLive do
 
     case Livebook.Settings.set_env_var(env_var, attrs) do
       {:ok, _} ->
-        {:noreply, push_patch(socket, to: Routes.settings_path(socket, :page))}
+        {:noreply, push_patch(socket, to: ~p"/settings")}
 
       {:error, _changeset} ->
         {:noreply, socket}
@@ -351,7 +343,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("edit_env_var", %{"env_var" => key}, socket) do
-    {:noreply, push_patch(socket, to: Routes.settings_path(socket, :edit_env_var, key))}
+    {:noreply, push_patch(socket, to: "/settings/env-var/edit/#{key}")}
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do

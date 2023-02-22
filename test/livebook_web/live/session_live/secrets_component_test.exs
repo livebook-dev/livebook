@@ -44,7 +44,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
          %{conn: conn, session: session, enterprise: enterprise} do
       id = enterprise.id
       secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: {:hub, id})
-      {:ok, view, _html} = live(conn, Routes.session_path(conn, :secrets, session.id))
+      {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/secrets")
 
       attrs = %{
         secret: %{
@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
           origin: {:hub, enterprise.id}
         )
 
-      {:ok, view, _html} = live(conn, Routes.session_path(conn, :page, session.id))
+      {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}")
 
       :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
       assert_receive {:secret_created, ^secret}
@@ -107,8 +107,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
       add_secret_button = element(view, "a[href='#{expected_url}']")
       assert has_element?(add_secret_button)
 
@@ -159,8 +159,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
       add_secret_button = element(view, "a[href='#{expected_url}']")
       assert has_element?(add_secret_button)
 

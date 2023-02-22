@@ -24,7 +24,11 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
         phx-target={@myself}
         class="flex flex-col items-start"
       >
-        <%= live_file_input(@uploads.notebook, class: "hidden", aria_labelledby: "import-from-file") %>
+        <.live_file_input
+          upload={@uploads.notebook}
+          class="hidden"
+          aria-labelledby="import-from-file"
+        />
         <div
           class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48"
           phx-hook="Dropzone"
@@ -33,20 +37,18 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
           <% else %>
-            <%= for file <- @uploads.notebook.entries do %>
-              <div class="flex items-center">
-                <span class="font-medium text-gray-400"><%= file.client_name %></span>
-                <button
-                  type="button"
-                  class="icon-button"
-                  phx-click="clear-file"
-                  phx-target={@myself}
-                  tabindex="-1"
-                >
-                  <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
-                </button>
-              </div>
-            <% end %>
+            <div :for={file <- @uploads.notebook.entries} class="flex items-center">
+              <span class="font-medium text-gray-400"><%= file.client_name %></span>
+              <button
+                type="button"
+                class="icon-button"
+                phx-click="clear-file"
+                phx-target={@myself}
+                tabindex="-1"
+              >
+                <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
+              </button>
+            </div>
           <% end %>
         </div>
         <%= if @error do %>

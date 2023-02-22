@@ -17,9 +17,7 @@ defmodule LivebookWeb.JSViewComponent do
       phx-hook="JSView"
       phx-update="ignore"
       data-ref={@js_view.ref}
-      data-assets-base-path={
-        Routes.session_path(@socket, :show_asset, @session_id, @js_view.assets.hash, [])
-      }
+      data-assets-base-path={~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/"}
       data-js-path={@js_view.assets.js_path}
       data-session-token={session_token(@session_id, @client_id)}
       data-connect-token={connect_token(@js_view.pid)}

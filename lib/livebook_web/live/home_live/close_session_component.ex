@@ -25,7 +25,9 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         >
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" /> Close session
         </button>
-        <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+        <.link patch={@return_to} class="button-base button-outlined-gray">
+          Cancel
+        </.link>
       </div>
     </div>
     """

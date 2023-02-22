@@ -47,7 +47,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
     @describetag app_settings: %{access_type: :public}
 
     test "does not require authentication", %{conn: conn, slug: slug} do
-      {:ok, view, _} = live(conn, "/apps/#{slug}")
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
       assert render(view) =~ "Untitled notebook"
     end
   end
@@ -57,12 +57,12 @@ defmodule LivebookWeb.AppAuthLiveTest do
     @describetag app_settings: %{access_type: :protected, password: "long_app_password"}
 
     test "redirect to auth page when not authenticated", %{conn: conn, slug: slug} do
-      {:error, {:live_redirect, %{to: to}}} = live(conn, "/apps/#{slug}")
+      {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/apps/#{slug}")
       assert to == "/apps/#{slug}/authenticate"
     end
 
     test "shows an error on invalid password", %{conn: conn, slug: slug} do
-      {:ok, view, _} = live(conn, "/apps/#{slug}/authenticate")
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}/authenticate")
 
       assert view
              |> element("form")
@@ -70,7 +70,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
     end
 
     test "persists authentication across requests", %{conn: conn, slug: slug} do
-      {:ok, view, _} = live(conn, "/apps/#{slug}/authenticate")
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}/authenticate")
 
       view
       |> element("form")
@@ -103,23 +103,23 @@ defmodule LivebookWeb.AppAuthLiveTest do
     end
 
     test "redirects to the app page when authenticating in Livebook", %{conn: conn, slug: slug} do
-      conn = get(conn, "/authenticate?redirect_to=/apps/#{slug}")
+      conn = get(conn, ~p"/authenticate?redirect_to=/apps/#{slug}")
       assert redirected_to(conn) == "/authenticate"
 
-      conn = post(conn, "/authenticate", password: "long_livebook_password")
+      conn = post(conn, ~p"/authenticate", password: "long_livebook_password")
       assert redirected_to(conn) == "/apps/#{slug}"
 
-      {:ok, view, _} = live(conn, "/apps/#{slug}")
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
       assert render(view) =~ "Untitled notebook"
 
       # The auth page redirects to the app
 
-      {:error, {:live_redirect, %{to: to}}} = live(conn, "/apps/#{slug}/authenticate")
+      {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/apps/#{slug}/authenticate")
       assert to == "/apps/#{slug}"
     end
   end
 
   test "redirects to homepage when accessing non-existent app", %{conn: conn} do
-    assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/apps/nonexistent")
+    assert {:error, {:redirect, %{to: "/"}}} = live(conn, ~p"/apps/nonexistent")
   end
 end

@@ -1,35 +1,30 @@
 defmodule LivebookWeb.Output do
-  use Phoenix.Component
+  use LivebookWeb, :html
 
   import LivebookWeb.Helpers
-  import LivebookWeb.LiveHelpers
 
-  alias Phoenix.LiveView.JS
   alias LivebookWeb.Output
-  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Renders a list of cell outputs.
   """
   def outputs(assigns) do
     ~H"""
-    <%= for {idx, output} <- Enum.reverse(@outputs) do %>
-      <div
-        class="max-w-full"
-        id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
-        data-el-output
-        data-border={border?(output)}
-      >
-        <%= render_output(output, %{
-          id: "output-#{idx}",
-          socket: @socket,
-          session_id: @session_id,
-          session_pid: @session_pid,
-          input_values: @input_values,
-          client_id: @client_id
-        }) %>
-      </div>
-    <% end %>
+    <div
+      :for={{idx, output} <- Enum.reverse(@outputs)}
+      class="max-w-full"
+      id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
+      data-el-output
+      data-border={border?(output)}
+    >
+      <%= render_output(output, %{
+        id: "output-#{idx}",
+        session_id: @session_id,
+        session_pid: @session_pid,
+        input_values: @input_values,
+        client_id: @client_id
+      }) %>
+    </div>
     """
   end
 
@@ -97,7 +92,6 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:tabs, outputs, info}, %{
          id: id,
-         socket: socket,
          session_id: session_id,
          session_pid: session_pid,
          input_values: input_values,
@@ -120,7 +114,6 @@ defmodule LivebookWeb.Output do
       active_idx: active_idx,
       labels: labels,
       outputs: outputs,
-      socket: socket,
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
@@ -133,41 +126,38 @@ defmodule LivebookWeb.Output do
     ~H"""
     <div id={@id}>
       <div class="tabs mb-2" id={"#{@id}-tabs"} phx-update="append">
-        <%= for {output_idx, label} <- @labels do %>
-          <button
-            id={"#{@id}-tabs-#{output_idx}"}
-            class={"tab #{if(output_idx == @active_idx, do: "active")}"}
-            phx-click={
-              JS.remove_class("active", to: "##{@id}-tabs .tab.active")
-              |> JS.add_class("active")
-              |> JS.add_class("hidden", to: "##{@id}-tab-contents > *:not(.hidden)")
-              |> JS.remove_class("hidden", to: "##{@id}-tab-content-#{output_idx}")
-            }
-          >
-            <%= label %>
-          </button>
-        <% end %>
+        <button
+          :for={{output_idx, label} <- @labels}
+          id={"#{@id}-tabs-#{output_idx}"}
+          class={["tab", output_idx == @active_idx && "active"]}
+          phx-click={
+            JS.remove_class("active", to: "##{@id}-tabs .tab.active")
+            |> JS.add_class("active")
+            |> JS.add_class("hidden", to: "##{@id}-tab-contents > *:not(.hidden)")
+            |> JS.remove_class("hidden", to: "##{@id}-tab-content-#{output_idx}")
+          }
+        >
+          <%= label %>
+        </button>
       </div>
       <div id={"#{@id}-tab-contents"} phx-update="append">
-        <%= for {output_idx, output} <- @outputs do %>
-          <% # We use data-keep-attribute, because we know active_idx only on the first render %>
-          <div
-            id={"#{@id}-tab-content-#{output_idx}"}
-            data-tab-content={output_idx}
-            class={"#{if(output_idx != @active_idx, do: "hidden")}"}
-            data-keep-attribute="class"
-          >
-            <.outputs
-              outputs={[{output_idx, output}]}
-              dom_id_map={%{}}
-              socket={@socket}
-              session_id={@session_id}
-              session_pid={@session_pid}
-              input_values={@input_values}
-              client_id={@client_id}
-            />
-          </div>
-        <% end %>
+        <% # We use data-keep-attribute, because we know active_idx only on the first render %>
+        <div
+          :for={{output_idx, output} <- @outputs}
+          id={"#{@id}-tab-content-#{output_idx}"}
+          data-tab-content={output_idx}
+          class={[output_idx != @active_idx && "hidden"]}
+          data-keep-attribute="class"
+        >
+          <.outputs
+            outputs={[{output_idx, output}]}
+            dom_id_map={%{}}
+            session_id={@session_id}
+            session_pid={@session_pid}
+            input_values={@input_values}
+            client_id={@client_id}
+          />
+        </div>
       </div>
     </div>
     """
@@ -177,7 +167,6 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         socket: socket,
          input_values: input_values,
          client_id: client_id
        }) do
@@ -189,7 +178,6 @@ defmodule LivebookWeb.Output do
       columns: columns,
       gap: gap,
       outputs: outputs,
-      socket: socket,
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
@@ -204,19 +192,16 @@ defmodule LivebookWeb.Output do
         style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
         phx-update="append"
       >
-        <%= for {output_idx, output} <- @outputs do %>
-          <div id={"#{@id}-grid-item-#{output_idx}"}>
-            <.outputs
-              outputs={[{output_idx, output}]}
-              dom_id_map={%{}}
-              socket={@socket}
-              session_id={@session_id}
-              session_pid={@session_pid}
-              input_values={@input_values}
-              client_id={@client_id}
-            />
-          </div>
-        <% end %>
+        <div :for={{output_idx, output} <- @outputs} id={"#{@id}-grid-item-#{output_idx}"}>
+          <.outputs
+            outputs={[{output_idx, output}]}
+            dom_id_map={%{}}
+            session_id={@session_id}
+            session_pid={@session_pid}
+            input_values={@input_values}
+            client_id={@client_id}
+          />
+        </div>
       </div>
     </div>
     """
@@ -253,13 +238,11 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:error, formatted, {:missing_secret, secret_name}}, %{
-         socket: socket,
          session_id: session_id
        }) do
     assigns = %{
       message: formatted,
       secret_name: secret_name,
-      socket: socket,
       session_id: session_id
     }
 
@@ -273,12 +256,12 @@ defmodule LivebookWeb.Output do
           <.remix_icon icon="close-circle-line" />
           <span>Missing secret <%= inspect(@secret_name) %></span>
         </div>
-        <%= live_patch to: Routes.session_path(@socket, :secrets, @session_id, secret_name: @secret_name),
-            class: "button-base button-gray",
-            aria_label: "add secret",
-            role: "button" do %>
-          <span>Add secret</span>
-        <% end %>
+        <.link
+          patch={~p"/sessions/#{@session_id}/secrets?secret_name=#{@secret_name}"}
+          class="button-base button-gray"
+        >
+          Add secret
+        </.link>
       </div>
       <%= render_formatted_error_message(@message) %>
     </div>

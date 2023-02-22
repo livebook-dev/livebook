@@ -1,8 +1,9 @@
 defmodule LivebookWeb.SessionLive.AppInfoComponent do
   use LivebookWeb, :live_component
 
+  use LivebookWeb, :verified_routes
+
   alias Livebook.Notebook.AppSettings
-  alias LivebookWeb.Router.Helpers, as: Routes
 
   @impl true
   def mount(socket) do
@@ -69,31 +70,15 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               autocomplete="off"
             >
               <div class="flex flex-col space-y-4">
-                <.input_wrapper form={f} field={:slug} class="flex flex-col space-y-1">
-                  <div class="input-label">Slug</div>
-                  <%= text_input(f, :slug, class: "input", spellcheck: "false", phx_debounce: "blur") %>
-                </.input_wrapper>
-                <.input_wrapper form={f} field={:access_type} class="flex flex-col space-y-1">
-                  <.switch_checkbox
-                    id={input_id(f, :access_type)}
-                    name={input_name(f, :access_type)}
-                    label="Password-protected"
-                    checked={Ecto.Changeset.get_field(@changeset, :access_type) == :protected}
-                    checked_value="protected"
-                    unchecked_value="public"
-                  />
-                </.input_wrapper>
+                <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce="blur" />
+                <.switch_field
+                  field={f[:access_type]}
+                  label="Password-protected"
+                  checked_value="protected"
+                  unchecked_value="public"
+                />
                 <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
-                  <.input_wrapper form={f} field={:password} class="flex flex-col space-y-1">
-                    <.with_password_toggle id={input_id(f, :password) <> "-toggle"}>
-                      <%= password_input(f, :password,
-                        value: input_value(f, :password),
-                        class: "input",
-                        spellcheck: "false",
-                        phx_debounce: "blur"
-                      ) %>
-                    </.with_password_toggle>
-                  </.input_wrapper>
+                  <.password_field field={f[:password]} spellcheck="false" phx-debounce="blur" />
                 <% end %>
               </div>
               <div class="mt-5 flex space-x-2">
@@ -117,47 +102,45 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           Deployments
         </h3>
         <div class="mt-2 flex flex-col space-y-4">
-          <%= for app <- @apps do %>
-            <div class="border border-gray-200 pb-0 rounded-lg">
-              <div class="p-4 flex flex-col space-y-3">
-                <.labeled_text label="Status">
-                  <.status status={app.status} />
-                </.labeled_text>
-                <.labeled_text label="URL" one_line>
-                  <%= if app.registered do %>
-                    <a href={Routes.app_url(@socket, :page, app.settings.slug)} target="_blank">
-                      <%= Routes.app_url(@socket, :page, app.settings.slug) %>
-                    </a>
-                  <% else %>
-                    -
-                  <% end %>
-                </.labeled_text>
-              </div>
-              <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
-                <span class="tooltip top" data-tooltip="Debug">
-                  <a
-                    class="icon-button"
-                    aria-label="debug app"
-                    href={Routes.session_path(@socket, :page, app.session_id)}
-                    target="_blank"
-                  >
-                    <.remix_icon icon="terminal-line" class="text-lg" />
+          <div :for={app <- @apps} class="border border-gray-200 pb-0 rounded-lg">
+            <div class="p-4 flex flex-col space-y-3">
+              <.labeled_text label="Status">
+                <.status status={app.status} />
+              </.labeled_text>
+              <.labeled_text label="URL" one_line>
+                <%= if app.registered do %>
+                  <a href={url(~p"/apps/#{app.settings.slug}")} target="_blank">
+                    <%= url(~p"/apps/#{app.settings.slug}") %>
                   </a>
-                </span>
-                <span class="tooltip top" data-tooltip="Shutdown">
-                  <button
-                    class="icon-button"
-                    aria-label="shutdown app"
-                    phx-click={
-                      JS.push("shutdown_app", value: %{session_id: app.session_id}, target: @myself)
-                    }
-                  >
-                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                  </button>
-                </span>
-              </div>
+                <% else %>
+                  -
+                <% end %>
+              </.labeled_text>
             </div>
-          <% end %>
+            <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
+              <span class="tooltip top" data-tooltip="Debug">
+                <a
+                  class="icon-button"
+                  aria-label="debug app"
+                  href={~p"/sessions/#{app.session_id}"}
+                  target="_blank"
+                >
+                  <.remix_icon icon="terminal-line" class="text-lg" />
+                </a>
+              </span>
+              <span class="tooltip top" data-tooltip="Shutdown">
+                <button
+                  class="icon-button"
+                  aria-label="shutdown app"
+                  phx-click={
+                    JS.push("shutdown_app", value: %{session_id: app.session_id}, target: @myself)
+                  }
+                >
+                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                </button>
+              </span>
+            </div>
+          </div>
         </div>
       <% end %>
     </div>
@@ -215,11 +198,15 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     <div class="flex items-center space-x-2">
       <div><%= @text %></div>
       <span class="relative flex h-3 w-3">
-        <%= if @animated_circle_class do %>
-          <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"}>
-          </span>
-        <% end %>
-        <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3 bg-blue-500"}></span>
+        <span
+          :if={@animated_circle_class}
+          class={[
+            @animated_circle_class,
+            "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+          ]}
+        >
+        </span>
+        <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3 bg-blue-500"]}></span>
       </span>
     </div>
     """

@@ -12,7 +12,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
       id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       Livebook.Hubs.delete_hub("enterprise-#{id}")
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      {:ok, view, _html} = live(conn, ~p"/hub")
 
       assert view
              |> element("#enterprise")
@@ -68,7 +68,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
       url = EnterpriseServer.url(name)
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      {:ok, view, _html} = live(conn, ~p"/hub")
       token = "foo bar baz"
 
       assert view
@@ -115,7 +115,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
           token: another_token
         )
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))
+      {:ok, view, _html} = live(conn, ~p"/hub")
 
       assert view
              |> element("#enterprise")
@@ -157,7 +157,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
       hubs_html = view |> element("#hubs") |> render()
       assert hubs_html =~ hub.hub_emoji
-      assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+      assert hubs_html =~ ~p"/hub/#{hub.id}"
       assert hubs_html =~ hub.hub_name
 
       assert Hubs.fetch_hub!(hub.id) == hub

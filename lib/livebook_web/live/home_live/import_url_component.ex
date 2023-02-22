@@ -21,31 +21,28 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <%= if @error_message do %>
-        <div class="error-box">
-          <%= @error_message %>
-        </div>
-      <% end %>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
       <p class="text-gray-700" id="import-from-url">
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist.
       </p>
       <.form
         :let={f}
-        for={%{}}
+        for={%{"url" => @url}}
         as={:data}
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}
         autocomplete="off"
       >
-        <%= text_input(f, :url,
-          value: @url,
-          class: "input",
-          placeholder: "Notebook URL",
-          autofocus: true,
-          aria_labelledby: "import-from-url",
-          spellcheck: "false"
-        ) %>
+        <.text_field
+          field={f[:url]}
+          label="Notebook URL"
+          autofocus
+          aria-labelledby="import-from-url"
+          spellcheck="false"
+        />
         <button
           class="mt-5 button-base button-blue"
           type="submit"

@@ -32,18 +32,22 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
           Here you can preview and directly export the notebook source.
         </p>
         <div class="tabs">
-          <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                class: "tab #{if(@tab == "livemd", do: "active")}" do %>
+          <.link
+            patch={~p"/sessions/#{@session.id}/export/livemd"}
+            class={["tab", @tab == "livemd" && "active"]}
+          >
             <span class="font-medium">
               Live Markdown
             </span>
-          <% end %>
-          <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "exs"),
-                class: "tab #{if(@tab == "exs", do: "active")}" do %>
+          </.link>
+          <.link
+            patch={~p"/sessions/#{@session.id}/export/exs"}
+            class={["tab", @tab == "exs" && "active"]}
+          >
             <span class="font-medium">
               IEx session
             </span>
-          <% end %>
+          </.link>
         </div>
         <div>
           <.live_component

@@ -32,43 +32,46 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
-          <%= if @section_view.valid_parents != [] and not @section_view.has_children? do %>
-            <.menu id={"section-#{@section_view.id}-branch-menu"}>
-              <:toggle>
-                <span class="tooltip top" data-tooltip="Branch out from">
-                  <button class="icon-button" aria-label="branch out from other section">
-                    <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+          <.menu
+            :if={@section_view.valid_parents != [] and not @section_view.has_children?}
+            id={"section-#{@section_view.id}-branch-menu"}
+          >
+            <:toggle>
+              <span class="tooltip top" data-tooltip="Branch out from">
+                <button class="icon-button" aria-label="branch out from other section">
+                  <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+                </button>
+              </span>
+            </:toggle>
+            <:content>
+              <%= for parent <- @section_view.valid_parents do %>
+                <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
+                  <button
+                    class="menu-item text-gray-900"
+                    phx-click="unset_section_parent"
+                    phx-value-section_id={@section_view.id}
+                  >
+                    <.remix_icon icon="arrow-right-s-line" />
+                    <span class="font-medium"><%= parent.name %></span>
                   </button>
-                </span>
-              </:toggle>
-              <:content>
-                <%= for parent <- @section_view.valid_parents do %>
-                  <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
-                    <button
-                      class="menu-item text-gray-900"
-                      phx-click="unset_section_parent"
-                      phx-value-section_id={@section_view.id}
-                    >
-                      <.remix_icon icon="arrow-right-s-line" />
-                      <span class="font-medium"><%= parent.name %></span>
-                    </button>
-                  <% else %>
-                    <button
-                      class="menu-item text-gray-500"
-                      phx-click="set_section_parent"
-                      phx-value-section_id={@section_view.id}
-                      phx-value-parent_id={parent.id}
-                    >
-                      <%= if @section_view.parent && @section_view.parent.id do %>
-                        <.remix_icon icon="arrow-right-s-line" class="invisible" />
-                      <% end %>
-                      <span class="font-medium"><%= parent.name %></span>
-                    </button>
-                  <% end %>
+                <% else %>
+                  <button
+                    class="menu-item text-gray-500"
+                    phx-click="set_section_parent"
+                    phx-value-section_id={@section_view.id}
+                    phx-value-parent_id={parent.id}
+                  >
+                    <.remix_icon
+                      :if={@section_view.parent && @section_view.parent.id}
+                      icon="arrow-right-s-line"
+                      class="invisible"
+                    />
+                    <span class="font-medium"><%= parent.name %></span>
+                  </button>
                 <% end %>
-              </:content>
-            </.menu>
-          <% end %>
+              <% end %>
+            </:content>
+          </.menu>
           <span class="tooltip top" data-tooltip="Move up">
             <button
               class="icon-button"
@@ -95,7 +98,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                do: [class: "tooltip left", data_tooltip: "Cannot delete this section because\nother sections branch from it"],
                else: [class: "tooltip top", data_tooltip: "Delete"]}>
             <button
-              class={"icon-button #{if @section_view.has_children?, do: "disabled"}"}
+              class={["icon-button", @section_view.has_children? && "disabled"]}
               aria-label="delete section"
               phx-click="delete_section"
               phx-value-section_id={@section_view.id}
@@ -105,24 +108,23 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </span>
         </div>
       </div>
-      <%= if @section_view.parent do %>
-        <h3
-          class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800"
-          data-el-section-subheadline
-        >
-          <span
-            class="tooltip bottom"
-            data-tooltip="This section branches out from the main flow
+      <h3
+        :if={@section_view.parent}
+        class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800"
+        data-el-section-subheadline
+      >
+        <span
+          class="tooltip bottom"
+          data-tooltip="This section branches out from the main flow
     and can be evaluated in parallel"
-          >
-            <.remix_icon
-              icon="git-branch-line"
-              class="text-lg font-normal flip-horizontally leading-none"
-            />
-          </span>
-          <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
-        </h3>
-      <% end %>
+        >
+          <.remix_icon
+            icon="git-branch-line"
+            class="text-lg font-normal flip-horizontally leading-none"
+          />
+        </span>
+        <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
+      </h3>
       <div class="container">
         <div class="flex flex-col space-y-1">
           <.live_component

@@ -7,7 +7,7 @@ defmodule LivebookWeb.AppAuthLive do
   end
 
   def mount(%{"slug" => slug}, _session, socket) do
-    {:ok, push_navigate(socket, to: Routes.app_path(socket, :page, slug))}
+    {:ok, push_navigate(socket, to: ~p"/apps/#{slug}")}
   end
 
   @impl true
@@ -15,13 +15,8 @@ defmodule LivebookWeb.AppAuthLive do
     ~H"""
     <div class="h-screen flex items-center justify-center" id="app-auth" phx-hook="AppAuth">
       <div class="flex flex-col space-y-4 items-center">
-        <a href={Routes.path(@socket, "/")}>
-          <img
-            src={Routes.static_path(@socket, "/images/logo.png")}
-            height="128"
-            width="128"
-            alt="livebook"
-          />
+        <a href={~p"/"}>
+          <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
         </a>
         <div class="text-2xl text-gray-800">
           This app is password-protected
@@ -31,17 +26,12 @@ defmodule LivebookWeb.AppAuthLive do
           <span>Type the app password to access it or</span>
           <a
             class="border-b border-gray-700 hover:border-none"
-            href={
-              Routes.auth_path(@socket, :index, redirect_to: Routes.app_path(@socket, :page, @slug))
-            }
+            href={~p"/authenticate?redirect_to=#{~p"/apps/#{@slug}"}"}
           >login into Livebook</a>.
         </div>
         <div class="text-2xl text-gray-800 w-full pt-2">
           <form class="flex flex-col space-y-4 items-center" phx-submit="authenticate">
-            <div
-              phx-feedback-for="password"
-              class={"w-[20ch] #{if(@errors != [], do: "show-errors")}"}
-            >
+            <div phx-feedback-for="password" class={["w-[20ch]", @errors != [] && "show-errors"]}>
               <input
                 type="password"
                 name="password"
@@ -50,11 +40,12 @@ defmodule LivebookWeb.AppAuthLive do
                 placeholder="Password"
                 autofocus
               />
-              <%= for error <- @errors do %>
-                <span class="mt-1 hidden text-red-600 text-sm phx-form-error:block">
-                  <%= translate_error(error) %>
-                </span>
-              <% end %>
+              <span
+                :for={error <- @errors}
+                class="mt-1 hidden text-red-600 text-sm phx-form-error:block"
+              >
+                <%= translate_error(error) %>
+              </span>
             </div>
             <button type="submit" class="button-base button-blue">
               Authenticate
@@ -80,6 +71,6 @@ defmodule LivebookWeb.AppAuthLive do
   end
 
   def handle_event("app_auth_persisted", %{}, socket) do
-    {:noreply, push_navigate(socket, to: Routes.app_path(socket, :page, socket.assigns.slug))}
+    {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.slug}")}
   end
 end

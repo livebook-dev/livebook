@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Helpers do
   use Phoenix.Component
 
-  alias LivebookWeb.Router.Helpers, as: Routes
+  use LivebookWeb, :verified_routes
 
   @doc """
   Determines user platform based on the given *User-Agent* header.
@@ -23,9 +23,9 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Returns path to specific process dialog within LiveDashboard.
   """
-  def live_dashboard_process_path(socket, pid) do
+  def live_dashboard_process_path(pid) do
     pid_str = Phoenix.LiveDashboard.PageBuilder.encode_pid(pid)
-    Routes.live_dashboard_path(socket, :page, node(), "processes", info: pid_str)
+    ~p"/dashboard/#{node()}/processes?info=#{pid_str}"
   end
 
   @doc """

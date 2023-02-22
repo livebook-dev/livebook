@@ -56,10 +56,10 @@ defmodule Livebook.SessionHelpers do
   def assert_session_secret(view, session_pid, secret) do
     selector =
       case secret do
-        %{name: name, origin: :session} -> "#session-secret-#{name}-title"
-        %{name: name, origin: :app} -> "#app-secret-#{name}-title"
-        %{name: name, origin: :startup} -> "#startup-secret-#{name}-title"
-        %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-title"
+        %{name: name, origin: :session} -> "#session-secret-#{name}-wrapper"
+        %{name: name, origin: :app} -> "#app-secret-#{name}-wrapper"
+        %{name: name, origin: :startup} -> "#startup-secret-#{name}-wrapper"
+        %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-wrapper"
       end
 
     assert has_element?(view, selector)

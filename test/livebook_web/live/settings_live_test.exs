@@ -9,7 +9,7 @@ defmodule LivebookWeb.SettingsLiveTest do
   describe "environment variables configuration" do
     test "list persisted environment variables", %{conn: conn} do
       insert_env_var(:env_var, name: "MY_ENVIRONMENT_VAR")
-      {:ok, _view, html} = live(conn, Routes.settings_path(conn, :page))
+      {:ok, _view, html} = live(conn, ~p"/settings")
 
       assert html =~ "MY_ENVIRONMENT_VAR"
     end
@@ -17,7 +17,7 @@ defmodule LivebookWeb.SettingsLiveTest do
     test "adds an environment variable", %{conn: conn} do
       attrs = params_for(:env_var, name: "JAKE_PERALTA_ENV_VAR")
 
-      {:ok, view, html} = live(conn, Routes.settings_path(conn, :add_env_var))
+      {:ok, view, html} = live(conn, ~p"/settings/env-var/new")
 
       assert html =~ "Add environment variable"
       refute html =~ attrs.name
@@ -34,7 +34,7 @@ defmodule LivebookWeb.SettingsLiveTest do
       |> element("#env-var-form")
       |> render_submit(%{"env_var" => attrs})
 
-      assert_patch(view, Routes.settings_path(conn, :page))
+      assert_patch(view, ~p"/settings")
 
       assert render(view) =~ attrs.name
     end
@@ -42,13 +42,13 @@ defmodule LivebookWeb.SettingsLiveTest do
     test "updates an environment variable", %{conn: conn} do
       env_var = insert_env_var(:env_var, name: "UPDATE_ME")
 
-      {:ok, view, html} = live(conn, Routes.settings_path(conn, :page))
+      {:ok, view, html} = live(conn, ~p"/settings")
 
       assert html =~ env_var.name
 
       render_click(view, "edit_env_var", %{"env_var" => env_var.name})
 
-      assert_patch(view, Routes.settings_path(conn, :edit_env_var, env_var.name))
+      assert_patch(view, ~p"/settings/env-var/edit/#{env_var.name}")
       assert render(view) =~ "Edit environment variable"
 
       form = element(view, "#env-var-form")
@@ -61,7 +61,7 @@ defmodule LivebookWeb.SettingsLiveTest do
              |> has_element?()
 
       render_submit(form, %{"env_var" => %{"value" => "123456"}})
-      assert_patch(view, Routes.settings_path(conn, :page))
+      assert_patch(view, ~p"/settings")
 
       updated_env_var = Settings.fetch_env_var!(env_var.name)
 
@@ -71,7 +71,7 @@ defmodule LivebookWeb.SettingsLiveTest do
 
     test "deletes an environment variable", %{conn: conn} do
       env_var = insert_env_var(:env_var)
-      {:ok, view, html} = live(conn, Routes.settings_path(conn, :page))
+      {:ok, view, html} = live(conn, ~p"/settings")
 
       assert html =~ env_var.name
 

@@ -26,11 +26,9 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <%= if @error_message do %>
-        <div class="error-box">
-          <%= @error_message %>
-        </div>
-      <% end %>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
@@ -50,7 +48,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       </p>
       <.form
         :let={f}
-        for={%{}}
+        for={@data}
         as={:data}
         phx-submit="init"
         phx-change="validate"
@@ -58,22 +56,8 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         spellcheck="false"
       >
         <div class="flex flex-col space-y-4">
-          <div>
-            <div class="input-label">Name</div>
-            <%= text_input(f, :name,
-              value: @data["name"],
-              class: "input",
-              placeholder: name_placeholder()
-            ) %>
-          </div>
-          <div>
-            <div class="input-label">Cookie</div>
-            <%= text_input(f, :cookie,
-              value: @data["cookie"],
-              class: "input",
-              placeholder: "mycookie"
-            ) %>
-          </div>
+          <.text_field field={f[:name]} label="Name" placeholder={name_placeholder()} />
+          <.text_field field={f[:cookie]} label="Name" placeholder="mycookie" />
         </div>
         <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
           <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>

@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionControllerTest do
   describe "show_image" do
     test "returns not found when the given session does not exist", %{conn: conn} do
       id = Livebook.Utils.random_node_aware_id()
-      conn = get(conn, Routes.session_path(conn, :show_image, id, "image.jpg"))
+      conn = get(conn, ~p"/sessions/#{id}/images/image.jpg")
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns not found when the given image does not exist", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, Routes.session_path(conn, :show_image, session.id, "nonexistent.jpg"))
+      conn = get(conn, ~p"/sessions/#{session.id}/images/nonexistent.jpg")
 
       assert conn.status == 404
       assert conn.resp_body == "No such file or directory"
@@ -28,7 +28,7 @@ defmodule LivebookWeb.SessionControllerTest do
       %{images_dir: images_dir} = session
       :ok = FileSystem.File.resolve(images_dir, "test.jpg") |> FileSystem.File.write("")
 
-      conn = get(conn, Routes.session_path(conn, :show_image, session.id, "test.jpg"))
+      conn = get(conn, ~p"/sessions/#{session.id}/images/test.jpg")
 
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["image/jpeg"]
@@ -40,7 +40,7 @@ defmodule LivebookWeb.SessionControllerTest do
   describe "download_source" do
     test "returns not found when the given session does not exist", %{conn: conn} do
       id = Livebook.Utils.random_node_aware_id()
-      conn = get(conn, Routes.session_path(conn, :download_source, id, "livemd"))
+      conn = get(conn, ~p"/sessions/#{id}/export/download/livemd")
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns bad request when given an invalid format", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, Routes.session_path(conn, :download_source, session.id, "invalid"))
+      conn = get(conn, ~p"/sessions/#{session.id}/export/download/invalid")
 
       assert conn.status == 400
       assert conn.resp_body == "Invalid format, supported formats: livemd, exs"
@@ -60,7 +60,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "handles live markdown notebook source", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, Routes.session_path(conn, :download_source, session.id, "livemd"))
+      conn = get(conn, ~p"/sessions/#{session.id}/export/download/livemd")
 
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["text/plain"]
@@ -101,8 +101,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       {:ok, session} = Sessions.create_session(notebook: notebook)
 
-      query = [include_outputs: "true"]
-      conn = get(conn, Routes.session_path(conn, :download_source, session.id, "livemd", query))
+      conn = get(conn, ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=true")
 
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["text/plain"]
@@ -129,7 +128,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "handles elixir notebook source", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, Routes.session_path(conn, :download_source, session.id, "exs"))
+      conn = get(conn, ~p"/sessions/#{session.id}/export/download/exs")
 
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["text/plain"]
@@ -152,8 +151,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn = start_session_and_request_asset(conn, notebook, hash)
 
-      assert redirected_to(conn, 301) ==
-               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
 
       {:ok, asset_path} = Session.local_asset_path(hash, "main.js")
       assert File.exists?(asset_path)
@@ -166,8 +164,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn = start_session_and_request_asset(conn, notebook, hash)
 
-      assert redirected_to(conn, 301) ==
-               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
 
       assert File.exists?(Path.join(assets_path, "main.js"))
     end
@@ -180,11 +177,9 @@ defmodule LivebookWeb.SessionControllerTest do
       # Use nonexistent session, so any communication would fail
       random_session_id = Livebook.Utils.random_node_aware_id()
 
-      conn =
-        get(conn, Routes.session_path(conn, :show_asset, random_session_id, hash, ["main.js"]))
+      conn = get(conn, ~p"/public/sessions/#{random_session_id}/assets/#{hash}/main.js")
 
-      assert redirected_to(conn, 301) ==
-               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
     end
   end
 
@@ -192,7 +187,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns not found when no matching assets are in the cache", %{conn: conn} do
       %{notebook: _notebook, hash: hash} = notebook_with_js_output()
 
-      conn = get(conn, Routes.session_path(conn, :show_cached_asset, hash, ["main.js"]))
+      conn = get(conn, ~p"/public/sessions/assets/#{hash}/main.js")
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
@@ -203,7 +198,7 @@ defmodule LivebookWeb.SessionControllerTest do
       # Fetch the assets for the first time
       conn = start_session_and_request_asset(conn, notebook, hash)
 
-      conn = get(conn, Routes.session_path(conn, :show_cached_asset, hash, ["main.js"]))
+      conn = get(conn, ~p"/public/sessions/assets/#{hash}/main.js")
 
       assert conn.status == 200
       assert "export function init(" <> _ = conn.resp_body
@@ -216,7 +211,7 @@ defmodule LivebookWeb.SessionControllerTest do
     {:ok, runtime} = Livebook.Runtime.Embedded.new() |> Livebook.Runtime.connect()
     Session.set_runtime(session.pid, runtime)
 
-    conn = get(conn, Routes.session_path(conn, :show_asset, session.id, hash, ["main.js"]))
+    conn = get(conn, ~p"/public/sessions/#{session.id}/assets/#{hash}/main.js")
 
     Session.close(session.pid)
 

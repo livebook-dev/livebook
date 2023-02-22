@@ -35,18 +35,12 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <.input_wrapper form={f} field={:name}>
-            <div class="input-label">Display name</div>
-            <%= text_input(f, :name, class: "input", spellcheck: "false") %>
-          </.input_wrapper>
-          <.input_wrapper form={f} field={:hex_color}>
-            <div class="input-label">Cursor color</div>
-            <.hex_color_input
-              form={f}
-              field={:hex_color}
-              randomize={JS.push("randomize_color", target: @myself)}
-            />
-          </.input_wrapper>
+          <.text_field field={f[:name]} label="Display name" spellcheck="false" />
+          <.hex_color_field
+            field={f[:hex_color]}
+            label="Cursor color"
+            randomize={JS.push("randomize_color", target: @myself)}
+          />
           <button
             class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
