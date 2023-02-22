@@ -23,54 +23,50 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
-      <%= if @grant_access_name do %>
-        <.grant_access_message
-          secret_name={@grant_access_name}
-          secret_origin={@grant_access_origin}
-          target={@myself}
-        />
-      <% end %>
+      <.grant_access_message
+        :if={@grant_access_name}
+        secret_name={@grant_access_name}
+        secret_origin={@grant_access_origin}
+        target={@myself}
+      />
       <div class="flex flex-columns gap-4">
-        <%= if @select_secret_ref do %>
-          <div class="basis-1/2 grow-0 pr-4 border-r">
-            <div class="flex flex-col space-y-4">
-              <p class="text-gray-800">
-                Choose a secret
-              </p>
-              <div class="flex flex-wrap">
-                <%= for {secret_name, _} <- Enum.sort(@secrets) do %>
-                  <.secret_with_badge
-                    secret_name={secret_name}
-                    secret_origin="session"
-                    stored="Session"
-                    action="select_secret"
-                    active={secret_name == @prefill_secret_name}
-                    target={@myself}
-                  />
-                <% end %>
-                <%= for secret <- @saved_secrets do %>
-                  <.secret_with_badge
-                    secret_name={secret.name}
-                    secret_store={store(secret)}
-                    secret_origin={origin(secret)}
-                    stored={stored(secret)}
-                    action="select_secret"
-                    active={false}
-                    target={@myself}
-                  />
-                <% end %>
-                <%= if @secrets == %{} and @saved_secrets == [] do %>
-                  <div class="w-full text-center text-gray-400 border rounded-lg p-8">
-                    <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
-                    <span class="mt-1 block text-sm text-gray-700">
-                      Secrets not found. <br /> Add to see them here.
-                    </span>
-                  </div>
-                <% end %>
+        <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
+          <div class="flex flex-col space-y-4">
+            <p class="text-gray-800">
+              Choose a secret
+            </p>
+            <div class="flex flex-wrap">
+              <.secret_with_badge
+                :for={{secret_name, _} <- Enum.sort(@secrets)}
+                secret_name={secret_name}
+                secret_origin="session"
+                stored="Session"
+                action="select_secret"
+                active={secret_name == @prefill_secret_name}
+                target={@myself}
+              />
+              <.secret_with_badge
+                :for={secret <- @saved_secrets}
+                secret_name={secret.name}
+                secret_store={store(secret)}
+                secret_origin={origin(secret)}
+                stored={stored(secret)}
+                action="select_secret"
+                active={false}
+                target={@myself}
+              />
+              <div
+                :if={@secrets == %{} and @saved_secrets == []}
+                class="w-full text-center text-gray-400 border rounded-lg p-8"
+              >
+                <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
+                <span class="mt-1 block text-sm text-gray-700">
+                  Secrets not found. <br /> Add to see them here.
+                </span>
               </div>
             </div>
           </div>
-        <% end %>
+        </div>
         <.form
           :let={f}
           for={@changeset}
@@ -81,62 +77,45 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
-            <%= if @select_secret_ref do %>
-              <p class="text-gray-700">
-                Add new secret
-              </p>
-            <% end %>
-            <.input_wrapper form={f} field={:name}>
-              <div class="input-label">
-                <label for={input_id(f, :name)}>
-                  Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
-                </label>
-              </div>
-
-              <%= text_input(f, :name,
-                class: "input w-full phx-form-error:border-red-300",
-                autofocus: !@has_prefill,
-                spellcheck: "false",
-                autocomplete: "off",
-                phx_debounce: "blur"
-              ) %>
-            </.input_wrapper>
-            <.input_wrapper form={f} field={:value}>
-              <div class="input-label"><label for={input_id(f, :value)}>Value</label></div>
-              <%= text_input(f, :value,
-                class: "input",
-                autofocus: @has_prefill,
-                spellcheck: "false",
-                autocomplete: "off",
-                phx_debounce: "blur"
-              ) %>
-            </.input_wrapper>
-            <.input_wrapper form={f} field={:origin}>
-              <div class="input-label"><label for={input_id(f, :origin)}>Storage</label></div>
-              <div class="my-2 space-y-1 text-sm">
-                <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :origin, "session") %> only this session
-                <% end %>
-
-                <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :origin, "app") %> in the Livebook app
-                <% end %>
-
-                <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
-                  <%= for hub <- @hubs do %>
-                    <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                      <%= radio_button(f, :origin, "hub-#{hub.id}") %> in <%= hub.hub_emoji %> <%= hub.hub_name %>
-                    <% end %>
-                  <% end %>
-                <% end %>
-              </div>
-            </.input_wrapper>
+            <p :if={@select_secret_ref} class="text-gray-700">
+              Add new secret
+            </p>
+            <.text_field
+              field={f[:name]}
+              label="Name (alphanumeric and underscore)"
+              autofocus={not @has_prefill}
+              spellcheck="false"
+              autocomplete="off"
+              phx-debounce="blur"
+            />
+            <.text_field
+              field={f[:value]}
+              label="Value"
+              autofocus={@has_prefill}
+              spellcheck="false"
+              autocomplete="off"
+              phx-debounce="blur"
+            />
+            <.radio_field
+              field={f[:origin]}
+              label="Storage"
+              options={
+                [{"session", "only this session"}, {"app", "in the Livebook app"}] ++
+                  if Livebook.Config.feature_flag_enabled?(:hub) do
+                    for hub <- @hubs, do: {"hub-#{hub.id}", "in #{hub.hub_emoji} #{hub.hub_name}"}
+                  else
+                    []
+                  end
+              }
+            />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
                 <.remix_icon icon="add-line" class="align-middle" />
                 <span class="font-normal">Add</span>
               </button>
-              <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+              <.link patch={@return_to} class="button-base button-outlined-gray">
+                Cancel
+              </.link>
             </div>
           </div>
         </.form>
@@ -171,11 +150,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           "bg-gray-100 text-gray-800"
         end
       ]}>
-        <%= if @active do %>
-          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
-            <circle cx="4" cy="4" r="3" />
-          </svg>
-        <% end %>
+        <svg
+          :if={@active}
+          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
+          fill="currentColor"
+          viewBox="0 0 8 8"
+        >
+          <circle cx="4" cy="4" r="3" />
+        </svg>
         <%= @stored %>
       </span>
     </div>
@@ -208,11 +190,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           "bg-gray-100 text-gray-800"
         end
       ]}>
-        <%= if @active do %>
-          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
-            <circle cx="4" cy="4" r="3" />
-          </svg>
-        <% end %>
+        <svg
+          :if={@active}
+          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
+          fill="currentColor"
+          viewBox="0 0 8 8"
+        >
+          <circle cx="4" cy="4" r="3" />
+        </svg>
         <%= @stored %>
       </span>
     </div>

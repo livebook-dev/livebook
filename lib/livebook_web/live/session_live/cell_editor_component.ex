@@ -45,7 +45,7 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
       data-cell-id={@cell_id}
       data-tag={@tag}
     >
-      <div class={"py-3 #{rounded_class(@rounded)} bg-editor"} data-el-editor-container>
+      <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
         <div class="px-8" data-el-skeleton>
           <.content_skeleton bg_class="bg-gray-500" empty={empty?(@source_view)} />
         </div>

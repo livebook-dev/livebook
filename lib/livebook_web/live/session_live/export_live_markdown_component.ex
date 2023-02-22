@@ -28,7 +28,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
     <div class="flex flex-col space-y-6">
       <div class="flex">
         <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
-          <.switch_checkbox name="include_outputs" label="Include outputs" checked={@include_outputs} />
+          <.switch_field name="include_outputs" label="Include outputs" value={@include_outputs} />
         </form>
       </div>
       <div class="flex flex-col space-y-1">
@@ -51,9 +51,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
                 class="icon-button"
                 aria-label="download source"
                 href={
-                  Routes.session_path(@socket, :download_source, @session.id, "livemd",
-                    include_outputs: @include_outputs
-                  )
+                  ~p"/sessions/#{@session.id}/export/download/livemd?include_outputs=#{@include_outputs}"
                 }
               >
                 <.remix_icon icon="download-2-line" class="text-lg" />

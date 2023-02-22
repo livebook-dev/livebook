@@ -6,13 +6,13 @@ defmodule LivebookWeb.HomeLiveTest do
   alias Livebook.{Sessions, Session}
 
   test "disconnected and connected render", %{conn: conn} do
-    {:ok, view, disconnected_html} = live(conn, "/")
+    {:ok, view, disconnected_html} = live(conn, ~p"/")
     assert disconnected_html =~ "Running sessions"
     assert render(view) =~ "Running sessions"
   end
 
   test "redirects to session upon creation", %{conn: conn} do
-    {:ok, view, _} = live(conn, "/")
+    {:ok, view, _} = live(conn, ~p"/")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
@@ -26,7 +26,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   describe "file selection" do
     test "updates the list of files as the input changes", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
@@ -39,7 +39,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       path = test_notebook_path("basic")
 
@@ -63,7 +63,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
     @tag :tmp_dir
     test "disables import when a directory is selected", %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       view
       |> element(~s{form[phx-change="set_path"]})
@@ -75,7 +75,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "disables import when a nonexistent file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       path = File.cwd!() |> Path.join("nonexistent.livemd")
 
@@ -91,7 +91,7 @@ defmodule LivebookWeb.HomeLiveTest do
     @tag :tmp_dir
     test "disables open when a write-protected notebook is selected",
          %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       path = Path.join(tmp_dir, "write_protected.livemd")
       File.touch!(path)
@@ -120,7 +120,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session1} = Sessions.create_session()
       {:ok, session2} = Sessions.create_session()
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       assert render(view) =~ session1.id
       assert render(view) =~ session2.id
@@ -131,7 +131,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
       Sessions.subscribe()
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       {:ok, %{id: id} = session} = Sessions.create_session()
       assert_receive {:session_created, %{id: ^id}}
@@ -146,17 +146,14 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session} = Sessions.create_session()
       Session.set_notebook_name(session.pid, "My notebook")
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       {:error, {:redirect, %{to: to}}} =
         view
         |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
         |> render_click
 
-      assert to ==
-               Routes.session_path(conn, :download_source, session.id, "livemd",
-                 include_outputs: false
-               )
+      assert to == ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"
 
       Session.close(session.pid)
     end
@@ -165,7 +162,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session} = Sessions.create_session()
       Session.set_notebook_name(session.pid, "My notebook")
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       assert {:error, {:live_redirect, %{to: to}}} =
                view
@@ -184,7 +181,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "allows closing session after confirmation", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       assert render(view) =~ session.id
 
@@ -204,7 +201,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session2} = Sessions.create_session()
       {:ok, session3} = Sessions.create_session()
 
-      {:ok, view, _} = live(conn, "/")
+      {:ok, view, _} = live(conn, ~p"/")
 
       assert render(view) =~ session1.id
       assert render(view) =~ session2.id
@@ -231,7 +228,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   describe "hubs sidebar" do
     test "render section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
       assert html =~ "Add Hub"
     end
@@ -239,7 +236,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "render persisted hubs", %{conn: conn} do
       fly = insert_hub(:fly, id: "fly-foo-bar-id")
 
-      {:ok, _view, html} = live(conn, "/")
+      {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
       assert html =~ fly.hub_name
 
@@ -248,7 +245,7 @@ defmodule LivebookWeb.HomeLiveTest do
   end
 
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
-    {:ok, view, _} = live(conn, "/")
+    {:ok, view, _} = live(conn, ~p"/")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
@@ -264,7 +261,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   describe "notebook import" do
     test "allows importing notebook directly from content", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/home/import/content")
+      {:ok, view, _} = live(conn, ~p"/home/import/content")
 
       notebook_content = """
       # My notebook
@@ -283,7 +280,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "should show info flash with information about the imported notebook", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/home/import/content")
+      {:ok, view, _} = live(conn, ~p"/home/import/content")
 
       notebook_content = """
       # My notebook
@@ -302,7 +299,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "should show warning flash when the imported notebook have errors", %{conn: conn} do
-      {:ok, view, _} = live(conn, "/home/import/content")
+      {:ok, view, _} = live(conn, ~p"/home/import/content")
 
       # Notebook with 3 headers
       notebook_content = """
@@ -336,8 +333,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
       notebook_url = "http://localhost:#{bypass.port}/notebook"
 
-      assert {:error, {:live_redirect, %{to: to}}} =
-               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+      assert {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/import?url=#{notebook_url}")
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
@@ -351,8 +347,7 @@ defmodule LivebookWeb.HomeLiveTest do
       File.write!(notebook_path, "# My notebook")
       notebook_url = "file://" <> notebook_path
 
-      assert {:error, {:live_redirect, %{to: to}}} =
-               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+      assert {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/import?url=#{notebook_url}")
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
@@ -369,10 +364,9 @@ defmodule LivebookWeb.HomeLiveTest do
 
       notebook_url = "http://localhost:#{bypass.port}/notebook"
 
-      assert {:error, {:live_redirect, %{to: to}}} =
-               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+      assert {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/import?url=#{notebook_url}")
 
-      assert to == "/home/import/url?url=#{URI.encode_www_form(notebook_url)}"
+      assert to == ~p"/home/import/url?url=#{notebook_url}"
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ notebook_url
@@ -383,7 +377,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "checkouts the directory when a directory is passed", %{conn: conn} do
       directory_path = Path.join(File.cwd!(), "test")
 
-      {:ok, view, _} = live(conn, "/?path=#{directory_path}")
+      {:ok, view, _} = live(conn, ~p"/?path=#{directory_path}")
 
       assert render(view) =~ directory_path
     end
@@ -395,7 +389,7 @@ defmodule LivebookWeb.HomeLiveTest do
       :ok = File.write(notebook_path, "# My notebook")
 
       assert {:error, {:live_redirect, %{flash: %{}, to: to}}} =
-               live(conn, "/open?path=#{notebook_path}")
+               live(conn, ~p"/open?path=#{notebook_path}")
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
@@ -405,7 +399,7 @@ defmodule LivebookWeb.HomeLiveTest do
   end
 
   test "handles user profile update", %{conn: conn} do
-    {:ok, view, _} = live(conn, "/")
+    {:ok, view, _} = live(conn, ~p"/")
     data = %{user: %{name: "Jake Peralta", hex_color: "#123456"}}
 
     view

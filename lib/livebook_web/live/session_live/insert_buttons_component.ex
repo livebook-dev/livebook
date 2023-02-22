@@ -21,7 +21,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         >
           + Code
         </button>
-        <.menu id={"#{@id}-block-menu"} position="bottom-left">
+        <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
           <:toggle>
             <button class="button-base button-small">+ Block</button>
           </:toggle>
@@ -59,13 +59,17 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <.remix_icon icon="organization-chart" />
               <span class="font-medium">Diagram</span>
             </button>
-            <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, section_id: @section_id, cell_id: @cell_id),
-                  class: "menu-item text-gray-500",
-                  aria_label: "insert image",
-                  role: "menuitem" do %>
+            <.link
+              patch={
+                ~p"/sessions/#{@session_id}/cell-upload?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
+              }
+              class="menu-item text-gray-500"
+              aria-label="insert image"
+              role="menuitem"
+            >
               <.remix_icon icon="image-add-line" />
               <span class="font-medium">Image</span>
-            <% end %>
+            </.link>
           </:content>
         </.menu>
         <%= cond do %>
@@ -93,18 +97,17 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <button class="button-base button-small" disabled>+ Smart</button>
             </span>
           <% true -> %>
-            <.menu id={"#{@id}-smart-menu"} position="bottom-left">
+            <.menu id={"#{@id}-smart-menu"} position={:bottom_left}>
               <:toggle>
                 <button class="button-base button-small">+ Smart</button>
               </:toggle>
               <:content>
-                <%= for definition <- Enum.sort_by(@smart_cell_definitions, & &1.name) do %>
-                  <.smart_cell_insert_button
-                    definition={definition}
-                    section_id={@section_id}
-                    cell_id={@cell_id}
-                  />
-                <% end %>
+                <.smart_cell_insert_button
+                  :for={definition <- Enum.sort_by(@smart_cell_definitions, & &1.name)}
+                  definition={definition}
+                  section_id={@section_id}
+                  cell_id={@cell_id}
+                />
               </:content>
             </.menu>
         <% end %>
@@ -120,15 +123,14 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         <span class="font-medium"><%= @definition.name %></span>
       </button>
       <:content>
-        <%= for {variant, idx} <- Enum.with_index(@definition.requirement.variants) do %>
-          <button
-            class="menu-item text-gray-500"
-            role="menuitem"
-            phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
-          >
-            <span class="font-medium"><%= variant.name %></span>
-          </button>
-        <% end %>
+        <button
+          :for={{variant, idx} <- Enum.with_index(@definition.requirement.variants)}
+          class="menu-item text-gray-500"
+          role="menuitem"
+          phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
+        >
+          <span class="font-medium"><%= variant.name %></span>
+        </button>
       </:content>
     </.submenu>
     """

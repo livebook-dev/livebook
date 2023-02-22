@@ -16,7 +16,7 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
       </p>
       <.form
         :let={f}
-        for={%{}}
+        for={%{"content" => @content}}
         as={:data}
         id="import-content"
         phx-submit="import"
@@ -24,15 +24,16 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
         phx-target={@myself}
         autocomplete="off"
       >
-        <%= textarea(f, :content,
-          value: @content,
-          class: "input resize-none",
-          placeholder: "Notebook content",
-          autofocus: true,
-          aria_labelledby: "import-from-content",
-          spellcheck: "false",
-          rows: 5
-        ) %>
+        <.textarea_field
+          type="textarea"
+          field={f[:content]}
+          label="Notebook content"
+          resizable={false}
+          autofocus
+          aria-labelledby="import-from-content"
+          spellcheck="false"
+          rows="5"
+        />
         <button class="mt-5 button-base button-blue" type="submit" disabled={@content == ""}>
           Import
         </button>

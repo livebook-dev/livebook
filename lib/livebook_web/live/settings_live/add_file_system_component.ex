@@ -20,14 +20,12 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
         Many storage services offer an S3-compatible API and
         those work as well.
       </p>
-      <%= if @error_message do %>
-        <div class="error-box">
-          <%= @error_message %>
-        </div>
-      <% end %>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
       <.form
         :let={f}
-        for={%{}}
+        for={@data}
         as={:data}
         phx-target={@myself}
         phx-submit="add"
@@ -36,47 +34,21 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
         spellcheck="false"
       >
         <div class="flex flex-col space-y-4">
-          <div>
-            <div class="input-label">Bucket URL</div>
-            <%= text_input(f, :bucket_url,
-              value: @data["bucket_url"],
-              class: "input",
-              placeholder: "https://s3.[region].amazonaws.com/[bucket]"
-            ) %>
-          </div>
-          <div>
-            <div class="input-label">Region (optional)</div>
-            <%= text_input(f, :region,
-              value: @data["region"],
-              class: "input"
-            ) %>
-          </div>
-          <div>
-            <div class="input-label">Access Key ID</div>
-            <.with_password_toggle id="access-key-password-toggle">
-              <%= text_input(f, :access_key_id,
-                value: @data["access_key_id"],
-                class: "input",
-                type: "password"
-              ) %>
-            </.with_password_toggle>
-          </div>
-          <div>
-            <div class="input-label">Secret Access Key</div>
-            <.with_password_toggle id="secret-access-key-password-toggle">
-              <%= text_input(f, :secret_access_key,
-                value: @data["secret_access_key"],
-                class: "input",
-                type: "password"
-              ) %>
-            </.with_password_toggle>
-          </div>
-
+          <.text_field
+            field={f[:bucket_url]}
+            label="Bucket URL"
+            placeholder="https://s3.[region].amazonaws.com/[bucket]"
+          />
+          <.text_field field={f[:region]} label="Region (optional)" />
+          <.password_field field={f[:access_key_id]} label="Access Key ID" />
+          <.password_field field={f[:secret_access_key]} label="Access Key ID" />
           <div class="flex space-x-2">
             <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
               Add
             </button>
-            <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+            <.link patch={@return_to} class="button-base button-outlined-gray">
+              Cancel
+            </.link>
           </div>
         </div>
       </.form>

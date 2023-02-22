@@ -160,11 +160,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       </p>
       <div class="flex">
         <form class="my-2" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
-          <.switch_checkbox
-            name="basic"
-            label="Basic view (essential shortcuts only)"
-            checked={@basic}
-          />
+          <.switch_field name="basic" label="Basic view (essential shortcuts only)" value={@basic} />
         </form>
       </div>
       <.shortcuts_section
@@ -210,11 +206,9 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <h3 class="text-lg font-medium text-gray-900">
         <%= @title %>
       </h3>
-      <%= if @description do %>
-        <div class="text-gray-700">
-          <%= @description %>
-        </div>
-      <% end %>
+      <div :if={@description} class="text-gray-700">
+        <%= @description %>
+      </div>
       <div class="flex flex-col lg:flex-row lg:space-x-4">
         <div class="lg:grow">
           <.shortcuts_section_table shortcuts={@left} platform={@platform} />
@@ -231,16 +225,14 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     ~H"""
     <table>
       <tbody>
-        <%= for shortcut <- @shortcuts do %>
-          <tr>
-            <td class="py-2 pr-3">
-              <.shortcut shortcut={shortcut} platform={@platform} />
-            </td>
-            <td class="lg:whitespace-nowrap">
-              <%= shortcut.desc %>
-            </td>
-          </tr>
-        <% end %>
+        <tr :for={shortcut <- @shortcuts}>
+          <td class="py-2 pr-3">
+            <.shortcut shortcut={shortcut} platform={@platform} />
+          </td>
+          <td class="lg:whitespace-nowrap">
+            <%= shortcut.desc %>
+          </td>
+        </tr>
       </tbody>
     </table>
     """

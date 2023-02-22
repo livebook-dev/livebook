@@ -9,7 +9,7 @@ defmodule LivebookWeb.ConnCase do
       import Livebook.Factory
       import LivebookWeb.ConnCase
 
-      alias LivebookWeb.Router.Helpers, as: Routes
+      use LivebookWeb, :verified_routes
 
       # The default endpoint for testing
       @endpoint LivebookWeb.Endpoint

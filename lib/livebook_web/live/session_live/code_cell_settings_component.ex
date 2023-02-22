@@ -26,31 +26,33 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
       </h3>
       <form phx-submit="save" phx-target={@myself}>
         <div class="w-full flex-col space-y-6">
-          <.switch_checkbox
+          <.switch_field
             name="enable_formatting"
             label="Format code when saving to file"
-            checked={not @disable_formatting}
+            value={not @disable_formatting}
           />
         </div>
         <div class="w-full flex-col space-y-6 mt-4">
-          <.switch_checkbox
+          <.switch_field
             name="reevaluate_automatically"
             label="Reevaluate automatically"
-            checked={@reevaluate_automatically}
+            value={@reevaluate_automatically}
           />
         </div>
         <div class="w-full flex-col space-y-6 mt-4">
-          <.switch_checkbox
+          <.switch_field
             name="continue_on_error"
             label="Continue on error"
-            checked={@continue_on_error}
+            value={@continue_on_error}
           />
         </div>
         <div class="mt-8 flex justify-begin space-x-2">
           <button class="button-base button-blue" type="submit">
             Save
           </button>
-          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+          <.link patch={@return_to} class="button-base button-outlined-gray">
+            Cancel
+          </.link>
         </div>
       </form>
     </div>

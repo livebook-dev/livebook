@@ -38,7 +38,7 @@ defmodule LivebookWeb.AppLive do
 
   def mount(%{"slug" => slug}, _session, socket) do
     if connected?(socket) do
-      {:ok, push_navigate(socket, to: Routes.app_auth_path(socket, :page, slug))}
+      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/authenticate")}
     else
       {:ok, socket}
     end
@@ -66,46 +66,42 @@ defmodule LivebookWeb.AppLive do
             <%= @data_view.notebook_name %>
           </h1>
         </div>
-        <%= if @data_view.app_status == :booting do %>
-          <div class="flex items-center space-x-2">
-            <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75">
-              </span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+        <div :if={@data_view.app_status == :booting} class="flex items-center space-x-2">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75">
             </span>
-            <div class="text-gray-700 font-medium">
-              Booting
-            </div>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+          </span>
+          <div class="text-gray-700 font-medium">
+            Booting
           </div>
-        <% end %>
-        <%= if @data_view.app_status == :error do %>
-          <div class="flex items-center space-x-2">
-            <span class="relative flex h-3 w-3">
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-            <div class="text-gray-700 font-medium">
-              Error
-            </div>
+        </div>
+        <div :if={@data_view.app_status == :error} class="flex items-center space-x-2">
+          <span class="relative flex h-3 w-3">
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          </span>
+          <div class="text-gray-700 font-medium">
+            Error
           </div>
-        <% end %>
-        <%= if @data_view.app_status in [:running, :shutting_down] do %>
-          <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
-            <%= for output_view <- Enum.reverse(@data_view.output_views) do %>
-              <div>
-                <LivebookWeb.Output.outputs
-                  outputs={[output_view.output]}
-                  dom_id_map={%{}}
-                  socket={@socket}
-                  session_id={@session.id}
-                  session_pid={@session.pid}
-                  client_id={@client_id}
-                  input_values={output_view.input_values}
-                />
-              </div>
-            <% end %>
+        </div>
+        <div
+          :if={@data_view.app_status in [:running, :shutting_down]}
+          class="pt-4 flex flex-col space-y-6"
+          data-el-outputs-container
+          id="outputs"
+        >
+          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
+            <LivebookWeb.Output.outputs
+              outputs={[output_view.output]}
+              dom_id_map={%{}}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              input_values={output_view.input_values}
+            />
           </div>
-          <div style="height: 80vh"></div>
-        <% end %>
+        </div>
+        <div style="height: 80vh"></div>
       </div>
     </div>
     """
@@ -114,13 +110,7 @@ defmodule LivebookWeb.AppLive do
   def render(assigns) do
     ~H"""
     <div class="flex justify-center items-center h-screen w-screen">
-      <img
-        src={Routes.static_path(@socket, "/images/logo.png")}
-        height="128"
-        width="128"
-        alt="livebook"
-        class="animate-pulse"
-      />
+      <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" class="animate-pulse" />
     </div>
     """
   end
@@ -148,7 +138,7 @@ defmodule LivebookWeb.AppLive do
     {:noreply,
      socket
      |> put_flash(:info, "Session has been closed")
-     |> push_redirect(to: Routes.home_path(socket, :page))}
+     |> push_navigate(to: ~p"/")}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -1,10 +1,5 @@
 defmodule LivebookWeb.SessionLive.IndicatorsComponent do
-  use Phoenix.Component
-
-  alias Phoenix.LiveView.JS
-  alias LivebookWeb.Router.Helpers, as: Routes
-
-  import LivebookWeb.LiveHelpers
+  use LivebookWeb, :html
 
   def render(assigns) do
     ~H"""
@@ -43,13 +38,11 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             file={@file}
             dirty={@dirty}
             autosave_interval_s={@autosave_interval_s}
-            socket={@socket}
             session_id={@session_id}
           />
           <.runtime_indicator
             runtime={@runtime}
             global_status={@global_status}
-            socket={@socket}
             session_id={@session_id}
           />
           <.insert_mode_indicator />
@@ -71,7 +64,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       </button>
     </span>
     <div data-el-focus-mode-options>
-      <.menu id="focus-mode-menu" position="top-right">
+      <.menu id="focus-mode-menu" position={:top_right}>
         <:toggle>
           <button
             class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
@@ -99,11 +92,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp persistence_indicator(%{file: nil} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Choose a file to save the notebook">
-      <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-            class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100",
-            aria_label: "choose a file to save the notebook" do %>
+      <.link
+        patch={~p"/sessions/#{@session_id}/settings/file"}
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="choose a file to save the notebook"
+      >
         <.remix_icon icon="save-line" class="text-xl text-gray-400" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -111,11 +106,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp persistence_indicator(%{dirty: false} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Notebook saved">
-      <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-            class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
-            aria_label: "notebook saved, click to open file settings" do %>
+      <.link
+        patch={~p"/sessions/#{@session_id}/settings/file"}
+        class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+        aria-label="notebook saved, click to open file settings"
+      >
         <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -123,11 +120,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp persistence_indicator(%{autosave_interval_s: nil} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="No autosave configured, make sure to save manually">
-      <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-            class: "icon-button icon-outlined-button border-yellow-bright-200 hover:bg-red-50 focus:bg-red-50",
-            aria_label: "no autosave configured, click to open file settings" do %>
+      <.link
+        patch={~p"/sessions/#{@session_id}/settings/file"}
+        class="icon-button icon-outlined-button border-yellow-bright-200 hover:bg-red-50 focus:bg-red-50"
+        aria-label="no autosave configured, click to open file settings"
+      >
         <.remix_icon icon="save-line" class="text-xl text-yellow-bright-300" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -135,11 +134,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp persistence_indicator(assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Autosave pending">
-      <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-            class: "icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50",
-            aria_label: "autosave pending, click to open file settings" do %>
+      <.link
+        patch={~p"/sessions/#{@session_id}/settings/file"}
+        class="icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
+        aria-label="autosave pending, click to open file settings"
+      >
         <.remix_icon icon="save-line" class="text-xl text-blue-500" />
-      <% end %>
+      </.link>
     </span>
     """
   end
@@ -150,11 +151,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <.global_status status={elem(@global_status, 0)} cell_id={elem(@global_status, 1)} />
     <% else %>
       <span class="tooltip left" data-tooltip="Choose a runtime to run the notebook in">
-        <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
-              class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100",
-              aria_label: "choose a runtime to run the notebook in" do %>
+        <.link
+          patch={~p"/sessions/#{@session_id}/settings/runtime"}
+          class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+          aria-label="choose a runtime to run the notebook in"
+        >
           <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
-        <% end %>
+        </.link>
       </span>
     <% end %>
     """

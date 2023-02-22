@@ -18,14 +18,14 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   test "disconnected and connected render", %{conn: conn, session: session} do
-    {:ok, view, disconnected_html} = live(conn, "/sessions/#{session.id}")
+    {:ok, view, disconnected_html} = live(conn, ~p"/sessions/#{session.id}")
     assert disconnected_html =~ "Untitled notebook"
     assert render(view) =~ "Untitled notebook"
   end
 
   describe "asynchronous updates" do
     test "renders an updated notebook name", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       Session.set_notebook_name(session.pid, "My notebook")
       wait_for_session_update(session.pid)
@@ -34,7 +34,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "renders an updated notebook name in title", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert page_title(view) =~ "Untitled notebook"
 
@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "renders a newly inserted section", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
 
@@ -58,7 +58,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "renders an updated section name", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       Session.set_section_name(session.pid, section_id, "My section")
       wait_for_session_update(session.pid)
@@ -69,7 +69,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "renders a newly inserted cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       cell_id = insert_text_cell(session.pid, section_id, :markdown)
 
@@ -80,7 +80,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :markdown)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       Session.delete_cell(session.pid, cell_id)
       wait_for_session_update(session.pid)
@@ -91,7 +91,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "UI events update the shared state" do
     test "adding a new section", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element("button", "New section")
@@ -103,7 +103,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "adding a new cell", %{conn: conn, session: session} do
       Session.insert_section(session.pid, 0)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element("button", "Markdown")
@@ -120,7 +120,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -134,7 +134,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -153,7 +153,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       evaluate_setup(session.pid)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -180,7 +180,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(2000)")
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -198,7 +198,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element("#cell-#{cell_id}-evaluation-menu button", "Reevaluate automatically")
@@ -212,7 +212,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -226,7 +226,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       _cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -240,7 +240,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -255,7 +255,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.delete_cell(session.pid, cell_id)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       refute render(view) =~ "cell-" <> cell_id
 
@@ -289,7 +289,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s/[data-el-outputs-container] form/)
@@ -318,7 +318,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s/[data-el-outputs-container] form/)
@@ -356,7 +356,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_output(session.pid, section_id, {:control, form_control})
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s/[data-el-outputs-container] form/)
@@ -393,7 +393,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> file_input(~s/[data-el-outputs-container] form/, :file, [
@@ -429,7 +429,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 1\n"}})
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert render(view) =~ "line 1"
 
       send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
@@ -454,7 +454,7 @@ defmodule LivebookWeb.SessionLiveTest do
          {:frame, [{:text, "In frame"}], %{ref: "1", type: :default}}}
       )
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert render(view) =~ "In frame"
 
       send(
@@ -493,7 +493,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation,
                       {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
     end
   end
@@ -506,7 +506,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
       Session.set_runtime(session.pid, runtime)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       refute render(view) =~ "Database connection"
 
@@ -525,7 +525,7 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "runtime settings" do
     test "connecting to elixir standalone updates connect button to reconnect",
          %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
 
       Session.subscribe(session.id)
 
@@ -552,7 +552,7 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "saving to file shows the newly created file in file selector",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
       path = Path.join(tmp_dir, "notebook.livemd")
@@ -567,7 +567,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert Session.get_data(session.pid).file
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
       assert view = find_live_child(view, "persistence")
 
       assert view
@@ -584,7 +584,7 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "changing output persistence updates data",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
       path = Path.join(tmp_dir, "notebook.livemd")
@@ -611,7 +611,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -633,7 +633,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
       Session.set_runtime(session.pid, runtime)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s{[data-el-session]})
@@ -663,7 +663,7 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.set_notebook_name(session.pid, "My notebook")
     wait_for_session_update(session.pid)
 
-    {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
     assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
              result =
@@ -690,7 +690,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.register_client(session.pid, client_pid, user1)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert render(view) =~ "Jake Peralta"
 
@@ -699,7 +699,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "updates users list whenever a user joins or leaves",
          %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       Session.subscribe(session.id)
 
@@ -735,7 +735,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.register_client(session.pid, client_pid, user1)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       Session.subscribe(session.id)
 
@@ -757,7 +757,7 @@ defmodule LivebookWeb.SessionLiveTest do
       session_path = "/sessions/#{session.id}"
 
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/document.pdf")
+               result = live(conn, ~p"/sessions/#{session.id}/document.pdf")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Got unrecognised session path: document.pdf"
@@ -768,7 +768,7 @@ defmodule LivebookWeb.SessionLiveTest do
       session_path = "/sessions/#{session.id}"
 
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
 
@@ -789,7 +789,7 @@ defmodule LivebookWeb.SessionLiveTest do
       session_path = "/sessions/#{session.id}"
 
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
 
@@ -810,7 +810,7 @@ defmodule LivebookWeb.SessionLiveTest do
       :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: new_session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Sibling notebook"
@@ -835,7 +835,7 @@ defmodule LivebookWeb.SessionLiveTest do
       :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: new_session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Sibling notebook - fork"
@@ -862,10 +862,10 @@ defmodule LivebookWeb.SessionLiveTest do
       :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: session_path}}} =
-               live(conn, "/sessions/#{session.id}/notebook.livemd")
+               live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
-               live(conn, "/sessions/#{session.id}/notebook.livemd")
+               live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       "/sessions/" <> session_id = session_path
       close_session_by_id(session_id)
@@ -884,7 +884,7 @@ defmodule LivebookWeb.SessionLiveTest do
       :ok = FileSystem.File.write(child_file, "# Child notebook")
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
-               result = live(conn, "/sessions/#{session.id}/dir/child.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/dir/child.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Child notebook"
@@ -905,7 +905,7 @@ defmodule LivebookWeb.SessionLiveTest do
       :ok = FileSystem.File.write(parent_file, "# Parent notebook")
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
-               result = live(conn, "/sessions/#{session.id}/__parent__/parent.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/__parent__/parent.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Parent notebook"
@@ -926,7 +926,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, session} = Sessions.create_session(origin: {:url, index_url})
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "My notebook"
@@ -954,7 +954,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, session} = Sessions.create_session(origin: {:url, index_url})
 
       assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
-               result = live(conn, "/sessions/#{session.id}/nested/path/to/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/nested/path/to/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "My notebook"
@@ -977,7 +977,7 @@ defmodule LivebookWeb.SessionLiveTest do
       session_path = "/sessions/#{session.id}"
 
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
-               result = live(conn, "/sessions/#{session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
       assert render(view) =~ "Cannot navigate, failed to download notebook from the given URL"
@@ -997,7 +997,7 @@ defmodule LivebookWeb.SessionLiveTest do
       notebook_session_path = "/sessions/#{notebook_session.id}"
 
       assert {:error, {:live_redirect, %{to: ^notebook_session_path}}} =
-               live(conn, "/sessions/#{index_session.id}/notebook.livemd")
+               live(conn, ~p"/sessions/#{index_session.id}/notebook.livemd")
 
       Session.close([index_session.pid, notebook_session.pid])
     end
@@ -1015,7 +1015,7 @@ defmodule LivebookWeb.SessionLiveTest do
       index_session_path = "/sessions/#{index_session.id}"
 
       assert {:error, {:live_redirect, %{to: ^index_session_path}}} =
-               result = live(conn, "/sessions/#{index_session.id}/notebook.livemd")
+               result = live(conn, ~p"/sessions/#{index_session.id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
 
@@ -1028,7 +1028,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "package search" do
     test "lists search entries", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/package-search")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/package-search")
 
       [search_view] = live_children(view)
 
@@ -1046,7 +1046,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "secrets" do
     test "adds a secret from form", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       secret = build(:secret, name: "FOO", value: "123", origin: :session)
 
       view
@@ -1057,7 +1057,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       secret = build(:secret, name: "BAR", value: "456", origin: :app)
 
       view
@@ -1071,7 +1071,7 @@ defmodule LivebookWeb.SessionLiveTest do
       session_secret = insert_secret(name: "FOO", value: "123")
       secret = build(:secret, name: "FOO", value: "456", origin: :app)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -1080,7 +1080,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_session_secret(view, session.pid, secret)
       assert secret in Livebook.Secrets.get_secrets()
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, session_secret)
 
       secret = build(:secret, name: "FOO", value: "789", origin: :app)
@@ -1097,7 +1097,7 @@ defmodule LivebookWeb.SessionLiveTest do
       app_secret = insert_secret(name: "FOO", value: "123")
       secret = build(:secret, name: "FOO", value: "456", origin: :session)
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, app_secret)
 
       view
@@ -1119,10 +1119,10 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert view
-             |> element("span", "Add secret")
+             |> element("a", "Add secret")
              |> has_element?()
     end
 
@@ -1141,8 +1141,8 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
       add_secret_button = element(view, "a[href='#{expected_url}']")
       assert has_element?(add_secret_button)
 
@@ -1184,8 +1184,8 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
       add_secret_button = element(view, "a[href='#{expected_url}']")
       assert has_element?(add_secret_button)
 
@@ -1219,7 +1219,7 @@ defmodule LivebookWeb.SessionLiveTest do
       secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :startup)
       Livebook.Secrets.set_temporary_secrets([secret])
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -1259,8 +1259,8 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-      expected_url = Routes.session_path(conn, :secrets, session.id, secret_name: secret.name)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
       add_secret_button = element(view, "a[href='#{expected_url}']")
       assert has_element?(add_secret_button)
 
@@ -1294,7 +1294,7 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "environment variables" do
     test "outputs persisted env var from ets", %{conn: conn, session: session} do
       Session.subscribe(session.id)
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
 
@@ -1359,7 +1359,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Settings.set_env_var(attrs)
 
       Session.subscribe(session.id)
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
 
@@ -1390,7 +1390,7 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "apps" do
     test "deploying an app", %{conn: conn, session: session} do
       Session.subscribe(session.id)
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
 
@@ -1407,7 +1407,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "/apps/#{slug}"
 
-      {:ok, view, _} = live(conn, "/apps/#{slug}")
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
 
       assert_push_event(view, "markdown_renderer:" <> _, %{content: "Hello from the app!"})
 
@@ -1425,7 +1425,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:add_app, _, _, _}}
       assert_receive {:operation, {:set_app_registered, _, _, true}}
 
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
       |> element(~s/[data-el-app-info] button[aria-label="shutdown app"]/)

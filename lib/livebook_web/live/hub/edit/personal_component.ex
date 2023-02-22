@@ -34,22 +34,19 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
-                <div class="input-label">Name</div>
-                <%= text_input(f, :hub_name, class: "input") %>
-              </.input_wrapper>
-
-              <.input_wrapper form={f} field={:hub_emoji} class="flex flex-col space-y-1">
-                <div class="input-label">Emoji</div>
-                <.emoji_input id="personal-emoji-input" form={f} field={:hub_emoji} />
-              </.input_wrapper>
+              <.text_field field={f[:hub_name]} label="Name" />
+              <.emoji_field field={f[:hub_emoji]} label="Emoji" />
             </div>
-
-            <%= submit("Update Hub",
-              class: "button-base button-blue",
-              phx_disable_with: "Updating...",
-              disabled: not @changeset.valid?
-            ) %>
+            <div>
+              <button
+                class="button-base button-blue"
+                type="submit"
+                phx-disable-with="Updating..."
+                disable={not @changeset.valid?}
+              >
+                Update Hub
+              </button>
+            </div>
           </.form>
         </div>
       </div>
@@ -64,7 +61,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
         {:noreply,
          socket
          |> put_flash(:success, "Hub updated successfully")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+         |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}

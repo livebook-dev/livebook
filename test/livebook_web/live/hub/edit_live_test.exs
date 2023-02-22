@@ -20,7 +20,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert html =~ "Manage app on Fly"
       assert html =~ "https://fly.io/apps/#{hub.application_id}"
@@ -51,7 +51,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_hub(view, conn, %{hub | hub_emoji: attrs["hub_emoji"], hub_name: attrs["hub_name"]})
+      assert_hub(view, %{hub | hub_emoji: attrs["hub_emoji"], hub_name: attrs["hub_name"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
@@ -63,7 +63,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: hub_id, hub_name: "My Deletable Hub", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert {:ok, view, _html} =
                view
@@ -72,7 +72,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       hubs_html = view |> element("#hubs") |> render()
 
-      refute hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+      refute hubs_html =~ ~p"/hub/#{hub.id}"
       refute hubs_html =~ hub.hub_name
 
       assert Hubs.get_hub(hub_id) == :error
@@ -85,7 +85,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert html =~ "Manage app on Fly"
       assert html =~ "https://fly.io/apps/#{hub.application_id}"
@@ -99,7 +99,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> element("#add-env-var")
       |> render_click(%{})
 
-      assert_patch(view, Routes.hub_path(conn, :add_env_var, hub.id))
+      assert_patch(view, ~p"/hub/#{hub.id}/env-var/new")
       assert render(view) =~ "Add environment variable"
 
       attrs = params_for(:env_var, name: "FOO_ENV_VAR")
@@ -134,7 +134,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert html =~ "Manage app on Fly"
       assert html =~ "https://fly.io/apps/#{hub.application_id}"
@@ -146,7 +146,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> element("#env-var-FOO_ENV_VAR-edit")
       |> render_click(%{"env_var" => "FOO_ENV_VAR"})
 
-      assert_patch(view, Routes.hub_path(conn, :edit_env_var, hub.id, "FOO_ENV_VAR"))
+      assert_patch(view, ~p"/hub/#{hub.id}/env-var/edit/FOO_ENV_VAR")
       assert render(view) =~ "Edit environment variable"
 
       attrs = params_for(:env_var, name: "FOO_ENV_VAR")
@@ -179,7 +179,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
       fly_bypass(bypass, app_id, pid)
 
-      {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert html =~ "Manage app on Fly"
       assert html =~ "https://fly.io/apps/#{hub.application_id}"
@@ -208,7 +208,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   describe "enterprise" do
     test "updates hub", %{conn: conn} do
       hub = insert_hub(:enterprise)
-      {:ok, view, _html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       attrs = %{"hub_emoji" => "🐈"}
 
@@ -228,16 +228,16 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_hub(view, conn, %{hub | hub_emoji: attrs["hub_emoji"]})
+      assert_hub(view, %{hub | hub_emoji: attrs["hub_emoji"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
   end
 
-  defp assert_hub(view, conn, hub) do
+  defp assert_hub(view, hub) do
     hubs_html = view |> element("#hubs") |> render()
 
     assert hubs_html =~ hub.hub_emoji
-    assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+    assert hubs_html =~ ~p"/hub/#{hub.id}"
     assert hubs_html =~ hub.hub_name
   end
 

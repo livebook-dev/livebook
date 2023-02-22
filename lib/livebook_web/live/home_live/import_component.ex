@@ -9,27 +9,24 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
         Import notebook
       </h3>
       <div class="tabs">
-        <%= live_patch to: Routes.home_path(@socket, :import, "url"),
-              class: "tab #{if(@tab == "url", do: "active")}" do %>
+        <.link patch={~p"/home/import/url"} class={["tab", @tab == "url" && "active"]}>
           <.remix_icon icon="download-cloud-2-line" class="align-middle" />
           <span class="font-medium">
             From URL
           </span>
-        <% end %>
-        <%= live_patch to: Routes.home_path(@socket, :import, "content"),
-              class: "tab #{if(@tab == "content", do: "active")}" do %>
+        </.link>
+        <.link patch={~p"/home/import/content"} class={["tab", @tab == "content" && "active"]}>
           <.remix_icon icon="clipboard-line" class="align-middle" />
           <span class="font-medium">
             From clipboard
           </span>
-        <% end %>
-        <%= live_patch to: Routes.home_path(@socket, :import, "file_upload"),
-              class: "tab #{if(@tab == "file_upload", do: "active")}" do %>
+        </.link>
+        <.link patch={~p"/home/import/file_upload"} class={["tab", @tab == "file_upload" && "active"]}>
           <.remix_icon icon="file-upload-line" class="align-middle" />
           <span class="font-medium">
             File upload
           </span>
-        <% end %>
+        </.link>
         <div class="grow tab"></div>
       </div>
       <div>

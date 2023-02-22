@@ -1,9 +1,5 @@
 defmodule LivebookWeb.UserHelpers do
-  use Phoenix.Component
-
-  import LivebookWeb.LiveHelpers
-
-  alias Phoenix.LiveView.JS
+  use LivebookWeb, :html
 
   @doc """
   Renders user avatar.
@@ -11,20 +7,20 @@ defmodule LivebookWeb.UserHelpers do
   ## Examples
 
       <.user_avatar user={@user} class="h-20 w-20" text_class="text-3xl" />
-  """
-  def user_avatar(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:class, fn -> "w-full h-full" end)
-      |> assign_new(:text_class, fn -> "" end)
 
+  """
+  attr :user, Livebook.Users.User, required: true
+  attr :class, :string, default: "w-full h-full"
+  attr :text_class, :string, default: nil
+
+  def user_avatar(assigns) do
     ~H"""
     <div
-      class={"#{@class} rounded-full flex items-center justify-center"}
+      class={["rounded-full flex items-center justify-center", @class]}
       style={"background-color: #{@user.hex_color}"}
       aria-hidden="true"
     >
-      <div class={"#{@text_class} text-gray-100 font-semibold"}>
+      <div class={["text-gray-100 font-semibold", @text_class]}>
         <%= avatar_text(@user.name) %>
       </div>
     </div>
@@ -50,7 +46,10 @@ defmodule LivebookWeb.UserHelpers do
   ## Examples
 
       <.current_user_modal current_user={@current_user} />
+
   """
+  attr :current_user, Livebook.Users.User, required: true
+
   def current_user_modal(assigns) do
     ~H"""
     <.modal id="user-modal" class="w-full max-w-sm">

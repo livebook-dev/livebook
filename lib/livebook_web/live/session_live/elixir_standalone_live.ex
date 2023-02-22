@@ -20,11 +20,9 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <%= if @error_message do %>
-        <div class="error-box">
-          <%= @error_message %>
-        </div>
-      <% end %>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
       <p class="text-gray-700">
         Start a new local node to handle code evaluation.
       </p>

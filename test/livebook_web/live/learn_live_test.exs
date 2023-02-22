@@ -4,7 +4,7 @@ defmodule LivebookWeb.LearnLiveTest do
   import Phoenix.LiveViewTest
 
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
-    {:ok, view, _} = live(conn, "/learn")
+    {:ok, view, _} = live(conn, ~p"/learn")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
@@ -20,7 +20,7 @@ defmodule LivebookWeb.LearnLiveTest do
   end
 
   test "link to a new notebook creates an empty session", %{conn: conn} do
-    assert {:error, {:live_redirect, %{to: to}}} = result = live(conn, "/learn/notebooks/new")
+    assert {:error, {:live_redirect, %{to: to}}} = result = live(conn, ~p"/learn/notebooks/new")
     {:ok, view, _} = follow_redirect(result, conn)
 
     assert render(view) =~ "Untitled notebook"

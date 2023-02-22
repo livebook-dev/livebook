@@ -1,7 +1,5 @@
 defmodule LivebookWeb.FileSystemHelpers do
-  use Phoenix.Component
-
-  import LivebookWeb.LiveHelpers
+  use LivebookWeb, :html
 
   alias Livebook.FileSystem
 
