@@ -161,8 +161,7 @@ defmodule Livebook.Settings do
   With success, notifies interested processes about environment variable
   data change. Otherwise, it will return an error tuple with changeset.
   """
-  @spec set_env_var(EnvVar.t(), map()) ::
-          {:ok, EnvVar.t()} | {:error, Ecto.Changeset.t()}
+  @spec set_env_var(EnvVar.t(), map()) :: {:ok, EnvVar.t()} | {:error, Ecto.Changeset.t()}
   def set_env_var(%EnvVar{} = env_var \\ %EnvVar{}, attrs) do
     changeset = EnvVar.changeset(env_var, attrs)
 
@@ -200,9 +199,7 @@ defmodule Livebook.Settings do
   """
   @spec change_env_var(EnvVar.t(), map()) :: Ecto.Changeset.t()
   def change_env_var(%EnvVar{} = env_var, attrs \\ %{}) do
-    env_var
-    |> EnvVar.changeset(attrs)
-    |> Map.put(:action, :validate)
+    EnvVar.changeset(env_var, attrs)
   end
 
   @doc """

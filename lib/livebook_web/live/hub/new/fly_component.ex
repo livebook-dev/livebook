@@ -79,7 +79,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       {:ok, apps} ->
         opts = select_options(apps)
         base = %Fly{access_token: token, hub_emoji: "🚀"}
-        changeset = Fly.change_hub(base)
+        changeset = Fly.validate_hub(base)
 
         {:noreply,
          assign(socket, changeset: changeset, base: base, select_options: opts, apps: apps)}
@@ -87,7 +87,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       {:error, _} ->
         changeset =
           %Fly{}
-          |> Fly.change_hub(%{access_token: token})
+          |> Fly.validate_hub(%{access_token: token})
           |> add_error(:access_token, "is invalid")
 
         {:noreply,
@@ -118,7 +118,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     application_id = params["application_id"]
     selected_app = Enum.find(socket.assigns.apps, &(&1.application_id == application_id))
     opts = select_options(socket.assigns.apps)
-    changeset = Fly.change_hub(selected_app || socket.assigns.base, params)
+    changeset = Fly.validate_hub(selected_app || socket.assigns.base, params)
 
     {:noreply,
      assign(socket, changeset: changeset, selected_app: selected_app, select_options: opts)}

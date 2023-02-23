@@ -69,6 +69,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   end
 
   def handle_event("validate", %{"personal" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Personal.change_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign(socket, changeset: Personal.validate_hub(socket.assigns.hub, attrs))}
   end
 end

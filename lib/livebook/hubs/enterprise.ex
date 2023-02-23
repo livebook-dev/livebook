@@ -36,6 +36,14 @@ defmodule Livebook.Hubs.Enterprise do
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
   def change_hub(%__MODULE__{} = enterprise, attrs \\ %{}) do
+    changeset(enterprise, attrs)
+  end
+
+  @doc """
+  Returns changeset with applied validations.
+  """
+  @spec validate_hub(t(), map()) :: Ecto.Changeset.t()
+  def validate_hub(%__MODULE__{} = enterprise, attrs \\ %{}) do
     enterprise
     |> changeset(attrs)
     |> Map.put(:action, :validate)

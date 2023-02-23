@@ -42,6 +42,14 @@ defmodule Livebook.Hubs.Fly do
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
   def change_hub(%__MODULE__{} = fly, attrs \\ %{}) do
+    changeset(fly, attrs)
+  end
+
+  @doc """
+  Returns changeset with applied validations.
+  """
+  @spec validate_hub(t(), map()) :: Ecto.Changeset.t()
+  def validate_hub(%__MODULE__{} = fly, attrs \\ %{}) do
     fly
     |> changeset(attrs)
     |> Map.put(:action, :validate)

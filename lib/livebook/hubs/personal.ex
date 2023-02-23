@@ -24,6 +24,14 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
   def change_hub(%__MODULE__{} = personal, attrs \\ %{}) do
+    changeset(personal, attrs)
+  end
+
+  @doc """
+  Returns changeset with applied validations.
+  """
+  @spec validate_hub(t(), map()) :: Ecto.Changeset.t()
+  def validate_hub(%__MODULE__{} = personal, attrs \\ %{}) do
     personal
     |> changeset(attrs)
     |> Map.put(:action, :validate)

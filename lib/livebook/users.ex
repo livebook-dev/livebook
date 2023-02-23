@@ -8,9 +8,7 @@ defmodule Livebook.Users do
   """
   @spec change_user(User.t(), map()) :: Ecto.Changeset.t()
   def change_user(%User{} = user, attrs \\ %{}) do
-    user
-    |> User.changeset(attrs)
-    |> Map.put(:action, :validate)
+    User.changeset(user, attrs)
   end
 
   @doc """
@@ -19,8 +17,10 @@ defmodule Livebook.Users do
   With success, notifies interested processes about user data change.
   Otherwise, it will return an error tuple with changeset.
   """
-  @spec update_user(Ecto.Changeset.t()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def update_user(%Ecto.Changeset{} = changeset) do
+  @spec update_user(User.t(), map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_user(%User{} = user, attrs \\ %{}) do
+    changeset = User.changeset(user, attrs)
+
     with {:ok, user} <- Ecto.Changeset.apply_action(changeset, :update) do
       broadcast_change(user)
       {:ok, user}

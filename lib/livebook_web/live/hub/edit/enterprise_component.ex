@@ -68,6 +68,6 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   end
 
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign(socket, changeset: Enterprise.validate_hub(socket.assigns.hub, attrs))}
   end
 end
