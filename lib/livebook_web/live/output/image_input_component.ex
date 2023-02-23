@@ -66,9 +66,13 @@ defmodule LivebookWeb.Output.ImageInputComponent do
               <span>Open camera</span>
             </button>
           </:toggle>
-          <:content>
-            <div data-camera-list></div>
-          </:content>
+          <div data-camera-list>
+            <.menu_item>
+              <button role="menuitem" data-camera-id>
+                <span class="font-medium" data-label></span>
+              </button>
+            </.menu_item>
+          </div>
         </.menu>
         <button
           class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"

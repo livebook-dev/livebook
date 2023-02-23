@@ -43,34 +43,32 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 </button>
               </span>
             </:toggle>
-            <:content>
-              <%= for parent <- @section_view.valid_parents do %>
-                <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
-                  <button
-                    class="menu-item text-gray-900"
-                    phx-click="unset_section_parent"
-                    phx-value-section_id={@section_view.id}
-                  >
-                    <.remix_icon icon="arrow-right-s-line" />
-                    <span class="font-medium"><%= parent.name %></span>
-                  </button>
-                <% else %>
-                  <button
-                    class="menu-item text-gray-500"
-                    phx-click="set_section_parent"
-                    phx-value-section_id={@section_view.id}
-                    phx-value-parent_id={parent.id}
-                  >
-                    <.remix_icon
-                      :if={@section_view.parent && @section_view.parent.id}
-                      icon="arrow-right-s-line"
-                      class="invisible"
-                    />
-                    <span class="font-medium"><%= parent.name %></span>
-                  </button>
-                <% end %>
+            <.menu_item :for={parent <- @section_view.valid_parents}>
+              <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
+                <button
+                  class="text-gray-900"
+                  phx-click="unset_section_parent"
+                  phx-value-section_id={@section_view.id}
+                >
+                  <.remix_icon icon="arrow-right-s-line" />
+                  <span><%= parent.name %></span>
+                </button>
+              <% else %>
+                <button
+                  class="text-gray-500"
+                  phx-click="set_section_parent"
+                  phx-value-section_id={@section_view.id}
+                  phx-value-parent_id={parent.id}
+                >
+                  <.remix_icon
+                    :if={@section_view.parent && @section_view.parent.id}
+                    icon="arrow-right-s-line"
+                    class="invisible"
+                  />
+                  <span><%= parent.name %></span>
+                </button>
               <% end %>
-            </:content>
+            </.menu_item>
           </.menu>
           <span class="tooltip top" data-tooltip="Move up">
             <button

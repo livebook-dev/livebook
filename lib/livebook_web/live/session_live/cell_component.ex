@@ -322,34 +322,28 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
-        <:content>
+        <.menu_item variant={if(not @reevaluate_automatically, do: :selected, else: :default)}>
           <button
-            class={[
-              "menu-item",
-              if(not @reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")
-            ]}
             role="menuitem"
             phx-click={
               JS.push("set_reevaluate_automatically", value: %{value: false, cell_id: @cell_id})
             }
           >
             <.remix_icon icon="check-line" class={if(@reevaluate_automatically, do: "invisible")} />
-            <span class="font-medium">Evaluate on demand</span>
+            <span>Evaluate on demand</span>
           </button>
+        </.menu_item>
+        <.menu_item variant={if(@reevaluate_automatically, do: :selected, else: :default)}>
           <button
-            class={[
-              "menu-item",
-              if(@reevaluate_automatically, do: "text-gray-900", else: "text-gray-500")
-            ]}
             role="menuitem"
             phx-click={
               JS.push("set_reevaluate_automatically", value: %{value: true, cell_id: @cell_id})
             }
           >
             <.remix_icon icon="check-line" class={if(not @reevaluate_automatically, do: "invisible")} />
-            <span class="font-medium">Reevaluate automatically</span>
+            <span>Reevaluate automatically</span>
           </button>
-        </:content>
+        </.menu_item>
       </.menu>
     </div>
     """
@@ -393,18 +387,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </:toggle>
-          <:content>
+          <.menu_item>
             <button
-              class="menu-item text-gray-500"
               role="menuitem"
               data-el-queue-cell-evaluation-button
               data-cell-id={@cell_id}
               data-disable-dependencies-cache
             >
               <.remix_icon icon="play-circle-fill" />
-              <span class="font-medium">Setup without cache</span>
+              <span>Setup without cache</span>
             </button>
-          </:content>
+          </.menu_item>
         </.menu>
       <% end %>
     </div>

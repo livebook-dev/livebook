@@ -57,11 +57,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
               </button>
             </:toggle>
-            <:content>
+            <.menu_item :for={order_by <- ["date", "title", "memory"]}>
               <button
-                :for={order_by <- ["date", "title", "memory"]}
                 class={
-                    "menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"
+                    "#{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"
                   }
                 type="button"
                 role="menuitem"
@@ -71,9 +70,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 }
               >
                 <.remix_icon icon={order_by_icon(order_by)} />
-                <span class="font-medium"><%= order_by_label(order_by) %></span>
+                <span><%= order_by_label(order_by) %></span>
               </button>
-            </:content>
+            </.menu_item>
           </.menu>
         </div>
       </div>
@@ -122,7 +121,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             name="session_ids[]"
             value={session.id}
             aria-label={session.notebook_name}
-            class="checkbox-base hidden mr-3"
+            class="checkbox hidden mr-3"
             data-el-bulk-edit-member
             phx-click={JS.dispatch("lb:session_list:on_selection_change")}
           />
@@ -154,18 +153,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <.remix_icon icon="more-2-fill" class="text-xl" />
             </button>
           </:toggle>
-          <:content>
+          <.menu_item>
             <a
-              class="menu-item text-gray-500"
               role="menuitem"
               href={~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"}
               download
             >
-              <.remix_icon icon="download-2-line" class="text-lg" />
-              <span class="font-medium">Download source</span>
+              <.remix_icon icon="download-2-line" />
+              <span>Download source</span>
             </a>
+          </.menu_item>
+          <.menu_item>
             <button
-              class="menu-item text-gray-500"
               type="button"
               role="menuitem"
               phx-click="fork_session"
@@ -173,38 +172,33 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               phx-value-id={session.id}
             >
               <.remix_icon icon="git-branch-line" />
-              <span class="font-medium">Fork</span>
+              <span>Fork</span>
             </button>
-            <a
-              class="menu-item text-gray-500"
-              role="menuitem"
-              href={live_dashboard_process_path(session.pid)}
-              target="_blank"
-            >
+          </.menu_item>
+          <.menu_item>
+            <a role="menuitem" href={live_dashboard_process_path(session.pid)} target="_blank">
               <.remix_icon icon="dashboard-2-line" />
-              <span class="font-medium">See on Dashboard</span>
+              <span>See on Dashboard</span>
             </a>
+          </.menu_item>
+          <.menu_item disabled={!session.memory_usage.runtime}>
             <button
-              class="menu-item text-gray-500"
               type="button"
-              disabled={!session.memory_usage.runtime}
               role="menuitem"
               phx-target={@myself}
               phx-click={toggle_edit(:off) |> JS.push("disconnect_runtime")}
               phx-value-id={session.id}
             >
               <.remix_icon icon="shut-down-line" />
-              <span class="font-medium">Disconnect runtime</span>
+              <span>Disconnect runtime</span>
             </button>
-            <.link
-              patch={~p"/home/sessions/#{session.id}/close"}
-              class="menu-item text-red-600"
-              role="menuitem"
-            >
+          </.menu_item>
+          <.menu_item variant={:danger}>
+            <.link patch={~p"/home/sessions/#{session.id}/close"} role="menuitem">
               <.remix_icon icon="close-circle-line" />
-              <span class="font-medium">Close</span>
+              <span>Close</span>
             </.link>
-          </:content>
+          </.menu_item>
         </.menu>
       </div>
     </div>
@@ -278,37 +272,43 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
           </button>
         </:toggle>
-        <:content>
-          <button class="menu-item text-gray-600" phx-click={toggle_edit(:off)} type="button">
+        <.menu_item>
+          <button class="text-gray-600" phx-click={toggle_edit(:off)} type="button">
             <.remix_icon icon="close-line" />
-            <span class="font-medium">Cancel</span>
+            <span>Cancel</span>
           </button>
-          <button class="menu-item text-gray-600" phx-click={select_all()} type="button">
+        </.menu_item>
+        <.menu_item>
+          <button class="text-gray-600" phx-click={select_all()} type="button">
             <.remix_icon icon="checkbox-multiple-line" />
-            <span class="font-medium">Select all</span>
+            <span>Select all</span>
           </button>
+        </.menu_item>
+        <.menu_item>
           <button
-            class="menu-item text-gray-600"
+            class="text-gray-600"
             name="disconnect"
             type="button"
             data-keep-attribute="disabled"
             phx-click={set_action("disconnect")}
           >
             <.remix_icon icon="shut-down-line" />
-            <span class="font-medium">Disconnect runtime</span>
+            <span>Disconnect runtime</span>
           </button>
+        </.menu_item>
+        <.menu_item>
           <button
-            class="menu-item text-red-600"
+            class="text-red-600"
             name="close_all"
             type="button"
             data-keep-attribute="disabled"
             phx-click={set_action("close_all")}
           >
             <.remix_icon icon="close-circle-line" />
-            <span class="font-medium">Close sessions</span>
+            <span>Close sessions</span>
           </button>
           <input id="bulk-action-input" class="hidden" type="text" name="action" />
-        </:content>
+        </.menu_item>
       </.menu>
     </div>
     """

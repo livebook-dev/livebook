@@ -187,17 +187,28 @@ defmodule LivebookWeb.FormComponents do
         >
           <%= @label %>
         </span>
-        <label class={["switch-button", @disabled && "switch-button--disabled"]}>
+        <label class={[
+          "relative inline-block w-14 h-7 select-none",
+          @disabled && "pointer-events-none opacity-50"
+        ]}>
           <input type="hidden" value={@unchecked_value} name={@name} />
           <input
             type="checkbox"
             value={@checked_value}
-            class="switch-button__checkbox"
+            class={[
+              "appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-all duration-300",
+              "peer checked:bg-white checked:border-blue-600 checked:translate-x-full"
+            ]}
             name={@name}
+            id={@id || @name}
             checked={to_string(@value) == @checked_value}
             {@rest}
           />
-          <div class="switch-button__bg"></div>
+          <div class={[
+            "block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-all duration-300",
+            "peer-checked:bg-blue-600"
+          ]}>
+          </div>
         </label>
       </div>
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -228,9 +239,8 @@ defmodule LivebookWeb.FormComponents do
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
-            class="radio-base"
+            class="radio"
             name={@name}
-            id={@id || @name}
             value={value}
             checked={to_string(@value) == value}
             {@rest}

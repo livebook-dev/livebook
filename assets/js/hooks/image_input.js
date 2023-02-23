@@ -34,6 +34,8 @@ const ImageInput = {
 
     this.cameraPreviewEl = this.el.querySelector(`[data-camera-preview]`);
     this.cameraListEl = this.el.querySelector(`[data-camera-list]`);
+    this.cameraItemTemplateEl = this.cameraListEl.firstElementChild;
+    this.cameraItemTemplateEl.remove();
 
     this.uploadButton = this.el.querySelector(`[data-btn-upload]`);
     this.openCameraButton = this.el.querySelector(`[data-btn-open-camera]`);
@@ -217,18 +219,17 @@ const ImageInput = {
             label: device.label,
           }));
 
-        this.cameraListEl.innerHTML = [
+        [
           { deviceId: "system_default", label: "System Default" },
           ...deviceOptions,
-        ]
-          .map(
-            ({ deviceId, label }) => `
-            <button class="menu-item text-gray-500" role="menuitem" data-camera-id="${deviceId}">
-              <span class="font-medium">${label}</span>
-            </button>
-          `
-          )
-          .join("");
+        ].forEach(({ deviceId, label }) => {
+          const item = this.cameraItemTemplateEl.cloneNode(true);
+          item
+            .querySelector("[data-camera-id]")
+            .setAttribute("data-camera-id", deviceId);
+          item.querySelector("[data-label]").innerHTML = label;
+          this.cameraListEl.appendChild(item);
+        });
       })
       .catch((error) => {
         console.error(error);

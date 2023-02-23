@@ -26,10 +26,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :image}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
@@ -47,10 +46,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :audio}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
         id={"#{@id}-input"}
@@ -66,10 +64,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :file}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.live_component
         module={LivebookWeb.Output.FileInputComponent}
         id={"#{@id}-input"}
@@ -88,10 +85,9 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
-      <div class="input-label">
+      <.label>
         <%= @attrs.label %>
-      </div>
-
+      </.label>
       <.input_output id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
     </form>
     """
@@ -99,7 +95,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp input_output(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select data-el-input class="input input-select" name="value">
+    <select data-el-input class="input w-60" name="value">
       <option
         :for={{{key, label}, idx} <- Enum.with_index(@attrs.options)}
         value={idx}
