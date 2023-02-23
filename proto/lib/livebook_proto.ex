@@ -4,10 +4,10 @@ defmodule LivebookProto do
   alias LivebookProto.{
     CreateSecretRequest,
     CreateSecretResponse,
+    HandshakeRequest,
+    HandshakeResponse,
     Request,
-    Response,
-    SessionRequest,
-    SessionResponse
+    Response
   }
 
   @request_mapping (for {_id, field_prop} <- Request.__message_props__().field_props,
@@ -20,8 +20,8 @@ defmodule LivebookProto do
                        {field_prop.type, field_prop.name_atom}
                      end)
 
-  @type request_proto :: SessionRequest.t() | CreateSecretRequest.t()
-  @type response_proto :: SessionResponse.t() | CreateSecretResponse.t()
+  @type request_proto :: HandshakeRequest.t() | CreateSecretRequest.t()
+  @type response_proto :: HandshakeResponse.t() | CreateSecretResponse.t()
 
   @doc """
   Builds a request frame with given data and id.
@@ -41,10 +41,10 @@ defmodule LivebookProto do
   defdelegate build_create_secret_request(fields), to: CreateSecretRequest, as: :new!
 
   @doc """
-  Builds a session request struct.
+  Builds a handshake request struct.
   """
-  @spec build_session_request(keyword()) :: SessionRequest.t()
-  defdelegate build_session_request(fields), to: SessionRequest, as: :new!
+  @spec build_handshake_request(keyword()) :: HandshakeRequest.t()
+  defdelegate build_handshake_request(fields), to: HandshakeRequest, as: :new!
 
   @doc """
   Builds a response with given data and id.

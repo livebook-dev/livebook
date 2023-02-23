@@ -46,10 +46,10 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
     end
 
     test "successfully sends a session request", %{conn: conn, user: %{id: id, email: email}} do
-      data = LivebookProto.build_session_request(app_version: Livebook.Config.app_version())
+      data = LivebookProto.build_handshake_request(app_version: Livebook.Config.app_version())
 
-      assert {:session, session_response} = ClientConnection.send_request(conn, data)
-      assert %{id: _, user: %{id: ^id, email: ^email}} = session_response
+      assert {:handshake, handshake_response} = ClientConnection.send_request(conn, data)
+      assert %{id: _, user: %{id: ^id, email: ^email}} = handshake_response
     end
 
     test "successfully sends a create secret message", %{conn: conn} do
@@ -148,8 +148,8 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
     end
 
     test "receives a session_created event", %{conn: conn, node: node} do
-      data = LivebookProto.build_session_request(app_version: Livebook.Config.app_version())
-      assert {:session, _} = ClientConnection.send_request(conn, data)
+      data = LivebookProto.build_handshake_request(app_version: Livebook.Config.app_version())
+      assert {:handshake, _} = ClientConnection.send_request(conn, data)
 
       id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       name = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_NAME"])
@@ -159,7 +159,7 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       secret = :erpc.call(node, Enterprise.Integration, :create_secret, ["SESSION", "123"])
       assert_receive {:event, :secret_created, %{name: "SESSION", value: "123"}}
 
-      assert {:session, _} = ClientConnection.send_request(conn, data)
+      assert {:handshake, _} = ClientConnection.send_request(conn, data)
 
       assert_receive {:event, :session_created, %{id: ^id, name: ^name, secrets: secrets}}
       assert LivebookProto.Secret.new!(name: secret.name, value: secret.value) in secrets

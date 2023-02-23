@@ -44,13 +44,14 @@ message SessionCreated {
   repeated Secret secrets = 3;
 }
 
-message SessionRequest {
+message HandshakeRequest {
   string app_version = 1;
 }
 
-message SessionResponse {
+message HandshakeResponse {
   string id = 1;
-  User user = 2;
+  string name = 2;
+  User user = 3;
 }
 
 message CreateSecretRequest {
@@ -65,7 +66,7 @@ message Request {
   int32 id = 1;
 
   oneof type {
-    SessionRequest session = 2;
+    HandshakeRequest handshake = 2;
     CreateSecretRequest create_secret = 3;
   }
 }
@@ -77,7 +78,7 @@ message Response {
     Error error = 2;
     ChangesetError changeset = 3;
 
-    SessionResponse session = 4;
+    HandshakeResponse handshake = 4;
     CreateSecretResponse create_secret = 5;
   }
 }

@@ -88,8 +88,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @impl true
   def handle_continue(:create_session, state) do
-    data = LivebookProto.build_session_request(app_version: Livebook.Config.app_version())
-    {:session, _} = ClientConnection.send_request(state.server, data)
+    data = LivebookProto.build_handshake_request(app_version: Livebook.Config.app_version())
+    {:handshake, _} = ClientConnection.send_request(state.server, data)
 
     {:noreply, state}
   end

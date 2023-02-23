@@ -7,7 +7,7 @@ defmodule LivebookProto.Response do
   field :id, 1, type: :int32
   field :error, 2, type: LivebookProto.Error, oneof: 0
   field :changeset, 3, type: LivebookProto.ChangesetError, oneof: 0
-  field :session, 4, type: LivebookProto.SessionResponse, oneof: 0
+  field :handshake, 4, type: LivebookProto.HandshakeResponse, oneof: 0
 
   field :create_secret, 5,
     type: LivebookProto.CreateSecretResponse,

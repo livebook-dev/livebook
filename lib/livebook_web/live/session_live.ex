@@ -254,36 +254,41 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="more-2-fill" class="text-xl" />
                 </button>
               </:toggle>
-              <.menu_item>
-                <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
+              <:content>
+                <.link
+                  patch={~p"/sessions/#{@session.id}/export/livemd"}
+                  class="menu-item text-gray-500"
+                  role="menuitem"
+                >
                   <.remix_icon icon="download-2-line" />
-                  <span>Export</span>
+                  <span class="font-medium">Export</span>
                 </.link>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="erase_outputs">
+                <button class="menu-item text-gray-500" role="menuitem" phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
-                  <span>Erase outputs</span>
+                  <span class="font-medium">Erase outputs</span>
                 </button>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="fork_session">
+                <button class="menu-item text-gray-500" role="menuitem" phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
-                  <span>Fork</span>
+                  <span class="font-medium">Fork</span>
                 </button>
-              </.menu_item>
-              <.menu_item>
-                <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
+                <a
+                  class="menu-item text-gray-500"
+                  role="menuitem"
+                  href={live_dashboard_process_path(@session.pid)}
+                  target="_blank"
+                >
                   <.remix_icon icon="dashboard-2-line" />
-                  <span>See on Dashboard</span>
+                  <span class="font-medium">See on Dashboard</span>
                 </a>
-              </.menu_item>
-              <.menu_item variant={:danger}>
-                <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
+                <.link
+                  navigate={~p"/home/sessions/#{@session.id}/close"}
+                  class="menu-item text-gray-900"
+                  role="menuitem"
+                >
                   <.remix_icon icon="close-circle-line" />
-                  <span>Close</span>
+                  <span class="font-medium">Close</span>
                 </.link>
-              </.menu_item>
+              </:content>
             </.menu>
           </div>
           <div>
