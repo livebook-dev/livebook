@@ -224,10 +224,11 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
-      <div class="flex items-center gap-2 text-gray-600">
-        <label :for={{value, description} <- @options}>
+      <div class="flex gap-4 text-gray-600">
+        <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
+            class="radio-base"
             name={@name}
             id={@id || @name}
             value={value}

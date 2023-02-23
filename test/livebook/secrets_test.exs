@@ -3,6 +3,7 @@ defmodule Livebook.SecretsTest do
   use Livebook.DataCase
 
   alias Livebook.Secrets
+  alias Livebook.Secrets.Secret
 
   describe "get_secrets/0" do
     test "returns a list of secrets from storage" do
@@ -51,11 +52,11 @@ defmodule Livebook.SecretsTest do
     Secrets.unset_secret("FOO")
   end
 
-  describe "validate_secret/1" do
+  describe "update_secret/2" do
     test "returns a valid secret" do
       attrs = params_for(:secret, name: "FOO", value: "111")
 
-      assert {:ok, secret} = Secrets.validate_secret(attrs)
+      assert {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
       assert attrs.name == secret.name
       assert attrs.value == secret.value
       assert attrs.origin == secret.origin
@@ -63,11 +64,11 @@ defmodule Livebook.SecretsTest do
 
     test "returns changeset error" do
       attrs = params_for(:secret, name: nil, value: "111")
-      assert {:error, changeset} = Secrets.validate_secret(attrs)
+      assert {:error, changeset} = Secrets.update_secret(%Secret{}, attrs)
       assert "can't be blank" in errors_on(changeset).name
 
       attrs = params_for(:secret, name: "@inavalid", value: "111")
-      assert {:error, changeset} = Secrets.validate_secret(attrs)
+      assert {:error, changeset} = Secrets.update_secret(%Secret{}, attrs)
 
       assert "should contain only alphanumeric characters and underscore" in errors_on(changeset).name
     end
