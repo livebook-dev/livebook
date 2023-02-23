@@ -38,7 +38,7 @@ message SecretDeleted {
   string value = 2;
 }
 
-message SessionCreated {
+message UserSynchronized {
   string id = 1;
   string name = 2;
   repeated Secret secrets = 3;
@@ -88,6 +88,6 @@ message Event {
     SecretCreated secret_created = 100;
     SecretUpdated secret_updated = 101;
     SecretDeleted secret_deleted = 102;
-    SessionCreated session_created = 103;
+    UserSynchronized user_synchronized = 103;
   }
 }

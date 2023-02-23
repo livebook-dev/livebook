@@ -154,14 +154,14 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       id = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_ID"])
       name = :erpc.call(node, Enterprise.Integration, :fetch_env!, ["ENTERPRISE_NAME"])
 
-      assert_receive {:event, :session_created, %{id: ^id, name: ^name, secrets: []}}
+      assert_receive {:event, :user_synchronized, %{id: ^id, name: ^name, secrets: []}}
 
       secret = :erpc.call(node, Enterprise.Integration, :create_secret, ["SESSION", "123"])
       assert_receive {:event, :secret_created, %{name: "SESSION", value: "123"}}
 
       assert {:handshake, _} = ClientConnection.send_request(conn, data)
 
-      assert_receive {:event, :session_created, %{id: ^id, name: ^name, secrets: secrets}}
+      assert_receive {:event, :user_synchronized, %{id: ^id, name: ^name, secrets: secrets}}
       assert LivebookProto.Secret.new!(name: secret.name, value: secret.value) in secrets
     end
   end
