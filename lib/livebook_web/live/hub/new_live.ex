@@ -82,13 +82,19 @@ defmodule LivebookWeb.Hub.NewLive do
     ~H"""
     <div
       id={@id}
-      class={["flex card-item flex-col", card_item_bg_color(@id, @selected)]}
+      class="flex flex-col cursor-pointer"
       phx-click={JS.push("select_type", value: %{value: @id})}
     >
-      <div class="flex items-center justify-center card-item-logo p-6 border-2 rounded-t-2xl h-[150px]">
+      <div class={[
+        "flex items-center justify-center p-6 border-2 rounded-t-2xl h-[150px]",
+        if(@id == @selected, do: "border-gray-200", else: "border-gray-100")
+      ]}>
         <%= render_slot(@logo) %>
       </div>
-      <div class="card-item-body px-6 py-4 rounded-b-2xl grow">
+      <div class={[
+        "px-6 py-4 rounded-b-2xl grow",
+        if(@id == @selected, do: "bg-gray-200", else: "bg-gray-100")
+      ]}>
         <p class="text-gray-800 font-semibold cursor-pointer">
           <%= @title %>
         </p>
@@ -100,9 +106,6 @@ defmodule LivebookWeb.Hub.NewLive do
     </div>
     """
   end
-
-  defp card_item_bg_color(id, selected) when id == selected, do: "selected"
-  defp card_item_bg_color(_id, _selected), do: ""
 
   @impl true
   def handle_event("select_type", %{"value" => service}, socket) do

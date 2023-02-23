@@ -252,41 +252,36 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="more-2-fill" class="text-xl" />
                 </button>
               </:toggle>
-              <:content>
-                <.link
-                  patch={~p"/sessions/#{@session.id}/export/livemd"}
-                  class="menu-item text-gray-500"
-                  role="menuitem"
-                >
+              <.menu_item>
+                <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
                   <.remix_icon icon="download-2-line" />
-                  <span class="font-medium">Export</span>
+                  <span>Export</span>
                 </.link>
-                <button class="menu-item text-gray-500" role="menuitem" phx-click="erase_outputs">
+              </.menu_item>
+              <.menu_item>
+                <button role="menuitem" phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
-                  <span class="font-medium">Erase outputs</span>
+                  <span>Erase outputs</span>
                 </button>
-                <button class="menu-item text-gray-500" role="menuitem" phx-click="fork_session">
+              </.menu_item>
+              <.menu_item>
+                <button role="menuitem" phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
-                  <span class="font-medium">Fork</span>
+                  <span>Fork</span>
                 </button>
-                <a
-                  class="menu-item text-gray-500"
-                  role="menuitem"
-                  href={live_dashboard_process_path(@session.pid)}
-                  target="_blank"
-                >
+              </.menu_item>
+              <.menu_item>
+                <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
-                  <span class="font-medium">See on Dashboard</span>
+                  <span>See on Dashboard</span>
                 </a>
-                <.link
-                  navigate={~p"/home/sessions/#{@session.id}/close"}
-                  class="menu-item text-gray-900"
-                  role="menuitem"
-                >
+              </.menu_item>
+              <.menu_item variant={:danger}>
+                <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
                   <.remix_icon icon="close-circle-line" />
-                  <span class="font-medium">Close</span>
+                  <span>Close</span>
                 </.link>
-              </:content>
+              </.menu_item>
             </.menu>
           </div>
           <div>
@@ -758,6 +753,7 @@ defmodule LivebookWeb.SessionLive do
             </span>
             <.form
               :let={f}
+              id={"#{@prefix}-secret-#{@secret.name}-toggle"}
               for={%{"toggled" => secret_toggled?(@secret, @data_secrets)}}
               as={:data}
               phx-change="toggle_secret"

@@ -61,23 +61,24 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             <.remix_icon icon="more-2-fill" class="text-xl" />
           </button>
         </:toggle>
-        <:content>
+        <.menu_item>
           <button
             :if={@default_file_system_id != @file_system_id}
             type="button"
             role="menuitem"
-            class="menu-item text-gray-600"
             phx-click="make_default_file_system"
             phx-value-id={@file_system_id}
           >
             <.remix_icon icon="star-line" />
-            <span class="font-medium">Make default</span>
+            <span>Make default</span>
           </button>
+        </.menu_item>
+        <.menu_item variant={:danger}>
           <button
             :if={@file_system_id != "local"}
             type="button"
             role="menuitem"
-            class="menu-item text-red-600"
+            class="text-red-600"
             phx-click={
               with_confirm(
                 JS.push("detach_file_system", value: %{id: @file_system_id}),
@@ -90,9 +91,9 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             }
           >
             <.remix_icon icon="delete-bin-line" />
-            <span class="font-medium">Detach</span>
+            <span>Detach</span>
           </button>
-        </:content>
+        </.menu_item>
       </.menu>
     </div>
     """

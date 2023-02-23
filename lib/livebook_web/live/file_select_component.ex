@@ -249,35 +249,34 @@ defmodule LivebookWeb.FileSelectComponent do
           <.file_system_icon file_system={@file.file_system} />
         </button>
       </:toggle>
-      <:content>
-        <%= for {file_system_id, file_system} <- @file_systems do %>
-          <%= if file_system == @file.file_system do %>
-            <button class="menu-item text-gray-900" role="menuitem">
+      <%= for {file_system_id, file_system} <- @file_systems do %>
+        <%= if file_system == @file.file_system do %>
+          <.menu_item variant={:selected}>
+            <button role="menuitem">
               <.file_system_icon file_system={file_system} />
-              <span class="font-medium"><%= file_system_label(file_system) %></span>
+              <span><%= file_system_label(file_system) %></span>
             </button>
-          <% else %>
+          </.menu_item>
+        <% else %>
+          <.menu_item>
             <button
-              class="menu-item text-gray-500"
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
               phx-value-id={file_system_id}
             >
               <.file_system_icon file_system={file_system} />
-              <span class="font-medium"><%= file_system_label(file_system) %></span>
+              <span><%= file_system_label(file_system) %></span>
             </button>
-          <% end %>
+          </.menu_item>
         <% end %>
-        <.link
-          navigate={~p"/settings"}
-          class="menu-item text-gray-500 border-t border-gray-200"
-          role="menuitem"
-        >
+      <% end %>
+      <.menu_item>
+        <.link navigate={~p"/settings"} class="border-t border-gray-200" role="menuitem">
           <.remix_icon icon="settings-3-line" />
-          <span class="font-medium">Configure</span>
+          <span>Configure</span>
         </.link>
-      </:content>
+      </.menu_item>
     </.menu>
     """
   end
@@ -357,34 +356,32 @@ defmodule LivebookWeb.FileSelectComponent do
           </span>
         </button>
       </:toggle>
-      <:content>
-        <%= if @file_info.editable do %>
-          <button
-            type="button"
-            class="menu-item text-gray-500"
-            role="menuitem"
-            aria-label="rename file"
-            phx-click="rename_file"
-            phx-target={@myself}
-            phx-value-path={@file_info.file.path}
-          >
-            <.remix_icon icon="edit-line" />
-            <span class="font-medium">Rename</span>
-          </button>
-          <button
-            type="button"
-            class="menu-item text-red-600"
-            role="menuitem"
-            aria-label="delete file"
-            phx-click="delete_file"
-            phx-target={@myself}
-            phx-value-path={@file_info.file.path}
-          >
-            <.remix_icon icon="delete-bin-6-line" />
-            <span class="font-medium">Delete</span>
-          </button>
-        <% end %>
-      </:content>
+      <.menu_item :if={@file_info.editable}>
+        <button
+          type="button"
+          role="menuitem"
+          aria-label="rename file"
+          phx-click="rename_file"
+          phx-target={@myself}
+          phx-value-path={@file_info.file.path}
+        >
+          <.remix_icon icon="edit-line" />
+          <span>Rename</span>
+        </button>
+      </.menu_item>
+      <.menu_item :if={@file_info.editable} variant={:danger}>
+        <button
+          type="button"
+          role="menuitem"
+          aria-label="delete file"
+          phx-click="delete_file"
+          phx-target={@myself}
+          phx-value-path={@file_info.file.path}
+        >
+          <.remix_icon icon="delete-bin-6-line" />
+          <span>Delete</span>
+        </button>
+      </.menu_item>
     </.menu>
     """
   end

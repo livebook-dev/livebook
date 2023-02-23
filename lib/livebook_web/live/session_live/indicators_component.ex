@@ -73,17 +73,19 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <.remix_icon icon="code-line" class="text-xl text-green-bright-400" />
           </button>
         </:toggle>
-        <:content>
-          <button class="menu-item text-gray-500" role="menuitem" data-el-code-zen-outputs-toggle>
+        <.menu_item>
+          <button role="menuitem" data-el-code-zen-outputs-toggle>
             <.remix_icon icon="layout-bottom-2-line" />
-            <span class="font-medium" data-label-show>Show outputs</span>
-            <span class="font-medium" data-label-hide>Hide outputs</span>
+            <span data-label-show>Show outputs</span>
+            <span data-label-hide>Hide outputs</span>
           </button>
-          <button class="menu-item text-gray-500" role="menuitem" data-el-code-zen-disable-button>
+        </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-code-zen-disable-button>
             <.remix_icon icon="close-line" />
-            <span class="font-medium">Exit code zen</span>
+            <span>Exit code zen</span>
           </button>
-        </:content>
+        </.menu_item>
       </.menu>
     </div>
     """
