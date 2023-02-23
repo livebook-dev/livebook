@@ -12,7 +12,7 @@ defmodule LivebookWeb.UserComponent do
     user = socket.assigns.user
     changeset = Users.change_user(user)
 
-    {:ok, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+    {:ok, assign(socket, changeset: changeset, user: user)}
   end
 
   @impl true
@@ -44,7 +44,7 @@ defmodule LivebookWeb.UserComponent do
           <button
             class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
-            disabled={not @valid?}
+            disabled={not @changeset.valid?}
           >
             <.remix_icon icon="save-line" />
             <span>Save</span>
@@ -62,7 +62,10 @@ defmodule LivebookWeb.UserComponent do
   end
 
   def handle_event("validate", %{"user" => params}, socket) do
-    changeset = Users.change_user(socket.assigns.user, params)
+    changeset =
+      socket.assigns.user
+      |> Users.change_user(params)
+      |> Map.put(:action, :validate)
 
     user =
       if changeset.valid? do
@@ -71,18 +74,16 @@ defmodule LivebookWeb.UserComponent do
         socket.assigns.user
       end
 
-    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+    {:noreply, assign(socket, changeset: changeset, user: user)}
   end
 
   def handle_event("save", %{"user" => params}, socket) do
-    changeset = Users.change_user(socket.assigns.user, params)
-
-    case Users.update_user(changeset) do
+    case Users.update_user(socket.assigns.user, params) do
       {:ok, user} ->
-        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+        {:noreply, assign(socket, changeset: Users.change_user(user), user: user)}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
+        {:noreply, assign(socket, changeset: changeset)}
     end
   end
 end

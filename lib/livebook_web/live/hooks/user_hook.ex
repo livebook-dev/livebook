@@ -39,9 +39,7 @@ defmodule LivebookWeb.UserHook do
     connect_params = get_connect_params(socket) || %{}
     attrs = connect_params["user_data"] || session["user_data"] || %{}
 
-    changeset = User.changeset(user, attrs)
-
-    case Livebook.Users.update_user(changeset) do
+    case Livebook.Users.update_user(user, attrs) do
       {:ok, user} -> user
       {:error, _changeset} -> user
     end

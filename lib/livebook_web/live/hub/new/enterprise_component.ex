@@ -123,7 +123,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
         case EnterpriseClient.send_request(pid, session_request) do
           {:session, session_response} ->
             base = %{base | external_id: session_response.id}
-            changeset = Enterprise.change_hub(base)
+            changeset = Enterprise.validate_hub(base)
 
             {:noreply, assign(socket, pid: pid, changeset: changeset, base: base)}
 
@@ -160,6 +160,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   end
 
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.base, attrs))}
+    {:noreply, assign(socket, changeset: Enterprise.validate_hub(socket.assigns.base, attrs))}
   end
 end

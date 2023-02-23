@@ -138,7 +138,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   end
 
   def handle_event("validate", %{"fly" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Fly.change_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign(socket, changeset: Fly.validate_hub(socket.assigns.hub, attrs))}
   end
 
   # EnvVar component callbacks
