@@ -1,6 +1,7 @@
 defmodule Livebook.Hubs.EnterpriseClient do
   @moduledoc false
   use GenServer
+  require Logger
 
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Enterprise
@@ -131,32 +132,69 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:stop, :normal, state}
   end
 
-  def handle_info({:event, :secret_created, secret_created}, state) do
+  def handle_info({:event, topic, data}, state) do
+    Logger.debug("Received event #{topic} with data: #{inspect(data)}")
+
+    {:noreply, handle_event({topic, data}, state)}
+  end
+
+  def handle_event({:secret_created, secret_created}, state) do
     secret = build_secret(state, secret_created)
     Broadcasts.secret_created(secret)
 
-    {:noreply, put_secret(state, secret)}
+    put_secret(state, secret)
   end
 
-  def handle_info({:event, :secret_updated, secret_updated}, state) do
+  def handle_event({:secret_updated, secret_updated}, state) do
     secret = build_secret(state, secret_updated)
     Broadcasts.secret_updated(secret)
 
-    {:noreply, put_secret(state, secret)}
+    put_secret(state, secret)
   end
 
-  def handle_info({:event, :secret_deleted, secret_deleted}, state) do
+  def handle_event({:secret_deleted, secret_deleted}, state) do
     secret = build_secret(state, secret_deleted)
     Broadcasts.secret_deleted(secret)
 
-    {:noreply, remove_secret(state, secret)}
+    remove_secret(state, secret)
   end
 
-  def handle_info({:event, :user_synchronized, user_synchronized}, state) do
+  def handle_event({:user_synchronized, user_synchronized}, %{secrets: []} = state) do
     state = update_hub(state, user_synchronized.name)
     secrets = for secret <- user_synchronized.secrets, do: build_secret(state, secret)
 
-    {:noreply, handle_user_synchronizes(state, secrets)}
+    %{state | secrets: secrets}
+  end
+
+  def handle_event({:user_synchronized, user_synchronized}, state) do
+    state = update_hub(state, user_synchronized.name)
+    secrets = for secret <- user_synchronized.secrets, do: build_secret(state, secret)
+
+    created_secrets =
+      Enum.reject(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
+      end)
+
+    deleted_secrets =
+      Enum.reject(state.secrets, fn secret ->
+        Enum.find(secrets, &(&1.name == secret.name))
+      end)
+
+    updatd_secrets =
+      Enum.filter(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
+      end)
+
+    for secret <- deleted_secrets,
+        do: send(self(), {:event, :secret_deleted, secret})
+
+    for secret <- created_secrets,
+        do: send(self(), {:event, :secret_created, secret})
+
+    for secret <- updatd_secrets,
+        do: send(self(), {:event, :secret_updated, secret})
+
+    state
   end
 
   # Private
@@ -182,25 +220,5 @@ defmodule Livebook.Hubs.EnterpriseClient do
       {:ok, hub} -> %{state | hub: hub}
       {:error, _} -> state
     end
-  end
-
-  defp handle_user_synchronizes(%{secrets: []} = state, secrets), do: %{state | secrets: secrets}
-
-  defp handle_user_synchronizes(state, secrets) do
-    deleted_secrets = Enum.reject(state.secrets, &(&1 not in secrets))
-    created_secrets = Enum.reject(secrets, &(&1 not in state.secrets))
-
-    for secret <- deleted_secrets,
-        do: send(self(), {:event, :secret_deleted, secret})
-
-    for secret <- created_secrets -- deleted_secrets,
-        do: send(self(), {:event, :secret_created, secret})
-
-    for secret <- Enum.reject(secrets, &(&1 in state.secrets)),
-        state_secret = Enum.find(state.secrets, &(&1.name == secret.name)),
-        secret.value != state_secret.value,
-        do: send(self(), {:event, :secret_updated, secret})
-
-    state
   end
 end
