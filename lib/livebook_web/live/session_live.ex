@@ -49,7 +49,10 @@ defmodule LivebookWeb.SessionLive do
           end
 
         session = Session.get_by_pid(session_pid)
-        SessionManager.save_session(session)
+
+        if session.file do
+          SessionManager.save_recently_opened_sessions(session.file.path)
+        end
 
         platform = platform_from_socket(socket)
 
@@ -78,7 +81,6 @@ defmodule LivebookWeb.SessionLive do
          )}
 
       :error ->
-        SessionManager.delete_session(session_id)
         {:ok, redirect(socket, to: ~p"/")}
     end
   end

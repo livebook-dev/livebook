@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
 
   import LivebookWeb.SessionHelpers
 
-  alias Livebook.{Session, Notebook}
+  alias Livebook.{Session, Notebook, FileSystem, LiveMarkdown}
 
   @impl true
   def mount(socket) do
@@ -12,8 +12,9 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
 
   @impl true
   def update(assigns, socket) do
+    session_paths = Map.fetch!(assigns, :session_paths)
     sessions = Map.fetch!(assigns, :sessions)
-    {:ok, assign(socket, sessions: sessions)}
+    {:ok, assign(socket, session_paths: session_paths, sessions: sessions)}
   end
 
   @impl true
@@ -23,16 +24,16 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
       <div class="mb-4 flex items-center md:items-end justify-between">
         <div class="flex flex-row">
           <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-            Recently opened sessions (<%= length(@sessions) %>)
+            Recently opened sessions (<%= length(@session_paths) %>)
           </h2>
         </div>
       </div>
-      <.session_list sessions={@sessions} socket={@socket} myself={@myself} />
+      <.session_list session_paths={@session_paths} socket={@socket} myself={@myself} />
     </form>
     """
   end
 
-  defp session_list(%{sessions: []} = assigns) do
+  defp session_list(%{session_paths: []} = assigns) do
     ~H"""
     <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
       <div>
@@ -42,9 +43,6 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
         <div class="text-gray-600">
           You do not have any recently opened sessions.
         </div>
-        <button class="button-base button-blue" phx-click="new">
-          New notebook
-        </button>
       </div>
     </div>
     """
@@ -53,16 +51,18 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
   defp session_list(assigns) do
     ~H"""
     <div class="flex flex-col" role="group" aria-label="running sessions list">
-      <%= for session <- @sessions do %>
-        <div class="py-4 flex items-center border-b border-gray-300" data-test-session-id={session.id}>
+      <%= for session_path <- @session_paths do %>
+        <div class="py-4 flex items-center border-b border-gray-300">
           <div class="grow flex flex-col items-start">
-            <%= live_redirect(session.notebook_name,
-              to: ~p"/sessions/#{session.id}",
-              class: "font-semibold text-gray-800 hover:text-gray-900"
-            ) %>
-            <div class="text-gray-600 text-sm">
-              <%= if session.file, do: session.file.path, else: "No file" %>
-            </div>
+            <a
+              class="text-gray-600 text-sm"
+              href="#"
+              phx-click="open"
+              phx-target={@myself}
+              phx-value-path={session_path}
+            >
+              <%= session_path %>
+            </a>
           </div>
           <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
             <button
@@ -71,7 +71,7 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
               aria-label="toggle edit"
               phx-click="fork_session"
               phx-target={@myself}
-              phx-value-id={session.id}
+              phx-value-path={session_path}
             >
               <.remix_icon icon="git-branch-line" />
               <span>Fork</span>
@@ -84,24 +84,74 @@ defmodule LivebookWeb.HomeLive.SessionManagerSessionListComponent do
   end
 
   @impl true
-  def handle_event("fork_session", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    %{images_dir: images_dir} = session
-    data = Session.get_data(session.pid)
-    notebook = Notebook.forked(data.notebook)
+  def handle_event("open", %{"path" => path}, socket) do
+    path = Path.expand(path)
+    file = FileSystem.File.local(path)
 
-    origin =
-      if data.file do
-        {:file, data.file}
-      else
-        data.origin
+    if file_running?(file, socket.assigns.sessions) do
+      session_id = session_id_by_file(file, socket.assigns.sessions)
+      {:noreply, push_navigate(socket, to: ~p"/sessions/#{session_id}")}
+    else
+      {:noreply, open_notebook(socket, FileSystem.File.local(path))}
+    end
+  end
+
+  def handle_event("fork_session", %{"path" => path}, socket) do
+    path = Path.expand(path)
+    file = FileSystem.File.local(path)
+
+    socket =
+      case import_notebook(file) do
+        {:ok, {notebook, messages}} ->
+          notebook = Notebook.forked(notebook)
+          images_dir = Session.images_dir_for_notebook(file)
+
+          socket
+          |> put_import_warnings(messages)
+          |> create_session(
+            notebook: notebook,
+            copy_images_from: images_dir,
+            origin: {:file, file}
+          )
+
+        {:error, error} ->
+          Session.SessionManager.delete_recently_opened_sessions(file.path)
+          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
       end
 
-    {:noreply,
-     create_session(socket,
-       notebook: notebook,
-       copy_images_from: images_dir,
-       origin: origin
-     )}
+    {:noreply, socket}
+  end
+
+  defp file_running?(file, sessions) do
+    running_files = files(sessions)
+    file in running_files
+  end
+
+  defp files(sessions) do
+    Enum.map(sessions, & &1.file)
+  end
+
+  defp session_id_by_file(file, sessions) do
+    session = Enum.find(sessions, &(&1.file == file))
+    session.id
+  end
+
+  defp open_notebook(socket, file) do
+    case import_notebook(file) do
+      {:ok, {notebook, messages}} ->
+        socket
+        |> put_import_warnings(messages)
+        |> create_session(notebook: notebook, file: file, origin: {:file, file})
+
+      {:error, error} ->
+        Session.SessionManager.delete_recently_opened_sessions(file.path)
+        put_flash(socket, :error, Livebook.Utils.upcase_first(error))
+    end
+  end
+
+  defp import_notebook(file) do
+    with {:ok, content} <- FileSystem.File.read(file) do
+      {:ok, LiveMarkdown.notebook_from_livemd(content)}
+    end
   end
 end

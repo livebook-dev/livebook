@@ -167,6 +167,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     if draft_file != saved_file do
       Session.set_file(assigns.session.pid, draft_file)
+      Session.SessionManager.save_recently_opened_sessions(draft_file.path)
     end
 
     diff = map_diff(new_attrs, attrs)

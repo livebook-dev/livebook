@@ -18,7 +18,7 @@ defmodule LivebookWeb.HomeLive do
 
     sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
-    recently_opened_sessions = SessionManager.list_sessions()
+    sessions_paths = SessionManager.get_recently_opened_sessions()
 
     {:ok,
      assign(socket,
@@ -26,7 +26,7 @@ defmodule LivebookWeb.HomeLive do
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
-       recently_opened_sessions: recently_opened_sessions,
+       recently_opened_sessions: sessions_paths,
        notebook_infos: notebook_infos,
        page_title: "Livebook",
        new_version: Livebook.UpdateCheck.new_version(),
@@ -142,7 +142,8 @@ defmodule LivebookWeb.HomeLive do
           <.live_component
             module={LivebookWeb.HomeLive.SessionManagerSessionListComponent}
             id="recently-opened-session-list"
-            sessions={@recently_opened_sessions}
+            session_paths={@recently_opened_sessions}
+            sessions={@sessions}
           />
         </div>
       </div>
