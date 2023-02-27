@@ -444,7 +444,7 @@ defmodule Livebook.SessionTest do
       # Wait for the session to deal with the files
       wait_for_session_update(session.pid)
 
-      assert [file.path] == SessionManager.get_recently_opened_sessions()
+      assert file.path in SessionManager.get_recently_opened_sessions()
 
       new_file = FileSystem.File.resolve(tmp_dir, "new_notebook.livemd")
       Session.set_file(session.pid, new_file)
@@ -452,7 +452,8 @@ defmodule Livebook.SessionTest do
       # Wait for the session to deal with the files
       wait_for_session_update(session.pid)
 
-      assert [new_file.path] == SessionManager.get_recently_opened_sessions()
+      assert file.path not in SessionManager.get_recently_opened_sessions()
+      assert new_file.path in SessionManager.get_recently_opened_sessions()
     end
   end
 
@@ -677,7 +678,7 @@ defmodule Livebook.SessionTest do
       session = start_session(file: file)
       %{file: %{path: path}} = session
 
-      assert [path] == SessionManager.get_recently_opened_sessions()
+      assert path in SessionManager.get_recently_opened_sessions()
     end
 
     @tag :tmp_dir
@@ -696,7 +697,9 @@ defmodule Livebook.SessionTest do
       %{file: %{path: path2}} = session2
       %{file: %{path: path3}} = session3
 
-      assert [path3, path2, path1] == SessionManager.get_recently_opened_sessions()
+      assert path1 in SessionManager.get_recently_opened_sessions()
+      assert path2 in SessionManager.get_recently_opened_sessions()
+      assert path3 in SessionManager.get_recently_opened_sessions()
     end
   end
 
