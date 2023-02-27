@@ -55,6 +55,7 @@ defmodule Livebook.Application do
         display_startup_info()
         insert_personal_hub()
         Livebook.Hubs.connect_hubs()
+        update_app_secrets_origin()
         result
 
       {:error, error} ->
@@ -210,6 +211,14 @@ defmodule Livebook.Application do
         hub_name: "My Hub",
         hub_emoji: "🏠"
       })
+    end
+  end
+
+  # TODO: Remove in the future
+  defp update_app_secrets_origin do
+    for %{origin: :app} = secret <- Livebook.Secrets.get_secrets() do
+      {:ok, secret} = Livebook.Secrets.update_secret(secret, %{origin: {:hub, "personal-hub"}})
+      Livebook.Secrets.set_secret(secret)
     end
   end
 
