@@ -55,6 +55,23 @@ defmodule LivebookWeb.AppLive do
   @impl true
   def render(assigns) when assigns.app_authenticated? do
     ~H"""
+    <div class="px-6 py-2 flex justify-between items-center bg-gray-900">
+      <.link navigate={~p"/"} class="flex items-center">
+        <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+        <span class="ml-2 text-gray-300 text-2xl font-logo">
+          Livebook
+        </span>
+      </.link>
+      <div class="flex items-center">
+        <.link
+          :if={@data_view.show_source}
+          patch={~p"/apps/#{@data_view.slug}/source"}
+          class="text-gray-300 hover:text-white"
+        >
+          <.remix_icon icon="code-line" class="text-2xl" />
+        </.link>
+      </div>
+    </div>
     <div class="grow overflow-y-auto relative" data-el-notebook>
       <div
         class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
@@ -104,6 +121,20 @@ defmodule LivebookWeb.AppLive do
         <div style="height: 80vh"></div>
       </div>
     </div>
+
+    <.modal
+      :if={@live_action == :source and @data_view.show_source}
+      id="source-modal"
+      show
+      class="w-full max-w-4xl"
+      patch={~p"/apps/#{@data_view.slug}"}
+    >
+      <.live_component
+        module={LivebookWeb.AppLive.SourceComponent}
+        id="source"
+        session={@session}
+      />
+    </.modal>
     """
   end
 
@@ -118,6 +149,9 @@ defmodule LivebookWeb.AppLive do
   defp get_page_title(notebook_name) do
     "Livebook - #{notebook_name}"
   end
+
+  @impl true
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
   def handle_info({:operation, operation}, socket) do
@@ -190,7 +224,9 @@ defmodule LivebookWeb.AppLive do
             input_values: input_values_for_output(output, data)
           }
         ),
-      app_status: data.app_data.status
+      app_status: data.app_data.status,
+      show_source: data.notebook.app_settings.show_source,
+      slug: data.notebook.app_settings.slug
     }
   end
 

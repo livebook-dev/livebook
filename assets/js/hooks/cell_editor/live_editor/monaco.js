@@ -5,6 +5,8 @@ import { theme, highContrast } from "./theme";
 
 import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
 
+import { settingsStore } from "../../../lib/settings";
+
 // Force LF for line ending.
 //
 // Monaco infers EOL based on the text content if any, otherwise uses
@@ -132,6 +134,18 @@ export default monaco;
  * Returns a promise resolving to HTML that renders as the highlighted code.
  */
 export function highlight(code, language) {
+  // Currently monaco.editor.colorize doesn't support passing theme
+  // directly and uses the theme from last editor initialization, so
+  // we need to make sure there was at least one editor initialization
+  // with the configured theme.
+  //
+  // Tracked in https://github.com/microsoft/monaco-editor/issues/3302
+  if (!highlight.initialized) {
+    const settings = settingsStore.get();
+    monaco.editor.create(document.createElement("div"), { theme: settings.editor_theme });
+    highlight.initialized = true;
+  }
+
   return monaco.editor.colorize(code, language).then((result) => {
     // `colorize` always adds additional newline, so we remove it
     return result.replace(/<br\/>$/, "");
