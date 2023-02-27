@@ -1188,14 +1188,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply,
      socket
      |> assign(saved_secrets: get_saved_secrets())
-     |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
+     |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
   end
 
   def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
      |> assign(saved_secrets: get_saved_secrets())
-     |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
+     |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
   end
 
   def handle_info(:hubs_changed, socket) do
