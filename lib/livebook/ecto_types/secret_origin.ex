@@ -20,7 +20,7 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   @impl true
   def cast(:session), do: {:ok, :session}
   def cast(:startup), do: {:ok, :startup}
-  def cast({:hub, id}), do: {:hub, id}
+  def cast({:hub, id}), do: {:ok, {:hub, id}}
 
   def cast(encoded) when is_binary(encoded) do
     case decode(encoded) do
