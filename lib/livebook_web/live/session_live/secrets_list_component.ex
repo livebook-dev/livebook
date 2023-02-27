@@ -111,6 +111,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             prefix={"hub-#{id}"}
             data_secrets={@secrets}
             hubs={@hubs}
+            myself={@myself}
           />
         </div>
       </div>

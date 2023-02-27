@@ -109,6 +109,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             />
             <.radio_field
               field={f[:origin]}
+              value={SecretOrigin.encode(f[:origin].value)}
               label="Storage"
               options={
                 [{"session", "only this session"}, {"app", "in the Livebook app"}] ++

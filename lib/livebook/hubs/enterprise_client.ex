@@ -1,6 +1,7 @@
 defmodule Livebook.Hubs.EnterpriseClient do
   @moduledoc false
   use GenServer
+  require Logger
 
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Enterprise
@@ -87,6 +88,14 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   @impl true
+  def handle_continue(:synchronize_user, state) do
+    data = LivebookProto.build_handshake_request(app_version: Livebook.Config.app_version())
+    {:handshake, _} = ClientConnection.send_request(state.server, data)
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_call(:fetch_server, _caller, state) do
     if state.connected? do
       {:reply, {:ok, state.server}, state}
@@ -110,7 +119,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @impl true
   def handle_info({:connect, :ok, _}, state) do
     Broadcasts.hub_connected()
-    {:noreply, %{state | connected?: true, connection_error: nil}}
+    {:noreply, %{state | connected?: true, connection_error: nil}, {:continue, :synchronize_user}}
   end
 
   def handle_info({:connect, :error, reason}, state) do
@@ -118,23 +127,15 @@ defmodule Livebook.Hubs.EnterpriseClient do
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
-  def handle_info({:event, :secret_created, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
-    Broadcasts.secret_created(secret)
-
-    {:noreply, put_secret(state, secret)}
-  end
-
-  def handle_info({:event, :secret_updated, %{name: name, value: value}}, state) do
-    secret = %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
-    Broadcasts.secret_updated(secret)
-
-    {:noreply, put_secret(state, secret)}
-  end
-
   def handle_info({:disconnect, :ok, :disconnected}, state) do
     Broadcasts.hub_disconnected()
     {:stop, :normal, state}
+  end
+
+  def handle_info({:event, topic, data}, state) do
+    Logger.debug("Received event #{topic} with data: #{inspect(data)}")
+
+    {:noreply, handle_event(topic, data, state)}
   end
 
   # Private
@@ -144,6 +145,79 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   defp put_secret(state, secret) do
-    %{state | secrets: [secret | Enum.reject(state.secrets, &(&1.name == secret.name))]}
+    state = remove_secret(state, secret)
+    %{state | secrets: [secret | state.secrets]}
+  end
+
+  defp remove_secret(state, secret) do
+    %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
+  end
+
+  defp build_secret(state, %{name: name, value: value}),
+    do: %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
+
+  defp update_hub(state, name) do
+    case Enterprise.update_hub(state.hub, %{hub_name: name}) do
+      {:ok, hub} -> %{state | hub: hub}
+      {:error, _} -> state
+    end
+  end
+
+  defp handle_event(:secret_created, secret_created, state) do
+    secret = build_secret(state, secret_created)
+    Broadcasts.secret_created(secret)
+
+    put_secret(state, secret)
+  end
+
+  defp handle_event(:secret_updated, secret_updated, state) do
+    secret = build_secret(state, secret_updated)
+    Broadcasts.secret_updated(secret)
+
+    put_secret(state, secret)
+  end
+
+  defp handle_event(:secret_deleted, secret_deleted, state) do
+    secret = build_secret(state, secret_deleted)
+    Broadcasts.secret_deleted(secret)
+
+    remove_secret(state, secret)
+  end
+
+  defp handle_event(:user_synchronized, user_synchronized, %{secrets: []} = state) do
+    state = update_hub(state, user_synchronized.name)
+    secrets = for secret <- user_synchronized.secrets, do: build_secret(state, secret)
+
+    %{state | secrets: secrets}
+  end
+
+  defp handle_event(:user_synchronized, user_synchronized, state) do
+    state = update_hub(state, user_synchronized.name)
+    secrets = for secret <- user_synchronized.secrets, do: build_secret(state, secret)
+
+    created_secrets =
+      Enum.reject(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
+      end)
+
+    deleted_secrets =
+      Enum.reject(state.secrets, fn secret ->
+        Enum.find(secrets, &(&1.name == secret.name))
+      end)
+
+    updated_secrets =
+      Enum.filter(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
+      end)
+
+    events_by_type = [
+      secret_deleted: deleted_secrets,
+      secret_created: created_secrets,
+      secret_updated: updated_secrets
+    ]
+
+    for {type, events} <- events_by_type, event <- events, reduce: state do
+      state -> handle_event(type, event, state)
+    end
   end
 end

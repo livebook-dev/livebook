@@ -5,6 +5,11 @@ message User {
   string email = 2;
 }
 
+message Secret {
+  string name = 1;
+  string value = 2;
+}
+
 message Error {
   string details = 1;
 }
@@ -28,13 +33,25 @@ message SecretUpdated {
   string value = 2;
 }
 
-message SessionRequest {
+message SecretDeleted {
+  string name = 1;
+  string value = 2;
+}
+
+message UserSynchronized {
+  string id = 1;
+  string name = 2;
+  repeated Secret secrets = 3;
+}
+
+message HandshakeRequest {
   string app_version = 1;
 }
 
-message SessionResponse {
+message HandshakeResponse {
   string id = 1;
-  User user = 2;
+  string name = 2;
+  User user = 3;
 }
 
 message CreateSecretRequest {
@@ -49,7 +66,7 @@ message Request {
   int32 id = 1;
 
   oneof type {
-    SessionRequest session = 2;
+    HandshakeRequest handshake = 2;
     CreateSecretRequest create_secret = 3;
   }
 }
@@ -61,7 +78,7 @@ message Response {
     Error error = 2;
     ChangesetError changeset = 3;
 
-    SessionResponse session = 4;
+    HandshakeResponse handshake = 4;
     CreateSecretResponse create_secret = 5;
   }
 }
@@ -70,5 +87,7 @@ message Event {
   oneof type {
     SecretCreated secret_created = 100;
     SecretUpdated secret_updated = 101;
+    SecretDeleted secret_deleted = 102;
+    UserSynchronized user_synchronized = 103;
   }
 }

@@ -1217,7 +1217,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "loads secret from temporary storage", %{conn: conn, session: session} do
       secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :startup)
-      Livebook.Secrets.set_temporary_secrets([secret])
+      Livebook.Secrets.set_startup_secrets([secret])
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -1246,7 +1246,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "granting access for unavailable startup secret using 'Add secret' button",
          %{conn: conn, session: session} do
       secret = build(:secret, name: "MYSTARTUPSECRET", value: "ChonkyCat", origin: :startup)
-      Livebook.Secrets.set_temporary_secrets([secret])
+      Livebook.Secrets.set_startup_secrets([secret])
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button

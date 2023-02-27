@@ -62,6 +62,9 @@ defmodule Livebook.Hubs.Personal do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
+  alias Livebook.Hubs.Broadcasts
+  alias Livebook.Secrets
+
   def load(personal, fields) do
     %{personal | id: fields.id, hub_name: fields.hub_name, hub_emoji: fields.hub_emoji}
   end
@@ -80,13 +83,28 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def connection_spec(_personal), do: nil
 
-  def disconnect(_personal), do: :ok
+  def disconnect(_personal), do: raise("not implemented")
 
-  def capabilities(_personal), do: []
+  def capabilities(_personal), do: ~w(list_secrets create_secret update_secret delete_secret)a
 
-  def get_secrets(_personal), do: []
+  def get_secrets(_personal) do
+    Secrets.get_secrets()
+  end
 
-  def create_secret(_personal, _secret), do: :ok
+  def create_secret(_personal, secret) do
+    Secrets.set_secret(secret)
+    :ok = Broadcasts.secret_created(secret)
+  end
 
-  def connection_error(_personal), do: nil
+  def update_secret(_personal, secret) do
+    Secrets.set_secret(secret)
+    :ok = Broadcasts.secret_updated(secret)
+  end
+
+  def delete_secret(_personal, secret) do
+    :ok = Secrets.unset_secret(secret.name)
+    :ok = Broadcasts.secret_deleted(secret)
+  end
+
+  def connection_error(_personal), do: raise("not implemented")
 end

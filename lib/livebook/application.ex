@@ -190,7 +190,7 @@ defmodule Livebook.Application do
         %Livebook.Secrets.Secret{name: name, value: value, origin: :startup}
       end
 
-    Livebook.Secrets.set_temporary_secrets(secrets)
+    Livebook.Secrets.set_startup_secrets(secrets)
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true

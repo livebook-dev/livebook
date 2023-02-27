@@ -145,17 +145,16 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     EnterpriseClient.stop(enterprise.id)
   end
 
-  def capabilities(_enterprise), do: [:connect, :secrets]
+  def capabilities(_enterprise), do: ~w(connect secrets list_secrets create_secret)a
 
   def get_secrets(enterprise) do
     EnterpriseClient.get_secrets(enterprise.id)
   end
 
   def create_secret(enterprise, secret) do
-    create_secret_request =
-      LivebookProto.CreateSecretRequest.new!(name: secret.name, value: secret.value)
+    data = LivebookProto.build_create_secret_request(name: secret.name, value: secret.value)
 
-    case EnterpriseClient.send_request(enterprise.id, create_secret_request) do
+    case EnterpriseClient.send_request(enterprise.id, data) do
       {:create_secret, _} ->
         :ok
 
@@ -177,6 +176,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
         {:error, changeset}
     end
   end
+
+  def update_secret(_enterprise, _secret), do: raise("not implemented")
+
+  def delete_secret(_enterprise, _secret), do: raise("not implemented")
 
   def connection_error(enterprise) do
     reason = EnterpriseClient.get_connection_error(enterprise.id)
