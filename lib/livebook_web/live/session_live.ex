@@ -2047,7 +2047,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp get_saved_secrets do
-    Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
+    Enum.sort(Hubs.get_secrets())
   end
 
   defp app_status_color(nil), do: "bg-gray-400"
