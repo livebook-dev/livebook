@@ -238,7 +238,11 @@ defmodule Livebook.Hubs do
     Provider.delete_secret(hub, secret)
   end
 
-  defp capability?(hub, capabilities) do
+  @doc """
+  Checks the hub capability for given hub.
+  """
+  @spec capability?(Provider.t(), list(atom())) :: boolean()
+  def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
   end
 end
