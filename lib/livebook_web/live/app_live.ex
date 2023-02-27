@@ -129,11 +129,7 @@ defmodule LivebookWeb.AppLive do
       class="w-full max-w-4xl"
       patch={~p"/apps/#{@data_view.slug}"}
     >
-      <.live_component
-        module={LivebookWeb.AppLive.SourceComponent}
-        id="source"
-        session={@session}
-      />
+      <.live_component module={LivebookWeb.AppLive.SourceComponent} id="source" session={@session} />
     </.modal>
     """
   end

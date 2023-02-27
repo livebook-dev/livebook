@@ -142,7 +142,9 @@ export function highlight(code, language) {
   // Tracked in https://github.com/microsoft/monaco-editor/issues/3302
   if (!highlight.initialized) {
     const settings = settingsStore.get();
-    monaco.editor.create(document.createElement("div"), { theme: settings.editor_theme });
+    monaco.editor.create(document.createElement("div"), {
+      theme: settings.editor_theme,
+    });
     highlight.initialized = true;
   }
 
