@@ -55,7 +55,8 @@ defmodule Livebook.Session do
     :mode,
     :images_dir,
     :created_at,
-    :memory_usage
+    :memory_usage,
+    :app_info
   ]
 
   use GenServer, restart: :temporary
@@ -81,7 +82,8 @@ defmodule Livebook.Session do
           mode: Data.session_mode(),
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          app_info: app_info() | nil
         }
 
   @type state :: %{
@@ -108,6 +110,12 @@ defmodule Livebook.Session do
             runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.SystemResources.memory()
           }
+
+  @type app_info :: %{
+          slug: String.t(),
+          status: Data.app_status(),
+          registered: boolean()
+        }
 
   @typedoc """
   An id assigned to every running session process.
@@ -1476,7 +1484,15 @@ defmodule Livebook.Session do
       mode: state.data.mode,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
-      memory_usage: state.memory_usage
+      memory_usage: state.memory_usage,
+      app_info:
+        if state.data.mode == :app do
+          %{
+            slug: state.data.notebook.app_settings.slug,
+            status: state.data.app_data.status,
+            registered: state.data.app_data.registered
+          }
+        end
     }
   end
 
@@ -1875,14 +1891,14 @@ defmodule Livebook.Session do
     status = state.data.app_data.status
     broadcast_app_message(state.session_id, {:app_status_changed, state.session_id, status})
 
-    state
+    notify_update(state)
   end
 
   defp handle_action(state, :app_register) do
     Livebook.Apps.register(self(), state.data.notebook.app_settings.slug)
     broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, true})
 
-    state
+    notify_update(state)
   end
 
   defp handle_action(state, :app_recover) do

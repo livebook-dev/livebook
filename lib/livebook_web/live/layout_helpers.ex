@@ -105,6 +105,7 @@ defmodule LivebookWeb.LayoutHelpers do
               to={~p"/settings"}
               current={@current_page}
             />
+            <.sidebar_link title="Apps" icon="rocket-line" to={~p"/apps"} current={@current_page} />
           </div>
           <.hub_section hubs={@saved_hubs} current_page={@current_page} />
         </div>

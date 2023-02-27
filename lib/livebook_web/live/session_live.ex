@@ -550,7 +550,7 @@ defmodule LivebookWeb.SessionLive do
               </span>
             </span>
           </button>
-          <.session_status
+          <.section_status
             status={elem(section_item.status, 0)}
             cell_id={elem(section_item.status, 1)}
           />
@@ -720,44 +720,23 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(%{status: :evaluating} = assigns) do
+  defp section_status(%{status: :evaluating} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
-      </.status_indicator>
+      <.status_indicator variant={:progressing} />
     </button>
     """
   end
 
-  defp session_status(%{status: :stale} = assigns) do
+  defp section_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-el-focus-cell-button data-target={@cell_id}>
-      <.status_indicator circle_class="bg-yellow-bright-200"></.status_indicator>
+      <.status_indicator variant={:warning} />
     </button>
     """
   end
 
-  defp session_status(assigns), do: ~H""
-
-  defp status_indicator(assigns) do
-    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
-
-    ~H"""
-    <div class="flex items-center space-x-1">
-      <span class="flex relative h-3 w-3">
-        <span
-          :if={@animated_circle_class}
-          class={[
-            @animated_circle_class,
-            "animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
-          ]}
-        >
-        </span>
-        <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3"]}></span>
-      </span>
-    </div>
-    """
-  end
+  defp section_status(assigns), do: ~H""
 
   defp settings_component_for(%Cell.Code{}),
     do: LivebookWeb.SessionLive.CodeCellSettingsComponent

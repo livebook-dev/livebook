@@ -1428,7 +1428,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="shutdown app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="terminate app"]/)
       |> render_click()
 
       assert_receive {:operation, {:delete_app, _, _}}
