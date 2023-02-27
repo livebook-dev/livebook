@@ -200,7 +200,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_hubs([:secrets]),
+    for hub <- get_hubs([:list_secrets]),
         secret <- Provider.get_secrets(hub),
         do: secret
   end
