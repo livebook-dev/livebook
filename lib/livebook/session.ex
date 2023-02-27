@@ -1693,6 +1693,10 @@ defmodule Livebook.Session do
         broadcast_error(state.session_id, "failed to copy images - #{message}")
     end
 
+    if prev_file_path = prev_state.data.file && prev_state.data.file.path do
+      SessionManager.delete_recently_opened_sessions(prev_file_path)
+    end
+
     if file_path = state.data.file && state.data.file.path do
       SessionManager.save_recently_opened_sessions(file_path)
     end
