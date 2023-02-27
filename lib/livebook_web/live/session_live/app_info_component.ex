@@ -71,16 +71,18 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             >
               <div class="flex flex-col space-y-4">
                 <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce="blur" />
-                <.switch_field
-                  field={f[:access_type]}
-                  label="Password-protected"
-                  checked_value="protected"
-                  unchecked_value="public"
-                />
-                <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
-                  <.password_field field={f[:password]} spellcheck="false" phx-debounce="blur" />
-                <% end %>
-                <.switch_field field={f[:show_source]} label="Show source" />
+                <div class="flex flex-col space-y-1">
+                  <.checkbox_field
+                    field={f[:access_type]}
+                    label="Password-protected"
+                    checked_value="protected"
+                    unchecked_value="public"
+                  />
+                  <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
+                    <.password_field field={f[:password]} spellcheck="false" phx-debounce="blur" />
+                  <% end %>
+                </div>
+                <.checkbox_field field={f[:show_source]} label="Show source" />
               </div>
               <div class="mt-5 flex space-x-2">
                 <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
