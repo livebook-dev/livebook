@@ -107,6 +107,7 @@ defmodule LivebookWeb.Router do
 
       live "/apps/:slug", AppLive, :page
       live "/apps/:slug/authenticate", AppAuthLive, :page
+      live "/apps/:slug/source", AppLive, :source
     end
   end
 
