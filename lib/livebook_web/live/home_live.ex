@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LearnHelpers, LayoutHelpers, LayoutHelpers}
+  alias LivebookWeb.{LearnHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   on_mount LivebookWeb.SidebarHook

@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.EditLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
+  alias LivebookWeb.LayoutHelpers
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
 

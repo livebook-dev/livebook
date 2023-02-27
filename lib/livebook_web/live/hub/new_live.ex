@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.NewLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
+  alias LivebookWeb.LayoutHelpers
   alias Phoenix.LiveView.JS
 
   on_mount LivebookWeb.SidebarHook

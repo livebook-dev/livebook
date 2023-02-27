@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.{LayoutHelpers, LayoutHelpers}
+  alias LivebookWeb.LayoutHelpers
 
   on_mount LivebookWeb.SidebarHook
 
