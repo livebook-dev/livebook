@@ -82,9 +82,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
         <div class="flex flex-col space-y-4 mt-6">
           <.secrets_item
-            :for={%{origin: {:hub, id}} = secret <- @saved_secrets}
+            :for={secret <- @saved_secrets}
             secret={secret}
-            prefix={"hub-#{id}"}
+            prefix={prefix(secret)}
             data_secrets={@secrets}
             hubs={@hubs}
             myself={@myself}
@@ -214,6 +214,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   defp fetch_hub!(id, hubs) do
     Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
+
+  defp prefix(%{origin: {:hub, id}}), do: "hub-#{id}"
+  defp prefix(%{origin: :startup}), do: "hub-personal-hub"
 
   defp delete?(%{origin: {:hub, id}}, hubs) do
     hub = fetch_hub!(id, hubs)
