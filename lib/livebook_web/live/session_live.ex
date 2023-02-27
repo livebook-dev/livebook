@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
-  alias Livebook.Session.SessionManager
 
   on_mount(LivebookWeb.SidebarHook)
 
@@ -49,11 +48,6 @@ defmodule LivebookWeb.SessionLive do
           end
 
         session = Session.get_by_pid(session_pid)
-
-        if session.file do
-          SessionManager.save_recently_opened_sessions(session.file.path)
-        end
-
         platform = platform_from_socket(socket)
 
         {:ok,

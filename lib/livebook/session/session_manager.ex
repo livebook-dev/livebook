@@ -58,7 +58,7 @@ defmodule Livebook.Session.SessionManager do
 
   @impl true
   def handle_cast({:delete_recently_opened_sessions, session_path}, state) do
-    new_state = state -- session_path
+    new_state = state -- [session_path]
     Storage.insert(@namespace, @entity_id, %{file_paths: new_state})
     {:noreply, new_state}
   end

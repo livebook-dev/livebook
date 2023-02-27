@@ -62,7 +62,7 @@ defmodule Livebook.Session do
 
   import Livebook.Notebook.Cell, only: [is_file_input_value: 1]
 
-  alias Livebook.Session.{Data, FileGuard}
+  alias Livebook.Session.{Data, FileGuard, SessionManager}
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
@@ -707,6 +707,10 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+
+      if file_path = state.data.file && state.data.file.path do
+        SessionManager.save_recently_opened_sessions(file_path)
+      end
 
       {:ok, state}
     else
@@ -1687,6 +1691,10 @@ defmodule Livebook.Session do
 
       {:error, message} ->
         broadcast_error(state.session_id, "failed to copy images - #{message}")
+    end
+
+    if file_path = state.data.file && state.data.file.path do
+      SessionManager.save_recently_opened_sessions(file_path)
     end
 
     notify_update(state)
