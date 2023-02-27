@@ -3,7 +3,7 @@ defmodule LivebookWeb.LearnLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LayoutHelpers, LearnHelpers, LayoutHelpers}
+  alias LivebookWeb.{LayoutHelpers, LearnHelpers}
   alias Livebook.Notebook.Learn
 
   on_mount LivebookWeb.SidebarHook
