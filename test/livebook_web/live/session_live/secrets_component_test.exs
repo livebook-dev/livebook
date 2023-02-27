@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       render_submit(form, attrs)
 
       assert_receive {:secret_created, ^secret}
-      assert render(view) =~ "A new secret has been created on your Livebook Enterprise"
+      assert render(view) =~ "A new secret has been created on your Livebook Hub"
       assert has_element?(view, "#hub-#{enterprise.id}-secret-#{secret.name}-wrapper")
       assert has_element?(view, ~s/[data-tooltip="#{enterprise.hub_name}"]/, enterprise.hub_emoji)
     end
