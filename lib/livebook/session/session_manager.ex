@@ -19,11 +19,7 @@ defmodule Livebook.Session.SessionManager do
     GenServer.call(__MODULE__, :get_recently_opened_sessions)
   end
 
-  @spec save_recently_opened_sessions(String.t() | nil) :: :ok
-  def save_recently_opened_sessions(nil) do
-    :ok
-  end
-
+  @spec save_recently_opened_sessions(String.t()) :: :ok
   def save_recently_opened_sessions(session_path) do
     GenServer.cast(__MODULE__, {:save_recently_opened_sessions, session_path})
   end
