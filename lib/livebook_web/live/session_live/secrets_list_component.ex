@@ -67,30 +67,6 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           <span>New secret</span>
         </.link>
 
-        <div class="mt-16">
-          <h3 class="uppercase text-sm font-semibold text-gray-500">
-            App secrets
-          </h3>
-          <span class="text-sm text-gray-500">
-            <%= if @saved_secrets == [] do %>
-              No secrets stored in Livebook so far
-            <% else %>
-              Toggle to share with this session
-            <% end %>
-          </span>
-        </div>
-
-        <div class="flex flex-col space-y-4 mt-6">
-          <.secrets_item
-            :for={secret when secret.origin in [:app, :startup] <- @saved_secrets}
-            secret={secret}
-            prefix={to_string(secret.origin)}
-            data_secrets={@secrets}
-            hubs={@hubs}
-            myself={@myself}
-          />
-        </div>
-
         <div :if={Livebook.Config.feature_flag_enabled?(:hub)} class="mt-16">
           <h3 class="uppercase text-sm font-semibold text-gray-500">
             Hub secrets
@@ -162,7 +138,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <%= @secret.value %>
             </span>
             <button
-              :if={@secret.origin == :app}
+              :if={delete?(@secret, @hubs)}
               id={"#{@prefix}-secret-#{@secret.name}-delete"}
               type="button"
               phx-click={
@@ -238,4 +214,11 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   defp fetch_hub!(id, hubs) do
     Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
+
+  defp delete?(%{origin: {:hub, id}}, hubs) do
+    hub = fetch_hub!(id, hubs)
+    Livebook.Hubs.capability?(hub.provider, [:delete_secret])
+  end
+
+  defp delete?(_, _), do: false
 end

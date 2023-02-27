@@ -3,7 +3,7 @@ defmodule Livebook.EctoTypes.SecretOrigin do
 
   use Ecto.Type
 
-  @type t :: nil | :session | :startup | :app | {:hub, String.t()}
+  @type t :: nil | :session | :startup | {:hub, String.t()}
 
   @impl true
   def type, do: :string
@@ -13,14 +13,12 @@ defmodule Livebook.EctoTypes.SecretOrigin do
 
   @impl true
   def dump(:session), do: {:ok, "session"}
-  def dump(:app), do: {:ok, "app"}
   def dump(:startup), do: {:ok, "startup"}
   def dump({:hub, id}), do: {:ok, "hub-#{id}"}
   def dump(_), do: :error
 
   @impl true
   def cast(:session), do: {:ok, :session}
-  def cast(:app), do: {:ok, :app}
   def cast(:startup), do: {:ok, :startup}
   def cast({:hub, id}), do: {:hub, id}
 
@@ -38,7 +36,6 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   """
   @spec encode(t()) :: String.t()
   def encode(:session), do: "session"
-  def encode(:app), do: "app"
   def encode(:startup), do: "startup"
   def encode({:hub, id}), do: "hub-#{id}"
 
@@ -47,7 +44,6 @@ defmodule Livebook.EctoTypes.SecretOrigin do
   """
   @spec decode(String.t()) :: {:ok, t()} | :error
   def decode("session"), do: {:ok, :session}
-  def decode("app"), do: {:ok, :app}
   def decode("startup"), do: {:ok, :startup}
   def decode("hub-" <> id), do: {:ok, {:hub, id}}
   def decode(_other), do: :error
