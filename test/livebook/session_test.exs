@@ -5,7 +5,7 @@ defmodule Livebook.SessionTest do
 
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
-  alias Livebook.Session.Data
+  alias Livebook.Session.{Data, SessionManager}
 
   @eval_meta %{
     errored: false,
@@ -433,6 +433,27 @@ defmodule Livebook.SessionTest do
       assert {:ok, true} =
                FileSystem.File.exists?(FileSystem.File.resolve(new_images_dir, "test.jpg"))
     end
+
+    @tag :tmp_dir
+    test "change recent list if the previous dir not temporary",
+         %{session: session, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session.pid, file)
+
+      # Wait for the session to deal with the files
+      wait_for_session_update(session.pid)
+
+      assert [file.path] == SessionManager.get_recently_opened_sessions()
+
+      new_file = FileSystem.File.resolve(tmp_dir, "new_notebook.livemd")
+      Session.set_file(session.pid, new_file)
+
+      # Wait for the session to deal with the files
+      wait_for_session_update(session.pid)
+
+      assert [new_file.path] == SessionManager.get_recently_opened_sessions()
+    end
   end
 
   describe "save/1" do
@@ -646,6 +667,36 @@ defmodule Livebook.SessionTest do
 
       assert FileSystem.File.resolve(images_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "binary content"}
+    end
+
+    @tag :tmp_dir
+    test "saves recent list when :file option is specified", %{tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
+
+      session = start_session(file: file)
+      %{file: %{path: path}} = session
+
+      assert [path] == SessionManager.get_recently_opened_sessions()
+    end
+
+    @tag :tmp_dir
+    test "saves recent list when :start multiple sessions with file option is specified",
+         %{tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file1 = FileSystem.File.resolve(tmp_dir, "notebook_1.livemd")
+      file2 = FileSystem.File.resolve(tmp_dir, "notebook_2.livemd")
+      file3 = FileSystem.File.resolve(tmp_dir, "notebook_3.livemd")
+
+      session1 = start_session(file: file1)
+      session2 = start_session(file: file2)
+      session3 = start_session(file: file3)
+
+      %{file: %{path: path1}} = session1
+      %{file: %{path: path2}} = session2
+      %{file: %{path: path3}} = session3
+
+      assert [path3, path2, path1] == SessionManager.get_recently_opened_sessions()
     end
   end
 
