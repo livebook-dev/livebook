@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:secrets]))}
+    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:create_secret]))}
   end
 
   @impl true
