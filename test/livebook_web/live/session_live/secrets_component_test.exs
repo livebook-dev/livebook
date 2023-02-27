@@ -190,5 +190,27 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
+
+    test "shows secret events from Enterprise hub",
+         %{conn: conn, session: session, enterprise: enterprise, node: node} do
+      {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/secrets")
+      secret = build(:secret, name: "EVENT_SECRET", value: "123", origin: {:hub, enterprise.id})
+
+      # We need the `Secret` schema from enterprise to execute
+      # the following functions inside `Enterprise.Integration`
+      enterprise_secret =
+        :erpc.call(node, Enterprise.Integration, :create_secret, [secret.name, secret.value])
+
+      assert_receive {:secret_created, ^secret}
+      assert render(view) =~ "A new secret has been created on your Livebook Hub"
+
+      :erpc.call(node, Enterprise.Integration, :update_secret, [enterprise_secret, secret.value])
+      assert_receive {:secret_updated, ^secret}
+      assert render(view) =~ "An existing secret has been updated on your Livebook Hub"
+
+      :erpc.call(node, Enterprise.Integration, :delete_secret, [enterprise_secret])
+      assert_receive {:secret_deleted, ^secret}
+      assert render(view) =~ "An existing secret has been deleted on your Livebook Hub"
+    end
   end
 end
