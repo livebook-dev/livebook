@@ -1198,6 +1198,13 @@ defmodule LivebookWeb.SessionLive do
      |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
   end
 
+  def handle_info({:secret_deleted, %{origin: {:hub, _id}}}, socket) do
+    {:noreply,
+     socket
+     |> assign(saved_secrets: get_saved_secrets())
+     |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
+  end
+
   def handle_info(:hubs_changed, socket) do
     {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
   end
