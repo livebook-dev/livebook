@@ -84,7 +84,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                 </div>
                 <.checkbox_field field={f[:show_source]} label="Show source" />
               </div>
-              <div class="mt-5 flex space-x-2">
+              <div class="mt-6 flex space-x-2">
                 <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
                   Deploy
                 </button>
