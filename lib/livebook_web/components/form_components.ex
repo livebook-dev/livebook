@@ -14,6 +14,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
 
@@ -27,7 +28,7 @@ defmodule LivebookWeb.FormComponents do
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class="input"
+        class={["input", @class]}
         {@rest}
       />
     </.field_wrapper>
