@@ -42,68 +42,87 @@ defmodule LivebookWeb.AppsLive do
             <% end %>
           </p>
         </div>
-        <div class="flex flex-col space-y-4">
-          <div
-            :for={session <- @sessions}
-            class="border border-gray-200 rounded-lg flex flex-col"
-            data-app-slug={session.app_info.slug}
-          >
-            <div class="flex justify-between px-4 py-3 text-gray-700 font-medium border-b border-gray-200 bg-gray-100">
-              <div>
-                <%= session.notebook_name %>
-              </div>
-              <div class="flex space-x-2">
-                <span class="tooltip top" data-tooltip="Debug">
-                  <a
-                    class="icon-button"
-                    aria-label="debug app"
-                    href={~p"/sessions/#{session.id}"}
-                    target="_blank"
-                  >
-                    <.remix_icon icon="terminal-line" class="text-lg" />
-                  </a>
-                </span>
-                <%= if session.app_info.registered do %>
-                  <span class="tooltip top" data-tooltip="Stop">
-                    <button
-                      class="icon-button"
-                      aria-label="stop app"
-                      phx-click={JS.push("stop_app", value: %{session_id: session.id})}
-                    >
-                      <.remix_icon icon="stop-circle-line" class="text-lg" />
-                    </button>
-                  </span>
-                <% else %>
-                  <span class="tooltip top" data-tooltip="Terminate">
-                    <button
-                      class="icon-button"
-                      aria-label="terminate app"
-                      phx-click={JS.push("terminate_app", value: %{session_id: session.id})}
-                    >
-                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                    </button>
-                  </span>
-                <% end %>
-              </div>
+        <div class="flex flex-col space-y-6">
+          <div :for={{slug, sessions} <- group_apps(@sessions)}>
+            <div class="mb-2 text-gray-800 font-medium text-lg">
+              <%= "/" <> slug %>
             </div>
-            <div class="flex p-4 space-x-8">
-              <.labeled_text label="Status">
-                <.app_status status={session.app_info.status} />
-              </.labeled_text>
-              <.labeled_text label="URL" one_line>
-                <%= if session.app_info.registered do %>
-                  <a href={url(~p"/apps/#{session.app_info.slug}")} target="_blank">
-                    <%= url(~p"/apps/#{session.app_info.slug}") %>
-                  </a>
-                <% else %>
-                  -
-                <% end %>
-              </.labeled_text>
+            <div class="flex flex-col">
+              <%= for {session, idx} <- Enum.with_index(sessions) do %>
+                <div :if={idx > 0} class="ml-4 border-l-2 border-gray-300 border-dashed h-6"></div>
+                <.app_box session={session} />
+              <% end %>
             </div>
           </div>
         </div>
       </div>
     </LayoutHelpers.layout>
+    """
+  end
+
+  defp app_box(assigns) do
+    ~H"""
+    <div
+      class="border border-gray-200 rounded-lg flex justify-between p-4"
+      data-app-slug={@session.app_info.slug}
+    >
+      <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 w-full max-w-2xl">
+        <div class="flex-1">
+          <.labeled_text label="Status">
+            <.app_status status={@session.app_info.status} />
+          </.labeled_text>
+        </div>
+        <div class="flex-1">
+          <.labeled_text label="Name">
+            <%= @session.notebook_name %>
+          </.labeled_text>
+        </div>
+        <div class="flex-1 grow-[2]">
+          <.labeled_text label="URL">
+            <%= if @session.app_info.registered do %>
+              <a href={url(~p"/apps/#{@session.app_info.slug}")} target="_blank">
+                <%= url(~p"/apps/#{@session.app_info.slug}") %>
+              </a>
+            <% else %>
+              -
+            <% end %>
+          </.labeled_text>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row gap-2">
+        <span class="tooltip top" data-tooltip="Debug">
+          <a
+            class="icon-button"
+            aria-label="debug app"
+            href={~p"/sessions/#{@session.id}"}
+            target="_blank"
+          >
+            <.remix_icon icon="terminal-line" class="text-lg" />
+          </a>
+        </span>
+        <%= if @session.app_info.registered do %>
+          <span class="tooltip top" data-tooltip="Stop">
+            <button
+              class="icon-button"
+              aria-label="stop app"
+              phx-click={JS.push("stop_app", value: %{session_id: @session.id})}
+            >
+              <.remix_icon icon="stop-circle-line" class="text-lg" />
+            </button>
+          </span>
+        <% else %>
+          <span class="tooltip top" data-tooltip="Terminate">
+            <button
+              class="icon-button"
+              aria-label="terminate app"
+              phx-click={JS.push("terminate_app", value: %{session_id: @session.id})}
+            >
+              <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+            </button>
+          </span>
+        <% end %>
+      </div>
+    </div>
     """
   end
 
@@ -126,5 +145,11 @@ defmodule LivebookWeb.AppsLive do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Livebook.Session.app_stop(session.pid)
     {:noreply, socket}
+  end
+
+  defp group_apps(sessions) do
+    sessions
+    |> Enum.group_by(& &1.app_info.slug)
+    |> Enum.sort_by(&elem(&1, 0))
   end
 end
