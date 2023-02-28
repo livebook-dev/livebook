@@ -839,6 +839,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_app_settings(settings)
+    |> set_dirty()
     |> wrap_ok()
   end
 

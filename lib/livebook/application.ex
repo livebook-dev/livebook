@@ -56,6 +56,7 @@ defmodule Livebook.Application do
         insert_personal_hub()
         Livebook.Hubs.connect_hubs()
         update_app_secrets_origin()
+        deploy_apps()
         result
 
       {:error, error} ->
@@ -219,6 +220,12 @@ defmodule Livebook.Application do
     for %{origin: :app} = secret <- Livebook.Secrets.get_secrets() do
       {:ok, secret} = Livebook.Secrets.update_secret(secret, %{origin: {:hub, "personal-hub"}})
       Livebook.Secrets.set_secret(secret)
+    end
+  end
+
+  defp deploy_apps() do
+    if apps_path = Livebook.Config.apps_path() do
+      Livebook.Apps.deploy_apps_in_dir(apps_path, password: Livebook.Config.apps_path_password())
     end
   end
 

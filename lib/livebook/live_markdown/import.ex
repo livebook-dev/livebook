@@ -368,6 +368,28 @@ defmodule Livebook.LiveMarkdown.Import do
       {"autosave_interval_s", autosave_interval_s}, attrs ->
         Map.put(attrs, :autosave_interval_s, autosave_interval_s)
 
+      {"app_settings", app_settings_metadata}, attrs ->
+        app_settings =
+          Map.merge(
+            Notebook.AppSettings.new(),
+            app_settings_metadata_to_attrs(app_settings_metadata)
+          )
+
+        Map.put(attrs, :app_settings, app_settings)
+
+      _entry, attrs ->
+        attrs
+    end)
+  end
+
+  defp app_settings_metadata_to_attrs(metadata) do
+    Enum.reduce(metadata, %{}, fn
+      {"slug", slug}, attrs ->
+        Map.put(attrs, :slug, slug)
+
+      {"access_type", access_type}, attrs when access_type in ["public", "protected"] ->
+        Map.put(attrs, :access_type, String.to_atom(access_type))
+
       _entry, attrs ->
         attrs
     end)

@@ -1,6 +1,8 @@
 defmodule Livebook.Apps do
   @moduledoc false
 
+  require Logger
+
   alias Livebook.Session
 
   @doc """
@@ -89,4 +91,49 @@ defmodule Livebook.Apps do
   end
 
   defp name(slug), do: {:app, slug}
+
+  @doc """
+  Deploys an app for each notebook in the given directory.
+
+  ## Options
+
+    * `:password` - a password to set for every loaded app
+
+  """
+  @spec deploy_apps_in_dir(String.t(), keyword()) :: :ok
+  def deploy_apps_in_dir(path, opts \\ []) do
+    opts = Keyword.validate!(opts, [:password])
+
+    pattern = Path.join([path, "**", "*.livemd"])
+    paths = Path.wildcard(pattern)
+
+    for path <- paths do
+      markdown = File.read!(path)
+      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+
+      if warnings != [] do
+        items = Enum.map(warnings, &("- " <> &1))
+
+        Logger.warning(
+          "Found warnings while importing app notebook at #{path}:\n\n" <> Enum.join(items, "\n")
+        )
+      end
+
+      notebook =
+        if password = opts[:password] do
+          put_in(notebook.app_settings.password, password)
+        else
+          notebook
+        end
+
+      if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
+        {:ok, session} = Livebook.Sessions.create_session(notebook: notebook, mode: :app)
+        Livebook.Session.app_build(session.pid)
+      else
+        Logger.warning("Skipping app deployment at #{path} due to invalid settings")
+      end
+    end
+
+    :ok
+  end
 end

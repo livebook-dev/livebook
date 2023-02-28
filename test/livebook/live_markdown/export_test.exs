@@ -1121,6 +1121,49 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
+  describe "app settings" do
+    test "persists non-default app settings" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          app_settings: %{Notebook.AppSettings.new() | slug: "app", access_type: :public}
+      }
+
+      expected_document = """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
+
+      # My Notebook
+      """
+
+      document = Export.notebook_to_livemd(notebook)
+
+      assert expected_document == document
+    end
+
+    test "does not persist password" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          app_settings: %{
+            Notebook.AppSettings.new()
+            | slug: "app",
+              access_type: :protected,
+              password: "verylongpass"
+          }
+      }
+
+      expected_document = """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # My Notebook
+      """
+
+      document = Export.notebook_to_livemd(notebook)
+
+      assert expected_document == document
+    end
+  end
+
   describe "setup cell" do
     test "includes the leading setup cell when it has content" do
       notebook =

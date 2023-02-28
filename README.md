@@ -164,6 +164,14 @@ The following environment variables configure Livebook:
   * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
     Livebook instance within the cloud provider platform.
 
+  * LIVEBOOK_APPS_PATH - the directory with app notebooks. When set, the apps
+    are deployed on Livebook startup with the persisted settings.
+    Password-protected notebooks will receive a random password,
+    unless LIVEBOOK_APPS_PATH_PASSWORD is set.
+
+  * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
+    deployed from LIVEBOOK_APPS_PATH.
+
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
     Useful when deploying behind a reverse proxy.
 
@@ -194,7 +202,7 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_IFRAME_URL - sets the URL that Livebook loads iframes from.
     By default iframes are loaded from local LIVEBOOK_IFRAME_PORT when accessing
-    Livebook over http:// and from https://livebook.space when accessing over `https://`.
+    Livebook over http:// and from https://livebook.space when accessing over https://.
 
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
@@ -219,7 +227,7 @@ The following environment variables configure Livebook:
     in the homepage. Set it to "true" to enable it.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
-    Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
+    Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to
     disable it.
 
   * LIVEBOOK_UPDATE_INSTRUCTIONS_URL - sets the URL to direct the user to for

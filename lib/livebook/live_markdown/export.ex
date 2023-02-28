@@ -69,7 +69,25 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp notebook_metadata(notebook) do
     keys = [:persist_outputs, :autosave_interval_s]
-    put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+    metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+
+    app_settings_metadata = app_settings_metadata(notebook.app_settings)
+
+    if app_settings_metadata == %{} do
+      metadata
+    else
+      Map.put(metadata, :app_settings, app_settings_metadata)
+    end
+  end
+
+  defp app_settings_metadata(app_settings) do
+    keys = [:slug, :access_type]
+
+    put_unless_default(
+      %{},
+      Map.take(app_settings, keys),
+      Map.take(Notebook.AppSettings.new(), keys)
+    )
   end
 
   defp render_section(section, notebook, ctx) do
