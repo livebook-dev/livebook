@@ -98,6 +98,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               spellcheck="false"
               autocomplete="off"
               phx-debounce="blur"
+              class="uppercase"
             />
             <.text_field
               field={f[:value]}

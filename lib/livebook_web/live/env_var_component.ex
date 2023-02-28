@@ -45,6 +45,7 @@ defmodule LivebookWeb.EnvVarComponent do
             field={f[:name]}
             label="Name (alphanumeric and underscore)"
             autofocus={@operation == :new}
+            class="uppercase"
           />
           <.text_field field={f[:value]} label="Value" autofocus={@operation == :edit} />
           <.hidden_field field={f[:operation]} value={@operation} />
