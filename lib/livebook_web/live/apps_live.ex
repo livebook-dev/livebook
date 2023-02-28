@@ -47,8 +47,9 @@ defmodule LivebookWeb.AppsLive do
       </div>
       <div class="grow flex items-center justify-between">
         <div class="text-gray-600">
-          You do not have any apps running. <br /> You can deploy new apps by clicking
-          <.remix_icon icon="rocket-line" class="align-sub text-lg" /> in the session sidebar.
+          You do not have any apps running. <br />
+          You can deploy new apps by opening a notebook and clicking
+          <.remix_icon icon="rocket-line" class="align-sub text-lg" /> in the sidebar.
         </div>
       </div>
     </div>
