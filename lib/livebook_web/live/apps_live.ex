@@ -15,7 +15,10 @@ defmodule LivebookWeb.AppsLive do
       Livebook.Sessions.subscribe()
     end
 
-    sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :app))
+    sessions =
+      Sessions.list_sessions()
+      |> Enum.filter(&(&1.mode == :app))
+      |> Enum.sort_by(& &1.created_at, {:desc, DateTime})
 
     {:ok, assign(socket, sessions: sessions, page_title: "Livebook - Apps")}
   end
