@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:secrets]))}
+    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:create_secret]))}
   end
 
   @impl true
@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 :for={secret <- @saved_secrets}
                 secret_name={secret.name}
                 secret_origin={secret.origin}
-                stored={stored(secret)}
+                stored={stored(secret, @hubs)}
                 active={false}
                 target={@myself}
               />
@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               value={SecretOrigin.encode(f[:origin].value)}
               label="Storage"
               options={
-                [{"session", "only this session"}, {"app", "in the Livebook app"}] ++
+                [{"session", "only this session"}] ++
                   if Livebook.Config.feature_flag_enabled?(:hub) do
                     for hub <- @hubs, do: {"hub-#{hub.id}", "in #{hub.hub_emoji} #{hub.hub_name}"}
                   else
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
-              <%= if @secret.origin in [:app, :startup] do %>
+              <%= if @secret.origin == :startup do %>
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
                   <span class="font-semibold text-white"><%= @secret.name %></span>
@@ -217,9 +217,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     </div>
     """
   end
-
-  defp stored(%{origin: {:hub, _}}), do: "Hub"
-  defp stored(%{origin: origin}) when origin in [:app, :startup], do: "Livebook"
 
   @impl true
   def handle_event("save", %{"secret" => attrs}, socket) do
@@ -278,11 +275,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, %Secret{origin: :app} = secret) do
-    Secrets.set_secret(secret)
-    Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
   defp set_secret(socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
     with :ok <- Hubs.create_secret(secret) do
       Session.set_secret(socket.assigns.session.pid, secret)
@@ -293,5 +285,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
     if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+  end
+
+  defp stored(%{origin: {:hub, id}}, hubs), do: stored(id, hubs)
+  defp stored(%{origin: :startup}, hubs), do: stored("personal-hub", hubs)
+
+  defp stored(id, hubs) do
+    hub = fetch_hub!(id, hubs)
+    "#{hub.hub_emoji} #{hub.hub_name}"
+  end
+
+  defp fetch_hub!(id, hubs) do
+    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
   end
 end

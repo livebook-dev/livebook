@@ -57,8 +57,7 @@ defmodule Livebook.SessionHelpers do
     selector =
       case secret do
         %{name: name, origin: :session} -> "#session-secret-#{name}-wrapper"
-        %{name: name, origin: :app} -> "#app-secret-#{name}-wrapper"
-        %{name: name, origin: :startup} -> "#startup-secret-#{name}-wrapper"
+        %{name: name, origin: :startup} -> "#hub-personal-hub-secret-#{name}-wrapper"
         %{name: name, origin: {:hub, id}} -> "#hub-#{id}-secret-#{name}-wrapper"
       end
 

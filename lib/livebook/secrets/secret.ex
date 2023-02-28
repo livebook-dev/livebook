@@ -14,7 +14,7 @@ defmodule Livebook.Secrets.Secret do
   @primary_key {:name, :string, autogenerate: false}
   embedded_schema do
     field :value, :string
-    field :origin, SecretOrigin, default: :app
+    field :origin, SecretOrigin
   end
 
   def changeset(secret, attrs \\ %{}) do

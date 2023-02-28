@@ -66,7 +66,7 @@ defmodule Livebook.Factory do
     %Livebook.Secrets.Secret{
       name: "FOO",
       value: "123",
-      origin: :app
+      origin: {:hub, "personal-hub"}
     }
   end
 
@@ -86,7 +86,8 @@ defmodule Livebook.Factory do
 
   def insert_secret(attrs \\ %{}) do
     secret = build(:secret, attrs)
-    Livebook.Secrets.set_secret(secret)
+    :ok = Livebook.Hubs.create_secret(secret)
+    secret
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

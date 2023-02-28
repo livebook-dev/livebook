@@ -147,7 +147,7 @@ defmodule Livebook.WebSocket.ClientConnectionTest do
       assert_receive {:event, :secret_deleted, %{name: ^name, value: ^value}}
     end
 
-    test "receives a session_created event", %{conn: conn, node: node} do
+    test "receives a user_synchronized event", %{conn: conn, node: node} do
       data = LivebookProto.build_handshake_request(app_version: Livebook.Config.app_version())
       assert {:handshake, _} = ClientConnection.send_request(conn, data)
 

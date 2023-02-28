@@ -4,8 +4,7 @@ defprotocol Livebook.Hubs.Provider do
   alias Livebook.Secrets.Secret
 
   @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Personal.t()
-  @type capability ::
-          :connect | :secrets | :list_secrets | :create_secret | :update_secret | :delete_secret
+  @type capability :: :connect | :list_secrets | :create_secret | :update_secret | :delete_secret
   @type capabilities :: list(capability())
   @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
 

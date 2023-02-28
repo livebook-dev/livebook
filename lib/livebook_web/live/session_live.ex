@@ -1188,14 +1188,21 @@ defmodule LivebookWeb.SessionLive do
     {:noreply,
      socket
      |> assign(saved_secrets: get_saved_secrets())
-     |> put_flash(:info, "A new secret has been created on your Livebook Enterprise")}
+     |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
   end
 
   def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
     {:noreply,
      socket
      |> assign(saved_secrets: get_saved_secrets())
-     |> put_flash(:info, "An existing secret has been updated on your Livebook Enterprise")}
+     |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
+  end
+
+  def handle_info({:secret_deleted, %{origin: {:hub, _id}}}, socket) do
+    {:noreply,
+     socket
+     |> assign(saved_secrets: get_saved_secrets())
+     |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
   end
 
   def handle_info(:hubs_changed, socket) do
@@ -2040,7 +2047,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp get_saved_secrets do
-    Enum.sort(Hubs.get_secrets() ++ Secrets.get_secrets())
+    Enum.sort(Hubs.get_secrets())
   end
 
   defp app_status_color(nil), do: "bg-gray-400"

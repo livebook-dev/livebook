@@ -200,7 +200,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_hubs([:secrets]),
+    for hub <- get_hubs([:list_secrets]),
         secret <- Provider.get_secrets(hub),
         do: secret
   end
@@ -238,7 +238,11 @@ defmodule Livebook.Hubs do
     Provider.delete_secret(hub, secret)
   end
 
-  defp capability?(hub, capabilities) do
+  @doc """
+  Checks the hub capability for given hub.
+  """
+  @spec capability?(Provider.t(), list(atom())) :: boolean()
+  def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
   end
 end
