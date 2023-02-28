@@ -31,32 +31,45 @@ defmodule LivebookWeb.AppsLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto space-y-4">
-        <div>
-          <LayoutHelpers.title text="Apps" />
-          <p class="mt-4 mb-8 text-gray-700">
-            <%= if @sessions == [] do %>
-              No apps currently running.
-            <% else %>
-              These apps are currently running.
-            <% end %>
-          </p>
-        </div>
-        <div class="flex flex-col space-y-6">
-          <div :for={{slug, sessions} <- group_apps(@sessions)}>
-            <div class="mb-2 text-gray-800 font-medium text-lg">
-              <%= "/" <> slug %>
-            </div>
-            <div class="flex flex-col">
-              <%= for {session, idx} <- Enum.with_index(sessions) do %>
-                <div :if={idx > 0} class="ml-4 border-l-2 border-gray-300 border-dashed h-6"></div>
-                <.app_box session={session} />
-              <% end %>
-            </div>
-          </div>
-        </div>
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
+        <LayoutHelpers.title text="Apps" />
+        <.app_list sessions={@sessions} />
       </div>
     </LayoutHelpers.layout>
+    """
+  end
+
+  defp app_list(%{sessions: []} = assigns) do
+    ~H"""
+    <div class="mt-8 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+      <div>
+        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
+      </div>
+      <div class="grow flex items-center justify-between">
+        <div class="text-gray-600">
+          You do not have any apps running. <br /> You can deploy new apps by clicking
+          <.remix_icon icon="rocket-line" class="align-sub text-lg" /> in the session sidebar.
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp app_list(assigns) do
+    ~H"""
+    <div class="mt-8 flex flex-col space-y-8">
+      <div :for={{slug, sessions} <- group_apps(@sessions)}>
+        <div class="mb-2 text-gray-800 font-medium text-lg">
+          <%= "/" <> slug %>
+        </div>
+        <div class="flex flex-col">
+          <%= for {session, idx} <- Enum.with_index(sessions) do %>
+            <div :if={idx > 0} class="ml-4 border-l-2 border-gray-300 border-dashed h-6"></div>
+            <.app_box session={session} />
+          <% end %>
+        </div>
+      </div>
+    </div>
     """
   end
 
