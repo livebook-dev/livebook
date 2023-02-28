@@ -170,7 +170,7 @@ The following environment variables configure Livebook:
     unless `LIVEBOOK_APPS_PATH_PASSWORD` is set.
 
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
-    deployed from LIVEBOOK_APPS_PATH.
+    deployed from `LIVEBOOK_APPS_PATH`.
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
     Useful when deploying behind a reverse proxy.
