@@ -131,17 +131,31 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                   <.remix_icon icon="terminal-line" class="text-lg" />
                 </a>
               </span>
-              <span class="tooltip top" data-tooltip="Terminate">
-                <button
-                  class="icon-button"
-                  aria-label="terminate app"
-                  phx-click={
-                    JS.push("terminate_app", value: %{session_id: app.session_id}, target: @myself)
-                  }
-                >
-                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                </button>
-              </span>
+              <%= if app.registered do %>
+                <span class="tooltip top" data-tooltip="Stop">
+                  <button
+                    class="icon-button"
+                    aria-label="stop app"
+                    phx-click={
+                      JS.push("stop_app", value: %{session_id: app.session_id}, target: @myself)
+                    }
+                  >
+                    <.remix_icon icon="stop-circle-line" class="text-lg" />
+                  </button>
+                </span>
+              <% else %>
+                <span class="tooltip top" data-tooltip="Terminate">
+                  <button
+                    class="icon-button"
+                    aria-label="terminate app"
+                    phx-click={
+                      JS.push("terminate_app", value: %{session_id: app.session_id}, target: @myself)
+                    }
+                  >
+                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                  </button>
+                </span>
+              <% end %>
             </div>
           </div>
         </div>
@@ -217,6 +231,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   def handle_event("terminate_app", %{"session_id" => session_id}, socket) do
     app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
     Livebook.Session.close(app.session_pid)
+    {:noreply, socket}
+  end
+
+  def handle_event("stop_app", %{"session_id" => session_id}, socket) do
+    app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
+    Livebook.Session.app_stop(app.session_pid)
     {:noreply, socket}
   end
 

@@ -153,7 +153,7 @@ defmodule Livebook.Session.Data do
           registered: boolean()
         }
 
-  @type app_status :: :booting | :running | :error | :shutting_down
+  @type app_status :: :booting | :running | :error | :shutting_down | :stopped
 
   @type app_data :: %{
           status: app_status(),
@@ -216,7 +216,8 @@ defmodule Livebook.Session.Data do
           | {:set_app_status, client_id(), Livebook.Session.id(), app_status()}
           | {:set_app_registered, client_id(), Livebook.Session.id(), boolean()}
           | {:delete_app, client_id(), Livebook.Session.id()}
-          | {:app_shutdown, client_id()}
+          | {:app_unregistered, client_id()}
+          | {:app_stop, client_id()}
 
   @type action ::
           :connect_runtime
@@ -881,12 +882,24 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:app_shutdown, _client_id}) do
+  def apply_operation(data, {:app_unregistered, _client_id}) do
+    with :app <- data.mode,
+         true <- data.app_data.registered do
+      data
+      |> with_actions()
+      |> app_unregistered()
+      |> app_maybe_terminate()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:app_stop, _client_id}) do
     with :app <- data.mode do
       data
       |> with_actions()
-      |> app_shutdown()
-      |> app_maybe_terminate()
+      |> app_stop()
       |> wrap_ok()
     else
       _ -> :error
@@ -1772,10 +1785,25 @@ defmodule Livebook.Session.Data do
     set!(data_actions, apps: apps)
   end
 
-  defp app_shutdown(data_actions) do
+  defp app_unregistered(data_actions) do
     data_actions
     |> set_app_data!(status: :shutting_down, registered: false)
     |> add_action(:app_broadcast_status)
+  end
+
+  defp app_stop({data, _} = data_actions) do
+    data_actions =
+      data_actions
+      |> set_app_data!(status: :stopped)
+      |> add_action(:app_broadcast_status)
+
+    if data.app_data.registered do
+      data_actions
+      |> set_app_data!(registered: false)
+      |> add_action(:app_unregister)
+    else
+      data_actions
+    end
   end
 
   defp app_maybe_terminate({data, _} = data_actions) do
@@ -2327,7 +2355,7 @@ defmodule Livebook.Session.Data do
        do: data_actions
 
   defp app_compute_status({data, _} = data_actions)
-       when data.app_data.status == :shutting_down,
+       when data.app_data.status in [:shutting_down, :stopped],
        do: data_actions
 
   defp app_compute_status({data, _} = data_actions) do

@@ -30,6 +30,12 @@ defmodule LivebookWeb.AppHelpers do
     """
   end
 
+  def app_status(%{status: :stopped} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Stopped" variant={:inactive} />
+    """
+  end
+
   defp app_status_indicator(assigns) do
     ~H"""
     <div class="flex items-center space-x-2">

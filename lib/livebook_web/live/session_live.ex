@@ -2027,4 +2027,5 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(:running), do: "bg-green-bright-400"
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
+  defp app_status_color(:stopped), do: "bg-gray-500"
 end

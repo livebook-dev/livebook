@@ -689,9 +689,20 @@ defmodule Livebook.Session do
   The shutdown is graceful, so the app only terminates once all of the
   currently connected clients leave.
   """
-  @spec app_shutdown(pid()) :: :ok
-  def app_shutdown(pid) do
-    GenServer.cast(pid, {:app_shutdown, self()})
+  @spec app_unregistered(pid()) :: :ok
+  def app_unregistered(pid) do
+    GenServer.cast(pid, {:app_unregistered, self()})
+  end
+
+  @doc """
+  Sends a app stop request to the server.
+
+  This results in the app being unregistered under the given slug,
+  however it is still running.
+  """
+  @spec app_stop(pid()) :: :ok
+  def app_stop(pid) do
+    GenServer.cast(pid, {:app_stop, self()})
   end
 
   ## Callbacks
@@ -1217,8 +1228,13 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:app_shutdown, _client_pid}, state) do
-    operation = {:app_shutdown, @client_id}
+  def handle_cast({:app_unregistered, _client_pid}, state) do
+    operation = {:app_unregistered, @client_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:app_stop, _client_pid}, state) do
+    operation = {:app_stop, @client_id}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1783,7 +1799,7 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, _prev_state, {:app_shutdown, _client_id}) do
+  defp after_operation(state, _prev_state, {:app_unregistered, _client_id}) do
     broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
 
     state
@@ -1897,6 +1913,13 @@ defmodule Livebook.Session do
   defp handle_action(state, :app_register) do
     Livebook.Apps.register(self(), state.data.notebook.app_settings.slug)
     broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, true})
+
+    notify_update(state)
+  end
+
+  defp handle_action(state, :app_unregister) do
+    Livebook.Apps.unregister(self(), state.data.notebook.app_settings.slug)
+    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
 
     notify_update(state)
   end

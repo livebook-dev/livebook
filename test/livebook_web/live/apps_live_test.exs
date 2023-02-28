@@ -28,7 +28,7 @@ defmodule LivebookWeb.AppsLiveTest do
     assert_receive {:session_updated, %{app_info: %{slug: ^slug, registered: true}} = app_session}
     assert render(view) =~ ~p"/apps/#{slug}"
 
-    Session.app_shutdown(app_session.pid)
+    Session.app_unregistered(app_session.pid)
 
     assert_receive {:session_closed, %{app_info: %{slug: ^slug}}}
     refute render(view) =~ slug
@@ -47,6 +47,14 @@ defmodule LivebookWeb.AppsLiveTest do
 
     Session.deploy_app(session.pid)
     assert_receive {:session_created, %{app_info: %{slug: ^slug}}}
+
+    assert_receive {:session_updated, %{app_info: %{slug: ^slug, registered: true}}}
+
+    view
+    |> element(~s/[data-app-slug="#{slug}"] button[aria-label="stop app"]/)
+    |> render_click()
+
+    assert_receive {:session_updated, %{app_info: %{slug: ^slug, registered: false}}}
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="terminate app"]/)
