@@ -554,6 +554,40 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders an status indicator circle.
+  """
+  attr :variant, :atom,
+    required: true,
+    values: [:success, :warning, :error, :inactive, :waiting, :progressing]
+
+  def status_indicator(assigns) do
+    ~H"""
+    <span class="relative flex h-3 w-3">
+      <span
+        :if={animated_circle_class(@variant)}
+        class={[
+          animated_circle_class(@variant),
+          "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+        ]}
+      >
+      </span>
+      <span class={[circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}></span>
+    </span>
+    """
+  end
+
+  defp circle_class(:success), do: "bg-green-bright-400"
+  defp circle_class(:warning), do: "bg-yellow-bright-200"
+  defp circle_class(:error), do: "bg-red-400"
+  defp circle_class(:inactive), do: "bg-gray-500"
+  defp circle_class(:waiting), do: "bg-gray-400"
+  defp circle_class(:progressing), do: "bg-blue-500"
+
+  defp animated_circle_class(:waiting), do: "bg-gray-300"
+  defp animated_circle_class(:progressing), do: "bg-blue-400"
+  defp animated_circle_class(_other), do: nil
+
   # JS commands
 
   @doc """

@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.AppInfoComponent do
   use LivebookWeb, :live_component
 
-  use LivebookWeb, :verified_routes
+  import LivebookWeb.AppHelpers
 
   alias Livebook.Notebook.AppSettings
 
@@ -105,10 +105,10 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           Deployments
         </h3>
         <div class="mt-2 flex flex-col space-y-4">
-          <div :for={app <- @apps} class="border border-gray-200 pb-0 rounded-lg">
+          <div :for={app <- @apps} class="border border-gray-200 rounded-lg">
             <div class="p-4 flex flex-col space-y-3">
               <.labeled_text label="Status">
-                <.status status={app.status} />
+                <.app_status status={app.status} />
               </.labeled_text>
               <.labeled_text label="URL" one_line>
                 <%= if app.registered do %>
@@ -131,17 +131,31 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                   <.remix_icon icon="terminal-line" class="text-lg" />
                 </a>
               </span>
-              <span class="tooltip top" data-tooltip="Shutdown">
-                <button
-                  class="icon-button"
-                  aria-label="shutdown app"
-                  phx-click={
-                    JS.push("shutdown_app", value: %{session_id: app.session_id}, target: @myself)
-                  }
-                >
-                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                </button>
-              </span>
+              <%= if app.registered do %>
+                <span class="tooltip top" data-tooltip="Stop">
+                  <button
+                    class="icon-button"
+                    aria-label="stop app"
+                    phx-click={
+                      JS.push("stop_app", value: %{session_id: app.session_id}, target: @myself)
+                    }
+                  >
+                    <.remix_icon icon="stop-circle-line" class="text-lg" />
+                  </button>
+                </span>
+              <% else %>
+                <span class="tooltip top" data-tooltip="Terminate">
+                  <button
+                    class="icon-button"
+                    aria-label="terminate app"
+                    phx-click={
+                      JS.push("terminate_app", value: %{session_id: app.session_id}, target: @myself)
+                    }
+                  >
+                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                  </button>
+                </span>
+              <% end %>
             </div>
           </div>
         </div>
@@ -165,53 +179,6 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     >
       <.remix_icon icon="question-line" class="text-xl leading-none" />
     </span>
-    """
-  end
-
-  defp status(%{status: :booting} = assigns) do
-    ~H"""
-    <.status_indicator text="Booting" circle_class="bg-blue-500" animated_circle_class="bg-blue-400" />
-    """
-  end
-
-  defp status(%{status: :running} = assigns) do
-    ~H"""
-    <.status_indicator text="Running" circle_class="bg-green-bright-400" />
-    """
-  end
-
-  defp status(%{status: :error} = assigns) do
-    ~H"""
-    <.status_indicator text="Error" circle_class="bg-red-400" />
-    """
-  end
-
-  defp status(%{status: :shutting_down} = assigns) do
-    ~H"""
-    <.status_indicator text="Shutting down" circle_class="bg-gray-500" />
-    """
-  end
-
-  defp status_indicator(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:animated_circle_class, fn -> nil end)
-
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <div><%= @text %></div>
-      <span class="relative flex h-3 w-3">
-        <span
-          :if={@animated_circle_class}
-          class={[
-            @animated_circle_class,
-            "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-          ]}
-        >
-        </span>
-        <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3 bg-blue-500"]}></span>
-      </span>
-    </div>
     """
   end
 
@@ -261,9 +228,15 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     {:noreply, assign(socket, deploy_confirmation: false)}
   end
 
-  def handle_event("shutdown_app", %{"session_id" => session_id}, socket) do
+  def handle_event("terminate_app", %{"session_id" => session_id}, socket) do
     app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
     Livebook.Session.close(app.session_pid)
+    {:noreply, socket}
+  end
+
+  def handle_event("stop_app", %{"session_id" => session_id}, socket) do
+    app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
+    Livebook.Session.app_stop(app.session_pid)
     {:noreply, socket}
   end
 

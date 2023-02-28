@@ -127,7 +127,6 @@ defmodule LivebookWeb.AppLive do
           <div style="height: 80vh"></div>
         </div>
       </div>
-      <div class="hidden md:flex invisible w-[80px]"></div>
     </div>
 
     <.modal

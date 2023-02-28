@@ -4,7 +4,7 @@ defmodule Livebook.Apps do
   alias Livebook.Session
 
   @doc """
-  Registers a app session under the given slug.
+  Registers an app session under the given slug.
 
   In case another app is already registered under the given slug,
   this function atomically replaces the registration and instructs
@@ -21,10 +21,30 @@ defmodule Livebook.Apps do
 
         pid ->
           :global.unregister_name(name)
-          Session.app_shutdown(pid)
+          Session.app_unregistered(pid)
       end
 
       :yes = :global.register_name(name, session_pid)
+    end)
+
+    :ok
+  end
+
+  @doc """
+  Unregisters an app session from the given slug.
+  """
+  @spec unregister(pid(), String.t()) :: :ok
+  def unregister(session_pid, slug) do
+    name = name(slug)
+
+    :global.trans({{:app_registration, name}, node()}, fn ->
+      case :global.whereis_name(name) do
+        :undefined ->
+          :ok
+
+        ^session_pid ->
+          :global.unregister_name(name)
+      end
     end)
 
     :ok

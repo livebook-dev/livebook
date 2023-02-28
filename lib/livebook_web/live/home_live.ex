@@ -369,26 +369,11 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, file: file, file_info: file_info)}
   end
 
-  def handle_info({:session_created, session}, socket) do
-    if session in socket.assigns.sessions do
-      {:noreply, socket}
-    else
-      {:noreply, assign(socket, sessions: [session | socket.assigns.sessions])}
-    end
-  end
-
-  def handle_info({:session_updated, session}, socket) do
-    sessions =
-      Enum.map(socket.assigns.sessions, fn other ->
-        if other.id == session.id, do: session, else: other
-      end)
-
-    {:noreply, assign(socket, sessions: sessions)}
-  end
-
-  def handle_info({:session_closed, session}, socket) do
-    sessions = Enum.reject(socket.assigns.sessions, &(&1.id == session.id))
-    {:noreply, assign(socket, sessions: sessions)}
+  @impl true
+  def handle_info({type, session} = event, socket)
+      when type in [:session_created, :session_updated, :session_closed] and
+             session.mode == :default do
+    {:noreply, update(socket, :sessions, &update_session_list(&1, event))}
   end
 
   def handle_info({:import_content, content, session_opts}, socket) do

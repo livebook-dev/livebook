@@ -73,4 +73,29 @@ defmodule LivebookWeb.SessionHelpers do
 
   def uses_memory?(%{runtime: %{total: total}}) when total > 0, do: true
   def uses_memory?(_), do: false
+
+  @doc """
+  Updates a list of sessions based on the given `Sessions` event.
+  """
+  @spec update_session_list(
+          list(Session.t()),
+          {:session_created | :session_updated | :session_closed, Session.t()}
+        ) :: list(Session.t())
+  def update_session_list(sessions, {:session_created, session}) do
+    if session in sessions do
+      sessions
+    else
+      [session | sessions]
+    end
+  end
+
+  def update_session_list(sessions, {:session_updated, session}) do
+    Enum.map(sessions, fn other ->
+      if other.id == session.id, do: session, else: other
+    end)
+  end
+
+  def update_session_list(sessions, {:session_closed, session}) do
+    Enum.reject(sessions, &(&1.id == session.id))
+  end
 end

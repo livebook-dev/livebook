@@ -1417,10 +1417,10 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_push_event(view, "markdown_renderer:" <> _, %{content: "Hello from the app!"})
 
-      Session.app_shutdown(app_session_pid)
+      Session.app_unregistered(app_session_pid)
     end
 
-    test "terminating an app", %{conn: conn, session: session} do
+    test "stopping and terminating an app", %{conn: conn, session: session} do
       Session.subscribe(session.id)
 
       slug = Livebook.Utils.random_short_id()
@@ -1434,7 +1434,13 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="shutdown app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="stop app"]/)
+      |> render_click()
+
+      assert_receive {:operation, {:set_app_registered, _, _, false}}
+
+      view
+      |> element(~s/[data-el-app-info] button[aria-label="terminate app"]/)
       |> render_click()
 
       assert_receive {:operation, {:delete_app, _, _}}

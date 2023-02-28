@@ -99,6 +99,7 @@ defmodule LivebookWeb.LayoutHelpers do
             </div>
             <.sidebar_link title="Home" icon="home-6-line" to={~p"/"} current={@current_page} />
             <.sidebar_link title="Learn" icon="article-line" to={~p"/learn"} current={@current_page} />
+            <.sidebar_link title="Apps" icon="rocket-line" to={~p"/apps"} current={@current_page} />
             <.sidebar_link
               title="Settings"
               icon="settings-3-line"
