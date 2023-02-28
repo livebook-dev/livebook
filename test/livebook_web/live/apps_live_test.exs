@@ -6,8 +6,6 @@ defmodule LivebookWeb.AppsLiveTest do
   alias Livebook.{Session, Sessions}
 
   test "updates UI when app is deployed and terminated", %{conn: conn} do
-    {:ok, view, _} = live(conn, ~p"/apps")
-
     session = start_session()
 
     Sessions.subscribe()
@@ -17,6 +15,8 @@ defmodule LivebookWeb.AppsLiveTest do
     Session.set_app_settings(session.pid, app_settings)
 
     Session.set_notebook_name(session.pid, "My app #{slug}")
+
+    {:ok, view, _} = live(conn, ~p"/apps")
 
     refute render(view) =~ slug
 
@@ -35,8 +35,6 @@ defmodule LivebookWeb.AppsLiveTest do
   end
 
   test "terminating an app", %{conn: conn} do
-    {:ok, view, _} = live(conn, ~p"/apps")
-
     session = start_session()
 
     Sessions.subscribe()
@@ -45,22 +43,27 @@ defmodule LivebookWeb.AppsLiveTest do
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
     Session.set_app_settings(session.pid, app_settings)
 
+    {:ok, view, _} = live(conn, ~p"/apps")
+
     Session.deploy_app(session.pid)
     assert_receive {:session_created, %{app_info: %{slug: ^slug}}}
 
-    assert_receive {:session_updated, %{app_info: %{slug: ^slug, registered: true}}}
+    assert_receive {:session_updated,
+                    %{app_info: %{slug: ^slug, status: :running, registered: true}}}
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="stop app"]/)
     |> render_click()
 
-    assert_receive {:session_updated, %{app_info: %{slug: ^slug, registered: false}}}
+    assert_receive {:session_updated,
+                    %{app_info: %{slug: ^slug, status: :stopped, registered: false}}}
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="terminate app"]/)
     |> render_click()
 
     assert_receive {:session_closed, %{app_info: %{slug: ^slug}}}
+
     refute render(view) =~ slug
   end
 

@@ -1802,7 +1802,7 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:app_unregistered, _client_id}) do
     broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
 
-    state
+    notify_update(state)
   end
 
   defp after_operation(state, _prev_state, _operation), do: state
