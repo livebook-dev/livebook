@@ -225,7 +225,7 @@ defmodule Livebook.Application do
 
   defp deploy_apps() do
     if apps_path = Livebook.Config.apps_path() do
-      Livebook.Apps.deploy_apps_in_dir(apps_path)
+      Livebook.Apps.deploy_apps_in_dir(apps_path, password: Livebook.Config.apps_path_password())
     end
   end
 

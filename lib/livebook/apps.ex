@@ -94,9 +94,16 @@ defmodule Livebook.Apps do
 
   @doc """
   Deploys an app for each notebook in the given directory.
+
+  ## Options
+
+    * `:password` - a password to set for every loaded app
+
   """
-  @spec deploy_apps_in_dir(String.t()) :: :ok
-  def deploy_apps_in_dir(path) do
+  @spec deploy_apps_in_dir(String.t(), keyword()) :: :ok
+  def deploy_apps_in_dir(path, opts \\ []) do
+    opts = Keyword.validate!(opts, [:password])
+
     pattern = Path.join([path, "**", "*.livemd"])
     paths = Path.wildcard(pattern)
 
@@ -111,6 +118,13 @@ defmodule Livebook.Apps do
           "Found warnings while importing app notebook at #{path}:\n\n" <> Enum.join(items, "\n")
         )
       end
+
+      notebook =
+        if password = opts[:password] do
+          put_in(notebook.app_settings.password, password)
+        else
+          notebook
+        end
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
         {:ok, session} = Livebook.Sessions.create_session(notebook: notebook, mode: :app)

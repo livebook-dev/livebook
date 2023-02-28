@@ -52,5 +52,25 @@ defmodule Livebook.AppsTest do
                Livebook.Apps.deploy_apps_in_dir(tmp_dir)
              end) =~ "Skipping app deployment at #{app_path} due to invalid settings"
     end
+
+    @tag :tmp_dir
+    test "overrides apps password when :password is set", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # App
+      """)
+
+      Livebook.Sessions.subscribe()
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir, password: "verylongpass")
+
+      assert_receive {:session_created, %{app_info: %{slug: "app"}} = session}
+
+      %{access_type: :protected, password: "verylongpass"} =
+        Livebook.Session.get_app_settings(session.pid)
+    end
   end
 end

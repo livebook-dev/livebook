@@ -93,6 +93,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the password configured for all apps deployed rom `app_path`.
+  """
+  @spec apps_path_password() :: String.t() | nil
+  def apps_path_password() do
+    Application.get_env(:livebook, :apps_path_password)
+  end
+
+  @doc """
   Returns the configured port for the Livebook endpoint.
 
   Note that the value may be `0`.
