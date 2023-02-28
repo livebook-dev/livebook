@@ -97,11 +97,8 @@ defmodule Livebook.Apps do
   """
   @spec deploy_apps_in_dir(String.t()) :: :ok
   def deploy_apps_in_dir(path) do
-    paths =
-      case File.ls(path) do
-        {:ok, filenames} -> Enum.map(filenames, &Path.join(path, &1))
-        _ -> []
-      end
+    pattern = Path.join([path, "**", "*.livemd"])
+    paths = Path.wildcard(pattern)
 
     for path <- paths do
       markdown = File.read!(path)
