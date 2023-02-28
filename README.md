@@ -166,6 +166,8 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_APPS_PATH - the directory with app notebooks. When set, the apps
     are deployed on Livebook startup with the persisted settings.
+    Password-protected notebooks will receive a random password,
+    unless `LIVEBOOK_APPS_PATH_PASSWORD` is set.
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
     Useful when deploying behind a reverse proxy.
