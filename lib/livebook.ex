@@ -152,6 +152,10 @@ defmodule Livebook do
       config :livebook, :data_path, data_path
     end
 
+    if apps_path = Livebook.Config.readable_dir!("LIVEBOOK_APPS_PATH") do
+      config :livebook, :apps_path, apps_path
+    end
+
     if force_ssl_host = Livebook.Config.force_ssl_host!("LIVEBOOK_FORCE_SSL_HOST") do
       config :livebook, :force_ssl_host, force_ssl_host
     end

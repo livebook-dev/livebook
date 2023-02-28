@@ -85,6 +85,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the apps path.
+  """
+  @spec apps_path() :: String.t() | nil
+  def apps_path() do
+    Application.get_env(:livebook, :apps_path)
+  end
+
+  @doc """
   Returns the configured port for the Livebook endpoint.
 
   Note that the value may be `0`.
@@ -242,6 +250,33 @@ defmodule Livebook.Config do
   defp writable_dir?(path) do
     case File.stat(path) do
       {:ok, %{type: :directory, access: access}} when access in [:read_write, :write] -> true
+      _ -> false
+    end
+  end
+
+  @doc """
+  Parses and validates dir from env.
+  """
+  def readable_dir!(env) do
+    if dir = System.get_env(env) do
+      readable_dir!(env, dir)
+    end
+  end
+
+  @doc """
+  Validates `dir` within context.
+  """
+  def readable_dir!(context, dir) do
+    if readable_dir?(dir) do
+      Path.expand(dir)
+    else
+      abort!("expected #{context} to be a readable directory: #{dir}")
+    end
+  end
+
+  defp readable_dir?(path) do
+    case File.stat(path) do
+      {:ok, %{type: :directory, access: access}} when access in [:read_write, :read] -> true
       _ -> false
     end
   end

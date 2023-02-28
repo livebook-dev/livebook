@@ -720,6 +720,38 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
 
+  describe "app settings" do
+    test "imports settings" do
+      markdown = """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
+
+      # My Notebook
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               app_settings: %{slug: "app", access_type: :public}
+             } = notebook
+    end
+
+    test "correctly imports protected access" do
+      markdown = """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # My Notebook
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               app_settings: %{slug: "app", access_type: :protected}
+             } = notebook
+    end
+  end
+
   describe "backward compatibility" do
     test "warns if the imported notebook includes an input" do
       markdown = """

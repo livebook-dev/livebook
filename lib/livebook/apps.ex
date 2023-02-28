@@ -1,6 +1,8 @@
 defmodule Livebook.Apps do
   @moduledoc false
 
+  require Logger
+
   alias Livebook.Session
 
   @doc """
@@ -89,4 +91,38 @@ defmodule Livebook.Apps do
   end
 
   defp name(slug), do: {:app, slug}
+
+  @doc """
+  Deploys an app for each notebook in the given directory.
+  """
+  @spec deploy_apps_in_dir(String.t()) :: :ok
+  def deploy_apps_in_dir(path) do
+    paths =
+      case File.ls(path) do
+        {:ok, filenames} -> Enum.map(filenames, &Path.join(path, &1))
+        _ -> []
+      end
+
+    for path <- paths do
+      markdown = File.read!(path)
+      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+
+      if warnings != [] do
+        items = Enum.map(warnings, &("- " <> &1))
+
+        Logger.warning(
+          "Found warnings while importing app notebook at #{path}:\n\n" <> Enum.join(items, "\n")
+        )
+      end
+
+      if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
+        {:ok, session} = Livebook.Sessions.create_session(notebook: notebook, mode: :app)
+        Livebook.Session.app_build(session.pid)
+      else
+        Logger.warning("Skipping app deployment at #{path} due to invalid settings")
+      end
+    end
+
+    :ok
+  end
 end
