@@ -61,7 +61,7 @@ defmodule Livebook.Session.Data do
           mode: session_mode(),
           apps: list(app()),
           app_data: nil | app_data(),
-          hub: nil | Provider.t()
+          hub: Provider.t()
         }
 
   @type section_info :: %{
@@ -221,7 +221,7 @@ defmodule Livebook.Session.Data do
           | {:delete_app, client_id(), Livebook.Session.id()}
           | {:app_unregistered, client_id()}
           | {:app_stop, client_id()}
-          | {:select_hub, client_id(), String.t()}
+          | {:set_notebook_hub, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
@@ -277,7 +277,8 @@ defmodule Livebook.Session.Data do
       secrets: %{},
       mode: opts[:mode],
       apps: [],
-      app_data: app_data
+      app_data: app_data,
+      hub: Livebook.Hubs.fetch_hub!("personal-hub")
     }
 
     data
@@ -911,10 +912,10 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:select_hub, _client_id, id}) do
+  def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
     data
     |> with_actions()
-    |> select_hub(id)
+    |> set_notebook_hub(id)
     |> wrap_ok()
   end
 
@@ -1834,7 +1835,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp select_hub(data_actions, id) do
+  defp set_notebook_hub(data_actions, id) do
     hub = Livebook.Hubs.fetch_hub!(id)
     set!(data_actions, hub: hub)
   end

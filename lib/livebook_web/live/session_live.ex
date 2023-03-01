@@ -1189,7 +1189,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("select_hub", %{"id" => id}, socket) do
-    Session.select_hub(socket.assigns.session.pid, id)
+    Session.set_notebook_hub(socket.assigns.session.pid, id)
 
     {:noreply, socket}
   end

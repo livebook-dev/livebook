@@ -1461,7 +1461,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/#select-hub-#{id}/)
       |> render_click()
 
-      assert_receive {:operation, {:select_hub, _, ^id}}
+      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
       assert %{id: ^id} = Session.get_data(session.pid).hub
     end
   end
