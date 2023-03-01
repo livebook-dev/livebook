@@ -1140,7 +1140,7 @@ defmodule Livebook.SessionTest do
 
       assert {:ok, %{id: ^app2_session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
 
-      Session.app_shutdown(app2_session_pid)
+      Session.app_unregistered(app2_session_pid)
     end
 
     test "recovers on failure", %{test: test} do
@@ -1176,7 +1176,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:set_app_status, _, ^app_session_id, :booting}}
       assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
 
-      Session.app_shutdown(app_session_pid)
+      Session.app_unregistered(app_session_pid)
     end
   end
 

@@ -624,11 +624,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""
-    <.status_indicator
-      circle_class="bg-blue-500"
-      animated_circle_class="bg-blue-400"
-      change_indicator={true}
-    >
+    <.cell_status_indicator variant={:progressing} change_indicator={true}>
       <span
         class="font-mono"
         id={"#{@id}-cell-timer"}
@@ -637,55 +633,55 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-start={DateTime.to_iso8601(@cell_view.eval.evaluation_start)}
       >
       </span>
-    </.status_indicator>
+    </.cell_status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{eval: %{status: :queued}}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-gray-400" animated_circle_class="bg-gray-300">
+    <.cell_status_indicator variant={:waiting}>
       Queued
-    </.status_indicator>
+    </.cell_status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
-    <.status_indicator
-      circle_class={if(@cell_view.eval.errored, do: "bg-red-400", else: "bg-green-bright-400")}
+    <.cell_status_indicator
+      variant={if(@cell_view.eval.errored, do: :error, else: :success)}
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}
     >
       Evaluated
-    </.status_indicator>
+    </.cell_status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-yellow-bright-200" change_indicator={true}>
+    <.cell_status_indicator variant={:warning} change_indicator={true}>
       Stale
-    </.status_indicator>
+    </.cell_status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-gray-500">
+    <.cell_status_indicator variant={:inactive}>
       Aborted
-    </.status_indicator>
+    </.cell_status_indicator>
     """
   end
 
   defp cell_status(assigns), do: ~H""
 
-  defp status_indicator(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:animated_circle_class, fn -> nil end)
-      |> assign_new(:change_indicator, fn -> false end)
-      |> assign_new(:tooltip, fn -> nil end)
+  attr :variant, :atom, required: true
+  attr :tooltip, :string, default: nil
+  attr :change_indicator, :boolean, default: false
 
+  slot :inner_block, required: true
+
+  defp cell_status_indicator(assigns) do
     ~H"""
     <div class={[@tooltip && "tooltip", "bottom distant-medium"]} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
@@ -693,17 +689,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= render_slot(@inner_block) %>
           <span :if={@change_indicator} data-el-change-indicator>*</span>
         </div>
-        <span class="flex relative h-3 w-3">
-          <span
-            :if={@animated_circle_class}
-            class={[
-              @animated_circle_class,
-              "animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"
-            ]}
-          >
-          </span>
-          <span class={[@circle_class, "relative inline-flex rounded-full h-3 w-3"]}></span>
-        </span>
+        <.status_indicator variant={@variant} />
       </div>
     </div>
     """

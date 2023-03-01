@@ -3,8 +3,8 @@ defprotocol Livebook.Hubs.Provider do
 
   alias Livebook.Secrets.Secret
 
-  @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Local.t()
-  @type capability :: :connect | :secrets
+  @type t :: Livebook.Hubs.Enterprise.t() | Livebook.Hubs.Fly.t() | Livebook.Hubs.Personal.t()
+  @type capability :: :connect | :list_secrets | :create_secret | :update_secret | :delete_secret
   @type capabilities :: list(capability())
   @type changeset_errors :: %{required(:errors) => list({String.t(), {Stirng.t(), list()}})}
 
@@ -51,10 +51,22 @@ defprotocol Livebook.Hubs.Provider do
   def get_secrets(hub)
 
   @doc """
-  Creates a secret of  the given hub.
+  Creates a secret of the given hub.
   """
   @spec create_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
   def create_secret(hub, secret)
+
+  @doc """
+  Updates a secret of the given hub.
+  """
+  @spec update_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def update_secret(hub, secret)
+
+  @doc """
+  Deletes a secret of the given hub.
+  """
+  @spec delete_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  def delete_secret(hub, secret)
 
   @doc """
   Gets the connection error from hub.

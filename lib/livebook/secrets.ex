@@ -4,19 +4,17 @@ defmodule Livebook.Secrets do
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
 
-  @temporary_key :livebook_temporary_secrets
+  @secret_startup_key :livebook_startup_secrets
 
   @doc """
   Get the secrets list from storage.
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    temporary_secrets = :persistent_term.get(@temporary_key, [])
+    startup_secrets = :persistent_term.get(@secret_startup_key, [])
+    storage_secrets = for fields <- Storage.all(:secrets), do: to_struct(fields)
 
-    for fields <- Storage.all(:secrets) do
-      to_struct(fields)
-    end
-    |> Enum.concat(temporary_secrets)
+    Enum.concat(storage_secrets, startup_secrets)
   end
 
   @doc """
@@ -109,9 +107,9 @@ defmodule Livebook.Secrets do
   @doc """
   Sets additional secrets that are kept only in memory.
   """
-  @spec set_temporary_secrets(list(Secret.t())) :: :ok
-  def set_temporary_secrets(secrets) do
-    :persistent_term.put(@temporary_key, secrets)
+  @spec set_startup_secrets(list(Secret.t())) :: :ok
+  def set_startup_secrets(secrets) do
+    :persistent_term.put(@secret_startup_key, secrets)
   end
 
   @doc """

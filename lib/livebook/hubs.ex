@@ -3,7 +3,6 @@ defmodule Livebook.Hubs do
 
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider}
-  alias Livebook.Secrets
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
@@ -181,9 +180,7 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs(),
-        capability?(hub, [:connect]),
-        do: connect_hub(hub)
+    for hub <- get_hubs([:connect]), do: connect_hub(hub)
 
     :ok
   end
@@ -203,7 +200,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_hubs([:secrets]),
+    for hub <- get_hubs([:list_secrets]),
         secret <- Provider.get_secrets(hub),
         do: secret
   end
@@ -211,22 +208,41 @@ defmodule Livebook.Hubs do
   @doc """
   Creates a secret for given hub.
   """
-  @spec create_secret(Secret.t()) :: :ok | {:error, list({String.t(), list(String.t())})}
+  @spec create_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
   def create_secret(%Secret{origin: {:hub, id}} = secret) do
-    case get_hub(id) do
-      {:ok, hub} ->
-        if capability?(hub, [:secrets]) do
-          Provider.create_secret(hub, secret)
-        else
-          {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
-        end
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:create_secret])
 
-      :error ->
-        {:error, Secrets.add_secret_error(secret, :origin, "is invalid")}
-    end
+    Provider.create_secret(hub, secret)
   end
 
-  defp capability?(hub, capabilities) do
+  @doc """
+  Updates a secret for given hub.
+  """
+  @spec update_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
+  def update_secret(%Secret{origin: {:hub, id}} = secret) do
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:update_secret])
+
+    Provider.update_secret(hub, secret)
+  end
+
+  @doc """
+  Deletes a secret for given hub.
+  """
+  @spec delete_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
+  def delete_secret(%Secret{origin: {:hub, id}} = secret) do
+    {:ok, hub} = get_hub(id)
+    true = capability?(hub, [:delete_secret])
+
+    Provider.delete_secret(hub, secret)
+  end
+
+  @doc """
+  Checks the hub capability for given hub.
+  """
+  @spec capability?(Provider.t(), list(atom())) :: boolean()
+  def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
   end
 end

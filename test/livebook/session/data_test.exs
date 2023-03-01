@@ -3798,17 +3798,21 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :app_shutdown" do
+  describe "apply_operation/2 given :app_unregistered" do
     test "returns an error if not in app mode" do
       data = Data.new()
-      operation = {:app_shutdown, @cid}
+      operation = {:app_unregistered, @cid}
       assert :error = Data.apply_operation(data, operation)
     end
 
     test "updates app status" do
-      data = Data.new(mode: :app)
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"])
+        ])
 
-      operation = {:app_shutdown, @cid}
+      operation = {:app_unregistered, @cid}
 
       assert {:ok, %{app_data: %{status: :shutting_down}},
               [:app_broadcast_status, :app_terminate]} = Data.apply_operation(data, operation)
@@ -3817,12 +3821,50 @@ defmodule Livebook.Session.DataTest do
     test "does not return terminate action if there are clients" do
       data =
         data_after_operations!(Data.new(mode: :app), [
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
           {:client_join, @cid, User.new()}
         ])
 
-      operation = {:app_shutdown, @cid}
+      operation = {:app_unregistered, @cid}
 
       assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_broadcast_status]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :app_stop" do
+    test "returns an error if not in app mode" do
+      data = Data.new()
+      operation = {:app_stop, @cid}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if app is not registered" do
+      data = Data.new()
+      operation = {:app_unregistered, @cid}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates app status" do
+      data = Data.new(mode: :app)
+
+      operation = {:app_stop, @cid}
+
+      assert {:ok, %{app_data: %{status: :stopped}}, [:app_broadcast_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "returns :app_unregister action when registered" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"])
+        ])
+
+      operation = {:app_stop, @cid}
+
+      assert {:ok, %{app_data: %{status: :stopped}}, [:app_broadcast_status, :app_unregister]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3918,8 +3960,10 @@ defmodule Livebook.Session.DataTest do
     test "when the app is shutting down and the last client leaves, returns terminate action" do
       data =
         data_after_operations!(Data.new(mode: :app), [
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
           {:client_join, @cid, User.new()},
-          {:app_shutdown, @cid}
+          {:app_unregistered, @cid}
         ])
 
       operation = {:client_leave, @cid}

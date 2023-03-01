@@ -43,6 +43,18 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:personal_metadata) do
+    :personal |> build() |> Livebook.Hubs.Provider.to_metadata()
+  end
+
+  def build(:personal) do
+    %Livebook.Hubs.Personal{
+      id: "personal-hub",
+      hub_name: "My Hub",
+      hub_emoji: "🏠"
+    }
+  end
+
   def build(:env_var) do
     %Livebook.Settings.EnvVar{
       name: "BAR",
@@ -54,15 +66,15 @@ defmodule Livebook.Factory do
     %Livebook.Secrets.Secret{
       name: "FOO",
       value: "123",
-      origin: :app
+      origin: {:hub, "personal-hub"}
     }
   end
 
-  def build(factory_name, attrs \\ %{}) do
+  def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end
 
-  def params_for(factory_name, attrs \\ %{}) do
+  def params_for(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs) |> Map.from_struct()
   end
 
@@ -74,7 +86,8 @@ defmodule Livebook.Factory do
 
   def insert_secret(attrs \\ %{}) do
     secret = build(:secret, attrs)
-    Livebook.Secrets.set_secret(secret)
+    :ok = Livebook.Hubs.create_secret(secret)
+    secret
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

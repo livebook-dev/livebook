@@ -57,6 +57,8 @@ defmodule Livebook.Application do
         display_startup_info()
         insert_personal_hub()
         Livebook.Hubs.connect_hubs()
+        update_app_secrets_origin()
+        deploy_apps()
         result
 
       {:error, error} ->
@@ -192,7 +194,7 @@ defmodule Livebook.Application do
         %Livebook.Secrets.Secret{name: name, value: value, origin: :startup}
       end
 
-    Livebook.Secrets.set_temporary_secrets(secrets)
+    Livebook.Secrets.set_startup_secrets(secrets)
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true
@@ -212,6 +214,20 @@ defmodule Livebook.Application do
         hub_name: "My Hub",
         hub_emoji: "🏠"
       })
+    end
+  end
+
+  # TODO: Remove in the future
+  defp update_app_secrets_origin do
+    for %{origin: :app} = secret <- Livebook.Secrets.get_secrets() do
+      {:ok, secret} = Livebook.Secrets.update_secret(secret, %{origin: {:hub, "personal-hub"}})
+      Livebook.Secrets.set_secret(secret)
+    end
+  end
+
+  defp deploy_apps() do
+    if apps_path = Livebook.Config.apps_path() do
+      Livebook.Apps.deploy_apps_in_dir(apps_path, password: Livebook.Config.apps_path_password())
     end
   end
 

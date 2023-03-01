@@ -14,6 +14,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
 
@@ -27,7 +28,7 @@ defmodule LivebookWeb.FormComponents do
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class="input"
+        class={["input", @class]}
         {@rest}
       />
     </.field_wrapper>
@@ -211,6 +212,45 @@ defmodule LivebookWeb.FormComponents do
           </div>
         </label>
       </div>
+      <.error :for={msg <- @errors}><%= msg %></.error>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders checkbox input with label and error messages.
+  """
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, default: nil
+  attr :value, :any
+  attr :errors, :list, default: []
+  attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+
+  attr :disabled, :boolean, default: false
+  attr :checked_value, :string, default: "true"
+  attr :unchecked_value, :string, default: "false"
+
+  attr :rest, :global
+
+  def checkbox_field(assigns) do
+    assigns = assigns_from_field(assigns)
+
+    ~H"""
+    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="hidden" value={@unchecked_value} name={@name} />
+        <input
+          type="checkbox"
+          class="checkbox"
+          value={@checked_value}
+          name={@name}
+          id={@id || @name}
+          checked={to_string(@value) == @checked_value}
+          {@rest}
+        />
+        <span :if={@label}><%= @label %></span>
+      </label>
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
     """

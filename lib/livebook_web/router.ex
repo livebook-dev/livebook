@@ -71,6 +71,8 @@ defmodule LivebookWeb.Router do
       live "/learn", LearnLive, :page
       live "/learn/notebooks/:slug", LearnLive, :notebook
 
+      live "/apps", AppsLive, :page
+
       live "/hub", Hub.NewLive, :new, as: :hub
       live "/hub/:id", Hub.EditLive, :edit, as: :hub
       live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var, as: :hub
@@ -107,6 +109,7 @@ defmodule LivebookWeb.Router do
 
       live "/apps/:slug", AppLive, :page
       live "/apps/:slug/authenticate", AppAuthLive, :page
+      live "/apps/:slug/source", AppLive, :source
     end
   end
 

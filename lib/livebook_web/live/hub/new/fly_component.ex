@@ -31,7 +31,6 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         phx-submit="save"
         phx-change="validate"
         phx-target={@myself}
-        phx-debounce="blur"
       >
         <.password_field
           type="password"

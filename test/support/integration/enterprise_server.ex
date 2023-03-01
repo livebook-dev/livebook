@@ -220,6 +220,10 @@ defmodule Livebook.EnterpriseServer do
     System.get_env("ENTERPRISE_DEBUG", "false")
   end
 
+  defp proto do
+    System.get_env("ENTERPRISE_LIVEBOOK_PROTO_PATH")
+  end
+
   defp wait_on_start(state, port) do
     url = state.url || fetch_url(state)
 
@@ -264,6 +268,8 @@ defmodule Livebook.EnterpriseServer do
       "PORT" => to_string(app_port),
       "DEBUG" => debug()
     }
+
+    env = if proto(), do: Map.merge(env, %{"LIVEBOOK_PROTO_PATH" => proto()}), else: env
 
     if state_env do
       Map.merge(env, state_env)
