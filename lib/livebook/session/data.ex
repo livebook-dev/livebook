@@ -34,10 +34,12 @@ defmodule Livebook.Session.Data do
     :secrets,
     :mode,
     :apps,
-    :app_data
+    :app_data,
+    :hub
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
+  alias Livebook.Hubs.Provider
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
@@ -58,7 +60,8 @@ defmodule Livebook.Session.Data do
           secrets: %{(name :: String.t()) => value :: String.t()},
           mode: session_mode(),
           apps: list(app()),
-          app_data: nil | app_data()
+          app_data: nil | app_data(),
+          hub: nil | Provider.t()
         }
 
   @type section_info :: %{
@@ -218,6 +221,7 @@ defmodule Livebook.Session.Data do
           | {:delete_app, client_id(), Livebook.Session.id()}
           | {:app_unregistered, client_id()}
           | {:app_stop, client_id()}
+          | {:select_hub, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
@@ -905,6 +909,13 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:select_hub, _client_id, id}) do
+    data
+    |> with_actions()
+    |> select_hub(id)
+    |> wrap_ok()
   end
 
   # ===
@@ -1821,6 +1832,11 @@ defmodule Livebook.Session.Data do
     else
       :error
     end
+  end
+
+  defp select_hub(data_actions, id) do
+    hub = Livebook.Hubs.fetch_hub!(id)
+    set!(data_actions, hub: hub)
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

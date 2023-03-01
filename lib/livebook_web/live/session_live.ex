@@ -240,6 +240,35 @@ defmodule LivebookWeb.SessionLive do
             data-on-value-change="set_notebook_name"
             data-metadata="notebook"
           >
+            <.menu position={:bottom_left} id="notebook-hub-menu">
+              <:toggle>
+                <span class="tooltip right distant relative" data-tooltip="Select one hub">
+                  <div class="border-2 rounded-full border-gray-200 hover:border-gray-400 focus:border-gray-400 w-[50px] h-[50px] flex items-center justify-center">
+                    <%= if hub = @data_view.notebook_hub do %>
+                      <button aria-label={hub.hub_name}>
+                        <%= hub.hub_emoji %>
+                      </button>
+                    <% else %>
+                      <button aria-label="Select one hub">
+                        <.remix_icon icon="server-fill" />
+                      </button>
+                    <% end %>
+                  </div>
+                </span>
+              </:toggle>
+              <.menu_item :for={hub <- @saved_hubs}>
+                <button
+                  id={"select-hub-#{hub.id}"}
+                  phx-click={JS.push("select_hub", value: %{id: hub.id})}
+                  aria-label={hub.name}
+                  role="menuitem"
+                >
+                  <%= hub.emoji %>
+                  <span class="ml-2"><%= hub.name %></span>
+                </button>
+              </.menu_item>
+            </.menu>
+
             <h1
               class="grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
               tabindex="0"
@@ -248,6 +277,7 @@ defmodule LivebookWeb.SessionLive do
               spellcheck="false"
               phx-no-format
             ><%= @data_view.notebook_name %></h1>
+
             <.menu id="session-menu">
               <:toggle>
                 <button class="icon-button" aria-label="open notebook menu">
@@ -1158,6 +1188,12 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
+  def handle_event("select_hub", %{"id" => id}, socket) do
+    Session.select_hub(socket.assigns.session.pid, id)
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -1764,7 +1800,8 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       apps_status: apps_status(data),
       app_settings: data.notebook.app_settings,
-      apps: data.apps
+      apps: data.apps,
+      notebook_hub: data.hub
     }
   end
 

@@ -1448,4 +1448,21 @@ defmodule LivebookWeb.SessionLiveTest do
       refute render(view) =~ "/apps/#{slug}"
     end
   end
+
+  describe "hubs" do
+    test "selects the notebook hub", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      id = "personal-hub"
+
+      refute Session.get_data(session.pid).hub
+
+      view
+      |> element(~s/#select-hub-#{id}/)
+      |> render_click()
+
+      assert_receive {:operation, {:select_hub, _, ^id}}
+      assert %{id: ^id} = Session.get_data(session.pid).hub
+    end
+  end
 end
