@@ -518,12 +518,6 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp headline_menu(assigns) do
-    ~H"""
-
-    """
-  end
-
   defp button_item(assigns) do
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
