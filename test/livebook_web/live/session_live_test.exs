@@ -1451,18 +1451,20 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, session: session} do
+      hub = insert_hub(:fly)
+      id = hub.id
+
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-      id = "personal-hub"
 
-      refute Session.get_data(session.pid).hub
+      assert %Livebook.Hubs.Personal{id: "personal-hub"} = Session.get_data(session.pid).hub
 
       view
       |> element(~s/#select-hub-#{id}/)
       |> render_click()
 
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
-      assert %{id: ^id} = Session.get_data(session.pid).hub
+      assert Session.get_data(session.pid).hub == hub
     end
   end
 end
