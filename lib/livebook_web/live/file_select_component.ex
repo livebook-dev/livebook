@@ -249,7 +249,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.file_system_icon file_system={@file.file_system} />
         </button>
       </:toggle>
-      <%= for {file_system_id, file_system} <- @file_systems do %>
+      <%= for file_system <- @file_systems do %>
         <%= if file_system == @file.file_system do %>
           <.menu_item variant={:selected}>
             <button role="menuitem">
@@ -263,7 +263,7 @@ defmodule LivebookWeb.FileSelectComponent do
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
-              phx-value-id={file_system_id}
+              phx-value-id={file_system.id}
             >
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
@@ -425,10 +425,7 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
-    {^file_system_id, file_system} =
-      Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
-        id == file_system_id
-      end)
+    file_system = Enum.find(socket.assigns.file_systems, &(&1.id == file_system_id))
 
     file = FileSystem.File.new(file_system)
 

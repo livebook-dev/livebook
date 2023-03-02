@@ -106,7 +106,7 @@ defmodule LivebookWeb.SettingsLive do
               File systems
             </h2>
             <p class="mt-4 text-gray-700">
-              File systems are used to store notebooks. The local disk filesystem
+              File systems are used to store notebooks. The local disk file system
               is visible only to the current machine, but alternative file systems
               are available, such as S3-based storages.
             </p>

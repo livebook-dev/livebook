@@ -63,7 +63,8 @@ defmodule Livebook.Session do
 
   import Livebook.Notebook.Cell, only: [is_file_input_value: 1]
 
-  alias Livebook.Session.{Data, FileGuard, SessionManager}
+  alias Livebook.NotebookManager
+  alias Livebook.Session.{Data, FileGuard}
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
@@ -727,8 +728,8 @@ defmodule Livebook.Session do
            ) do
       state = schedule_autosave(state)
 
-      if file_path = state.data.file && state.data.file.path do
-        SessionManager.save_recently_opened_sessions(file_path)
+      if file = state.data.file do
+        Livebook.NotebookManager.add_recent_notebook(file, state.data.notebook.name)
       end
 
       {:ok, state}
@@ -1693,6 +1694,10 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _client_id, _name}) do
+    if file = state.data.file do
+      NotebookManager.update_notebook_name(file, state.data.notebook.name)
+    end
+
     notify_update(state)
   end
 
@@ -1725,12 +1730,8 @@ defmodule Livebook.Session do
         broadcast_error(state.session_id, "failed to copy images - #{message}")
     end
 
-    if prev_file_path = prev_state.data.file && prev_state.data.file.path do
-      SessionManager.delete_recently_opened_sessions(prev_file_path)
-    end
-
-    if file_path = state.data.file && state.data.file.path do
-      SessionManager.save_recently_opened_sessions(file_path)
+    if file = state.data.file do
+      Livebook.NotebookManager.add_recent_notebook(file, state.data.notebook.name)
     end
 
     notify_update(state)

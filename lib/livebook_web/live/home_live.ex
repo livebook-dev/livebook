@@ -5,7 +5,6 @@ defmodule LivebookWeb.HomeLive do
 
   alias LivebookWeb.{LearnHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
-  alias Livebook.Session.SessionManager
 
   on_mount LivebookWeb.SidebarHook
 
@@ -14,11 +13,12 @@ defmodule LivebookWeb.HomeLive do
     if connected?(socket) do
       Livebook.Sessions.subscribe()
       Livebook.SystemResources.subscribe()
+      Livebook.NotebookManager.subscribe_recent_notebooks()
     end
 
     sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
-    sessions_paths = SessionManager.get_recently_opened_sessions()
+    recent_notebooks = Livebook.NotebookManager.recent_notebooks()
 
     {:ok,
      assign(socket,
@@ -26,7 +26,7 @@ defmodule LivebookWeb.HomeLive do
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
-       recently_opened_sessions: sessions_paths,
+       recent_notebooks: recent_notebooks,
        notebook_infos: notebook_infos,
        page_title: "Livebook",
        new_version: Livebook.UpdateCheck.new_version(),
@@ -138,11 +138,16 @@ defmodule LivebookWeb.HomeLive do
             memory={@memory}
           />
         </div>
-        <div id="recently-opened-sessions" role="region" aria-label="recently opened sessions">
+        <div
+          :if={@recent_notebooks != []}
+          id="recent-notebooks"
+          role="region"
+          aria-label="recent notebooks"
+        >
           <.live_component
-            module={LivebookWeb.HomeLive.SessionManagerSessionListComponent}
-            id="recently-opened-session-list"
-            session_paths={@recently_opened_sessions}
+            module={LivebookWeb.HomeLive.RecentNotebookListComponent}
+            id="recent-notebook-list"
+            recent_notebooks={@recent_notebooks}
             sessions={@sessions}
           />
         </div>
@@ -396,6 +401,10 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, memory: memory)}
   end
 
+  def handle_info({:recent_notebooks_updated, recent_notebooks}, socket) do
+    {:noreply, assign(socket, recent_notebooks: recent_notebooks)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp files(sessions) do
@@ -474,7 +483,7 @@ defmodule LivebookWeb.HomeLive do
         FileSystem.File.local(path)
 
       true ->
-        Livebook.Config.local_filesystem_home()
+        Livebook.Config.local_file_system_home()
     end
   end
 

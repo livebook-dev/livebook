@@ -5,7 +5,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     ensure_directories!()
-    set_local_filesystem!()
+    set_local_file_system!()
     ensure_distribution!()
     validate_hostname_resolution!()
     set_cookie()
@@ -24,6 +24,8 @@ defmodule Livebook.Application do
         Livebook.UpdateCheck,
         # Periodic measurement of system resources
         Livebook.SystemResources,
+        # Start the notebook manager server
+        Livebook.NotebookManager,
         # Start the tracker server on this node
         {Livebook.Tracker, pubsub_server: Livebook.PubSub},
         # Start the supervisor dynamically managing sessions
@@ -37,9 +39,7 @@ defmodule Livebook.Application do
         # Start the registry for managing unique connections
         {Registry, keys: :unique, name: Livebook.HubsRegistry},
         # Start the supervisor dynamically managing connections
-        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
-        # Start the server save Recently opened sessions
-        Livebook.Session.SessionManager
+        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
         iframe_server_specs() ++
         [
@@ -78,13 +78,13 @@ defmodule Livebook.Application do
     File.mkdir_p!(Livebook.Config.data_path())
   end
 
-  defp set_local_filesystem!() do
+  defp set_local_file_system!() do
     home =
       Livebook.Config.home()
       |> Livebook.FileSystem.Utils.ensure_dir_path()
 
-    local_filesystem = Livebook.FileSystem.Local.new(default_path: home)
-    :persistent_term.put(:livebook_local_filesystem, local_filesystem)
+    local_file_system = Livebook.FileSystem.Local.new(default_path: home)
+    :persistent_term.put(:livebook_local_file_system, local_file_system)
   end
 
   defp ensure_distribution!() do

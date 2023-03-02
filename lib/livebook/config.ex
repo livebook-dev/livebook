@@ -51,19 +51,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the local filesystem.
+  Returns the local file system.
   """
-  @spec local_filesystem() :: FileSystem.t()
-  def local_filesystem do
-    :persistent_term.get(:livebook_local_filesystem)
+  @spec local_file_system() :: FileSystem.t()
+  def local_file_system do
+    :persistent_term.get(:livebook_local_file_system)
   end
 
   @doc """
-  Returns the local filesystem home.
+  Returns the local file system home.
   """
-  @spec local_filesystem_home() :: FileSystem.File.t()
-  def local_filesystem_home do
-    FileSystem.File.new(local_filesystem())
+  @spec local_file_system_home() :: FileSystem.File.t()
+  def local_file_system_home do
+    FileSystem.File.new(local_file_system())
   end
 
   @doc """

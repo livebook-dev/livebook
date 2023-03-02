@@ -5,7 +5,8 @@ defmodule Livebook.SessionTest do
 
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
-  alias Livebook.Session.{Data, SessionManager}
+  alias Livebook.Session.Data
+  alias Livebook.NotebookManager
 
   @eval_meta %{
     errored: false,
@@ -280,6 +281,20 @@ defmodule Livebook.SessionTest do
       Session.set_notebook_name(session.pid, "Cat's guide to life")
       assert_receive {:operation, {:set_notebook_name, _client_id, "Cat's guide to life"}}
     end
+
+    @tag :tmp_dir
+    test "updates name information in recent notebooks", %{session: session, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
+      Session.set_file(session.pid, file)
+
+      Session.set_notebook_name(session.pid, "New notebook name")
+
+      wait_for_session_update(session.pid)
+
+      assert %{name: "New notebook name"} =
+               NotebookManager.recent_notebooks() |> Enum.find(&(&1.file == file))
+    end
   end
 
   describe "set_section_name/3" do
@@ -435,25 +450,14 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "change recent list if the previous dir not temporary",
-         %{session: session, tmp_dir: tmp_dir} do
+    test "adds the new file to recent notebooks", %{session: session, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
 
-      # Wait for the session to deal with the files
       wait_for_session_update(session.pid)
 
-      assert file.path in SessionManager.get_recently_opened_sessions()
-
-      new_file = FileSystem.File.resolve(tmp_dir, "new_notebook.livemd")
-      Session.set_file(session.pid, new_file)
-
-      # Wait for the session to deal with the files
-      wait_for_session_update(session.pid)
-
-      assert file.path not in SessionManager.get_recently_opened_sessions()
-      assert new_file.path in SessionManager.get_recently_opened_sessions()
+      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 
@@ -671,35 +675,13 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "saves recent list when :file option is specified", %{tmp_dir: tmp_dir} do
+    test "adds file to recent notebooks when :file option is specified", %{tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
 
-      session = start_session(file: file)
-      %{file: %{path: path}} = session
+      start_session(file: file)
 
-      assert path in SessionManager.get_recently_opened_sessions()
-    end
-
-    @tag :tmp_dir
-    test "saves recent list when :start multiple sessions with file option is specified",
-         %{tmp_dir: tmp_dir} do
-      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file1 = FileSystem.File.resolve(tmp_dir, "notebook_1.livemd")
-      file2 = FileSystem.File.resolve(tmp_dir, "notebook_2.livemd")
-      file3 = FileSystem.File.resolve(tmp_dir, "notebook_3.livemd")
-
-      session1 = start_session(file: file1)
-      session2 = start_session(file: file2)
-      session3 = start_session(file: file3)
-
-      %{file: %{path: path1}} = session1
-      %{file: %{path: path2}} = session2
-      %{file: %{path: path3}} = session3
-
-      assert path1 in SessionManager.get_recently_opened_sessions()
-      assert path2 in SessionManager.get_recently_opened_sessions()
-      assert path3 in SessionManager.get_recently_opened_sessions()
+      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 

@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
        running_files: running_files,
        attrs: attrs,
        new_attrs: attrs,
-       draft_file: file || Livebook.Config.local_filesystem_home(),
+       draft_file: file || Livebook.Config.local_file_system_home(),
        saved_file: file
      )}
   end
@@ -167,7 +167,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     if draft_file != saved_file do
       Session.set_file(assigns.session.pid, draft_file)
-      Session.SessionManager.save_recently_opened_sessions(draft_file.path)
     end
 
     diff = map_diff(new_attrs, attrs)

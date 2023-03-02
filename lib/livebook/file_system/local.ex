@@ -3,7 +3,7 @@ defmodule Livebook.FileSystem.Local do
 
   # File system backed by local disk.
 
-  defstruct [:origin_pid, :default_path]
+  defstruct [:origin_pid, :default_path, id: "local"]
 
   alias Livebook.FileSystem
 
