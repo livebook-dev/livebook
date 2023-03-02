@@ -206,9 +206,16 @@ defmodule Livebook.Notebook.Learn do
       cover_url: "/images/kino.png",
       notebook_refs: [
         :kino_vm_introspection,
+        :kino_custom_kinos
+      ]
+    },
+    %{
+      title: "Advanced Kino",
+      description: "*TODO",
+      cover_url: "/images/kino.png",
+      notebook_refs: [
         :kino_chat_app,
         :kino_pong,
-        :kino_custom_kinos,
         :kino_smart_cells
       ]
     }
