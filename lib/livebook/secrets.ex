@@ -84,10 +84,7 @@ defmodule Livebook.Secrets do
   @spec set_secret(Secret.t()) :: Secret.t()
   def set_secret(secret) do
     attributes = Map.from_struct(secret)
-
     :ok = Storage.insert(:secrets, secret.name, Map.to_list(attributes))
-    :ok = broadcast_secrets_change({:set_secret, secret})
-
     to_struct(attributes)
   end
 
@@ -98,7 +95,6 @@ defmodule Livebook.Secrets do
   def unset_secret(id) do
     with {:ok, secret} <- get_secret(id) do
       Storage.delete(:secrets, id)
-      broadcast_secrets_change({:unset_secret, secret})
     end
 
     :ok
@@ -110,32 +106,6 @@ defmodule Livebook.Secrets do
   @spec set_startup_secrets(list(Secret.t())) :: :ok
   def set_startup_secrets(secrets) do
     :persistent_term.put(@secret_startup_key, secrets)
-  end
-
-  @doc """
-  Subscribe to secrets updates.
-
-  ## Messages
-
-    * `{:set_secret, secret}`
-    * `{:unset_secret, secret}`
-
-  """
-  @spec subscribe() :: :ok | {:error, term()}
-  def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "secrets")
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe() :: :ok
-  def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "secrets")
-  end
-
-  defp broadcast_secrets_change(message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "secrets", message)
   end
 
   defp to_struct(%{name: name, value: value} = fields) do

@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
@@ -24,7 +24,6 @@ defmodule LivebookWeb.SessionLive do
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
             Session.subscribe(session_id)
-            Secrets.subscribe()
             Hubs.subscribe(:secrets)
             Livebook.NotebookManager.subscribe_starred_notebooks()
 
@@ -1329,26 +1328,6 @@ defmodule LivebookWeb.SessionLive do
     }
 
     handle_event("insert_cell_below", params, socket)
-  end
-
-  def handle_info({:set_secret, secret}, socket) do
-    saved_secrets =
-      Enum.reject(
-        socket.assigns.saved_secrets,
-        &(&1.name == secret.name and &1.origin == secret.origin)
-      )
-
-    {:noreply, assign(socket, saved_secrets: [secret | saved_secrets])}
-  end
-
-  def handle_info({:unset_secret, secret}, socket) do
-    saved_secrets =
-      Enum.reject(
-        socket.assigns.saved_secrets,
-        &(&1.name == secret.name and &1.origin == secret.origin)
-      )
-
-    {:noreply, assign(socket, saved_secrets: saved_secrets)}
   end
 
   def handle_info({:push_patch, to}, socket) do
