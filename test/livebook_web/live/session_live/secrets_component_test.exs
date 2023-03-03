@@ -30,6 +30,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         )
 
       {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
+      Session.set_notebook_hub(session.pid, hub_id)
 
       on_exit(fn ->
         Livebook.Hubs.delete_hub(hub_id)
