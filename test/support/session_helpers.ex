@@ -1,7 +1,8 @@
 defmodule Livebook.SessionHelpers do
   @moduledoc false
 
-  alias Livebook.{Session, Sessions}
+  alias Livebook.{Hubs, Session, Sessions}
+  alias Livebook.Secrets.Secret
 
   import ExUnit.Assertions
   import Phoenix.LiveViewTest
@@ -67,4 +68,8 @@ defmodule Livebook.SessionHelpers do
     assert Map.has_key?(secrets, secret.name)
     assert secrets[secret.name] == secret.value
   end
+
+  def hub_label(%Secret{origin: {:hub, id}}), do: hub_label(Hubs.fetch_hub!(id))
+  def hub_label(%Secret{origin: :startup}), do: hub_label(Hubs.fetch_hub!("personal-hub"))
+  def hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
 end

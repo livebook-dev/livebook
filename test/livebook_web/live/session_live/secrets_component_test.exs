@@ -62,7 +62,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       assert_receive {:secret_created, ^secret}
       assert render(view) =~ "A new secret has been created on your Livebook Hub"
       assert has_element?(view, "#hub-#{enterprise.id}-secret-#{secret.name}-wrapper")
-      assert has_element?(view, ~s/[data-tooltip="#{enterprise.hub_name}"]/, enterprise.hub_emoji)
     end
 
     test "toggle a secret from Enterprise hub",
@@ -175,7 +174,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       render_click(add_secret_button)
       secrets_component = with_target(view, "#secrets-modal")
 
-      assert render(secrets_component) =~ "in your Livebook Hub. Allow this session to access it?"
+      assert render(secrets_component) =~
+               "in #{hub_label(enterprise)}. Allow this session to access it?"
 
       grant_access_button = element(secrets_component, "button", "Grant access")
       render_click(grant_access_button)
