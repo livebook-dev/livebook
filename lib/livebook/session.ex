@@ -1837,6 +1837,8 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_notebook_hub, _client_id, _id}) do
+    broadcast_message(state.session_id, {:notebook_hub_changed, state.data.hub})
+
     notify_update(state)
   end
 
