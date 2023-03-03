@@ -1250,10 +1250,6 @@ defmodule LivebookWeb.SessionLive do
      assign(socket, saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))}
   end
 
-  def handle_info({:notebook_hub_changed, hub}, socket) do
-    {:noreply, assign(socket, saved_secrets: Hubs.get_secrets(hub))}
-  end
-
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
 
@@ -1660,6 +1656,10 @@ defmodule LivebookWeb.SessionLive do
          {:smart_cell_started, _client_id, _cell_id, _delta, _chunks, _js_view, _editor}
        ) do
     prune_cell_sources(socket)
+  end
+
+  defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}) do
+    assign(socket, saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
