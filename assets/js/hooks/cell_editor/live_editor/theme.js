@@ -17,7 +17,7 @@ const hcColors = {
   default: "#304254",
   lightRed: "#E45649",
   blue: "#4078F2",
-  gray: "#8c92a3",
+  gray: "#707177",
   green: "#50A14F",
   purple: "#A626A4",
   red: "#CA1243",
@@ -134,7 +134,7 @@ const highContrast = {
 
   colors: {
     "editor.background": "#fafafa",
-    "editor.foreground": colors.default,
+    "editor.foreground": hcColors.default,
     "editorLineNumber.foreground": "#9D9D9F",
     "editorCursor.foreground": "#526FFF",
     "editor.selectionBackground": "#E5E5E6",
