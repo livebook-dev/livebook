@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           saved_secrets: get_saved_secrets(),
+           saved_secrets: Hubs.get_secrets(data.hub),
            select_secret_ref: nil,
            select_secret_options: nil,
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
@@ -1224,29 +1224,34 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_created, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
      |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
   end
 
-  def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_updated, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
      |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
   end
 
-  def handle_info({:secret_deleted, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_deleted, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
      |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
   end
 
   def handle_info(:hubs_changed, socket) do
-    {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
+    {:noreply,
+     assign(socket, saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))}
+  end
+
+  def handle_info({:notebook_hub_changed, hub}, socket) do
+    {:noreply, assign(socket, saved_secrets: Hubs.get_secrets(hub))}
   end
 
   def handle_info({:error, error}, socket) do
@@ -2097,10 +2102,6 @@ defmodule LivebookWeb.SessionLive do
          value: bytes
        }}
     end)
-  end
-
-  defp get_saved_secrets do
-    Enum.sort(Hubs.get_secrets())
   end
 
   defp app_status_color(nil), do: "bg-gray-400"

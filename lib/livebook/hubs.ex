@@ -206,6 +206,18 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
+  Gets a list of secrets for given hub.
+  """
+  @spec get_secrets(Provider.t()) :: list(Secret.t())
+  def get_secrets(hub) do
+    if capability?(hub, [:list_secrets]) do
+      hub |> Provider.get_secrets() |> Enum.sort()
+    else
+      []
+    end
+  end
+
+  @doc """
   Creates a secret for given hub.
   """
   @spec create_secret(Secret.t()) :: :ok | {:error, list({atom(), list(String.t())})}
