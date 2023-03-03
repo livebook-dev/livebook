@@ -1659,7 +1659,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}) do
-    assign(socket, saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
+    assign(socket, saved_secrets: Hubs.get_secrets(socket.private.data.hub))
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
