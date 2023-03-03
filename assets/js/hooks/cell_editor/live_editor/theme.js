@@ -13,7 +13,19 @@ const colors = {
   peach: "#d19a66",
 };
 
-const background = { default: "#282c34", highContrast: "#060708" };
+const hcColors = {
+  default: "#304254",
+  lightRed: "#E45649",
+  blue: "#4078F2",
+  gray: "#8c92a3",
+  green: "#50A14F",
+  purple: "#A626A4",
+  red: "#CA1243",
+  teal: "#0184BC",
+  peach: "#986801",
+};
+
+const background = { default: "#282c34", highContrast: "#fafafa" };
 
 const theme = {
   base: "vs-dark",
@@ -77,10 +89,64 @@ const theme = {
 };
 
 const highContrast = {
-  ...theme,
+  base: "vs-dark",
+  inherit: false,
+  rules: [
+    { token: "", foreground: hcColors.default },
+    { token: "variable", foreground: hcColors.lightRed },
+    { token: "constant", foreground: hcColors.blue },
+    { token: "constant.character.escape", foreground: hcColors.blue },
+    { token: "comment", foreground: hcColors.gray },
+    { token: "number", foreground: hcColors.blue },
+    { token: "regexp", foreground: hcColors.lightRed },
+    { token: "type", foreground: hcColors.lightRed },
+    { token: "string", foreground: hcColors.green },
+    { token: "keyword", foreground: hcColors.purple },
+    { token: "operator", foreground: hcColors.peach },
+    { token: "delimiter.bracket.embed", foreground: hcColors.red },
+    { token: "sigil", foreground: hcColors.teal },
+    { token: "function", foreground: hcColors.blue },
+    { token: "function.call", foreground: hcColors.default },
+
+    // Markdown specific
+    { token: "emphasis", fontStyle: "italic" },
+    { token: "strong", fontStyle: "bold" },
+    { token: "keyword.md", foreground: hcColors.lightRed },
+    { token: "keyword.table", foreground: hcColors.lightRed },
+    { token: "string.link.md", foreground: hcColors.blue },
+    { token: "variable.md", foreground: hcColors.teal },
+    { token: "string.md", foreground: hcColors.default },
+    { token: "variable.source.md", foreground: hcColors.default },
+
+    // XML specific
+    { token: "tag", foreground: hcColors.lightRed },
+    { token: "metatag", foreground: hcColors.lightRed },
+    { token: "attribute.name", foreground: hcColors.peach },
+    { token: "attribute.value", foreground: hcColors.green },
+
+    // JSON specific
+    { token: "string.key", foreground: hcColors.lightRed },
+    { token: "keyword.json", foreground: hcColors.blue },
+
+    // SQL specific
+    { token: "operator.sql", foreground: hcColors.purple },
+  ],
+
   colors: {
-    ...theme.colors,
-    "editor.background": background.highContrast,
+    "editor.background": "#fafafa",
+    "editor.foreground": colors.default,
+    "editorLineNumber.foreground": "#9D9D9F",
+    "editorCursor.foreground": "#526FFF",
+    "editor.selectionBackground": "#E5E5E6",
+    "editor.findMatchHighlightBackground": "#526FFF33",
+    "editorSuggestWidget.background": "#EAEAEB",
+    "editorSuggestWidget.border": "#DBDBDC",
+    "editorSuggestWidget.selectedBackground": "#FFFFFF",
+    "input.background": "#FFFFFF",
+    "input.border": "#DBDBDC",
+
+    "editorBracketMatch.border": "#fafafa",
+    "editorBracketMatch.background": "#e5e5e6",
   },
 };
 

@@ -6,7 +6,11 @@
   }
 
   body[data-editor-theme="highContrast"] .bg-editor {
-    background-color: #060708;
+    background-color: #fafafa;
+  }
+
+  body[data-editor-theme="highContrast"] .monaco-editor .line-numbers.active-line-number {
+    color: #304254;
   }
 
   .text-editor {
