@@ -1227,27 +1227,26 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:secret_created, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
+     |> refresh_secrets()
      |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
   end
 
   def handle_info({:secret_updated, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
+     |> refresh_secrets()
      |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
   end
 
   def handle_info({:secret_deleted, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))
+     |> refresh_secrets()
      |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
   end
 
   def handle_info(:hubs_changed, socket) do
-    {:noreply,
-     assign(socket, saved_secrets: Hubs.get_secrets(socket.assigns.data_view.notebook_hub))}
+    {:noreply, refresh_secrets(socket)}
   end
 
   def handle_info({:error, error}, socket) do
@@ -1658,9 +1657,8 @@ defmodule LivebookWeb.SessionLive do
     prune_cell_sources(socket)
   end
 
-  defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}) do
-    assign(socket, saved_secrets: Hubs.get_secrets(socket.private.data.hub))
-  end
+  defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}),
+    do: refresh_secrets(socket)
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
@@ -2110,4 +2108,7 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
   defp app_status_color(:stopped), do: "bg-gray-500"
+
+  defp refresh_secrets(socket),
+    do: assign(socket, saved_secrets: Hubs.get_secrets(socket.private.data.hub))
 end
