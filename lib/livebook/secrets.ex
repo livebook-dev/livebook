@@ -93,7 +93,7 @@ defmodule Livebook.Secrets do
   """
   @spec unset_secret(String.t()) :: :ok
   def unset_secret(id) do
-    with {:ok, secret} <- get_secret(id) do
+    with {:ok, _secret} <- get_secret(id) do
       Storage.delete(:secrets, id)
     end
 
