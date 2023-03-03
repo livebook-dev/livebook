@@ -15,14 +15,14 @@ const colors = {
 
 const hcColors = {
   default: "#304254",
-  lightRed: "#E45649",
-  blue: "#4078F2",
+  lightRed: "#A42419",
+  blue: "#0E49C8",
   gray: "#707177",
-  green: "#50A14F",
-  purple: "#A626A4",
-  red: "#CA1243",
-  teal: "#0184BC",
-  peach: "#986801",
+  green: "#2E602E",
+  purple: "#912291",
+  red: "#a90f38",
+  teal: "#01597E",
+  peach: "#745001",
 };
 
 const background = { default: "#282c34", highContrast: "#fafafa" };
