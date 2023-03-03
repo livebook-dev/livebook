@@ -13,6 +13,37 @@
     color: #304254;
   }
 
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-0 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-1 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-2 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-3 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-4 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-5 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-6 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-7 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-8 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-9 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-10 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-11 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-12 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-13 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-14 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-15 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-16 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-17 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-18 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-19 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-20 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-21 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-22 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-23 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-24 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-25 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-26 {color: #005999;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-27 {color: #615200;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-28 {color: #92268E;}
+  body[data-editor-theme="highContrast"] .monaco-editor .bracket-highlighting-29 {color: #005999;}
+
   .text-editor {
     color: #c4cad6;
   }
