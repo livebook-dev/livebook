@@ -1,6 +1,12 @@
 defmodule LivebookWeb.SessionLive.SecretsListComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.EctoTypes.SecretOrigin
+  alias Livebook.Hubs
+  alias Livebook.Session
+  alias Livebook.Secrets
+  alias Livebook.Secrets.Secret
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -69,7 +75,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
         <div :if={Livebook.Config.feature_flag_enabled?(:hub)} class="mt-16">
           <h3 class="uppercase text-sm font-semibold text-gray-500">
-            Hub secrets
+            <%= @hub.hub_emoji %> <%= @hub.hub_name %> secrets
           </h3>
           <span class="text-sm text-gray-500">
             <%= if @saved_secrets == [] do %>
@@ -86,7 +92,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             secret={secret}
             prefix={prefix(secret)}
             data_secrets={@secrets}
-            hubs={@hubs}
+            hub={@hub}
             myself={@myself}
           />
         </div>
@@ -121,11 +127,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               phx-change="toggle_secret"
               phx-target={@myself}
             >
-              <.switch_field
-                field={f[:toggled]}
-                label={secret_label(@secret, @hubs)}
-                tooltip={secret_tooltip(@secret, @hubs)}
-              />
+              <.switch_field field={f[:toggled]} />
               <.hidden_field field={f[:name]} value={@secret.name} />
               <.hidden_field field={f[:value]} value={@secret.value} />
             </.form>
@@ -138,14 +140,21 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <%= @secret.value %>
             </span>
             <button
-              :if={delete?(@secret, @hubs)}
+              :if={delete?(@secret, @hub)}
               id={"#{@prefix}-secret-#{@secret.name}-delete"}
               type="button"
               phx-click={
                 with_confirm(
-                  JS.push("delete_app_secret", value: %{secret_name: @secret.name}, target: @myself),
-                  title: "Delete app secret - #{@secret.name}",
-                  description: "Are you sure you want to delete this app secret?",
+                  JS.push("delete_hub_secret",
+                    value: %{
+                      name: @secret.name,
+                      value: @secret.value,
+                      origin: SecretOrigin.encode(@secret.origin)
+                    },
+                    target: @myself
+                  ),
+                  title: "Delete hub secret - #{@secret.name}",
+                  description: "Are you sure you want to delete this hub secret?",
                   confirm_text: "Delete",
                   confirm_icon: "delete-bin-6-line"
                 )
@@ -183,21 +192,24 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   def handle_event("toggle_secret", %{"data" => data}, socket) do
     if data["toggled"] == "true" do
       secret = %{name: data["name"], value: data["value"]}
-      Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+      Session.set_secret(socket.assigns.session.pid, secret)
     else
-      Livebook.Session.unset_secret(socket.assigns.session.pid, data["name"])
+      Session.unset_secret(socket.assigns.session.pid, data["name"])
     end
 
     {:noreply, socket}
   end
 
   def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
-    Livebook.Session.unset_secret(socket.assigns.session.pid, secret_name)
+    Session.unset_secret(socket.assigns.session.pid, secret_name)
     {:noreply, socket}
   end
 
-  def handle_event("delete_app_secret", %{"secret_name" => secret_name}, socket) do
-    Livebook.Secrets.unset_secret(secret_name)
+  def handle_event("delete_hub_secret", attrs, socket) do
+    {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
+    :ok = Hubs.delete_secret(secret)
+    :ok = Session.unset_secret(socket.assigns.session.pid, secret.name)
+
     {:noreply, socket}
   end
 
@@ -205,22 +217,11 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
     Map.has_key?(secrets, secret.name) and secrets[secret.name] == secret.value
   end
 
-  defp secret_label(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).emoji
-  defp secret_label(_, _), do: nil
-
-  defp secret_tooltip(%{origin: {:hub, id}}, hubs), do: fetch_hub!(id, hubs).name
-  defp secret_tooltip(_, _), do: nil
-
-  defp fetch_hub!(id, hubs) do
-    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
-  end
-
   defp prefix(%{origin: {:hub, id}}), do: "hub-#{id}"
   defp prefix(%{origin: :startup}), do: "hub-personal-hub"
 
-  defp delete?(%{origin: {:hub, id}}, hubs) do
-    hub = fetch_hub!(id, hubs)
-    Livebook.Hubs.capability?(hub.provider, [:delete_secret])
+  defp delete?(%{origin: {:hub, _}}, hub) do
+    Livebook.Hubs.capability?(hub, [:delete_secret])
   end
 
   defp delete?(_, _), do: false

@@ -201,7 +201,7 @@ defmodule LivebookWeb.SessionLive do
             id="secrets-list"
             session={@session}
             saved_secrets={@saved_secrets}
-            hubs={@saved_hubs}
+            hub={@data_view.notebook_hub}
             secrets={@data_view.secrets}
           />
         </div>
