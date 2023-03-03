@@ -42,6 +42,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         :if={@grant_access_secret}
         secret={@grant_access_secret}
         target={@myself}
+        hub={@hub}
       />
       <div class="flex flex-columns gap-4">
         <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
@@ -62,7 +63,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 :for={secret <- @saved_secrets}
                 secret_name={secret.name}
                 secret_origin={secret.origin}
-                stored={stored(secret, @hubs)}
+                stored={stored(secret, @hub)}
                 active={false}
                 target={@myself}
               />
@@ -188,13 +189,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
                   <span class="font-semibold text-white"><%= @secret.name %></span>
-                  in your Livebook app. Allow this session to access it?
+                  in <%= hub_label(personal_hub()) %>. Allow this session to access it?
                 </span>
               <% else %>
                 <span class="ml-2 text-sm font-normal text-gray-100">
                   There is a secret named
                   <span class="font-semibold text-white"><%= @secret.name %></span>
-                  in your Livebook Hub. Allow this session to access it?
+                  in <%= hub_label(@hub) %>. Allow this session to access it?
                 </span>
               <% end %>
             </div>
@@ -280,18 +281,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp grant_access(secrets, secret_name, origin, socket) do
     secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
 
-    if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
+    if secret, do: Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp stored(%{origin: {:hub, id}}, hubs), do: stored(id, hubs)
-  defp stored(%{origin: :startup}, hubs), do: stored("personal-hub", hubs)
+  defp stored(%{origin: {:hub, _id}}, hub), do: hub_label(hub)
+  defp stored(%{origin: :startup}, _hub), do: hub_label(personal_hub())
 
-  defp stored(id, hubs) do
-    hub = fetch_hub!(id, hubs)
-    "#{hub.hub_emoji} #{hub.hub_name}"
-  end
-
-  defp fetch_hub!(id, hubs) do
-    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
-  end
+  defp personal_hub, do: Hubs.fetch_hub!("personal-hub")
+  defp hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
 end
