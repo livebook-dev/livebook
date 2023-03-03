@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:create_secret]))}
+    {:ok, assign(socket, title: title(socket))}
   end
 
   @impl true
@@ -112,14 +112,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               field={f[:origin]}
               value={SecretOrigin.encode(f[:origin].value)}
               label="Storage"
-              options={
-                [{"session", "only this session"}] ++
-                  if Livebook.Config.feature_flag_enabled?(:hub) do
-                    for hub <- @hubs, do: {"hub-#{hub.id}", "in #{hub.hub_emoji} #{hub.hub_name}"}
-                  else
-                    []
-                  end
-              }
+              options={[
+                {"session", "only this session"},
+                {"hub-#{@hub.id}", "in #{@hub.hub_emoji} #{@hub.hub_name}"}
+              ]}
             />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>

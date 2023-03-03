@@ -521,6 +521,7 @@ defmodule LivebookWeb.SessionLive do
         id="secrets"
         session={@session}
         secrets={@data_view.secrets}
+        hub={@data_view.notebook_hub}
         saved_secrets={@saved_secrets}
         prefill_secret_name={@prefill_secret_name}
         select_secret_ref={@select_secret_ref}
