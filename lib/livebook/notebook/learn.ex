@@ -200,23 +200,24 @@ defmodule Livebook.Notebook.Learn do
 
   @group_configs [
     %{
-      title: "Deep dive into Kino",
+      title: "Advanced Kino",
       description:
         "Advanced guides for learning more about the Kino package, including the creation of custom UI components.",
       cover_url: "/images/kino.png",
       notebook_refs: [
         :kino_vm_introspection,
-        :kino_custom_kinos
+        :kino_custom_kinos,
+        :kino_pong,
+        :kino_smart_cells
       ]
     },
     %{
-      title: "Advanced Kino",
-      description: "*TODO",
+      title: "Building and deploying apps",
+      description:
+        "Advanced guides for learning more about the deploying experience and teaching Kino",
       cover_url: "/images/kino.png",
       notebook_refs: [
-        :kino_chat_app,
-        :kino_pong,
-        :kino_smart_cells
+        :kino_chat_app
       ]
     }
   ]
