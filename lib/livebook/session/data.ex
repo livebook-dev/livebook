@@ -431,7 +431,6 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> insert_cell(section_id, index, cell)
-      |> maybe_start_input_cells(id)
       |> maybe_start_smart_cells()
       |> update_validity_and_evaluation()
       |> set_dirty()
@@ -1901,25 +1900,6 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(smart_cell_definitions: smart_cell_definitions)
     |> maybe_start_smart_cells()
-  end
-
-  defp maybe_start_input_cells({data, _} = data_actions, cell_id) do
-    if Runtime.connected?(data.runtime) do
-      cells_ready_to_start = input_cells_with_section(data, [cell_id])
-
-      reduce(data_actions, cells_ready_to_start, fn data_actions, {cell, section} ->
-        queue_cell_evaluation(data_actions, cell, section)
-      end)
-    else
-      data_actions
-    end
-  end
-
-  defp input_cells_with_section(data, input_cell_ids) do
-    for section <- Notebook.all_sections(data.notebook),
-        %Cell.Code{} = cell <- section.cells,
-        cell.id in input_cell_ids,
-        do: {cell, section}
   end
 
   defp maybe_start_smart_cells({data, _} = data_actions) do

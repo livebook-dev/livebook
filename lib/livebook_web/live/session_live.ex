@@ -1006,27 +1006,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event(
-        "add_input_cell_dependencies",
-        %{"kind" => kind, "variant_idx" => variant_idx},
-        socket
-      ) do
-    with %{requirement: %{variants: variants}} <-
-           Enum.find(input_cells_definitions(), &(&1.kind == kind)),
-         {:ok, variant} <- Enum.fetch(variants, variant_idx) do
-      dependencies = Enum.map(variant.packages, & &1.dependency)
-      Session.add_dependencies(socket.assigns.session.pid, dependencies)
-    end
-
-    {status, socket} = maybe_reconnect_runtime(socket)
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-    end
-
-    {:noreply, socket}
-  end
-
-  def handle_event(
         "add_smart_cell_dependencies",
         %{"kind" => kind, "variant_idx" => variant_idx},
         socket
@@ -1713,10 +1692,6 @@ defmodule LivebookWeb.SessionLive do
     {:markdown, %{source: source}}
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "input", "function" => function}) do
-    {:code, %{source: "value = Kino.Input.#{function}(\"value\")"}}
-  end
-
   defp section_with_next_index(notebook, section_id, cell_id)
 
   defp section_with_next_index(notebook, section_id, nil) do
@@ -2102,44 +2077,4 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
   defp app_status_color(:stopped), do: "bg-gray-500"
-
-  # TODO: define `Runtime`
-  def input_cells_definitions() do
-    [
-      %{
-        kind: "Elixir.KinoInputs.Text",
-        name: "Text",
-        requirement: %{
-          variants: [
-            %{
-              name: "Default",
-              packages: [
-                %{
-                  dependency: %{config: [], dep: {:kino, "~> 0.8.0"}},
-                  name: "kino"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      %{
-        kind: "Elixir.KinoInputs.Textarea",
-        name: "Textarea",
-        requirement: %{
-          variants: [
-            %{
-              name: "Default",
-              packages: [
-                %{
-                  dependency: %{config: [], dep: {:kino, "~> 0.8.0"}},
-                  name: "kino"
-                }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  end
 end
