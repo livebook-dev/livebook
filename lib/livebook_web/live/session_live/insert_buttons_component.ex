@@ -74,6 +74,18 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </.link>
           </.menu_item>
         </.menu>
+        <.menu id={"#{@id}-inputs-menu"} position={:bottom_left}>
+          <:toggle>
+            <button class="button-base button-small">+ Inputs</button>
+          </:toggle>
+          <.menu_item :for={definition <- input_cells_definitions()}>
+            <.input_cell_insert_button
+              definition={definition}
+              section_id={@section_id}
+              cell_id={@cell_id}
+            />
+          </.menu_item>
+        </.menu>
         <%= cond do %>
           <% not Livebook.Runtime.connected?(@runtime) -> %>
             <button
@@ -115,6 +127,102 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       </div>
     </div>
     """
+  end
+
+  # TODO: define `Runtime`
+  def input_cells_definitions() do
+    [
+      %{
+        kind: "Elixir.KinoInputs.Text",
+        name: "Text",
+        requirement: %{
+          variants: [
+            %{
+              name: "Default",
+              packages: [
+                %{
+                  dependency: %{config: [], dep: {:kino, "~> 0.8.0"}},
+                  name: "kino"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      %{
+        kind: "Elixir.KinoInputs.Textarea",
+        name: "Textarea",
+        requirement: %{
+          variants: [
+            %{
+              name: "Default",
+              packages: [
+                %{
+                  dependency: %{config: [], dep: {:kino, "~> 0.8.0"}},
+                  name: "kino"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  end
+
+  defp input_cell_insert_button(assigns) do
+    ~H"""
+    <button role="menuitem" phx-click={on_input_cell_click(@definition, 0, @section_id, @cell_id)}>
+      <span><%= @definition.name %></span>
+    </button>
+    """
+  end
+
+  defp on_input_cell_click(%{requirement: nil} = definition, _variant_idx, section_id, cell_id) do
+    insert_input_cell(definition, section_id, cell_id)
+  end
+
+  defp on_input_cell_click(%{requirement: %{}} = definition, variant_idx, section_id, cell_id) do
+    variant = Enum.fetch!(definition.requirement.variants, variant_idx)
+
+    with_confirm(
+      JS.push("add_input_cell_dependencies",
+        value: %{kind: definition.kind, variant_idx: variant_idx}
+      )
+      |> insert_input_cell(definition, section_id, cell_id)
+      |> JS.push("queue_cells_reevaluation"),
+      title: "Add packages",
+      description:
+        case variant.packages do
+          [%{name: name}] ->
+            ~s'''
+            The <span class="font-semibold">“#{definition.name}“</span>
+            input cell requires the #{code_tag(name)} package. Do you want to add
+            it as a dependency and restart?
+            '''
+
+          packages ->
+            ~s'''
+            The <span class="font-semibold">“#{definition.name}“</span>
+            input cell requires the #{packages |> Enum.map(&code_tag(&1.name)) |> format_items()}
+            packages. Do you want to add them as dependencies and restart?
+            '''
+        end,
+      confirm_text: "Add and restart",
+      confirm_icon: "add-line",
+      danger: false,
+      html: true
+    )
+  end
+
+  defp insert_input_cell(js \\ %JS{}, definition, section_id, cell_id) do
+    JS.push(js, "insert_cell_below",
+      value: %{
+        type: "input",
+        function: definition.kind |> String.split(".") |> List.last() |> Macro.underscore(),
+        section_id: section_id,
+        cell_id: cell_id
+      }
+    )
   end
 
   defp smart_cell_insert_button(%{definition: %{requirement: %{variants: [_, _ | _]}}} = assigns) do
