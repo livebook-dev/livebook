@@ -96,7 +96,7 @@ defmodule LivebookWeb.HomeLive do
             <.no_entries>
               Your starred notebooks will appear here. Check out the notebooks below to get started.
             </.no_entries>
-            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" data-el-learn-section>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <% # Note: it's fine to use stateless components in this comprehension,
               # because @notebook_infos never change %>
               <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />

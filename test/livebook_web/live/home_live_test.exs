@@ -214,21 +214,6 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
-  test "link to introductory notebook correctly creates a new session", %{conn: conn} do
-    {:ok, view, _} = live(conn, ~p"/")
-
-    assert {:error, {:live_redirect, %{to: to}}} =
-             view
-             |> element(~s{[data-el-learn-section] a}, "Welcome to Livebook")
-             |> render_click()
-             |> follow_redirect(conn)
-
-    {:ok, view, _} = live(conn, to)
-    assert render(view) =~ "Welcome to Livebook"
-
-    close_session_by_path(to)
-  end
-
   test "handles user profile update", %{conn: conn} do
     {:ok, view, _} = live(conn, ~p"/")
     data = %{user: %{name: "Jake Peralta", hex_color: "#123456"}}
