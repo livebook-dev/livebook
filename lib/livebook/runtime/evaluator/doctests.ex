@@ -161,11 +161,14 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         &diff_formatter/2
       )
 
-    {expected, got, source} =
+    expected = diff[:right]
+    got = diff[:left]
+
+    {expected_label, got_label, source} =
       if reason.doctest == ExUnit.AssertionError.no_value() do
-        {nil, nil, nil}
+        {"right", "left", nil}
       else
-        {diff[:right], diff[:left], String.trim(reason.doctest)}
+        {"expected", "got", String.trim(reason.doctest)}
       end
 
     message_io =
@@ -193,7 +196,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         [
           "\n",
           String.duplicate(" ", @pad_size),
-          format_label("expected"),
+          format_label(expected_label),
           "\n",
           String.duplicate(" ", @pad_size + 2),
           expected
@@ -205,7 +208,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         [
           "\n",
           String.duplicate(" ", @pad_size),
-          format_label("got"),
+          format_label(got_label),
           "\n",
           String.duplicate(" ", @pad_size + 2),
           got
