@@ -401,6 +401,11 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
             iex> 1 +
             :who_knows
+
+            iex> 1 = 2
+
+            iex> require ExUnit.Assertions
+            ...> ExUnit.Assertions.assert false
         """
 
         @doc """
@@ -444,7 +449,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert_receive {:runtime_evaluation_output, :code_1, {:text, doctest_result}}
 
-      assert doctest_result =~ "6 doctests, 5 failures"
+      assert doctest_result =~ "8 doctests, 7 failures"
       assert doctest_result =~ "Doctest did not compile, got: (TokenMissingError)"
 
       assert doctest_result =~

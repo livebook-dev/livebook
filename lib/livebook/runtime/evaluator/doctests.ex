@@ -161,9 +161,12 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         &diff_formatter/2
       )
 
-    expected = diff[:right]
-    got = diff[:left]
-    source = String.trim(reason.doctest)
+    {expected, got, source} =
+      if reason.doctest == ExUnit.AssertionError.no_value() do
+        {nil, nil, nil}
+      else
+        {diff[:right], diff[:left], String.trim(reason.doctest)}
+      end
 
     message_io =
       if_io(reason.message != "Doctest failed", fn ->
@@ -175,12 +178,15 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         [colorize(:red, message), "\n"]
       end)
 
-    source_io = [
-      String.duplicate(" ", @pad_size),
-      format_label("doctest"),
-      "\n",
-      pad(source, @pad_size + 2)
-    ]
+    source_io =
+      if_io(source, fn ->
+        [
+          String.duplicate(" ", @pad_size),
+          format_label("doctest"),
+          "\n",
+          pad(source, @pad_size + 2)
+        ]
+      end)
 
     expected_io =
       if_io(expected, fn ->
