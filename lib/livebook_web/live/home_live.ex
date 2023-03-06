@@ -301,6 +301,14 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, starred_notebooks: starred_notebooks)}
   end
 
+  def handle_info({:fork, file}, socket) do
+    {:noreply, fork_notebook(socket, file)}
+  end
+
+  def handle_info({:open, file}, socket) do
+    {:noreply, open_notebook(socket, file)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp selected_sessions(sessions, selected_session_ids) do

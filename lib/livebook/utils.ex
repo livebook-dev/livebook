@@ -420,7 +420,9 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Returns a URL (including localhost) to import the given `url` as a notebook.
+  Returns an absolute URL to import notebook from the given `url`.
+
+  ## Examples
 
       iex> Livebook.Utils.notebook_import_url("https://example.com/foo.livemd")
       "http://localhost:4002/import?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
@@ -438,7 +440,12 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Returns a URL (including localhost) to open the given `path` as a notebook
+  Returns an absolute URL to open notebook from the given local `path`.
+
+  A directory `path` may also be given, in which case the URL directs
+  to a file open page with the directory open.
+
+  ## Examples
 
       iex> Livebook.Utils.notebook_open_url("/data/foo.livemd")
       "http://localhost:4002/open?path=%2Fdata%2Ffoo.livemd"

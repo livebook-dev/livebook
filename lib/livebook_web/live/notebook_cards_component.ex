@@ -1,10 +1,6 @@
 defmodule LivebookWeb.NotebookCardsComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.SessionHelpers
-
-  alias Livebook.{Session, Notebook, FileSystem, LiveMarkdown}
-
   @impl true
   def render(assigns) do
     assigns = assign_new(assigns, :card_icon, fn -> nil end)
@@ -12,7 +8,10 @@ defmodule LivebookWeb.NotebookCardsComponent do
     ~H"""
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" role="group">
       <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
-        <div class="flex flex-col p-5 border bg-gray-50 border-gray-300 rounded-lg">
+        <div
+          class="flex flex-col p-5 border bg-gray-50 border-gray-300 rounded-lg"
+          data-test-idx={idx}
+        >
           <div class="flex items-center justify-between">
             <span class="tooltip top" data-tooltip={info.file.path}>
               <span class="text-gray-800 text-lg font-medium">
@@ -63,30 +62,15 @@ defmodule LivebookWeb.NotebookCardsComponent do
       session = session_by_file(file, socket.assigns.sessions)
       {:noreply, push_navigate(socket, to: ~p"/sessions/#{session.id}")}
     else
-      {:noreply, open_notebook(socket, file)}
+      send(self(), {:open, file})
+      {:noreply, socket}
     end
   end
 
   def handle_event("fork", %{"idx" => idx}, socket) do
     %{file: file} = Enum.at(socket.assigns.notebook_infos, idx)
 
-    socket =
-      case import_notebook(file) do
-        {:ok, {notebook, messages}} ->
-          notebook = Notebook.forked(notebook)
-          images_dir = Session.images_dir_for_notebook(file)
-
-          socket
-          |> put_import_warnings(messages)
-          |> create_session(
-            notebook: notebook,
-            copy_images_from: images_dir,
-            origin: {:file, file}
-          )
-
-        {:error, error} ->
-          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-      end
+    send(self(), {:fork, file})
 
     {:noreply, socket}
   end
@@ -97,24 +81,5 @@ defmodule LivebookWeb.NotebookCardsComponent do
 
   defp session_by_file(file, sessions) do
     Enum.find(sessions, &(&1.file == file))
-  end
-
-  defp open_notebook(socket, file) do
-    # TODO can't use flash because it doesn't show up in a live component
-    case import_notebook(file) do
-      {:ok, {notebook, messages}} ->
-        socket
-        |> put_import_warnings(messages)
-        |> create_session(notebook: notebook, file: file, origin: {:file, file})
-
-      {:error, error} ->
-        put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-    end
-  end
-
-  defp import_notebook(file) do
-    with {:ok, content} <- FileSystem.File.read(file) do
-      {:ok, LiveMarkdown.notebook_from_livemd(content)}
-    end
   end
 end

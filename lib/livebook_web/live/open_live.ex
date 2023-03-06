@@ -4,7 +4,7 @@ defmodule LivebookWeb.OpenLive do
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.LayoutHelpers
-  alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
+  alias Livebook.{Sessions, Notebook, FileSystem}
 
   on_mount LivebookWeb.SidebarHook
 
@@ -150,14 +150,19 @@ defmodule LivebookWeb.OpenLive do
 
   def handle_params(%{"path" => path} = _params, _uri, socket)
       when socket.assigns.live_action == :public_open do
-    path = Path.expand(path)
-    file = FileSystem.File.local(path)
+    expanded_path = Path.expand(path)
 
-    if file_running?(file, socket.assigns.sessions) do
-      session_id = session_id_by_file(file, socket.assigns.sessions)
-      {:noreply, push_navigate(socket, to: ~p"/sessions/#{session_id}")}
+    if File.dir?(expanded_path) do
+      {:noreply, push_patch(socket, to: ~p"/open/file?path=#{path}")}
     else
-      {:noreply, open_notebook(socket, FileSystem.File.local(path))}
+      file = FileSystem.File.local(expanded_path)
+
+      if file_running?(file, socket.assigns.sessions) do
+        session_id = session_id_by_file(file, socket.assigns.sessions)
+        {:noreply, push_navigate(socket, to: ~p"/sessions/#{session_id}")}
+      else
+        {:noreply, open_notebook(socket, file)}
+      end
     end
   end
 
@@ -176,25 +181,7 @@ defmodule LivebookWeb.OpenLive do
   end
 
   def handle_info({:fork, file}, socket) do
-    socket =
-      case import_notebook(file) do
-        {:ok, {notebook, messages}} ->
-          notebook = Notebook.forked(notebook)
-          images_dir = Session.images_dir_for_notebook(file)
-
-          socket
-          |> put_import_warnings(messages)
-          |> create_session(
-            notebook: notebook,
-            copy_images_from: images_dir,
-            origin: {:file, file}
-          )
-
-        {:error, error} ->
-          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-      end
-
-    {:noreply, socket}
+    {:noreply, fork_notebook(socket, file)}
   end
 
   def handle_info({:open, file}, socket) do
@@ -205,6 +192,12 @@ defmodule LivebookWeb.OpenLive do
     socket = import_source(socket, source, session_opts)
     {:noreply, socket}
   end
+
+  def handle_info({:recent_notebooks_updated, recent_notebooks}, socket) do
+    {:noreply, assign(socket, recent_notebooks: recent_notebooks)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   defp file_from_params(%{"autosave" => _} = _params) do
     Livebook.Settings.autosave_path()
@@ -244,24 +237,6 @@ defmodule LivebookWeb.OpenLive do
 
     session_opts = Keyword.merge(session_opts, notebook: notebook)
     create_session(socket, session_opts)
-  end
-
-  defp open_notebook(socket, file) do
-    case import_notebook(file) do
-      {:ok, {notebook, messages}} ->
-        socket
-        |> put_import_warnings(messages)
-        |> create_session(notebook: notebook, file: file, origin: {:file, file})
-
-      {:error, error} ->
-        put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-    end
-  end
-
-  defp import_notebook(file) do
-    with {:ok, content} <- FileSystem.File.read(file) do
-      {:ok, LiveMarkdown.notebook_from_livemd(content)}
-    end
   end
 
   defp file_running?(file, sessions) do
