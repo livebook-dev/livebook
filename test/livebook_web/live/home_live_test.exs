@@ -144,7 +144,6 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session} = Sessions.create_session()
       Session.set_file(session.pid, file)
       Session.set_notebook_name(session.pid, "Special notebook")
-      Session.save_sync(session.pid)
 
       {:ok, view, _} = live(conn, ~p"/")
 

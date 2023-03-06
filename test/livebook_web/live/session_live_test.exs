@@ -674,6 +674,33 @@ defmodule LivebookWeb.SessionLiveTest do
     close_session_by_id(session_id)
   end
 
+  @tag :tmp_dir
+  test "starring and unstarring the notebook", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+    notebook_path = Path.join(tmp_dir, "notebook.livemd")
+    file = Livebook.FileSystem.File.local(notebook_path)
+    Session.set_file(session.pid, file)
+
+    Livebook.NotebookManager.subscribe_starred_notebooks()
+
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+    view
+    |> element("button", "Star notebook")
+    |> render_click()
+
+    assert_receive {:starred_notebooks_updated, starred_notebooks}
+
+    assert Enum.any?(starred_notebooks, &(&1.file == file))
+
+    view
+    |> element("button", "Unstar notebook")
+    |> render_click()
+
+    assert_receive {:starred_notebooks_updated, starred_notebooks}
+
+    refute Enum.any?(starred_notebooks, &(&1.file == file))
+  end
+
   describe "connected users" do
     test "lists connected users", %{conn: conn, session: session} do
       user1 = build(:user, name: "Jake Peralta")
