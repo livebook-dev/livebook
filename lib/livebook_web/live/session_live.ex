@@ -26,6 +26,7 @@ defmodule LivebookWeb.SessionLive do
             Session.subscribe(session_id)
             Secrets.subscribe()
             Hubs.subscribe(:secrets)
+            Livebook.NotebookManager.subscribe_starred_notebooks()
 
             {data, client_id}
           else
@@ -63,7 +64,8 @@ defmodule LivebookWeb.SessionLive do
            saved_secrets: get_saved_secrets(),
            select_secret_ref: nil,
            select_secret_options: nil,
-           allowed_uri_schemes: Livebook.Config.allowed_uri_schemes()
+           allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
+           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -299,6 +301,19 @@ defmodule LivebookWeb.SessionLive do
                     <.remix_icon icon="git-branch-line" />
                     <span>Fork</span>
                   </button>
+                </.menu_item>
+                <.menu_item disabled={@data_view.file == nil}>
+                  <%= if @data_view.file in @starred_files do %>
+                    <button type="button" role="menuitem" phx-click="unstar_notebook">
+                      <.remix_icon icon="star-fill" />
+                      <span>Unstar notebook</span>
+                    </button>
+                  <% else %>
+                    <button type="button" role="menuitem" phx-click="star_notebook">
+                      <.remix_icon icon="star-line" />
+                      <span>Star notebook</span>
+                    </button>
+                  <% end %>
                 </.menu_item>
                 <.menu_item>
                   <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
@@ -1149,6 +1164,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
+  def handle_event("star_notebook", %{}, socket) do
+    data = socket.private.data
+    Livebook.NotebookManager.add_starred_notebook(data.file, data.notebook.name)
+    {:noreply, socket}
+  end
+
+  def handle_event("unstar_notebook", %{}, socket) do
+    Livebook.NotebookManager.remove_starred_notebook(socket.private.data.file)
+    {:noreply, socket}
+  end
+
   def handle_event("erase_outputs", %{}, socket) do
     Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
@@ -1326,6 +1352,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:push_patch, to}, socket) do
     {:noreply, push_patch(socket, to: to)}
+  end
+
+  def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
+    {:noreply, assign(socket, starred_files: starred_files(starred_notebooks))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -1765,6 +1795,10 @@ defmodule LivebookWeb.SessionLive do
     else
       {:ok, socket}
     end
+  end
+
+  defp starred_files(starred_notebooks) do
+    for info <- starred_notebooks, into: MapSet.new(), do: info.file
   end
 
   # Builds view-specific structure of data by cherry-picking
