@@ -579,6 +579,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a hub selection to the server.
+  """
+  @spec set_notebook_hub(pid(), String.t()) :: :ok
+  def set_notebook_hub(pid, id) do
+    GenServer.cast(pid, {:set_notebook_hub, self(), id})
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -1243,6 +1251,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:set_notebook_hub, client_pid, id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_notebook_hub, client_id, id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
     broadcast_error(
@@ -1815,6 +1829,10 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:app_unregistered, _client_id}) do
     broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
 
+    notify_update(state)
+  end
+
+  defp after_operation(state, _prev_state, {:set_notebook_hub, _client_id, _id}) do
     notify_update(state)
   end
 

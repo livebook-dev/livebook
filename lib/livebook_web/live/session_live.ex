@@ -227,63 +227,93 @@ defmodule LivebookWeb.SessionLive do
           global_status={@data_view.global_status}
         />
         <div
-          class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
+          class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
           data-el-notebook-content
         >
-          <div
-            class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
-            data-el-notebook-headline
-            data-focusable-id="notebook"
-            id="notebook"
-            phx-hook="Headline"
-            data-on-value-change="set_notebook_name"
-            data-metadata="notebook"
-          >
-            <h1
-              class="grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
-              tabindex="0"
-              id="notebook-heading"
-              data-el-heading
-              spellcheck="false"
-              phx-no-format
-            ><%= @data_view.notebook_name %></h1>
-            <.menu id="session-menu">
-              <:toggle>
-                <button class="icon-button" aria-label="open notebook menu">
-                  <.remix_icon icon="more-2-fill" class="text-xl" />
-                </button>
-              </:toggle>
-              <.menu_item>
-                <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
-                  <.remix_icon icon="download-2-line" />
-                  <span>Export</span>
-                </.link>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="erase_outputs">
-                  <.remix_icon icon="eraser-fill" />
-                  <span>Erase outputs</span>
-                </button>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="fork_session">
-                  <.remix_icon icon="git-branch-line" />
-                  <span>Fork</span>
-                </button>
-              </.menu_item>
-              <.menu_item>
-                <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
-                  <.remix_icon icon="dashboard-2-line" />
-                  <span>See on Dashboard</span>
-                </a>
-              </.menu_item>
-              <.menu_item variant={:danger}>
-                <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
-                  <.remix_icon icon="close-circle-line" />
-                  <span>Close</span>
-                </.link>
-              </.menu_item>
-            </.menu>
+          <div class="flex flex-nowrap gap-2 pb-4 mb-2 border-b border-gray-200">
+            <div class="mt-1">
+              <.menu position={:bottom_left} id="notebook-hub-menu">
+                <:toggle>
+                  <span class="tooltip right distant relative" data-tooltip="Select one hub">
+                    <div class="border rounded-full border-gray-200 hover:border-gray-300 focus:border-gray-300 w-[40px] h-[40px] flex items-center justify-center">
+                      <span aria-label={@data_view.notebook_hub.hub_name}>
+                        <%= @data_view.notebook_hub.hub_emoji %>
+                      </span>
+                    </div>
+                  </span>
+                </:toggle>
+                <.menu_item :for={hub <- @saved_hubs}>
+                  <button
+                    id={"select-hub-#{hub.id}"}
+                    phx-click={JS.push("select_hub", value: %{id: hub.id})}
+                    aria-label={hub.name}
+                    role="menuitem"
+                  >
+                    <%= hub.emoji %>
+                    <span class="ml-2"><%= hub.name %></span>
+                  </button>
+                </.menu_item>
+              </.menu>
+            </div>
+
+            <div
+              class="grow"
+              data-el-notebook-headline
+              data-focusable-id="notebook"
+              id="notebook"
+              phx-hook="Headline"
+              data-on-value-change="set_notebook_name"
+              data-metadata="notebook"
+            >
+              <h1
+                class="p-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+                tabindex="0"
+                id="notebook-heading"
+                data-el-heading
+                spellcheck="false"
+                phx-no-format
+              ><%= @data_view.notebook_name %></h1>
+            </div>
+
+            <div class="mt-3">
+              <.menu id="session-menu">
+                <:toggle>
+                  <button class="icon-button" aria-label="open notebook menu">
+                    <.remix_icon icon="more-2-fill" class="text-xl" />
+                  </button>
+                </:toggle>
+                <.menu_item>
+                  <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
+                    <.remix_icon icon="download-2-line" />
+                    <span>Export</span>
+                  </.link>
+                </.menu_item>
+                <.menu_item>
+                  <button role="menuitem" phx-click="erase_outputs">
+                    <.remix_icon icon="eraser-fill" />
+                    <span>Erase outputs</span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <button role="menuitem" phx-click="fork_session">
+                    <.remix_icon icon="git-branch-line" />
+                    <span>Fork</span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
+                    <.remix_icon icon="dashboard-2-line" />
+                    <span>See on Dashboard</span>
+                  </a>
+                </.menu_item>
+                <.menu_item variant={:danger}>
+                  <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
+                    <.remix_icon icon="close-circle-line" />
+                    <span>Close</span>
+                  </.link>
+                </.menu_item>
+              </.menu>
+            </div>
           </div>
           <div>
             <.live_component
@@ -1156,6 +1186,12 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
+  def handle_event("select_hub", %{"id" => id}, socket) do
+    Session.set_notebook_hub(socket.assigns.session.pid, id)
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -1766,7 +1802,8 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       apps_status: apps_status(data),
       app_settings: data.notebook.app_settings,
-      apps: data.apps
+      apps: data.apps,
+      notebook_hub: data.hub
     }
   end
 
