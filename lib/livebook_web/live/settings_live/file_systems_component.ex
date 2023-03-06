@@ -9,14 +9,14 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
     <div class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <div
-          :for={{file_system_id, file_system} <- @file_systems}
+          :for={file_system <- @file_systems}
           class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
         >
           <div class="flex items-center space-x-12">
             <.file_system_info file_system={file_system} />
           </div>
           <.file_system_actions
-            file_system_id={file_system_id}
+            file_system_id={file_system.id}
             default_file_system_id={@default_file_system_id}
           />
         </div>

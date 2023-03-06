@@ -554,7 +554,6 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
-      assert view = find_live_child(view, "persistence")
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
@@ -562,20 +561,19 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{path: path})
 
       view
-      |> element(~s{button}, "Save")
+      |> element(~s{#persistence-modal button}, "Save")
       |> render_click()
 
       assert Session.get_data(session.pid).file
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
-      assert view = find_live_child(view, "persistence")
 
       assert view
              |> element("button", "notebook.livemd")
              |> has_element?()
 
       view
-      |> element(~s{button}, "Stop saving")
+      |> element(~s{#persistence-modal button}, "Stop saving")
       |> render_click()
 
       refute Session.get_data(session.pid).file
@@ -586,7 +584,6 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
-      assert view = find_live_child(view, "persistence")
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
@@ -598,7 +595,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{persist_outputs: "true"})
 
       view
-      |> element(~s{button}, "Save")
+      |> element(~s{#persistence-modal button}, "Save")
       |> render_click()
 
       assert %{notebook: %{persist_outputs: true}} = Session.get_data(session.pid)

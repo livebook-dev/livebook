@@ -588,6 +588,29 @@ defmodule LivebookWeb.CoreComponents do
   defp animated_circle_class(:progressing), do: "bg-blue-400"
   defp animated_circle_class(_other), do: nil
 
+  @doc """
+  Renders an informative box as a placeholder for a list.
+  """
+
+  slot :inner_block, required: true
+  slot :actions, default: nil
+
+  def no_entries(assigns) do
+    ~H"""
+    <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+      <div>
+        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
+      </div>
+      <div class="grow flex items-center justify-between">
+        <div class="text-gray-600">
+          <%= render_slot(@inner_block) %>
+        </div>
+        <%= @actions && render_slot(@actions) %>
+      </div>
+    </div>
+    """
+  end
+
   # JS commands
 
   @doc """

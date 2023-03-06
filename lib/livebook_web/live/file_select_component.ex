@@ -3,18 +3,21 @@ defmodule LivebookWeb.FileSelectComponent do
 
   # The component expects:
   #
-  #   * `file` - the currently entered file
+  #   * `:file` - the currently entered file
   #
-  #   * `running_files` - the list of notebook files that are already
+  #   * `:running_files` - the list of notebook files that are already
   #     linked to running sessions
   #
-  #   * `extnames` - a list of file extensions that should be shown
+  #   * `:extnames` - a list of file extensions that should be shown
   #
-  #   * `submit_event` - the process event sent on form submission,
+  #   * `:submit_event` - the process event sent on form submission,
   #     use `nil` for no action
   #
-  # The parent live view receives a `{:set_file, file, %{exists: boolean()}}`
-  # message whenever the file changes.
+  #   * `:target` - either a pid or `{component_module, id}` to send
+  #     events to
+  #
+  # The target receives `{:set_file, file, %{exists: boolean()}}` event
+  # whenever the file changes.
   #
   # Optionally inner block may be passed (e.g. with action buttons)
   # and it's rendered next to the text input.
@@ -249,7 +252,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.file_system_icon file_system={@file.file_system} />
         </button>
       </:toggle>
-      <%= for {file_system_id, file_system} <- @file_systems do %>
+      <%= for file_system <- @file_systems do %>
         <%= if file_system == @file.file_system do %>
           <.menu_item variant={:selected}>
             <button role="menuitem">
@@ -263,7 +266,7 @@ defmodule LivebookWeb.FileSelectComponent do
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
-              phx-value-id={file_system_id}
+              phx-value-id={file_system.id}
             >
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
@@ -425,14 +428,11 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
-    {^file_system_id, file_system} =
-      Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
-        id == file_system_id
-      end)
+    file_system = Enum.find(socket.assigns.file_systems, &(&1.id == file_system_id))
 
     file = FileSystem.File.new(file_system)
 
-    send(self(), {:set_file, file, %{exists: true}})
+    send_event(socket, {:set_file, file, %{exists: true}})
 
     {:noreply, socket}
   end
@@ -451,14 +451,14 @@ defmodule LivebookWeb.FileSelectComponent do
         _info -> %{exists: true}
       end
 
-    send(self(), {:set_file, file, info})
+    send_event(socket, {:set_file, file, info})
 
     {:noreply, socket}
   end
 
   def handle_event("submit", %{}, socket) do
     if submit_event = socket.assigns.submit_event do
-      send(self(), submit_event)
+      send_event(socket, submit_event)
     end
 
     {:noreply, socket}
@@ -658,5 +658,15 @@ defmodule LivebookWeb.FileSelectComponent do
     new_name = if FileSystem.File.dir?(file), do: name <> "/", else: name
     new_file = FileSystem.File.resolve(parent_dir, new_name)
     FileSystem.File.rename(file, new_file)
+  end
+
+  defp send_event(socket, event) do
+    case socket.assigns.target do
+      {module, id} ->
+        send_update(module, id: id, event: event)
+
+      pid when is_pid(pid) ->
+        send(pid, event)
+    end
   end
 end

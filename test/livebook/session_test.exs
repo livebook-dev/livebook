@@ -6,6 +6,7 @@ defmodule Livebook.SessionTest do
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
+  alias Livebook.NotebookManager
 
   @eval_meta %{
     errored: false,
@@ -280,6 +281,20 @@ defmodule Livebook.SessionTest do
       Session.set_notebook_name(session.pid, "Cat's guide to life")
       assert_receive {:operation, {:set_notebook_name, _client_id, "Cat's guide to life"}}
     end
+
+    @tag :tmp_dir
+    test "updates name information in recent notebooks", %{session: session, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
+      Session.set_file(session.pid, file)
+
+      Session.set_notebook_name(session.pid, "New notebook name")
+
+      wait_for_session_update(session.pid)
+
+      assert %{name: "New notebook name"} =
+               NotebookManager.recent_notebooks() |> Enum.find(&(&1.file == file))
+    end
   end
 
   describe "set_section_name/3" do
@@ -432,6 +447,17 @@ defmodule Livebook.SessionTest do
 
       assert {:ok, true} =
                FileSystem.File.exists?(FileSystem.File.resolve(new_images_dir, "test.jpg"))
+    end
+
+    @tag :tmp_dir
+    test "adds the new file to recent notebooks", %{session: session, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session.pid, file)
+
+      wait_for_session_update(session.pid)
+
+      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 
@@ -646,6 +672,16 @@ defmodule Livebook.SessionTest do
 
       assert FileSystem.File.resolve(images_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "binary content"}
+    end
+
+    @tag :tmp_dir
+    test "adds file to recent notebooks when :file option is specified", %{tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
+
+      start_session(file: file)
+
+      assert NotebookManager.recent_notebooks() |> Enum.any?(&(&1.file == file))
     end
   end
 

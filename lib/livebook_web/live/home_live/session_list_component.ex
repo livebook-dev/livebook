@@ -76,34 +76,29 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </.menu>
         </div>
       </div>
-      <.session_list sessions={@sessions} show_autosave_note?={@show_autosave_note?} myself={@myself} />
+      <.session_list
+        sessions={@sessions}
+        starred_notebooks={@starred_notebooks}
+        show_autosave_note?={@show_autosave_note?}
+        myself={@myself}
+      />
     </form>
     """
   end
 
   defp session_list(%{sessions: []} = assigns) do
     ~H"""
-    <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-      <div>
-        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
-      </div>
-      <div class="grow flex items-center justify-between">
-        <div class="text-gray-600">
-          You do not have any running sessions.
-          <%= if @show_autosave_note? do %>
-            <br />
-            Looking for unsaved notebooks? <a
-              class="font-semibold"
-              href="#"
-              phx-click="open_autosave_directory"
-            >Browse them here</a>.
-          <% end %>
-        </div>
-        <button class="button-base button-blue" phx-click="new">
-          New notebook
-        </button>
-      </div>
-    </div>
+    <.no_entries>
+      You do not have any running sessions.
+      <%= if @show_autosave_note? do %>
+        <br />
+        Looking for unsaved notebooks? <.link
+          class="font-semibold"
+          navigate={~p"/open/file?autosave=true"}
+          phx-no-format
+        >Browse them here</.link>.
+      <% end %>
+    </.no_entries>
     """
   end
 
@@ -174,6 +169,31 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <.remix_icon icon="git-branch-line" />
               <span>Fork</span>
             </button>
+          </.menu_item>
+          <.menu_item disabled={session.file == nil}>
+            <%= if notebook_starred?(session, @starred_notebooks) do %>
+              <button
+                type="button"
+                role="menuitem"
+                phx-click="unstar_notebook"
+                phx-target={@myself}
+                phx-value-id={session.id}
+              >
+                <.remix_icon icon="star-fill" />
+                <span>Unstar notebook</span>
+              </button>
+            <% else %>
+              <button
+                type="button"
+                role="menuitem"
+                phx-click="star_notebook"
+                phx-target={@myself}
+                phx-value-id={session.id}
+              >
+                <.remix_icon icon="star-line" />
+                <span>Star notebook</span>
+              </button>
+            <% end %>
           </.menu_item>
           <.menu_item>
             <a role="menuitem" href={live_dashboard_process_path(session.pid)} target="_blank">
@@ -341,6 +361,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
      )}
   end
 
+  def handle_event("star_notebook", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Livebook.NotebookManager.add_starred_notebook(session.file, session.notebook_name)
+    {:noreply, socket}
+  end
+
+  def handle_event("unstar_notebook", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Livebook.NotebookManager.remove_starred_notebook(session.file)
+    {:noreply, socket}
+  end
+
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Session.disconnect_runtime(session.pid)
@@ -401,5 +433,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
+  end
+
+  defp notebook_starred?(%{file: nil} = _session, _starred_notebooks), do: false
+
+  defp notebook_starred?(session, starred_notebooks) do
+    Enum.any?(starred_notebooks, &(&1.file == session.file))
   end
 end

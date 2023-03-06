@@ -1,41 +1,62 @@
-defmodule LivebookWeb.SessionLive.PersistenceLive do
-  # TODO: rewrite this live view as a component, once live_view
-  # has a unified way of sending events programmatically from a child
-  # component to parent live view or component. Currently we send an
-  # event to self() from FileSelectComponent and use handle_info in
-  # the parent live view.
-  use LivebookWeb, :live_view
+defmodule LivebookWeb.SessionLive.PersistenceComponent do
+  use LivebookWeb, :live_component
 
   alias Livebook.{Sessions, Session, LiveMarkdown, FileSystem}
 
   @impl true
-  def mount(
-        _params,
-        %{
-          "session" => session,
-          "file" => file,
-          "persist_outputs" => persist_outputs,
-          "autosave_interval_s" => autosave_interval_s
-        },
-        socket
-      ) do
+  def mount(socket) do
     sessions = Sessions.list_sessions()
     running_files = Enum.map(sessions, & &1.file)
+    {:ok, assign(socket, running_files: running_files)}
+  end
+
+  @impl true
+  def update(%{event: {:set_file, file, _info}}, socket) do
+    current_file_system = socket.assigns.draft_file.file_system
+
+    autosave_interval_s =
+      case file.file_system do
+        ^current_file_system ->
+          socket.assigns.new_attrs.autosave_interval_s
+
+        %FileSystem.Local{} ->
+          Livebook.Notebook.default_autosave_interval_s()
+
+        _other ->
+          nil
+      end
+
+    {:ok,
+     socket
+     |> assign(draft_file: file)
+     |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
+  end
+
+  def update(%{event: :confirm_file}, socket) do
+    {:ok, save(socket)}
+  end
+
+  def update(assigns, socket) do
+    {file, assigns} = Map.pop!(assigns, :file)
+    {persist_outputs, assigns} = Map.pop!(assigns, :persist_outputs)
+    {autosave_interval_s, assigns} = Map.pop!(assigns, :autosave_interval_s)
 
     attrs = %{
       persist_outputs: persist_outputs,
       autosave_interval_s: autosave_interval_s
     }
 
-    {:ok,
-     assign(socket,
-       session: session,
-       running_files: running_files,
-       attrs: attrs,
-       new_attrs: attrs,
-       draft_file: file || Livebook.Config.local_filesystem_home(),
-       saved_file: file
-     )}
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign_new(:attrs, fn -> attrs end)
+      |> assign_new(:new_attrs, fn -> attrs end)
+      |> assign_new(:draft_file, fn ->
+        file || Livebook.Config.local_file_system_home()
+      end)
+      |> assign_new(:saved_file, fn -> file end)
+
+    {:ok, socket}
   end
 
   @impl true
@@ -54,10 +75,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
             extnames={[LiveMarkdown.extension()]}
             running_files={@running_files}
             submit_event={:confirm_file}
+            target={{__MODULE__, @id}}
           />
         </div>
         <form
           phx-change="set_options"
+          phx-target={@myself}
           onsubmit="return false;"
           class="flex flex-col space-y-4 items-start max-w-full"
         >
@@ -92,6 +115,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           <button
             class="button-base button-blue"
             phx-click="save"
+            phx-target={@myself}
             disabled={not savable?(@draft_file, @saved_file, @running_files)}
           >
             Save
@@ -100,7 +124,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
             Cancel
           </.link>
         </div>
-        <button :if={@saved_file} class="button-base button-outlined-red" phx-click="stop_saving">
+        <button
+          :if={@saved_file}
+          class="button-base button-outlined-red"
+          phx-click="stop_saving"
+          phx-target={@myself}
+        >
           Stop saving to file
         </button>
       </div>
@@ -124,39 +153,13 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   end
 
   def handle_event("save", %{}, socket) do
-    save(socket)
+    {:noreply, save(socket)}
   end
 
   def handle_event("stop_saving", %{}, socket) do
     Session.set_file(socket.assigns.session.pid, nil)
 
     {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
-  end
-
-  @impl true
-  def handle_info({:set_file, file, _file_info}, socket) do
-    current_file_system = socket.assigns.draft_file.file_system
-
-    autosave_interval_s =
-      case file.file_system do
-        ^current_file_system ->
-          socket.assigns.new_attrs.autosave_interval_s
-
-        %FileSystem.Local{} ->
-          Livebook.Notebook.default_autosave_interval_s()
-
-        _other ->
-          nil
-      end
-
-    {:noreply,
-     socket
-     |> assign(draft_file: file)
-     |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
-  end
-
-  def handle_info(:confirm_file, socket) do
-    save(socket)
   end
 
   defp save(%{assigns: assigns} = socket) do
@@ -177,7 +180,10 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     Session.save_sync(assigns.session.pid)
 
-    {:noreply, push_patch(socket, to: ~p"/sessions/#{assigns.session.id}")}
+    # We can't do push_patch from update/2, so we ask the LV to do so
+    send(self(), {:push_patch, ~p"/sessions/#{assigns.session.id}"})
+
+    socket
   end
 
   defp parse_optional_integer(string) do

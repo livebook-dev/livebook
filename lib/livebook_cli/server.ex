@@ -165,14 +165,9 @@ defmodule LivebookCLI.Server do
         |> Livebook.Utils.notebook_import_url(url_or_file_or_dir)
         |> Livebook.Utils.browser_open()
 
-      File.regular?(path) ->
+      File.regular?(path) or File.dir?(path) ->
         base_url
         |> Livebook.Utils.notebook_open_url(url_or_file_or_dir)
-        |> Livebook.Utils.browser_open()
-
-      File.dir?(path) ->
-        base_url
-        |> update_query(%{"path" => path})
         |> Livebook.Utils.browser_open()
 
       true ->
@@ -252,13 +247,6 @@ defmodule LivebookCLI.Server do
     url
     |> URI.parse()
     |> Map.put(:path, path)
-    |> URI.to_string()
-  end
-
-  defp update_query(url, params) do
-    url
-    |> URI.parse()
-    |> URI.append_query(URI.encode_query(params))
     |> URI.to_string()
   end
 

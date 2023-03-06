@@ -106,7 +106,7 @@ defmodule LivebookWeb.SettingsLive do
               File systems
             </h2>
             <p class="mt-4 text-gray-700">
-              File systems are used to store notebooks. The local disk filesystem
+              File systems are used to store notebooks. The local disk file system
               is visible only to the current machine, but alternative file systems
               are available, such as S3-based storages.
             </p>
@@ -227,6 +227,7 @@ defmodule LivebookWeb.SettingsLive do
         running_files={[]}
         submit_event={:set_autosave_path}
         file_system_select_disabled={true}
+        target={self()}
       >
         <button class="button-base button-gray" phx-click="cancel_autosave_path" tabindex="-1">
           Cancel

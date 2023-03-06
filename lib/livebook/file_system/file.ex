@@ -49,7 +49,7 @@ defmodule Livebook.FileSystem.File do
   """
   @spec local(FileSystem.path()) :: t()
   def local(path) do
-    new(Livebook.Config.local_filesystem(), path)
+    new(Livebook.Config.local_file_system(), path)
   end
 
   @doc """
