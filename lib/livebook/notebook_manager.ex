@@ -258,8 +258,7 @@ defmodule Livebook.NotebookManager do
   end
 
   defp load_datetime(datetime) do
-    {:ok, datetime, _} = DateTime.from_iso8601(datetime)
-    datetime
+    DateTime.from_unix!(datetime, :microsecond)
   end
 
   defp dump_state(state) do
@@ -276,7 +275,7 @@ defmodule Livebook.NotebookManager do
       %{
         file: dump_file(info.file),
         name: info.name,
-        added_at: DateTime.to_iso8601(info.added_at)
+        added_at: DateTime.to_unix(info.added_at, :microsecond)
       }
     end
   end
