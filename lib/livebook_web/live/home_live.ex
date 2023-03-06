@@ -97,15 +97,10 @@ defmodule LivebookWeb.HomeLive do
               Your starred notebooks will appear here. <br />
               First time around? Check out the notebooks below to get started.
               <:actions>
-                <a
-                  href="/learn"
-                  class="flex items-center text-blue-600 pl-5"
-                  data-phx-link="redirect"
-                  data-phx-link-state="push"
-                >
+                <.link navigate={~p"/learn"} class="flex items-center text-blue-600 pl-5">
                   <span class="font-semibold">Learn more</span>
-                  <i class="ri-arrow-right-line align-middle ml-1" aria-hidden="true"></i>
-                </a>
+                  <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+                </.link>
               </:actions>
             </.no_entries>
             <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
