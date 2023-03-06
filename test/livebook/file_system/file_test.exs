@@ -422,4 +422,24 @@ defmodule Livebook.FileSystem.FileTest do
       assert {:ok, false} = FileSystem.File.exists?(file)
     end
   end
+
+  describe "ensure_extension/2" do
+    test "adds extension to the name" do
+      file = FileSystem.File.local(p("/file"))
+
+      assert %{path: "/file.txt"} = FileSystem.File.ensure_extension(file, ".txt")
+    end
+
+    test "keeps the name unchanged if it already has the given extension" do
+      file = FileSystem.File.local(p("/file.txt"))
+
+      assert %{path: "/file.txt"} = FileSystem.File.ensure_extension(file, ".txt")
+    end
+
+    test "given a directory changes path to empty file name with the given extension" do
+      dir = FileSystem.File.local(p("/dir/"))
+
+      assert %{path: "/dir/.txt"} = FileSystem.File.ensure_extension(dir, ".txt")
+    end
+  end
 end

@@ -275,4 +275,18 @@ defmodule Livebook.FileSystem.File do
   def exists?(file) do
     FileSystem.exists?(file.file_system, file.path)
   end
+
+  @doc """
+  Adds an extension to the file name, unless already present.
+  """
+  @spec ensure_extension(t(), String.t()) :: t()
+  def ensure_extension(file, "." <> _ = extension) do
+    Map.update!(file, :path, fn path ->
+      if String.ends_with?(path, extension) do
+        path
+      else
+        path <> extension
+      end
+    end)
+  end
 end
