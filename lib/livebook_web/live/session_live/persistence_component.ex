@@ -205,13 +205,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   defp normalize_file(file) do
-    Map.update!(file, :path, fn path ->
-      if String.ends_with?(path, LiveMarkdown.extension()) do
-        path
-      else
-        path <> LiveMarkdown.extension()
-      end
-    end)
+    FileSystem.File.ensure_extension(file, LiveMarkdown.extension())
   end
 
   defp savable?(draft_file, saved_file, running_files) do

@@ -103,19 +103,25 @@ defmodule LivebookWeb.FileSelectComponent do
             />
           </form>
         </div>
-        <span
-          class={["tooltip", if(@inner_block, do: "top", else: "left")]}
-          data-tooltip="New directory"
-        >
-          <button
-            class="icon-button"
-            tabindex="-1"
-            aria-label="new directory"
-            phx-click={js_show_new_dir_section()}
-          >
-            <.remix_icon icon="add-line" class="text-xl" />
-          </button>
-        </span>
+        <.menu id="new-item-menu" disabled={@file_system_select_disabled} position={:bottom_right}>
+          <:toggle>
+            <button class="icon-button" tabindex="-1" aria-label="add">
+              <.remix_icon icon="add-line" class="text-xl" />
+            </button>
+          </:toggle>
+          <.menu_item>
+            <button role="menuitem" phx-click={js_show_new_item_section("dir")}>
+              <.remix_icon icon="folder-add-line" />
+              <span>New directory</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button role="menuitem" phx-click={js_show_new_item_section("notebook")}>
+              <.remix_icon icon="file-add-line" />
+              <span>New notebook</span>
+            </button>
+          </.menu_item>
+        </.menu>
         <div :if={@inner_block}>
           <%= render_slot(@inner_block) %>
         </div>
@@ -153,32 +159,8 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
       </div>
 
-      <div
-        class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-        id="new_dir_section"
-      >
-        <div class="flex space-x-2 items-center p-2 rounded-lg">
-          <span class="block">
-            <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
-          </span>
-          <span class="flex font-medium text-gray-500">
-            <div phx-window-keydown={js_hide_new_dir_section()} phx-key="escape" phx-target={@myself}>
-              <input
-                id="new_dir_input"
-                aria-label="new directory"
-                type="text"
-                spellcheck="false"
-                autocomplete="off"
-                phx-blur={js_hide_new_dir_section()}
-                phx-window-keydown={
-                  JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()
-                }
-                phx-key="enter"
-              />
-            </div>
-          </span>
-        </div>
-      </div>
+      <.new_item_section type="dir" icon="folder-add-fill" myself={@myself} />
+      <.new_item_section type="notebook" icon="file-add-line" myself={@myself} />
 
       <div
         class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
@@ -231,6 +213,37 @@ defmodule LivebookWeb.FileSelectComponent do
           </div>
         </form>
       </div>
+    </div>
+    """
+  end
+
+  defp new_item_section(assigns) do
+    ~H"""
+    <div
+      class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+      id={"new-#{@type}-section"}
+    >
+      <form
+        class="flex space-x-2 items-center p-2 rounded-lg"
+        phx-submit={JS.push("create_#{@type}", target: @myself) |> js_hide_new_item_section(@type)}
+      >
+        <span class="block">
+          <.remix_icon icon={@icon} class="text-xl align-middle text-gray-400" />
+        </span>
+        <span class="flex font-medium text-gray-500">
+          <div phx-window-keydown={js_hide_new_item_section(@type)} phx-key="escape">
+            <input
+              id={"new-#{@type}-input"}
+              type="text"
+              name="name"
+              aria-label="new directory"
+              spellcheck="false"
+              autocomplete="off"
+              phx-blur={js_hide_new_item_section(@type)}
+            />
+          </div>
+        </span>
+      </form>
     </div>
     """
   end
@@ -389,16 +402,16 @@ defmodule LivebookWeb.FileSelectComponent do
     """
   end
 
-  defp js_show_new_dir_section(js \\ %JS{}) do
+  defp js_show_new_item_section(js \\ %JS{}, type) do
     js
-    |> JS.show(to: "#new_dir_section")
-    |> JS.dispatch("lb:set_value", to: "#new_dir_input", detail: %{value: ""})
-    |> JS.dispatch("lb:focus", to: "#new_dir_input")
+    |> JS.show(to: "#new-#{type}-section")
+    |> JS.dispatch("lb:set_value", to: "#new-#{type}-input", detail: %{value: ""})
+    |> JS.dispatch("lb:focus", to: "#new-#{type}-input")
   end
 
-  defp js_hide_new_dir_section(js \\ %JS{}) do
+  defp js_hide_new_item_section(js \\ %JS{}, type) do
     js
-    |> JS.hide(to: "#new_dir_section")
+    |> JS.hide(to: "#new-#{type}-section")
   end
 
   defp handle_progress(:folder, entry, socket) when entry.done? do
@@ -468,16 +481,21 @@ defmodule LivebookWeb.FileSelectComponent do
     {:noreply, put_error(socket, nil)}
   end
 
-  def handle_event("create_dir", %{"value" => name}, socket) do
+  def handle_event("create_dir", %{"name" => name}, socket) do
     socket =
       case create_dir(socket.assigns.current_dir, name) do
-        :ok ->
-          socket
-          |> update_file_infos(true)
+        :ok -> update_file_infos(socket, true)
+        {:error, error} -> put_error(socket, error)
+      end
 
-        {:error, error} ->
-          socket
-          |> put_error(error)
+    {:noreply, socket}
+  end
+
+  def handle_event("create_notebook", %{"name" => name}, socket) do
+    socket =
+      case create_notebook(socket.assigns.current_dir, name) do
+        :ok -> update_file_infos(socket, true)
+        {:error, error} -> put_error(socket, error)
       end
 
     {:noreply, socket}
@@ -645,6 +663,25 @@ defmodule LivebookWeb.FileSelectComponent do
   defp create_dir(parent_dir, name) do
     new_dir = FileSystem.File.resolve(parent_dir, name <> "/")
     FileSystem.File.create_dir(new_dir)
+  end
+
+  defp create_notebook(_parent_dir, ""), do: {:error, :ignore}
+
+  defp create_notebook(parent_dir, name) do
+    source = Livebook.Session.default_notebook() |> Livebook.LiveMarkdown.notebook_to_livemd()
+
+    new_file =
+      parent_dir
+      |> FileSystem.File.resolve(name)
+      |> FileSystem.File.ensure_extension(Livebook.LiveMarkdown.extension())
+
+    with {:ok, exists?} <- FileSystem.File.exists?(new_file) do
+      if exists? do
+        {:error, :ignore}
+      else
+        FileSystem.File.write(new_file, source)
+      end
+    end
   end
 
   defp delete_file(file) do

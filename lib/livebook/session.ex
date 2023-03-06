@@ -791,7 +791,11 @@ defmodule Livebook.Session do
     end
   end
 
-  defp default_notebook() do
+  @doc """
+  Returns the default notebook for a new session.
+  """
+  @spec default_notebook() :: Notebook.t()
+  def default_notebook() do
     %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
   end
 
