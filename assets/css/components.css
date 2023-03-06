@@ -151,11 +151,11 @@
   /* Tabs */
 
   .tabs {
-    @apply w-full flex;
+    @apply w-full flex overflow-x-auto;
   }
 
   .tabs .tab {
-    @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100;
+    @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100 whitespace-nowrap;
   }
 
   .tabs .tab.active {

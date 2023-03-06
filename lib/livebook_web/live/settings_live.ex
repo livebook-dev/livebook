@@ -227,6 +227,7 @@ defmodule LivebookWeb.SettingsLive do
         running_files={[]}
         submit_event={:set_autosave_path}
         file_system_select_disabled={true}
+        target={self()}
       >
         <button class="button-base button-gray" phx-click="cancel_autosave_path" tabindex="-1">
           Cancel

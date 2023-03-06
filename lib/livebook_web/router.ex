@@ -59,9 +59,10 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/", HomeLive, :page
-      live "/home/import/:tab", HomeLive, :import
       live "/home/sessions/:session_id/close", HomeLive, :close_session
       live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
+
+      live "/open/:tab", OpenLive, :page
 
       live "/settings", SettingsLive, :page
       live "/settings/add-file-system", SettingsLive, :add_file_system
@@ -98,8 +99,8 @@ defmodule LivebookWeb.Router do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
-      live "/import", HomeLive, :public_import
-      live "/open", HomeLive, :public_open
+      live "/import", OpenLive, :public_import
+      live "/open", OpenLive, :public_open
     end
   end
 

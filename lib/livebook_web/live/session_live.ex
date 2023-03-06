@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.JSInterop
   alias Livebook.Hubs
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -348,15 +348,14 @@ defmodule LivebookWeb.SessionLive do
       class="w-full max-w-4xl"
       patch={@self_path}
     >
-      <%= live_render(@socket, LivebookWeb.SessionLive.PersistenceLive,
-        id: "persistence",
-        session: %{
-          "session" => @session,
-          "file" => @data_view.file,
-          "persist_outputs" => @data_view.persist_outputs,
-          "autosave_interval_s" => @data_view.autosave_interval_s
-        }
-      ) %>
+      <.live_component
+        module={LivebookWeb.SessionLive.PersistenceComponent}
+        id="persistence"
+        session={@session}
+        file={@data_view.file}
+        persist_outputs={@data_view.persist_outputs}
+        autosave_interval_s={@data_view.autosave_interval_s}
+      />
     </.modal>
 
     <.modal
@@ -1287,6 +1286,10 @@ defmodule LivebookWeb.SessionLive do
       )
 
     {:noreply, assign(socket, saved_secrets: saved_secrets)}
+  end
+
+  def handle_info({:push_patch, to}, socket) do
+    {:noreply, push_patch(socket, to: to)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

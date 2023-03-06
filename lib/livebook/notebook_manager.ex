@@ -9,7 +9,7 @@ defmodule Livebook.NotebookManager do
   @namespace :notebook_manager
   @entity_id "global"
 
-  @recent_limit 10
+  @recent_limit 9
 
   @type state :: %{
           recent_notebooks: list(notebook_info()),
@@ -158,11 +158,11 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:add_starred_notebook, file, name}, state = prev_state) do
-    if Enum.any?(state.starred_notebook, &(&1.file == file)) do
+    if Enum.any?(state.starred_notebooks, &(&1.file == file)) do
       {:noreply, state}
     else
       starred_notebooks = [
-        %{file: file, name: name, added_at: DateTime.utc_now()} | state.starred_notebook
+        %{file: file, name: name, added_at: DateTime.utc_now()} | state.starred_notebooks
       ]
 
       state = %{state | starred_notebooks: starred_notebooks}
@@ -172,7 +172,7 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:remove_starred_notebook, file}, state = prev_state) do
-    starred_notebooks = Enum.reject(state.starred_notebook, &(&1.file == file))
+    starred_notebooks = Enum.reject(state.starred_notebooks, &(&1.file == file))
     state = %{state | starred_notebooks: starred_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}
@@ -217,7 +217,7 @@ defmodule Livebook.NotebookManager do
     if state.starred_notebooks != prev_state.starred_notebooks do
       Phoenix.PubSub.broadcast(
         Livebook.PubSub,
-        "notebook_manager:recent_notebooks",
+        "notebook_manager:starred_notebooks",
         {:starred_notebooks_updated, state.starred_notebooks}
       )
     end

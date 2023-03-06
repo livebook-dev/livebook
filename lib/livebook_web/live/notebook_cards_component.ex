@@ -1,4 +1,4 @@
-defmodule LivebookWeb.HomeLive.RecentNotebookListComponent do
+defmodule LivebookWeb.NotebookCardsComponent do
   use LivebookWeb, :live_component
 
   import LivebookWeb.SessionHelpers
@@ -7,42 +7,26 @@ defmodule LivebookWeb.HomeLive.RecentNotebookListComponent do
 
   @impl true
   def render(assigns) do
-    ~H"""
-    <div>
-      <div class="mb-4 flex items-center md:items-end justify-between">
-        <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-          Recent notebooks
-        </h2>
-      </div>
-      <.notebook_list recent_notebooks={@recent_notebooks} sessions={@sessions} myself={@myself} />
-    </div>
-    """
-  end
+    assigns = assign_new(assigns, :card_icon, fn -> nil end)
 
-  defp notebook_list(assigns) do
     ~H"""
-    <div
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-      role="group"
-      aria-label="recent notebooks"
-    >
-      <%= for {info, idx} <- Enum.with_index(@recent_notebooks) do %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" role="group">
+      <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
         <div class="flex flex-col p-5 border bg-gray-50 border-gray-300 rounded-lg">
           <div class="flex items-center justify-between">
-            <span class="text-gray-800 text-lg font-medium">
-              <%= info.name %>
+            <span class="tooltip top" data-tooltip={info.file.path}>
+              <span class="text-gray-800 text-lg font-medium">
+                <%= info.name %>
+              </span>
             </span>
-            <.remix_icon icon="history-line" class="text-gray-800" />
+            <%= @card_icon && render_slot(@card_icon) %>
           </div>
           <div class="mt-1 flex-grow text-gray-600 text-sm">
-            Opened <%= format_date_relatively(info.added_at) %>
+            <%= @added_at_label %> <%= format_date_relatively(info.added_at) %>
           </div>
           <div class="mt-2 flex space-x-6">
-            <%= if file_running?(info.file, @sessions) do %>
-              <.link
-                navigate={~p"/sessions/#{session_id_by_file(info.file, @sessions)}"}
-                class="text-blue-600 font-medium"
-              >
+            <%= if session = session_by_file(info.file, @sessions) do %>
+              <.link navigate={~p"/sessions/#{session.id}"} class="text-blue-600 font-medium">
                 Join session
               </.link>
             <% else %>
@@ -73,18 +57,18 @@ defmodule LivebookWeb.HomeLive.RecentNotebookListComponent do
 
   @impl true
   def handle_event("open", %{"idx" => idx}, socket) do
-    %{file: file} = Enum.at(socket.assigns.recent_notebooks, idx)
+    %{file: file} = Enum.at(socket.assigns.notebook_infos, idx)
 
     if file_running?(file, socket.assigns.sessions) do
-      session_id = session_id_by_file(file, socket.assigns.sessions)
-      {:noreply, push_navigate(socket, to: ~p"/sessions/#{session_id}")}
+      session = session_by_file(file, socket.assigns.sessions)
+      {:noreply, push_navigate(socket, to: ~p"/sessions/#{session.id}")}
     else
       {:noreply, open_notebook(socket, file)}
     end
   end
 
   def handle_event("fork", %{"idx" => idx}, socket) do
-    %{file: file} = Enum.at(socket.assigns.recent_notebooks, idx)
+    %{file: file} = Enum.at(socket.assigns.notebook_infos, idx)
 
     socket =
       case import_notebook(file) do
@@ -108,17 +92,11 @@ defmodule LivebookWeb.HomeLive.RecentNotebookListComponent do
   end
 
   defp file_running?(file, sessions) do
-    running_files = files(sessions)
-    file in running_files
+    Enum.any?(sessions, &(&1.file == file))
   end
 
-  defp files(sessions) do
-    Enum.map(sessions, & &1.file)
-  end
-
-  defp session_id_by_file(file, sessions) do
-    session = Enum.find(sessions, &(&1.file == file))
-    session.id
+  defp session_by_file(file, sessions) do
+    Enum.find(sessions, &(&1.file == file))
   end
 
   defp open_notebook(socket, file) do

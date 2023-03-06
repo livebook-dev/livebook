@@ -1,4 +1,4 @@
-defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
+defmodule LivebookWeb.OpenLive.UploadComponent do
   use LivebookWeb, :live_component
 
   @impl true
@@ -14,7 +14,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
     ~H"""
     <div class="flex-col space-y-5">
       <p class="text-gray-700" id="import-from-file">
-        Drag and drop a <code>.livemd</code> file below to import it.
+        Drag and drop a .livemd file below to import it.
       </p>
       <form
         id="upload-file-form"
@@ -86,7 +86,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
     consume_uploaded_entries(socket, :notebook, fn %{path: path}, _entry ->
       content = File.read!(path)
 
-      send(self(), {:import_content, content, []})
+      send(self(), {:import_source, content, []})
 
       {:ok, :ok}
     end)
