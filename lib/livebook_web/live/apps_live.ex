@@ -33,7 +33,9 @@ defmodule LivebookWeb.AppsLive do
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <LayoutHelpers.title text="Apps" />
-        <.app_list sessions={@sessions} />
+        <div class="mt-8">
+          <.app_list sessions={@sessions} />
+        </div>
       </div>
     </LayoutHelpers.layout>
     """
@@ -41,24 +43,17 @@ defmodule LivebookWeb.AppsLive do
 
   defp app_list(%{sessions: []} = assigns) do
     ~H"""
-    <div class="mt-8 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-      <div>
-        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
-      </div>
-      <div class="grow flex items-center justify-between">
-        <div class="text-gray-600">
-          You do not have any apps running. <br />
-          You can deploy new apps by opening a notebook and clicking
-          <.remix_icon icon="rocket-line" class="align-sub text-lg" /> in the sidebar.
-        </div>
-      </div>
-    </div>
+    <.no_entries>
+      You do not have any apps running. <br />
+      You can deploy new apps by opening a notebook and clicking
+      <.remix_icon icon="rocket-line" class="align-sub text-lg" /> in the sidebar.
+    </.no_entries>
     """
   end
 
   defp app_list(assigns) do
     ~H"""
-    <div class="mt-8 flex flex-col space-y-8">
+    <div class="flex flex-col space-y-8">
       <div :for={{slug, sessions} <- group_apps(@sessions)}>
         <div class="mb-2 text-gray-800 font-medium text-lg">
           <%= "/" <> slug %>

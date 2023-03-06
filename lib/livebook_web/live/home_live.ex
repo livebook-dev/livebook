@@ -75,12 +75,7 @@ defmodule LivebookWeb.HomeLive do
           </div>
         </div>
 
-        <div
-          :if={@starred_notebooks != []}
-          id="starred-notebooks"
-          role="region"
-          aria-label="starred notebooks"
-        >
+        <div id="starred-notebooks" role="region" aria-label="starred notebooks">
           <div class="mb-4 flex items-center md:items-end justify-between">
             <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
               Starred notebooks
@@ -97,17 +92,28 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </button>
           </div>
-          <.live_component
-            module={LivebookWeb.NotebookCardsComponent}
-            id="starred-notebook-list"
-            notebook_infos={visible_starred_notebooks(@starred_notebooks, @starred_expanded?)}
-            sessions={@sessions}
-            added_at_label="Starred"
-          >
-            <:card_icon>
-              <.remix_icon icon="star-fill" class="text-yellow-600" />
-            </:card_icon>
-          </.live_component>
+          <%= if @starred_notebooks == [] do %>
+            <.no_entries>
+              Your starred notebooks will appear here. Check out the notebooks below to get started.
+            </.no_entries>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" data-el-learn-section>
+              <% # Note: it's fine to use stateless components in this comprehension,
+              # because @notebook_infos never change %>
+              <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
+            </div>
+          <% else %>
+            <.live_component
+              module={LivebookWeb.NotebookCardsComponent}
+              id="starred-notebook-list"
+              notebook_infos={visible_starred_notebooks(@starred_notebooks, @starred_expanded?)}
+              sessions={@sessions}
+              added_at_label="Starred"
+            >
+              <:card_icon>
+                <.remix_icon icon="star-fill" class="text-yellow-600" />
+              </:card_icon>
+            </.live_component>
+          <% end %>
         </div>
 
         <div id="running-sessions" class="py-16" role="region" aria-label="running sessions">
@@ -118,23 +124,6 @@ defmodule LivebookWeb.HomeLive do
             starred_notebooks={@starred_notebooks}
             memory={@memory}
           />
-        </div>
-
-        <div class="py-16" data-el-learn-section role="region" aria-label="learn section">
-          <div class="mb-4 flex justify-between items-center">
-            <h2 class="uppercase font-semibold text-gray-500">
-              Learn
-            </h2>
-            <.link navigate={~p"/learn"} class="flex items-center text-blue-600">
-              <span class="font-semibold">See all</span>
-              <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
-            </.link>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <% # Note: it's fine to use stateless components in this comprehension,
-            # because @notebook_infos never change %>
-            <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
-          </div>
         </div>
       </div>
     </LayoutHelpers.layout>

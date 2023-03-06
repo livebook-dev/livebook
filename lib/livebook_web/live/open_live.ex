@@ -41,7 +41,7 @@ defmodule LivebookWeb.OpenLive do
       </:topbar_action>
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <LayoutHelpers.title text="Open notebook" />
+          <LayoutHelpers.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">
             <button class="button-base button-blue" phx-click="new">
               <.remix_icon icon="add-line" class="align-middle mr-1" />
@@ -96,24 +96,25 @@ defmodule LivebookWeb.OpenLive do
           />
         </div>
 
-        <div
-          :if={@recent_notebooks != []}
-          id="recent-notebooks"
-          role="region"
-          aria-label="recent notebooks"
-        >
+        <div id="recent-notebooks" role="region" aria-label="recent notebooks">
           <div class="mb-4 flex items-center md:items-end justify-between">
             <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
               Recent notebooks
             </h2>
           </div>
-          <.live_component
-            module={LivebookWeb.NotebookCardsComponent}
-            id="recent-notebook-list"
-            notebook_infos={@recent_notebooks}
-            sessions={@sessions}
-            added_at_label="Opened"
-          />
+          <%= if @recent_notebooks == [] do %>
+            <.no_entries>
+              Your most recently opened notebooks will appear here.
+            </.no_entries>
+          <% else %>
+            <.live_component
+              module={LivebookWeb.NotebookCardsComponent}
+              id="recent-notebook-list"
+              notebook_infos={@recent_notebooks}
+              sessions={@sessions}
+              added_at_label="Opened"
+            />
+          <% end %>
           <div class="mt-3 text-gray-600 text-sm">
             Looking for unsaved notebooks? <.link
               class="font-semibold"

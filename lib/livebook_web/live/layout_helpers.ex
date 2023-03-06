@@ -262,12 +262,23 @@ defmodule LivebookWeb.LayoutHelpers do
 
   """
   attr :text, :string, required: true
+  attr :back_navigate, :string, default: nil
 
   def title(assigns) do
     ~H"""
-    <h1 class="text-2xl text-gray-800 font-medium">
-      <%= @text %>
-    </h1>
+    <div class="relative">
+      <div
+        :if={@back_navigate}
+        class="hidden md:flex absolute top-0 bottom-0 left-0 transform -translate-x-full"
+      >
+        <.link navigate={@back_navigate}>
+          <.remix_icon icon="arrow-left-line" class="align-middle mr-2 text-2xl text-gray-800" />
+        </.link>
+      </div>
+      <h1 class="text-2xl text-gray-800 font-medium">
+        <%= @text %>
+      </h1>
+    </div>
     """
   end
 end

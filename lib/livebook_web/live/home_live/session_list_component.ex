@@ -88,27 +88,17 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp session_list(%{sessions: []} = assigns) do
     ~H"""
-    <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-      <div>
-        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
-      </div>
-      <div class="grow flex items-center justify-between">
-        <div class="text-gray-600">
-          You do not have any running sessions.
-          <%= if @show_autosave_note? do %>
-            <br />
-            Looking for unsaved notebooks? <.link
-              class="font-semibold"
-              navigate={~p"/open/file?autosave=true"}
-              phx-no-format
-            >Browse them here</.link>.
-          <% end %>
-        </div>
-        <button class="button-base button-blue" phx-click="new">
-          New notebook
-        </button>
-      </div>
-    </div>
+    <.no_entries>
+      You do not have any running sessions.
+      <%= if @show_autosave_note? do %>
+        <br />
+        Looking for unsaved notebooks? <.link
+          class="font-semibold"
+          navigate={~p"/open/file?autosave=true"}
+          phx-no-format
+        >Browse them here</.link>.
+      <% end %>
+    </.no_entries>
     """
   end
 
