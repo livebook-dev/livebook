@@ -62,6 +62,18 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </button>
           </.menu_item>
           <.menu_item>
+            <button
+              role="menuitem"
+              phx-click={on_form_cell_click(@section_id, @cell_id)}
+              phx-value-type="form"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
+              <.remix_icon icon="terminal-box-line" />
+              <span>Form</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
             <.link
               patch={
                 ~p"/sessions/#{@session_id}/cell-upload?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
@@ -115,6 +127,26 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       </div>
     </div>
     """
+  end
+
+  defp on_form_cell_click(section_id, cell_id) do
+    with_confirm(
+      JS.push("add_form_cell_dependencies", [])
+      |> JS.push("insert_cell_below",
+        value: %{type: "form", section_id: section_id, cell_id: cell_id}
+      )
+      |> JS.push("queue_cells_reevaluation"),
+      title: "Add packages",
+      description: ~s'''
+      The <span class="font-semibold">“Form“</span>
+      smart cell requires the #{code_tag("kino")} package. Do you want to add
+      it as a dependency and restart?
+      ''',
+      confirm_text: "Add and restart",
+      confirm_icon: "add-line",
+      danger: false,
+      html: true
+    )
   end
 
   defp smart_cell_insert_button(%{definition: %{requirement: %{variants: [_, _ | _]}}} = assigns) do

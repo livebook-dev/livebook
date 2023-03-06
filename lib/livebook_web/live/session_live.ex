@@ -1005,6 +1005,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("add_form_cell_dependencies", %{}, socket) do
+    Session.add_dependencies(socket.assigns.session.pid, [%{dep: {:kino, "~> 0.8.1"}, config: []}])
+
+    {status, socket} = maybe_reconnect_runtime(socket)
+
+    if status == :ok do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event(
         "add_smart_cell_dependencies",
         %{"kind" => kind, "variant_idx" => variant_idx},
@@ -1690,6 +1702,27 @@ defmodule LivebookWeb.SessionLive do
     source = "![](#{url})"
 
     {:markdown, %{source: source}}
+  end
+
+  defp cell_type_and_attrs_from_params(%{"type" => "form"}) do
+    source = """
+    form =
+      Kino.Control.form(
+        [
+          name: Kino.Input.text("Name"),
+        ],
+        submit: "Submit"
+      )
+
+    form
+    |> Kino.render()
+    |> Kino.Control.stream()
+    |> Kino.listen(fn event ->
+      IO.inspect(event)
+    end)
+    """
+
+    {:code, %{source: source}}
   end
 
   defp section_with_next_index(notebook, section_id, cell_id)
