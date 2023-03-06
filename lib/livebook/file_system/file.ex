@@ -281,10 +281,6 @@ defmodule Livebook.FileSystem.File do
   """
   @spec ensure_extension(t(), String.t()) :: t()
   def ensure_extension(file, "." <> _ = extension) do
-    if dir?(file) do
-      raise ArgumentError, "expected a regular file, got: #{inspect(file)}"
-    end
-
     Map.update!(file, :path, fn path ->
       if String.ends_with?(path, extension) do
         path

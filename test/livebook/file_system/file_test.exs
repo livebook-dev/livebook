@@ -424,14 +424,6 @@ defmodule Livebook.FileSystem.FileTest do
   end
 
   describe "ensure_extension/2" do
-    test "raises if a directory is given" do
-      dir = FileSystem.File.local(p("/dir/"))
-
-      assert_raise ArgumentError, ~r/expected a regular file, got:/, fn ->
-        FileSystem.File.ensure_extension(dir, ".txt")
-      end
-    end
-
     test "adds extension to the name" do
       file = FileSystem.File.local(p("/file"))
 
@@ -442,6 +434,12 @@ defmodule Livebook.FileSystem.FileTest do
       file = FileSystem.File.local(p("/file.txt"))
 
       assert %{path: "/file.txt"} = FileSystem.File.ensure_extension(file, ".txt")
+    end
+
+    test "given a directory changes path to empty file name with the given extension" do
+      dir = FileSystem.File.local(p("/dir/"))
+
+      assert %{path: "/dir/.txt"} = FileSystem.File.ensure_extension(dir, ".txt")
     end
   end
 end
