@@ -94,7 +94,19 @@ defmodule LivebookWeb.HomeLive do
           </div>
           <%= if @starred_notebooks == [] do %>
             <.no_entries>
-              Your starred notebooks will appear here. Check out the notebooks below to get started.
+              Your starred notebooks will appear here. <br />
+              First time around? Check out the notebooks below to get started.
+              <:actions>
+                <a
+                  href="/learn"
+                  class="flex items-center text-blue-600 pl-5"
+                  data-phx-link="redirect"
+                  data-phx-link-state="push"
+                >
+                  <span class="font-semibold">Learn more</span>
+                  <i class="ri-arrow-right-line align-middle ml-1" aria-hidden="true"></i>
+                </a>
+              </:actions>
             </.no_entries>
             <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <% # Note: it's fine to use stateless components in this comprehension,

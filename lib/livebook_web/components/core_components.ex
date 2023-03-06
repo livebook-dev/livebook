@@ -593,7 +593,7 @@ defmodule LivebookWeb.CoreComponents do
   """
 
   slot :inner_block, required: true
-  slot :actions, default: nil
+  slot :actions
 
   def no_entries(assigns) do
     ~H"""
@@ -605,7 +605,7 @@ defmodule LivebookWeb.CoreComponents do
         <div class="text-gray-600">
           <%= render_slot(@inner_block) %>
         </div>
-        <%= @actions && render_slot(@actions) %>
+        <%= render_slot(@actions) %>
       </div>
     </div>
     """
