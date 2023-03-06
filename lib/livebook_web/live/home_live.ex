@@ -58,7 +58,7 @@ defmodule LivebookWeb.HomeLive do
       <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
 
-      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutHelpers.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
@@ -76,7 +76,7 @@ defmodule LivebookWeb.HomeLive do
         </div>
 
         <div id="starred-notebooks" role="region" aria-label="starred notebooks">
-          <div class="mb-4 flex items-center md:items-end justify-between">
+          <div class="my-4 flex items-center md:items-end justify-between">
             <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
               Starred notebooks
             </h2>
@@ -123,7 +123,7 @@ defmodule LivebookWeb.HomeLive do
           <% end %>
         </div>
 
-        <div id="running-sessions" class="py-16" role="region" aria-label="running sessions">
+        <div id="running-sessions" class="py-20 mb-32" role="region" aria-label="running sessions">
           <.live_component
             module={LivebookWeb.HomeLive.SessionListComponent}
             id="session-list"

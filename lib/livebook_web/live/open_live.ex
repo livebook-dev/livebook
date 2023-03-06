@@ -96,7 +96,7 @@ defmodule LivebookWeb.OpenLive do
           />
         </div>
 
-        <div id="recent-notebooks" role="region" aria-label="recent notebooks">
+        <div id="recent-notebooks" class="pb-10" role="region" aria-label="recent notebooks">
           <div class="mb-4 flex items-center md:items-end justify-between">
             <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
               Recent notebooks
