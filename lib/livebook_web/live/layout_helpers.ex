@@ -253,9 +253,9 @@ defmodule LivebookWeb.LayoutHelpers do
       "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
     if tooltip = Provider.connection_error(hub) do
-      [to: to, href: to, data_tooltip: tooltip, class: "tooltip right " <> class]
+      [navigate: to, data_tooltip: tooltip, class: "tooltip right " <> class]
     else
-      [to: to, class: class]
+      [navigate: to, class: class]
     end
   end
 
