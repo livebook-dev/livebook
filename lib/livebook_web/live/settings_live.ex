@@ -166,11 +166,7 @@ defmodule LivebookWeb.SettingsLive do
                 value={false}
               />
               <.switch_field name="editor_font_size" label="Increase font size" value={false} />
-              <.switch_field
-                name="editor_high_contrast"
-                label="Use high contrast theme"
-                value={false}
-              />
+              <.switch_field name="editor_light_theme" label="Use light theme" value={false} />
               <.switch_field
                 name="editor_markdown_word_wrap"
                 label="Wrap words in Markdown"

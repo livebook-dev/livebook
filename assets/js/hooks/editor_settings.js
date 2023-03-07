@@ -20,8 +20,8 @@ const EditorSettings = {
     const editorFontSizeCheckbox = this.el.querySelector(
       `[name="editor_font_size"][value="true"]`
     );
-    const editorHighContrastCheckbox = this.el.querySelector(
-      `[name="editor_high_contrast"][value="true"]`
+    const editorLightThemeCheckbox = this.el.querySelector(
+      `[name="editor_light_theme"][value="true"]`
     );
     const editorMarkdownWordWrapCheckbox = this.el.querySelector(
       `[name="editor_markdown_word_wrap"][value="true"]`
@@ -31,8 +31,8 @@ const EditorSettings = {
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
-    editorHighContrastCheckbox.checked =
-      settings.editor_theme === EDITOR_THEME.highContrast ? true : false;
+    editorLightThemeCheckbox.checked =
+      settings.editor_theme === EDITOR_THEME.light ? true : false;
     editorMarkdownWordWrapCheckbox.checked = settings.editor_markdown_word_wrap;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
@@ -51,10 +51,10 @@ const EditorSettings = {
       });
     });
 
-    editorHighContrastCheckbox.addEventListener("change", (event) => {
+    editorLightThemeCheckbox.addEventListener("change", (event) => {
       settingsStore.update({
         editor_theme: event.target.checked
-          ? EDITOR_THEME.highContrast
+          ? EDITOR_THEME.light
           : EDITOR_THEME.default,
       });
     });
