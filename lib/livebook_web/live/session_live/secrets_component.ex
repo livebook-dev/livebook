@@ -5,11 +5,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   alias Livebook.Secrets
   alias Livebook.Secrets.Secret
   alias Livebook.Session
-  alias Livebook.EctoTypes.SecretOrigin
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket), hubs: Livebook.Hubs.get_hubs([:create_secret]))}
+    {:ok, assign(socket, title: title(socket))}
   end
 
   @impl true
@@ -21,11 +20,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign_new(:changeset, fn ->
-        attrs = %{name: secret_name, value: nil, origin: :session}
+        attrs = %{name: secret_name, value: nil, hub_id: "session", readonly: false}
         Secrets.change_secret(%Secret{}, attrs)
       end)
       |> assign_new(:grant_access_secret, fn ->
-        Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name))
+        Enum.find(
+          socket.assigns.saved_secrets,
+          &(&1.name == secret_name and secret_name not in Map.keys(socket.assigns.secrets))
+        )
       end)
 
     {:ok, socket}
@@ -42,6 +44,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         :if={@grant_access_secret}
         secret={@grant_access_secret}
         target={@myself}
+        hub={@hub}
       />
       <div class="flex flex-columns gap-4">
         <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
@@ -60,9 +63,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               />
               <.secret_with_badge
                 :for={secret <- @saved_secrets}
+                :if={!is_map_key(@secrets, secret.name) and @secrets[secret.name] != secret.value}
                 secret_name={secret.name}
-                secret_origin={secret.origin}
-                stored={stored(secret, @hubs)}
+                stored={hub_label(@hub)}
                 active={false}
                 target={@myself}
               />
@@ -109,17 +112,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               phx-debounce="blur"
             />
             <.radio_field
-              field={f[:origin]}
-              value={SecretOrigin.encode(f[:origin].value)}
+              field={f[:hub_id]}
               label="Storage"
-              options={
-                [{"session", "only this session"}] ++
-                  if Livebook.Config.feature_flag_enabled?(:hub) do
-                    for hub <- @hubs, do: {"hub-#{hub.id}", "in #{hub.hub_emoji} #{hub.hub_name}"}
-                  else
-                    []
-                  end
-              }
+              options={[
+                {"session", "only this session"},
+                {@hub.id, "in #{@hub.hub_emoji} #{@hub.hub_name}"}
+              ]}
             />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
@@ -138,6 +136,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp secret_with_badge(assigns) do
+    assigns = assign_new(assigns, :secret_origin, fn -> nil end)
+
     ~H"""
     <div
       role="button"
@@ -150,9 +150,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-name={@secret_name}
-      phx-value-origin={SecretOrigin.encode(@secret_origin)}
+      phx-value-origin={@secret_origin}
       phx-target={@target}
-      phx-click="select_secret"
+      phx-click="grant_access"
     >
       <%= @secret_name %>
       <span class={[
@@ -188,25 +188,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
-              <%= if @secret.origin == :startup do %>
-                <span class="ml-2 text-sm font-normal text-gray-100">
-                  There is a secret named
-                  <span class="font-semibold text-white"><%= @secret.name %></span>
-                  in your Livebook app. Allow this session to access it?
-                </span>
-              <% else %>
-                <span class="ml-2 text-sm font-normal text-gray-100">
-                  There is a secret named
-                  <span class="font-semibold text-white"><%= @secret.name %></span>
-                  in your Livebook Hub. Allow this session to access it?
-                </span>
-              <% end %>
+              <span class="ml-2 text-sm font-normal text-gray-100">
+                There is a secret named
+                <span class="font-semibold text-white"><%= @secret.name %></span>
+                in <%= hub_label(@hub) %>. Allow this session to access it?
+              </span>
             </div>
             <button
               class="button-base button-gray"
               phx-click="grant_access"
               phx-value-name={@secret.name}
-              phx-value-origin={SecretOrigin.encode(@secret.origin)}
+              phx-value-hub_id={@secret.hub_id}
               phx-target={@target}
             >
               Grant access
@@ -232,16 +224,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("select_secret", %{"name" => secret_name, "origin" => origin}, socket) do
-    {:ok, origin} = SecretOrigin.decode(origin)
-    grant_access(socket.assigns.saved_secrets, secret_name, origin, socket)
-
-    {:noreply,
-     socket
-     |> push_patch(to: socket.assigns.return_to)
-     |> push_secret_selected(secret_name)}
-  end
-
   def handle_event("validate", %{"secret" => attrs}, socket) do
     changeset =
       %Secret{}
@@ -251,9 +233,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("grant_access", %{"name" => secret_name, "origin" => origin}, socket) do
-    {:ok, origin} = SecretOrigin.decode(origin)
-    grant_access(socket.assigns.saved_secrets, secret_name, origin, socket)
+  def handle_event("grant_access", %{"name" => secret_name} = attrs, socket) do
+    cond do
+      attrs["origin"] == "session" and is_map_key(socket.assigns.secrets, secret_name) ->
+        Session.set_secret(socket.assigns.session.pid, %{
+          name: secret_name,
+          value: socket.assigns.secrets[secret_name]
+        })
+
+      secret = Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name)) ->
+        Session.set_secret(socket.assigns.session.pid, secret)
+    end
 
     {:noreply,
      socket
@@ -271,31 +261,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(socket, %Secret{origin: :session} = secret) do
+  defp set_secret(socket, %Secret{hub_id: "session"} = secret) do
     Session.set_secret(socket.assigns.session.pid, secret)
   end
 
-  defp set_secret(socket, %Secret{origin: {:hub, id}} = secret) when is_binary(id) do
-    with :ok <- Hubs.create_secret(secret) do
+  defp set_secret(socket, %Secret{} = secret) do
+    with :ok <- Hubs.create_secret(socket.assigns.hub, secret) do
       Session.set_secret(socket.assigns.session.pid, secret)
     end
   end
 
-  defp grant_access(secrets, secret_name, origin, socket) do
-    secret = Enum.find(secrets, &(&1.name == secret_name and &1.origin == origin))
-
-    if secret, do: Livebook.Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
-  defp stored(%{origin: {:hub, id}}, hubs), do: stored(id, hubs)
-  defp stored(%{origin: :startup}, hubs), do: stored("personal-hub", hubs)
-
-  defp stored(id, hubs) do
-    hub = fetch_hub!(id, hubs)
-    "#{hub.hub_emoji} #{hub.hub_name}"
-  end
-
-  defp fetch_hub!(id, hubs) do
-    Enum.find(hubs, &(&1.id == id)) || raise "unknown hub id: #{id}"
-  end
+  defp hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
 end

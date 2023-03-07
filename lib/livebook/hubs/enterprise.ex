@@ -171,7 +171,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
 
       {:transport_error, reason} ->
         message = "#{enterprise.hub_emoji} #{enterprise.hub_name}: #{reason}"
-        changeset = Livebook.Secrets.add_secret_error(secret, :origin, message)
+        changeset = Livebook.Secrets.add_secret_error(secret, :hub_id, message)
 
         {:error, changeset}
     end

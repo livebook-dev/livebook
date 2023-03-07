@@ -1,48 +1,44 @@
 defmodule Livebook.Secrets do
   @moduledoc false
 
+  alias Livebook.Hubs.Provider
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
 
-  @secret_startup_key :livebook_startup_secrets
+  @namespace :hub_secrets
 
   @doc """
   Get the secrets list from storage.
   """
-  @spec get_secrets() :: list(Secret.t())
-  def get_secrets do
-    startup_secrets = :persistent_term.get(@secret_startup_key, [])
-    storage_secrets = for fields <- Storage.all(:secrets), do: to_struct(fields)
-
-    Enum.concat(storage_secrets, startup_secrets)
+  @spec get_secrets(Provider.t()) :: list(Secret.t())
+  def get_secrets(hub) do
+    for fields <- Storage.all(@namespace),
+        from_hub?(fields, hub),
+        do: to_struct(fields)
   end
 
   @doc """
   Gets a secret from storage.
   Raises `RuntimeError` if the secret doesn't exist.
   """
-  @spec fetch_secret!(String.t()) :: Secret.t()
-  def fetch_secret!(id) do
-    fields = Storage.fetch!(:secrets, id)
+  @spec fetch_secret!(Provider.t(), String.t()) :: Secret.t()
+  def fetch_secret!(hub, id) do
+    fields = Storage.fetch!(@namespace, id)
+    true = from_hub?(fields, hub)
+
     to_struct(fields)
   end
 
   @doc """
   Gets a secret from storage.
   """
-  @spec get_secret(String.t()) :: {:ok, Secret.t()} | :error
-  def get_secret(id) do
-    with {:ok, fields} <- Storage.fetch(:secrets, id) do
-      {:ok, to_struct(fields)}
+  @spec get_secret(Provider.t(), String.t()) :: {:ok, Secret.t()} | :error
+  def get_secret(hub, id) do
+    with {:ok, fields} <- Storage.fetch(@namespace, id) do
+      if from_hub?(fields, hub),
+        do: {:ok, to_struct(fields)},
+        else: :error
     end
-  end
-
-  @doc """
-  Checks if the secret already exists.
-  """
-  @spec secret_exists?(String.t()) :: boolean()
-  def secret_exists?(id) do
-    Storage.fetch(:secrets, id) != :error
   end
 
   @doc """
@@ -83,63 +79,39 @@ defmodule Livebook.Secrets do
   """
   @spec set_secret(Secret.t()) :: Secret.t()
   def set_secret(secret) do
-    attributes = Map.from_struct(secret)
+    attributes =
+      secret
+      |> Map.from_struct()
+      |> Map.delete(:readonly)
 
-    :ok = Storage.insert(:secrets, secret.name, Map.to_list(attributes))
-    :ok = broadcast_secrets_change({:set_secret, secret})
+    :ok = Storage.insert(@namespace, secret.name, Map.to_list(attributes))
 
-    to_struct(attributes)
+    secret
   end
 
   @doc """
   Unset secret from given id.
   """
-  @spec unset_secret(String.t()) :: :ok
-  def unset_secret(id) do
-    with {:ok, secret} <- get_secret(id) do
-      Storage.delete(:secrets, id)
-      broadcast_secrets_change({:unset_secret, secret})
+  @spec unset_secret(Provider.t(), String.t()) :: :ok
+  def unset_secret(hub, id) do
+    with {:ok, _secret} <- get_secret(hub, id) do
+      Storage.delete(@namespace, id)
     end
 
     :ok
   end
 
-  @doc """
-  Sets additional secrets that are kept only in memory.
-  """
-  @spec set_startup_secrets(list(Secret.t())) :: :ok
-  def set_startup_secrets(secrets) do
-    :persistent_term.put(@secret_startup_key, secrets)
-  end
-
-  @doc """
-  Subscribe to secrets updates.
-
-  ## Messages
-
-    * `{:set_secret, secret}`
-    * `{:unset_secret, secret}`
-
-  """
-  @spec subscribe() :: :ok | {:error, term()}
-  def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "secrets")
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe() :: :ok
-  def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "secrets")
-  end
-
-  defp broadcast_secrets_change(message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "secrets", message)
-  end
-
   defp to_struct(%{name: name, value: value} = fields) do
-    # Previously stored secrets were all `:app`-based secrets
-    %Secret{name: name, value: value, origin: fields[:origin] || :app}
+    %Secret{
+      name: name,
+      value: value,
+      hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id(),
+      readonly: false
+    }
+  end
+
+  defp from_hub?(fields, hub) do
+    hub_id = fields[:hub_id] || Livebook.Hubs.Personal.id()
+    hub_id == hub.id
   end
 end

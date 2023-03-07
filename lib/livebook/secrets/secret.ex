@@ -3,27 +3,27 @@ defmodule Livebook.Secrets.Secret do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Livebook.EctoTypes.SecretOrigin
-
   @type t :: %__MODULE__{
           name: String.t() | nil,
           value: String.t() | nil,
-          origin: SecretOrigin.t()
+          hub_id: String.t() | nil,
+          readonly: boolean()
         }
 
   @primary_key {:name, :string, autogenerate: false}
   embedded_schema do
     field :value, :string
-    field :origin, SecretOrigin
+    field :hub_id, :string
+    field :readonly, :boolean, virtual: true, default: false
   end
 
   def changeset(secret, attrs \\ %{}) do
     secret
-    |> cast(attrs, [:name, :value, :origin])
+    |> cast(attrs, [:name, :value, :hub_id])
     |> update_change(:name, &String.upcase/1)
     |> validate_format(:name, ~r/^\w+$/,
       message: "should contain only alphanumeric characters and underscore"
     )
-    |> validate_required([:name, :value, :origin])
+    |> validate_required([:name, :value, :hub_id])
   end
 end

@@ -154,7 +154,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
   end
 
   defp build_secret(state, %{name: name, value: value}),
-    do: %Secret{name: name, value: value, origin: {:hub, state.hub.id}}
+    do: %Secret{name: name, value: value, hub_id: state.hub.id, readonly: true}
 
   defp update_hub(state, name) do
     case Enterprise.update_hub(state.hub, %{hub_name: name}) do

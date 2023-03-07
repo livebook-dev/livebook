@@ -20,6 +20,12 @@ defmodule Livebook.Hubs.Personal do
   @fields ~w(hub_name hub_emoji)a
 
   @doc """
+  The personal hub fixed id.
+  """
+  @spec id() :: String.t()
+  def id, do: "personal-hub"
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
@@ -57,7 +63,25 @@ defmodule Livebook.Hubs.Personal do
     personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
-    |> put_change(:id, "personal-hub")
+    |> put_change(:id, id())
+  end
+
+  @secret_startup_key :livebook_startup_secrets
+
+  @doc """
+  Get the startup secrets list from persistent term.
+  """
+  @spec get_startup_secrets() :: list(Secret.t())
+  def get_startup_secrets do
+    :persistent_term.get(@secret_startup_key, [])
+  end
+
+  @doc """
+  Sets additional secrets that are kept only in memory.
+  """
+  @spec set_startup_secrets(list(Secret.t())) :: :ok
+  def set_startup_secrets(secrets) do
+    :persistent_term.put(@secret_startup_key, secrets)
   end
 end
 
@@ -85,10 +109,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def disconnect(_personal), do: raise("not implemented")
 
-  def capabilities(_personal), do: ~w(list_secrets create_secret update_secret delete_secret)a
+  def capabilities(_personal), do: ~w(list_secrets create_secret)a
 
-  def get_secrets(_personal) do
-    Secrets.get_secrets()
+  def get_secrets(personal) do
+    Secrets.get_secrets(personal) ++ Livebook.Hubs.Personal.get_startup_secrets()
   end
 
   def create_secret(_personal, secret) do
@@ -101,8 +125,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     :ok = Broadcasts.secret_updated(secret)
   end
 
-  def delete_secret(_personal, secret) do
-    :ok = Secrets.unset_secret(secret.name)
+  def delete_secret(personal, secret) do
+    :ok = Secrets.unset_secret(personal, secret.name)
     :ok = Broadcasts.secret_deleted(secret)
   end
 

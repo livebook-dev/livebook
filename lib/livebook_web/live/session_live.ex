@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
   alias Livebook.Hubs
@@ -24,7 +24,6 @@ defmodule LivebookWeb.SessionLive do
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
             Session.subscribe(session_id)
-            Secrets.subscribe()
             Hubs.subscribe(:secrets)
             Livebook.NotebookManager.subscribe_starred_notebooks()
 
@@ -61,7 +60,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           saved_secrets: get_saved_secrets(),
+           saved_secrets: Hubs.get_secrets(data.hub),
            select_secret_ref: nil,
            select_secret_options: nil,
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
@@ -201,7 +200,7 @@ defmodule LivebookWeb.SessionLive do
             id="secrets-list"
             session={@session}
             saved_secrets={@saved_secrets}
-            hubs={@saved_hubs}
+            hub={@data_view.notebook_hub}
             secrets={@data_view.secrets}
           />
         </div>
@@ -521,6 +520,7 @@ defmodule LivebookWeb.SessionLive do
         id="secrets"
         session={@session}
         secrets={@data_view.secrets}
+        hub={@data_view.notebook_hub}
         saved_secrets={@saved_secrets}
         prefill_secret_name={@prefill_secret_name}
         select_secret_ref={@select_secret_ref}
@@ -1223,29 +1223,29 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_created, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> refresh_secrets()
      |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
   end
 
-  def handle_info({:secret_updated, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_updated, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> refresh_secrets()
      |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
   end
 
-  def handle_info({:secret_deleted, %{origin: {:hub, _id}}}, socket) do
+  def handle_info({:secret_deleted, _secret}, socket) do
     {:noreply,
      socket
-     |> assign(saved_secrets: get_saved_secrets())
+     |> refresh_secrets()
      |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
   end
 
-  def handle_info(:hubs_changed, socket) do
-    {:noreply, assign(socket, saved_secrets: get_saved_secrets())}
+  def handle_info(:hub_changed, socket) do
+    {:noreply, refresh_secrets(socket)}
   end
 
   def handle_info({:error, error}, socket) do
@@ -1328,26 +1328,6 @@ defmodule LivebookWeb.SessionLive do
     }
 
     handle_event("insert_cell_below", params, socket)
-  end
-
-  def handle_info({:set_secret, secret}, socket) do
-    saved_secrets =
-      Enum.reject(
-        socket.assigns.saved_secrets,
-        &(&1.name == secret.name and &1.origin == secret.origin)
-      )
-
-    {:noreply, assign(socket, saved_secrets: [secret | saved_secrets])}
-  end
-
-  def handle_info({:unset_secret, secret}, socket) do
-    saved_secrets =
-      Enum.reject(
-        socket.assigns.saved_secrets,
-        &(&1.name == secret.name and &1.origin == secret.origin)
-      )
-
-    {:noreply, assign(socket, saved_secrets: saved_secrets)}
   end
 
   def handle_info({:push_patch, to}, socket) do
@@ -1655,6 +1635,9 @@ defmodule LivebookWeb.SessionLive do
        ) do
     prune_cell_sources(socket)
   end
+
+  defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}),
+    do: refresh_secrets(socket)
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
@@ -2098,14 +2081,13 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp get_saved_secrets do
-    Enum.sort(Hubs.get_secrets())
-  end
-
   defp app_status_color(nil), do: "bg-gray-400"
   defp app_status_color(:booting), do: "bg-blue-500"
   defp app_status_color(:running), do: "bg-green-bright-400"
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
   defp app_status_color(:stopped), do: "bg-gray-500"
+
+  defp refresh_secrets(socket),
+    do: assign(socket, saved_secrets: Hubs.get_secrets(socket.private.data.hub))
 end

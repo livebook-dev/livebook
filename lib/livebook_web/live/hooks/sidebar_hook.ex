@@ -24,7 +24,7 @@ defmodule LivebookWeb.SidebarHook do
     {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
   end
 
-  @connection_events ~w(hub_connected hub_disconnected hubs_changed)a
+  @connection_events ~w(hub_connected hub_disconnected hub_changed)a
 
   defp handle_info(event, socket) when event in @connection_events do
     {:cont, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}

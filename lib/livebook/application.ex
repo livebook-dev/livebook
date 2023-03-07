@@ -57,7 +57,7 @@ defmodule Livebook.Application do
         display_startup_info()
         insert_personal_hub()
         Livebook.Hubs.connect_hubs()
-        update_app_secrets_origin()
+        migrate_secrets()
         deploy_apps()
         result
 
@@ -191,10 +191,16 @@ defmodule Livebook.Application do
     secrets =
       for {"LB_" <> name = var, value} <- System.get_env() do
         System.delete_env(var)
-        %Livebook.Secrets.Secret{name: name, value: value, origin: :startup}
+
+        %Livebook.Secrets.Secret{
+          name: name,
+          value: value,
+          hub_id: Livebook.Hubs.Personal.id(),
+          readonly: true
+        }
       end
 
-    Livebook.Secrets.set_startup_secrets(secrets)
+    Livebook.Hubs.Personal.set_startup_secrets(secrets)
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true
@@ -208,9 +214,9 @@ defmodule Livebook.Application do
   end
 
   defp insert_personal_hub do
-    unless Livebook.Hubs.hub_exists?("personal-hub") do
+    unless Livebook.Hubs.hub_exists?(Livebook.Hubs.Personal.id()) do
       Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
-        id: "personal-hub",
+        id: Livebook.Hubs.Personal.id(),
         hub_name: "My Hub",
         hub_emoji: "🏠"
       })
@@ -218,10 +224,17 @@ defmodule Livebook.Application do
   end
 
   # TODO: Remove in the future
-  defp update_app_secrets_origin do
-    for %{origin: :app} = secret <- Livebook.Secrets.get_secrets() do
-      {:ok, secret} = Livebook.Secrets.update_secret(secret, %{origin: {:hub, "personal-hub"}})
+  defp migrate_secrets do
+    for %{name: name, value: value} <- Livebook.Storage.all(:secrets) do
+      secret = %Livebook.Secrets.Secret{
+        name: name,
+        value: value,
+        hub_id: Livebook.Hubs.Personal.id(),
+        readonly: false
+      }
+
       Livebook.Secrets.set_secret(secret)
+      Livebook.Storage.delete(:secrets, name)
     end
   end
 

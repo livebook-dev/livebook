@@ -55,7 +55,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       name = "API_TOKEN_ID"
       value = Livebook.Utils.random_id()
       :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
-      secret = %Secret{name: name, value: value, origin: {:hub, id}}
+      secret = %Secret{name: name, value: value, hub_id: id, readonly: true}
 
       assert_receive {:secret_created, ^secret}
       assert secret in EnterpriseClient.get_secrets(id)
@@ -66,8 +66,8 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       value = "JakePeralta"
       new_value = "ChonkyCat"
       enterprise_secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
-      secret = %Secret{name: name, value: value, origin: {:hub, id}}
-      updated_secret = %Secret{name: name, value: new_value, origin: {:hub, id}}
+      secret = %Secret{name: name, value: value, hub_id: id, readonly: true}
+      updated_secret = %Secret{name: name, value: new_value, hub_id: id, readonly: true}
 
       assert_receive {:secret_created, ^secret}
       assert secret in EnterpriseClient.get_secrets(id)
@@ -85,7 +85,7 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
       name = "SUPER_DELETE"
       value = "JakePeralta"
       enteprise_secret = :erpc.call(node, Enterprise.Integration, :create_secret, [name, value])
-      secret = %Secret{name: name, value: value, origin: {:hub, id}}
+      secret = %Secret{name: name, value: value, hub_id: id, readonly: true}
 
       assert_receive {:secret_created, ^secret}
       assert secret in EnterpriseClient.get_secrets(id)
