@@ -374,7 +374,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :runtime_settings}
       id="runtime-settings-modal"
       show
-      class="w-full max-w-4xl"
+      width={:big}
       patch={@self_path}
     >
       <.live_component
@@ -389,7 +389,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :file_settings}
       id="persistence-modal"
       show
-      class="w-full max-w-4xl"
+      width={:big}
       patch={@self_path}
     >
       <.live_component
@@ -406,7 +406,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
-      class="w-full max-w-6xl"
+      width={:large}
       patch={@self_path}
     >
       <.live_component
@@ -420,7 +420,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :cell_settings}
       id="cell-settings-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <.live_component
@@ -436,7 +436,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :cell_upload}
       id="cell-upload-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <.live_component
@@ -453,7 +453,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :delete_section}
       id="delete-section-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <.live_component
@@ -466,7 +466,7 @@ defmodule LivebookWeb.SessionLive do
       />
     </.modal>
 
-    <.modal :if={@live_action == :bin} id="bin-modal" show class="w-full max-w-4xl" patch={@self_path}>
+    <.modal :if={@live_action == :bin} id="bin-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.BinComponent}
         id="bin"
@@ -476,13 +476,7 @@ defmodule LivebookWeb.SessionLive do
       />
     </.modal>
 
-    <.modal
-      :if={@live_action == :export}
-      id="export-modal"
-      show
-      class="w-full max-w-4xl"
-      patch={@self_path}
-    >
+    <.modal :if={@live_action == :export} id="export-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.ExportComponent}
         id="export"
@@ -495,7 +489,7 @@ defmodule LivebookWeb.SessionLive do
       :if={@live_action == :package_search}
       id="package-search-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
@@ -508,13 +502,7 @@ defmodule LivebookWeb.SessionLive do
       ) %>
     </.modal>
 
-    <.modal
-      :if={@live_action == :secrets}
-      id="secrets-modal"
-      show
-      class="w-full max-w-4xl"
-      patch={@self_path}
-    >
+    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.SecretsComponent}
         id="secrets"

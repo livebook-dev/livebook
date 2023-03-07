@@ -121,6 +121,7 @@ defmodule LivebookWeb.CoreComponents do
   attr :patch, :string, default: nil
   attr :navigate, :string, default: nil
   attr :class, :string, default: nil
+  attr :width, :atom, values: [:small, :medium, :big, :large], required: true
   attr :rest, :global
 
   slot :inner_block, required: true
@@ -140,7 +141,11 @@ defmodule LivebookWeb.CoreComponents do
         <!-- Modal box -->
         <.focus_wrap
           id={"#{@id}-content"}
-          class={["relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl", @class]}
+          class={[
+            "relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl",
+            "w-full",
+            modal_width_class(@width)
+          ]}
           role="dialog"
           aria-modal="true"
           tabindex="0"
@@ -166,6 +171,11 @@ defmodule LivebookWeb.CoreComponents do
     </div>
     """
   end
+
+  defp modal_width_class(:small), do: "max-w-sm"
+  defp modal_width_class(:medium), do: "max-w-xl"
+  defp modal_width_class(:big), do: "max-w-4xl"
+  defp modal_width_class(:large), do: "max-w-6xl"
 
   @doc """
   Shows a modal rendered with `modal/1`.
@@ -197,7 +207,7 @@ defmodule LivebookWeb.CoreComponents do
 
   def confirm_modal(assigns) do
     ~H"""
-    <.modal id={@id} class="w-full max-w-xl" phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
+    <.modal id={@id} width={:medium} phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
       <div id={"#{@id}-confirm-content"} class="p-6 flex flex-col" phx-update="ignore">
         <h3 class="text-2xl font-semibold text-gray-800" data-title></h3>
         <p class="mt-8 text-gray-700" data-description></p>

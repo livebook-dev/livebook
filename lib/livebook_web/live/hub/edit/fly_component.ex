@@ -105,7 +105,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         :if={@live_action in [:add_env_var, :edit_env_var]}
         id="env-var-modal"
         show
-        class="w-full max-w-3xl"
+        width={:medium}
         target={@myself}
         patch={~p"/hub/#{@hub.id}"}
       >

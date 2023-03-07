@@ -182,7 +182,7 @@ defmodule LivebookWeb.SettingsLive do
       :if={@live_action == :add_file_system}
       id="add-file-system-modal"
       show
-      class="w-full max-w-3xl"
+      width={:medium}
       patch={~p"/settings"}
     >
       <.live_component
@@ -196,7 +196,7 @@ defmodule LivebookWeb.SettingsLive do
       :if={@live_action in [:add_env_var, :edit_env_var]}
       id="env-var-modal"
       show
-      class="w-full max-w-3xl"
+      width={:medium}
       patch={~p"/settings"}
     >
       <.live_component

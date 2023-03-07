@@ -139,7 +139,7 @@ defmodule LivebookWeb.HomeLive do
       :if={@live_action == :close_session}
       id="close-session-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <.live_component
@@ -150,13 +150,7 @@ defmodule LivebookWeb.HomeLive do
       />
     </.modal>
 
-    <.modal
-      :if={@live_action == :import}
-      id="import-modal"
-      show
-      class="w-full max-w-4xl"
-      patch={@self_path}
-    >
+    <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.HomeLive.ImportComponent}
         id="import"
@@ -169,7 +163,7 @@ defmodule LivebookWeb.HomeLive do
       :if={@live_action == :edit_sessions}
       id="edit-sessions-modal"
       show
-      class="w-full max-w-xl"
+      width={:medium}
       patch={@self_path}
     >
       <.live_component

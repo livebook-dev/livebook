@@ -133,7 +133,7 @@ defmodule LivebookWeb.AppLive do
       :if={@live_action == :source and @data_view.show_source}
       id="source-modal"
       show
-      class="w-full max-w-4xl"
+      width={:big}
       patch={~p"/apps/#{@data_view.slug}"}
     >
       <.live_component module={LivebookWeb.AppLive.SourceComponent} id="source" session={@session} />
