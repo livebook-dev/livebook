@@ -66,12 +66,12 @@ class SettingsStore {
   _loadSettings() {
     const settings = load(SETTINGS_KEY);
 
-    // Rewrite settings for backward compatibility
-    if (!Object.values(EDITOR_THEME).includes(settings.editor_theme)) {
-      delete settings.editor_theme;
-    }
-
     if (settings) {
+      // Rewrite settings for backward compatibility
+      if (!Object.values(EDITOR_THEME).includes(settings.editor_theme)) {
+        delete settings.editor_theme;
+      }
+
       this._settings = { ...this._settings, ...settings };
     }
   }
