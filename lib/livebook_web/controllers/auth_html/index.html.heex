@@ -58,12 +58,15 @@
     </div>
   </div>
 
-  <div :if={@app_sessions != []} class="w-full h-full px-4 py-8 flex justify-center items-center">
+  <div
+    :if={@app_sessions != [] or @empty_apps_path?}
+    class="w-full h-full px-4 py-8 flex justify-center items-center"
+  >
     <div class="max-w-[400px] w-full flex flex-col items-center">
       <div class="mb-5 text-gray-700 text-xl font-medium">
         Public apps
       </div>
-      <div class="w-full flex flex-col space-y-4">
+      <div :if={@app_sessions != []} class="w-full flex flex-col space-y-4">
         <.link
           :for={session <- @app_sessions}
           navigate={~p"/apps/#{session.app_info.slug}"}
@@ -72,6 +75,10 @@
           <span class="font-semibold"><%= session.notebook_name %></span>
           <.remix_icon icon="arrow-right-line" class="" />
         </.link>
+      </div>
+      <div :if={@empty_apps_path?} class="text-gray-600 text-center">
+        The <span class="font-mono">LIVEBOOK_APPS_PATH</span>
+        directory does not contain any notebooks.
       </div>
     </div>
   </div>
