@@ -8,17 +8,20 @@ defmodule LivebookWeb.Hub.NewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if Livebook.Config.feature_flag_enabled?(:create_hub) do
-      {:ok, assign(socket, selected_type: nil, page_title: "Livebook - Hub")}
-    else
-      {:ok, push_redirect(socket, to: ~p"/")}
-    end
+    enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
+    {:ok, assign(socket, selected_type: nil, page_title: "Livebook - Hub", enabled?: enabled?)}
   end
 
   @impl true
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
+  def render(%{enabled?: false} = assigns) do
+    ~H"""
+    TODO
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>

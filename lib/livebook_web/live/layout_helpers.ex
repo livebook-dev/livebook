@@ -227,13 +227,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <% end %>
         <% end %>
 
-        <.sidebar_link
-          :if={Livebook.Config.feature_flag_enabled?(:create_hub)}
-          title="Add Hub"
-          icon="add-line"
-          to={~p"/hub"}
-          current={@current_page}
-        />
+        <.sidebar_link title="Add Hub" icon="add-line" to={~p"/hub"} current={@current_page} />
       </div>
     </div>
     """
