@@ -236,6 +236,7 @@ defmodule Livebook.Application do
         })
 
       Livebook.Secrets.set_secret(hub, secret)
+      Livebook.Storage.delete(:secrets, name)
     end
   end
 
