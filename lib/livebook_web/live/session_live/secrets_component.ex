@@ -56,16 +56,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <.secret_with_badge
                 :for={{secret_name, _} <- Enum.sort(@secrets)}
                 secret_name={secret_name}
-                secret_hub_id={:session}
+                secret_origin={:session}
                 stored="Session"
                 active={secret_name == @prefill_secret_name}
                 target={@myself}
               />
               <.secret_with_badge
                 :for={secret <- @saved_secrets}
-                :if={!(secret.name in Map.keys(@secrets) and @secrets[secret.name] != secret.value)}
+                :if={!is_map_key(@secrets, secret.name) and @secrets[secret.name] != secret.value}
                 secret_name={secret.name}
-                secret_hub_id={secret.hub_id}
                 stored={hub_label(@hub)}
                 active={false}
                 target={@myself}
@@ -137,6 +136,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp secret_with_badge(assigns) do
+    assigns = assign_new(assigns, :secret_origin, fn -> nil end)
+
     ~H"""
     <div
       role="button"
@@ -149,7 +150,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         end
       ]}
       phx-value-name={@secret_name}
-      phx-value-hub_id={@secret_hub_id}
+      phx-value-origin={@secret_origin}
       phx-target={@target}
       phx-click="grant_access"
     >
@@ -232,8 +233,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("grant_access", %{"name" => secret_name, "hub_id" => hub_id}, socket) do
-    grant_access(socket.assigns.saved_secrets, secret_name, hub_id, socket)
+  def handle_event("grant_access", %{"name" => secret_name} = attrs, socket) do
+    cond do
+      attrs["origin"] == "session" and is_map_key(socket.assigns.secrets, secret_name) ->
+        Session.set_secret(socket.assigns.session.pid, %{
+          name: secret_name,
+          value: socket.assigns.secrets[secret_name]
+        })
+
+      secret = Enum.find(socket.assigns.saved_secrets, &(&1.name == secret_name)) ->
+        Session.set_secret(socket.assigns.session.pid, secret)
+    end
 
     {:noreply,
      socket
@@ -259,12 +269,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     with :ok <- Hubs.create_secret(socket.assigns.hub, secret) do
       Session.set_secret(socket.assigns.session.pid, secret)
     end
-  end
-
-  defp grant_access(secrets, secret_name, hub_id, socket) do
-    secret = Enum.find(secrets, &(&1.name == secret_name and &1.hub_id == hub_id))
-
-    if secret, do: Session.set_secret(socket.assigns.session.pid, secret)
   end
 
   defp hub_label(hub), do: "#{hub.hub_emoji} #{hub.hub_name}"
