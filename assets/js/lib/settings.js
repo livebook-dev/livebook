@@ -67,8 +67,8 @@ class SettingsStore {
     const settings = load(SETTINGS_KEY);
 
     // Rewrite settings for backward compatibility
-    if (settings.editor_theme === "highContrast") {
-      settings.editor_theme = "default";
+    if (!Object.values(EDITOR_THEME).includes(settings.editor_theme)) {
+      delete settings.editor_theme;
     }
 
     if (settings) {
