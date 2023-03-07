@@ -115,7 +115,8 @@ defmodule Livebook.Session do
   @type app_info :: %{
           slug: String.t(),
           status: Data.app_status(),
-          registered: boolean()
+          registered: boolean(),
+          public?: boolean()
         }
 
   @typedoc """
@@ -1529,7 +1530,8 @@ defmodule Livebook.Session do
           %{
             slug: state.data.notebook.app_settings.slug,
             status: state.data.app_data.status,
-            registered: state.data.app_data.registered
+            registered: state.data.app_data.registered,
+            public?: state.data.notebook.app_settings.access_type == :public
           }
         end
     }

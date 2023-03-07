@@ -1,53 +1,103 @@
-<div class="h-screen flex items-center justify-center bg-gray-900">
-  <div class="flex flex-col space-y-4 items-center">
-    <a href={~p"/"}>
-      <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
-    </a>
-    <div class="text-2xl text-gray-50">
-      Authentication required
-    </div>
+<div class="h-screen w-full flex flex-col sm:flex-row">
+  <div class="w-full h-full px-4 py-8 bg-gray-900 flex justify-center items-center">
+    <div class="max-w-[400px] w-full flex flex-col">
+      <a href={~p"/"} class="mb-8">
+        <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
+      </a>
+      <div class="mb-2 text-2xl text-gray-100 font-medium">
+        Authentication required
+      </div>
 
-    <div class="max-w-2xl text-center text-gray-300">
-      <span :if={@auth_mode == :password}>
-        Type password to access the Livebook.
-      </span>
-      <span :if={@auth_mode == :token}>
-        Please check out the console for authentication URL or type the token directly
-        here.<br />To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
-        environment variable.
-      </span>
-    </div>
-    <div class="text-2xl text-gray-50 w-full pt-2">
-      <form method="post" class="flex flex-col space-y-4 items-center">
-        <input type="hidden" value={Phoenix.Controller.get_csrf_token()} name="_csrf_token" />
-        <div phx-feedback-for={@auth_mode} class={["w-[20ch]", @errors != [] && "show-errors"]}>
-          <input
-            :if={@auth_mode == :password}
-            type="password"
-            name="password"
-            class="input"
-            placeholder="Password"
-            autofocus
-          />
-          <input
-            :if={@auth_mode == :token}
-            type="text"
-            name="token"
-            class="input"
-            placeholder="Token"
-            autofocus
-          />
-          <span
-            :for={error <- @errors}
-            class="mt-1 hidden text-red-600 text-sm phx-form-error:block"
+      <div class="mb-10 text-gray-200">
+        <span :if={@auth_mode == :password}>
+          Type password to access the Livebook.
+        </span>
+        <span :if={@auth_mode == :token}>
+          Please check out the console for authentication URL or type the token directly
+          here.<br />To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
+          environment variable.
+        </span>
+      </div>
+
+      <div class="text-gray-50 w-full">
+        <form method="post" class="flex flex-col w-full">
+          <input type="hidden" value={Phoenix.Controller.get_csrf_token()} name="_csrf_token" />
+          <div phx-feedback-for={@auth_mode} class={[@errors != [] && "show-errors"]}>
+            <input
+              :if={@auth_mode == :password}
+              type="password"
+              name="password"
+              class="px-4 py-3 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
+              placeholder="Password"
+              autofocus
+            />
+            <input
+              :if={@auth_mode == :token}
+              type="text"
+              name="token"
+              class="px-4 py-3 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
+              placeholder="Token"
+              autofocus
+            />
+            <span
+              :for={error <- @errors}
+              class="mt-1 hidden text-red-600 text-sm phx-form-error:block"
+            >
+              <%= translate_error(error) %>
+            </span>
+          </div>
+          <button
+            type="submit"
+            class="mt-8 px-4 py-3 w-full rounded-lg text-gray-200 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700"
           >
-            <%= translate_error(error) %>
-          </span>
+            <span>Authenticate</span>
+            <.remix_icon icon="arrow-right-line" class="ml-1 align-middle" />
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div
+    :if={@app_sessions != [] or @empty_apps_path?}
+    class="w-full h-full px-4 py-8 flex justify-center items-center"
+  >
+    <div class="w-full flex flex-col items-center">
+      <div class="text-gray-700 text-xl font-medium">
+        Public apps
+      </div>
+      <div :if={@app_sessions != []} class="mt-5 max-w-[400px] w-full flex flex-col space-y-4">
+        <.link
+          :for={session <- @app_sessions}
+          navigate={~p"/apps/#{session.app_info.slug}"}
+          class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 text-lg pointer hover:bg-gray-50 flex justify-between"
+        >
+          <span class="font-semibold"><%= session.notebook_name %></span>
+          <.remix_icon icon="arrow-right-line" class="" />
+        </.link>
+      </div>
+      <div :if={@empty_apps_path?} class="mt-5 text-gray-600">
+        <div>
+          No app notebooks found. To list your apps here follow these steps:
         </div>
-        <button type="submit" class="button-base button-blue">
-          Authenticate
-        </button>
-      </form>
+        <ol class="mt-4 pl-4 flex flex-col space-y-1 list-decimal list-inside">
+          <li>
+            Open a notebook
+          </li>
+          <li>
+            Click <.remix_icon icon="rocket-line" class="align-sub text-lg" />
+            in the sidebar, configure the app and make sure it is public
+          </li>
+          <li>
+            Place the notebook in the
+            <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
+            folder
+          </li>
+          <li>
+            Relaunch your Livebook app
+          </li>
+        </ol>
+      </div>
     </div>
   </div>
 </div>

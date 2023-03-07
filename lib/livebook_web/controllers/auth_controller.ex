@@ -22,7 +22,12 @@ defmodule LivebookWeb.AuthController do
   end
 
   def index(conn, _params) do
-    render(conn, "index.html", errors: [], auth_mode: Livebook.Config.auth_mode())
+    render(conn, "index.html",
+      errors: [],
+      auth_mode: Livebook.Config.auth_mode(),
+      app_sessions: app_sessions(),
+      empty_apps_path?: empty_apps_path?()
+    )
   end
 
   def authenticate(conn, %{"password" => password}) do
@@ -47,7 +52,13 @@ defmodule LivebookWeb.AuthController do
 
   defp render_form_error(conn, auth_mode) do
     errors = [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]
-    render(conn, "index.html", errors: errors, auth_mode: auth_mode)
+
+    render(conn, "index.html",
+      errors: errors,
+      auth_mode: auth_mode,
+      app_sessions: app_sessions(),
+      empty_apps_path?: empty_apps_path?()
+    )
   end
 
   defp redirect_to(conn) do
@@ -62,5 +73,20 @@ defmodule LivebookWeb.AuthController do
       end
     end)
     |> halt()
+  end
+
+  defp app_sessions() do
+    Livebook.Sessions.list_sessions()
+    |> Enum.filter(&(&1.mode == :app and &1.app_info.public? and &1.app_info.registered))
+    |> Enum.sort_by(& &1.notebook_name)
+  end
+
+  defp empty_apps_path?() do
+    if path = Livebook.Config.apps_path() do
+      pattern = Path.join([path, "**", "*.livemd"])
+      Path.wildcard(pattern) == []
+    else
+      false
+    end
   end
 end
