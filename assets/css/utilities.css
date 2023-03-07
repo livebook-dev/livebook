@@ -5,8 +5,8 @@
     background-color: #282c34;
   }
 
-  body[data-editor-theme="highContrast"] .bg-editor {
-    background-color: #060708;
+  body[data-editor-theme="light"] .bg-editor {
+    background-color: #fafafa;
   }
 
   .text-editor {

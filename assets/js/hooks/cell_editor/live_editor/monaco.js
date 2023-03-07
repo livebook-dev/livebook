@@ -1,7 +1,7 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/commands";
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
-import { theme, highContrast } from "./theme";
+import { theme, lightTheme } from "./theme";
 
 import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
 
@@ -56,7 +56,7 @@ monaco.languages.registerOnTypeFormattingEditProvider(
 
 // Define custom theme
 monaco.editor.defineTheme("default", theme);
-monaco.editor.defineTheme("highContrast", highContrast);
+monaco.editor.defineTheme("light", lightTheme);
 
 // See https://github.com/microsoft/monaco-editor/issues/648#issuecomment-564978560
 // Without this selecting text with whitespace shrinks the whitespace.
