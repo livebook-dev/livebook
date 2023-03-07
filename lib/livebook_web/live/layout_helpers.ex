@@ -213,7 +213,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
   defp hub_section(assigns) do
     ~H"""
-    <div :if={Livebook.Config.feature_flag_enabled?(:hub)} id="hubs" class="flex flex-col mt-12">
+    <div id="hubs" class="flex flex-col mt-12">
       <div class="space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
           <small class="ml-5 font-medium text-gray-300 cursor-default">HUBS</small>
@@ -247,9 +247,9 @@ defmodule LivebookWeb.LayoutHelpers do
       "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
     if tooltip = Provider.connection_error(hub) do
-      [to: to, data_tooltip: tooltip, class: "tooltip right " <> class]
+      [navigate: to, data_tooltip: tooltip, class: "tooltip right " <> class]
     else
-      [to: to, class: class]
+      [navigate: to, class: class]
     end
   end
 

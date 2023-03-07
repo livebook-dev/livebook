@@ -222,7 +222,7 @@ defmodule Livebook.Config do
   """
   @spec feature_flag_enabled?(atom()) :: boolean()
   def feature_flag_enabled?(key) do
-    @feature_flags[key]
+    Keyword.get(@feature_flags, key, false)
   end
 
   @doc """
