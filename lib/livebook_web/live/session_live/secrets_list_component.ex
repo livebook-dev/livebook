@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           <span>New secret</span>
         </.link>
 
-        <div :if={Livebook.Config.feature_flag_enabled?(:hub)} class="mt-16">
+        <div class="mt-16">
           <h3 class="uppercase text-sm font-semibold text-gray-500">
             <%= @hub.hub_emoji %> <%= @hub.hub_name %> secrets
           </h3>
