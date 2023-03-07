@@ -49,7 +49,7 @@ defmodule Livebook.Factory do
 
   def build(:personal) do
     %Livebook.Hubs.Personal{
-      id: "personal-hub",
+      id: Livebook.Hubs.Personal.id(),
       hub_name: "My Hub",
       hub_emoji: "🏠"
     }
@@ -66,7 +66,7 @@ defmodule Livebook.Factory do
     %Livebook.Secrets.Secret{
       name: "FOO",
       value: "123",
-      hub_id: "personal-hub",
+      hub_id: Livebook.Hubs.Personal.id(),
       readonly: false
     }
   end
@@ -87,7 +87,7 @@ defmodule Livebook.Factory do
 
   def insert_secret(attrs \\ %{}) do
     secret = build(:secret, attrs)
-    hub = Livebook.Hubs.fetch_hub!("personal-hub")
+    hub = Livebook.Hubs.fetch_hub!(secret.hub_id)
     :ok = Livebook.Hubs.create_secret(hub, secret)
     secret
   end

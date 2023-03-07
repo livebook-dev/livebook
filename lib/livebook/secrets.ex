@@ -99,7 +99,7 @@ defmodule Livebook.Secrets do
     %Secret{
       name: name,
       value: value,
-      hub_id: fields[:hub_id] || "personal-hub",
+      hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id(),
       readonly: false
     }
   end

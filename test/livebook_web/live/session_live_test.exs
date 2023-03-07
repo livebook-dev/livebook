@@ -1079,7 +1079,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
 
       assert_session_secret(view, session.pid, secret)
     end
@@ -1091,7 +1091,7 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
       })
 
       assert secret in Livebook.Hubs.get_secrets(hub)
@@ -1106,7 +1106,7 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
       })
 
       assert_session_secret(view, session.pid, secret)
@@ -1120,7 +1120,7 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
       })
 
       assert_session_secret(view, session.pid, secret)
@@ -1137,7 +1137,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
 
       assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Hubs.get_secrets(hub)
@@ -1187,7 +1187,7 @@ defmodule LivebookWeb.SessionLiveTest do
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
       assert has_element?(form_element)
-      render_submit(form_element, %{secret: %{value: secret.value, hub_id: "session"}})
+      render_submit(form_element, %{secret: %{value: secret.value, hub_id: secret.hub_id}})
 
       # Checks if the secret isn't an app secret
       refute secret in Livebook.Hubs.get_secrets(hub)
@@ -1484,11 +1484,12 @@ defmodule LivebookWeb.SessionLiveTest do
     test "selects the notebook hub", %{conn: conn, session: session} do
       hub = insert_hub(:fly)
       id = hub.id
+      personal_id = Livebook.Hubs.Personal.id()
 
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
-      assert %Livebook.Hubs.Personal{id: "personal-hub"} = Session.get_data(session.pid).hub
+      assert %Livebook.Hubs.Personal{id: ^personal_id} = Session.get_data(session.pid).hub
 
       view
       |> element(~s/#select-hub-#{id}/)

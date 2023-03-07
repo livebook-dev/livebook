@@ -278,7 +278,7 @@ defmodule Livebook.Session.Data do
       mode: opts[:mode],
       apps: [],
       app_data: app_data,
-      hub: Livebook.Hubs.fetch_hub!("personal-hub")
+      hub: Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
     }
 
     data

@@ -20,6 +20,12 @@ defmodule Livebook.Hubs.Personal do
   @fields ~w(hub_name hub_emoji)a
 
   @doc """
+  The personal hub fixed id.
+  """
+  @spec id() :: String.t()
+  def id, do: "personal-hub"
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
@@ -57,7 +63,7 @@ defmodule Livebook.Hubs.Personal do
     personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
-    |> put_change(:id, "personal-hub")
+    |> put_change(:id, id())
   end
 
   @secret_startup_key :livebook_startup_secrets
