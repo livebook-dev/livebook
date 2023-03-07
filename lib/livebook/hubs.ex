@@ -233,9 +233,7 @@ defmodule Livebook.Hubs do
   """
   @spec update_secret(Provider.t(), Secret.t()) ::
           :ok | {:error, list({atom(), list(String.t())})}
-  def update_secret(hub, %Secret{} = secret) do
-    true = capability?(hub, [:update_secret])
-
+  def update_secret(hub, %Secret{readonly: false} = secret) do
     Provider.update_secret(hub, secret)
   end
 
@@ -244,9 +242,7 @@ defmodule Livebook.Hubs do
   """
   @spec delete_secret(Provider.t(), Secret.t()) ::
           :ok | {:error, list({atom(), list(String.t())})}
-  def delete_secret(hub, %Secret{} = secret) do
-    true = capability?(hub, [:delete_secret])
-
+  def delete_secret(hub, %Secret{readonly: false} = secret) do
     Provider.delete_secret(hub, secret)
   end
 

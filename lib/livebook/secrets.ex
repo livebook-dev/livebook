@@ -5,12 +5,15 @@ defmodule Livebook.Secrets do
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
 
+  @namespace :hub_secrets
+
   @doc """
   Get the secrets list from storage.
   """
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
-    for fields <- Storage.all(hub.id),
+    for fields <- Storage.all(@namespace),
+        from_hub?(fields, hub),
         do: to_struct(fields)
   end
 
@@ -20,9 +23,10 @@ defmodule Livebook.Secrets do
   """
   @spec fetch_secret!(Provider.t(), String.t()) :: Secret.t()
   def fetch_secret!(hub, id) do
-    hub.id
-    |> Storage.fetch!(id)
-    |> to_struct()
+    fields = Storage.fetch!(@namespace, id)
+    true = from_hub?(fields, hub)
+
+    to_struct(fields)
   end
 
   @doc """
@@ -30,8 +34,10 @@ defmodule Livebook.Secrets do
   """
   @spec get_secret(Provider.t(), String.t()) :: {:ok, Secret.t()} | :error
   def get_secret(hub, id) do
-    with {:ok, fields} <- Storage.fetch(hub.id, id) do
-      {:ok, to_struct(fields)}
+    with {:ok, fields} <- Storage.fetch(@namespace, id) do
+      if from_hub?(fields, hub),
+        do: {:ok, to_struct(fields)},
+        else: :error
     end
   end
 
@@ -71,14 +77,14 @@ defmodule Livebook.Secrets do
   @doc """
   Stores the given secret as is, without validation.
   """
-  @spec set_secret(Provider.t(), Secret.t()) :: Secret.t()
-  def set_secret(hub, secret) do
+  @spec set_secret(Secret.t()) :: Secret.t()
+  def set_secret(secret) do
     attributes =
       secret
       |> Map.from_struct()
       |> Map.delete(:readonly)
 
-    :ok = Storage.insert(hub.id, secret.name, Map.to_list(attributes))
+    :ok = Storage.insert(@namespace, secret.name, Map.to_list(attributes))
 
     secret
   end
@@ -89,7 +95,7 @@ defmodule Livebook.Secrets do
   @spec unset_secret(Provider.t(), String.t()) :: :ok
   def unset_secret(hub, id) do
     with {:ok, _secret} <- get_secret(hub, id) do
-      Storage.delete(hub.id, id)
+      Storage.delete(@namespace, id)
     end
 
     :ok
@@ -102,5 +108,10 @@ defmodule Livebook.Secrets do
       hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id(),
       readonly: false
     }
+  end
+
+  defp from_hub?(fields, hub) do
+    hub_id = fields[:hub_id] || Livebook.Hubs.Personal.id()
+    hub_id == hub.id
   end
 end

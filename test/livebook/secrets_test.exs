@@ -12,7 +12,7 @@ defmodule Livebook.SecretsTest do
   test "get_secrets/1 returns a list of secrets from storage", %{hub: hub} do
     secret = build(:secret, name: "FOO", value: "111")
 
-    Secrets.set_secret(hub, secret)
+    Secrets.set_secret(secret)
     assert secret in Secrets.get_secrets(hub)
 
     Secrets.unset_secret(hub, secret.name)
@@ -23,7 +23,7 @@ defmodule Livebook.SecretsTest do
     secret = insert_secret(name: "FOO", value: "111")
 
     assert_raise Livebook.Storage.NotFoundError,
-                 ~s(could not find entry in \"#{hub.id}\" with ID "NOT_HERE"),
+                 ~s(could not find entry in "hub_secrets" with ID "NOT_HERE"),
                  fn ->
                    Secrets.fetch_secret!(hub, "NOT_HERE")
                  end

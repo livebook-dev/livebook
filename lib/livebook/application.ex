@@ -225,17 +225,15 @@ defmodule Livebook.Application do
 
   # TODO: Remove in the future
   defp migrate_secrets do
-    hub = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
-
     for %{name: name, value: value} <- Livebook.Storage.all(:secrets) do
-      {:ok, secret} =
-        Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, %{
-          name: name,
-          value: value,
-          hub_id: hub.id
-        })
+      secret = %Livebook.Secrets.Secret{
+        name: name,
+        value: value,
+        hub_id: Livebook.Hubs.Personal.id(),
+        readonly: false
+      }
 
-      Livebook.Secrets.set_secret(hub, secret)
+      Livebook.Secrets.set_secret(secret)
       Livebook.Storage.delete(:secrets, name)
     end
   end

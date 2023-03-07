@@ -109,19 +109,19 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def disconnect(_personal), do: raise("not implemented")
 
-  def capabilities(_personal), do: ~w(list_secrets create_secret update_secret delete_secret)a
+  def capabilities(_personal), do: ~w(list_secrets create_secret)a
 
   def get_secrets(personal) do
     Secrets.get_secrets(personal) ++ Livebook.Hubs.Personal.get_startup_secrets()
   end
 
-  def create_secret(personal, secret) do
-    Secrets.set_secret(personal, secret)
+  def create_secret(_personal, secret) do
+    Secrets.set_secret(secret)
     :ok = Broadcasts.secret_created(secret)
   end
 
-  def update_secret(personal, secret) do
-    Secrets.set_secret(personal, secret)
+  def update_secret(_personal, secret) do
+    Secrets.set_secret(secret)
     :ok = Broadcasts.secret_updated(secret)
   end
 
