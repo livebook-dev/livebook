@@ -1069,31 +1069,35 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   describe "secrets" do
+    setup do
+      {:ok, hub: build(:personal)}
+    end
+
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "FOO", value: "123", origin: :session)
+      secret = build(:secret, name: "FOO", value: "123", hub_id: "session")
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: "session"}})
 
       assert_session_secret(view, session.pid, secret)
     end
 
-    test "adds a livebook secret from form", %{conn: conn, session: session} do
+    test "adds a livebook secret from form", %{conn: conn, session: session, hub: hub} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       secret = build(:secret, name: "BAR", value: "456")
 
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, origin: "hub-personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
       })
 
-      assert secret in Livebook.Secrets.get_secrets()
+      assert secret in Livebook.Hubs.get_secrets(hub)
     end
 
-    test "syncs secrets", %{conn: conn, session: session} do
+    test "syncs secrets", %{conn: conn, session: session, hub: hub} do
       session_secret = insert_secret(name: "FOO", value: "123")
       secret = build(:secret, name: "FOO", value: "456")
 
@@ -1102,11 +1106,11 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, origin: "hub-personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
       })
 
       assert_session_secret(view, session.pid, secret)
-      assert secret in Livebook.Secrets.get_secrets()
+      assert secret in Livebook.Hubs.get_secrets(hub)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, session_secret)
@@ -1116,31 +1120,32 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{
-        secret: %{name: secret.name, value: secret.value, origin: "hub-personal-hub"}
+        secret: %{name: secret.name, value: secret.value, hub_id: "personal-hub"}
       })
 
       assert_session_secret(view, session.pid, secret)
-      assert secret in Livebook.Secrets.get_secrets()
+      assert secret in Livebook.Hubs.get_secrets(hub)
     end
 
-    test "never syncs secrets when updating from session", %{conn: conn, session: session} do
-      app_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456", origin: :session)
+    test "never syncs secrets when updating from session",
+         %{conn: conn, session: session, hub: hub} do
+      hub_secret = insert_secret(name: "FOO", value: "123")
+      secret = build(:secret, name: "FOO", value: "456", hub_id: "session")
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      Session.set_secret(session.pid, app_secret)
+      Session.set_secret(session.pid, hub_secret)
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, origin: "session"}})
+      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: "session"}})
 
       assert_session_secret(view, session.pid, secret)
-      refute secret in Livebook.Secrets.get_secrets()
-      assert app_secret in Livebook.Secrets.get_secrets()
+      refute secret in Livebook.Hubs.get_secrets(hub)
+      assert hub_secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
-      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", origin: :session)
+      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", hub_id: "session")
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -1157,8 +1162,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "adding a missing secret using 'Add secret' button",
-         %{conn: conn, session: session} do
-      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", origin: :session)
+         %{conn: conn, session: session, hub: hub} do
+      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", hub_id: "session")
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -1182,10 +1187,10 @@ defmodule LivebookWeb.SessionLiveTest do
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
       assert has_element?(form_element)
-      render_submit(form_element, %{secret: %{value: secret.value, origin: "session"}})
+      render_submit(form_element, %{secret: %{value: secret.value, hub_id: "session"}})
 
       # Checks if the secret isn't an app secret
-      refute secret in Livebook.Secrets.get_secrets()
+      refute secret in Livebook.Hubs.get_secrets(hub)
 
       # Checks if the secret exists and is inside the session,
       # then executes the code cell again and checks if the
@@ -1200,7 +1205,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "granting access for unavailable secret using 'Add secret' button",
-         %{conn: conn, session: session} do
+         %{conn: conn, session: session, hub: hub} do
       secret = insert_secret(name: "UNAVAILABLESECRET", value: "123456")
 
       # Subscribe and executes the code to trigger
@@ -1220,7 +1225,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert has_element?(add_secret_button)
 
       # Checks if the secret is persisted
-      assert secret in Livebook.Secrets.get_secrets()
+      assert secret in Livebook.Hubs.get_secrets(hub)
 
       # Clicks the button and checks if the 'Grant access' banner
       # is being shown, so clicks it's button to set the app secret
@@ -1247,8 +1252,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "loads secret from temporary storage", %{conn: conn, session: session} do
-      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", origin: :startup)
-      Livebook.Secrets.set_startup_secrets([secret])
+      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", readonly: true)
+      Livebook.Hubs.Personal.set_startup_secrets([secret])
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -1275,9 +1280,9 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "granting access for unavailable startup secret using 'Add secret' button",
-         %{conn: conn, session: session} do
-      secret = build(:secret, name: "MYSTARTUPSECRET", value: "ChonkyCat", origin: :startup)
-      Livebook.Secrets.set_startup_secrets([secret])
+         %{conn: conn, session: session, hub: hub} do
+      secret = build(:secret, name: "MYSTARTUPSECRET", value: "ChonkyCat", readonly: true)
+      Livebook.Hubs.Personal.set_startup_secrets([secret])
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button
@@ -1296,7 +1301,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert has_element?(add_secret_button)
 
       # Checks if the secret is persisted
-      assert secret in Livebook.Secrets.get_secrets()
+      assert secret in Livebook.Hubs.get_secrets(hub)
 
       # Clicks the button and checks if the 'Grant access' banner
       # is being shown, so clicks it's button to set the app secret

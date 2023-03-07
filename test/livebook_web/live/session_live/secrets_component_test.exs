@@ -44,14 +44,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
     test "creates a secret on Enterprise hub",
          %{conn: conn, session: session, enterprise: enterprise} do
       id = enterprise.id
-      secret = build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", origin: {:hub, id})
+
+      secret =
+        build(:secret, name: "BIG_IMPORTANT_SECRET", value: "123", hub_id: id, readonly: true)
+
       {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/secrets")
 
       attrs = %{
         secret: %{
           name: secret.name,
           value: secret.value,
-          origin: "hub-#{enterprise.id}"
+          hub_id: enterprise.id
         }
       }
 
@@ -70,7 +73,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         build(:secret,
           name: "POSTGRES_PASSWORD",
           value: "postgres",
-          origin: {:hub, enterprise.id}
+          hub_id: enterprise.id,
+          readonly: true
         )
 
       {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}")
@@ -88,7 +92,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         build(:secret,
           name: "PGPASS",
           value: "postgres",
-          origin: {:hub, enterprise.id}
+          hub_id: enterprise.id,
+          readonly: true
         )
 
       # Subscribe and executes the code to trigger
@@ -113,7 +118,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
       secrets_component = with_target(view, "#secrets-modal")
       form_element = element(secrets_component, "form[phx-submit='save']")
       assert has_element?(form_element)
-      attrs = %{value: secret.value, origin: "hub-#{enterprise.id}"}
+      attrs = %{value: secret.value, hub_id: enterprise.id}
       render_submit(form_element, %{secret: attrs})
 
       # Checks we received the secret created event from Enterprise
@@ -140,7 +145,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
         build(:secret,
           name: "MYSQL_PASS",
           value: "admin",
-          origin: {:hub, enterprise.id}
+          hub_id: enterprise.id,
+          readonly: true
         )
 
       # Subscribe and executes the code to trigger
@@ -195,7 +201,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponentTest do
     test "shows secret events from Enterprise hub",
          %{conn: conn, session: session, enterprise: enterprise, node: node} do
       {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "EVENT_SECRET", value: "123", origin: {:hub, enterprise.id})
+
+      secret =
+        build(:secret,
+          name: "EVENT_SECRET",
+          value: "123",
+          hub_id: enterprise.id,
+          readonly: true
+        )
 
       # We need the `Secret` schema from enterprise to execute
       # the following functions inside `Enterprise.Integration`

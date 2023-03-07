@@ -1,7 +1,6 @@
 defmodule LivebookWeb.SessionLive.SecretsListComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.EctoTypes.SecretOrigin
   alias Livebook.Hubs
   alias Livebook.Session
   alias Livebook.Secrets
@@ -90,7 +89,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           <.secrets_item
             :for={secret <- @saved_secrets}
             secret={secret}
-            prefix={prefix(secret)}
+            prefix={"hub-#{secret.hub_id}"}
             data_secrets={@secrets}
             hub={@hub}
             myself={@myself}
@@ -140,7 +139,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <%= @secret.value %>
             </span>
             <button
-              :if={delete?(@secret, @hub)}
+              :if={!@secret.readonly}
               id={"#{@prefix}-secret-#{@secret.name}-delete"}
               type="button"
               phx-click={
@@ -149,7 +148,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                     value: %{
                       name: @secret.name,
                       value: @secret.value,
-                      origin: SecretOrigin.encode(@secret.origin)
+                      hub_id: @secret.hub_id
                     },
                     target: @myself
                   ),
@@ -207,7 +206,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
   def handle_event("delete_hub_secret", attrs, socket) do
     {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-    :ok = Hubs.delete_secret(secret)
+    :ok = Hubs.delete_secret(socket.assigns.hub, secret)
     :ok = Session.unset_secret(socket.assigns.session.pid, secret.name)
 
     {:noreply, socket}
@@ -216,13 +215,4 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   defp secret_toggled?(secret, secrets) do
     Map.has_key?(secrets, secret.name) and secrets[secret.name] == secret.value
   end
-
-  defp prefix(%{origin: {:hub, id}}), do: "hub-#{id}"
-  defp prefix(%{origin: :startup}), do: "hub-personal-hub"
-
-  defp delete?(%{origin: {:hub, _}}, hub) do
-    Livebook.Hubs.capability?(hub, [:delete_secret])
-  end
-
-  defp delete?(_, _), do: false
 end

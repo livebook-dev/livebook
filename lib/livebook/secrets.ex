@@ -1,48 +1,38 @@
 defmodule Livebook.Secrets do
   @moduledoc false
 
+  alias Livebook.Hubs.Provider
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
-
-  @secret_startup_key :livebook_startup_secrets
 
   @doc """
   Get the secrets list from storage.
   """
-  @spec get_secrets() :: list(Secret.t())
-  def get_secrets do
-    startup_secrets = :persistent_term.get(@secret_startup_key, [])
-    storage_secrets = for fields <- Storage.all(:secrets), do: to_struct(fields)
-
-    Enum.concat(storage_secrets, startup_secrets)
+  @spec get_secrets(Provider.t()) :: list(Secret.t())
+  def get_secrets(hub) do
+    for fields <- Storage.all(hub.id),
+        do: to_struct(fields)
   end
 
   @doc """
   Gets a secret from storage.
   Raises `RuntimeError` if the secret doesn't exist.
   """
-  @spec fetch_secret!(String.t()) :: Secret.t()
-  def fetch_secret!(id) do
-    fields = Storage.fetch!(:secrets, id)
-    to_struct(fields)
+  @spec fetch_secret!(Provider.t(), String.t()) :: Secret.t()
+  def fetch_secret!(hub, id) do
+    hub.id
+    |> Storage.fetch!(id)
+    |> to_struct()
   end
 
   @doc """
   Gets a secret from storage.
   """
-  @spec get_secret(String.t()) :: {:ok, Secret.t()} | :error
-  def get_secret(id) do
-    with {:ok, fields} <- Storage.fetch(:secrets, id) do
+  @spec get_secret(Provider.t(), String.t()) :: {:ok, Secret.t()} | :error
+  def get_secret(hub, id) do
+    with {:ok, fields} <- Storage.fetch(hub.id, id) do
       {:ok, to_struct(fields)}
     end
-  end
-
-  @doc """
-  Checks if the secret already exists.
-  """
-  @spec secret_exists?(String.t()) :: boolean()
-  def secret_exists?(id) do
-    Storage.fetch(:secrets, id) != :error
   end
 
   @doc """
@@ -81,35 +71,36 @@ defmodule Livebook.Secrets do
   @doc """
   Stores the given secret as is, without validation.
   """
-  @spec set_secret(Secret.t()) :: Secret.t()
-  def set_secret(secret) do
-    attributes = Map.from_struct(secret)
-    :ok = Storage.insert(:secrets, secret.name, Map.to_list(attributes))
-    to_struct(attributes)
+  @spec set_secret(Provider.t(), Secret.t()) :: Secret.t()
+  def set_secret(hub, secret) do
+    attributes =
+      secret
+      |> Map.from_struct()
+      |> Map.delete(:readonly)
+
+    :ok = Storage.insert(hub.id, secret.name, Map.to_list(attributes))
+
+    secret
   end
 
   @doc """
   Unset secret from given id.
   """
-  @spec unset_secret(String.t()) :: :ok
-  def unset_secret(id) do
-    with {:ok, _secret} <- get_secret(id) do
-      Storage.delete(:secrets, id)
+  @spec unset_secret(Provider.t(), String.t()) :: :ok
+  def unset_secret(hub, id) do
+    with {:ok, _secret} <- get_secret(hub, id) do
+      Storage.delete(hub.id, id)
     end
 
     :ok
   end
 
-  @doc """
-  Sets additional secrets that are kept only in memory.
-  """
-  @spec set_startup_secrets(list(Secret.t())) :: :ok
-  def set_startup_secrets(secrets) do
-    :persistent_term.put(@secret_startup_key, secrets)
-  end
-
   defp to_struct(%{name: name, value: value} = fields) do
-    # Previously stored secrets were all `:app`-based secrets
-    %Secret{name: name, value: value, origin: fields[:origin] || :app}
+    %Secret{
+      name: name,
+      value: value,
+      hub_id: fields[:hub_id] || "personal-hub",
+      readonly: false
+    }
   end
 end
