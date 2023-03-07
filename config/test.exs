@@ -24,7 +24,7 @@ end
 config :livebook, :data_path, data_path
 
 # Feature flags
-config :livebook, :feature_flags, hub: true
+config :livebook, :feature_flags, create_hub: true
 
 # Use longnames when running tests in CI, so that no host resolution is required,
 # see https://github.com/livebook-dev/livebook/pull/173#issuecomment-819468549
