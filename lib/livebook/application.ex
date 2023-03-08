@@ -205,6 +205,7 @@ defmodule Livebook.Application do
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
+  defp config_env_var?("MIX_ENV"), do: true
   defp config_env_var?(_), do: false
 
   if Mix.target() == :app do
