@@ -276,19 +276,24 @@ defmodule LivebookWeb.SessionLive do
                     <span>Fork</span>
                   </button>
                 </.menu_item>
-                <.menu_item disabled={@data_view.file == nil}>
-                  <%= if @data_view.file in @starred_files do %>
-                    <button type="button" role="menuitem" phx-click="unstar_notebook">
-                      <.remix_icon icon="star-fill" />
-                      <span>Unstar notebook</span>
-                    </button>
-                  <% else %>
-                    <button type="button" role="menuitem" phx-click="star_notebook">
-                      <.remix_icon icon="star-line" />
-                      <span>Star notebook</span>
-                    </button>
-                  <% end %>
-                </.menu_item>
+                <span
+                  class="tooltip left"
+                  data-tooltip={@data_view.file == nil && "Save this notebook before starring it"}
+                >
+                  <.menu_item disabled={@data_view.file == nil}>
+                    <%= if @data_view.file in @starred_files do %>
+                      <button type="button" role="menuitem" phx-click="unstar_notebook">
+                        <.remix_icon icon="star-fill" />
+                        <span>Unstar notebook</span>
+                      </button>
+                    <% else %>
+                      <button type="button" role="menuitem" phx-click="star_notebook">
+                        <.remix_icon icon="star-line" />
+                        <span>Star notebook</span>
+                      </button>
+                    <% end %>
+                  </.menu_item>
+                </span>
                 <.menu_item>
                   <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
                     <.remix_icon icon="dashboard-2-line" />
