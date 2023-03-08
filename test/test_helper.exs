@@ -42,8 +42,10 @@ Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
+windows? = match?({:win32, _}, :os.type())
+
 ExUnit.start(
-  assert_receive_timeout: 1_500,
+  assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
   exclude: [
     erl_docs: erl_docs_available?,
     enterprise_integration: not Livebook.EnterpriseServer.available?()
