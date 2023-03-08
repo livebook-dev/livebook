@@ -172,7 +172,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </.menu_item>
           <span
             class="tooltip left"
-            data-tooltip={session.file == nil && "No file attached to this notebook"}
+            data-tooltip={session.file == nil && "Save this notebook before starring it"}
           >
             <.menu_item disabled={session.file == nil}>
               <%= if notebook_starred?(session, @starred_notebooks) do %>

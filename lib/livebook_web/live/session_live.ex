@@ -278,7 +278,7 @@ defmodule LivebookWeb.SessionLive do
                 </.menu_item>
                 <span
                   class="tooltip left"
-                  data-tooltip={@data_view.file == nil && "No file attached to this notebook"}
+                  data-tooltip={@data_view.file == nil && "Save this notebook before starring it"}
                 >
                   <.menu_item disabled={@data_view.file == nil}>
                     <%= if @data_view.file in @starred_files do %>
