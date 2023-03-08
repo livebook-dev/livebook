@@ -170,31 +170,36 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <span>Fork</span>
             </button>
           </.menu_item>
-          <.menu_item disabled={session.file == nil}>
-            <%= if notebook_starred?(session, @starred_notebooks) do %>
-              <button
-                type="button"
-                role="menuitem"
-                phx-click="unstar_notebook"
-                phx-target={@myself}
-                phx-value-id={session.id}
-              >
-                <.remix_icon icon="star-fill" />
-                <span>Unstar notebook</span>
-              </button>
-            <% else %>
-              <button
-                type="button"
-                role="menuitem"
-                phx-click="star_notebook"
-                phx-target={@myself}
-                phx-value-id={session.id}
-              >
-                <.remix_icon icon="star-line" />
-                <span>Star notebook</span>
-              </button>
-            <% end %>
-          </.menu_item>
+          <span
+            class="tooltip left"
+            data-tooltip={session.file == nil && "No file attached to this notebook"}
+          >
+            <.menu_item disabled={session.file == nil}>
+              <%= if notebook_starred?(session, @starred_notebooks) do %>
+                <button
+                  type="button"
+                  role="menuitem"
+                  phx-click="unstar_notebook"
+                  phx-target={@myself}
+                  phx-value-id={session.id}
+                >
+                  <.remix_icon icon="star-fill" />
+                  <span>Unstar notebook</span>
+                </button>
+              <% else %>
+                <button
+                  type="button"
+                  role="menuitem"
+                  phx-click="star_notebook"
+                  phx-target={@myself}
+                  phx-value-id={session.id}
+                >
+                  <.remix_icon icon="star-line" />
+                  <span>Star notebook</span>
+                </button>
+              <% end %>
+            </.menu_item>
+          </span>
           <.menu_item>
             <a role="menuitem" href={live_dashboard_process_path(session.pid)} target="_blank">
               <.remix_icon icon="dashboard-2-line" />

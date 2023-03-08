@@ -433,6 +433,7 @@ defmodule LivebookWeb.CoreComponents do
   def menu_item(assigns) do
     ~H"""
     <li class={[
+      "w-full",
       "[&>:first-child]:w-full [&>:first-child]:flex [&>:first-child]:space-x-3 [&>:first-child]:px-5 [&>:first-child]:py-2 [&>:first-child]:items-center [&>:first-child:hover]:bg-gray-100 [&>:first-child:focus]:bg-gray-100 [&>:first-child]:whitespace-nowrap font-medium",
       menu_item_class(@variant),
       @disabled && "pointer-events-none opacity-50"
