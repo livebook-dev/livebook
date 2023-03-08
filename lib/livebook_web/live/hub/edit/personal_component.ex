@@ -57,6 +57,29 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             </div>
           </.form>
         </div>
+
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+            Secrets
+          </h2>
+
+          <div id="hub-secrets-list" class="flex flex-col space-y-4">
+            <div class="flex flex-col space-y-4">
+              <div
+                :for={secret <- @secrets}
+                class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
+              >
+                <div class="grid grow grid-cols-1 w-full">
+                  <div>
+                    <.labeled_text label="Name">
+                      <%= secret.name %>
+                    </.labeled_text>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     """
