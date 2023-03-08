@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs.Personal
+  alias LivebookWeb.LayoutHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -16,7 +17,15 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"#{@id}-component"}>
+    <div id={"#{@id}-component"} class="space-y-8">
+      <div class="space-y-4">
+        <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+
+        <p class="text-gray-700">
+          Your personal hub. Only you can see and access the data in it.
+        </p>
+      </div>
+
       <div class="flex flex-col space-y-10">
         <div class="flex flex-col space-y-2">
           <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">

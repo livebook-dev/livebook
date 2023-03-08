@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs.{Fly, FlyClient}
+  alias LivebookWeb.LayoutHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -34,7 +35,25 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"#{@id}-component"}>
+    <div id={"#{@id}-component"} class="space-y-8">
+      <div class="flex relative">
+        <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+
+        <button
+          phx-click={
+            with_confirm(
+              JS.push("delete_hub", value: %{id: @hub.id}),
+              title: "Delete hub",
+              description: "Are you sure you want to delete this hub?",
+              confirm_text: "Delete",
+              confirm_icon: "close-circle-line"
+            )
+          }
+          class="absolute right-0 button-base button-red"
+        >
+          Delete hub
+        </button>
+      </div>
       <div class="flex flex-col space-y-10">
         <div class="flex flex-col space-y-2">
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">

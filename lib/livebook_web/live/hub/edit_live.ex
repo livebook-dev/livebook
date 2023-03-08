@@ -35,27 +35,7 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
-        <div class="flex relative">
-          <LayoutHelpers.title text="Edit Hub" />
-
-          <button
-            :if={@type != "personal"}
-            phx-click={
-              with_confirm(
-                JS.push("delete_hub", value: %{id: @hub.id}),
-                title: "Delete hub",
-                description: "Are you sure you want to delete this hub?",
-                confirm_text: "Delete",
-                confirm_icon: "close-circle-line"
-              )
-            }
-            class="absolute right-0 button-base button-red"
-          >
-            Delete hub
-          </button>
-        </div>
-
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <%= case @type do %>
           <% "fly" -> %>
             <.live_component
