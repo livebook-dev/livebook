@@ -1237,6 +1237,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(:hub_changed, socket) do
+    Session.set_notebook_hub(socket.assigns.session.pid, socket.private.data.hub.id)
+
     {:noreply, refresh_secrets(socket)}
   end
 
