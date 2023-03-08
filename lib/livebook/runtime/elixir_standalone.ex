@@ -52,6 +52,11 @@ defmodule Livebook.Runtime.ElixirStandalone do
     dependency: %{dep: {:torchx, "~> 0.4.1"}, config: [nx: [default_backend: Torchx.Backend]]}
   }
 
+  kino_explorer = %{
+    name: "kino_explorer",
+    dependency: %{dep: {:kino_explorer, "~> 0.1.0"}, config: []}
+  }
+
   windows? = match?({:win32, _}, :os.type())
   nx_backend_package = if(windows?, do: torchx, else: exla)
 
@@ -161,6 +166,18 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "Default",
             packages: [kino_bumblebee, nx_backend_package]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoExplorer.DataTransformCell",
+      name: "Data transform",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_explorer]
           }
         ]
       }
