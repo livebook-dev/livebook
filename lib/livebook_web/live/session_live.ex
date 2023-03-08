@@ -231,52 +231,27 @@ defmodule LivebookWeb.SessionLive do
           class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
           data-el-notebook-content
         >
-          <div class="flex flex-nowrap gap-2 pb-4 mb-2 border-b border-gray-200">
-            <div class="mt-1">
-              <.menu position={:bottom_left} id="notebook-hub-menu">
-                <:toggle>
-                  <span class="tooltip right distant relative" data-tooltip="Select one hub">
-                    <div class="border rounded-full border-gray-200 hover:border-gray-300 focus:border-gray-300 w-[40px] h-[40px] flex items-center justify-center">
-                      <span aria-label={@data_view.notebook_hub.hub_name}>
-                        <%= @data_view.notebook_hub.hub_emoji %>
-                      </span>
-                    </div>
-                  </span>
-                </:toggle>
-                <.menu_item :for={hub <- @saved_hubs}>
-                  <button
-                    id={"select-hub-#{hub.id}"}
-                    phx-click={JS.push("select_hub", value: %{id: hub.id})}
-                    aria-label={hub.name}
-                    role="menuitem"
-                  >
-                    <%= hub.emoji %>
-                    <span class="ml-2"><%= hub.name %></span>
-                  </button>
-                </.menu_item>
-              </.menu>
-            </div>
+          <div class="pb-4 mb-2 border-b border-gray-200">
+            <div class="flex flex-nowrap items-center gap-2">
+              <div
+                class="grow"
+                data-el-notebook-headline
+                data-focusable-id="notebook"
+                id="notebook"
+                phx-hook="Headline"
+                data-on-value-change="set_notebook_name"
+                data-metadata="notebook"
+              >
+                <h1
+                  class="text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+                  tabindex="0"
+                  id="notebook-heading"
+                  data-el-heading
+                  spellcheck="false"
+                  phx-no-format
+                ><%= @data_view.notebook_name %></h1>
+              </div>
 
-            <div
-              class="grow"
-              data-el-notebook-headline
-              data-focusable-id="notebook"
-              id="notebook"
-              phx-hook="Headline"
-              data-on-value-change="set_notebook_name"
-              data-metadata="notebook"
-            >
-              <h1
-                class="p-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
-                tabindex="0"
-                id="notebook-heading"
-                data-el-heading
-                spellcheck="false"
-                phx-no-format
-              ><%= @data_view.notebook_name %></h1>
-            </div>
-
-            <div class="mt-3">
               <.menu id="session-menu">
                 <:toggle>
                   <button class="icon-button" aria-label="open notebook menu">
@@ -328,6 +303,30 @@ defmodule LivebookWeb.SessionLive do
                 </.menu_item>
               </.menu>
             </div>
+            <.menu position={:bottom_left} id="notebook-hub-menu">
+              <:toggle>
+                <div
+                  class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
+                  aria-label={@data_view.notebook_hub.hub_name}
+                >
+                  <span>in</span>
+                  <span class="text-lg pl-1"><%= @data_view.notebook_hub.hub_emoji %></span>
+                  <span><%= @data_view.notebook_hub.hub_name %></span>
+                  <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
+                </div>
+              </:toggle>
+              <.menu_item :for={hub <- @saved_hubs}>
+                <button
+                  id={"select-hub-#{hub.id}"}
+                  phx-click={JS.push("select_hub", value: %{id: hub.id})}
+                  aria-label={hub.name}
+                  role="menuitem"
+                >
+                  <%= hub.emoji %>
+                  <span class="ml-2"><%= hub.name %></span>
+                </button>
+              </.menu_item>
+            </.menu>
           </div>
           <div>
             <.live_component
