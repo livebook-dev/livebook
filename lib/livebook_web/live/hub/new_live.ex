@@ -45,7 +45,8 @@ defmodule LivebookWeb.Hub.NewLive do
         <p class="text-gray-700">
           We are also working on <span class="font-bold">Livebook Teams</span>, which were
           designed from the ground up to deploy notebooks within your organization.
-          <span class="font-bold">Livebook Teams</span> runs on your own infrastructure
+          <span class="font-bold">Livebook Teams</span>
+          runs on your own infrastructure
           to provide essential features for secure collaboration between team members,
           such as digital signing of notebooks, safe sharing of secrets, and more.
           To learn more, <a
