@@ -305,7 +305,10 @@ defmodule LivebookWeb.SessionLive do
             </div>
             <.menu position={:bottom_left} id="notebook-hub-menu">
               <:toggle>
-                <div class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800" aria-label={@data_view.notebook_hub.hub_name}>
+                <div
+                  class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
+                  aria-label={@data_view.notebook_hub.hub_name}
+                >
                   <span>in</span>
                   <span class="text-lg pl-1"><%= @data_view.notebook_hub.hub_emoji %></span>
                   <span><%= @data_view.notebook_hub.hub_name %></span>
