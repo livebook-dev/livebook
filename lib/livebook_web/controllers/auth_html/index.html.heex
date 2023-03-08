@@ -78,7 +78,8 @@
       </div>
       <div :if={@empty_apps_path?} class="mt-5 text-gray-600">
         <div>
-          No app notebooks found. To list your apps here follow these steps:
+          No app notebooks found.
+          <br />Follow these steps to list your apps here:
         </div>
         <ol class="mt-4 pl-4 flex flex-col space-y-1 list-decimal list-inside">
           <li>
@@ -86,10 +87,10 @@
           </li>
           <li>
             Click <.remix_icon icon="rocket-line" class="align-sub text-lg" />
-            in the sidebar, configure the app and make sure it is public
+            in the sidebar and configure the app as public
           </li>
           <li>
-            Place the notebook in the
+            Save the notebook to the
             <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
             folder
           </li>
