@@ -19,10 +19,10 @@ defmodule LivebookWeb.Hub.NewLive do
   def render(%{enabled?: false} = assigns) do
     ~H"""
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-6 text-lg">
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-6">
         <div>
           <LayoutHelpers.title text="Hubs are coming soon!" />
-          <p class="mt-4">
+          <p class="mt-4 text-gray-700">
             Deploy applications, share secrets, templates, and more with Livebook Hubs.
           </p>
         </div>
@@ -30,14 +30,14 @@ defmodule LivebookWeb.Hub.NewLive do
           Each Livebook user has their own personal Hub and soon they will be able to deploy
           their personal notebooks to
           <a
-            class="underline text-blue-700 hover:text-blue-900 visited:text-purple-900"
+            class="font-medium underline text-gray-900 hover:no-underline"
             href="https://fly.io/"
             target="_blank"
           >
             Fly.io
           </a>
           and <a
-            class="underline text-blue-700 hover:text-blue-900 visited:text-purple-900"
+            class="font-medium underline text-gray-900 hover:no-underline"
             href="https://huggingface.co/"
             target="_blank"
           >Hugging Face</a>.
@@ -50,7 +50,7 @@ defmodule LivebookWeb.Hub.NewLive do
           to provide essential features for secure collaboration between team members,
           such as digital signing of notebooks, safe sharing of secrets, and more.
           To learn more, <a
-            class="underline text-blue-700 hover:text-blue-900 visited:text-purple-900"
+            class="font-medium underline text-gray-900 hover:no-underline"
             href="https://docs.google.com/forms/d/e/1FAIpQLSeAABUT042XswwI15RBGiEJ3lSUFF9QSiaRhhzk_j6v-B3quA/viewform"
             target="_blank"
           >get in touch</a>!
