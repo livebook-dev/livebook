@@ -100,7 +100,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               autofocus={@prefill_secret_name == nil}
               spellcheck="false"
               autocomplete="off"
-              phx-debounce="blur"
+              phx-debounce
               class="uppercase"
             />
             <.text_field
@@ -109,7 +109,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               autofocus={@prefill_secret_name != nil}
               spellcheck="false"
               autocomplete="off"
-              phx-debounce="blur"
+              phx-debounce
             />
             <.radio_field
               field={f[:hub_id]}

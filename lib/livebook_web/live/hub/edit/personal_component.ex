@@ -102,6 +102,9 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     ~H"""
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
+        <.no_entries :if={@secrets == []}>
+          No secrets in this Hub yet.
+        </.no_entries>
         <div
           :for={secret <- @secrets}
           class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
@@ -111,7 +114,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
       </div>
       <div class="flex">
         <.link patch={@new_secret_path} class="button-base button-blue" id="add-secret">
-          Add new secret
+          Add secret
         </.link>
       </div>
     </div>
