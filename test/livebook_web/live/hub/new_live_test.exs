@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     {:ok, _view, html} = live(conn, ~p"/hub")
 
     assert html =~ "Fly"
-    assert html =~ "Livebook Enterprise"
+    assert html =~ "Livebook Teams"
   end
 
   describe "fly" do

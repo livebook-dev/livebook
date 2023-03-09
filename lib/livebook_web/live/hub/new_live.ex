@@ -89,13 +89,9 @@ defmodule LivebookWeb.Hub.NewLive do
               </:headline>
             </.card_item>
 
-            <.card_item id="enterprise" selected={@selected_type} title="Livebook Enterprise">
+            <.card_item id="enterprise" selected={@selected_type} title="Livebook Teams">
               <:logo>
-                <img
-                  src="/images/enterprise.png"
-                  class="max-h-full max-w-[75%]"
-                  alt="Livebook Enterprise logo"
-                />
+                <img src="/images/teams.png" class="max-h-full max-w-[75%]" alt="Livebook Teams logo" />
               </:logo>
               <:headline>
                 Control access, manage secrets, and deploy notebooks within your team.
