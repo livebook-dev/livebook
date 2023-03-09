@@ -283,7 +283,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_click(%{})
 
       assert_patch(view, ~p"/hub/#{hub.id}/secrets/new")
-      assert render(view) =~ "Add new secret"
+      assert render(view) =~ "Add secret"
 
       view
       |> element("#secrets-form")

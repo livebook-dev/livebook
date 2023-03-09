@@ -43,7 +43,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
-              phx-debounce="blur"
+              phx-debounce
               class="uppercase"
             />
             <.text_field
@@ -52,7 +52,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name != nil}
               spellcheck="false"
               autocomplete="off"
-              phx-debounce="blur"
+              phx-debounce
             />
             <.hidden_field field={f[:hub_id]} value={@hub.id} />
             <div class="flex space-x-2">
