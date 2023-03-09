@@ -86,7 +86,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
-          module={LivebookWeb.Hub.SecretsComponent}
+          module={LivebookWeb.Hub.SecretFormComponent}
           id="secrets"
           hub={@hub}
           secret_name={@secret_name}

@@ -1,4 +1,4 @@
-defmodule LivebookWeb.Hub.SecretsComponent do
+defmodule LivebookWeb.Hub.SecretFormComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs
