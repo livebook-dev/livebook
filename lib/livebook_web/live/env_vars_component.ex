@@ -39,7 +39,7 @@ defmodule LivebookWeb.EnvVarsComponent do
       <div class="flex items-center place-content-end">
         <.menu id={"env-var-#{@env_var.name}-menu"}>
           <:toggle>
-            <button class="icon-button" aria-label="open session menu" type="button">
+            <button class="icon-button" aria-label="open environment variable menu" type="button">
               <.remix_icon icon="more-2-fill" class="text-xl" />
             </button>
           </:toggle>
