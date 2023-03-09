@@ -1719,7 +1719,7 @@ defmodule LivebookWeb.SessionLive do
     |> Kino.Control.stream()
     |> Kino.listen(fn event ->
       IO.inspect(event)
-    end)
+    end)\
     """
 
     {:code, %{source: source}}
