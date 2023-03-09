@@ -15,7 +15,8 @@ defmodule LivebookWeb.Hub.EditLive do
        secrets: [],
        type: nil,
        page_title: "Livebook - Hub",
-       env_var_id: nil
+       env_var_id: nil,
+       secret_name: nil
      )}
   end
 
@@ -32,7 +33,8 @@ defmodule LivebookWeb.Hub.EditLive do
        secrets: Hubs.get_secrets(hub),
        page_title: "Livebook - Hub",
        params: params,
-       env_var_id: params["env_var_id"]
+       env_var_id: params["env_var_id"],
+       secret_name: params["secret_name"]
      )}
   end
 
@@ -59,6 +61,8 @@ defmodule LivebookWeb.Hub.EditLive do
               module={LivebookWeb.Hub.Edit.PersonalComponent}
               hub={@hub}
               secrets={@secrets}
+              live_action={@live_action}
+              secret_name={@secret_name}
               id="personal-form"
             />
           <% "enterprise" -> %>
@@ -84,16 +88,25 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info({:secret_created, _secret}, socket) do
-    {:noreply, refresh_secrets(socket)}
+  def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply,
+     socket
+     |> refresh_secrets()
+     |> put_flash(:success, "Secret created successfully")}
   end
 
-  def handle_info({:secret_updated, _secret}, socket) do
-    {:noreply, refresh_secrets(socket)}
+  def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply,
+     socket
+     |> refresh_secrets()
+     |> put_flash(:success, "Secret updated successfully")}
   end
 
-  def handle_info({:secret_deleted, _secret}, socket) do
-    {:noreply, refresh_secrets(socket)}
+  def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply,
+     socket
+     |> refresh_secrets()
+     |> put_flash(:success, "Secret deleted successfully")}
   end
 
   def handle_info(_message, socket) do
