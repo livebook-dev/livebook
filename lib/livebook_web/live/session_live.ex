@@ -332,9 +332,9 @@ defmodule LivebookWeb.SessionLive do
                 </button>
               </.menu_item>
               <.menu_item>
-                <button phx-click={JS.navigate(~p"/hub")} aria-label="Add Hub" role="menuitem">
+                <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
                   <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
-                </button>
+                </.link>
               </.menu_item>
             </.menu>
           </div>
