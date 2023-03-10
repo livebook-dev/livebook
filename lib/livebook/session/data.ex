@@ -2600,11 +2600,12 @@ defmodule Livebook.Session.Data do
   end
 
   @doc """
-  Returns a list of secrets kept exclusively in the session.
+  Returns a list of secrets that don't belong to the given hub
+  and are effectively stored in the session only.
   """
-  @spec session_secrets(secrets()) :: list(Secret.t())
-  def session_secrets(secrets) do
-    for {_name, secret} <- secrets, secret.hub_id == "session", do: secret
+  @spec session_secrets(secrets(), String.t()) :: list(Secret.t())
+  def session_secrets(secrets, hub_id) do
+    for {_name, secret} <- secrets, secret.hub_id != hub_id, do: secret
   end
 
   @doc """

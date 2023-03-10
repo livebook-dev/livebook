@@ -57,7 +57,7 @@ defmodule Livebook.SessionHelpers do
   def assert_session_secret(view, session_pid, secret) do
     selector =
       case secret do
-        %{name: name, hub_id: "session"} -> "#session-secret-#{name}"
+        %{name: name, hub_id: nil} -> "#session-secret-#{name}"
         %{name: name, hub_id: id} -> "#hub-#{id}-secret-#{name}"
       end
 

@@ -1075,7 +1075,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
-      secret = build(:secret, name: "FOO", value: "123", hub_id: "session")
+      secret = build(:secret, name: "FOO", value: "123", hub_id: nil)
 
       view
       |> element(~s{form[phx-submit="save"]})
@@ -1130,7 +1130,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "never syncs secrets when updating from session",
          %{conn: conn, session: session, hub: hub} do
       hub_secret = insert_secret(name: "FOO", value: "123")
-      secret = build(:secret, name: "FOO", value: "456", hub_id: "session")
+      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
       Session.set_secret(session.pid, hub_secret)
@@ -1145,7 +1145,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows the 'Add secret' button for missing secrets", %{conn: conn, session: session} do
-      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", hub_id: "session")
+      secret = build(:secret, name: "ANOTHER_GREAT_SECRET", value: "123456", hub_id: nil)
       Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
@@ -1163,7 +1163,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "adding a missing secret using 'Add secret' button",
          %{conn: conn, session: session, hub: hub} do
-      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", hub_id: "session")
+      secret = build(:secret, name: "MYUNAVAILABLESECRET", value: "123456", hub_id: nil)
 
       # Subscribe and executes the code to trigger
       # the `System.EnvError` exception and outputs the 'Add secret' button

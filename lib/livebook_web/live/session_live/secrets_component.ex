@@ -20,7 +20,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign_new(:changeset, fn ->
-        attrs = %{name: secret_name, value: nil, hub_id: "session", readonly: false}
+        attrs = %{name: secret_name, value: nil, hub_id: nil, readonly: false}
         Secrets.change_secret(%Secret{}, attrs)
       end)
       |> assign_new(:grant_access_secret, fn ->
@@ -54,7 +54,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             </p>
             <div class="flex flex-wrap">
               <.secret_with_badge
-                :for={secret <- @secrets |> Session.Data.session_secrets() |> Enum.sort_by(& &1.name)}
+                :for={
+                  secret <-
+                    @secrets |> Session.Data.session_secrets(@hub.id) |> Enum.sort_by(& &1.name)
+                }
                 secret_name={secret.name}
                 hub?={false}
                 stored="Session"
@@ -118,7 +121,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               field={f[:hub_id]}
               label="Storage"
               options={[
-                {"session", "only this session"},
+                {"", "only this session"},
                 {@hub.id, "in #{@hub.hub_emoji} #{@hub.hub_name}"}
               ]}
             />
@@ -259,7 +262,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(socket, %Secret{hub_id: "session"} = secret) do
+  defp set_secret(socket, %Secret{hub_id: nil} = secret) do
     Session.set_secret(socket.assigns.session.pid, secret)
   end
 

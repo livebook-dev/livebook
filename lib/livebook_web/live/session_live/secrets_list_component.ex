@@ -20,7 +20,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
           <div
-            :for={secret <- @secrets |> Session.Data.session_secrets() |> Enum.sort_by(& &1.name)}
+            :for={
+              secret <- @secrets |> Session.Data.session_secrets(@hub.id) |> Enum.sort_by(& &1.name)
+            }
             class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
             id={"session-secret-#{secret.name}"}
           >
