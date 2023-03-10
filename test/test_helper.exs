@@ -40,6 +40,23 @@ Application.put_env(:livebook, Livebook.Runtime.Embedded,
 # Disable autosaving
 Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
+# Set a global startup secret, so that there is at least one
+Livebook.Hubs.Personal.set_startup_secrets([
+  %Livebook.Secrets.Secret{
+    name: "STARTUP_SECRET",
+    value: "value",
+    hub_id: Livebook.Hubs.Personal.id(),
+    readonly: true
+  }
+])
+
+# Always use the same secret key in tests
+secret_key =
+  "2xmxxbrw5g7fu3wlyntrbfzvnt3xuw63hecepk4cjl6ymviurbxbujsxo5zbvcdyj2eg2luxl7q6g7hx4qcetzvxqujmw5nuq5ootvy"
+
+personal_hub = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
+Livebook.Hubs.Personal.update_hub(personal_hub, %{secret_key: secret_key})
+
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
 windows? = match?({:win32, _}, :os.type())

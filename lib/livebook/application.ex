@@ -219,8 +219,15 @@ defmodule Livebook.Application do
       Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
         id: Livebook.Hubs.Personal.id(),
         hub_name: "My Hub",
-        hub_emoji: "🏠"
+        hub_emoji: "🏠",
+        secret_key: Livebook.Hubs.Personal.generate_secret_key()
       })
+    end
+
+    # TODO should we have a migration system (?)
+    with :error <- Livebook.Storage.fetch_key(:hubs, Livebook.Hubs.Personal.id(), :secret_key) do
+      secret_key = Livebook.Hubs.Personal.generate_secret_key()
+      Livebook.Storage.insert(:hubs, Livebook.Hubs.Personal.id(), secret_key: secret_key)
     end
   end
 

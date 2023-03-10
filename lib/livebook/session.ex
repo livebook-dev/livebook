@@ -720,6 +720,7 @@ defmodule Livebook.Session do
   @impl true
   def init(opts) do
     Livebook.Settings.subscribe()
+    Livebook.Hubs.subscribe([:secrets, :crud])
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -1498,6 +1499,13 @@ defmodule Livebook.Session do
   def handle_info(:close, state) do
     before_close(state)
     {:stop, :shutdown, state}
+  end
+
+  def handle_info({event, secret}, state)
+      when event in [:secret_created, :secret_updated, :secret_deleted] and
+             secret.hub_id == state.data.notebook.hub_id do
+    operation = {:sync_hub_secrets, @client_id}
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}

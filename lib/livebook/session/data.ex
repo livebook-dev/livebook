@@ -32,14 +32,13 @@ defmodule Livebook.Session.Data do
     :clients_map,
     :users_map,
     :secrets,
+    :hub_secrets,
     :mode,
     :apps,
-    :app_data,
-    :hub
+    :app_data
   ]
 
-  alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
-  alias Livebook.Hubs.Provider
+  alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem, Hubs}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
@@ -58,10 +57,10 @@ defmodule Livebook.Session.Data do
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
           secrets: %{(name :: String.t()) => value :: String.t()},
+          hub_secrets: list(Livebook.Secrets.Secret.t()),
           mode: session_mode(),
           apps: list(app()),
-          app_data: nil | app_data(),
-          hub: Provider.t()
+          app_data: nil | app_data()
         }
 
   @type section_info :: %{
@@ -214,6 +213,8 @@ defmodule Livebook.Session.Data do
           | {:mark_as_not_dirty, client_id()}
           | {:set_secret, client_id(), secret()}
           | {:unset_secret, client_id(), String.t()}
+          | {:set_notebook_hub, client_id(), String.t()}
+          | {:sync_hub_secrets, client_id()}
           | {:set_app_settings, client_id(), AppSettings.t()}
           | {:add_app, client_id(), Livebook.Session.id(), pid()}
           | {:set_app_status, client_id(), Livebook.Session.id(), app_status()}
@@ -221,7 +222,6 @@ defmodule Livebook.Session.Data do
           | {:delete_app, client_id(), Livebook.Session.id()}
           | {:app_unregistered, client_id()}
           | {:app_stop, client_id()}
-          | {:set_notebook_hub, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
@@ -261,6 +261,15 @@ defmodule Livebook.Session.Data do
         %{status: :booting, registered: false}
       end
 
+    hub = Hubs.fetch_hub!(notebook.hub_id)
+    hub_secrets = Hubs.get_secrets(hub)
+
+    secrets =
+      for secret <- hub_secrets,
+          secret.name in notebook.hub_secret_names,
+          do: {secret.name, secret.value},
+          into: %{}
+
     data = %__MODULE__{
       notebook: notebook,
       origin: opts[:origin],
@@ -274,11 +283,11 @@ defmodule Livebook.Session.Data do
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
-      secrets: %{},
+      secrets: secrets,
+      hub_secrets: hub_secrets,
       mode: opts[:mode],
       apps: [],
-      app_data: app_data,
-      hub: Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
+      app_data: app_data
     }
 
     data
@@ -830,6 +839,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_secret(secret)
+    |> update_notebook_hub_secret_names()
     |> wrap_ok()
   end
 
@@ -837,6 +847,29 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> unset_secret(secret_name)
+    |> update_notebook_hub_secret_names()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
+    with {:ok, hub} <- Hubs.get_hub(id) do
+      data
+      |> with_actions()
+      |> set_notebook_hub(hub)
+      |> update_notebook_hub_secret_names()
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:sync_hub_secrets, _client_id}) do
+    data
+    |> with_actions()
+    |> sync_hub_secrets()
+    |> update_notebook_hub_secret_names()
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -910,13 +943,6 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
-  end
-
-  def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
-    data
-    |> with_actions()
-    |> set_notebook_hub(id)
-    |> wrap_ok()
   end
 
   # ===
@@ -1622,6 +1648,27 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: %{data.notebook | name: name})
   end
 
+  defp set_notebook_hub({data, _} = data_actions, hub) do
+    data_actions
+    |> set!(
+      notebook: %{data.notebook | hub_id: hub.id},
+      hub_secrets: Hubs.get_secrets(hub)
+    )
+  end
+
+  defp sync_hub_secrets({data, _} = data_actions) do
+    hub = Livebook.Hubs.fetch_hub!(data.notebook.hub_id)
+    secrets = Livebook.Hubs.get_secrets(hub)
+    set!(data_actions, hub_secrets: secrets)
+  end
+
+  defp update_notebook_hub_secret_names({data, _} = data_actions) do
+    hub_secret_names =
+      for secret <- data.hub_secrets, data.secrets[secret.name] == secret.value, do: secret.name
+
+    set!(data_actions, notebook: %{data.notebook | hub_secret_names: hub_secret_names})
+  end
+
   defp set_section_name({data, _} = data_actions, section, name) do
     data_actions
     |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
@@ -1833,11 +1880,6 @@ defmodule Livebook.Session.Data do
     else
       :error
     end
-  end
-
-  defp set_notebook_hub(data_actions, id) do
-    hub = Livebook.Hubs.fetch_hub!(id)
-    set!(data_actions, hub: hub)
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

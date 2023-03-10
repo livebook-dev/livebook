@@ -247,6 +247,24 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
+  Generates a notebook stamp.
+  """
+  @spec notebook_stamp(Provider.t(), iodata(), map()) ::
+          {:ok, Provider.notebook_stamp()} | :skip | :error
+  def notebook_stamp(hub, notebook_source, metadata) do
+    Provider.notebook_stamp(hub, notebook_source, metadata)
+  end
+
+  @doc """
+  Verifies a notebook stamp and returns the decrypted metadata.
+  """
+  @spec verify_notebook_stamp(Provider.t(), iodata(), Provider.notebook_stamp()) ::
+          {:ok, metadata :: map()} | :error
+  def verify_notebook_stamp(hub, notebook_source, stamp) do
+    Provider.verify_notebook_stamp(hub, notebook_source, stamp)
+  end
+
+  @doc """
   Checks the hub capability for given hub.
   """
   @spec capability?(Provider.t(), list(atom())) :: boolean()

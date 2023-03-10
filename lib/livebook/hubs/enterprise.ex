@@ -185,4 +185,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     reason = EnterpriseClient.get_connection_error(enterprise.id)
     "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
   end
+
+  # TODO: implement signing through the enterprise server
+  def notebook_stamp(_hub, _notebook_source, _metadata) do
+    :skip
+  end
+
+  def verify_notebook_stamp(_hub, _notebook_source, _stamp), do: raise("not implemented")
 end

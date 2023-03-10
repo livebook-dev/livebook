@@ -720,6 +720,33 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
 
+  test "imports notebook hub id when exists" do
+    Livebook.Factory.insert_hub(:fly, id: "enterprise-persisted-id")
+
+    markdown = """
+    <!-- livebook:{"hub_id":"enterprise-persisted-id"} -->
+
+    # My Notebook
+    """
+
+    {notebook, []} = Import.notebook_from_livemd(markdown)
+
+    assert %Notebook{name: "My Notebook", hub_id: "enterprise-persisted-id"} = notebook
+  end
+
+  test "imports ignores hub id when does not exist" do
+    markdown = """
+    <!-- livebook:{"hub_id":"nonexistent"} -->
+
+    # My Notebook
+    """
+
+    {notebook, messages} = Import.notebook_from_livemd(markdown)
+
+    assert messages == [~s/ignoring notebook Hub with unknown id: "nonexistent"/]
+    assert notebook.hub_id != "nonexistent"
+  end
+
   describe "app settings" do
     test "imports settings" do
       markdown = """
@@ -996,6 +1023,46 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                },
                sections: []
              } = notebook
+    end
+  end
+
+  describe "notebook stamp" do
+    test "restores hub secret names from notebook stamp" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.UvBr67U2nsrrMWtMtfQRYBGhKBBSLv2KMrqh6BmM4iitmpUsQatVFxbHS5M.F-sAEysHe-5aiEQz.lxGJJ0Tb5KKe2DbD7d2eYkwTXGN6DzTHDU9zA2Ny7fVt2xcW_Nf6QvHqG6EC1lE.knMISivd8n43Pm5IVVsT2g","version":1}} -->
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
+    end
+
+    test "returns a warning when notebook stamp is invalid" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":1}} -->
+      """
+
+      {notebook, messages} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: []} = notebook
+
+      assert messages == ["failed to verify notebook stamp"]
     end
   end
 end

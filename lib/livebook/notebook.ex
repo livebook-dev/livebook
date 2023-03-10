@@ -22,7 +22,9 @@ defmodule Livebook.Notebook do
     :persist_outputs,
     :autosave_interval_s,
     :output_counter,
-    :app_settings
+    :app_settings,
+    :hub_id,
+    :hub_secret_names
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -38,7 +40,9 @@ defmodule Livebook.Notebook do
           persist_outputs: boolean(),
           autosave_interval_s: non_neg_integer() | nil,
           output_counter: non_neg_integer(),
-          app_settings: AppSettings.t()
+          app_settings: AppSettings.t(),
+          hub_id: String.t(),
+          hub_secret_names: list(String.t())
         }
 
   @version "1.0"
@@ -57,7 +61,9 @@ defmodule Livebook.Notebook do
       persist_outputs: default_persist_outputs(),
       autosave_interval_s: default_autosave_interval_s(),
       output_counter: 0,
-      app_settings: AppSettings.new()
+      app_settings: AppSettings.new(),
+      hub_id: Livebook.Hubs.Personal.id(),
+      hub_secret_names: []
     }
     |> put_setup_cell(Cell.new(:code))
   end

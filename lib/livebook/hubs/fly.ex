@@ -162,4 +162,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
   def delete_secret(_fly, _secret), do: :ok
 
   def connection_error(_fly), do: raise("not implemented")
+
+  def notebook_stamp(_hub, _notebook_source, _metadata) do
+    :skip
+  end
+
+  def verify_notebook_stamp(_hub, _notebook_source, _stamp), do: raise("not implemented")
 end

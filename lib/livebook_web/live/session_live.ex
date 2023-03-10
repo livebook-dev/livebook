@@ -8,7 +8,6 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
-  alias Livebook.Hubs
 
   on_mount LivebookWeb.SidebarHook
 
@@ -24,7 +23,6 @@ defmodule LivebookWeb.SessionLive do
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
             Session.subscribe(session_id)
-            Hubs.subscribe(:secrets)
             Livebook.NotebookManager.subscribe_starred_notebooks()
 
             {data, client_id}
@@ -60,7 +58,6 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           saved_secrets: Hubs.get_secrets(data.hub),
            select_secret_ref: nil,
            select_secret_options: nil,
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
@@ -199,8 +196,8 @@ defmodule LivebookWeb.SessionLive do
             module={LivebookWeb.SessionLive.SecretsListComponent}
             id="secrets-list"
             session={@session}
-            saved_secrets={@saved_secrets}
-            hub={@data_view.notebook_hub}
+            saved_secrets={@data_view.hub_secrets}
+            hub={@data_view.hub}
             secrets={@data_view.secrets}
           />
         </div>
@@ -312,11 +309,11 @@ defmodule LivebookWeb.SessionLive do
               <:toggle>
                 <div
                   class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
-                  aria-label={@data_view.notebook_hub.hub_name}
+                  aria-label={@data_view.hub.hub_name}
                 >
                   <span>in</span>
-                  <span class="text-lg pl-1"><%= @data_view.notebook_hub.hub_emoji %></span>
-                  <span><%= @data_view.notebook_hub.hub_name %></span>
+                  <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
+                  <span><%= @data_view.hub.hub_name %></span>
                   <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
                 </div>
               </:toggle>
@@ -517,8 +514,8 @@ defmodule LivebookWeb.SessionLive do
         id="secrets"
         session={@session}
         secrets={@data_view.secrets}
-        hub={@data_view.notebook_hub}
-        saved_secrets={@saved_secrets}
+        hub={@data_view.hub}
+        saved_secrets={@data_view.hub_secrets}
         prefill_secret_name={@prefill_secret_name}
         select_secret_ref={@select_secret_ref}
         select_secret_options={@select_secret_options}
@@ -1220,33 +1217,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_operation(socket, operation)}
   end
 
-  def handle_info({:secret_created, _secret}, socket) do
-    {:noreply,
-     socket
-     |> refresh_secrets()
-     |> put_flash(:info, "A new secret has been created on your Livebook Hub")}
-  end
-
-  def handle_info({:secret_updated, _secret}, socket) do
-    {:noreply,
-     socket
-     |> refresh_secrets()
-     |> put_flash(:info, "An existing secret has been updated on your Livebook Hub")}
-  end
-
-  def handle_info({:secret_deleted, _secret}, socket) do
-    {:noreply,
-     socket
-     |> refresh_secrets()
-     |> put_flash(:info, "An existing secret has been deleted on your Livebook Hub")}
-  end
-
-  def handle_info(:hub_changed, socket) do
-    Session.set_notebook_hub(socket.assigns.session.pid, socket.private.data.hub.id)
-
-    {:noreply, refresh_secrets(socket)}
-  end
-
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
 
@@ -1635,9 +1605,6 @@ defmodule LivebookWeb.SessionLive do
     prune_cell_sources(socket)
   end
 
-  defp after_operation(socket, _prev_socket, {:set_notebook_hub, _client_id, _id}),
-    do: refresh_secrets(socket)
-
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
@@ -1816,10 +1783,11 @@ defmodule LivebookWeb.SessionLive do
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
+      hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
+      hub_secrets: data.hub_secrets,
       apps_status: apps_status(data),
       app_settings: data.notebook.app_settings,
-      apps: data.apps,
-      notebook_hub: data.hub
+      apps: data.apps
     }
   end
 
@@ -2086,7 +2054,4 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
   defp app_status_color(:stopped), do: "bg-gray-500"
-
-  defp refresh_secrets(socket),
-    do: assign(socket, saved_secrets: Hubs.get_secrets(socket.private.data.hub))
 end
