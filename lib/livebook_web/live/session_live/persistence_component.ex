@@ -46,14 +46,27 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       autosave_interval_s: autosave_interval_s
     }
 
+    draft_file =
+      cond do
+        file ->
+          file
+
+        match?({:file, _}, assigns.session.origin) ->
+          # if it's a forked notebook, use the same folder
+          assigns.session.origin
+          |> elem(1)
+          |> FileSystem.File.containing_dir()
+
+        true ->
+          Livebook.Config.local_file_system_home()
+      end
+
     socket =
       socket
       |> assign(assigns)
       |> assign_new(:attrs, fn -> attrs end)
       |> assign_new(:new_attrs, fn -> attrs end)
-      |> assign_new(:draft_file, fn ->
-        file || Livebook.Config.local_file_system_home()
-      end)
+      |> assign_new(:draft_file, fn -> draft_file end)
       |> assign_new(:saved_file, fn -> file end)
 
     {:ok, socket}
