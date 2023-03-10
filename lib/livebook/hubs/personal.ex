@@ -91,7 +91,7 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
-    :crypto.strong_rand_bytes(64) |> Base.encode32(case: :lower, padding: false)
+    :crypto.strong_rand_bytes(64) |> Base.url_encode64(padding: false)
   end
 end
 
@@ -161,7 +161,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     {secret, sign_secret} = derive_keys(hub.secret_key)
 
     payload = :erlang.term_to_binary(metadata)
-    notebook_source = IO.iodata_to_binary(notebook_source)
     token = Plug.Crypto.MessageEncryptor.encrypt(payload, notebook_source, secret, sign_secret)
 
     stamp = %{"version" => 1, "token" => token}
@@ -174,8 +173,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
     {secret, sign_secret} = derive_keys(hub.secret_key)
 
-    notebook_source = IO.iodata_to_binary(notebook_source)
-
     case Plug.Crypto.MessageEncryptor.decrypt(token, notebook_source, secret, sign_secret) do
       {:ok, payload} ->
         metadata = Plug.Crypto.non_executable_binary_to_term(payload)
@@ -187,7 +184,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   defp derive_keys(secret_key) do
-    binary_key = Base.decode32!(secret_key, case: :lower, padding: false)
+    binary_key = Base.url_decode64!(secret_key, padding: false)
 
     <<secret::16-bytes, sign_secret::16-bytes>> =
       Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing",

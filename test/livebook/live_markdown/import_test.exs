@@ -743,7 +743,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     {notebook, messages} = Import.notebook_from_livemd(markdown)
 
-    assert messages == [~s/ignoring notebook Hub with unknown id: "nonexistent"/]
+    assert messages == ["ignoring notebook Hub with unknown id"]
     assert notebook.hub_id != "nonexistent"
   end
 
@@ -1028,6 +1028,30 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
   describe "notebook stamp" do
     test "restores hub secret names from notebook stamp" do
+      # Generated with:
+
+      # %{
+      #   Notebook.new()
+      #   | name: "My Notebook",
+      #     sections: [
+      #       %{
+      #         Notebook.Section.new()
+      #         | name: "Section 1",
+      #           cells: [
+      #             %{
+      #               Notebook.Cell.new(:code)
+      #               | source: """
+      #                 IO.puts("hey")
+      #                 """
+      #             }
+      #           ]
+      #       }
+      #     ],
+      #     hub_secret_names: ["DB_PASSWORD"]
+      # }
+      # |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+      # |> IO.puts()
+
       markdown = """
       # My Notebook
 
@@ -1037,7 +1061,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.UvBr67U2nsrrMWtMtfQRYBGhKBBSLv2KMrqh6BmM4iitmpUsQatVFxbHS5M.F-sAEysHe-5aiEQz.lxGJJ0Tb5KKe2DbD7d2eYkwTXGN6DzTHDU9zA2Ny7fVt2xcW_Nf6QvHqG6EC1lE.knMISivd8n43Pm5IVVsT2g","version":1}} -->
+      <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.LF8LTeMYrtq8S7wsKMmk2YgOQzMAkEKT2d8fq1Gz3Ot1mydOgEZ1B4hcEZc.Wec6NwBQ584kE661.a_N-5jDiWrjhHha9zxHQ6JJOmxeqgiya3m6YlKt1Na_DPnEfXyLnengaUzQSrf8.ZoD5r6-H87RpTyvFkvEOQw","version":1}} -->
       """
 
       {notebook, []} = Import.notebook_from_livemd(markdown)

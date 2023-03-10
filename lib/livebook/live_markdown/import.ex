@@ -382,7 +382,7 @@ defmodule Livebook.LiveMarkdown.Import do
         if Livebook.Hubs.hub_exists?(hub_id) do
           {Map.put(attrs, :hub_id, hub_id), messages}
         else
-          {attrs, messages ++ ["ignoring notebook Hub with unknown id: #{inspect(hub_id)}"]}
+          {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
       {"app_settings", app_settings_metadata}, {attrs, messages} ->

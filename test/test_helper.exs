@@ -52,7 +52,7 @@ Livebook.Hubs.Personal.set_startup_secrets([
 
 # Always use the same secret key in tests
 secret_key =
-  "2xmxxbrw5g7fu3wlyntrbfzvnt3xuw63hecepk4cjl6ymviurbxbujsxo5zbvcdyj2eg2luxl7q6g7hx4qcetzvxqujmw5nuq5ootvy"
+  "5ji8DpnX761QAWXZwSl-2Y-mdW4yTcMimdOJ8SSxCh44wFE0jEbGBUf-VydKwnTLzBiAUedQKs3X_q1j_3lgrw"
 
 personal_hub = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
 Livebook.Hubs.Personal.update_hub(personal_hub, %{secret_key: secret_key})
