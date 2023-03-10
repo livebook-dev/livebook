@@ -331,6 +331,11 @@ defmodule LivebookWeb.SessionLive do
                   <span class="ml-2"><%= hub.name %></span>
                 </button>
               </.menu_item>
+              <.menu_item>
+                <button phx-click={JS.navigate(~p"/hub")} aria-label="Add Hub" role="menuitem">
+                  <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
+                </button>
+              </.menu_item>
             </.menu>
           </div>
           <div>
