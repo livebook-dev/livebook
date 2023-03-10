@@ -720,6 +720,33 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
 
+  test "imports notebook hub id when exists" do
+    Livebook.Factory.insert_hub(:fly, id: "enterprise-persisted-id")
+
+    markdown = """
+    <!-- livebook:{"hub_id":"enterprise-persisted-id"} -->
+
+    # My Notebook
+    """
+
+    {notebook, []} = Import.notebook_from_livemd(markdown)
+
+    assert %Notebook{name: "My Notebook", hub_id: "enterprise-persisted-id"} = notebook
+  end
+
+  test "imports ignores hub id when does not exist" do
+    markdown = """
+    <!-- livebook:{"hub_id":"nonexistent"} -->
+
+    # My Notebook
+    """
+
+    {notebook, messages} = Import.notebook_from_livemd(markdown)
+
+    assert messages == ["ignoring notebook Hub with unknown id"]
+    assert notebook.hub_id != "nonexistent"
+  end
+
   describe "app settings" do
     test "imports settings" do
       markdown = """
@@ -996,6 +1023,70 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                },
                sections: []
              } = notebook
+    end
+  end
+
+  describe "notebook stamp" do
+    test "restores hub secret names from notebook stamp" do
+      # Generated with:
+
+      # %{
+      #   Notebook.new()
+      #   | name: "My Notebook",
+      #     sections: [
+      #       %{
+      #         Notebook.Section.new()
+      #         | name: "Section 1",
+      #           cells: [
+      #             %{
+      #               Notebook.Cell.new(:code)
+      #               | source: """
+      #                 IO.puts("hey")
+      #                 """
+      #             }
+      #           ]
+      #       }
+      #     ],
+      #     hub_secret_names: ["DB_PASSWORD"]
+      # }
+      # |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+      # |> IO.puts()
+
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.LF8LTeMYrtq8S7wsKMmk2YgOQzMAkEKT2d8fq1Gz3Ot1mydOgEZ1B4hcEZc.Wec6NwBQ584kE661.a_N-5jDiWrjhHha9zxHQ6JJOmxeqgiya3m6YlKt1Na_DPnEfXyLnengaUzQSrf8.ZoD5r6-H87RpTyvFkvEOQw","version":1}} -->
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
+    end
+
+    test "returns a warning when notebook stamp is invalid" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":1}} -->
+      """
+
+      {notebook, messages} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: []} = notebook
+
+      assert messages == ["failed to verify notebook stamp"]
     end
   end
 end

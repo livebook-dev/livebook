@@ -23,10 +23,12 @@ defmodule Livebook.LiveMarkdown do
   #   5. Comments of the form `<!-- livebook:json_object -->` hold Livebook data
   #      and may be one of the following:
   #
-  #      * a description of a notebook object that cannot be naturally encoded
+  #      * description of a notebook object that cannot be naturally encoded
   #        using Markdown, in such case the JSON contains a "livebook_object" field
   #
-  #      * a metadata that may appear anywhere and applies to the element
+  #      * notebook stamp data with `"stamp"` and `"offset"` fields
+  #
+  #      * metadata that may appear anywhere and applies to the element
   #        it directly precedes, recognised metadatas are:
   #
   #        - `{"force_markdown":true}` - an annotation forcing the next Markdown

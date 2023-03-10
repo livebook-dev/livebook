@@ -1250,82 +1250,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
-
-    test "loads secret from temporary storage", %{conn: conn, session: session} do
-      secret = build(:secret, name: "FOOBARBAZ", value: "ChonkyCat", readonly: true)
-      Livebook.Hubs.Personal.set_startup_secrets([secret])
-
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-
-      # Subscribe and executes the code to trigger
-      # the `System.EnvError` exception and outputs the 'Add secret' button
-      Session.subscribe(session.id)
-      section_id = insert_section(session.pid)
-      code = ~s{System.fetch_env!("LB_#{secret.name}")}
-      cell_id = insert_text_cell(session.pid, section_id, :code, code)
-
-      # Sets the secret directly
-      Session.set_secret(session.pid, secret)
-
-      # Checks if the secret exists and is inside the session,
-      # then executes the code cell again and checks if the
-      # secret value is what we expected.
-      assert_session_secret(view, session.pid, secret)
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
-
-      assert output == "\e[32m\"#{secret.value}\"\e[0m"
-    end
-
-    test "granting access for unavailable startup secret using 'Add secret' button",
-         %{conn: conn, session: session, hub: hub} do
-      secret = build(:secret, name: "MYSTARTUPSECRET", value: "ChonkyCat", readonly: true)
-      Livebook.Hubs.Personal.set_startup_secrets([secret])
-
-      # Subscribe and executes the code to trigger
-      # the `System.EnvError` exception and outputs the 'Add secret' button
-      Session.subscribe(session.id)
-      section_id = insert_section(session.pid)
-      code = ~s{System.fetch_env!("LB_#{secret.name}")}
-      cell_id = insert_text_cell(session.pid, section_id, :code, code)
-
-      Session.queue_cell_evaluation(session.pid, cell_id)
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
-
-      # Enters the session to check if the button exists
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
-      add_secret_button = element(view, "a[href='#{expected_url}']")
-      assert has_element?(add_secret_button)
-
-      # Checks if the secret is persisted
-      assert secret in Livebook.Hubs.get_secrets(hub)
-
-      # Clicks the button and checks if the 'Grant access' banner
-      # is being shown, so clicks it's button to set the app secret
-      # to the session, allowing the user to fetches the secret.
-      render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
-
-      assert render(secrets_component) =~
-               "in #{hub_label(secret)}. Allow this session to access it?"
-
-      grant_access_button = element(secrets_component, "button", "Grant access")
-      render_click(grant_access_button)
-
-      # Checks if the secret exists and is inside the session,
-      # then executes the code cell again and checks if the
-      # secret value is what we expected.
-      assert_session_secret(view, session.pid, secret)
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
-
-      assert output == "\e[32m\"#{secret.value}\"\e[0m"
-    end
   end
 
   describe "environment variables" do
@@ -1489,14 +1413,14 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
-      assert %Livebook.Hubs.Personal{id: ^personal_id} = Session.get_data(session.pid).hub
+      assert Session.get_data(session.pid).notebook.hub_id == personal_id
 
       view
       |> element(~s/#select-hub-#{id}/)
       |> render_click()
 
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
-      assert Session.get_data(session.pid).hub == hub
+      assert Session.get_data(session.pid).notebook.hub_id == hub.id
     end
   end
 end

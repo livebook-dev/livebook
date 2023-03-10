@@ -1121,6 +1121,26 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
+  test "persists hub id when not default" do
+    Livebook.Factory.insert_hub(:enterprise, id: "enterprise-persisted-id")
+
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        hub_id: "enterprise-persisted-id"
+    }
+
+    expected_document = """
+    <!-- livebook:{"hub_id":"enterprise-persisted-id"} -->
+
+    # My Notebook
+    """
+
+    document = Export.notebook_to_livemd(notebook)
+
+    assert expected_document == document
+  end
+
   describe "app settings" do
     test "persists non-default app settings" do
       notebook = %{
@@ -1188,6 +1208,44 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       assert expected_document == document
     end
+  end
+
+  test "notebook stamp is appended at the end" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: """
+                    IO.puts("hey")
+                    """
+                }
+              ]
+          }
+        ],
+        hub_secret_names: ["DB_PASSWORD"]
+    }
+
+    expected_document = ~R"""
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    IO.puts\("hey"\)
+    ```
+
+    <!-- livebook:{"offset":58,"stamp":(.*)} -->
+    """
+
+    document = Export.notebook_to_livemd(notebook)
+
+    assert document =~ expected_document
   end
 
   defp spawn_widget_with_data(ref, data) do

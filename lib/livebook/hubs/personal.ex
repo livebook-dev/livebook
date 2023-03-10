@@ -9,15 +9,17 @@ defmodule Livebook.Hubs.Personal do
   @type t :: %__MODULE__{
           id: String.t() | nil,
           hub_name: String.t() | nil,
-          hub_emoji: String.t() | nil
+          hub_emoji: String.t() | nil,
+          secret_key: String.t() | nil
         }
 
   embedded_schema do
     field :hub_name, :string
     field :hub_emoji, :string
+    field :secret_key, :string, redact: true
   end
 
-  @fields ~w(hub_name hub_emoji)a
+  @fields ~w(hub_name hub_emoji secret_key)a
 
   @doc """
   The personal hub fixed id.
@@ -83,6 +85,14 @@ defmodule Livebook.Hubs.Personal do
   def set_startup_secrets(secrets) do
     :persistent_term.put(@secret_startup_key, secrets)
   end
+
+  @doc """
+  Generates a random secret key used for stamping the notebook.
+  """
+  @spec generate_secret_key() :: String.t()
+  def generate_secret_key() do
+    :crypto.strong_rand_bytes(64) |> Base.url_encode64(padding: false)
+  end
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
@@ -90,7 +100,13 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   alias Livebook.Secrets
 
   def load(personal, fields) do
-    %{personal | id: fields.id, hub_name: fields.hub_name, hub_emoji: fields.hub_emoji}
+    %{
+      personal
+      | id: fields.id,
+        hub_name: fields.hub_name,
+        hub_emoji: fields.hub_emoji,
+        secret_key: fields.secret_key
+    }
   end
 
   def to_metadata(personal) do
@@ -131,4 +147,51 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def connection_error(_personal), do: raise("not implemented")
+
+  def notebook_stamp(_hub, _notebook_source, metadata) when metadata == %{} do
+    :skip
+  end
+
+  def notebook_stamp(hub, notebook_source, metadata) do
+    # We use AES-GCM-128 to encrypt metadata and generate signature
+    # for both metadata and the notebook source. We make use of the
+    # implementation in MessageEncryptor, which conveniently returns
+    # a single token
+
+    {secret, sign_secret} = derive_keys(hub.secret_key)
+
+    payload = :erlang.term_to_binary(metadata)
+    token = Plug.Crypto.MessageEncryptor.encrypt(payload, notebook_source, secret, sign_secret)
+
+    stamp = %{"version" => 1, "token" => token}
+
+    {:ok, stamp}
+  end
+
+  def verify_notebook_stamp(hub, notebook_source, stamp) do
+    %{"version" => 1, "token" => token} = stamp
+
+    {secret, sign_secret} = derive_keys(hub.secret_key)
+
+    case Plug.Crypto.MessageEncryptor.decrypt(token, notebook_source, secret, sign_secret) do
+      {:ok, payload} ->
+        metadata = Plug.Crypto.non_executable_binary_to_term(payload)
+        {:ok, metadata}
+
+      :error ->
+        :error
+    end
+  end
+
+  defp derive_keys(secret_key) do
+    binary_key = Base.url_decode64!(secret_key, padding: false)
+
+    <<secret::16-bytes, sign_secret::16-bytes>> =
+      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing",
+        length: 32,
+        cache: Plug.Crypto.Keys
+      )
+
+    {secret, sign_secret}
+  end
 end

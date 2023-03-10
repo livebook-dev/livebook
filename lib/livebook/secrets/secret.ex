@@ -7,7 +7,7 @@ defmodule Livebook.Secrets.Secret do
           name: String.t() | nil,
           value: String.t() | nil,
           hub_id: String.t() | nil,
-          readonly: boolean()
+          readonly: boolean() | nil
         }
 
   @primary_key {:name, :string, autogenerate: false}

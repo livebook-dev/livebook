@@ -8,10 +8,16 @@ defmodule Livebook.LiveMarkdown.Import do
 
     {ast, rewrite_messages} = rewrite_ast(ast)
     elements = group_elements(ast)
+    {stamp_data, elements} = take_stamp_data(elements)
     {notebook, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
+    {notebook, metadata_messages} = postprocess_stamp(notebook, markdown, stamp_data)
 
-    {notebook, earmark_messages ++ rewrite_messages ++ build_messages ++ postprocess_messages}
+    messages =
+      earmark_messages ++
+        rewrite_messages ++ build_messages ++ postprocess_messages ++ metadata_messages
+
+    {notebook, messages}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -171,6 +177,9 @@ defmodule Livebook.LiveMarkdown.Import do
       %{"livebook_object" => "smart_cell"} ->
         {:cell, :smart, data}
 
+      %{"stamp" => _} ->
+        {:stamp, data}
+
       _ ->
         {:metadata, data}
     end
@@ -311,7 +320,8 @@ defmodule Livebook.LiveMarkdown.Import do
           ]
       end
 
-    attrs = notebook_metadata_to_attrs(metadata)
+    {attrs, metadata_messages} = notebook_metadata_to_attrs(metadata)
+    messages = messages ++ metadata_messages
 
     # We identify a single leading cell as the setup cell, in any
     # other case all extra cells are put in a default section
@@ -361,24 +371,31 @@ defmodule Livebook.LiveMarkdown.Import do
   defp grab_leading_comments(elems), do: {[], elems}
 
   defp notebook_metadata_to_attrs(metadata) do
-    Enum.reduce(metadata, %{}, fn
-      {"persist_outputs", persist_outputs}, attrs ->
-        Map.put(attrs, :persist_outputs, persist_outputs)
+    Enum.reduce(metadata, {%{}, []}, fn
+      {"persist_outputs", persist_outputs}, {attrs, messages} ->
+        {Map.put(attrs, :persist_outputs, persist_outputs), messages}
 
-      {"autosave_interval_s", autosave_interval_s}, attrs ->
-        Map.put(attrs, :autosave_interval_s, autosave_interval_s)
+      {"autosave_interval_s", autosave_interval_s}, {attrs, messages} ->
+        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), messages}
 
-      {"app_settings", app_settings_metadata}, attrs ->
+      {"hub_id", hub_id}, {attrs, messages} ->
+        if Livebook.Hubs.hub_exists?(hub_id) do
+          {Map.put(attrs, :hub_id, hub_id), messages}
+        else
+          {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
+        end
+
+      {"app_settings", app_settings_metadata}, {attrs, messages} ->
         app_settings =
           Map.merge(
             Notebook.AppSettings.new(),
             app_settings_metadata_to_attrs(app_settings_metadata)
           )
 
-        Map.put(attrs, :app_settings, app_settings)
+        {Map.put(attrs, :app_settings, app_settings), messages}
 
-      _entry, attrs ->
-        attrs
+      _entry, {attrs, messages} ->
+        {attrs, messages}
     end)
   end
 
@@ -470,5 +487,41 @@ defmodule Livebook.LiveMarkdown.Import do
       end)
 
     {%{notebook | sections: sections}, Enum.reverse(warnings)}
+  end
+
+  defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
+  defp take_stamp_data(elements), do: {nil, elements}
+
+  defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
+
+  defp postprocess_stamp(notebook, notebook_source, stamp_data) do
+    hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
+
+    with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
+         {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
+         {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
+      notebook = apply_stamp_metadata(notebook, metadata)
+      {notebook, []}
+    else
+      _ -> {notebook, ["failed to verify notebook stamp"]}
+    end
+  end
+
+  defp safe_binary_slice(binary, start, size)
+       when byte_size(binary) < start + size,
+       do: :error
+
+  defp safe_binary_slice(binary, start, size) do
+    {:ok, binary_slice(binary, start, size)}
+  end
+
+  defp apply_stamp_metadata(notebook, metadata) do
+    Enum.reduce(metadata, notebook, fn
+      {:hub_secret_names, hub_secret_names}, notebook ->
+        %{notebook | hub_secret_names: hub_secret_names}
+
+      _entry, notebook ->
+        notebook
+    end)
   end
 end
