@@ -265,11 +265,16 @@ defmodule Livebook.Session.Data do
     hub = Hubs.fetch_hub!(notebook.hub_id)
     hub_secrets = Hubs.get_secrets(hub)
 
+    startup_secrets =
+      for secret <- Livebook.Secrets.get_startup_secrets(),
+          do: {secret.name, secret},
+          into: %{}
+
     secrets =
       for secret <- hub_secrets,
           secret.name in notebook.hub_secret_names,
           do: {secret.name, secret},
-          into: %{}
+          into: startup_secrets
 
     data = %__MODULE__{
       notebook: notebook,

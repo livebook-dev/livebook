@@ -40,16 +40,6 @@ Application.put_env(:livebook, Livebook.Runtime.Embedded,
 # Disable autosaving
 Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
-# Set a global startup secret, so that there is at least one
-Livebook.Hubs.Personal.set_startup_secrets([
-  %Livebook.Secrets.Secret{
-    name: "STARTUP_SECRET",
-    value: "value",
-    hub_id: Livebook.Hubs.Personal.id(),
-    readonly: true
-  }
-])
-
 # Always use the same secret key in tests
 secret_key =
   "5ji8DpnX761QAWXZwSl-2Y-mdW4yTcMimdOJ8SSxCh44wFE0jEbGBUf-VydKwnTLzBiAUedQKs3X_q1j_3lgrw"

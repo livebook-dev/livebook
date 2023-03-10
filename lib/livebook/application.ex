@@ -194,12 +194,12 @@ defmodule Livebook.Application do
         %Livebook.Secrets.Secret{
           name: name,
           value: value,
-          hub_id: Livebook.Hubs.Personal.id(),
+          hub_id: nil,
           readonly: true
         }
       end
 
-    Livebook.Hubs.Personal.set_startup_secrets(secrets)
+    Livebook.Secrets.set_startup_secrets(secrets)
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true
