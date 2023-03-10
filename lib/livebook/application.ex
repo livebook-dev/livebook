@@ -52,12 +52,11 @@ defmodule Livebook.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
+        Livebook.Migration.migrate()
         load_lb_env_vars()
         clear_env_vars()
         display_startup_info()
-        insert_personal_hub()
         Livebook.Hubs.connect_hubs()
-        migrate_secrets()
         deploy_apps()
         result
 
@@ -212,38 +211,6 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
-  end
-
-  defp insert_personal_hub do
-    unless Livebook.Hubs.hub_exists?(Livebook.Hubs.Personal.id()) do
-      Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
-        id: Livebook.Hubs.Personal.id(),
-        hub_name: "My Hub",
-        hub_emoji: "🏠",
-        secret_key: Livebook.Hubs.Personal.generate_secret_key()
-      })
-    end
-
-    # TODO should we have a migration system (?)
-    with :error <- Livebook.Storage.fetch_key(:hubs, Livebook.Hubs.Personal.id(), :secret_key) do
-      secret_key = Livebook.Hubs.Personal.generate_secret_key()
-      Livebook.Storage.insert(:hubs, Livebook.Hubs.Personal.id(), secret_key: secret_key)
-    end
-  end
-
-  # TODO: Remove in the future
-  defp migrate_secrets do
-    for %{name: name, value: value} <- Livebook.Storage.all(:secrets) do
-      secret = %Livebook.Secrets.Secret{
-        name: name,
-        value: value,
-        hub_id: Livebook.Hubs.Personal.id(),
-        readonly: false
-      }
-
-      Livebook.Secrets.set_secret(secret)
-      Livebook.Storage.delete(:secrets, name)
-    end
   end
 
   defp deploy_apps() do
