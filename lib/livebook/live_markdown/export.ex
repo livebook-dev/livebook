@@ -321,7 +321,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_notebook_footer(notebook, notebook_source) do
     metadata = notebook_stamp_metadata(notebook)
 
-    with {:ok, hub} <- Livebook.Hubs.get_hub(notebook.hub_id),
+    with {:ok, hub} <- Livebook.Hubs.fetch_hub(notebook.hub_id),
          {:ok, stamp} <- Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
       offset = IO.iodata_length(notebook_source)
       json = Jason.encode!(%{"offset" => offset, "stamp" => stamp})

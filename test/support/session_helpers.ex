@@ -57,15 +57,14 @@ defmodule Livebook.SessionHelpers do
   def assert_session_secret(view, session_pid, secret) do
     selector =
       case secret do
-        %{name: name, hub_id: "session"} -> "#session-secret-#{name}-wrapper"
-        %{name: name, hub_id: id} -> "#hub-#{id}-secret-#{name}-wrapper"
+        %{name: name, hub_id: "session"} -> "#session-secret-#{name}"
+        %{name: name, hub_id: id} -> "#hub-#{id}-secret-#{name}"
       end
 
     assert has_element?(view, selector)
     secrets = Session.get_data(session_pid).secrets
 
-    assert Map.has_key?(secrets, secret.name)
-    assert secrets[secret.name] == secret.value
+    assert secrets[secret.name] == secret
   end
 
   def hub_label(%Secret{hub_id: id}), do: hub_label(Hubs.fetch_hub!(id))

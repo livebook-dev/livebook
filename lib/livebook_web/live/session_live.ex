@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -196,9 +196,9 @@ defmodule LivebookWeb.SessionLive do
             module={LivebookWeb.SessionLive.SecretsListComponent}
             id="secrets-list"
             session={@session}
-            saved_secrets={@data_view.hub_secrets}
-            hub={@data_view.hub}
             secrets={@data_view.secrets}
+            hub_secrets={@data_view.hub_secrets}
+            hub={@data_view.hub}
           />
         </div>
         <div data-el-app-info>
@@ -514,8 +514,8 @@ defmodule LivebookWeb.SessionLive do
         id="secrets"
         session={@session}
         secrets={@data_view.secrets}
+        hub_secrets={@data_view.hub_secrets}
         hub={@data_view.hub}
-        saved_secrets={@data_view.hub_secrets}
         prefill_secret_name={@prefill_secret_name}
         select_secret_ref={@select_secret_ref}
         select_secret_options={@select_secret_options}
