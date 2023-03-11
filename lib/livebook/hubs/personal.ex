@@ -68,24 +68,6 @@ defmodule Livebook.Hubs.Personal do
     |> put_change(:id, id())
   end
 
-  @secret_startup_key :livebook_startup_secrets
-
-  @doc """
-  Get the startup secrets list from persistent term.
-  """
-  @spec get_startup_secrets() :: list(Secret.t())
-  def get_startup_secrets do
-    :persistent_term.get(@secret_startup_key, [])
-  end
-
-  @doc """
-  Sets additional secrets that are kept only in memory.
-  """
-  @spec set_startup_secrets(list(Secret.t())) :: :ok
-  def set_startup_secrets(secrets) do
-    :persistent_term.put(@secret_startup_key, secrets)
-  end
-
   @doc """
   Generates a random secret key used for stamping the notebook.
   """
@@ -128,7 +110,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   def capabilities(_personal), do: ~w(list_secrets create_secret)a
 
   def get_secrets(personal) do
-    Secrets.get_secrets(personal) ++ Livebook.Hubs.Personal.get_startup_secrets()
+    Secrets.get_secrets(personal)
   end
 
   def create_secret(_personal, secret) do

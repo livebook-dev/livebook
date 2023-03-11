@@ -24,6 +24,6 @@ defmodule Livebook.Secrets.Secret do
     |> validate_format(:name, ~r/^\w+$/,
       message: "should contain only alphanumeric characters and underscore"
     )
-    |> validate_required([:name, :value, :hub_id])
+    |> validate_required([:name, :value])
   end
 end

@@ -34,18 +34,6 @@ defmodule Livebook.Hubs.ProviderTest do
       assert secret in Provider.get_secrets(hub)
     end
 
-    test "get_secrets/1 with startup secrets", %{hub: hub} do
-      # Set in test_helper.exs
-      secret = %Livebook.Secrets.Secret{
-        name: "STARTUP_SECRET",
-        value: "value",
-        hub_id: Livebook.Hubs.Personal.id(),
-        readonly: true
-      }
-
-      assert secret in Provider.get_secrets(hub)
-    end
-
     test "create_secret/1", %{hub: hub} do
       secret = build(:secret, name: "CREATE_PERSONAL_SECRET")
 

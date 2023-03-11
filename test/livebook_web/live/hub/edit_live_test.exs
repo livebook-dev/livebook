@@ -75,7 +75,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute hubs_html =~ ~p"/hub/#{hub.id}"
       refute hubs_html =~ hub.hub_name
 
-      assert Hubs.get_hub(hub_id) == :error
+      assert Hubs.fetch_hub(hub_id) == :error
     end
 
     test "add env var", %{conn: conn, bypass: bypass} do

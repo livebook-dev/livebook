@@ -46,8 +46,8 @@ defmodule Livebook.Hubs do
   @doc """
   Gets one hub from storage.
   """
-  @spec get_hub(String.t()) :: {:ok, Provider.t()} | :error
-  def get_hub(id) do
+  @spec fetch_hub(String.t()) :: {:ok, Provider.t()} | :error
+  def fetch_hub(id) do
     with {:ok, data} <- Storage.fetch(@namespace, id) do
       {:ok, to_struct(data)}
     end
@@ -92,7 +92,7 @@ defmodule Livebook.Hubs do
   """
   @spec delete_hub(String.t()) :: :ok
   def delete_hub(id) do
-    with {:ok, hub} <- get_hub(id) do
+    with {:ok, hub} <- fetch_hub(id) do
       true = Provider.type(hub) != "personal"
       :ok = Broadcasts.hub_changed()
       :ok = Storage.delete(@namespace, id)
@@ -211,7 +211,7 @@ defmodule Livebook.Hubs do
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
     if capability?(hub, [:list_secrets]) do
-      hub |> Provider.get_secrets() |> Enum.sort()
+      Provider.get_secrets(hub)
     else
       []
     end

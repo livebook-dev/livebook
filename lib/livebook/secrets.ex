@@ -114,4 +114,22 @@ defmodule Livebook.Secrets do
     hub_id = fields[:hub_id] || Livebook.Hubs.Personal.id()
     hub_id == hub.id
   end
+
+  @secret_startup_key :livebook_startup_secrets
+
+  @doc """
+  Get the startup secrets list from persistent term.
+  """
+  @spec get_startup_secrets() :: list(Secret.t())
+  def get_startup_secrets do
+    :persistent_term.get(@secret_startup_key, [])
+  end
+
+  @doc """
+  Sets additional secrets that are kept only in memory.
+  """
+  @spec set_startup_secrets(list(Secret.t())) :: :ok
+  def set_startup_secrets(secrets) do
+    :persistent_term.put(@secret_startup_key, secrets)
+  end
 end

@@ -42,6 +42,7 @@ defmodule Livebook.Session.Data do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section, AppSettings}
   alias Livebook.Utils.Graph
+  alias Livebook.Secrets.Secret
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
@@ -56,8 +57,8 @@ defmodule Livebook.Session.Data do
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
-          secrets: %{(name :: String.t()) => value :: String.t()},
-          hub_secrets: list(Livebook.Secrets.Secret.t()),
+          secrets: secrets(),
+          hub_secrets: list(Secret.t()),
           mode: session_mode(),
           apps: list(app()),
           app_data: nil | app_data()
@@ -135,8 +136,6 @@ defmodule Livebook.Session.Data do
 
   @type index :: non_neg_integer()
 
-  @type secret :: %{name: String.t(), value: String.t()}
-
   # Snapshot holds information about the cell evaluation dependencies,
   # including parent cells and inputs. Whenever the snapshot changes,
   # it implies a new evaluation context, which basically means the cell
@@ -144,6 +143,8 @@ defmodule Livebook.Session.Data do
   @type snapshot :: term()
 
   @type input_reading :: {input_id(), input_value :: term()}
+
+  @type secrets :: %{(name :: String.t()) => Secret.t()}
 
   @type session_mode :: :default | :app
 
@@ -211,7 +212,7 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
-          | {:set_secret, client_id(), secret()}
+          | {:set_secret, client_id(), Secret.t()}
           | {:unset_secret, client_id(), String.t()}
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
@@ -264,11 +265,16 @@ defmodule Livebook.Session.Data do
     hub = Hubs.fetch_hub!(notebook.hub_id)
     hub_secrets = Hubs.get_secrets(hub)
 
+    startup_secrets =
+      for secret <- Livebook.Secrets.get_startup_secrets(),
+          do: {secret.name, secret},
+          into: %{}
+
     secrets =
       for secret <- hub_secrets,
           secret.name in notebook.hub_secret_names,
-          do: {secret.name, secret.value},
-          into: %{}
+          do: {secret.name, secret},
+          into: startup_secrets
 
     data = %__MODULE__{
       notebook: notebook,
@@ -852,7 +858,7 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
-    with {:ok, hub} <- Hubs.get_hub(id) do
+    with {:ok, hub} <- Hubs.fetch_hub(id) do
       data
       |> with_actions()
       |> set_notebook_hub(hub)
@@ -1664,7 +1670,7 @@ defmodule Livebook.Session.Data do
 
   defp update_notebook_hub_secret_names({data, _} = data_actions) do
     hub_secret_names =
-      for secret <- data.hub_secrets, data.secrets[secret.name] == secret.value, do: secret.name
+      for {_name, secret} <- data.secrets, secret.hub_id == data.notebook.hub_id, do: secret.name
 
     set!(data_actions, notebook: %{data.notebook | hub_secret_names: hub_secret_names})
   end
@@ -1807,7 +1813,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp set_secret({data, _} = data_actions, secret) do
-    secrets = Map.put(data.secrets, secret.name, secret.value)
+    secrets = Map.put(data.secrets, secret.name, secret)
     set!(data_actions, secrets: secrets)
   end
 
@@ -2596,5 +2602,43 @@ defmodule Livebook.Session.Data do
       end
 
     Map.fetch(data.input_values, input_id)
+  end
+
+  @doc """
+  Returns a list of secrets that don't belong to the given hub
+  and are effectively stored in the session only.
+  """
+  @spec session_secrets(secrets(), String.t()) :: list(Secret.t())
+  def session_secrets(secrets, hub_id) do
+    for {_name, secret} <- secrets, secret.hub_id != hub_id, do: secret
+  end
+
+  @doc """
+  Checks whether the given hub secret is present in secrets.
+  """
+  @spec secret_toggled?(Secret.t(), secrets()) :: boolean()
+  def secret_toggled?(secret, secrets) do
+    Map.has_key?(secrets, secret.name) and secrets[secret.name].hub_id == secret.hub_id
+  end
+
+  @doc """
+  Checks whether the given hub secret is present in secrets and has
+  old value.
+  """
+  @spec secret_outdated?(Secret.t(), secrets()) :: boolean()
+  def secret_outdated?(secret, secrets) do
+    secret_used_value(secret, secrets) != secret.value
+  end
+
+  @doc """
+  Returns currently used hub secret value (or actual value if not used).
+  """
+  @spec secret_used_value(Secret.t(), secrets()) :: String.t()
+  def secret_used_value(secret, secrets) do
+    if secret_toggled?(secret, secrets) do
+      secrets[secret.name].value
+    else
+      secret.value
+    end
   end
 end
