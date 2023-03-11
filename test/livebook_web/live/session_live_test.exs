@@ -1250,6 +1250,25 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
+
+    test "reloading outdated secret value", %{conn: conn, session: session} do
+      hub_secret = insert_secret(name: "FOO", value: "123")
+      Session.set_secret(session.pid, hub_secret)
+
+      {:ok, updated_hub_secret} = Livebook.Secrets.update_secret(hub_secret, %{value: "456"})
+      hub = Livebook.Hubs.fetch_hub!(hub_secret.hub_id)
+      :ok = Livebook.Hubs.update_secret(hub, updated_hub_secret)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/secrets")
+
+      assert_session_secret(view, session.pid, hub_secret)
+
+      view
+      |> element(~s{button[aria-label="load latest value"]})
+      |> render_click()
+
+      assert_session_secret(view, session.pid, updated_hub_secret)
+    end
   end
 
   describe "environment variables" do

@@ -117,21 +117,26 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             >
               <%= @secret.name %>
             </span>
-            <button
-              :if={Session.Data.secret_outdated?(@secret, @secrets)}
-              class="mr-2 icon-button tooltip bottom-left"
+            <span
+              class="mr-2 tooltip bottom-left"
               data-tooltip={
                 ~S'''
                 The secret value changed,
                 click to load the latest one.
                 '''
               }
-              phx-click={
-                JS.push("update_outdated", value: %{"name" => @secret.name}, target: @myself)
-              }
             >
-              <.remix_icon icon="refresh-line" class="text-xl leading-none" />
-            </button>
+              <button
+                :if={Session.Data.secret_outdated?(@secret, @secrets)}
+                class="icon-button"
+                aria-label="load latest value"
+                phx-click={
+                  JS.push("update_outdated", value: %{"name" => @secret.name}, target: @myself)
+                }
+              >
+                <.remix_icon icon="refresh-line" class="text-xl leading-none" />
+              </button>
+            </span>
             <.form
               :let={f}
               id={"#{@id}-toggle"}
