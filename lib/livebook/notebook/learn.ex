@@ -86,6 +86,13 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
+      path: Path.join(__DIR__, "learn/intro_to_explorer.livemd"),
+      details: %{
+        description: "Intuitive data visualizations and data pipelines on the fly.",
+        cover_url: "/images/explorer.png"
+      }
+    },
+    %{
       ref: :kino_vm_introspection,
       path: Path.join(__DIR__, "learn/kino/vm_introspection.livemd")
     },
