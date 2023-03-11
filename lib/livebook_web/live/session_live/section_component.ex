@@ -137,7 +137,14 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         </span>
         <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
       </h3>
-      <div class={["container", @collapsed? && "hidden"]}>
+      <h3
+        :if={@collapsed?}
+        class="mt-1 ml-12 flex tiems-end space-x-1 text-sm font-semibold text-gray-800"
+        data-el-section-subheadline
+      >
+        <%= Enum.count(@section_view.cell_views) %> cells hidden
+      </h3>
+      <div class={["container", "ml-12", @collapsed? && "hidden"]}>
         <div class="flex flex-col space-y-1">
           <.live_component
             module={LivebookWeb.SessionLive.InsertButtonsComponent}
