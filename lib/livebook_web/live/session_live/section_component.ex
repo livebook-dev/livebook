@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.SectionComponent do
   use LivebookWeb, :live_component
 
+  alias Phoenix.LiveView.JS
+
   def render(assigns) do
     ~H"""
     <section data-el-section data-section-id={@section_view.id}>
@@ -13,6 +15,32 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         data-on-value-change="set_section_name"
         data-metadata={@section_view.id}
       >
+        <span class="tooltip top" data-tooltip="Collapse section" data-el-section-collapse-button>
+          <button class="icon-button" aria-label="collapse section">
+            <.remix_icon
+              icon="arrow-drop-down-line"
+              class="text-xl"
+              phx-click={
+                JS.set_attribute({"data-js-collapsed", ""},
+                  to: "section[data-section-id=#{@section_view.id}]"
+                )
+              }
+            />
+          </button>
+        </span>
+        <span class="tooltip top" data-tooltip="Expand section" data-el-section-expand-button>
+          <button class="icon-button" aria-label="expand section">
+            <.remix_icon
+              icon="arrow-drop-right-line"
+              class="text-xl"
+              phx-click={
+                JS.remove_attribute("data-js-collapsed",
+                  to: "section[data-section-id=#{@section_view.id}]"
+                )
+              }
+            />
+          </button>
+        </span>
         <h2
           class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
@@ -122,6 +150,13 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           />
         </span>
         <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
+      </h3>
+
+      <h3
+        class="mt-1 flex items-end space-x-1 text-sm font-semibold italic text-gray-800"
+        data-el-section-subheadline-collapsed
+      >
+        <%= Enum.count(@section_view.cell_views) %> cells hidden
       </h3>
       <div class="container">
         <div class="flex flex-col space-y-1">
