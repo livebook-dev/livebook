@@ -562,27 +562,9 @@ defmodule LivebookWeb.SessionLive do
   defp sections_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <div class="flex flex-row">
-        <h3 class="grow self-center uppercase text-sm font-semibold text-gray-500">
-          Sections
-        </h3>
-        <div class="flex items-end space-x-2">
-          <span class="tooltip bottom" data-tooltip="Collapse all sections">
-            <button class="icon-button" aria-label="Collapse all sections">
-              <.remix_icon
-                icon="fullscreen-exit-line"
-                class="text-xl"
-                phx-click="collapse_all_sections"
-              />
-            </button>
-          </span>
-          <span class="tooltip bottom" data-tooltip="Expand all sections">
-            <button class="icon-button" aria-label="Expand all sections">
-              <.remix_icon icon="fullscreen-line" class="text-xl" phx-click="expand_all_sections" />
-            </button>
-          </span>
-        </div>
-      </div>
+      <h3 class="uppercase text-sm font-semibold text-gray-500">
+        Sections
+      </h3>
       <div class="flex flex-col mt-4 space-y-4">
         <div :for={section_item <- @data_view.sections_items} class="flex items-center">
           <button
@@ -869,22 +851,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
-  def handle_event("expand_all_sections", _params, socket) do
-    Enum.each(socket.assigns.data_view.section_views, fn section ->
-      send_update(LivebookWeb.SessionLive.SectionComponent, id: section.id, collapsed?: false)
-    end)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("collapse_all_sections", _params, socket) do
-    Enum.each(socket.assigns.data_view.section_views, fn section ->
-      send_update(LivebookWeb.SessionLive.SectionComponent, id: section.id, collapsed?: true)
-    end)
-
-    {:noreply, socket}
-  end
-
   def handle_event("append_section", %{}, socket) do
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)

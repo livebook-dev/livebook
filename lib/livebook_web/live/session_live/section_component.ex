@@ -1,10 +1,6 @@
 defmodule LivebookWeb.SessionLive.SectionComponent do
   use LivebookWeb, :live_component
 
-  def mount(socket) do
-    {:ok, assign(socket, :collapsed?, false)}
-  end
-
   def render(assigns) do
     ~H"""
     <section data-el-section data-section-id={@section_view.id}>
@@ -17,16 +13,6 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         data-on-value-change="set_section_name"
         data-metadata={@section_view.id}
       >
-        <span class="tooltip top" data-tooltip="Toggle section">
-          <button class="icon-button" aria-label="toggle section">
-            <.remix_icon
-              icon={"arrow-drop-#{if @collapsed?, do: "right", else: "down"}-line"}
-              class="text-xl"
-              phx-click="toggle_collapse"
-              phx-target={@myself}
-            />
-          </button>
-        </span>
         <h2
           class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
@@ -122,7 +108,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       </div>
       <h3
         :if={@section_view.parent}
-        class="mt-1 ml-12 flex items-end space-x-1 text-sm font-semibold text-gray-800"
+        class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800"
         data-el-section-subheadline
       >
         <span
@@ -137,7 +123,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         </span>
         <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
       </h3>
-      <div class={["container", @collapsed? && "hidden"]}>
+      <div class="container">
         <div class="flex flex-col space-y-1">
           <.live_component
             module={LivebookWeb.SessionLive.InsertButtonsComponent}
@@ -176,9 +162,5 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       </div>
     </section>
     """
-  end
-
-  def handle_event("toggle_collapse", _params, socket) do
-    {:noreply, update(socket, :collapsed?, &(not &1))}
   end
 end
