@@ -239,8 +239,11 @@ defmodule Livebook.Storage do
   defp delete_keys(table, namespace, entity_id, keys) do
     match_head = {{namespace, entity_id}, :"$1", :_, :_}
 
-    guards = Enum.map(keys, &{:==, :"$1", &1})
+    guard =
+      keys
+      |> Enum.map(&{:==, :"$1", &1})
+      |> Enum.reduce(&{:orelse, &1, &2})
 
-    :ets.select_delete(table, [{match_head, guards, [true]}])
+    :ets.select_delete(table, [{match_head, [guard], [true]}])
   end
 end
