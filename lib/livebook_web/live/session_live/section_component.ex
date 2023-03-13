@@ -6,15 +6,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
   def render(assigns) do
     ~H"""
     <section data-el-section data-section-id={@section_view.id}>
-      <div
-        class="flex space-x-4 items-center"
-        data-el-section-headline
-        id={@section_view.id}
-        data-focusable-id={@section_view.id}
-        phx-hook="Headline"
-        data-on-value-change="set_section_name"
-        data-metadata={@section_view.id}
-      >
+      <div class="absolute -left-1 mt-1">
         <span class="tooltip top" data-tooltip="Collapse section" data-el-section-collapse-button>
           <button class="icon-button" aria-label="collapse section">
             <.remix_icon
@@ -41,6 +33,16 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             />
           </button>
         </span>
+      </div>
+      <div
+        class="flex space-x-4 items-center"
+        data-el-section-headline
+        id={@section_view.id}
+        data-focusable-id={@section_view.id}
+        phx-hook="Headline"
+        data-on-value-change="set_section_name"
+        data-metadata={@section_view.id}
+      >
         <h2
           class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
