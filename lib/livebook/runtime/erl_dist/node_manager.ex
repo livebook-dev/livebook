@@ -108,6 +108,14 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
+    initial_ansi_syntax_colors = Application.get_env(:elixir, :ansi_syntax_colors)
+
+    Application.put_env(
+      :elixir,
+      :ansi_syntax_colors,
+      Livebook.Runtime.Evaluator.DefaultFormatter.syntax_colors()
+    )
+
     tmp_dir = make_tmp_dir()
 
     if ebin_path = ebin_path(tmp_dir) do
@@ -122,6 +130,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        server_supervisor: server_supervisor,
        runtime_servers: [],
        initial_ignore_module_conflict: initial_ignore_module_conflict,
+       initial_ansi_syntax_colors: initial_ansi_syntax_colors,
        original_standard_error: original_standard_error,
        parent_node: parent_node,
        capture_orphan_logs: capture_orphan_logs,
@@ -132,6 +141,12 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   @impl true
   def terminate(_reason, state) do
     Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
+
+    if ansi_syntax_colors = state.initial_ansi_syntax_colors do
+      Application.put_env(:elixir, :ansi_syntax_colors, ansi_syntax_colors)
+    else
+      Application.delete_env(:elixir, :ansi_syntax_colors)
+    end
 
     Process.unregister(:standard_error)
     Process.register(state.original_standard_error, :standard_error)
