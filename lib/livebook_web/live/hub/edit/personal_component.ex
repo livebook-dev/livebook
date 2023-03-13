@@ -85,6 +85,8 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           <p class="text-gray-700">
             Notebooks may be stamped using your <span class="font-medium text-gray-800">secret key</span>.
             A stamp allows to securely store information such as the names of the secrets that you granted access to.
+            You must not share your secret key with others. But you may copy the secret key between
+            different machines you own.
           </p>
           <p class="text-gray-700">
             If you change the <span class="font-medium text-gray-800">secret key</span>, you will need
