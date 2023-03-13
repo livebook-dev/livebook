@@ -33,6 +33,8 @@ defmodule Livebook.StorageTest do
                 key2: "val2",
                 key3: "val3"
               }} = Storage.fetch(:insert, "replace")
+
+      assert {:ok, "updated_val1"} = Storage.fetch_key(:insert, "replace", :key1)
     end
   end
 
