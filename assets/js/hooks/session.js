@@ -146,6 +146,16 @@ const Session = {
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
+    this.getElement("section-collapse-all-button").addEventListener(
+      "click",
+      (event) => this.collapseAllSections()
+    );
+
+    this.getElement("section-expand-all-button").addEventListener(
+      "click",
+      (event) => this.expandAllSections()
+    );
+
     window.addEventListener(
       "phx:page-loading-stop",
       () => {
@@ -1000,8 +1010,9 @@ const Session = {
   },
 
   toggleCollapseAllSections() {
-    const allCollapsed =
-      this.getSections().every(section => section.hasAttribute("data-js-collapsed"));
+    const allCollapsed = this.getSections().every((section) =>
+      section.hasAttribute("data-js-collapsed")
+    );
 
     if (allCollapsed) {
       this.expandAllSections();
@@ -1011,13 +1022,13 @@ const Session = {
   },
 
   expandAllSections() {
-    this.getSections().forEach(section => {
+    this.getSections().forEach((section) => {
       section.removeAttribute("data-js-collapsed");
     });
   },
 
   collapseAllSections() {
-    this.getSections().forEach(section => {
+    this.getSections().forEach((section) => {
       section.setAttribute("data-js-collapsed", "");
     });
     if (this.focusedId) {
