@@ -1010,22 +1010,14 @@ const Session = {
     );
 
     if (allCollapsed) {
-      this.expandAllSections();
+      this.getSections().forEach((section) => {
+        section.removeAttribute("data-js-collapsed");
+      });
     } else {
-      this.collapseAllSections();
+      this.getSections().forEach((section) => {
+        section.setAttribute("data-js-collapsed", "");
+      });
     }
-  },
-
-  expandAllSections() {
-    this.getSections().forEach((section) => {
-      section.removeAttribute("data-js-collapsed");
-    });
-  },
-
-  collapseAllSections() {
-    this.getSections().forEach((section) => {
-      section.setAttribute("data-js-collapsed", "");
-    });
     if (this.focusedId) {
       const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
 
