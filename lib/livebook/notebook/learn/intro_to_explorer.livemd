@@ -89,28 +89,18 @@ Finally, the `assign to` field allows you to save the resulting DataFrame in a v
 
 ## Shortcuts
 
-Moves the currently selected cell and clears other selections: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-
-Extends the current selection range in the direction pressed: <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-
-Moves the currently selected cell and retains the current selection: <kbd>alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-
-Moves the selection as far as possible in the direction pressed: <kbd>ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-
-Extends the selection as far as possible in the direction pressed: <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-
-Extends the selection as far as possible in the direction pressed: <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>
-
-Selects all cells: <kbd>ctrl</kbd> + <kbd>A</kbd>
-
-Selects the current row: <kbd>shift</kbd> + <kbd>␣</kbd>
-
-Selects the current col: <kbd>ctrl</kbd> + <kbd>␣</kbd>
-
-Clear the current selection: <kbd>esc</kbd>
-
-Copies the current selection: <kbd>ctrl</kbd> + <kbd>C</kbd>
-
-Moves the selection to the first/last cell in the DataTable: <kbd>ctrl</kbd> + <kbd>home</kbd> <kbd>end</kbd>
-
-Extends the selection to the first/last cell in the Datatable: <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>
+| Key Combo                                                                                        | Description                                                         |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                                      | Moves the currently selected cell and clears other selections       |
+| <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                   | Extends the current selection range in the direction pressed        |
+| <kbd>alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                     | Moves the currently selected cell and retains the current selection |
+| <kbd>ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                    | Moves the selection as far as possible in the direction pressed     |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> | Extends the selection as far as possible in the direction pressed   |
+| <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                | Extends the selection as far as possible in the direction pressed   |
+| <kbd>ctrl</kbd> + <kbd>A</kbd>                                                                   | Selects all cells                                                   |
+| <kbd>shift</kbd> + <kbd>␣</kbd>                                                                | Selects the current row                                             |
+| <kbd>ctrl</kbd> + <kbd>␣</kbd>                                                                 | Selects the current col                                             |
+| <kbd>esc</kbd>                                                                                   | Clear the current selection                                         |
+| <kbd>ctrl</kbd> + <kbd>C</kbd>                                                                   | Copies the current selection                                        |
+| <kbd>ctrl</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                 | Moves the selection to the first/last cell in the DataTable         |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                              | Extends the selection to the first/last cell in the Datatable       |
