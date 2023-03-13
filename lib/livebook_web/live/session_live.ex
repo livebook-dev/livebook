@@ -600,20 +600,12 @@ defmodule LivebookWeb.SessionLive do
         <.remix_icon icon="add-line" class="text-lg align-center" />
         <span>New section</span>
       </button>
-      <div class="flex flex-row space-x-14">
-        <button
-          class="inline-flex items-center justify-center p-4 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-          data-el-section-expand-all-button
-        >
-          <span>Expand all</span>
-        </button>
-        <button
-          class="inline-flex items-center justify-center p-4 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-          data-el-section-collapse-all-button
-        >
-          <span>Collapse all</span>
-        </button>
-      </div>
+      <button
+        class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
+        data-el-section-toggle-collapse-all-button
+      >
+        <span>Expand/collapse all</span>
+      </button>
     </div>
     """
   end

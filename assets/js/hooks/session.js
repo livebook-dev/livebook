@@ -146,14 +146,9 @@ const Session = {
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
-    this.getElement("section-collapse-all-button").addEventListener(
+    this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
-      (event) => this.collapseAllSections()
-    );
-
-    this.getElement("section-expand-all-button").addEventListener(
-      "click",
-      (event) => this.expandAllSections()
+      (event) => this.toggleCollapseAllSections()
     );
 
     window.addEventListener(
