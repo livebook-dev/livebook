@@ -82,16 +82,12 @@ defmodule Livebook.Settings do
   @spec remove_file_system(file_system_id()) :: :ok
   def remove_file_system(file_system_id) do
     if default_file_system_id() == file_system_id do
-      storage().delete_key(:settings, "global", :default_file_system_id)
+      Livebook.Storage.delete_key(:settings, "global", :default_file_system_id)
     end
 
     Livebook.NotebookManager.remove_file_system(file_system_id)
 
-    storage().delete(:filesystem, file_system_id)
-  end
-
-  defp storage() do
-    Livebook.Storage.current()
+    Livebook.Storage.delete(:filesystem, file_system_id)
   end
 
   defp storage_to_fs(%{type: "s3"} = config) do
@@ -230,7 +226,7 @@ defmodule Livebook.Settings do
   """
   @spec set_default_file_system(file_system_id()) :: :ok
   def set_default_file_system(file_system_id) do
-    storage().insert(:settings, "global", default_file_system_id: file_system_id)
+    Livebook.Storage.insert(:settings, "global", default_file_system_id: file_system_id)
   end
 
   @doc """
@@ -238,7 +234,7 @@ defmodule Livebook.Settings do
   """
   @spec default_file_system() :: Filesystem.t()
   def default_file_system() do
-    case storage().fetch(:filesystem, default_file_system_id()) do
+    case Livebook.Storage.fetch(:filesystem, default_file_system_id()) do
       {:ok, file} -> storage_to_fs(file)
       :error -> Livebook.Config.local_file_system()
     end
@@ -249,7 +245,7 @@ defmodule Livebook.Settings do
   """
   @spec default_file_system_id() :: file_system_id()
   def default_file_system_id() do
-    case storage().fetch_key(:settings, "global", :default_file_system_id) do
+    case Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
       {:ok, default_file_system_id} -> default_file_system_id
       :error -> "local"
     end
