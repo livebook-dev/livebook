@@ -31,7 +31,6 @@ config :livebook,
   learn_notebooks: [],
   plugs: [],
   shutdown_callback: nil,
-  storage: Livebook.Storage.Ets,
   update_instructions_url: nil,
   within_iframe: false,
   allowed_uri_schemes: []
