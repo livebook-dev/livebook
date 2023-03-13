@@ -198,6 +198,35 @@ defmodule Livebook.SessionTest do
                       {:insert_cell, _client_id, ^section_id, 1, :code, _id,
                        %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
     end
+
+    test "doesn't garbage collect input values" do
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :text,
+        label: "Name",
+        default: "hey",
+        destination: :noop
+      }
+
+      smart_cell = %{
+        Notebook.Cell.new(:smart)
+        | kind: "text",
+          source: "content",
+          outputs: [{1, {:input, input}}]
+      }
+
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Session.subscribe(session.id)
+
+      Session.convert_smart_cell(session.pid, smart_cell.id)
+
+      assert %{input_values: %{"input1" => "hey"}} = Session.get_data(session.pid)
+    end
   end
 
   describe "add_dependencies/2" do
