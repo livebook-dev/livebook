@@ -146,6 +146,11 @@ const Session = {
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
+    this.getElement("section-toggle-collapse-all-button").addEventListener(
+      "click",
+      (event) => this.toggleCollapseAllSections()
+    );
+
     window.addEventListener(
       "phx:page-loading-stop",
       () => {
@@ -419,6 +424,10 @@ const Session = {
         !this.codeZen && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["z"])) {
         this.setCodeZen(!this.codeZen);
+      } else if (keyBuffer.tryMatch(["c"])) {
+        !this.codeZen && this.toggleCollapseSection();
+      } else if (keyBuffer.tryMatch(["C"])) {
+        !this.codeZen && this.toggleCollapseAllSections();
       }
     }
   },
@@ -975,6 +984,45 @@ const Session = {
 
       if (visibleId) {
         this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
+      }
+    }
+  },
+
+  toggleCollapseSection() {
+    if (this.focusedId) {
+      const sectionId = this.getSectionIdByFocusableId(this.focusedId);
+      const section = this.getSectionById(sectionId);
+
+      if (section) {
+        if (section.hasAttribute("data-js-collapsed")) {
+          section.removeAttribute("data-js-collapsed");
+        } else {
+          section.setAttribute("data-js-collapsed", "");
+          this.setFocusedEl(sectionId, { scroll: true });
+        }
+      }
+    }
+  },
+
+  toggleCollapseAllSections() {
+    const allCollapsed = this.getSections().every((section) =>
+      section.hasAttribute("data-js-collapsed")
+    );
+
+    if (allCollapsed) {
+      this.getSections().forEach((section) => {
+        section.removeAttribute("data-js-collapsed");
+      });
+    } else {
+      this.getSections().forEach((section) => {
+        section.setAttribute("data-js-collapsed", "");
+      });
+    }
+    if (this.focusedId) {
+      const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
+
+      if (focusedSectionId) {
+        this.setFocusedEl(focusedSectionId, { scroll: true });
       }
     }
   },

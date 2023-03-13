@@ -92,6 +92,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["N"], desc: "Insert Code cell above"},
       %{seq: ["M"], desc: "Insert Markdown cell above"},
       %{seq: ["z"], desc: "Toggle code zen"},
+      %{seq: ["c"], desc: "Expand/collapse section"},
+      %{seq: ["C"], desc: "Expand/collapse all sections"},
       %{seq: ["d", "d"], desc: "Delete cell", basic: true},
       %{seq: ["e", "e"], desc: "Evaluate cell"},
       %{seq: ["e", "s"], desc: "Evaluate section"},
