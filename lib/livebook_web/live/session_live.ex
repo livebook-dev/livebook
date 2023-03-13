@@ -604,6 +604,7 @@ defmodule LivebookWeb.SessionLive do
         class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
         data-el-section-toggle-collapse-all-button
       >
+        <.remix_icon icon="split-cells-vertical" class="text-lg align-center" />
         <span>Expand/collapse all</span>
       </button>
     </div>
