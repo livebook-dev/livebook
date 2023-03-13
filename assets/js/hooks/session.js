@@ -1020,13 +1020,6 @@ const Session = {
     this.getSections().forEach(section => {
       section.removeAttribute("data-js-collapsed");
     });
-    if (this.focusedId) {
-      const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
-
-      if (focusedSectionId) {
-        this.setFocusedEl(focusedSectionId, { scroll: true });
-      }
-    }
   },
 
   collapseAllSections() {
