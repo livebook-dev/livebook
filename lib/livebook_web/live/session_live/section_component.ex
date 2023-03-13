@@ -156,7 +156,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         class="mt-1 flex items-end space-x-1 text-sm font-semibold italic text-gray-800"
         data-el-section-subheadline-collapsed
       >
-        <%= Enum.count(@section_view.cell_views) %> cells hidden
+        <%= count = Enum.count(@section_view.cell_views)
+        if count == 1, do: "1 cell hidden", else: "#{count} cells hidden" %>
       </h3>
       <div class="container">
         <div class="flex flex-col space-y-1">
