@@ -152,7 +152,10 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
       </h3>
 
-      <h3 class="mt-2 text-sm text-gray-500 cursor-default select-none" data-el-section-subheadline-collapsed>
+      <h3
+        class="mt-2 text-sm text-gray-500 cursor-default select-none"
+        data-el-section-subheadline-collapsed
+      >
         <%= pluralize(length(@section_view.cell_views), "cell", "cells") %> collapsed
       </h3>
       <div class="container" data-el-section-content>
