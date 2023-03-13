@@ -79,7 +79,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
         <div class="flex flex-col space-y-4">
           <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-            Notebook stamp
+            Stamping
           </h2>
 
           <p class="text-gray-700">
@@ -87,8 +87,8 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             A stamp allows to securely store information such as the names of the secrets that you granted access to.
           </p>
           <p class="text-gray-700">
-            If you change the <span class="font-medium text-gray-800">secret key</span>, previous notebooks
-            written by you that used secrets will need to grant access to secrets again.
+            If you change the <span class="font-medium text-gray-800">secret key</span>, you will need
+            to grant access to secrets once again in previously stamped notebooks.
           </p>
 
           <.form
