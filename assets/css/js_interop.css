@@ -61,9 +61,13 @@ solely client-side operations.
 }
 
 [data-el-section][data-js-collapsed] [data-el-section-collapse-button],
+[data-el-section]:not([data-js-collapsed])
+  [data-el-section-headline]:not(:hover):not([data-js-focused])
+  [data-el-section-collapse-button],
 [data-el-section]:not([data-js-collapsed]) [data-el-section-expand-button],
-[data-el-section][data-js-collapsed] > .container,
-[data-el-section]:not([data-js-collapsed]) > [data-el-section-subheadline-collapsed] {
+[data-el-section][data-js-collapsed] > [data-el-section-content],
+[data-el-section]:not([data-js-collapsed])
+  > [data-el-section-subheadline-collapsed] {
   @apply hidden;
 }
 
