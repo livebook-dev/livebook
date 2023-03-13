@@ -420,7 +420,7 @@ const Session = {
       } else if (keyBuffer.tryMatch(["z"])) {
         this.setCodeZen(!this.codeZen);
       } else if (keyBuffer.tryMatch(["o"])) {
-        this.toggleCollapseSection();
+        !this.codeZen && this.toggleCollapseSection();
       }
     }
   },

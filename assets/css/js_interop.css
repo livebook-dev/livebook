@@ -65,7 +65,9 @@ solely client-side operations.
   [data-el-section-headline]:not(:hover):not([data-js-focused])
   [data-el-section-collapse-button],
 [data-el-section]:not([data-js-collapsed]) [data-el-section-expand-button],
-[data-el-section][data-js-collapsed] > [data-el-section-content],
+[data-el-session]:not([data-js-code-zen])
+  [data-el-section][data-js-collapsed]
+  > [data-el-section-content],
 [data-el-section]:not([data-js-collapsed])
   > [data-el-section-subheadline-collapsed] {
   @apply hidden;
@@ -276,6 +278,7 @@ solely client-side operations.
 
 [data-el-session][data-js-code-zen] [data-el-section-headline],
 [data-el-session][data-js-code-zen] [data-el-section-subheadline],
+[data-el-session][data-js-code-zen] [data-el-section-subheadline-collapsed],
 [data-el-session][data-js-code-zen] [data-el-cell][data-type="markdown"],
 [data-el-session][data-js-code-zen] [data-el-actions],
 [data-el-session][data-js-code-zen] [data-el-insert-buttons] {
