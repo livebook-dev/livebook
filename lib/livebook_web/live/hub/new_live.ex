@@ -56,7 +56,7 @@ defmodule LivebookWeb.Hub.NewLive do
           >get in touch</a>!
         </p>
         <p class="text-gray-700">
-          - The Livebook Team
+          - The Livebook crew
         </p>
       </div>
     </LayoutHelpers.layout>
