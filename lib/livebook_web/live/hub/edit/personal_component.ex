@@ -51,6 +51,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               <.text_field field={f[:hub_name]} label="Name" />
               <.emoji_field field={f[:hub_emoji]} label="Emoji" />
             </div>
+            <.password_field field={f[:secret_key]} label="Secret key" />
             <div>
               <button
                 class="button-base button-blue"

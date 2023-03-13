@@ -105,7 +105,7 @@ defmodule LivebookWeb.FormComponents do
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class="input"
+          class="input pr-8"
           {@rest}
         />
       </.with_password_toggle>
@@ -310,30 +310,19 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
-      <div class="flex border-[1px] bg-gray-50 rounded-lg space-x-4 items-center">
-        <div
-          id={"#{@id}-picker"}
-          class="grid grid-cols-1 md:grid-cols-3 w-full"
-          phx-hook="EmojiPicker"
-        >
-          <div class="place-content-start">
-            <div class="p-1 pl-3">
-              <span id={"#{@id}-preview"} data-emoji-preview><%= @value %></span>
-            </div>
+      <div class="flex border bg-gray-50 rounded-lg space-x-4 items-center">
+        <div id={"#{@id}-picker"} class="flex w-full" phx-hook="EmojiPicker">
+          <div class="grow p-1 pl-3">
+            <span id={"#{@id}-preview"} data-emoji-preview><%= @value %></span>
           </div>
-
-          <div />
-
-          <div class="flex items-center place-content-end">
-            <button
-              id={"#{@id}-button"}
-              type="button"
-              data-emoji-button
-              class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] bg-white flex justify-center items-center cursor-pointer"
-            >
-              <.remix_icon icon="emotion-line" class="text-xl" />
-            </button>
-          </div>
+          <button
+            id={"#{@id}-button"}
+            type="button"
+            data-emoji-button
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] bg-white flex justify-center items-center cursor-pointer"
+          >
+            <.remix_icon icon="emotion-line" class="text-xl" />
+          </button>
           <input
             type="hidden"
             name={@name}
@@ -434,7 +423,7 @@ defmodule LivebookWeb.FormComponents do
 
   def error(assigns) do
     ~H"""
-    <p class="text-red-600 text-sm hidden phx-form-error:block">
+    <p class="mt-0.5 text-red-600 text-sm hidden phx-form-error:block">
       <%= render_slot(@inner_block) %>
     </p>
     """
