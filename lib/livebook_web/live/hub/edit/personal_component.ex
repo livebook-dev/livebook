@@ -17,7 +17,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     {:ok,
      socket
      |> assign(assigns)
-     |> assign(changeset: changeset, secret_value: secret_value)}
+     |> assign(changeset: changeset, stamp_changeset: changeset, secret_value: secret_value)}
   end
 
   @impl true
@@ -58,7 +58,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                 phx-disable-with="Updating..."
                 disable={not @changeset.valid?}
               >
-                Update Hub
+                Save
               </button>
             </div>
           </.form>
@@ -75,6 +75,61 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             secrets={@secrets}
             target={@myself}
           />
+        </div>
+
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+            Stamping
+          </h2>
+
+          <p class="text-gray-700">
+            Notebooks may be stamped using your <span class="font-medium text-gray-800">secret key</span>.
+            A stamp allows to securely store information such as the names of the secrets that you granted access to.
+            You must not share your secret key with others. But you may copy the secret key between
+            different machines you own.
+          </p>
+          <p class="text-gray-700">
+            If you change the <span class="font-medium text-gray-800">secret key</span>, you will need
+            to grant access to secrets once again in previously stamped notebooks.
+          </p>
+
+          <.form
+            :let={f}
+            id={"#{@id}-stamp"}
+            class="flex flex-col mt-4 space-y-4"
+            for={@stamp_changeset}
+            phx-submit="stamp_save"
+            phx-change="stamp_validate"
+            phx-target={@myself}
+          >
+            <div class="flex space-x-2">
+              <div class="grow">
+                <.password_field field={f[:secret_key]} label="Secret key" />
+              </div>
+              <div class="mt-6">
+                <span class="tooltip top" data-tooltip="Generate">
+                  <button
+                    class="button-base button-outlined-gray button-square-icon"
+                    type="button"
+                    phx-click="generate_secret_key"
+                    phx-target={@myself}
+                  >
+                    <.remix_icon icon="refresh-line" class="text-xl" />
+                  </button>
+                </span>
+              </div>
+            </div>
+            <div>
+              <button
+                class="button-base button-blue"
+                type="submit"
+                phx-disable-with="Updating..."
+                disable={not @stamp_changeset.valid?}
+              >
+                Save
+              </button>
+            </div>
+          </.form>
         </div>
       </div>
 
@@ -183,20 +238,24 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
   @impl true
   def handle_event("save", %{"personal" => params}, socket) do
-    case Personal.update_hub(socket.assigns.hub, params) do
-      {:ok, hub} ->
-        {:noreply,
-         socket
-         |> put_flash(:success, "Hub updated successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
-    end
+    {:noreply, save(params, :changeset, socket)}
   end
 
-  def handle_event("validate", %{"personal" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Personal.validate_hub(socket.assigns.hub, attrs))}
+  def handle_event("validate", %{"personal" => params}, socket) do
+    {:noreply, validate(params, :changeset, socket)}
+  end
+
+  def handle_event("stamp_save", %{"personal" => params}, socket) do
+    {:noreply, save(params, :stamp_changeset, socket)}
+  end
+
+  def handle_event("stamp_validate", %{"personal" => params}, socket) do
+    {:noreply, validate(params, :stamp_changeset, socket)}
+  end
+
+  def handle_event("generate_secret_key", %{}, socket) do
+    params = %{"secret_key" => Personal.generate_secret_key()}
+    {:noreply, validate(params, :stamp_changeset, socket)}
   end
 
   def handle_event("delete_hub_secret", attrs, socket) do
@@ -204,5 +263,21 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     :ok = Livebook.Hubs.delete_secret(socket.assigns.hub, secret)
 
     {:noreply, socket}
+  end
+
+  defp save(params, changeset_name, socket) do
+    case Personal.update_hub(socket.assigns.hub, params) do
+      {:ok, hub} ->
+        socket
+        |> put_flash(:success, "Hub updated successfully")
+        |> push_navigate(to: ~p"/hub/#{hub.id}")
+
+      {:error, changeset} ->
+        assign(socket, changeset_name, changeset)
+    end
+  end
+
+  defp validate(params, changeset_name, socket) do
+    assign(socket, changeset_name, Personal.validate_hub(socket.assigns.hub, params))
   end
 end

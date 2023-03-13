@@ -6,6 +6,8 @@ defmodule Livebook.Hubs.Personal do
 
   alias Livebook.Hubs
 
+  @secret_key_size 64
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
           hub_name: String.t() | nil,
@@ -65,6 +67,12 @@ defmodule Livebook.Hubs.Personal do
     personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
+    |> validate_change(:secret_key, fn :secret_key, secret_key ->
+      case Base.url_decode64(secret_key, padding: false) do
+        {:ok, binary} when byte_size(binary) == @secret_key_size -> []
+        _ -> [secret_key: "must be #{@secret_key_size} bytes in Base 64 URL alphabet"]
+      end
+    end)
     |> put_change(:id, id())
   end
 
@@ -73,7 +81,7 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
-    :crypto.strong_rand_bytes(64) |> Base.url_encode64(padding: false)
+    :crypto.strong_rand_bytes(@secret_key_size) |> Base.url_encode64(padding: false)
   end
 end
 
