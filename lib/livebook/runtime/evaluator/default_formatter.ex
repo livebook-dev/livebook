@@ -66,7 +66,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     Keyword.merge(default_opts, opts)
   end
 
-  defp syntax_colors() do
+  def syntax_colors() do
     # Note: we intentionally don't specify colors
     # for `:binary`, `:list`, `:map` and `:tuple`
     # and rely on these using the default text color.
