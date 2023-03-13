@@ -419,8 +419,10 @@ const Session = {
         !this.codeZen && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["z"])) {
         this.setCodeZen(!this.codeZen);
-      } else if (keyBuffer.tryMatch(["o"])) {
+      } else if (keyBuffer.tryMatch(["c"])) {
         !this.codeZen && this.toggleCollapseSection();
+      } else if (keyBuffer.tryMatch(["C"])) {
+        !this.codeZen && this.toggleCollapseAllSections();
       }
     }
   },
@@ -993,6 +995,49 @@ const Session = {
           section.setAttribute("data-js-collapsed", "");
           this.setFocusedEl(sectionId, { scroll: true });
         }
+      }
+    }
+  },
+
+  toggleCollapseAllSections() {
+    const allCollapsed =
+      this.getSections().every(section => {
+        if (section.hasAttribute("data-js-collapsed")) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+    if (allCollapsed) {
+      this.expandAllSections();
+    } else {
+      this.collapseAllSections();
+    }
+  },
+
+  expandAllSections() {
+    this.getSections().forEach(section => {
+      section.removeAttribute("data-js-collapsed");
+    });
+    if (this.focusedId) {
+      const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
+
+      if (focusedSectionId) {
+        this.setFocusedEl(focusedSectionId, { scroll: true });
+      }
+    }
+  },
+
+  collapseAllSections() {
+    this.getSections().forEach(section => {
+      section.setAttribute("data-js-collapsed", "");
+    });
+    if (this.focusedId) {
+      const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
+
+      if (focusedSectionId) {
+        this.setFocusedEl(focusedSectionId, { scroll: true });
       }
     }
   },
