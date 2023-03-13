@@ -419,6 +419,8 @@ const Session = {
         !this.codeZen && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["z"])) {
         this.setCodeZen(!this.codeZen);
+      } else if (keyBuffer.tryMatch(["o"])) {
+        this.toggleCollapseSection();
       }
     }
   },
@@ -975,6 +977,22 @@ const Session = {
 
       if (visibleId) {
         this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
+      }
+    }
+  },
+
+  toggleCollapseSection() {
+    if (this.focusedId) {
+      const sectionId = this.getSectionIdByFocusableId(this.focusedId);
+      const section = this.getSectionById(sectionId);
+
+      if (section) {
+        if (section.hasAttribute("data-js-collapsed")) {
+          section.removeAttribute("data-js-collapsed");
+        } else {
+          section.setAttribute("data-js-collapsed", "");
+          this.setFocusedEl(sectionId, { scroll: true });
+        }
       }
     }
   },
