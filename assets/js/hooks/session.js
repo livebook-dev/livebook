@@ -1001,13 +1001,7 @@ const Session = {
 
   toggleCollapseAllSections() {
     const allCollapsed =
-      this.getSections().every(section => {
-        if (section.hasAttribute("data-js-collapsed")) {
-          return true;
-        } else {
-          return false;
-        }
-      });
+      this.getSections().every(section => section.hasAttribute("data-js-collapsed"));
 
     if (allCollapsed) {
       this.expandAllSections();
