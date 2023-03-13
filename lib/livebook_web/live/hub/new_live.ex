@@ -51,7 +51,7 @@ defmodule LivebookWeb.Hub.NewLive do
           such as digital signing of notebooks, safe sharing of secrets, and more.
           To learn more, <a
             class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://docs.google.com/forms/d/e/1FAIpQLSeAABUT042XswwI15RBGiEJ3lSUFF9QSiaRhhzk_j6v-B3quA/viewform"
+            href="https://docs.google.com/forms/d/e/1FAIpQLScDfvUqT4f_s95dqNGyoXwVMD_Vl059jT6r5MPgXB99XVMCuw/viewform?usp=sf_link"
             target="_blank"
           >get in touch</a>!
         </p>
