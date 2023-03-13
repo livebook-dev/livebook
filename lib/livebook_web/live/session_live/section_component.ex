@@ -22,7 +22,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               class="text-xl"
               phx-click={
                 JS.set_attribute({"data-js-collapsed", ""},
-                  to: "section[data-section-id=#{@section_view.id}]"
+                  to: "section[data-section-id=\"#{@section_view.id}\"]"
                 )
               }
             />
@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               class="text-xl"
               phx-click={
                 JS.remove_attribute("data-js-collapsed",
-                  to: "section[data-section-id=#{@section_view.id}]"
+                  to: "section[data-section-id=\"#{@section_view.id}\"]"
                 )
               }
             />
