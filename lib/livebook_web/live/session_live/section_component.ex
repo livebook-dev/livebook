@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </button>
         </div>
         <h2
-          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
+          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1.5 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
           id={@section_view.html_id}
           data-el-heading
