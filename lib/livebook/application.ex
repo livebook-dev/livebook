@@ -19,7 +19,7 @@ defmodule Livebook.Application do
         # Start a supervisor for Livebook tasks
         {Task.Supervisor, name: Livebook.TaskSupervisor},
         # Start the storage module
-        Livebook.Storage.current(),
+        Livebook.Storage,
         # Start the periodic version check
         Livebook.UpdateCheck,
         # Periodic measurement of system resources

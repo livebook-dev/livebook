@@ -240,7 +240,7 @@ defmodule LivebookWeb.SessionLive do
                 data-metadata="notebook"
               >
                 <h1
-                  class="text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+                  class="px-1 -ml-1.5 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
                   tabindex="0"
                   id="notebook-heading"
                   data-el-heading

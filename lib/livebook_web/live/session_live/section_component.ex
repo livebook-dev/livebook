@@ -1,11 +1,13 @@
 defmodule LivebookWeb.SessionLive.SectionComponent do
   use LivebookWeb, :live_component
 
+  alias Phoenix.LiveView.JS
+
   def render(assigns) do
     ~H"""
     <section data-el-section data-section-id={@section_view.id}>
       <div
-        class="flex space-x-4 items-center"
+        class="flex items-center relative"
         data-el-section-headline
         id={@section_view.id}
         data-focusable-id={@section_view.id}
@@ -13,8 +15,34 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         data-on-value-change="set_section_name"
         data-metadata={@section_view.id}
       >
+        <div class="absolute left-0 top-0 bottom-0 transform -translate-x-full w-10 flex justify-end items-center pr-2">
+          <button
+            class="icon-button"
+            aria-label="collapse section"
+            data-el-section-collapse-button
+            phx-click={
+              JS.set_attribute({"data-js-collapsed", ""},
+                to: ~s/section[data-section-id="#{@section_view.id}"]/
+              )
+            }
+          >
+            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
+          </button>
+          <button
+            class="icon-button"
+            aria-label="expand section"
+            data-el-section-expand-button
+            phx-click={
+              JS.remove_attribute("data-js-collapsed",
+                to: ~s/section[data-section-id="#{@section_view.id}"]/
+              )
+            }
+          >
+            <.remix_icon icon="arrow-right-s-line" class="text-xl" />
+          </button>
+        </div>
         <h2
-          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
+          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1.5 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
           id={@section_view.html_id}
           data-el-heading
@@ -22,7 +50,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           phx-no-format
         ><%= @section_view.name %></h2>
         <div
-          class="flex space-x-2 items-center"
+          class="ml-4 flex space-x-2 items-center"
           data-el-section-actions
           role="toolbar"
           aria-label="section actions"
@@ -123,7 +151,14 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         </span>
         <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
       </h3>
-      <div class="container">
+
+      <h3
+        class="mt-2 text-sm text-gray-500 cursor-default select-none"
+        data-el-section-subheadline-collapsed
+      >
+        <%= pluralize(length(@section_view.cell_views), "cell", "cells") %> collapsed
+      </h3>
+      <div class="container" data-el-section-content>
         <div class="flex flex-col space-y-1">
           <.live_component
             module={LivebookWeb.SessionLive.InsertButtonsComponent}

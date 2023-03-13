@@ -60,6 +60,17 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-section][data-js-collapsed] [data-el-section-collapse-button],
+[data-el-section]:not([data-js-collapsed])
+  [data-el-section-headline]:not(:hover):not([data-js-focused])
+  [data-el-section-collapse-button],
+[data-el-section]:not([data-js-collapsed]) [data-el-section-expand-button],
+[data-el-section][data-js-collapsed] > [data-el-section-content],
+[data-el-section]:not([data-js-collapsed])
+  > [data-el-section-subheadline-collapsed] {
+  @apply hidden;
+}
+
 [data-el-cell][data-js-focused] {
   @apply border-blue-300 border-opacity-100;
 }
