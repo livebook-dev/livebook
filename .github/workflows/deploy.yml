@@ -14,7 +14,7 @@ jobs:
       sha: ${{ steps.push_assets.outputs.commit_hash }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
@@ -60,7 +60,7 @@ jobs:
     needs: [assets]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           # The output is set only if there was a commit, otherwise
           # we pass an empty ref and and the default is used
@@ -98,7 +98,7 @@ jobs:
     needs: [assets]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
