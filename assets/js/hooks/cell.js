@@ -68,11 +68,11 @@ const Cell = {
     // We manually track hover to correctly handle absolute iframe
 
     this.el.addEventListener("mouseenter", (event) => {
-      globalPubSub.broadcast("session", {
-        type: "focused_el_changed",
-        focusableId: this.props.cellId,
-        scroll: false,
-      });
+      this.el.setAttribute("data-js-hover", "");
+    });
+
+    this.el.addEventListener("mouseleave", (event) => {
+      this.el.removeAttribute("data-js-hover");
     });
 
     this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(

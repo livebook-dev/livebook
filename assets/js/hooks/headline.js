@@ -26,14 +26,6 @@ const Headline = {
 
     this.initializeHeadingEl();
 
-    this.el.addEventListener("mouseenter", (event) => {
-      globalPubSub.broadcast("session", {
-        type: "focused_el_changed",
-        focusableId: this.props.focusableId,
-        scroll: false,
-      });
-    });
-
     this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
       "navigation",
       (event) => {

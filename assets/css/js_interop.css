@@ -276,10 +276,6 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session][data-js-vim-mode] {
-  @apply cursor-none;
-}
-
 [data-el-session][data-js-code-zen] [data-el-section-headline],
 [data-el-session][data-js-code-zen] [data-el-section-subheadline],
 [data-el-session][data-js-code-zen] [data-el-section-subheadline-collapsed],
