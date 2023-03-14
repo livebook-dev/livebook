@@ -54,21 +54,21 @@ defmodule Livebook.Notebook.Learn do
       details: %{
         description:
           "A fast-paced introduction to Elixir by building distributed data-transfer portals.",
-        cover_url: "/images/elixir-portal.jpeg"
-      }
-    },
-    %{
-      path: Path.join(__DIR__, "learn/elixir_and_livebook.livemd"),
-      details: %{
-        description: "Learn how to use some of their unique features together.",
         cover_url: "/images/elixir.png"
       }
     },
     %{
-      path: Path.join(__DIR__, "learn/intro_to_kino.livemd"),
+      path: Path.join(__DIR__, "learn/deploy_apps.livemd"),
       details: %{
-        description: "Make your notebooks interactive with inputs, controls, and more.",
-        cover_url: "/images/kino.png"
+        description: "Write and deploy a chat app with Kino control and frames.",
+        cover_url: "/images/learn-deploy.svg"
+      }
+    },
+    %{
+      path: Path.join(__DIR__, "learn/intro_to_explorer.livemd"),
+      details: %{
+        description: "Intuitive data visualizations and data pipelines on the fly.",
+        cover_url: "/images/explorer.png"
       }
     },
     %{
@@ -86,19 +86,12 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
-      path: Path.join(__DIR__, "learn/intro_to_explorer.livemd"),
-      details: %{
-        description: "Intuitive data visualizations and data pipelines on the fly.",
-        cover_url: "/images/explorer.png"
-      }
+      ref: :kino_reference,
+      path: Path.join(__DIR__, "learn/kino/reference.livemd")
     },
     %{
       ref: :kino_vm_introspection,
       path: Path.join(__DIR__, "learn/kino/vm_introspection.livemd")
-    },
-    %{
-      ref: :kino_chat_app,
-      path: Path.join(__DIR__, "learn/kino/chat_app.livemd")
     },
     %{
       ref: :kino_pong,
@@ -207,24 +200,16 @@ defmodule Livebook.Notebook.Learn do
 
   @group_configs [
     %{
-      title: "Advanced Kino",
+      title: "Deep dive into Kino",
       description:
-        "Advanced guides for learning more about the Kino package, including the creation of custom UI components.",
+        "Learn more about the Kino package, including the creation of custom UI components.",
       cover_url: "/images/kino.png",
       notebook_refs: [
+        :kino_reference,
         :kino_vm_introspection,
         :kino_custom_kinos,
         :kino_pong,
         :kino_smart_cells
-      ]
-    },
-    %{
-      title: "Building and deploying apps",
-      description:
-        "Advanced guides for learning more about the deploying experience and teaching Kino",
-      cover_url: "/images/kino.png",
-      notebook_refs: [
-        :kino_chat_app
       ]
     }
   ]

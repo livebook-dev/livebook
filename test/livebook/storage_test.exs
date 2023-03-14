@@ -25,7 +25,11 @@ defmodule Livebook.StorageTest do
               }} = Storage.fetch(:insert, "replace")
 
       assert :ok =
-               Storage.insert(:insert, "replace", key1: "updated_val1", key2: "val2", key3: "val3")
+               Storage.insert(:insert, "replace",
+                 key1: "updated_val1",
+                 key2: "val2",
+                 key3: "val3"
+               )
 
       assert {:ok,
               %{

@@ -1,4 +1,4 @@
-# Building a chat app with Kino.Control
+# Deploy a chat app with Kino
 
 ```elixir
 Mix.install([

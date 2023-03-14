@@ -24,9 +24,12 @@ Subsequent cells have access to the bindings you've defined:
 String.replace(message, "🍵", "☕")
 ```
 
-Note however that bindings are not global, so each cell *sees* only stuff that goes
-above itself. This approach helps to keep the notebook clean and predictable
-as you keep working on it!
+Note however that bindings are not global, so each cell *sees* only stuff
+that goes above itself. This approach helps to keep the notebook clean and
+predictable as you keep working on it. Furthermore, Livebook tracks which
+variables are used by each cell and in order to detect which cells become
+stale. For example, try changing the `message` variable and you will see
+the status indicator on the bottom right of the second cell become yellow.
 
 ## Sections
 
@@ -72,7 +75,9 @@ Process.sleep(300_000)
 ```
 
 Having this cell running, feel free to insert another Code cell
-in the section below and see it evaluates immediately.
+in the section below and see it evaluates immediately. Crashes
+in branched sections also have limited scope and will affect only
+the branched section.
 
 ## Saving notebooks
 
@@ -81,12 +86,20 @@ interactive hacking, but oftentimes you will want to save your work for later.
 Such can be done by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
 in the bottom-right corner and selecting the file location.
 
+Once saved, you can access the location of the current `.livemd` file and
+its current directory using `__ENV__` and `__DIR__` variables:
+
+```elixir
+IO.puts(__ENV__.file)
+IO.puts(__DIR__)
+```
+
 Notebooks are stored in **live markdown** format, which is the Markdown you know,
 with just a few assumptions on how particular elements are represented. Thanks to this
 approach you can easily keep notebooks under version control and get readable diffs.
 You can also easily preview those files and even edit them in a text editor.
 
-## Stepping up your workflow
+## Keyboard shortcuts
 
 Once you start using notebooks more, it's gonna be beneficial
 to optimise how you move around. Livebook leverages the concept of
@@ -94,6 +107,64 @@ to optimise how you move around. Livebook leverages the concept of
 Make sure to check out the shortcuts by clicking the "Keyboard" icon
 (<i class="ri-livebook-shortcuts"></i>) in the sidebar or
 by pressing <kbd>?</kbd>.
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Autocompletion
+
+Elixir code cells also support autocompletion. Autocompletion
+happens automatically as you type but you can explicitly trigger
+it with <kbd>ctrl</kbd> + <kbd>␣</kbd>. You must have started
+executed a cell at least once for the autocompletion engine to
+load.
+
+Let's try autocompleting the code below to `System.version()`.
+First put the cursor after the `System` below and type `.`:
+
+```elixir
+System
+```
+
+You should have seen the editor listing many different options,
+which you can use to find `version`. Executing the code will
+return the Elixir version.
+
+Note you can also press <kbd>tab</kbd> to cycle across the completion
+alternatives.
+
+<!-- livebook:{"branch_parent_index":1} -->
+
+## Storing secrets in Hubs
+
+Livebook is capable of managing all secrets that belong to a notebook.
+Secrets can be read by Elixir Code cells and also by Smart cells -
+a feature we will explore in future sections.
+
+Secrets are environment variables starting with the `LB_` prefix. For
+example, let's try reading an environment variable:
+
+```elixir
+System.fetch_env!("LB_MY_SECRETZ")
+```
+
+Execute the cell above. If the secret is not available, Livebook will
+automatically detect it and prompt you to add the missing secret. You
+can save a secret in two different locations:
+
+  * in your notebook session: once you restart the session or your
+    Livebook, the secret will be gone and you must input it again
+
+  * in a Hub: a Hub is a location where you can safely store secrets,
+    deploy notebooks, and more. Every Livebook application has a personal
+    Hub that can store secrets and stamp notebooks
+
+Once the secret is saved, execute the cell again and it will evaluate
+successfully.
+
+If you save secrets in your Hub, you will only need to input the secret
+once in notebooks authored by you. You can manage all of your secrets
+by clicking the lock icon (<i class="ri-lock-password-line"></i>) on the
+sidebar.
 
 ## Markdown extensions
 
@@ -106,6 +177,8 @@ For example, `[next chapter](chapter_2.livemd)` could be used to link
 to a Livebook named `chapter_2.livemd` in the same directory as the current
 notebook. Once clicked, Livebook will automatically open up a new session
 to execute the linked notebook.
+
+<!-- livebook:{"break_markdown":true} -->
 
 ### Math expressions
 
@@ -124,6 +197,8 @@ how they are written.
 
 You can explore all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
 
+<!-- livebook:{"break_markdown":true} -->
+
 ### Mermaid diagrams
 
 [Mermaid](https://mermaid-js.github.io/) is a library for creating diagrams
@@ -138,6 +213,142 @@ graph TD;
     C-->D;
 ```
 
+## Elixir integration
+
+Here are some tips on how to better integrate Livebook with Elixir.
+
+### Mix projects
+
+Sometimes you may want to run a notebook within the context of an existing
+Mix project. This is possible from Elixir v1.14 with the help of `Mix.install/2`.
+
+As an example, imagine you have created a notebook inside your current project,
+at `notebooks/example.livemd`. In order to run within the root Mix project, using
+the same configuration and dependencies versions, you can change your notebook
+setup cell to invoke `Mix.install/2` with the following arguments:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+my_app_root = Path.join(__DIR__, "..")
+
+Mix.install(
+  [
+    {:my_app, path: my_app_root, env: :dev}
+  ],
+  config_path: Path.join(my_app_root, "config/config.exs"),
+  lockfile: Path.join(my_app_root, "mix.lock")
+)
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Runtimes
+
+Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
+for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
+(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
+keyboard shortcut).
+
+By default, a new Elixir node is started (similarly to starting `iex`). You can click
+reconnect whenever you want to discard the current node and start a new one.
+
+You can also manually *attach* to an existing distributed node by picking the
+"Attached Node" runtime. To do so, you will need the Erlang Name of the external node
+and its Erlang Cookie. For example, you can start a Phoenix application as follows:
+
+```shell
+$ iex --sname phoenix-app --cookie secret -S mix phx.server
+```
+
+Now open up a new notebook and click the "Runtime" icon on the sidebar.
+Click to "Configure" the runtime and choose "Attached node". Input the
+name and cookie as above and you should be ready to connect to it.
+
+Note, however, that you can't install new dependencies on a connected runtime.
+If you want to install dependencies, you have two options:
+
+  1. Use the Mix project approach outlined in the previous section;
+
+  2. Use a regular notebook and use
+     [`Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
+     to connect to your application.
+     Use [the `:erpc` module](https://www.erlang.org/doc/man/erpc.html)
+     to fetch data from the remote node and execute code.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Evaluation vs compilation
+
+Livebook automatically shows the execution time of each Code
+cell on the bottom-right of the cell. After evaluation, the total
+time can be seen by hovering the green dot.
+
+However, it is important to remember that all code outside of
+a module in Elixir is *evaluated*, and therefore executes much
+slower than code defined inside modules, which are *compiled*.
+
+Let's see an example. Run the cell below:
+
+```elixir
+Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+```
+
+We are adding all of the elements in a range by iterating them
+one by one. However, executing it likely takes some reasonable
+amount of time, as the invocation of the `Enum.reduce/3` as well
+as the anonymous function argument are evaluated.
+
+However, what if we move the above to inside a function? Let's do
+that:
+
+```elixir
+defmodule Bench do
+  def sum do
+    Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+  end
+end
+```
+
+Now let's try running it:
+
+```elixir
+Bench.sum()
+```
+
+The latest cell should execute a least an order of magnitude faster
+than the previous `Enum.reduce/3` call. While the call `Bench.sum()`
+itself is evaluated, the one million iterations of `Enum.reduce/3`
+happen inside a module, which is compiled.
+
+If a notebook is performing slower than expected, consider moving
+the bulk of the execution to inside modules.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Running tests
+
+It is also possible to run tests directly from your notebooks.
+The key is to disable `ExUnit`'s autorun feature and then explicitly
+run the test suite after all test cases have been defined:
+
+```elixir
+ExUnit.start(autorun: false)
+
+defmodule MyTest do
+  use ExUnit.Case, async: true
+
+  test "it works" do
+    assert true
+  end
+end
+
+ExUnit.run()
+```
+
+This helps you follow best practices and ensure the code you write
+behaves as expected!
+
 ## Next steps
 
 That's our quick intro to Livebook! Where to go next?
@@ -147,8 +358,8 @@ That's our quick intro to Livebook! Where to go next?
   with Elixir](/learn/notebooks/distributed-portals-with-elixir)
   notebook;
 
-* Learn how Elixir integrates with Livebook in the
-  [Elixir and Livebook](/learn/notebooks/elixir-and-livebook) notebook;
+* Go back [to the Learn page](/learn) and see how to use Livebook to
+  deploy apps, explore data, plot graphs, and much more;
 
 * Finally, remember Livebook is an open source project, so feel free to
   look into [the repository](https://github.com/livebook-dev/livebook)
