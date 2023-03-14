@@ -85,14 +85,29 @@ document.fonts.addEventListener("loadingdone", (event) => {
  * See cell/live_editor.js for more details.
  */
 
-monaco.languages.registerCompletionItemProvider("elixir", {
-  provideCompletionItems: (model, position, context, token) => {
-    if (model.__getCompletionItems__) {
-      return model.__getCompletionItems__(model, position);
-    } else {
-      return null;
+let completionItemProvider = null;
+
+settingsStore.getAndSubscribe((settings) => {
+  // We replace the completion provider to always reflect the settings
+  if (completionItemProvider) {
+    completionItemProvider.dispose();
+  }
+
+  completionItemProvider = monaco.languages.registerCompletionItemProvider(
+    "elixir",
+    {
+      // Trigger characters always open the popup, so we add dot only
+      // when completion while typing is enabled
+      triggerCharacters: settings.editor_auto_completion ? ["."] : [],
+      provideCompletionItems: (model, position, context, token) => {
+        if (model.__getCompletionItems__) {
+          return model.__getCompletionItems__(model, position);
+        } else {
+          return null;
+        }
+      },
     }
-  },
+  );
 });
 
 monaco.languages.registerHoverProvider("elixir", {
