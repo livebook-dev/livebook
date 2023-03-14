@@ -703,7 +703,7 @@ const Session = {
       .find((section) => {
         const { top } = section.getBoundingClientRect();
         const scrollTop = document.documentElement.scrollTop;
-        return top <= scrollTop + window.innerHeight * 0.35;
+        return top <= scrollTop + window.innerHeight * 0.1;
       });
 
     if (viewedSection) {
