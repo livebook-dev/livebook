@@ -69,6 +69,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
+    this.vimMode = false;
     this.codeZen = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
@@ -76,8 +77,6 @@ const Session = {
     this.followedClientId = null;
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
-
-    this.updateSectionListHighlight();
 
     // DOM events
 
@@ -93,6 +92,12 @@ const Session = {
     document.addEventListener("focus", this._handleDocumentFocus, true);
     document.addEventListener("click", this._handleDocumentClick);
     document.addEventListener("dblclick", this._handleDocumentDoubleClick);
+
+    document.addEventListener("mousemove", (event) => {
+      if (this.vimMode) {
+        this.setVimMode(false);
+      }
+    });
 
     this.getElement("sections-list").addEventListener("click", (event) => {
       this.handleSectionsListClick(event);
@@ -121,10 +126,6 @@ const Session = {
 
     this.getElement("app-info-toggle").addEventListener("click", (event) =>
       this.toggleAppInfo()
-    );
-
-    this.getElement("notebook").addEventListener("scroll", (event) =>
-      this.updateSectionListHighlight()
     );
 
     this.getElement("notebook-indicators").addEventListener("click", (event) =>
@@ -360,6 +361,9 @@ const Session = {
         event.target.blur();
       }
     } else {
+      if (!this.vimMode) {
+        this.setVimMode(true);
+      }
       keyBuffer.push(event.key);
 
       if (keyBuffer.tryMatch(["d", "d"])) {
@@ -588,8 +592,7 @@ const Session = {
     const sectionButton = event.target.closest(`[data-el-sections-list-item]`);
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
-      const section = this.getSectionById(sectionId);
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      this.setFocusedEl(sectionId, { scroll: true });
     }
   },
 
@@ -697,21 +700,15 @@ const Session = {
       currentListItem.removeAttribute("data-js-is-viewed");
     }
 
-    // Consider a section being viewed if it is within the top 35% of the screen
-    const viewedSection = this.getSections()
-      .reverse()
-      .find((section) => {
-        const { top } = section.getBoundingClientRect();
-        const scrollTop = document.documentElement.scrollTop;
-        return top <= scrollTop + window.innerHeight * 0.35;
-      });
+    if (this.focusedId) {
+      const viewedSectionId = this.getSectionIdByFocusableId(this.focusedId);
 
-    if (viewedSection) {
-      const sectionId = viewedSection.getAttribute("data-section-id");
-      const listItem = this.el.querySelector(
-        `[data-el-sections-list-item][data-section-id="${sectionId}"]`
-      );
-      listItem.setAttribute("data-js-is-viewed", "");
+      if (viewedSectionId) {
+        const listItem = this.el.querySelector(
+          `[data-el-sections-list-item][data-section-id="${viewedSectionId}"]`
+        );
+        listItem.setAttribute("data-js-is-viewed", "");
+      }
     }
   },
 
@@ -941,6 +938,7 @@ const Session = {
     });
 
     this.setInsertMode(false);
+    this.updateSectionListHighlight();
   },
 
   setInsertMode(insertModeEnabled) {
@@ -985,6 +983,16 @@ const Session = {
       if (visibleId) {
         this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
       }
+    }
+  },
+
+  setVimMode(enabled) {
+    this.vimMode = enabled;
+
+    if (enabled) {
+      this.el.setAttribute("data-js-vim-mode", "");
+    } else {
+      this.el.removeAttribute("data-js-vim-mode");
     }
   },
 
@@ -1149,6 +1157,8 @@ const Session = {
         focusableId: event.focusableId,
         selection: event.selection,
       });
+    } else if (event.type === "focused_el_changed") {
+      this.setFocusedEl(event.focusableId, { scroll: event.scroll });
     }
   },
 
