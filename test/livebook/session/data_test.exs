@@ -1762,30 +1762,6 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :evaluation_started" do
-    test "updates cell evaluation digest" do
-      data =
-        data_after_operations!([
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]}
-        ])
-
-      operation = {:evaluation_started, @cid, "c1", "digest"}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{
-                    eval: %{evaluation_digest: "digest"}
-                  }
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-  end
-
   describe "apply_operation/2 given :add_cell_evaluation_output" do
     test "updates the cell outputs" do
       data =
@@ -4002,8 +3978,6 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  @empty_digest :erlang.md5("")
-
   describe "cell_ids_for_full_evaluation/2" do
     test "includes changed cells with dependent ones" do
       data =
@@ -4183,7 +4157,6 @@ defmodule Livebook.Session.DataTest do
           )
 
         [
-          {:evaluation_started, @cid, cell_id, @empty_digest},
           for input_id <- bind_inputs[cell_id] || [] do
             {:bind_input, @cid, cell_id, input_id}
           end,

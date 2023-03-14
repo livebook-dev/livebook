@@ -1822,12 +1822,23 @@ defmodule Livebook.Session do
          _prev_state,
          {:apply_cell_delta, _client_id, cell_id, tag, _delta, _revision}
        ) do
+    hydrate_cell_source_digest(state, cell_id, tag)
+
     with :secondary <- tag,
          {:ok, %Cell.Smart{} = cell, _section} <-
            Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
       send(cell.js_view.pid, {:editor_source, cell.editor.source})
     end
 
+    state
+  end
+
+  defp after_operation(
+         state,
+         _prev_state,
+         {:update_smart_cell, _client_id, cell_id, _attrs, _delta, _chunks, _reevaluate}
+       ) do
+    hydrate_cell_source_digest(state, cell_id, :primary)
     state
   end
 
@@ -2013,8 +2024,15 @@ defmodule Livebook.Session do
     parent_locators = parent_locators_for_cell(state.data, cell)
     Runtime.evaluate_code(state.data.runtime, cell.source, locator, parent_locators, opts)
 
-    evaluation_digest = :erlang.md5(cell.source)
-    handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
+    state
+  end
+
+  defp hydrate_cell_source_digest(state, cell_id, tag) do
+    # Clients prune source, so they can't compute the digest, but it's
+    # necessary for evaluation to know which cells are changed, so we
+    # always propagate the digest change to the clients
+    digest = state.data.cell_infos[cell_id].sources[tag].digest
+    broadcast_message(state.session_id, {:hydrate_cell_source_digest, cell_id, tag, digest})
   end
 
   defp broadcast_operation(session_id, operation) do
