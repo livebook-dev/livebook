@@ -1022,7 +1022,9 @@ const Session = {
       const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
 
       if (focusedSectionId) {
-        this.setFocusedEl(focusedSectionId, { scroll: true });
+        setTimeout(() => {
+          this.setFocusedEl(focusedSectionId, { scroll: true });
+        }, 200);
       }
     }
   },
