@@ -350,6 +350,10 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^revision}}
+
+      # Sends new digest to clients
+      digest = :erlang.md5("cats")
+      assert_receive {:hydrate_cell_source_digest, ^cell_id, :primary, ^digest}
     end
   end
 
@@ -975,9 +979,10 @@ defmodule Livebook.SessionTest do
 
       send(session_pid, {:pong, metadata, %{ref: "ref"}})
 
+      # Sends new digest to clients
       cell_id = smart_cell.id
       new_digest = :erlang.md5("2")
-      assert_receive {:operation, {:evaluation_started, "__server__", ^cell_id, ^new_digest}}
+      assert_receive {:hydrate_cell_source_digest, ^cell_id, :primary, ^new_digest}
     end
   end
 

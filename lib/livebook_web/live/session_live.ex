@@ -1250,6 +1250,14 @@ defmodule LivebookWeb.SessionLive do
      |> assign(data_view: data_to_view(data))}
   end
 
+  def handle_info({:hydrate_cell_source_digest, cell_id, tag, digest}, socket) do
+    data = socket.private.data
+    data = put_in(data.cell_infos[cell_id].sources[tag].digest, digest)
+    # We don't recompute data_view, because for the cell indicator we
+    # still compute the digest on the client side
+    {:noreply, assign_private(socket, data: data)}
+  end
+
   def handle_info({:session_updated, session}, socket) do
     {:noreply, assign(socket, :session, session)}
   end
