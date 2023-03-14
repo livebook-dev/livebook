@@ -1,0 +1,106 @@
+# Data transform with Explorer
+
+```elixir
+Mix.install([
+  {:explorer, "~> 0.5.4"},
+  {:kino_explorer, "~> 0.1.1"}
+])
+```
+
+## Introduction
+
+KinoExplorer makes it intuitive to build data transform pipelines by seamlessly integrating Explorer and Livebook.
+To work with it in Livebook we need two libraries:
+
+* The [`explorer`](https://github.com/elixir-nx/explorer)
+  package brings series (one-dimensional) and dataframes (two-dimensional) for fast data exploration to Elixir.
+
+* The [`kino_explorer`](https://github.com/livebook-dev/kino_explorer) package automatically renders an `Explorer.DataFrame` or `Explorer.Series` as a data table.
+
+We will make extensive use of `Explorer.DataFrame`'s functions, so it's handy to alias the module to something shorter. We also need to [`require`](https://hexdocs.pm/elixir/Kernel.SpecialForms.html#require/2) the `Explorer.DataFrame` module to be able to use the [`Explorer.Query`](https://hexdocs.pm/explorer/Explorer.Query.html#content) module and the Data transform smart cell.
+
+```elixir
+alias Explorer.DataFrame, as: DF
+require Explorer.DataFrame
+```
+
+## Quick introduction to Explorer and DataTable
+
+Shortly, Explorer is the DataFrame library for Elixir. It brings the essential data analysis, exploration, and transformation tools to the Elixir ecosystem, while the integration provided by KinoExplorer makes it effortless to visualize and interact with data through the DataTable.
+
+The DataTable offers a variety of features to make viewing data more convenient. You can easily select cells, columns or even the entire table, switch between paging and infinite scrolling, sort the columns or search for specific data. [Keyboard shortcuts](#shortcuts), including copy selection, are also available.
+
+```elixir
+Explorer.Datasets.fossil_fuels()
+|> DF.filter(contains(country, "A") and year < 2013)
+|> DF.select(["year", "country", "total"])
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## The Data transform smart cell
+
+The DataTable let us to quickly view the raw data, without modifying it, while the Data transform cell allows us to transform it creating insightful and flexible data pipelines and seeing the results on the fly.
+
+Before we explore its features, we need some data to work with.
+
+```elixir
+teams =
+  DF.new(
+    weekday: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
+    team: ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"],
+    hour: [10, 9, 10, 10, 11, 15, nil, 16, 14, 16]
+  )
+```
+
+<!-- livebook:{"attrs":{"assign_to":"weekdays","data_frame":"teams","data_frame_alias":"Elixir.DF","operations":[{"active":true,"column":"hour","message":null,"operation_type":"fill_missing","scalar":null,"strategy":"forward","type":"integer"},{"active":true,"column":"hour","filter":"greater","message":null,"operation_type":"filters","type":"integer","value":"10"},{"active":true,"column":"team","filter":"not equal","message":null,"operation_type":"filters","type":"string","value":"B"},{"active":true,"direction":"asc","operation_type":"sorting","sort_by":"weekday"},{"active":true,"names_from":"team","operation_type":"pivot_wider","values_from":"hour"}]},"chunks":null,"kind":"Elixir.KinoExplorer.DataTransformCell","livebook_object":"smart_cell"} -->
+
+```elixir
+weekdays =
+  teams
+  |> DF.mutate(hour: fill_missing(hour, :forward))
+  |> DF.filter(hour > 10 and team != "B")
+  |> DF.arrange(asc: weekday)
+  |> DF.pivot_wider("team", "hour")
+```
+
+Let's break down what happened in the previous Data transform cell to understand its capabilities.
+
+Currently, the Data transform cell supports 4 operations: `sorting`, `filter`, `fill_missing` and `pivot_wider`. Each operation has its own colored card and you can move the cards to reorder the operations and see the changes in real time.
+
+Except for `pivot_wider`, you can have multiple operations of any type. If two similar operations are in a row, they are grouped, and a single operation is generated for them in the code. However, you still have individual control over each.
+
+You can also use the toggle button to enable/disable the operations. This is particularly useful for seeing the implications of each step in your pipeline without having to rewrite it.
+
+The initial state is purely a suggestion. You can easily add and remove operations to get the pipeline that meets your needs.
+
+Finally, the `assign to` field allows you to save the resulting DataFrame in a variable for later use in the notebook or in conjunction with other Smart Cells. For example, to plot a chart using the Chart cell!
+
+## Shortcuts
+
+| Key Combo                                                                                        | Description                                                         |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                                      | Moves the currently selected cell and clears other selections       |
+| <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                   | Extends the current selection range in the direction pressed        |
+| <kbd>alt</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                     | Moves the currently selected cell and retains the current selection |
+| <kbd>ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>                    | Moves the selection as far as possible in the direction pressed     |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> | Extends the selection as far as possible in the direction pressed   |
+| <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                | Extends the selection as far as possible in the direction pressed   |
+| <kbd>ctrl</kbd> + <kbd>A</kbd>                                                                   | Selects all cells                                                   |
+| <kbd>shift</kbd> + <kbd>␣</kbd>                                                                | Selects the current row                                             |
+| <kbd>ctrl</kbd> + <kbd>␣</kbd>                                                                 | Selects the current col                                             |
+| <kbd>esc</kbd>                                                                                   | Clear the current selection                                         |
+| <kbd>ctrl</kbd> + <kbd>C</kbd>                                                                   | Copies the current selection                                        |
+| <kbd>ctrl</kbd> + <kbd>home</kbd> <kbd>end</kbd>                                                 | Moves the selection to the first/last cell in the DataTable         |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>home</kbd> <kbd>end</kbd>                              | Extends the selection to the first/last cell in the Datatable       |
