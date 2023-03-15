@@ -230,6 +230,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_hub(view, %{hub | hub_emoji: attrs["hub_emoji"]})
       refute Hubs.fetch_hub!(hub.id) == hub
+
+      Hubs.delete_hub(hub.id)
     end
   end
 

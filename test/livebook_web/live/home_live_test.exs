@@ -2,6 +2,7 @@ defmodule LivebookWeb.HomeLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Livebook.SessionHelpers
 
   alias Livebook.{Sessions, Session}
 
@@ -144,6 +145,8 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, session} = Sessions.create_session()
       Session.set_file(session.pid, file)
       Session.set_notebook_name(session.pid, "Special notebook")
+
+      wait_for_session_update(session.pid)
 
       {:ok, view, _} = live(conn, ~p"/")
 
