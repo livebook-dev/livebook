@@ -4,7 +4,8 @@ import Config
 config :livebook, LivebookWeb.Endpoint,
   url: [host: "localhost", path: "/"],
   pubsub_server: Livebook.PubSub,
-  live_view: [signing_salt: "livebook"]
+  live_view: [signing_salt: "livebook"],
+  drainer: [shutdown: 1000]
 
 # Configures Elixir's Logger
 config :logger, :console,
