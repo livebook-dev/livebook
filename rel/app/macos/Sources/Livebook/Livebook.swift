@@ -53,7 +53,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let button = statusItem.button!
-        button.image = NSImage(named: "MenuBarIcon")
+        let icon = NSImage(named: "LivebookIcon")!
+        let resizedIcon = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { (dstRect) -> Bool in
+            icon.draw(in: dstRect)
+            return true
+        }
+        button.image = resizedIcon
         let menu = NSMenu()
 
         let copyURLItem = NSMenuItem(title: "Copy URL", action: nil, keyEquivalent: "c")
