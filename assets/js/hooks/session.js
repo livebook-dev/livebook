@@ -339,6 +339,8 @@ const Session = {
         cancelEvent(event);
         this.saveNotebook();
         return;
+      } else if (cmd || alt) {
+        return;
       }
     }
 
