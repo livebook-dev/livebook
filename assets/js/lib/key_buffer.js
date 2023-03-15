@@ -31,11 +31,8 @@ class KeyBuffer {
    * Immediately clears the buffer.
    */
   reset() {
-    if (this.resetTimeout) {
-      clearTimeout(this.resetTimeout);
-    }
-
-    this.clearTimeout = null;
+    clearTimeout(this.resetTimeoutId);
+    this.resetTimeoutId = null;
     this.buffer = [];
   }
 
