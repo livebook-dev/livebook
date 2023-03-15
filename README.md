@@ -63,24 +63,24 @@ and also for local usage in case you don't have Elixir installed.
 
 ```shell
 # Running with the default configuration
-docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always ghcr.io/livebook-dev/livebook
 
 # In order to access and save notebooks directly to your machine
 # you can mount a local directory into the container.
 # Make sure to specify the user with "-u $(id -u):$(id -g)"
 # so that the created files have proper permissions
-docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data ghcr.io/livebook-dev/livebook
 
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" ghcr.io/livebook-dev/livebook
 ```
 
-For CUDA support, [see images with the "cuda" tag](https://hub.docker.com/r/livebook/livebook/tags?name=cuda).
+For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
 To try out features from the main branch you can alternatively
-use the `livebook/livebook:edge` image.
-See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?ordering=last_updated).
+use the `ghcr.io/livebook-dev/livebook:edge` image.
+See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
 ### Embedded devices
 
