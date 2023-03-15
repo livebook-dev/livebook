@@ -9,7 +9,7 @@ elixir=1.14.2
 erlang=24.3.4.2
 
 docker buildx build --push --platform linux/amd64,linux/arm64 \
-  -t livebook/utils:elixir-$elixir-erlang-$erlang-cuda11.8 \
+  -t ghcr.io/livebook-dev/utils:elixir-$elixir-erlang-$erlang-cuda11.8 \
   --build-arg ELIXIR_VERSION=$elixir \
   --build-arg ERLANG_VERSION=$erlang \
   --build-arg CUDA_VERSION=11.8.0 \
