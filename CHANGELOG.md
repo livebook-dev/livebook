@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
 
+We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`, because Docker plans to remove the former.
+
 ### Added
 
 - (Desktop) "Copy URL", "View Logs" and "Settings" buttons ([#1650](https://github.com/livebook-dev/livebook/pull/1650))
@@ -35,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Unified opening and importing notebooks under a single Open page ([#1639](https://github.com/livebook-dev/livebook/pull/1639))
 - `MIX_ENV` from Livebook startup is no longer propagated to the runtime
 - Default directory when saving a forked notebook ([#1767](https://github.com/livebook-dev/livebook/pull/1767))
+- Migrated Docker images to GitHub Container Registry ([#1792](https://github.com/livebook-dev/livebook/pull/1792), [#1794](https://github.com/livebook-dev/livebook/pull/1794))
 
 ### Removed
 
