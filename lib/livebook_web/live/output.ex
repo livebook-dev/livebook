@@ -47,6 +47,14 @@ defmodule LivebookWeb.Output do
     """
   end
 
+  defp render_output({:plain_text, text}, %{id: id}) do
+    assigns = %{id: id, text: text}
+
+    ~H"""
+    <div id={@id} class="text-gray-700"><%= @text %></div>
+    """
+  end
+
   defp render_output({:markdown, markdown}, %{id: id, session_id: session_id}) do
     live_component(Output.MarkdownComponent,
       id: id,

@@ -45,8 +45,10 @@ defprotocol Livebook.Runtime do
           :ignored
           # IO output, adjacent such outputs are treated as a whole
           | {:stdout, binary()}
-          # Standalone text block
+          # Standalone text block otherwise matching :stdout
           | {:text, binary()}
+          # Plain text content
+          | {:plain_text, binary()}
           # Markdown content
           | {:markdown, binary()}
           # A raw image in the given format

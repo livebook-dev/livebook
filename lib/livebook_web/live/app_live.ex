@@ -251,7 +251,7 @@ defmodule LivebookWeb.AppLive do
   end
 
   defp filter_output({idx, output})
-       when elem(output, 0) in [:markdown, :image, :js, :control],
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control],
        do: {idx, output}
 
   defp filter_output({idx, {:tabs, outputs, metadata}}) do
