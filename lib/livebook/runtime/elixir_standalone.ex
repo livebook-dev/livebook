@@ -72,7 +72,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
               kino_db,
               %{
                 name: "req_athena",
-                dependency: %{dep: {:req_athena, "~> 0.1.0"}, config: []}
+                dependency: %{dep: {:req_athena, "~> 0.1.3"}, config: []}
               }
             ]
           },
@@ -82,7 +82,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
               kino_db,
               %{
                 name: "req_bigquery",
-                dependency: %{dep: {:req_bigquery, "~> 0.1.0"}, config: []}
+                dependency: %{dep: {:req_bigquery, "~> 0.1.1"}, config: []}
               }
             ]
           },
