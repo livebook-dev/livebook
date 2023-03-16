@@ -39,17 +39,17 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   kino_bumblebee = %{
     name: "kino_bumblebee",
-    dependency: %{dep: {:kino_bumblebee, "~> 0.1.0"}, config: []}
+    dependency: %{dep: {:kino_bumblebee, "~> 0.2.0"}, config: []}
   }
 
   exla = %{
     name: "exla",
-    dependency: %{dep: {:exla, "~> 0.4.1"}, config: [nx: [default_backend: EXLA.Backend]]}
+    dependency: %{dep: {:exla, "~> 0.5.1"}, config: [nx: [default_backend: EXLA.Backend]]}
   }
 
   torchx = %{
     name: "torchx",
-    dependency: %{dep: {:torchx, "~> 0.4.1"}, config: [nx: [default_backend: Torchx.Backend]]}
+    dependency: %{dep: {:torchx, "~> 0.5.1"}, config: [nx: [default_backend: Torchx.Backend]]}
   }
 
   kino_explorer = %{
