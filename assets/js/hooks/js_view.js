@@ -226,17 +226,18 @@ const JSView = {
     resizeObserver.observe(notebookContentEl);
     resizeObserver.observe(notebookEl);
 
-    // On lower level cell/section reordering is applied as element
-    // removal followed by insert, consequently the intersection
-    // between the placeholder and notebook content changes (becomes
-    // none for a brief moment)
-    const intersectionObserver = new IntersectionObserver(
-      (entries) => {
-        this.repositionIframe();
-      },
-      { root: notebookContentEl }
+    // On certain events, like section/cell moved, a global event is
+    // dispatched to trigger reposition. This way we don't need to
+    // use deep MutationObserver, which would be expensive, especially
+    // with code editor
+    const unsubscribeFromJSViewsEvents = globalPubSub.subscribe(
+      "js_views",
+      (event) => {
+        if (event.type === "reposition") {
+          this.repositionIframe();
+        }
+      }
     );
-    intersectionObserver.observe(this.iframePlaceholder);
 
     // Emulate mouse enter and leave on the placeholder. Note that we
     // intentionally use bubbling to notify all parents that may have
@@ -277,7 +278,7 @@ const JSView = {
 
     const remove = () => {
       resizeObserver.disconnect();
-      intersectionObserver.disconnect();
+      unsubscribeFromJSViewsEvents();
       viewportIntersectionObserver && viewportIntersectionObserver.disconnect();
       this.iframe.remove();
       this.iframePlaceholder.remove();
