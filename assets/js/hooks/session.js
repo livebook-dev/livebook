@@ -1054,6 +1054,8 @@ const Session = {
   },
 
   handleCellMoved(cellId) {
+    this.repositionJSViews();
+
     if (this.focusedId === cellId) {
       globalPubSub.broadcast("cells", { type: "cell_moved", cellId });
     }
@@ -1076,6 +1078,8 @@ const Session = {
   },
 
   handleSectionMoved(sectionId) {
+    this.repositionJSViews();
+
     const section = this.getSectionById(sectionId);
     smoothlyScrollToElement(section);
   },
@@ -1152,6 +1156,10 @@ const Session = {
         selection: event.selection,
       });
     }
+  },
+
+  repositionJSViews() {
+    globalPubSub.broadcast("js_views", { type: "reposition" });
   },
 
   /**
