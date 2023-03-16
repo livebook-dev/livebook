@@ -924,6 +924,16 @@ const Session = {
     this.focusedId = focusableId;
 
     if (focusableId) {
+      // If the element is inside collapsed section, expand that section
+      if (!this.isSection(focusableId)) {
+        const sectionId = this.getSectionIdByFocusableId(focusableId);
+
+        if (sectionId) {
+          const section = this.getSectionById(sectionId);
+          section.removeAttribute("data-js-collapsed");
+        }
+      }
+
       const el = this.getFocusableEl(focusableId);
 
       if (focusElement) {
@@ -993,9 +1003,10 @@ const Session = {
   toggleCollapseSection() {
     if (this.focusedId) {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
-      const section = this.getSectionById(sectionId);
 
-      if (section) {
+      if (sectionId) {
+        const section = this.getSectionById(sectionId);
+
         if (section.hasAttribute("data-js-collapsed")) {
           section.removeAttribute("data-js-collapsed");
         } else {
@@ -1011,15 +1022,10 @@ const Session = {
       section.hasAttribute("data-js-collapsed")
     );
 
-    if (allCollapsed) {
-      this.getSections().forEach((section) => {
-        section.removeAttribute("data-js-collapsed");
-      });
-    } else {
-      this.getSections().forEach((section) => {
-        section.setAttribute("data-js-collapsed", "");
-      });
-    }
+    this.getSections().forEach((section) => {
+      section.toggleAttribute("data-js-collapsed", !allCollapsed);
+    });
+
     if (this.focusedId) {
       const focusedSectionId = this.getSectionIdByFocusableId(this.focusedId);
 
