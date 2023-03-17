@@ -8,12 +8,22 @@
 .ri-livebook-sections,
 .ri-livebook-runtime,
 .ri-livebook-shortcuts,
+.ri-livebook-secrets,
+.ri-livebook-deploy,
 .ri-livebook-save {
   @apply text-xl align-middle;
 }
 
 .ri-livebook-sections:before {
   content: "\eade";
+}
+
+.ri-livebook-secrets:before {
+  content: "\eed0";
+}
+
+.ri-livebook-deploy:before {
+  content: "\f096";
 }
 
 .ri-livebook-runtime:before {
@@ -25,5 +35,9 @@
 }
 
 .ri-livebook-save:before {
+  content: "\f0b3";
+}
+
+.ri-livebook-deploy:before {
   content: "\f0b3";
 }

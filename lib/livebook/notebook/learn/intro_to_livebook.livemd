@@ -163,7 +163,7 @@ successfully.
 
 If you save secrets in your Hub, you will only need to input the secret
 once in notebooks authored by you. You can manage all of your secrets
-by clicking the lock icon (<i class="ri-lock-password-line"></i>) on the
+by clicking the lock icon (<i class="ri-livebook-secrets"></i>) on the
 sidebar.
 
 ## Markdown extensions

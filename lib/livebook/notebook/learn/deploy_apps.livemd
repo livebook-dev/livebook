@@ -2,47 +2,32 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.8.0"}
+  {:kino, "~> 0.8.1", github: "livebook-dev/kino"}
 ])
 ```
 
 ## Introduction
 
-In this notebook, we will build a chat application using
-[`kino`](https://github.com/livebook-dev/kino). First, let's
-have a look at the building blocks that we will need!
+In this notebook, we will build and deplay a chat application.
+To do so, we will use Livebook's companion library called
+[`kino`](https://github.com/livebook-dev/kino).
+
+In a nutshell, Kino is a library that you install as part
+of your notebooks to make your notebooks interactive.
+Kino comes from the Greek prefix of the same name and it
+stands for "motion". And, as you learn the library, it
+will become clear that this is precisely what it brings to
+our notebooks.
+
+There is many functionality in the Kino library: it can render
+Markdown, animate frames, display tables, manage inputs, and
+more. For building notebook applications, we rely on two main
+building blocks: `Kino.Control` and `Kino.Frame`.
+
+You can see `kino` listed as a dependency above, so let's run
+the setup cell and get started.
 
 ## Kino.Control
-
-In our [introduction to Kino](/learn/notebooks/intro-to-kino),
-we learned about inputs and several different outputs, such as
-tables, frames, and more. In particular, we learned how to use
-inputs to capture values directly into our notebooks:
-
-```elixir
-name = Kino.Input.text("Your name")
-```
-
-and use them to print something back:
-
-```elixir
-IO.puts("Hello, #{Kino.Input.read(name)}!")
-```
-
-Inputs have one special power: they are shared across all users
-accessing the notebook. For example, if you copy and paste the
-URL of this notebook into another tab, the input will share the
-same value. This plays into Livebook's strengths of being an
-interactive and collaborative tool.
-
-Sometimes, however, you don't want the input to be shared.
-You want each different user to get their own inputs and perform
-individual actions. That's exactly how
-[`Kino.Control`](https://hexdocs.pm/kino/Kino.Control.html) works.
-Each control is specific to each user on the page. You then receive
-each user interaction as a message.
-
-## The button control
 
 The simplest control is `Kino.Control.button/1`. Let's give it a try:
 
@@ -73,33 +58,25 @@ Let's see a different one in the next example.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## The form control
+## Enumerating controls
 
-Whenever we want to submit multiple inputs at once, we can use
-`Kino.Control.form/2`.
+All Kino controls are enumerable. This means we can treat them
+as a collection, an infinite collection in this case, and consume
+their events. Let's define another button:
 
 ```elixir
-inputs = [
-  first_name: Kino.Input.text("First name"),
-  last_name: Kino.Input.text("Last name")
-]
-
-form = Kino.Control.form(inputs, submit: "Greet")
+click_me_again = Kino.Control.button("Click me again!")
 ```
 
-Execute the cell above and you will see a form rendered.
-You can now fill in the form and press the submit button.
-Each submission will trigger a new event. Let's consume
-them as a stream. Elixir streams are lazy collections that
-are consumed as they happen:
+And now let's consume it:
 
 ```elixir
-for event <- Kino.Control.stream(form) do
+for event <- click_me_again do
   IO.inspect(event)
 end
 ```
 
-Now, as you submit the form, you should see a new event
+Now, as you submit the button, you should see a new event
 printed. However, there is a downside: we are now stuck
 inside this infinite loop of events. Luckily, we started
 this particular section as a branched section, which means
@@ -108,20 +85,86 @@ is something you should keep in mind in the future. You
 can also stop it by pressing the "Stop" button above the
 Code cell.
 
-<!-- livebook:{"branch_parent_index":0} -->
+## Kino.Frame and animations
 
-## The chat application
-
-We are now equipped with all knowledge necessary to build
-our chat application. First, we will need a frame. Every
-time a new message is received, we will append it to the
-frame:
+`Kino.Frame` allows us to render an empty frame and update it
+as we progress. Let's render an empty frame:
 
 ```elixir
 frame = Kino.Frame.new()
 ```
 
-Now we need a form with the user name and their message:
+Now, let's render a random number between 1 and 100 directly
+in the frame:
+
+```elixir
+Kino.Frame.render(frame, "Got: #{Enum.random(1..100)}")
+```
+
+Notice how every time you reevaluate the cell above it updates
+the frame. You can also use `Kino.Frame.append/2` to append to
+the frame:
+
+```elixir
+Kino.Frame.append(frame, "Got: #{Enum.random(1..100)}")
+```
+
+Appending multiple times will always add new contents. The content
+can be reset by calling `Kino.Frame.render/2` or `Kino.Frame.clear/1`.
+
+One important thing about frames is that they are shared across
+all users. If you open up this same notebook in another tab and
+execute the cell above, it will append the new result on all tabs.
+This means we can use frames for building collaborative applications
+within Livebook itself!
+
+You can combine this with loops to dynamically add contents
+or animate your notebooks. In fact, there is a convenience function
+called `Kino.animate/2` to be used exactly for this purpose:
+
+```elixir
+Kino.animate(100, fn i ->
+  Kino.Markdown.new("**Iteration: `#{i}`**")
+end)
+```
+
+The above example creates a new frame behind the scenes and renders
+new Markdown output every 100ms. You can use the same approach to
+render regular output or images too!
+
+There's also `Kino.animate/3`, in case you need to accumulate state or
+halt the animation at certain point. Both `animate` functions allow
+an enumerable to be given, which means we can animate a frame based
+on the events of a control:
+
+```elixir
+button = Kino.Control.button("Click") |> Kino.render()
+
+Kino.animate(button, 0, fn _event, counter ->
+  new_counter = counter + 1
+  md = Kino.Markdown.new("**Clicks: `#{new_counter}`**")
+  {:cont, md, new_counter}
+end)
+```
+
+One of the benefits of using `animate` to consume events is
+that it does not block the notebook execution and we can
+proceed as usual.
+
+## Putting it all together
+
+We have learned about controls and frames, which means now we
+are ready to build our chat application.
+
+The first step is to define the frame we want to render our
+chat messages:
+
+```elixir
+frame = Kino.Frame.new()
+```
+
+Now we will use a new control, called forms, to render and submit
+multiple inputs at once:
 
 ```elixir
 inputs = [
@@ -132,22 +175,72 @@ inputs = [
 form = Kino.Control.form(inputs, submit: "Send", reset_on_submit: [:message])
 ```
 
-Notice we used a new option, called `:reset_on_submit`,
-that automatically clears the input once submitted.
-Finally, let's stream the form events and post each
-message to the frame:
+Now, every time the form is submitted, we want to append
+the message to a frame. We have learned about `Kino.animate/3`,
+that receives control events, but unfortunately it only updates
+frames in place, while we want to always append content.
+We could accumulate the content ourselves and always re-render
+it all on the frame, but that sounds a bit wasteful.
+
+Luckily, Kino also provides a function called `listen`. `listen`
+also consumes events from controls and enumerables, but it does
+not assume we want to render a frame, ultimately giving us more
+control. Let's give it a try:
 
 ```elixir
-for %{data: %{name: name, message: message}} <- Kino.Control.stream(form) do
-  content = Kino.Markdown.new("**#{name}**: #{message}")
-  Kino.Frame.append(frame, content)
-end
+Kino.listen(form, fn %{data: %{name: name, message: message}, origin: origin} ->
+  if name != "" and message != "" do
+    content = Kino.Markdown.new("**#{name}**: #{message}")
+    Kino.Frame.append(frame, content)
+  else
+    content = Kino.Markdown.new("_ERROR! You need a name and message to submit..._")
+    Kino.Frame.append(frame, content, to: origin)
+  end
+end)
 ```
 
 Execute the cell above and your chat app should be
-fully operational. Open up this same notebook across
-on different tabs and each different user can post
-their messages.
+fully operational. `listen` receives the form events,
+which includes the value of each input. If a name and
+message have been given, we append it to the frame.
+If one of them is missing, we append an error message
+to the frame with the `to: origin` option. This means
+that particular message will be seen only by the user
+who submitted the form, instead of everyone.
 
-In the next notebook we will go one step further and
-[develop a multiplayer pong game](/learn/notebooks/pong)!
+Open up this same notebook across on different tabs and
+each different user can post their messages.
+
+## Deploying
+
+Our chat application is ready, therefore it means we are
+ready to deploy! Click on the <i class="ri-livebook-deploy"></i>
+icon on the sidebar.
+
+Now, define a slug for your deployment, such as "chat-app",
+set a password (or disable password protection), and click
+"Deploy".
+
+Once you do so, you will see that... the deployed application
+will be in a "Booting" state forever? Well, clearly something
+has gone wrong.
+
+To understand what went wrong, we need to talk about how
+the Deploy feature works. When you deploy a notebook,
+Livebook will execute all of the code cells in the notebook.
+Your application will effectively be all frames, controls,
+etc. that you rendered on the page. However, this implies
+that Livebook can fully execute all cells in your notebook,
+without errors and without getting stuck.
+
+However, if you remember the "Enumerating controls" section,
+we did create an infinite loop there! And because that cell
+never finishes, the deployed application never finishes booting.
+The solution is easy, delete the whole "Enumerating controls"
+section (or just that cell), and try again. Now booting should
+finish rather quickly and you will be able to interact with
+your newly deployed app. Feel free to further improve it,
+by removing frames from previous sections that do not belong
+to the chat app or by adding new features.
+
+Congratulations on shipping!
