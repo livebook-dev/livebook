@@ -3,7 +3,8 @@ defmodule LivebookWeb.Output.FrameComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, counter: 0, output_count: 0, persistent_id_map: %{})}
+    {:ok, assign(socket, counter: 0, output_count: 0, persistent_id_map: %{}),
+     temporary_assigns: [outputs: []]}
   end
 
   @impl true
@@ -56,7 +57,7 @@ defmodule LivebookWeb.Output.FrameComponent do
 
         :append ->
           socket
-          |> update(:outputs, &(outputs ++ &1))
+          |> assign(:outputs, outputs)
           |> update(:output_count, &(length(outputs) + &1))
       end
 
