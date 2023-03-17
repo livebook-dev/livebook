@@ -18,14 +18,6 @@
   content: "\eade";
 }
 
-.ri-livebook-secrets:before {
-  content: "\eed0";
-}
-
-.ri-livebook-deploy:before {
-  content: "\f096";
-}
-
 .ri-livebook-runtime:before {
   content: "\ebf0";
 }
@@ -34,10 +26,14 @@
   content: "\ee72";
 }
 
-.ri-livebook-save:before {
-  content: "\f0b3";
+.ri-livebook-secrets:before {
+  content: "\eed0";
 }
 
 .ri-livebook-deploy:before {
+  content: "\f096";
+}
+
+.ri-livebook-save:before {
   content: "\f0b3";
 }
