@@ -27,7 +27,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
     ~H"""
     <div class="flex flex-col space-y-6">
       <div class="flex">
-        <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
+        <form phx-change="set_options" phx-nosubmit phx-target={@myself}>
           <.switch_field name="include_outputs" label="Include outputs" value={@include_outputs} />
         </form>
       </div>

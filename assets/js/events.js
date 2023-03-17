@@ -82,4 +82,16 @@ export function registerGlobalEventHandlers() {
       target.dispatchEvent(new Event("click", { bubbles: true }));
     }
   });
+
+  // Ignore submit events on elements with phx-nosubmit
+  window.addEventListener(
+    "submit",
+    (event) => {
+      if (event.target.hasAttribute("phx-nosubmit")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    { capture: true }
+  );
 }

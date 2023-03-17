@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         you have editor focus and directly modify the given cell content.
       </p>
       <div class="flex">
-        <form class="my-2" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
+        <form class="my-2" phx-change="settings" phx-nosubmit phx-target={@myself}>
           <.switch_field name="basic" label="Basic view (essential shortcuts only)" value={@basic} />
         </form>
       </div>
