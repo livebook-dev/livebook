@@ -200,16 +200,19 @@ end)
 ```
 
 Execute the cell above and your chat app should be
-fully operational. `listen` receives the form events,
-which includes the value of each input. If a name and
-message have been given, we append it to the frame.
-If one of them is missing, we append an error message
-to the frame with the `to: origin` option. This means
-that particular message will be seen only by the user
-who submitted the form, instead of everyone.
+fully operational. Scroll up, submit messages via the
+form, and see them appear in the frame.
 
-Open up this same notebook across on different tabs and
-each different user can post their messages.
+Implementation-wise, our `listen` above receives the
+form events, which includes the value of each input.
+If a name and message have been given, we append it
+to the frame. If one of them is missing, we append an
+error message to the frame with the `to: origin` option.
+This means that particular message will be sent only to
+the user who submitted the form, instead of everyone.
+
+You can also open up this notebook on different tabs
+and emulate how different users can chat with each other.
 
 ## Deploying
 
@@ -229,15 +232,15 @@ To understand what went wrong, we need to talk about how
 the Deploy feature works. When you deploy a notebook,
 Livebook will execute all of the code cells in the notebook.
 Your application will effectively be all frames, controls,
-etc. that you rendered on the page. However, this implies
-that Livebook can fully execute all cells in your notebook,
-without errors and without getting stuck.
+etc. that you rendered on the page. Once all cells _successfully
+evaluate_, the application finishes booting.
 
 However, if you remember the "Enumerating controls" section,
 we did create an infinite loop there! And because that cell
-never finishes, the deployed application never finishes booting.
+never terminates, the booting process never completes.
+
 The solution is easy, delete the whole "Enumerating controls"
-section (or just that cell), and try again. Now booting should
+section (or just that code cell), and try again. Now booting should
 finish rather quickly and you will be able to interact with
 your newly deployed app. Feel free to further improve it,
 by removing frames from previous sections that do not belong
