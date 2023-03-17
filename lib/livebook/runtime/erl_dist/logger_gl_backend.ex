@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
 
   @impl true
   def init(__MODULE__) do
-    config = Application.get_env(:logger, :console)
+    config = Application.get_env(:logger, :console, [])
     {:ok, init_state(config)}
   end
 
