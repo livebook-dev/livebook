@@ -51,6 +51,7 @@ We migrated Docker images from Docker Hub to GitHub Container Registry (see [#17
 - Erlang module docs in intellisense ([#1719](https://github.com/livebook-dev/livebook/pull/1719))
 - Assertion errors in doctests ([#1752](https://github.com/livebook-dev/livebook/pull/1752))
 - Error when converting Smart cell with input to Code ([#1781](https://github.com/livebook-dev/livebook/pull/1781))
+- Improved iframe repositioning when moving sections ([#1796](https://github.com/livebook-dev/livebook/pull/1796))
 
 ## [v0.8.1](https://github.com/livebook-dev/livebook/tree/v0.8.1) (2023-01-18)
 
