@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
           <form
             :if={@bin_entries != []}
             phx-change="search"
-            onsubmit="return false"
+            phx-nosubmit
             phx-target={@myself}
             class="mt-1 relative"
           >

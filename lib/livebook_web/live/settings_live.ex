@@ -82,7 +82,7 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Updates
             </h2>
-            <form class="mt-4" phx-change="save" onsubmit="return false;">
+            <form class="mt-4" phx-change="save" phx-nosubmit>
               <.switch_field
                 name="update_check_enabled"
                 label="Show banner when a new Livebook version is available"

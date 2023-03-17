@@ -86,7 +86,7 @@ defmodule LivebookWeb.FileSelectComponent do
             class="grow"
             phx-change="set_path"
             phx-submit={if @submit_event, do: "submit"}
-            onsubmit={unless @submit_event, do: "return false"}
+            phx-nosubmit={!@submit_event}
             phx-target={@myself}
           >
             <input

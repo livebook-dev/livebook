@@ -86,7 +86,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         <form
           phx-change="set_options"
           phx-target={@myself}
-          onsubmit="return false;"
+          phx-nosubmit
           class="flex flex-col space-y-4 items-start max-w-full"
         >
           <div class="flex flex-col space-y-4">
