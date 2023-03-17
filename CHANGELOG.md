@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
 
-We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`, because Docker plans to remove the former.
+We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`.
 
 ### Added
 
