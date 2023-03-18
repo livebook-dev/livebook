@@ -50,8 +50,6 @@ class Markdown {
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
       morphdom(this.container, wrappedHtml, { childrenOnly: true });
-
-      this._fixMermaidSpacing();
     });
   }
 
@@ -89,13 +87,6 @@ class Markdown {
           }
         })
     );
-  }
-
-  _fixMermaidSpacing() {
-    // A workaround for https://github.com/mermaid-js/mermaid/issues/1758
-    for (const svg of this.container.querySelectorAll(".mermaid svg")) {
-      svg.removeAttribute("height");
-    }
   }
 }
 
