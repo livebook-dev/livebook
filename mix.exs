@@ -3,7 +3,7 @@ defmodule Livebook.MixProject do
 
   @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
   @version "0.8.1"
-  @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
+  @description "Automate code & data workflows with interactive notebooks"
 
   @app_elixir_version "1.14.2"
   @app_rebar3_version "3.19.0"
