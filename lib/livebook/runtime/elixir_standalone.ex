@@ -34,7 +34,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   kino_slack = %{
     name: "kino_slack",
-    dependency: %{dep: {:kino_slack, "~> 0.1.0"}, config: []}
+    dependency: %{dep: {:kino_slack, "~> 0.1.1"}, config: []}
   }
 
   kino_bumblebee = %{
