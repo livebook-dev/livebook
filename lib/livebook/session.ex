@@ -1306,12 +1306,36 @@ defmodule Livebook.Session do
         send(client_pid, {:operation, operation})
 
         # Keep track of assets infos, so we can look them up when fetching
-        for assets_info <- Cell.find_assets_in_output(output), reduce: state do
-          state -> put_in(state.client_id_with_assets[client_id][assets_info.hash], assets_info)
-        end
+        new_asset_infos =
+          for assets_info <- Cell.find_assets_in_output(output),
+              into: %{},
+              do: {assets_info.hash, assets_info}
+
+        update_in(state.client_id_with_assets[client_id], &Map.merge(&1, new_asset_infos))
       else
         state
       end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
+    operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
+    broadcast_operation(state.session_id, operation)
+
+    # Keep track of assets infos, so we can look them up when fetching
+    new_asset_infos =
+      for assets_info <- Cell.find_assets_in_output(output),
+          into: %{},
+          do: {assets_info.hash, assets_info}
+
+    state =
+      update_in(
+        state.client_id_with_assets,
+        &Map.new(&1, fn {client_id, asset_infos} ->
+          {client_id, Map.merge(asset_infos, new_asset_infos)}
+        end)
+      )
 
     {:noreply, state}
   end
