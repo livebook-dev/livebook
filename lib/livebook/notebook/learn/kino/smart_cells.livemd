@@ -1,4 +1,4 @@
-# Exploring Smart cells
+# Automating with Smart cells
 
 ```elixir
 Mix.install([

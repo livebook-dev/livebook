@@ -1,4 +1,4 @@
-# A look into built-in Kinos
+# Exploring built-in Kinos
 
 ```elixir
 Mix.install([
