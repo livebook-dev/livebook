@@ -260,23 +260,19 @@ the keyboard is disabled (i.e. we get a `:status` event with the
 `:enabled` key set to `false`), the stream stops:
 
 ```elixir
-stream =
-  keyboard
-  |> Kino.Control.stream()
-  |> Stream.take_while(fn
-    %{type: :status, enabled: false} -> false
-    _event -> true
-  end)
-
-for event <- stream do
-  IO.inspect(event)
-end
+keyboard
+|> Kino.Control.stream()
+|> Stream.take_while(fn
+  %{type: :status, enabled: false} -> false
+  _event -> true
+end)
+|> Kino.listen()
 ```
 
 Once you execute the cell above, it will start consuming
-the event stream. Click on the keyboard icon and watch it
-print keyboard events as you press different keys. When
-you are done, **disable the keyboard control**. Now we know
+the event stream. Click on the keyboard icon from the previous
+cell and watch it print keyboard events as you press different keys.
+When you are done, **disable the keyboard control**. Now we know
 how to capture keyboard events and how they look like, we are
 ready to implement the paddles.
 
@@ -376,7 +372,7 @@ disabled:
   %{type: :status, enabled: false} -> false
   _event -> true
 end)
-|> Enum.reduce(paddle, fn event, paddle ->
+|> Kino.listen(paddle, fn event, paddle ->
   # Build the image
   image = scene |> Scene.add(paddle) |> Scene.to_svg() |> Kino.Image.new(:svg)
 
@@ -384,9 +380,10 @@ end)
   Kino.Frame.render(frame, image)
 
   # Input the event into the paddle and animate it
-  paddle
-  |> Game.Paddle.on_key(event)
-  |> Animation.step(scene)
+  {:cont,
+   paddle
+   |> Game.Paddle.on_key(event)
+   |> Animation.step(scene)}
 end)
 ```
 
@@ -749,13 +746,13 @@ game = Game.State.new()
 # Every 33ms, paint a new frame until it completes a round
 Kino.Control.interval(33)
 |> Kino.Control.stream()
-|> Enum.reduce_while(Game.State.start(game), fn _, game ->
+|> Kino.listen(Game.State.start(game), fn _, game ->
   if game.status == :running do
     game = Game.State.step(game)
     Kino.Frame.render(frame, game |> Game.State.to_svg() |> Kino.Image.new(:svg))
     {:cont, game}
   else
-    {:halt, game}
+    :halt
   end
 end)
 ```

@@ -200,7 +200,7 @@ defmodule Livebook.Notebook.Learn do
 
   @group_configs [
     %{
-      title: "Deep dive into Kino",
+      title: "Interactive notebooks with Kino",
       description:
         "Learn more about the Kino package, including the creation of custom UI components.",
       cover_url: "/images/kino.png",
