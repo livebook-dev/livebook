@@ -4,6 +4,55 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
+
+We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`.
+
+### Added
+
+- (Desktop) "Copy URL", "View Logs" and "Settings" buttons ([#1650](https://github.com/livebook-dev/livebook/pull/1650))
+- Support for sending frame updates to a specific client ([#1662](https://github.com/livebook-dev/livebook/pull/1662))
+- Support for setting node and distribution using environment vars ([#1672](https://github.com/livebook-dev/livebook/pull/1672))
+- (Desktop) Support for configuring env vars ([#1676](https://github.com/livebook-dev/livebook/pull/1676))
+- Configuration for allowed hyperlink schemes in Markdown content ([#1702](https://github.com/livebook-dev/livebook/pull/1702))
+- Support for deploying notebooks as apps locally ([#1709](https://github.com/livebook-dev/livebook/pull/1709), [#1715](https://github.com/livebook-dev/livebook/pull/1715), [#1728](https://github.com/livebook-dev/livebook/pull/1728), [#1733](https://github.com/livebook-dev/livebook/pull/1733))
+- Support for deploying apps from directory ([#1741](https://github.com/livebook-dev/livebook/pull/1741), [#1757](https://github.com/livebook-dev/livebook/pull/1757))
+- History of recently open notebooks ([#1639](https://github.com/livebook-dev/livebook/pull/1639))
+- Ability to star notebooks for quicker access ([#1639](https://github.com/livebook-dev/livebook/pull/1639), [#1753](https://github.com/livebook-dev/livebook/pull/1753))
+- Added "New notebook" action to the file explorer ([#1754](https://github.com/livebook-dev/livebook/pull/1754))
+- Light editor theme ([#1755](https://github.com/livebook-dev/livebook/pull/1755))
+- Added Hubs page and Personal Hub for secret management, much more to come ([#1756](https://github.com/livebook-dev/livebook/pull/1756), [#1744](https://github.com/livebook-dev/livebook/pull/1744), [#1763](https://github.com/livebook-dev/livebook/pull/1763))
+- Added "Data transform cell" to predefined Smart cells ([#1758](https://github.com/livebook-dev/livebook/pull/1758))
+- Added stamp to notebook source to securely persist allowed secret names ([#1768](https://github.com/livebook-dev/livebook/pull/1768))
+- Support for collapsing sections ([#1772](https://github.com/livebook-dev/livebook/pull/1772), [#1779](https://github.com/livebook-dev/livebook/pull/1779))
+- Data transform guide ([#1773](https://github.com/livebook-dev/livebook/pull/1773))
+- Triggering completion suggestions on dot ([#1784](https://github.com/livebook-dev/livebook/pull/1784))
+- Reorganized Kino guides
+- Support for plain text output ([#1790](https://github.com/livebook-dev/livebook/pull/1790))
+
+### Changed
+
+- Evaluation error to cancel further evaluation and show distinct status ([#1688](https://github.com/livebook-dev/livebook/pull/1688))
+- Setup cell to stay open on error ([#1718](https://github.com/livebook-dev/livebook/pull/1718))
+- Unified opening and importing notebooks under a single Open page ([#1639](https://github.com/livebook-dev/livebook/pull/1639))
+- `MIX_ENV` from Livebook startup is no longer propagated to the runtime
+- Default directory when saving a forked notebook ([#1767](https://github.com/livebook-dev/livebook/pull/1767))
+- Migrated Docker images to GitHub Container Registry ([#1792](https://github.com/livebook-dev/livebook/pull/1792), [#1794](https://github.com/livebook-dev/livebook/pull/1794))
+
+### Removed
+
+- Removed most CLI flags in favour of env vars ([#1704](https://github.com/livebook-dev/livebook/pull/1704))
+- High contrast editor theme in favour of light theme ([#1755](https://github.com/livebook-dev/livebook/pull/1755))
+
+### Fixed
+
+- Reworked file input to work inside form with multiple clients ([#1673](https://github.com/livebook-dev/livebook/pull/1673))
+- Resetting autosave interval when changing file system ([#1689](https://github.com/livebook-dev/livebook/pull/1689))
+- Erlang module docs in intellisense ([#1719](https://github.com/livebook-dev/livebook/pull/1719))
+- Assertion errors in doctests ([#1752](https://github.com/livebook-dev/livebook/pull/1752))
+- Error when converting Smart cell with input to Code ([#1781](https://github.com/livebook-dev/livebook/pull/1781))
+- Improved iframe repositioning when moving sections ([#1796](https://github.com/livebook-dev/livebook/pull/1796))
+
 ## [v0.8.1](https://github.com/livebook-dev/livebook/tree/v0.8.1) (2023-01-18)
 
 ### Added
