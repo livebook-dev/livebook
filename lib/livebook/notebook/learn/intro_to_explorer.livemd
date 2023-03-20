@@ -53,7 +53,7 @@ Explorer.Datasets.fossil_fuels()
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## The smart Data transform cell
+## The Data transform smart cell
 
 The DataTable lets us quickly view the raw data, without modifying it,
 while the Data transform cell allows us to transform it, creating insightful
