@@ -55,8 +55,8 @@ the main way to interact with controls is by listening to their
 events.
 
 ```elixir
-Kino.Control.button("Click me!")
-|> Kino.listen(fn event -> IO.inspect(event) end)
+button = Kino.Control.button("Click me!") |> Kino.render()
+Kino.listen(button, fn event -> IO.inspect(event) end)
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
