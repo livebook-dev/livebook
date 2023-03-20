@@ -32,6 +32,8 @@ const ImageInput = {
     this.inputEl = this.el.querySelector(`[data-input]`);
     this.previewEl = this.el.querySelector(`[data-preview]`);
 
+    this.initialPreviewContentEl = this.previewEl.firstElementChild;
+
     this.cameraPreviewEl = this.el.querySelector(`[data-camera-preview]`);
     this.cameraListEl = this.el.querySelector(`[data-camera-list]`);
     this.cameraItemTemplateEl = this.cameraListEl.firstElementChild;
@@ -48,11 +50,18 @@ const ImageInput = {
     this.cameraVideoEl = null;
     this.cameraStream = null;
 
-    // Render initial value
-    this.handleEvent(`image_input_init:${this.props.id}`, (imageInfo) => {
-      const canvas = imageInfoToElement(imageInfo, this.props.format);
-      this.setPreview(canvas);
-    });
+    // Render updated value
+    this.handleEvent(
+      `image_input_change:${this.props.id}`,
+      ({ image_info: imageInfo }) => {
+        if (imageInfo) {
+          const canvas = imageInfoToElement(imageInfo, this.props.format);
+          this.setPreview(canvas);
+        } else {
+          this.setPreview(this.initialPreviewContentEl);
+        }
+      }
+    );
 
     // File selection
 
@@ -119,7 +128,6 @@ const ImageInput = {
         this.cameraVideoEl.videoWidth,
         this.cameraVideoEl.videoHeight
       );
-      this.setPreview(canvas);
       this.pushImage(canvas);
       this.closeCameraView();
     });
@@ -152,7 +160,6 @@ const ImageInput = {
 
       imgEl.addEventListener("load", (loadEvent) => {
         const canvas = this.toCanvas(imgEl, imgEl.width, imgEl.height);
-        this.setPreview(canvas);
         this.pushImage(canvas);
       });
 
@@ -379,11 +386,13 @@ const ImageInput = {
 
   setPreview(element) {
     element.style.maxHeight = "300px";
+    element.style.maxWidth = "100%";
     this.previewEl.replaceChildren(element);
   },
 
   setCameraPreview(element) {
     element.style.maxHeight = "300px";
+    element.style.maxWidth = "100%";
     this.cameraPreviewEl.replaceChildren(element);
   },
 };

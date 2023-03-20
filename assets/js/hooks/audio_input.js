@@ -32,14 +32,21 @@ const AudioInput = {
 
     this.mediaRecorder = null;
 
-    // Render initial value
-    this.handleEvent(`audio_input_init:${this.props.id}`, (audioInfo) => {
-      this.updatePreview({
-        data: this.decodeAudio(base64ToBuffer(audioInfo.data)),
-        numChannels: audioInfo.num_channels,
-        samplingRate: audioInfo.sampling_rate,
-      });
-    });
+    // Render updated value
+    this.handleEvent(
+      `audio_input_change:${this.props.id}`,
+      ({ audio_info: audioInfo }) => {
+        if (audioInfo) {
+          this.updatePreview({
+            data: this.decodeAudio(base64ToBuffer(audioInfo.data)),
+            numChannels: audioInfo.num_channels,
+            samplingRate: audioInfo.sampling_rate,
+          });
+        } else {
+          this.clearPreview();
+        }
+      }
+    );
 
     // File selection
 
@@ -173,7 +180,6 @@ const AudioInput = {
 
     context.decodeAudioData(buffer, (audioBuffer) => {
       const audioInfo = audioBufferToAudioInfo(audioBuffer);
-      this.updatePreview(audioInfo);
       this.pushAudio(audioInfo);
     });
   },
@@ -182,6 +188,12 @@ const AudioInput = {
     const oldUrl = this.audioEl.src;
     const blob = audioInfoToWavBlob(audioInfo);
     this.audioEl.src = URL.createObjectURL(blob);
+    oldUrl && URL.revokeObjectURL(oldUrl);
+  },
+
+  clearPreview() {
+    const oldUrl = this.audioEl.src;
+    this.audioEl.src = "";
     oldUrl && URL.revokeObjectURL(oldUrl);
   },
 

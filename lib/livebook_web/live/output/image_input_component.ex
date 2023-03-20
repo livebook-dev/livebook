@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, initialized: false)}
+    {:ok, assign(socket, value: nil)}
   end
 
   @impl true
@@ -13,24 +13,18 @@ defmodule LivebookWeb.Output.ImageInputComponent do
     socket = assign(socket, assigns)
 
     socket =
-      if socket.assigns.initialized do
+      if value == socket.assigns.value do
         socket
       else
-        socket =
+        image_info =
           if value do
-            push_event(socket, "image_input_init:#{socket.assigns.id}", %{
-              data: Base.encode64(value.data),
-              height: value.height,
-              width: value.width
-            })
-          else
-            socket
+            %{data: Base.encode64(value.data), height: value.height, width: value.width}
           end
 
-        assign(socket, initialized: true)
+        push_event(socket, "image_input_change:#{socket.assigns.id}", %{image_info: image_info})
       end
 
-    {:ok, socket}
+    {:ok, assign(socket, value: value)}
   end
 
   @impl true
