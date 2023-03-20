@@ -14,14 +14,14 @@ To do so, we will use Livebook's companion library called
 
 In a nutshell, Kino is a library that you install as part
 of your notebooks to make your notebooks interactive.
-Kino comes from the Greek prefix of the same name and it
-stands for "motion". And, as you learn the library, it
-will become clear that this is precisely what it brings to
-our notebooks.
+Kino comes from the Greek prefix "kino-" and it stands for
+"motion". As you learn the library, it will become clear that
+this is precisely what it brings to our notebooks.
 
-There is many functionality in the Kino library: it can render
-Markdown, animate frames, display tables, manage inputs, and
-more. For building notebook applications, we rely on two main
+Kino can render Markdown, animate frames, display tables,
+manage inputs, and more. It also provides the building blocks
+for extending Livebook with charts, smart cells, and much more.
+For building notebook applications, we rely on two main
 building blocks: `Kino.Control` and `Kino.Frame`.
 
 You can see `kino` listed as a dependency above, so let's run

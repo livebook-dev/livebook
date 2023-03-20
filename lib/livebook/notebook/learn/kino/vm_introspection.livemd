@@ -139,7 +139,7 @@ tree:
 supervisor
 ```
 
-We can go even further!
+And we can go even further!
 
 Sometimes a supervisor may be supervised by another supervisor,
 which may have be supervised by another supervisor, and so on.
@@ -363,5 +363,10 @@ for i <- 1..1_000_000 do
 end
 ```
 
-In the next notebook, we will learn [how to use `Kino.Control`
-to build a chat app](/learn/notebooks/chat-app)!
+In this notebook, we learned how powerful Kino and Livebook
+are together. With them, we can augment existing Elixir
+constructs, such as supervisors, with rich information, but
+also to create new visualizations such as VegaLite charts.
+
+In the next notebook, we will learn [how to create our custom
+Kinos with Elixir and JavaScript](/learn/notebooks/custom-kinos)!

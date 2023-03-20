@@ -1,4 +1,4 @@
-# Introduction to Kino
+# A look into built-in Kinos
 
 ```elixir
 Mix.install([
@@ -8,12 +8,15 @@ Mix.install([
 
 ## Introduction
 
-In this notebook we will explore the possibilities that
-[`kino`](https://github.com/elixir-nx/kino) brings
-into your notebooks. Kino can be thought of as Livebook's
-friend that instructs it how to render certain widgets
-and interact with them. You can see `kino` listed as a
-dependency above, let's run the setup cell and get started!
+Throughout the Learning section, we have used Kino several times.
+Sometimes we use built-in Kinos, such as using `Kino.Control` and
+`Kino.Frame` to deploy applications](/learn/notebooks/deploy-apps),
+other times we used custom Kinos tailired for
+[data exploration](/learn/notebooks/intro-to-explorer) or
+[plotting](/learn/notebooks/intro-to-vega-lite).
+
+In this notebook, we will explore several of the built-in Kinos.
+`kino` is already listed as a dependency, so let's get started.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -36,6 +39,25 @@ IO.puts("Hello, #{Kino.Input.read(name)}!")
 
 There are multiple types of inputs, such as text areas,
 color dialogs, selects, and more. Feel free to explore them.
+
+One important feature of inputs is that they are shared.
+Once someone changes an input, it will reflect on all users
+currently seeing the notebook.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.Control
+
+The [`Kino.Control`](https://hexdocs.pm/kino/Kino.Control.html)
+module represents forms, buttons, and other interactive controls.
+Opposite to `Kino.Input`, each user has their own control and
+the main way to interact with controls is by listening to their
+events.
+
+```elixir
+Kino.Control.button("Click me!")
+|> Kino.listen(fn event -> IO.inspect(event) end)
+```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -170,7 +192,7 @@ Kino.Tree.new(data)
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## Kino.render/1
+## Kino.render/1 and Kino.Frame
 
 As we saw, Livebook automatically recognises widgets returned
 from each cell and renders them accordingly. However, sometimes
@@ -190,66 +212,22 @@ Kino.render(Kino.Markdown.new("**Hello world**"))
 "Cell result 🚀"
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
-
-## Kino.Frame and animations
-
-`Kino.Frame` allows us to render an empty frame and update it
-as we progress. Let's render an empty frame:
+The `Kino.Frame` construct we used when deploying our chat app is a
+generalization of `Kino.render`, which gives us more control over when
+to update, append, or clear the output:
 
 ```elixir
 frame = Kino.Frame.new()
 ```
 
-Now, let's render a random number between 1 and 100 directly
-in the frame:
+By default, a frame will update in place. Try running the cell below
+several times:
 
 ```elixir
 Kino.Frame.render(frame, "Got: #{Enum.random(1..100)}")
 ```
 
-Notice how every time you reevaluate the cell above it updates
-the frame. You can also use `Kino.Frame.append/2` to append to
-the frame:
-
-```elixir
-Kino.Frame.append(frame, "Got: #{Enum.random(1..100)}")
-```
-
-Appending multiple times will always add new contents. The content
-can be reset by calling `Kino.Frame.render/2` or `Kino.Frame.clear/1`.
-
-By using loops, you can use `Kino.Frame` to dynamically add contents
-or animate your livebooks. In fact, there is a convenience function
-called `Kino.animate/2` to be used exactly for this purpose:
-
-```elixir
-Kino.animate(100, fn i ->
-  Kino.Markdown.new("**Iteration: `#{i}`**")
-end)
-```
-
-The above example renders new Markdown output every 100ms.
-You can use the same approach to render regular output
-or images too!
-
-There's also `Kino.animate/3`, in case you need to accumulate state or halt the animation at certain point!
-
-```elixir
-button = Kino.Control.button("Click") |> Kino.render()
-
-button
-|> Kino.Control.stream()
-|> Kino.animate(0, fn _event, counter ->
-  new_counter = counter + 1
-  md = Kino.Markdown.new("**Clicks: `#{new_counter}`**")
-  {:cont, md, new_counter}
-end)
-```
-
-Note that this time, instead of refreshing the animation every 100ms, we use an event stream. This way we refresh the animation whenever the button is clicked.
-
-Finally, there's `Kino.listen/{2,3}`, that allows you to consume a stream the same way, but doesn't render anything on its own.
+but you can use `append` and `clear` to get different results.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -322,15 +300,9 @@ to inspect, toggle, and swap each operation along the way:
 |> dbg()
 ```
 
-## Next steps with custom Kinos
+## Next steps
 
-With this, we finished our introduction to Kino. Most the guides
-ahead of us will use Kino in one way or the other. You can jump
-into [the VegaLite guide](/learn/notebooks/intro-to-vega-lite)
-for plotting charts or [the MapLibre guide](/learn/notebooks/intro-to-maplibre)
-for rendering maps to learn how other packages extend Livebook
-through Kino.
-
-We also have a collection of deep dive guides into Kino in the
-[Learn](/learn) page if you want to learn more, including how
-to create your custom widgets.
+We have learned many new Kinos in this section. In the next guide,
+we will put some of our new found knowledge into practice [by rendering
+inputs, plotting graphs, and drawing diagrams with information retrieved
+from the notebook runtime](/learn/notebooks/vm-introspection).

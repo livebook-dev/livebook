@@ -86,7 +86,7 @@ defmodule LivebookWeb.LearnLive do
           </p>
         </div>
       </div>
-      <div class="mt-4">
+      <div class="mt-4 mb-20">
         <ul>
           <li
             :for={{notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1)}

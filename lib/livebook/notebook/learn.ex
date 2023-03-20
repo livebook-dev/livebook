@@ -86,16 +86,12 @@ defmodule Livebook.Notebook.Learn do
       }
     },
     %{
-      ref: :kino_reference,
-      path: Path.join(__DIR__, "learn/kino/reference.livemd")
+      ref: :kino_intro,
+      path: Path.join(__DIR__, "learn/kino/intro_to_kino.livemd")
     },
     %{
       ref: :kino_vm_introspection,
       path: Path.join(__DIR__, "learn/kino/vm_introspection.livemd")
-    },
-    %{
-      ref: :kino_pong,
-      path: Path.join(__DIR__, "learn/kino/pong.livemd")
     },
     %{
       ref: :kino_custom_kinos,
@@ -200,15 +196,14 @@ defmodule Livebook.Notebook.Learn do
 
   @group_configs [
     %{
-      title: "Interactive notebooks with Kino",
+      title: "Deep dive into Kino",
       description:
         "Learn more about the Kino package, including the creation of custom UI components.",
       cover_url: "/images/kino.png",
       notebook_refs: [
-        :kino_reference,
+        :kino_intro,
         :kino_vm_introspection,
         :kino_custom_kinos,
-        :kino_pong,
         :kino_smart_cells
       ]
     }
