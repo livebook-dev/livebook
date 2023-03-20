@@ -34,7 +34,7 @@ All set, let's go.
 
 ## Quick introduction to Explorer and DataTable
 
-Shortly, Explorer is the DataFrame library for Elixir. It brings the
+In short, Explorer is the DataFrame library for Elixir. It brings the
 essential data analysis, exploration, and transformation tools to the
 Elixir ecosystem, while the integration provided by KinoExplorer makes
 it effortless to visualize and interact with data through the DataTable.
@@ -53,10 +53,10 @@ Explorer.Datasets.fossil_fuels()
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## The Data transform smart cell
+## The smart data Transform Cell
 
-The DataTable let us to quickly view the raw data, without modifying it,
-while the Data transform cell allows us to transform it creating insightful
+The DataTable lets us quickly view the raw data, without modifying it,
+while the data Transform Cell allows us to transform it, creating insightful
 and flexible data pipelines and seeing the results on the fly.
 
 Before we explore its features, we need some data to work with.
@@ -92,9 +92,9 @@ weekdays =
   |> DF.pivot_wider("team", "hour")
 ```
 
-Let's break down what happened in the previous Data transform cell.
+Let's break down what happened in the previous data Transform Cell.
 
-Currently, the Data transform cell supports several operations, such as `sorting`,
+Currently, the data Transform Cell supports several operations, such as `sorting`,
 `filter`, `pivot_wider`, and more. Each operation has its own colored card and
 you can move the cards to reorder the operations and see the changes in real time.
 
