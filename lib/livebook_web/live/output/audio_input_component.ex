@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, endianness: System.endianness(), initialized: false)}
+    {:ok, assign(socket, endianness: System.endianness(), value: nil)}
   end
 
   @impl true
@@ -13,24 +13,22 @@ defmodule LivebookWeb.Output.AudioInputComponent do
     socket = assign(socket, assigns)
 
     socket =
-      if socket.assigns.initialized do
+      if value == socket.assigns.value do
         socket
       else
-        socket =
+        audio_info =
           if value do
-            push_event(socket, "audio_input_init:#{socket.assigns.id}", %{
+            %{
               data: Base.encode64(value.data),
               num_channels: value.num_channels,
               sampling_rate: value.sampling_rate
-            })
-          else
-            socket
+            }
           end
 
-        assign(socket, initialized: true)
+        push_event(socket, "audio_input_change:#{socket.assigns.id}", %{audio_info: audio_info})
       end
 
-    {:ok, socket}
+    {:ok, assign(socket, value: value)}
   end
 
   @impl true
