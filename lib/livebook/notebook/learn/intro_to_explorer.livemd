@@ -34,7 +34,7 @@ All set, let's go.
 
 ## Quick introduction to Explorer and DataTable
 
-Shortly, Explorer is the DataFrame library for Elixir. It brings the
+In short, Explorer is the DataFrame library for Elixir. It brings the
 essential data analysis, exploration, and transformation tools to the
 Elixir ecosystem, while the integration provided by KinoExplorer makes
 it effortless to visualize and interact with data through the DataTable.
@@ -55,8 +55,8 @@ Explorer.Datasets.fossil_fuels()
 
 ## The Data transform smart cell
 
-The DataTable let us to quickly view the raw data, without modifying it,
-while the Data transform cell allows us to transform it creating insightful
+The DataTable lets us quickly view the raw data, without modifying it,
+while the Data transform cell allows us to transform it, creating insightful
 and flexible data pipelines and seeing the results on the fly.
 
 Before we explore its features, we need some data to work with.
