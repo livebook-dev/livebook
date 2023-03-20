@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
+## [v0.9.0](https://github.com/livebook-dev/livebook/tree/v0.9.0) (2023-03-20)
 
 We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`.
 
