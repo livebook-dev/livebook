@@ -441,21 +441,30 @@ defmodule Livebook.Notebook do
   before the given one.
 
   The cells are ordered starting from the most direct parent.
+
+  A list of cell ids can be be given, in which case parent cells
+  are computed for each cell and returned as a single list.
   """
-  @spec parent_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
-  def parent_cells_with_section(notebook, cell_id) do
+  @spec parent_cells_with_section(t(), Cell.id() | list(Cell.id())) ::
+          list({Cell.t(), Section.t()})
+  def parent_cells_with_section(notebook, cell_ids) when is_list(cell_ids) do
+    graph = cell_dependency_graph(notebook)
+
     parent_cell_ids =
-      notebook
-      |> cell_dependency_graph()
-      |> Graph.find_path(cell_id, nil)
-      |> MapSet.new()
-      |> MapSet.delete(cell_id)
-      |> MapSet.delete(nil)
+      for cell_id <- cell_ids,
+          parent_cell_id <- Graph.find_path(graph, cell_id, nil),
+          parent_cell_id not in [cell_id, nil],
+          into: MapSet.new(),
+          do: parent_cell_id
 
     notebook
     |> cells_with_section()
     |> Enum.filter(fn {cell, _} -> MapSet.member?(parent_cell_ids, cell.id) end)
     |> Enum.reverse()
+  end
+
+  def parent_cells_with_section(notebook, cell_id) do
+    parent_cells_with_section(notebook, [cell_id])
   end
 
   @doc """
@@ -494,6 +503,7 @@ defmodule Livebook.Notebook do
       cell should be included in the graph. If a cell is
       excluded, transitive parenthood still applies.
       By default all cells are included.
+
   """
   @spec cell_dependency_graph(t()) :: Graph.t(Cell.id())
   def cell_dependency_graph(notebook, opts \\ []) do

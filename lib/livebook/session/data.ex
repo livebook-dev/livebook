@@ -528,11 +528,13 @@ defmodule Livebook.Session.Data do
       end)
 
     if cell_ids != [] and length(cell_ids) == length(cells_with_section) do
-      cells_with_section
-      |> Enum.reduce(with_actions(data), fn {cell, section}, data_actions ->
-        data_actions
-        |> queue_prerequisite_cells_evaluation(cell.id)
-        |> queue_cell_evaluation(cell, section)
+      cell_ids = for {cell, _section} <- cells_with_section, do: cell.id
+
+      data
+      |> with_actions()
+      |> queue_prerequisite_cells_evaluation(cell_ids)
+      |> reduce(cells_with_section, fn data_actions, {cell, section} ->
+        queue_cell_evaluation(data_actions, cell, section)
       end)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
@@ -1295,9 +1297,7 @@ defmodule Livebook.Session.Data do
           cell = last_queued_cell(data, section),
           do: cell.id
 
-    reduce(data_actions, trailing_queued_cell_ids, fn data_actions, cell_id ->
-      queue_prerequisite_cells_evaluation(data_actions, cell_id)
-    end)
+    queue_prerequisite_cells_evaluation(data_actions, trailing_queued_cell_ids)
   end
 
   defp maybe_evaluate_queued({data, _} = data_actions) do
@@ -1483,18 +1483,17 @@ defmodule Livebook.Session.Data do
     )
   end
 
-  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell_id) do
+  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell_ids) do
     prerequisites_queue =
       data.notebook
-      |> Notebook.parent_cells_with_section(cell_id)
+      |> Notebook.parent_cells_with_section(cell_ids)
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
         Cell.evaluable?(cell) and cell_outdated?(data, cell) and info.eval.status == :ready
       end)
       |> Enum.reverse()
 
-    data_actions
-    |> reduce(prerequisites_queue, fn data_actions, {cell, section} ->
+    reduce(data_actions, prerequisites_queue, fn data_actions, {cell, section} ->
       queue_cell_evaluation(data_actions, cell, section)
     end)
   end
@@ -1609,7 +1608,7 @@ defmodule Livebook.Session.Data do
 
     if evaluated? and reevaluate do
       data_actions
-      |> queue_prerequisite_cells_evaluation(cell.id)
+      |> queue_prerequisite_cells_evaluation([cell.id])
       |> queue_cell_evaluation(cell, section)
       |> maybe_evaluate_queued()
     else
@@ -2420,11 +2419,12 @@ defmodule Livebook.Session.Data do
         match?(%{status: :ready, validity: :stale, reevaluates_automatically: true}, info.eval)
       end)
 
+    cell_ids = for {cell, _section} <- cells_to_reevaluate, do: cell.id
+
     data_actions
+    |> queue_prerequisite_cells_evaluation(cell_ids)
     |> reduce(cells_to_reevaluate, fn data_actions, {cell, section} ->
-      data_actions
-      |> queue_prerequisite_cells_evaluation(cell.id)
-      |> queue_cell_evaluation(cell, section)
+      queue_cell_evaluation(data_actions, cell, section)
     end)
   end
 
