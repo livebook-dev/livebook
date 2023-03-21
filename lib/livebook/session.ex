@@ -285,6 +285,7 @@ defmodule Livebook.Session do
           unless non_empty_dir?(local_assets_path) do
             {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
             extract_archive!(archive_binary, local_assets_path)
+            gzip_files(local_assets_path)
           end
         end
 
@@ -2195,6 +2196,15 @@ defmodule Livebook.Session do
       {:error, reason} ->
         File.rm_rf!(path)
         raise "failed to extract archive to #{path}, reason: #{inspect(reason)}"
+    end
+  end
+
+  defp gzip_files(path) do
+    for path <- Path.wildcard(Path.join(path, "**")), File.regular?(path) do
+      with {:ok, content} <- File.read(path) do
+        compressed = :zlib.gzip(content)
+        File.write(path <> ".gz", compressed)
+      end
     end
   end
 
