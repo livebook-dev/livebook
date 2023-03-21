@@ -11,7 +11,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
       start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]})
 
     io = Process.info(evaluator.pid)[:group_leader]
-    IOProxy.configure(io, :ref, "cell")
+    IOProxy.before_evaluation(io, :ref, "cell")
     %{io: io}
   end
 
@@ -64,12 +64,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
       await_termination(pid)
     end
 
-    test "clear_input_cache/1 clears all cached input information", %{io: io} do
+    test "before_evaluation/3 clears all cached input information", %{io: io} do
       pid =
         spawn_link(fn ->
-          IOProxy.configure(io, :ref, "cell")
+          IOProxy.before_evaluation(io, :ref, "cell")
           assert livebook_get_input_value(io, "input1") == {:ok, :value1}
-          IOProxy.clear_input_cache(io)
+          IOProxy.before_evaluation(io, :ref, "cell")
           assert livebook_get_input_value(io, "input1") == {:ok, :value2}
         end)
 
@@ -92,9 +92,9 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
     assert_receive {:runtime_evaluation_output, :ref, {:stdout, "\roverride\r"}}
   end
 
-  test "flush/1 synchronously sends buffer contents", %{io: io} do
+  test "after_evaluation/1 synchronously sends buffer contents", %{io: io} do
     IO.puts(io, "hey")
-    IOProxy.flush(io)
+    IOProxy.after_evaluation(io)
     assert_received {:runtime_evaluation_output, :ref, {:stdout, "hey\n"}}
   end
 
@@ -112,25 +112,25 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
   describe "token requests" do
     test "returns different tokens for subsequent calls", %{io: io} do
-      IOProxy.configure(io, :ref1, "cell1")
+      IOProxy.before_evaluation(io, :ref1, "cell1")
       token1 = livebook_generate_token(io)
       token2 = livebook_generate_token(io)
       assert token1 != token2
     end
 
     test "returns different tokens for different refs", %{io: io} do
-      IOProxy.configure(io, :ref1, "cell1")
+      IOProxy.before_evaluation(io, :ref1, "cell1")
       token1 = livebook_generate_token(io)
-      IOProxy.configure(io, :ref2, "cell2")
+      IOProxy.before_evaluation(io, :ref2, "cell2")
       token2 = livebook_generate_token(io)
       assert token1 != token2
     end
 
     test "returns same tokens for the same ref", %{io: io} do
-      IOProxy.configure(io, :ref, "cell")
+      IOProxy.before_evaluation(io, :ref, "cell")
       token1 = livebook_generate_token(io)
       token2 = livebook_generate_token(io)
-      IOProxy.configure(io, :ref, "cell")
+      IOProxy.before_evaluation(io, :ref, "cell")
       token3 = livebook_generate_token(io)
       token4 = livebook_generate_token(io)
       assert token1 == token3
@@ -139,8 +139,8 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   end
 
   describe "evaluation file requests" do
-    test "returns the configured file", %{io: io} do
-      IOProxy.configure(io, :ref1, "cell1")
+    test "returns the before_evaluationd file", %{io: io} do
+      IOProxy.before_evaluation(io, :ref1, "cell1")
       assert livebook_get_evaluation_file(io) == "cell1"
     end
   end

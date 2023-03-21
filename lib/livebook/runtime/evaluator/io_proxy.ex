@@ -24,8 +24,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   Starts an IO device process.
 
   For all supported requests a message is sent to the configured
-  `:send_to` process, so this device serves as a proxy. Make sure
-  to also call configure/3` before every evaluation.
+  `:send_to` process, so this device serves as a proxy.
   """
   @spec start(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
   def start(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
@@ -51,27 +50,17 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   The given reference is attached to all the proxied messages.
   """
-  @spec configure(pid(), Evaluator.ref(), String.t()) :: :ok
-  def configure(pid, ref, file) do
-    GenServer.cast(pid, {:configure, ref, file})
+  @spec before_evaluation(pid(), Evaluator.ref(), String.t()) :: :ok
+  def before_evaluation(pid, ref, file) do
+    GenServer.cast(pid, {:before_evaluation, ref, file})
   end
 
   @doc """
-  Synchronously clears the buffered output and sends it to the
-  configured `:send_to` process.
+  Flushes any buffered output and returns gathered metadata.
   """
-  @spec flush(pid()) :: :ok
-  def flush(pid) do
-    GenServer.call(pid, :flush)
-  end
-
-  @doc """
-  Asynchronously clears all cached inputs, so on next read they
-  are requested again.
-  """
-  @spec clear_input_cache(pid()) :: :ok
-  def clear_input_cache(pid) do
-    GenServer.cast(pid, :clear_input_cache)
+  @spec after_evaluation(pid()) :: %{tracer_info: %Evaluator.Tracer{}}
+  def after_evaluation(pid) do
+    GenServer.call(pid, :after_evaluation)
   end
 
   @doc """
@@ -80,14 +69,6 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   @spec tracer_updates(pid(), list()) :: :ok
   def tracer_updates(pid, updates) do
     GenServer.cast(pid, {:tracer_updates, updates})
-  end
-
-  @doc """
-  Returns the accumulated tracer info.
-  """
-  @spec get_tracer_info(pid()) :: %Evaluator.Tracer{}
-  def get_tracer_info(pid) do
-    GenServer.call(pid, :get_tracer_info)
   end
 
   @impl true
@@ -114,12 +95,16 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def handle_cast({:configure, ref, file}, state) do
-    {:noreply, %{state | ref: ref, file: file, token_count: 0, tracer_info: %Evaluator.Tracer{}}}
-  end
-
-  def handle_cast(:clear_input_cache, state) do
-    {:noreply, %{state | input_cache: %{}}}
+  def handle_cast({:before_evaluation, ref, file}, state) do
+    {:noreply,
+     %{
+       state
+       | ref: ref,
+         file: file,
+         token_count: 0,
+         input_cache: %{},
+         tracer_info: %Evaluator.Tracer{}
+     }}
   end
 
   def handle_cast({:tracer_updates, updates}, state) do
@@ -134,12 +119,10 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def handle_call(:flush, _from, state) do
-    {:reply, :ok, flush_buffer(state)}
-  end
-
-  def handle_call(:get_tracer_info, _from, state) do
-    {:reply, state.tracer_info, state}
+  def handle_call(:after_evaluation, _from, state) do
+    state = flush_buffer(state)
+    info = %{tracer_info: state.tracer_info}
+    {:reply, info, state}
   end
 
   @impl true
