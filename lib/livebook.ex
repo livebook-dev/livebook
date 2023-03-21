@@ -152,7 +152,7 @@ defmodule Livebook do
       config :livebook, :data_path, data_path
     end
 
-    if apps_path = Livebook.Config.readable_dir!("LIVEBOOK_APPS_PATH") do
+    if apps_path = System.get_env("LIVEBOOK_APPS_PATH") do
       config :livebook, :apps_path, apps_path
     end
 
