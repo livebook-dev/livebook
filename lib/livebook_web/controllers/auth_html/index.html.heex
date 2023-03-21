@@ -1,22 +1,25 @@
 <div class="h-screen w-full flex flex-col sm:flex-row">
   <div class="w-full h-full px-4 py-8 bg-gray-900 flex justify-center items-center">
     <div class="max-w-[400px] w-full flex flex-col">
-      <a href={~p"/"} class="mb-8">
-        <img src={~p"/images/logo.png"} height="128" width="128" alt="livebook" />
+      <a href={~p"/"} class="mb-2 -ml-2">
+        <img src={~p"/images/logo.png"} height="96" width="96" alt="livebook" />
       </a>
-      <div class="mb-2 text-2xl text-gray-100 font-medium">
+      <div class="mb-2 text-xl text-gray-100 font-medium">
         Authentication required
       </div>
 
-      <div class="mb-10 text-gray-200">
-        <span :if={@auth_mode == :password}>
+      <div class="mb-8 text-sm text-gray-200 space-y-2">
+        <p :if={@auth_mode == :password}>
           Type password to access the Livebook.
-        </span>
-        <span :if={@auth_mode == :token}>
+        </p>
+        <p :if={@auth_mode == :token}>
           Please check out the console for authentication URL or type the token directly
-          here.<br />To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
+          here.
+        </p>
+        <p :if={@auth_mode == :token}>
+          To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
           environment variable.
-        </span>
+        </p>
       </div>
 
       <div class="text-gray-50 w-full">
@@ -27,7 +30,7 @@
               :if={@auth_mode == :password}
               type="password"
               name="password"
-              class="px-4 py-3 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
+              class="px-4 py-2 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
               placeholder="Password"
               autofocus
             />
@@ -35,7 +38,7 @@
               :if={@auth_mode == :token}
               type="text"
               name="token"
-              class="px-4 py-3 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
+              class="px-4 py-2 w-full text-gray-300 placeholder-gray-400 border border-gray-500 rounded-lg bg-transparent phx-form-error:border-red-600 phx-form-error:text-red-600 phx-form-error:placeholder-red-600"
               placeholder="Token"
               autofocus
             />
@@ -48,7 +51,7 @@
           </div>
           <button
             type="submit"
-            class="mt-8 px-4 py-3 w-full rounded-lg text-gray-200 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700"
+            class="mt-4 py-2 w-full rounded-lg text-gray-200 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700"
           >
             <span>Authenticate</span>
             <.remix_icon icon="arrow-right-line" class="ml-1 align-middle" />
@@ -70,7 +73,7 @@
         <.link
           :for={session <- @app_sessions}
           navigate={~p"/apps/#{session.app_info.slug}"}
-          class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 text-lg pointer hover:bg-gray-50 flex justify-between"
+          class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
         >
           <span class="font-semibold"><%= session.notebook_name %></span>
           <.remix_icon icon="arrow-right-line" class="" />
