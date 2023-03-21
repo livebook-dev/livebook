@@ -263,33 +263,6 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses and validates dir from env.
-  """
-  def readable_dir!(env) do
-    if dir = System.get_env(env) do
-      readable_dir!(env, dir)
-    end
-  end
-
-  @doc """
-  Validates `dir` within context.
-  """
-  def readable_dir!(context, dir) do
-    if readable_dir?(dir) do
-      Path.expand(dir)
-    else
-      abort!("expected #{context} to be a readable directory: #{dir}")
-    end
-  end
-
-  defp readable_dir?(path) do
-    case File.stat(path) do
-      {:ok, %{type: :directory, access: access}} when access in [:read_write, :read] -> true
-      _ -> false
-    end
-  end
-
-  @doc """
   Parses and validates the secret from env.
   """
   def secret!(env) do

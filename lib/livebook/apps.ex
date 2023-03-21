@@ -107,6 +107,10 @@ defmodule Livebook.Apps do
     pattern = Path.join([path, "**", "*.livemd"])
     paths = Path.wildcard(pattern)
 
+    if paths == [] do
+      Logger.warning("No .livemd files were found for deployment at #{path}")
+    end
+
     for path <- paths do
       markdown = File.read!(path)
       {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
