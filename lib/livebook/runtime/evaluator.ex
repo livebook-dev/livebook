@@ -414,7 +414,7 @@ defmodule Livebook.Runtime.Evaluator do
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
 
-    Evaluator.IOProxy.configure(state.io_proxy, ref, file)
+    Evaluator.IOProxy.before_evaluation(state.io_proxy, ref, file)
 
     set_pdict(context, state.ignored_pdict_keys)
 
@@ -422,7 +422,7 @@ defmodule Livebook.Runtime.Evaluator do
     eval_result = eval(code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
-    tracer_info = Evaluator.IOProxy.get_tracer_info(state.io_proxy)
+    %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
 
     {new_context, result, code_error, identifiers_used, identifiers_defined} =
       case eval_result do
@@ -460,9 +460,6 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-
-    Evaluator.IOProxy.flush(state.io_proxy)
-    Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
     output = state.formatter.format_result(result)
 
