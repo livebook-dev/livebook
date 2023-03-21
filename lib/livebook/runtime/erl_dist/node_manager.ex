@@ -27,16 +27,16 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     * `:unload_modules_on_termination` - whether to unload all
       Livebook related modules from the node on termination.
-      Defaults to `true`.
+      Defaults to `true`
 
     * `:anonymous` - configures whether manager should
       be registered under a global name or not.
       In most cases we enforce a single manager per node
       and identify it by a name, but this can be opted-out
-      from by using this option. Defaults to `false`.
+      from by using this option. Defaults to `false`
 
     * `:auto_termination` - whether to terminate the manager
-      when the last runtime server terminates. Defaults to `true`.
+      when the last runtime server terminates. Defaults to `true`
 
     * `:parent_node` - indicates which node spawned the node manager.
        It is used to disconnect the node when the server terminates,
@@ -45,6 +45,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     * `:capture_orphan_logs` - whether to capture logs out of Livebook
       evaluator's scope. Defaults to `true`
+
   """
   def start(opts \\ []) do
     {opts, gen_opts} = split_opts(opts)

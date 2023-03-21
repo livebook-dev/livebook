@@ -44,6 +44,7 @@ defprotocol Livebook.FileSystem do
 
     * `:global` - if the resource is external and available
       accessible from any node
+
   """
   @spec type(t()) :: :local | :global
   def type(file_system)

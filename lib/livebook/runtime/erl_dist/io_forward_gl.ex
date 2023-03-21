@@ -20,7 +20,8 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
     * `:name` - the name to register the process under. Optional.
       If the name is already used, it will be unregistered before
       starting the process and registered back when the server
-      terminates.
+      terminates
+
   """
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do

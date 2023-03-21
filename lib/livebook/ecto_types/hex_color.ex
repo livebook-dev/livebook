@@ -27,6 +27,7 @@ defmodule Livebook.EctoTypes.HexColor do
   ## Options
 
     * `:except` - a list of colors to omit
+
   """
   def random(opts \\ []) do
     colors = [
@@ -70,6 +71,7 @@ defmodule Livebook.EctoTypes.HexColor do
 
       iex> Livebook.EctoTypes.HexColor.valid?("#111")
       false
+
   """
   @spec valid?(String.t()) :: boolean()
   def valid?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/

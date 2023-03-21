@@ -84,6 +84,7 @@ defmodule Livebook.Delta.Operation do
         [{:insert, "ca"}, {:insert, "t"}],
         [{:retain, 2}, {:delete, 2}]
       }
+
   """
   @spec align_heads(list(t()), list(t())) :: {list(t()), list(t())}
   def align_heads([head_a | tail_a], [head_b | tail_b]) do

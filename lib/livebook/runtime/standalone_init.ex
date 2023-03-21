@@ -82,6 +82,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   ## Options
 
     * `:init_opts` - see `Livebook.Runtime.ErlDist.initialize/2`
+
   """
   @spec parent_init_sequence(node(), port(), keyword()) :: {:ok, pid()} | {:error, String.t()}
   def parent_init_sequence(child_node, port, opts \\ []) do

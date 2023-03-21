@@ -69,6 +69,7 @@ defmodule LivebookWeb.Helpers do
 
       iex> LivebookWeb.Helpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
       "3 notebooks are not persisted"
+
   """
   @spec pluralize(non_neg_integer(), String.t(), String.t()) :: String.t()
   def pluralize(1, singular, _plural), do: "1 #{singular}"
@@ -87,6 +88,7 @@ defmodule LivebookWeb.Helpers do
 
       iex> LivebookWeb.Helpers.format_items(["wine", "tea", "coffee"])
       "wine, tea and coffee"
+
   """
   @spec format_items(list(String.t())) :: String.t()
   def format_items([]), do: ""

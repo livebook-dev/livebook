@@ -327,6 +327,7 @@ defprotocol Livebook.Runtime do
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
       events to. Defaults to the owner
+
   """
   @spec take_ownership(t(), keyword()) :: reference()
   def take_ownership(runtime, opts \\ [])
@@ -392,6 +393,7 @@ defprotocol Livebook.Runtime do
 
     * `:smart_cell_ref` - a reference of the smart cell which code is
       to be evaluated, if applicable
+
   """
   @spec evaluate_code(t(), String.t(), locator(), parent_locators(), keyword()) :: :ok
   def evaluate_code(runtime, code, locator, parent_locators, opts \\ [])
@@ -539,6 +541,7 @@ defprotocol Livebook.Runtime do
   The response is sent to the `send_to` process as
 
     * `{:runtime_search_packages_response, ref, response}`.
+
   """
   @spec search_packages(t(), pid(), String.t()) :: reference()
   def search_packages(runtime, send_to, search)

@@ -139,6 +139,7 @@ defmodule Livebook.FileSystem.File do
 
     * `:recursive` - whether to traverse all nested directories,
       defaults to `false`
+
   """
   @spec list(t(), keyword()) :: {:ok, list(t())} | {:error, FileSystem.error()}
   def list(file, opts \\ []) do

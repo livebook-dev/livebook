@@ -193,6 +193,7 @@ defmodule Livebook.Runtime.Dependencies do
 
       iex> Livebook.Runtime.Dependencies.parse_term(~s|Enum|)
       :error
+
   """
   @spec parse_term(String.t()) :: {:ok, term()} | :error
   def parse_term(string) do
@@ -271,6 +272,7 @@ defmodule Livebook.Runtime.Dependencies do
   ## Options
 
       * `:api_url` - the base URL for Hex API requests. Optional
+
   """
   @spec search_hex(String.t(), keyword()) :: Livebook.Runtime.search_packages_response()
   def search_hex(search, opts \\ [])

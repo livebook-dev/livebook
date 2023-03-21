@@ -90,6 +90,7 @@ defmodule Livebook.LiveMarkdown do
     * `:include_outputs` - whether to render cell outputs.
       Only textual outputs are included. Defaults to the
       value of `:persist_outputs` notebook attribute.
+
   """
   @spec notebook_to_livemd(Notebook.t(), keyword()) :: String.t()
   defdelegate notebook_to_livemd(notebook, opts \\ []), to: Livebook.LiveMarkdown.Export

@@ -61,6 +61,7 @@ defmodule Livebook.Intellisense.Docs do
     * `:kinds` - a list of member kinds to limit the lookup to.
       Valid kinds are `:function`, `:macro` and `:type`. Defaults
       to all kinds
+
   """
   @spec lookup_module_members(
           module(),

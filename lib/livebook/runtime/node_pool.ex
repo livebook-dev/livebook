@@ -20,8 +20,12 @@ defmodule Livebook.Runtime.NodePool do
 
   ## Options
 
-    - `:name` - The name the NodePool is locally registered as. By default, it is `Livebook.Runtime.NodePool`
-    - `:buffer_time` - The time that is spent before a disconnected node's name is  added to pool. The default is 1 minute.
+    * `:name` - The name the NodePool is locally registered as. By
+      default, it is `Livebook.Runtime.NodePool`
+
+    * `:buffer_time` - The time that is spent before a disconnected
+      node's name is  added to pool. The default is 1 minute.
+
   """
   def start_link(opts) do
     name = opts[:name] || __MODULE__

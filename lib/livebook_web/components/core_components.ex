@@ -92,6 +92,7 @@ defmodule LivebookWeb.CoreComponents do
 
       <.live_region role="alert" />
       <.live_region role="status" />
+
   """
   def live_region(assigns) do
     ~H"""

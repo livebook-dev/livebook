@@ -36,6 +36,7 @@ defmodule Livebook.Utils.HTTP do
     * `body` - request body given as `{content_type, body}`
 
     * `timeout` - request timeout, defaults to 10 seconds
+
   """
   @spec request(atom(), String.t(), keyword()) ::
           {:ok, status(), headers(), binary()} | {:error, term()}

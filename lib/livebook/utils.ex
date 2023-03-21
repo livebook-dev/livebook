@@ -110,6 +110,7 @@ defmodule Livebook.Utils do
 
       iex> get_in(%{}, [Livebook.Utils.access_by_id(1)])
       ** (RuntimeError) Livebook.Utils.access_by_id/1 expected a list, got: %{}
+
   """
   @spec access_by_id(term()) ::
           Access.access_fun(data :: struct() | map(), current_value :: term())
@@ -156,6 +157,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.valid_url?("http://")
       false
+
   """
   @spec valid_url?(String.t()) :: boolean()
   def valid_url?(url) do
@@ -176,6 +178,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.valid_cli_flags?("--arg1 \"")
       false
+
   """
   @spec valid_cli_flags?(String.t()) :: boolean()
   def valid_cli_flags?(flags) do
@@ -200,6 +203,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.upcase_first("")
       ""
+
   """
   @spec upcase_first(String.t()) :: String.t()
   def upcase_first(string) do
@@ -220,6 +224,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.downcase_first("")
       ""
+
   """
   @spec downcase_first(String.t()) :: String.t()
   def downcase_first(string) do
@@ -237,6 +242,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.expand_url("https://example.com/lib/file.ex?token=supersecret", "../root.ex")
       "https://example.com/root.ex?token=supersecret"
+
   """
   @spec expand_url(String.t(), String.t()) :: String.t()
   def expand_url(url, relative_path) do
@@ -263,6 +269,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.wrap_line("cat in the cup", 2)
       "cat\nin\nthe\ncup"
+
   """
   @spec wrap_line(String.t(), pos_integer()) :: String.t()
   def wrap_line(line, width) do
@@ -341,6 +348,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.split_at_last_occurrence("123", ",")
       :error
+
   """
   @spec split_at_last_occurrence(String.t(), String.pattern()) ::
           {:ok, left :: String.t(), right :: String.t()} | :error
@@ -371,6 +379,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.apply_rewind("Hola\r\nHey\r")
       "Hola\r\nHey\r"
+
   """
   @spec apply_rewind(String.t()) :: String.t()
   def apply_rewind(text) when is_binary(text) do
@@ -403,6 +412,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.cap_lines("Line 1\nLine 2", 3)
       "Line 1\nLine 2"
+
   """
   @spec cap_lines(String.t(), non_neg_integer()) :: String.t()
   def cap_lines(text, max_lines) do
@@ -540,6 +550,7 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.ip_to_host({0, 0, 0, 0})
       "0.0.0.0"
+
   """
   @spec ip_to_host(:inet.ip_address()) :: String.t()
   def ip_to_host(ip)

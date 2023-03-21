@@ -133,6 +133,7 @@ defmodule Livebook.Delta do
       iex> delta = %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
       iex> Livebook.Delta.to_compressed(delta)
       [2, "hey", -3]
+
   """
   @spec to_compressed(t()) :: list(Operation.compressed_t())
   def to_compressed(delta) do
@@ -146,6 +147,7 @@ defmodule Livebook.Delta do
 
       iex> Livebook.Delta.from_compressed([2, "hey", -3])
       %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
+
   """
   @spec from_compressed(list(Operation.compressed_t())) :: t()
   def from_compressed(list) do

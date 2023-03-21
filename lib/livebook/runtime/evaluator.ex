@@ -145,6 +145,7 @@ defmodule Livebook.Runtime.Evaluator do
     * `:on_finish` - a function to run when the evaluation is
       finished. The function receives `t:evaluation_result/0`
       as an argument
+
   """
   @spec evaluate_code(t(), String.t(), ref(), list(ref()), keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, parent_refs, opts \\ []) do

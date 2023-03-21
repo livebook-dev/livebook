@@ -53,6 +53,7 @@ defmodule Livebook.Runtime.ErlDist do
     * `:node_manager_opts` - see `Livebook.Runtime.ErlDist.NodeManager.start/1`
 
     * `:runtime_server_opts` - see `Livebook.Runtime.ErlDist.RuntimeServer.start_link/1`
+
   """
   @spec initialize(node(), keyword()) :: pid()
   def initialize(node, opts \\ []) do

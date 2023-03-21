@@ -39,6 +39,7 @@ defmodule Livebook.Utils.ANSI do
   ## Options
 
     * `:modifiers` - a list with initial modifiers
+
   """
   @spec parse_ansi_string(String.t(), keyword()) :: {list({modifiers(), String.t()}), modifiers()}
   def parse_ansi_string(string, opts \\ []) do
