@@ -3684,6 +3684,43 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_secret" do
+    test "adds secret and updates hub secret names" do
+      data = Data.new()
+
+      secret = Livebook.Factory.insert_secret(name: "SET_SECRET_SECRET", value: "value")
+
+      operation = {:set_secret, @cid, secret}
+
+      assert {:ok,
+              %{
+                secrets: %{"SET_SECRET_SECRET" => ^secret},
+                notebook: %{hub_secret_names: ["SET_SECRET_SECRET"]}
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :unset_secret" do
+    test "removes secret and updates hub secret names" do
+      secret = Livebook.Factory.insert_secret(name: "SET_SECRET_SECRET", value: "value")
+
+      data =
+        data_after_operations!([
+          {:set_secret, @cid, secret}
+        ])
+
+      operation = {:unset_secret, @cid, secret.name}
+
+      empty_map = %{}
+
+      assert {:ok,
+              %{
+                secrets: ^empty_map,
+                notebook: %{hub_secret_names: []}
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_app_settings" do
     test "updates notebook app settings" do
       data = Data.new()
