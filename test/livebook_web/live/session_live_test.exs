@@ -496,6 +496,31 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
     end
+
+    test "clients-only output is sent to all targets, but not reflected in session",
+         %{conn: conn, session: session} do
+      user1 = build(:user, name: "Jake Peralta")
+      Session.register_client(session.pid, self(), user1)
+
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      send(
+        session.pid,
+        {:runtime_evaluation_output_to_clients, cell_id, {:stdout, "line 1\n"}}
+      )
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      refute render(view) =~ "line 1"
+    end
   end
 
   describe "smart cells" do
