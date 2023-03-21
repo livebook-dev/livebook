@@ -172,7 +172,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "skips the session if assets are in cache", %{conn: conn} do
       %{notebook: notebook, hash: hash} = notebook_with_js_output()
       # Fetch the assets for the first time
-      conn = start_session_and_request_asset(conn, notebook, hash)
+      start_session_and_request_asset(conn, notebook, hash)
 
       # Use nonexistent session, so any communication would fail
       random_session_id = Livebook.Utils.random_node_aware_id()
@@ -196,12 +196,26 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns the requests asset if available in cache", %{conn: conn} do
       %{notebook: notebook, hash: hash} = notebook_with_js_output()
       # Fetch the assets for the first time
-      conn = start_session_and_request_asset(conn, notebook, hash)
+      start_session_and_request_asset(conn, notebook, hash)
 
       conn = get(conn, ~p"/public/sessions/assets/#{hash}/main.js")
 
       assert conn.status == 200
       assert "export function init(" <> _ = conn.resp_body
+    end
+
+    test "supports gzip compression", %{conn: conn} do
+      %{notebook: notebook, hash: hash} = notebook_with_js_output()
+
+      start_session_and_request_asset(conn, notebook, hash)
+
+      conn =
+        conn
+        |> put_req_header("accept-encoding", "gzip")
+        |> get(~p"/public/sessions/assets/#{hash}/main.js")
+
+      assert conn.status == 200
+      assert "export function init(" <> _ = :zlib.gunzip(conn.resp_body)
     end
   end
 

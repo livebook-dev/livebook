@@ -117,14 +117,33 @@ defmodule LivebookWeb.SessionController do
 
     case lookup_asset(hash, asset_path) do
       {:ok, local_asset_path} ->
-        conn
-        |> put_content_type(asset_path)
-        |> cache_permanently()
-        |> send_file(200, local_asset_path)
+        conn =
+          conn
+          |> put_content_type(asset_path)
+          |> cache_permanently()
+
+        local_asset_path_gz = local_asset_path <> ".gz"
+
+        if accept_encoding?(conn, "gzip") and File.exists?(local_asset_path_gz) do
+          conn
+          |> put_resp_header("content-encoding", "gzip")
+          |> put_resp_header("vary", "Accept-Encoding")
+          |> send_file(200, local_asset_path_gz)
+        else
+          send_file(conn, 200, local_asset_path)
+        end
 
       :error ->
         send_resp(conn, 404, "Not found")
     end
+  end
+
+  defp accept_encoding?(conn, encoding) do
+    encoding? = &String.contains?(&1, [encoding, "*"])
+
+    Enum.any?(get_req_header(conn, "accept-encoding"), fn accept ->
+      accept |> Plug.Conn.Utils.list() |> Enum.any?(encoding?)
+    end)
   end
 
   defp ensure_asset?(session_id, hash, asset_path) do
