@@ -18,7 +18,7 @@ defmodule LivebookWeb.NotebookCardsComponent do
                 <%= info.name %>
               </span>
             </span>
-            <%= @card_icon && render_slot(@card_icon) %>
+            <%= @card_icon && render_slot(@card_icon, {info, idx}) %>
           </div>
           <div class="mt-1 flex-grow text-gray-600 text-sm">
             <%= @added_at_label %> <%= format_date_relatively(info.added_at) %>
