@@ -116,8 +116,23 @@ defmodule LivebookWeb.HomeLive do
               sessions={@sessions}
               added_at_label="Starred"
             >
-              <:card_icon>
-                <.remix_icon icon="star-fill" class="text-yellow-600" />
+              <:card_icon :let={{_info, idx}}>
+                <span class="tooltip top" data-tooltip="Unstar">
+                  <button
+                    aria-label="unstar notebook"
+                    phx-click={
+                      with_confirm(
+                        JS.push("unstar_notebook", value: %{idx: idx}),
+                        title: "Unstar notebook",
+                        description: "Once you unstar this notebook, you can always star it again.",
+                        confirm_text: "Unstar",
+                        opt_out_id: "unstar-notebook"
+                      )
+                    }
+                  >
+                    <.remix_icon icon="star-fill" class="text-yellow-600" />
+                  </button>
+                </span>
               </:card_icon>
             </.live_component>
           <% end %>
@@ -260,6 +275,12 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def handle_event("new", %{}, socket) do
     {:noreply, create_session(socket)}
+  end
+
+  def handle_event("unstar_notebook", %{"idx" => idx}, socket) do
+    %{file: file} = Enum.fetch!(socket.assigns.starred_notebooks, idx)
+    Livebook.NotebookManager.remove_starred_notebook(file)
+    {:noreply, socket}
   end
 
   def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
