@@ -136,7 +136,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
         </div>
         <!-- User settings section -->
-        <div class="flex flex-col space-y-10">
+        <div class="flex flex-col space-y-10 pb-8">
           <div>
             <LayoutHelpers.title text="User settings" />
             <p class="mt-4 text-gray-700">

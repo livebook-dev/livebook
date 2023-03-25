@@ -86,11 +86,11 @@ defmodule LivebookWeb.LearnLive do
           </p>
         </div>
       </div>
-      <div class="mt-4 mb-20">
+      <div class="mt-3 mb-20">
         <ul>
           <li
             :for={{notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1)}
-            class="py-4 flex flex-row items-center space-x-5 border-b border-gray-200 last:border-b-0"
+            class="py-3 flex flex-row items-center space-x-5 border-b border-gray-200 last:border-b-0"
           >
             <div class="text-lg text-gray-400 font-semibold">
               <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
