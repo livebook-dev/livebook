@@ -192,7 +192,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         ~S'''
         Secrets are a safe way to share credentials
         and tokens with notebooks. They are often
-        accessed by Smart cells and can be read as
+        shared with Smart cells and can be read as
         environment variables using the LB_ prefix.
         '''
       }

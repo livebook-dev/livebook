@@ -23,7 +23,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"#{@id}-component"} class="space-y-8">
+    <div id={"#{@id}-component"} class="space-y-8 pb-8">
       <div class="space-y-4">
         <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
@@ -68,6 +68,12 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
             Secrets
           </h2>
+
+          <p class="text-gray-700">
+            Secrets are a safe way to share credentials and tokens with notebooks.
+            They are often shared with Smart cells and can be read as
+            environment variables using the <code>LB_</code> prefix.
+          </p>
 
           <.secrets_list
             id="hub-secrets-list"
