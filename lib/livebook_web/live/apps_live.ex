@@ -20,7 +20,7 @@ defmodule LivebookWeb.AppsLive do
       |> Enum.filter(&(&1.mode == :app))
       |> Enum.sort_by(& &1.created_at, {:desc, DateTime})
 
-    {:ok, assign(socket, sessions: sessions, page_title: "Livebook - Apps")}
+    {:ok, assign(socket, sessions: sessions, page_title: "App - Livebook")}
   end
 
   @impl true

@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.EditLive do
        hub: nil,
        secrets: [],
        type: nil,
-       page_title: "Livebook - Hub",
+       page_title: "Hub - Livebook",
        env_var_id: nil,
        secret_name: nil
      )}
@@ -31,7 +31,6 @@ defmodule LivebookWeb.Hub.EditLive do
        hub: hub,
        type: type,
        secrets: Hubs.get_secrets(hub),
-       page_title: "Livebook - Hub",
        params: params,
        env_var_id: params["env_var_id"],
        secret_name: params["secret_name"]

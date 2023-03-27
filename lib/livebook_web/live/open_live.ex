@@ -25,7 +25,7 @@ defmodule LivebookWeb.OpenLive do
        url: params["url"],
        sessions: sessions,
        recent_notebooks: recent_notebooks,
-       page_title: "Livebook - Open"
+       page_title: "Open - Livebook"
      )}
   end
 

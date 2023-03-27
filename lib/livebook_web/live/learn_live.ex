@@ -16,7 +16,7 @@ defmodule LivebookWeb.LearnLive do
      assign(socket,
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
-       page_title: "Livebook - Learn"
+       page_title: "Learn - Livebook"
      )}
   end
 

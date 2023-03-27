@@ -2041,7 +2041,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp get_page_title(notebook_name) do
-    "Livebook - #{notebook_name}"
+    "#{notebook_name} - Livebook"
   end
 
   defp memory_color(:atom), do: "bg-blue-500"
