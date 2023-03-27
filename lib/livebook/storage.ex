@@ -17,7 +17,7 @@ defmodule Livebook.Storage do
   @type namespace :: atom()
   @type entity_id :: binary()
   @type attribute :: atom()
-  @type value :: binary() | nil
+  @type value :: term()
   @type timestamp :: non_neg_integer()
   @type entity :: %{required(:id) => entity_id(), optional(attribute()) => value()}
 

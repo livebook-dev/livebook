@@ -86,6 +86,14 @@ defmodule Livebook.NotebookManager do
   end
 
   @doc """
+  Removes the given file from recent notebooks.
+  """
+  @spec remove_recent_notebook(FileSystem.File.t()) :: :ok
+  def remove_recent_notebook(file) do
+    GenServer.cast(__MODULE__, {:remove_recent_notebook, file})
+  end
+
+  @doc """
   Removes the given file from starred notebooks.
   """
   @spec remove_starred_notebook(FileSystem.File.t()) :: :ok
@@ -169,6 +177,13 @@ defmodule Livebook.NotebookManager do
       broadcast_changes(state, prev_state)
       {:noreply, state, {:continue, :dump_state}}
     end
+  end
+
+  def handle_cast({:remove_recent_notebook, file}, state = prev_state) do
+    recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
+    state = %{state | recent_notebooks: recent_notebooks}
+    broadcast_changes(state, prev_state)
+    {:noreply, state, {:continue, :dump_state}}
   end
 
   def handle_cast({:remove_starred_notebook, file}, state = prev_state) do
