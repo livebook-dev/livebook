@@ -128,7 +128,7 @@ defmodule LivebookWeb.OpenLive do
                       )
                     }
                   >
-                    <.remix_icon icon="eye-off-fill" class="text-gray-600" />
+                    <.remix_icon icon="close-fill" class="text-gray-600 text-lg" />
                   </button>
                 </span>
               </:card_icon>
