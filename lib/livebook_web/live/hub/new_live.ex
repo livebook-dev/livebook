@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.NewLive do
   @impl true
   def mount(_params, _session, socket) do
     enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
-    {:ok, assign(socket, selected_type: nil, page_title: "Livebook - Hub", enabled?: enabled?)}
+    {:ok, assign(socket, selected_type: nil, page_title: "Hub - Livebook", enabled?: enabled?)}
   end
 
   @impl true

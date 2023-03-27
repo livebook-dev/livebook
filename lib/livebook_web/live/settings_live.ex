@@ -21,7 +21,7 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
-       page_title: "Livebook - Settings",
+       page_title: "Settings - Livebook",
        default_file_system_id: Livebook.Settings.default_file_system_id()
      )}
   end
