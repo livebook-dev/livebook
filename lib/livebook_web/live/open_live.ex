@@ -113,7 +113,26 @@ defmodule LivebookWeb.OpenLive do
               notebook_infos={@recent_notebooks}
               sessions={@sessions}
               added_at_label="Opened"
-            />
+            >
+              <:card_icon :let={{_info, idx}}>
+                <span class="tooltip top" data-tooltip="Hide notebook">
+                  <button
+                    aria-label="hide notebook"
+                    phx-click={
+                      with_confirm(
+                        JS.push("hide_recent_notebook", value: %{idx: idx}),
+                        title: "Hide notebook",
+                        description: "The notebook will reappear here when you open it again.",
+                        confirm_text: "Hide",
+                        opt_out_id: "hide-notebook"
+                      )
+                    }
+                  >
+                    <.remix_icon icon="close-fill" class="text-gray-600 text-lg" />
+                  </button>
+                </span>
+              </:card_icon>
+            </.live_component>
           <% end %>
           <div class="mt-3 text-gray-600 text-sm">
             Looking for unsaved notebooks? <.link
@@ -172,6 +191,12 @@ defmodule LivebookWeb.OpenLive do
   @impl true
   def handle_event("new", %{}, socket) do
     {:noreply, create_session(socket)}
+  end
+
+  def handle_event("hide_recent_notebook", %{"idx" => idx}, socket) do
+    %{file: file} = Enum.fetch!(socket.assigns.recent_notebooks, idx)
+    Livebook.NotebookManager.remove_recent_notebook(file)
+    {:noreply, socket}
   end
 
   @impl true
