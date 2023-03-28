@@ -77,10 +77,11 @@ private class Release {
         listener.newConnectionHandler = didAccept(conn:)
         listener.start(queue: .global())
 
-        let timeout = DispatchTime.now() + DispatchTimeInterval.seconds(5)
+        let seconds = 15
+        let timeout = DispatchTime.now() + DispatchTimeInterval.seconds(seconds)
 
         if semaphore.wait(timeout: timeout) == .timedOut {
-            fatalError("waited for connection for more than 5s")
+            fatalError("waited for connection for more than \(seconds)s")
         }
     }
 
