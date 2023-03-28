@@ -89,8 +89,8 @@ defmodule LivebookWeb.AppsLive do
         <div class="flex-1 grow-[2]">
           <.labeled_text label="URL">
             <%= if @session.app_info.registered do %>
-              <a href={url(~p"/apps/#{@session.app_info.slug}")} target="_blank">
-                <%= url(~p"/apps/#{@session.app_info.slug}") %>
+              <a href={~p"/apps/#{@session.app_info.slug}"} target="_blank">
+                <%= ~p"/apps/#{@session.app_info.slug}" %>
               </a>
             <% else %>
               -

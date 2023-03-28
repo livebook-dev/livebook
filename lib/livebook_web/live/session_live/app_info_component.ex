@@ -112,8 +112,8 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </.labeled_text>
               <.labeled_text label="URL" one_line>
                 <%= if app.registered do %>
-                  <a href={url(~p"/apps/#{app.settings.slug}")} target="_blank">
-                    <%= url(~p"/apps/#{app.settings.slug}") %>
+                  <a href={~p"/apps/#{app.settings.slug}"} target="_blank">
+                    <%= ~p"/apps/#{app.settings.slug}" %>
                   </a>
                 <% else %>
                   -

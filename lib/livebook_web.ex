@@ -80,6 +80,10 @@ defmodule LivebookWeb do
         endpoint: LivebookWeb.Endpoint,
         router: LivebookWeb.Router,
         statics: LivebookWeb.static_paths()
+
+      # We don't know the hostname Livebook runs on, so we don't use
+      # absolute URL helpers
+      import Phoenix.VerifiedRoutes, only: :sigils
     end
   end
 
