@@ -33,7 +33,7 @@ defmodule LivebookWeb.UserPlugTest do
       |> fetch_cookies()
       |> call()
 
-    assert conn.cookies["user_data"] != nil
+    assert conn.cookies["lb:user_data"] != nil
   end
 
   test "keeps user_data cookie if present" do
@@ -43,10 +43,10 @@ defmodule LivebookWeb.UserPlugTest do
     conn =
       conn(:get, "/")
       |> init_test_session(%{})
-      |> put_req_cookie("user_data", cookie_value)
+      |> put_req_cookie("lb:user_data", cookie_value)
       |> fetch_cookies()
       |> call()
 
-    assert conn.cookies["user_data"] == cookie_value
+    assert conn.cookies["lb:user_data"] == cookie_value
   end
 end

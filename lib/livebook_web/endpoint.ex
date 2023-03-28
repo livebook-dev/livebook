@@ -6,7 +6,7 @@ defmodule LivebookWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options [
     store: :cookie,
-    key: "_livebook_key",
+    key: "lb:session",
     signing_salt: "deadbook"
   ]
 
@@ -78,6 +78,7 @@ defmodule LivebookWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug :session
+  plug :purge_cookies
 
   # Run custom plugs from the app configuration
   plug LivebookWeb.ConfiguredPlug
@@ -98,6 +99,30 @@ defmodule LivebookWeb.Endpoint do
   def force_ssl(conn, _opts) do
     if Livebook.Config.force_ssl_host() do
       Plug.SSL.call(conn, @plug_ssl)
+    else
+      conn
+    end
+  end
+
+  # Because we run on localhost, we may accumulate
+  # cookies from several other apps. Our header limit
+  # is set to 32kB. Once we are 75% of said limit,
+  # we clear other cookies to make sure we don't go
+  # over the limit.
+  def purge_cookies(conn, _opts) do
+    cookie_size =
+      conn
+      |> Plug.Conn.get_req_header("cookie")
+      |> Enum.map(&byte_size/1)
+      |> Enum.sum()
+
+    if cookie_size > 24576 do
+      conn.cookies
+      |> Enum.reject(fn {key, _value} -> String.starts_with?(key, "lb:") end)
+      |> Enum.take(10)
+      |> Enum.reduce(conn, fn {key, _value}, conn ->
+        Plug.Conn.delete_resp_cookie(conn, key)
+      end)
     else
       conn
     end
