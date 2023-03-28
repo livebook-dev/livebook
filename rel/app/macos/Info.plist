@@ -7,7 +7,7 @@
   <key>CFBundleIdentifier</key>
   <string>dev.livebook.Livebook</string>
   <key>CFBundleVersion</key>
-  <string>0.8.0</string>
+  <string>$(app_version)</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>LSUIElement</key>
