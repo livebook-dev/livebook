@@ -40,14 +40,14 @@ defmodule LivebookWeb.UserPlug do
   end
 
   defp ensure_user_data(conn) do
-    if Map.has_key?(conn.req_cookies, "user_data") do
+    if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
     else
       user_data = user_data(User.new())
       encoded = user_data |> Jason.encode!() |> Base.encode64()
       # Set `http_only` to `false`, so that it can be accessed on the client
       # Set expiration in 5 years
-      put_resp_cookie(conn, "user_data", encoded, http_only: false, max_age: 157_680_000)
+      put_resp_cookie(conn, "lb:user_data", encoded, http_only: false, max_age: 157_680_000)
     end
   end
 
@@ -60,7 +60,7 @@ defmodule LivebookWeb.UserPlug do
   # Copies user_data from cookie to session, so that it's
   # accessible to LiveViews
   defp mirror_user_data_in_session(conn) do
-    user_data = conn.cookies["user_data"] |> Base.decode64!() |> Jason.decode!()
+    user_data = conn.cookies["lb:user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
   end
 end

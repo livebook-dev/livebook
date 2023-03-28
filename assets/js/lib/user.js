@@ -1,9 +1,9 @@
 import { decodeBase64, encodeBase64 } from "./utils";
 
-const USER_DATA_COOKIE = "user_data";
+const USER_DATA_COOKIE = "lb:user_data";
 
 /**
- * Stores user data in the `"user_data"` cookie.
+ * Stores user data in the `"lb:user_data"` cookie.
  */
 export function storeUserData(userData) {
   const json = JSON.stringify(userData);
@@ -12,7 +12,7 @@ export function storeUserData(userData) {
 }
 
 /**
- * Loads user data from the `"user_data"` cookie.
+ * Loads user data from the `"lb:user_data"` cookie.
  */
 export function loadUserData() {
   const encoded = getCookieValue(USER_DATA_COOKIE);
