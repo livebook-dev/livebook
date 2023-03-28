@@ -12,61 +12,30 @@ defmodule LivebookWeb.AuthAppListLive do
 
     sessions = Livebook.Sessions.list_sessions() |> Enum.filter(&(&1.mode == :app))
 
-    {:ok,
-     assign(socket,
-       sessions: sessions,
-       empty_apps_path?: Livebook.Apps.empty_apps_path?()
-     ), layout: false}
+    {:ok, assign(socket, sessions: sessions), layout: false}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="w-full flex flex-col items-center">
-      <div class="text-gray-700 text-xl font-medium">
-        Public apps
-      </div>
-      <div :if={@sessions != []} class="mt-5 max-w-[400px] w-full flex flex-col space-y-4">
-        <.link
-          :for={session <- visible_sessions(@sessions)}
-          navigate={~p"/apps/#{session.app_info.slug}"}
-          class={[
-            "px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between",
-            not session.app_info.registered && "pointer-events-none"
-          ]}
-        >
-          <span class="font-semibold"><%= session.notebook_name %></span>
-          <%= if session.app_info.registered do %>
-            <.remix_icon icon="arrow-right-line" class="" />
-          <% else %>
-            <div class="mr-0.5 flex">
-              <.app_status status={session.app_info.status} show_label={false} />
-            </div>
-          <% end %>
-        </.link>
-      </div>
-      <div :if={@empty_apps_path?} class="mt-5 text-gray-600">
-        <div>
-          No app notebooks found. <br />Follow these steps to list your apps here:
-        </div>
-        <ol class="mt-4 pl-4 flex flex-col space-y-1 list-decimal list-inside">
-          <li>
-            Open a notebook
-          </li>
-          <li>
-            Click <.remix_icon icon="rocket-line" class="align-sub text-lg" />
-            in the sidebar and configure the app as public
-          </li>
-          <li>
-            Save the notebook to the
-            <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
-            folder
-          </li>
-          <li>
-            Relaunch your Livebook app
-          </li>
-        </ol>
-      </div>
+    <div class="w-full flex flex-col space-y-4">
+      <.link
+        :for={session <- visible_sessions(@sessions)}
+        navigate={~p"/apps/#{session.app_info.slug}"}
+        class={[
+          "px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between",
+          not session.app_info.registered && "pointer-events-none"
+        ]}
+      >
+        <span class="font-semibold"><%= session.notebook_name %></span>
+        <%= if session.app_info.registered do %>
+          <.remix_icon icon="arrow-right-line" class="" />
+        <% else %>
+          <div class="mr-0.5 flex">
+            <.app_status status={session.app_info.status} show_label={false} />
+          </div>
+        <% end %>
+      </.link>
     </div>
     """
   end
