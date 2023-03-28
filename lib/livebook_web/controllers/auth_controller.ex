@@ -25,8 +25,8 @@ defmodule LivebookWeb.AuthController do
     render(conn, "index.html",
       errors: [],
       auth_mode: Livebook.Config.auth_mode(),
-      app_sessions: app_sessions(),
-      empty_apps_path?: empty_apps_path?()
+      any_public_app?: any_public_app?(),
+      empty_apps_path?: Livebook.Apps.empty_apps_path?()
     )
   end
 
@@ -56,8 +56,8 @@ defmodule LivebookWeb.AuthController do
     render(conn, "index.html",
       errors: errors,
       auth_mode: auth_mode,
-      app_sessions: app_sessions(),
-      empty_apps_path?: empty_apps_path?()
+      any_public_app?: any_public_app?(),
+      empty_apps_path?: Livebook.Apps.empty_apps_path?()
     )
   end
 
@@ -75,18 +75,8 @@ defmodule LivebookWeb.AuthController do
     |> halt()
   end
 
-  defp app_sessions() do
+  defp any_public_app?() do
     Livebook.Sessions.list_sessions()
-    |> Enum.filter(&(&1.mode == :app and &1.app_info.public? and &1.app_info.registered))
-    |> Enum.sort_by(& &1.notebook_name)
-  end
-
-  defp empty_apps_path?() do
-    if path = Livebook.Config.apps_path() do
-      pattern = Path.join([path, "**", "*.livemd"])
-      Path.wildcard(pattern) == []
-    else
-      false
-    end
+    |> Enum.any?(&(&1.mode == :app and &1.app_info.public?))
   end
 end

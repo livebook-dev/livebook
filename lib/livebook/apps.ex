@@ -140,4 +140,17 @@ defmodule Livebook.Apps do
 
     :ok
   end
+
+  @doc """
+  Checks if the apps directory is configured and contains no notebooks.
+  """
+  @spec empty_apps_path?() :: boolean()
+  def empty_apps_path?() do
+    if path = Livebook.Config.apps_path() do
+      pattern = Path.join([path, "**", "*.livemd"])
+      Path.wildcard(pattern) == []
+    else
+      false
+    end
+  end
 end
