@@ -83,8 +83,11 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             target={{__MODULE__, @id}}
           />
         </div>
-        <div class="text-sm text-gray-600 whitespace-nowrap">
-          File: <%= normalize_file(@draft_file).path %>
+        <div>
+          <.label>File</.label>
+          <div class="whitespace-nowrap text-gray-700 leading-4">
+            <%= normalize_file(@draft_file).path %>
+          </div>
         </div>
         <form
           phx-change="set_options"
