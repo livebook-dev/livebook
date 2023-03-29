@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       >
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:name]} label="Name" placeholder={name_placeholder()} />
-          <.text_field field={f[:cookie]} label="Name" placeholder="mycookie" />
+          <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>
         <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
           <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
