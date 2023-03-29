@@ -70,7 +70,13 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               autocomplete="off"
             >
               <div class="flex flex-col space-y-4">
-                <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
+                <.text_field
+                  field={f[:slug]}
+                  label="Slug"
+                  spellcheck="false"
+                  phx-debounce
+                  class="bg-gray-100"
+                />
                 <div class="flex flex-col space-y-1">
                   <.checkbox_field
                     field={f[:access_type]}
@@ -79,7 +85,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                     unchecked_value="public"
                   />
                   <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
-                    <.password_field field={f[:password]} spellcheck="false" phx-debounce />
+                    <.password_field
+                      field={f[:password]}
+                      spellcheck="false"
+                      phx-debounce
+                      class="bg-gray-100"
+                    />
                   <% end %>
                 </div>
                 <.checkbox_field field={f[:show_source]} label="Show source" />

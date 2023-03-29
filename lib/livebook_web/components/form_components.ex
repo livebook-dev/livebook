@@ -91,6 +91,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
 
@@ -105,7 +106,7 @@ defmodule LivebookWeb.FormComponents do
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class="input pr-8"
+          class={["input pr-8", @class]}
           {@rest}
         />
       </.with_password_toggle>
@@ -249,7 +250,7 @@ defmodule LivebookWeb.FormComponents do
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <span :if={@label}><%= @label %></span>
+        <span :if={@label} class="text-gray-700"><%= @label %></span>
       </label>
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>

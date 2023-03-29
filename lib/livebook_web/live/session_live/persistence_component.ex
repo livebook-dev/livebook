@@ -83,36 +83,34 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             target={{__MODULE__, @id}}
           />
         </div>
+        <div class="text-sm text-gray-600 whitespace-nowrap">
+          File: <%= normalize_file(@draft_file).path %>
+        </div>
         <form
           phx-change="set_options"
           phx-target={@myself}
           phx-nosubmit
-          class="flex flex-col space-y-4 items-start max-w-full"
+          class="flex flex-col items-start max-w-full"
         >
-          <div class="flex flex-col space-y-4">
-            <.switch_field
+          <div class="flex flex-col space-y-6">
+            <.select_field
+              name="autosave_interval_s"
+              label="Autosave"
+              value={@new_attrs.autosave_interval_s || ""}
+              options={[
+                {"every 5 seconds", "5"},
+                {"every 30 seconds", "30"},
+                {"every minute", "60"},
+                {"every 10 minutes", "600"},
+                {"never", ""}
+              ]}
+            />
+            <.checkbox_field
               name="persist_outputs"
               label="Persist outputs"
               value={@new_attrs.persist_outputs}
             />
-            <div class="flex space-x-2 items-center">
-              <span class="text-gray-700 whitespace-nowrap">Autosave</span>
-              <.select_field
-                name="autosave_interval_s"
-                value={@new_attrs.autosave_interval_s || ""}
-                options={[
-                  {"every 5 seconds", "5"},
-                  {"every 30 seconds", "30"},
-                  {"every minute", "60"},
-                  {"every 10 minutes", "600"},
-                  {"never", ""}
-                ]}
-              />
-            </div>
           </div>
-          <span class="text-gray-700 whitespace-nowrap pt-2">
-            File: <%= normalize_file(@draft_file).path %>
-          </span>
         </form>
       </div>
       <div class="flex justify-between">
