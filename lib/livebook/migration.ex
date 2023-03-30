@@ -6,9 +6,14 @@ defmodule Livebook.Migration do
   """
   @spec migrate() :: :ok
   def migrate() do
+    delete_local_host_hub()
     insert_personal_hub()
     move_app_secrets_to_personal_hub()
     add_personal_hub_secret_key()
+  end
+
+  defp delete_local_host_hub() do
+    Livebook.Storage.delete(:hubs, "local-host")
   end
 
   defp insert_personal_hub() do
