@@ -51,7 +51,7 @@ defmodule LivebookWeb.Output do
     assigns = %{id: id, text: text}
 
     ~H"""
-    <div id={@id} class="text-gray-700"><%= @text %></div>
+    <div id={@id} class="text-gray-700 whitespace-pre-wrap"><%= @text %></div>
     """
   end
 
