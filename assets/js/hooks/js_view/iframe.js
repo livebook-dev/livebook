@@ -15,7 +15,7 @@ import { sha256Base64 } from "../../lib/utils";
 // block asset requests from the https:// iframe to http:// Livebook.
 // However, external http:// content is not considered a secure context (3),
 // which implies no access to user media. Therefore, instead of using
-// http://livebook.space we use another localhost endpoint. Note that
+// http://livebookusercontent.com we use another localhost endpoint. Note that
 // this endpoint has a different port than the Livebook web app, that's
 // because we need separate origins, as outlined above.
 //
@@ -48,7 +48,7 @@ function getIframeUrl(iframePort, iframeUrl) {
   }
 
   return protocol === "https:"
-    ? "https://livebook.space/iframe/v4.html"
+    ? "https://livebookusercontent.com/iframe/v4.html"
     : `http://${window.location.hostname}:${iframePort}/iframe/v4.html`;
 }
 
