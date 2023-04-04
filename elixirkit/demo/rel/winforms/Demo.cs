@@ -7,30 +7,35 @@ static class DemoMain
     {
         if (ElixirKit.API.IsMainInstance("com.example.Demo"))
         {
-            ElixirKit.API.Start(name: "demo", exited: (exitCode) =>
-            {
-                Application.Exit();
-            });
+            ElixirKit.API.Start(
+                name: "demo",
+                ready: () =>
+                {
+                    ElixirKit.API.Publish("log", "Hello from Windows Forms!");
+
+                    ElixirKit.API.Subscribe((name, data) =>
+                    {
+                        switch (name)
+                        {
+                            case "log":
+                                Console.WriteLine($"[client] {data}");
+                                break;
+
+                            default:
+                                throw new Exception($"unknown event {name}");
+                        }
+                    });
+                },
+                exited: (exitCode) =>
+                {
+                    Application.Exit();
+                }
+            );
 
             Application.ApplicationExit += (sender, args) =>
             {
                 ElixirKit.API.Stop();
             };
-
-            ElixirKit.API.Publish("log", "Hello from Windows Forms!");
-
-            ElixirKit.API.Subscribe((name, data) =>
-            {
-                switch (name)
-                {
-                    case "log":
-                        Console.WriteLine($"[client] {data}");
-                        break;
-
-                    default:
-                        throw new Exception($"unknown event {name}");
-                }
-            });
 
             ApplicationConfiguration.Initialize();
             Application.Run(new DemoForm());
