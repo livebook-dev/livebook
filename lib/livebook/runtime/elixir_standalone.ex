@@ -54,7 +54,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   kino_explorer = %{
     name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.2"}, config: []}
+    dependency: %{dep: {:kino_explorer, "~> 0.1.3"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
