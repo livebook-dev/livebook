@@ -10,7 +10,7 @@ Mix.install([
 
 Throughout the Learning section, we have used Kino several times.
 Sometimes we use built-in Kinos, such as using `Kino.Control` and
-`Kino.Frame` to deploy applications](/learn/notebooks/deploy-apps),
+`Kino.Frame` to [deploy applications](/learn/notebooks/deploy-apps),
 other times we used custom Kinos tailired for
 [data exploration](/learn/notebooks/intro-to-explorer) or
 [plotting](/learn/notebooks/intro-to-vega-lite).
