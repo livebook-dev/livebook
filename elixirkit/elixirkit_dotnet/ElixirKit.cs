@@ -10,6 +10,8 @@ using System.Net.Sockets;
 
 namespace ElixirKit;
 
+public delegate void ReadyHandler();
+
 public delegate void ExitHandler(int ExitCode);
 
 public delegate void EventHandler(string Name, string Data);
@@ -43,11 +45,11 @@ public static class API
         }
     }
 
-    public static void Start(string name, ExitHandler? exited = null, string? logPath = null)
+    public static void Start(string name, ReadyHandler ready, ExitHandler? exited = null, string? logPath = null)
     {
         ensureMainInstance();
 
-        release = new Release(name, exited, logPath);
+        release = new Release(name, ready, exited, logPath);
 
         if (mutex != null)
         {
@@ -136,7 +138,7 @@ internal class Release
         }
     }
 
-    public Release(string name, ExitHandler? exited = null, string? logPath = null)
+    public Release(string name, ReadyHandler ready, ExitHandler? exited = null, string? logPath = null)
     {
         logger = new Logger(logPath);
         listener = new Listener();
@@ -187,8 +189,11 @@ internal class Release
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        var tcpClient = listener.TcpListener.AcceptTcpClient();
-        client = new Client(tcpClient);
+        Task.Run(() => {
+            var tcpClient = listener.TcpListener.AcceptTcpClient();
+            client = new Client(tcpClient);
+            ready();
+        });
     }
 
     public void Send(string message)

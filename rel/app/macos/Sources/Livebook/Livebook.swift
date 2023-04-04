@@ -21,35 +21,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         logPath = "\(NSHomeDirectory())/Library/Logs/Livebook.log"
 
-        ElixirKit.API.start(name: "app", logPath: logPath) { process in
-            if process.terminationStatus != 0 {
-                DispatchQueue.main.sync {
-                    let alert = NSAlert()
-                    alert.alertStyle = .critical
-                    alert.messageText = "Livebook exited with error status \(process.terminationStatus)"
-                    alert.addButton(withTitle: "Dismiss")
-                    alert.addButton(withTitle: "View Logs")
-
-                    switch alert.runModal() {
-                    case .alertSecondButtonReturn:
-                        self.viewLogs()
-                    default:
-                        ()
+        ElixirKit.API.start(
+            name: "app",
+            logPath: logPath,
+            readyHandler: {
+                if (self.initialURLs == []) {
+                    ElixirKit.API.publish("open", "")
+                }
+                else {
+                    for url in self.initialURLs {
+                        ElixirKit.API.publish("open", url.absoluteString)
                     }
                 }
-            }
+            },
+            terminationHandler: { process in
+                if process.terminationStatus != 0 {
+                    DispatchQueue.main.sync {
+                        let alert = NSAlert()
+                        alert.alertStyle = .critical
+                        alert.messageText = "Livebook exited with error status \(process.terminationStatus)"
+                        alert.addButton(withTitle: "Dismiss")
+                        alert.addButton(withTitle: "View Logs")
 
-            NSApp.terminate(nil)
-        }
+                        switch alert.runModal() {
+                        case .alertSecondButtonReturn:
+                            self.viewLogs()
+                        default:
+                            ()
+                        }
+                    }
+                }
 
-        if (self.initialURLs == []) {
-            ElixirKit.API.publish("open", "")
-        }
-        else {
-            for url in self.initialURLs {
-                ElixirKit.API.publish("open", url.absoluteString)
+                NSApp.terminate(nil)
             }
-        }
+        )
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let button = statusItem.button!
@@ -81,7 +86,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 fatalError("unknown event \(name)")
             }
         }
-
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {

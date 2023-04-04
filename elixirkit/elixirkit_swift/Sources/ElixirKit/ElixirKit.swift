@@ -13,20 +13,25 @@ public class API {
         }
     }
 
-    public static func start(name: String, logPath: String? = nil, terminationHandler: ((Process) -> Void)? = nil) {
-        release = Release(name: name, logPath: logPath, terminationHandler: terminationHandler)
+    public static func start(
+        name: String,
+        logPath: String? = nil,
+        readyHandler: @escaping () -> Void,
+        terminationHandler: ((Process) -> Void)? = nil) {
+
+        release = Release(name: name, logPath: logPath, readyHandler: readyHandler, terminationHandler: terminationHandler)
     }
 
     public static func publish(_ name: String, _ data: String) {
-        release?.publish(name, data)
+        release!.publish(name, data)
     }
 
     public static func stop() {
-        release?.stop();
+        release!.stop();
     }
 
     public static func waitUntilExit() {
-        release?.waitUntilExit();
+        release!.waitUntilExit();
     }
 
     public static func addObserver(queue: OperationQueue?, using: @escaping (((String, String)) -> Void)) {
@@ -42,6 +47,7 @@ private class Release {
     let logger: Logger
     let listener: NWListener
     var connection: Connection?
+    let readyHandler: () -> Void
     let semaphore = DispatchSemaphore(value: 0)
 
     var isRunning: Bool {
@@ -50,7 +56,13 @@ private class Release {
         }
     }
 
-    init(name: String, logPath: String? = nil, terminationHandler: ((Process) -> Void)? = nil) {
+    init(
+        name: String,
+        logPath: String? = nil,
+        readyHandler: @escaping () -> Void,
+        terminationHandler: ((Process) -> Void)? = nil) {
+
+        self.readyHandler = readyHandler
         logger = Logger(logPath: logPath)
         listener = try! NWListener(using: .tcp, on: .any)
 
@@ -77,7 +89,7 @@ private class Release {
         listener.newConnectionHandler = didAccept(conn:)
         listener.start(queue: .global())
 
-        let seconds = 15
+        let seconds = 5
         let timeout = DispatchTime.now() + DispatchTimeInterval.seconds(seconds)
 
         if semaphore.wait(timeout: timeout) == .timedOut {
@@ -86,7 +98,7 @@ private class Release {
     }
 
     public func stop() {
-        connection!.cancel()
+        connection?.cancel()
         listener.cancel()
         waitUntilExit()
     }
@@ -117,11 +129,12 @@ private class Release {
         env["ELIXIRKIT_PORT"] = port
         process.environment = env
         try! process.run()
+        semaphore.signal()
     }
 
     private func didAccept(conn: NWConnection) {
         self.connection = Connection(conn: conn, logger: logger)
-        semaphore.signal()
+        readyHandler()
     }
 }
 

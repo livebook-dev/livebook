@@ -12,26 +12,36 @@ public struct Demo {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window : NSWindow!
+    private var window: NSWindow!
+    private var button: NSButton!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        button = NSButton(title: "Press me!", target: self, action: #selector(pressMe))
+        button.isEnabled = false
+
         ElixirKit.API.start(
             name: "demo",
+            readyHandler: {
+                // GUI updates need to happen on the main thread.
+                DispatchQueue.main.sync {
+                    self.button.isEnabled = true
+                }
+
+                ElixirKit.API.publish("log", "Hello from AppKit!")
+
+                ElixirKit.API.addObserver(queue: .main) { (name, data) in
+                    switch name {
+                    case "log":
+                        print("[client] " + data)
+                    default:
+                        fatalError("unknown event \(name)")
+                    }
+                }
+            },
             terminationHandler: { _ in
                 NSApp.terminate(nil)
             }
         )
-
-        ElixirKit.API.publish("log", "Hello from AppKit!")
-
-        ElixirKit.API.addObserver(queue: .main) { (name, data) in
-            switch name {
-            case "log":
-                print("[client] " + data)
-            default:
-                fatalError("unknown event \(name)")
-            }
-        }
 
         let menuItemOne = NSMenuItem()
         menuItemOne.submenu = NSMenu(title: "Demo")
@@ -48,8 +58,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                           defer: true)
         window.orderFrontRegardless()
         window.title = "Demo"
-
-        let button = NSButton(title: "Press me!", target: self, action: #selector(pressMe))
         window.contentView!.subviews.append(button)
 
         NSApp.setActivationPolicy(.regular)

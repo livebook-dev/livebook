@@ -88,27 +88,28 @@ class LivebookApp : ApplicationContext
         ElixirKit.API.Start(
             name: "app",
             logPath: logPath,
+            ready: () => {
+                ElixirKit.API.Subscribe((name, data) =>
+                {
+                    switch (name)
+                    {
+                        case "url":
+                            copyURLButton.Enabled = true;
+                            this.url = data;
+                            break;
+
+                        default:
+                            throw new Exception($"unknown event {name}");
+                    }
+                });
+
+                ElixirKit.API.Publish("open", url);
+            },
             exited: (exitCode) =>
             {
                 Application.Exit();
             }
         );
-
-        ElixirKit.API.Subscribe((name, data) =>
-        {
-            switch (name)
-            {
-                case "url":
-                    copyURLButton.Enabled = true;
-                    this.url = data;
-                    break;
-
-                default:
-                    throw new Exception($"unknown event {name}");
-            }
-        });
-
-        ElixirKit.API.Publish("open", url);
     }
 
     private void threadExit(object? sender, EventArgs e)
