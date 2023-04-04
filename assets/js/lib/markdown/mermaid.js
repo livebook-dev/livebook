@@ -25,8 +25,8 @@ export function renderMermaid(definition) {
     injectFontAwesomeIfNeeded(definition);
 
     return mermaid
-      .renderAsync(getId(), definition)
-      .then((svg) => {
+      .render(getId(), definition)
+      .then(({ svg }) => {
         cache.set(hash, svg);
         return svg;
       })
