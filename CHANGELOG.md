@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.9.1](https://github.com/livebook-dev/livebook/tree/v0.9.1) (2023-04-06)
+
+### Added
+
+- Support for clients-only outputs ([#1810](https://github.com/livebook-dev/livebook/pull/1810))
+- Option to unstar notebooks directly from cards ([#1818](https://github.com/livebook-dev/livebook/pull/1818))
+- Option to hide notebooks from recent list ([#1830](https://github.com/livebook-dev/livebook/pull/1830))
+- Purging cookies once they exceed 24kB ([#1833](https://github.com/livebook-dev/livebook/pull/1833))
+- Preview for booting apps on the auth screen ([#1836](https://github.com/livebook-dev/livebook/pull/1836))
+
+### Changed
+
+- Moved "Livebook" to the end of page title ([#1828](https://github.com/livebook-dev/livebook/pull/1828))
+
+### Fixed
+
+- Image and audio inputs to update preview on change for other users ([#1807](https://github.com/livebook-dev/livebook/pull/1807))
+- Notebooks on Kino and on MapLibre ([#1806](https://github.com/livebook-dev/livebook/pull/1806), [#1811](https://github.com/livebook-dev/livebook/pull/1811))
+- Booting if apps path is unavailable ([#1812](https://github.com/livebook-dev/livebook/pull/1812))
+- Rendering of error pages
+- (Desktop) Fixed app URLs ([#1835](https://github.com/livebook-dev/livebook/pull/1835))
+- Respect whitespace in plain text output ([#1841](https://github.com/livebook-dev/livebook/pull/1841))
+- (Desktop) Fixed displaying error dialog and logging errors ([#1848](https://github.com/livebook-dev/livebook/pull/1848))
+
 ## [v0.9.0](https://github.com/livebook-dev/livebook/tree/v0.9.0) (2023-03-20)
 
 We migrated Docker images from Docker Hub to GitHub Container Registry (see [#1792](https://github.com/livebook-dev/livebook/pull/1792)). Make sure to upgrade image references from `livebook/livebook` to `ghcr.io/livebook-dev/livebook`.
