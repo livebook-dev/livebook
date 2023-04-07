@@ -36,7 +36,7 @@ defmodule Livebook.Delta.Transformation do
   """
   @spec transform(Delta.t(), Delta.t(), priority()) :: Delta.t()
   def transform(left, right, priority) do
-    do_transform(left.ops, right.ops, priority, Delta.new())
+    do_transform(Delta.operations(left), Delta.operations(right), priority, Delta.new())
     |> Delta.trim()
   end
 
