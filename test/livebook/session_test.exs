@@ -944,7 +944,7 @@ defmodule Livebook.SessionTest do
     end
 
     test "pings the smart cell before evaluation to await all incoming messages" do
-      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "1"}
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
@@ -963,6 +963,11 @@ defmodule Livebook.SessionTest do
         {:runtime_smart_cell_started, smart_cell.id,
          %{source: "1", js_view: %{pid: self(), ref: "ref"}, editor: nil}}
       )
+
+      # Sends digest to clients when the source is different
+      cell_id = smart_cell.id
+      new_digest = :erlang.md5("1")
+      assert_receive {:hydrate_cell_source_digest, ^cell_id, :primary, ^new_digest}
 
       Session.queue_cell_evaluation(session.pid, smart_cell.id)
 
