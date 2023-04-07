@@ -115,13 +115,19 @@ defmodule Livebook.Delta do
   def trim(delta) do
     case List.last(delta.ops) do
       {:retain, _} ->
-        Map.update!(delta, :ops, fn ops ->
-          ops |> Enum.reverse() |> tl() |> Enum.reverse()
-        end)
+        Map.update!(delta, :ops, &List.delete_at(&1, -1))
 
       _ ->
         delta
     end
+  end
+
+  @doc """
+  Checks if the delta has no changes.
+  """
+  @spec empty?(t()) :: boolean()
+  def empty?(delta) do
+    trim(delta).ops == []
   end
 
   @doc """

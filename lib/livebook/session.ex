@@ -1863,7 +1863,7 @@ defmodule Livebook.Session do
          _prev_state,
          {:smart_cell_started, _client_id, cell_id, delta, _chunks, _js_view, _editor}
        ) do
-    if delta != Delta.new() do
+    unless Delta.empty?(delta) do
       hydrate_cell_source_digest(state, cell_id, :primary)
     end
 
