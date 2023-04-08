@@ -24,6 +24,11 @@ defmodule Livebook.Delta do
   alias Livebook.Delta
   alias Livebook.Delta.{Operation, Transformation}
 
+  @typedoc """
+  Delta carries a list of consecutive operations.
+
+  Note that we keep the operations in reversed order for efficiency.
+  """
   @type t :: %Delta{ops: list(Operation.t())}
 
   @doc """
@@ -73,12 +78,7 @@ defmodule Livebook.Delta do
   """
   @spec append(t(), Operation.t()) :: t()
   def append(delta, op) do
-    Map.update!(delta, :ops, fn ops ->
-      ops
-      |> Enum.reverse()
-      |> compact(op)
-      |> Enum.reverse()
-    end)
+    Map.update!(delta, :ops, &compact(&1, op))
   end
 
   defp compact(ops, {:insert, ""}), do: ops
@@ -110,18 +110,23 @@ defmodule Livebook.Delta do
   Removes trailing retain operations from the given delta.
   """
   @spec trim(t()) :: t()
-  def trim(%Delta{ops: []} = delta), do: delta
+  def trim(%Delta{ops: [{:retain, _} | ops]} = delta), do: %{delta | ops: ops}
+  def trim(delta), do: delta
 
-  def trim(delta) do
-    case List.last(delta.ops) do
-      {:retain, _} ->
-        Map.update!(delta, :ops, fn ops ->
-          ops |> Enum.reverse() |> tl() |> Enum.reverse()
-        end)
+  @doc """
+  Checks if the delta has no changes.
+  """
+  @spec empty?(t()) :: boolean()
+  def empty?(delta) do
+    trim(delta).ops == []
+  end
 
-      _ ->
-        delta
-    end
+  @doc """
+  Returns data operations in the order in which they apply.
+  """
+  @spec operations(t()) :: list(Operation.t())
+  def operations(delta) do
+    Enum.reverse(delta.ops)
   end
 
   @doc """
@@ -130,14 +135,16 @@ defmodule Livebook.Delta do
 
   ## Examples
 
-      iex> delta = %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
+      iex> delta = Delta.new([retain: 2, insert: "hey", delete: 3])
       iex> Livebook.Delta.to_compressed(delta)
       [2, "hey", -3]
 
   """
   @spec to_compressed(t()) :: list(Operation.compressed_t())
   def to_compressed(delta) do
-    Enum.map(delta.ops, &Operation.to_compressed/1)
+    delta.ops
+    |> Enum.reverse()
+    |> Enum.map(&Operation.to_compressed/1)
   end
 
   @doc """
@@ -145,15 +152,19 @@ defmodule Livebook.Delta do
 
   ## Examples
 
-      iex> Livebook.Delta.from_compressed([2, "hey", -3])
-      %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
+      iex> delta = Livebook.Delta.from_compressed([2, "hey", -3])
+      iex> Livebook.Delta.operations(delta)
+      [retain: 2, insert: "hey", delete: 3]
 
   """
   @spec from_compressed(list(Operation.compressed_t())) :: t()
   def from_compressed(list) do
-    list
-    |> Enum.map(&Operation.from_compressed/1)
-    |> new()
+    ops =
+      list
+      |> Enum.map(&Operation.from_compressed/1)
+      |> Enum.reverse()
+
+    %Delta{ops: ops}
   end
 
   defdelegate transform(left, right, priority), to: Transformation

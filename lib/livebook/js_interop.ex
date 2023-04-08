@@ -20,7 +20,8 @@ defmodule Livebook.JSInterop do
   def apply_delta_to_string(delta, string) do
     code_units = string_to_utf16_code_units(string)
 
-    delta.ops
+    delta
+    |> Delta.operations()
     |> apply_to_code_units(code_units)
     |> utf16_code_units_to_string()
   end
