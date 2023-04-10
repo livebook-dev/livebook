@@ -147,7 +147,7 @@ const Session = {
     );
 
     this.getElement("showcase-mode-toggle").addEventListener("click", (event) =>
-      this.el.toggleAttribute("data-js-showcase-mode")
+      this.toggleShowcaseMode()
     );
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
@@ -1036,6 +1036,13 @@ const Session = {
       if (focusedSectionId) {
         this.setFocusedEl(focusedSectionId, { scroll: true });
       }
+    }
+  },
+
+  toggleShowcaseMode() {
+    this.el.toggleAttribute("data-js-showcase-mode");
+    if (this.el.hasAttribute("data-js-showcase-mode")) {
+      this.moveFocus(0);
     }
   },
 
