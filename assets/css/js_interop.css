@@ -321,3 +321,11 @@ solely client-side operations.
 [data-el-session][data-js-showcase-mode] [data-el-cell]:not([data-js-focused]) {
   @apply opacity-10;
 }
+
+[data-el-session][data-js-showcase-mode] [data-el-showcase-mode-enable] {
+  @apply hidden;
+}
+
+[data-el-session]:not([data-js-showcase-mode]) [data-el-showcase-mode-disable] {
+  @apply hidden;
+}
