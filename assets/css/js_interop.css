@@ -329,3 +329,8 @@ solely client-side operations.
 [data-el-session]:not([data-js-showcase-mode]) [data-el-showcase-mode-disable] {
   @apply hidden;
 }
+
+[data-el-session][data-js-showcase-mode] [data-el-sidebar],
+[data-el-session][data-js-showcase-mode] [data-el-side-panel] {
+  @apply hidden;
+}
