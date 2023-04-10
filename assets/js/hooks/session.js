@@ -70,6 +70,7 @@ const Session = {
     this.focusedId = null;
     this.insertMode = false;
     this.codeZen = false;
+    this.showcaseMode = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
@@ -492,6 +493,17 @@ const Session = {
     const focusableEl = event.target.closest(`[data-focusable-id]`);
     const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
     const insertMode = this.editableElementClicked(event, focusableEl);
+
+    // When in showcase mode, keep the focus as is
+    if (
+      this.showcaseMode ||
+      event.target.closest(`[data-el-showcase-mode-toggle]`)
+    ) {
+      if (this.insertMode !== insertMode) {
+        this.setInsertMode(insertMode);
+      }
+      return;
+    }
 
     if (focusableId !== this.focusedId) {
       this.setFocusedEl(focusableId, { scroll: false, focusElement: false });
@@ -1041,8 +1053,21 @@ const Session = {
 
   toggleShowcaseMode() {
     this.el.toggleAttribute("data-js-showcase-mode");
-    if (this.el.hasAttribute("data-js-showcase-mode")) {
-      this.moveFocus(0);
+    this.showcaseMode = this.el.hasAttribute("data-js-showcase-mode");
+
+    // If nothing is focused, use the first cell in the viewport
+    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
+
+    if (this.showcaseMode && focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(focusedId);
+
+      if (visibleId !== this.focused) {
+        this.setFocusedEl(visibleId, { scroll: false });
+      }
+
+      if (visibleId) {
+        this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
+      }
     }
   },
 
