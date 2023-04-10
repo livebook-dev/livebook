@@ -146,6 +146,10 @@ const Session = {
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
+    this.getElement("showcase-mode-toggle").addEventListener("click", (event) =>
+      this.el.toggleAttribute("data-js-showcase-mode")
+    );
+
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
       (event) => this.toggleCollapseAllSections()

@@ -45,6 +45,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             global_status={@global_status}
             session_id={@session_id}
           />
+          <.showcase_mode_indicator />
           <.insert_mode_indicator />
         </div>
       </div>
@@ -234,6 +235,20 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       >
         <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
       </div>
+    </span>
+    """
+  end
+
+  defp showcase_mode_indicator(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Enter showcase mode">
+      <button
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="enter showcase mode"
+        data-el-showcase-mode-toggle
+      >
+        <.remix_icon icon="slideshow-2-line" class="text-xl text-gray-400" />
+      </button>
     </span>
     """
   end
