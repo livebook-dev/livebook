@@ -497,7 +497,8 @@ const Session = {
     // When in showcase mode, keep the focus as is
     if (
       this.showcaseMode ||
-      event.target.closest(`[data-el-showcase-mode-toggle]`)
+      event.target.closest(`[data-el-showcase-mode-toggle]`) ||
+      event.target.closest(`[data-el-showcase-mode-enable]`)
     ) {
       if (this.insertMode !== insertMode) {
         this.setInsertMode(insertMode);
