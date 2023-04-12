@@ -78,7 +78,14 @@ defmodule LivebookWeb.AppsLive do
       <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 w-full max-w-2xl">
         <div class="flex-1">
           <.labeled_text label="Status">
-            <.app_status status={@session.app_info.status} />
+            <a
+              class="inline-block"
+              aria-label="debug app"
+              href={@session.app_info.status == :error && ~p"/sessions/#{@session.id}"}
+              target="_blank"
+            >
+              <.app_status status={@session.app_info.status} />
+            </a>
           </.labeled_text>
         </div>
         <div class="flex-1">
