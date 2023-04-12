@@ -119,7 +119,14 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <div :for={app <- @apps} class="border border-gray-200 rounded-lg">
             <div class="p-4 flex flex-col space-y-3">
               <.labeled_text label="Status">
-                <.app_status status={app.status} />
+                <a
+                  class="inline-block"
+                  aria-label="debug app"
+                  href={app.status == :error && ~p"/sessions/#{app.session_id}"}
+                  target="_blank"
+                >
+                  <.app_status status={app.status} />
+                </a>
               </.labeled_text>
               <.labeled_text label="URL" one_line>
                 <%= if app.registered do %>
