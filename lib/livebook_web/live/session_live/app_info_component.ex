@@ -123,7 +123,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </.labeled_text>
               <.labeled_text label="URL" one_line>
                 <%= if app.registered do %>
-                  <a href={~p"/apps/#{app.settings.slug}"} target="_blank">
+                  <a href={~p"/apps/#{app.settings.slug}"}>
                     <%= ~p"/apps/#{app.settings.slug}" %>
                   </a>
                 <% else %>
@@ -133,12 +133,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
             <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
               <span class="tooltip top" data-tooltip="Debug">
-                <a
-                  class="icon-button"
-                  aria-label="debug app"
-                  href={~p"/sessions/#{app.session_id}"}
-                  target="_blank"
-                >
+                <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app.session_id}"}>
                   <.remix_icon icon="terminal-line" class="text-lg" />
                 </a>
               </span>
