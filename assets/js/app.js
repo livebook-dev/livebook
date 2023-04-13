@@ -86,8 +86,8 @@ if (document.hasStorageAccess) {
               it runs in an iframe. To make sure the app is fully functional open it in a new
               tab directly.
             </div>
-            <div>
-              <a id="open-app" class="mt-6 button-base button-blue" target="_blank">
+            <div class="mt-6">
+              <a id="open-app" class="button-base button-blue" target="_blank">
                 Open app
               </a>
             </div>
