@@ -96,7 +96,7 @@ defmodule LivebookWeb.AppsLive do
         <div class="flex-1 grow-[2]">
           <.labeled_text label="URL">
             <%= if @session.app_info.registered do %>
-              <a href={~p"/apps/#{@session.app_info.slug}"} target="_blank">
+              <a href={~p"/apps/#{@session.app_info.slug}"}>
                 <%= ~p"/apps/#{@session.app_info.slug}" %>
               </a>
             <% else %>
@@ -105,14 +105,9 @@ defmodule LivebookWeb.AppsLive do
           </.labeled_text>
         </div>
       </div>
-      <div class="flex flex-col md:flex-row gap-2">
+      <div class="flex flex-col md:flex-row md:items-center gap-2">
         <span class="tooltip top" data-tooltip="Debug">
-          <a
-            class="icon-button"
-            aria-label="debug app"
-            href={~p"/sessions/#{@session.id}"}
-            target="_blank"
-          >
+          <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{@session.id}"}>
             <.remix_icon icon="terminal-line" class="text-lg" />
           </a>
         </span>

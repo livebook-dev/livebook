@@ -34,82 +34,13 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </h3>
         <.app_info_icon />
       </div>
-      <div class="flex flex-col mt-2 space-y-4">
-        <div class="w-full flex flex-col">
-          <%= if @deploy_confirmation do %>
-            <div class="mt-5">
-              <div class="text-gray-700  flex items-center">
-                <span class="text-sm">
-                  Another app is already running under this slug, do you want to replace it?
-                </span>
-              </div>
-              <div class="mt-5 flex space-x-2">
-                <button
-                  class="button-base button-red"
-                  phx-click="deploy_confirmation_confirm"
-                  phx-target={@myself}
-                >
-                  Replace
-                </button>
-                <button
-                  class="button-base button-outlined-gray bg-transparent"
-                  phx-click="deploy_confirmation_cancel"
-                  phx-target={@myself}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          <% else %>
-            <.form
-              :let={f}
-              for={@changeset}
-              phx-submit="deploy"
-              phx-change="validate"
-              phx-target={@myself}
-              autocomplete="off"
-            >
-              <div class="flex flex-col space-y-4">
-                <.text_field
-                  field={f[:slug]}
-                  label="Slug"
-                  spellcheck="false"
-                  phx-debounce
-                  class="bg-gray-100"
-                />
-                <div class="flex flex-col space-y-1">
-                  <.checkbox_field
-                    field={f[:access_type]}
-                    label="Password-protected"
-                    checked_value="protected"
-                    unchecked_value="public"
-                  />
-                  <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
-                    <.password_field
-                      field={f[:password]}
-                      spellcheck="false"
-                      phx-debounce
-                      class="bg-gray-100"
-                    />
-                  <% end %>
-                </div>
-                <.checkbox_field field={f[:show_source]} label="Show source" />
-              </div>
-              <div class="mt-6 flex space-x-2">
-                <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                  Deploy
-                </button>
-                <button
-                  class="button-base button-outlined-gray bg-transparent"
-                  type="reset"
-                  name="reset"
-                >
-                  Reset
-                </button>
-              </div>
-            </.form>
-          <% end %>
-        </div>
+      <div class="mt-2">
+        <.app_form
+          changeset={@changeset}
+          deploy_confirmation={@deploy_confirmation}
+          session={@session}
+          myself={@myself}
+        />
       </div>
       <%= if @apps != [] do %>
         <h3 class="mt-16 uppercase text-sm font-semibold text-gray-500">
@@ -130,7 +61,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </.labeled_text>
               <.labeled_text label="URL" one_line>
                 <%= if app.registered do %>
-                  <a href={~p"/apps/#{app.settings.slug}"} target="_blank">
+                  <a href={~p"/apps/#{app.settings.slug}"}>
                     <%= ~p"/apps/#{app.settings.slug}" %>
                   </a>
                 <% else %>
@@ -140,12 +71,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
             <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
               <span class="tooltip top" data-tooltip="Debug">
-                <a
-                  class="icon-button"
-                  aria-label="debug app"
-                  href={~p"/sessions/#{app.session_id}"}
-                  target="_blank"
-                >
+                <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app.session_id}"}>
                   <.remix_icon icon="terminal-line" class="text-lg" />
                 </a>
               </span>
@@ -197,6 +123,91 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     >
       <.remix_icon icon="question-line" class="text-xl leading-none" />
     </span>
+    """
+  end
+
+  defp app_form(%{session: %{app_info: %{}}} = assigns) do
+    ~H"""
+    <div class="mt-5 flex flex-col space-y-6">
+      <span class="text-gray-700 text-sm">
+        This session is a running app. To deploy a modified version, you can fork it.
+      </span>
+      <div>
+        <button class="button-base button-blue" phx-click="fork_session">
+          <.remix_icon icon="git-branch-line" />
+          <span>Fork</span>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp app_form(%{deploy_confirmation: true} = assigns) do
+    ~H"""
+    <div class="mt-5">
+      <span class="text-gray-700 text-sm">
+        Another app is already running under this slug, do you want to replace it?
+      </span>
+      <div class="mt-5 flex space-x-2">
+        <button
+          class="button-base button-red"
+          phx-click="deploy_confirmation_confirm"
+          phx-target={@myself}
+        >
+          Replace
+        </button>
+        <button
+          class="button-base button-outlined-gray bg-transparent"
+          phx-click="deploy_confirmation_cancel"
+          phx-target={@myself}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp app_form(assigns) do
+    ~H"""
+    <.form
+      :let={f}
+      for={@changeset}
+      phx-submit="deploy"
+      phx-change="validate"
+      phx-target={@myself}
+      autocomplete="off"
+    >
+      <div class="flex flex-col space-y-4">
+        <.text_field
+          field={f[:slug]}
+          label="Slug"
+          spellcheck="false"
+          phx-debounce
+          class="bg-gray-100"
+        />
+        <div class="flex flex-col space-y-1">
+          <.checkbox_field
+            field={f[:access_type]}
+            label="Password-protected"
+            checked_value="protected"
+            unchecked_value="public"
+          />
+          <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
+            <.password_field field={f[:password]} spellcheck="false" phx-debounce class="bg-gray-100" />
+          <% end %>
+        </div>
+        <.checkbox_field field={f[:show_source]} label="Show source" />
+      </div>
+      <div class="mt-6 flex space-x-2">
+        <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
+          Deploy
+        </button>
+        <button class="button-base button-outlined-gray bg-transparent" type="reset" name="reset">
+          Reset
+        </button>
+      </div>
+    </.form>
     """
   end
 
