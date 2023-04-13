@@ -98,7 +98,7 @@ defmodule LivebookWeb.AppsLive do
           </.labeled_text>
         </div>
       </div>
-      <div class="flex flex-col md:flex-row gap-2">
+      <div class="flex flex-col md:flex-row md:items-center gap-2">
         <span class="tooltip top" data-tooltip="Debug">
           <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{@session.id}"}>
             <.remix_icon icon="terminal-line" class="text-lg" />
