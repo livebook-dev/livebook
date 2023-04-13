@@ -66,9 +66,7 @@ function connect() {
 // option enabled, which is the default. Without cookies access, the session
 // is not stored, so CSRF tokens are invalid. Consequently, LV keeps reloading
 // the page, as we try to connect the socket with invalid token. To work around
-// this we need to ask to explicitly grant access to cookies, as outlined in (1).
-//
-// (1): https://developer.mozilla.org/en-US/docs/Web/API/Storage_Access_API
+// this we tell the user to open Livebook outside the iframe.
 
 if (document.hasStorageAccess) {
   document.hasStorageAccess().then((hasStorageAccess) => {
@@ -85,28 +83,21 @@ if (document.hasStorageAccess) {
             </div>
             <div class="mt-3 text-sm text-gray-300">
               It looks like Livebook does not have access to cookies. This usually happens when
-              it runs in an iframe. To make the app functional you need to grant Livebook access
-              to its cookies explicitly.
+              it runs in an iframe. To make sure the app is fully functional open it in a new
+              tab directly.
             </div>
             <div>
-              <button id="grant-access" class="mt-6 button-base button-blue">
-                Grant access
-              </button>
+              <a id="open-app" class="mt-6 button-base button-blue" target="_blank">
+                Open app
+              </a>
             </div>
           </div>
         </div>
       `;
 
+      overlayEl.querySelector("#open-app").href = window.location;
+
       document.body.appendChild(overlayEl);
-
-      const grantAccessButtonEl = overlayEl.querySelector("#grant-access");
-
-      grantAccessButtonEl.addEventListener("click", (event) => {
-        document
-          .requestStorageAccess()
-          .then(() => window.location.reload())
-          .catch(() => console.log("Access to storage denied"));
-      });
     }
   });
 } else {
