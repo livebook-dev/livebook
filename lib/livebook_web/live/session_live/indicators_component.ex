@@ -45,7 +45,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             global_status={@global_status}
             session_id={@session_id}
           />
-          <.showcase_mode_indicator />
+          <.presentation_indicator />
           <.insert_mode_indicator />
         </div>
       </div>
@@ -239,23 +239,23 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp showcase_mode_indicator(assigns) do
+  defp presentation_indicator(assigns) do
     ~H"""
-    <div data-el-showcase-mode-toggle>
-      <span class="tooltip left" data-tooltip="Enter showcase mode">
+    <div data-el-presentation-toggle>
+      <span class="tooltip left" data-tooltip="Enter presentation">
         <button
           class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-          aria-label="enter showcase mode"
-          data-el-showcase-mode-enable
+          aria-label="enter presentation"
+          data-el-presentation-enable
         >
           <.remix_icon icon="slideshow-2-line" class="text-xl text-gray-400" />
         </button>
       </span>
-      <span class="tooltip left" data-tooltip="Exit showcase mode">
+      <span class="tooltip left" data-tooltip="Exit presentation">
         <button
           class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-          aria-label="exit showcase mode"
-          data-el-showcase-mode-disable
+          aria-label="exit presentation"
+          data-el-presentation-disable
         >
           <.remix_icon icon="slideshow-2-line" class="text-xl text-green-bright-400" />
         </button>

@@ -314,23 +314,23 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session][data-js-showcase-mode]
+[data-el-session][data-js-presentation]
   [data-el-section-headline]:not([data-js-focused]),
-[data-el-session][data-js-showcase-mode]
+[data-el-session][data-js-presentation]
   [data-el-section-subheadline]:not([data-js-focused]),
-[data-el-session][data-js-showcase-mode] [data-el-cell]:not([data-js-focused]) {
+[data-el-session][data-js-presentation] [data-el-cell]:not([data-js-focused]) {
   @apply opacity-10;
 }
 
-[data-el-session][data-js-showcase-mode] [data-el-showcase-mode-enable] {
+[data-el-session][data-js-presentation] [data-el-presentation-enable] {
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-showcase-mode]) [data-el-showcase-mode-disable] {
+[data-el-session]:not([data-js-presentation]) [data-el-presentation-disable] {
   @apply hidden;
 }
 
-[data-el-session][data-js-showcase-mode] [data-el-sidebar],
-[data-el-session][data-js-showcase-mode] [data-el-side-panel] {
+[data-el-session][data-js-presentation] [data-el-sidebar],
+[data-el-session][data-js-presentation] [data-el-side-panel] {
   @apply hidden;
 }

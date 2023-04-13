@@ -70,7 +70,7 @@ const Session = {
     this.focusedId = null;
     this.insertMode = false;
     this.codeZen = false;
-    this.showcaseMode = false;
+    this.presentation = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
@@ -147,7 +147,7 @@ const Session = {
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
-    this.getElement("showcase-mode-toggle").addEventListener("click", (event) =>
+    this.getElement("presentation-toggle").addEventListener("click", (event) =>
       this.toggleShowcaseMode()
     );
 
@@ -494,10 +494,10 @@ const Session = {
     const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
     const insertMode = this.editableElementClicked(event, focusableEl);
 
-    // When in showcase mode, keep the focus as is
+    // When in presentation, keep the focus as is
     if (
-      this.showcaseMode ||
-      event.target.closest(`[data-el-showcase-mode-toggle]`)
+      this.presentation ||
+      event.target.closest(`[data-el-presentation-toggle]`)
     ) {
       if (this.insertMode !== insertMode) {
         this.setInsertMode(insertMode);
@@ -1052,13 +1052,13 @@ const Session = {
   },
 
   toggleShowcaseMode() {
-    this.el.toggleAttribute("data-js-showcase-mode");
-    this.showcaseMode = this.el.hasAttribute("data-js-showcase-mode");
+    this.el.toggleAttribute("data-js-presentation");
+    this.presentation = this.el.hasAttribute("data-js-presentation");
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
 
-    if (this.showcaseMode && focusedId) {
+    if (this.presentation && focusedId) {
       const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
