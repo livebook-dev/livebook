@@ -241,48 +241,25 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   defp showcase_mode_indicator(assigns) do
     ~H"""
-    <div>
+    <div data-el-showcase-mode-toggle>
       <span class="tooltip left" data-tooltip="Enter showcase mode">
         <button
           class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
           aria-label="enter showcase mode"
-          phx-click={
-            with_confirm(
-              JS.dispatch("click", to: "[data-el-showcase-mode-toggle]"),
-              title: "Showcase mode",
-              description: ~s'''
-                <p>Showcase your Livebook and use it as a presentation.</p>
-                <br>
-                <p>All functionalities, like editing, moving or evaluating a cell, are available.</p>
-                <br>
-                <p>To focus another cell, click on a semi-transparent cell or use the following shortcuts:</p>
-                <ul>
-                  <li><span class="markdown"><kbd>j</kbd></span> Focus next cell</li>
-                  <li><span class="markdown"><kbd>k</kbd></span> Focus previous cell</li>
-                </ul>
-              ''',
-              confirm_text: "Showcase",
-              danger: false,
-              html: true,
-              opt_out_id: "showcase-mode-notice"
-            )
-          }
           data-el-showcase-mode-enable
         >
           <.remix_icon icon="slideshow-2-line" class="text-xl text-gray-400" />
         </button>
       </span>
-      <div data-el-showcase-mode-toggle>
-        <span class="tooltip left" data-tooltip="Exit showcase mode">
-          <button
-            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-            aria-label="exit showcase mode"
-            data-el-showcase-mode-disable
-          >
-            <.remix_icon icon="slideshow-2-line" class="text-xl text-green-bright-400" />
-          </button>
-        </span>
-      </div>
+      <span class="tooltip left" data-tooltip="Exit showcase mode">
+        <button
+          class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+          aria-label="exit showcase mode"
+          data-el-showcase-mode-disable
+        >
+          <.remix_icon icon="slideshow-2-line" class="text-xl text-green-bright-400" />
+        </button>
+      </span>
     </div>
     """
   end
