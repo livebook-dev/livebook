@@ -81,12 +81,6 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span data-label-hide>Hide outputs</span>
           </button>
         </.menu_item>
-        <.menu_item>
-          <button role="menuitem" data-el-code-zen-disable-button>
-            <.remix_icon icon="close-line" />
-            <span>Exit code zen</span>
-          </button>
-        </.menu_item>
       </.menu>
     </div>
     """

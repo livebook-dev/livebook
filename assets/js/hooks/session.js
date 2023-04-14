@@ -137,11 +137,6 @@ const Session = {
       (event) => this.setCodeZen(true)
     );
 
-    this.getElement("code-zen-disable-button").addEventListener(
-      "click",
-      (event) => this.setCodeZen(false)
-    );
-
     this.getElement("code-zen-outputs-toggle").addEventListener(
       "click",
       (event) => this.el.toggleAttribute("data-js-no-outputs")
