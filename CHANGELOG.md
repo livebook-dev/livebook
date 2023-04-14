@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.9.2](https://github.com/livebook-dev/livebook/tree/v0.9.2) (2023-04-14)
+
+### Added
+
+- Made the error status clickable on failed deployments ([#1854](https://github.com/livebook-dev/livebook/pull/1854))
+
+### Changed
+
+- Made app settings form hidden in app session ([#1860](https://github.com/livebook-dev/livebook/pull/1860))
+
+### Fixed
+
+- Fix smart cell indicator when source changes on start ([#1851](https://github.com/livebook-dev/livebook/pull/1851))
+- Persist show-source app option ([#1859](https://github.com/livebook-dev/livebook/pull/1859))
+- Added a link to navigate out of iframe when Livebook has no access to cookies ([#1863](https://github.com/livebook-dev/livebook/pull/1863))
+
 ## [v0.9.1](https://github.com/livebook-dev/livebook/tree/v0.9.1) (2023-04-06)
 
 ### Added
