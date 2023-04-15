@@ -132,11 +132,6 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("code-zen-enable-button").addEventListener(
-      "click",
-      (event) => this.setCodeZen(true)
-    );
-
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
       (event) => this.toggleCollapseAllSections()

@@ -33,7 +33,6 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
-          <.code_zen_indicator />
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
@@ -48,32 +47,6 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.insert_mode_indicator />
         </div>
       </div>
-    </div>
-    """
-  end
-
-  defp code_zen_indicator(assigns) do
-    ~H"""
-    <span class="tooltip left" data-tooltip="Enter code zen (z)" data-el-code-zen-enable>
-      <button
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="enter code zen"
-        data-el-code-zen-enable-button
-      >
-        <.remix_icon icon="code-line" class="text-xl text-gray-400" />
-      </button>
-    </span>
-    <div data-el-focus-mode-options>
-      <.menu id="focus-mode-menu" position={:top_right}>
-        <:toggle>
-          <button
-            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-            aria-label="code zen options"
-          >
-            <.remix_icon icon="code-line" class="text-xl text-green-bright-400" />
-          </button>
-        </:toggle>
-      </.menu>
     </div>
     """
   end
