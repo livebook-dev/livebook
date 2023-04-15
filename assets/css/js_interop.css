@@ -302,7 +302,8 @@ solely client-side operations.
 }
 
 [data-el-session][data-js-presentation] [data-el-sidebar],
-[data-el-session][data-js-presentation] [data-el-side-panel] {
+[data-el-session][data-js-presentation] [data-el-side-panel],
+[data-el-session][data-js-presentation] [data-el-toggle-sidebar] {
   @apply hidden;
 }
 
