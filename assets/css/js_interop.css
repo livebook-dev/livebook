@@ -305,14 +305,6 @@ solely client-side operations.
   @apply opacity-10;
 }
 
-[data-el-session][data-js-presentation] [data-el-presentation-enable] {
-  @apply hidden;
-}
-
-[data-el-session]:not([data-js-presentation]) [data-el-presentation-disable] {
-  @apply hidden;
-}
-
 [data-el-session][data-js-presentation] [data-el-sidebar],
 [data-el-session][data-js-presentation] [data-el-side-panel] {
   @apply hidden;

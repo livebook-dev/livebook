@@ -137,10 +137,6 @@ const Session = {
       (event) => this.setCodeZen(true)
     );
 
-    this.getElement("presentation-toggle").addEventListener("click", (event) =>
-      this.toggleShowcaseMode()
-    );
-
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
       (event) => this.toggleCollapseAllSections()
