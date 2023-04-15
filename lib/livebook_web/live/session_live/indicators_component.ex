@@ -78,6 +78,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span>Code zen</span>
           </button>
         </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-presentation-toggle>
+            <.remix_icon icon="slideshow-2-line" />
+            <span>Presentation</span>
+          </button>
+        </.menu_item>
       </.menu>
     </div>
     """

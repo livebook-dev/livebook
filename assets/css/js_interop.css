@@ -306,10 +306,16 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session][data-js-code-zen] [data-el-views-disabled] {
+[data-el-session][data-js-presentation] [data-el-presentation-toggle] {
+  @apply text-green-bright-400;
+}
+
+[data-el-session]:is([data-js-code-zen], [data-js-presentation])
+  [data-el-views-disabled] {
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-code-zen]) [data-el-views-enabled] {
+[data-el-session]:not([data-js-code-zen], [data-js-presentation])
+  [data-el-views-enabled] {
   @apply hidden;
 }
