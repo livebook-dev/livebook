@@ -72,6 +72,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <.remix_icon icon="layout-5-line" class="text-xl text-green-bright-400" />
           </button>
         </:toggle>
+        <.menu_item>
+          <button role="menuitem" data-el-code-zen-toggle>
+            <.remix_icon icon="code-line" />
+            <span>Code zen</span>
+          </button>
+        </.menu_item>
       </.menu>
     </div>
     """

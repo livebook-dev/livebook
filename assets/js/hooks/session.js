@@ -132,6 +132,10 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
+    this.getElement("code-zen-toggle").addEventListener("click", (event) =>
+      this.setCodeZen(!this.codeZen)
+    );
+
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
       (event) => this.toggleCollapseAllSections()
