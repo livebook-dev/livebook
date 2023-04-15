@@ -301,3 +301,11 @@ solely client-side operations.
 [data-el-session][data-js-presentation] [data-el-side-panel] {
   @apply hidden;
 }
+
+[data-el-session] [data-el-views-disabled] {
+  @apply hidden;
+}
+
+[data-el-session] [data-el-views-enabled] {
+  @apply hidden;
+}

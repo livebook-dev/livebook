@@ -33,6 +33,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
+          <.views_indicator />
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
@@ -47,6 +48,31 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.insert_mode_indicator />
         </div>
       </div>
+    </div>
+    """
+  end
+
+  defp views_indicator(assigns) do
+    ~H"""
+    <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
+      <.menu id="views-menu" position={:top_right}>
+        <:toggle>
+          <button
+            class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+            aria-label="choose views to activate"
+            data-el-views-disabled
+          >
+            <.remix_icon icon="layout-5-line" class="text-xl text-gray-400" />
+          </button>
+          <button
+            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+            aria-label="choose views to activate"
+            data-el-views-enabled
+          >
+            <.remix_icon icon="layout-5-line" class="text-xl text-green-bright-400" />
+          </button>
+        </:toggle>
+      </.menu>
     </div>
     """
   end
