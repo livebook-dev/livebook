@@ -20,14 +20,17 @@ defmodule LivebookCLI.Server do
     An optional open-command can be given as argument. It will open
     up a browser window according these rules:
 
-      * If the open-command is "new", the browser window will point
+      * If the open-command is "@home", the browser window will point
+        to the home page
+
+      * If the open-command is "@new", the browser window will point
         to a new notebook
 
       * If the open-command is a URL, the notebook at the given URL
         will be imported
 
       * If the open-command is a directory, the browser window will point
-        to the home page with the directory selected
+        to the open page with the directory selected
 
       * If the open-command is a notebook file, the browser window will point
         to the opened notebook
@@ -39,7 +42,6 @@ defmodule LivebookCLI.Server do
     ## Available options
 
       --cookie             Sets a cookie for the app distributed node
-      --home               The home path for the Livebook instance
       --ip                 The ip address to start the web application on, defaults to 127.0.0.1
                            Must be a valid IPv4 or IPv6 address
       --name               Sets a name for the app distributed node
@@ -149,10 +151,19 @@ defmodule LivebookCLI.Server do
     :ok
   end
 
-  defp open_from_args(base_url, ["new"]) do
+  defp open_from_args(base_url, ["@home"]) do
+    Livebook.Utils.browser_open(base_url)
+  end
+
+  defp open_from_args(base_url, ["@new"]) do
     base_url
     |> set_path("/learn/notebooks/new")
     |> Livebook.Utils.browser_open()
+  end
+
+  defp open_from_args(base_url, ["new"]) do
+    IO.warn(~s/passing "new" as an argument is deprecated, use "@new" instead/, [])
+    open_from_args(base_url, ["@new"])
   end
 
   defp open_from_args(base_url, [url_or_file_or_dir]) do
@@ -219,11 +230,6 @@ defmodule LivebookCLI.Server do
     opts_to_config(opts, [
       {:livebook, LivebookWeb.Endpoint, http: [ip: ip], url: [host: host]} | config
     ])
-  end
-
-  defp opts_to_config([{:home, home} | opts], config) do
-    home = Livebook.Config.writable_dir!("--home", home)
-    opts_to_config(opts, [{:livebook, :home, home} | config])
   end
 
   defp opts_to_config([{:sname, sname} | opts], config) do
