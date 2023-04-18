@@ -150,17 +150,15 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/")
 
-      view
-      |> element(~s{[data-test-session-id="#{session.id}"] button}, "Star notebook")
-      |> render_click()
+      Livebook.NotebookManager.add_starred_notebook(file, "Special notebook")
+      render(view)
 
       assert view
              |> element(~s/#starred-notebooks/, "Special notebook")
              |> has_element?()
 
-      view
-      |> element(~s{[data-test-session-id="#{session.id}"] button}, "Unstar notebook")
-      |> render_click()
+      Livebook.NotebookManager.remove_starred_notebook(file)
+      render(view)
 
       refute view
              |> element(~s/#starred-notebooks/, "Special notebook")

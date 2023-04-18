@@ -710,7 +710,7 @@ defmodule LivebookWeb.SessionLiveTest do
     {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
     view
-    |> element("button", "Star notebook")
+    |> element("button[data-tooltip=\"Star notebook\"]")
     |> render_click()
 
     assert_receive {:starred_notebooks_updated, starred_notebooks}
@@ -718,7 +718,7 @@ defmodule LivebookWeb.SessionLiveTest do
     assert Enum.any?(starred_notebooks, &(&1.file == file))
 
     view
-    |> element("button", "Unstar notebook")
+    |> element("button[data-tooltip=\"Unstar notebook\"]")
     |> render_click()
 
     assert_receive {:starred_notebooks_updated, starred_notebooks}
