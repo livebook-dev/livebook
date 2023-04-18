@@ -318,32 +318,26 @@ defmodule LivebookWeb.SessionLive do
                 </.menu_item>
               </.menu>
 
-              <div class="icon-button text-lg pr-[5px]">
+              <div class="px-[1px]">
                 <%= cond do %>
                   <% @data_view.file == nil -> %>
                     <span class="tooltip left" data-tooltip="Save this notebook before starring it">
-                      <.remix_icon icon="star-line" />
+                      <button class="icon-button" disabled>
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
                     </span>
                   <% @data_view.file in @starred_files -> %>
-                    <button
-                      class="text-yellow-600 tooltip left"
-                      data-tooltip="Unstar notebook"
-                      type="button"
-                      role="menuitem"
-                      phx-click="unstar_notebook"
-                    >
-                      <.remix_icon icon="star-fill" />
-                    </button>
+                    <span class="tooltip left" data-tooltip="Unstar notebook">
+                      <button class="icon-button" phx-click="unstar_notebook">
+                        <.remix_icon icon="star-fill text-lg text-yellow-600" />
+                      </button>
+                    </span>
                   <% true -> %>
-                    <button
-                      class="tooltip left"
-                      data-tooltip="Star notebook"
-                      type="button"
-                      role="menuitem"
-                      phx-click="star_notebook"
-                    >
-                      <.remix_icon icon="star-line" />
-                    </button>
+                    <span class="tooltip left" data-tooltip="Star notebook">
+                      <button class="icon-button" phx-click="star_notebook">
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
+                    </span>
                 <% end %>
               </div>
             </div>
