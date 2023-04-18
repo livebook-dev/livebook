@@ -744,8 +744,8 @@ defmodule LivebookWeb.SessionLive do
 
     ~H"""
     <div class="py-6 flex flex-col justify-center">
-      <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
-        <span class="text-gray-500 uppercase">Memory</span>
+      <div class="mb-1 text-sm text-gray-800 flex flex-row justify-between">
+        <span class="text-gray-500 font-semibold uppercase">Memory</span>
         <span class="text-right">
           <%= format_bytes(@memory_usage.system.free) %> available
         </span>
