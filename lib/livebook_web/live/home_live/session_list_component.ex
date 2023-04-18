@@ -336,18 +336,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
      )}
   end
 
-  def handle_event("star_notebook", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Livebook.NotebookManager.add_starred_notebook(session.file, session.notebook_name)
-    {:noreply, socket}
-  end
-
-  def handle_event("unstar_notebook", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Livebook.NotebookManager.remove_starred_notebook(session.file)
-    {:noreply, socket}
-  end
-
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Session.disconnect_runtime(session.pid)
@@ -408,11 +396,5 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
-  end
-
-  defp notebook_starred?(%{file: nil} = _session, _starred_notebooks), do: false
-
-  defp notebook_starred?(session, starred_notebooks) do
-    Enum.any?(starred_notebooks, &(&1.file == session.file))
   end
 end
