@@ -36,7 +36,8 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp define_test_module(modules) do
-    name = Module.concat([LivebookDoctest | modules])
+    id = :erlang.phash2(modules)
+    name = Module.concat([LivebookDoctest, "TestModule#{id}"])
 
     try do
       defmodule name do
