@@ -16,6 +16,10 @@ import monaco from "./cell_editor/live_editor/monaco";
 import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
+const VIEW_NONE = null;
+const VIEW_CODE_ZEN = "code-zen";
+const VIEW_PRESENTATION = "presentation";
+
 /**
  * A hook managing the whole session.
  *
@@ -69,8 +73,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
-    this.codeZen = false;
-    this.presentation = false;
+    this.view = VIEW_NONE;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
@@ -133,11 +136,11 @@ const Session = {
     );
 
     this.getElement("code-zen-toggle").addEventListener("click", (event) =>
-      this.setCodeZen(!this.codeZen)
+      this.setCodeZen(!this.isViewCodeZen())
     );
 
     this.getElement("presentation-toggle").addEventListener("click", (event) =>
-      this.setPresentation(!this.presentation)
+      this.setPresentation(!this.isViewPresentation())
     );
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
@@ -415,15 +418,15 @@ const Session = {
       } else if (keyBuffer.tryMatch(["N"])) {
         this.insertCellAboveFocused("code");
       } else if (keyBuffer.tryMatch(["m"])) {
-        !this.codeZen && this.insertCellBelowFocused("markdown");
+        !this.isViewCodeZen() && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
-        !this.codeZen && this.insertCellAboveFocused("markdown");
+        !this.isViewCodeZen() && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["z"])) {
-        this.setCodeZen(!this.codeZen);
+        this.setCodeZen(!this.isViewCodeZen());
       } else if (keyBuffer.tryMatch(["c"])) {
-        !this.codeZen && this.toggleCollapseSection();
+        !this.isViewCodeZen() && this.toggleCollapseSection();
       } else if (keyBuffer.tryMatch(["C"])) {
-        !this.codeZen && this.toggleCollapseAllSections();
+        !this.isViewCodeZen() && this.toggleCollapseAllSections();
       }
     }
   },
@@ -485,7 +488,7 @@ const Session = {
 
     // When in presentation, keep the focus as is
     if (
-      this.presentation ||
+      this.isViewPresentation() ||
       event.target.closest(`[data-el-presentation-toggle]`)
     ) {
       if (this.insertMode !== insertMode) {
@@ -980,8 +983,14 @@ const Session = {
     });
   },
 
+  resetViews() {
+    this.el.removeAttribute("data-js-code-zen");
+    this.el.removeAttribute("data-js-presentation");
+  },
+
   setCodeZen(enabled) {
-    this.codeZen = enabled;
+    this.resetViews();
+    this.toggleViewToCodeZen(enabled);
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
@@ -1006,7 +1015,8 @@ const Session = {
   },
 
   setPresentation(enabled) {
-    this.presentation = enabled;
+    this.resetViews();
+    this.toggleViewToPresentation(enabled);
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
@@ -1017,7 +1027,7 @@ const Session = {
       this.el.removeAttribute("data-js-presentation");
     }
 
-    if (this.presentation && focusedId) {
+    if (this.isViewPresentation() && focusedId) {
       const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
@@ -1075,7 +1085,7 @@ const Session = {
 
   handleCellDeleted(cellId, siblingCellId) {
     if (this.focusedId === cellId) {
-      if (this.codeZen) {
+      if (this.isViewCodeZen()) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
         this.setFocusedEl(visibleSiblingId);
       } else {
@@ -1361,6 +1371,22 @@ const Session = {
 
   getElement(name) {
     return this.el.querySelector(`[data-el-${name}]`);
+  },
+
+  isViewCodeZen() {
+    return this.view === VIEW_CODE_ZEN;
+  },
+
+  isViewPresentation() {
+    return this.view === VIEW_PRESENTATION;
+  },
+
+  toggleViewToCodeZen(enabled) {
+    return (this.view = enabled ? VIEW_CODE_ZEN : VIEW_NONE);
+  },
+
+  toggleViewToPresentation(enabled) {
+    return (this.view = enabled ? VIEW_PRESENTATION : VIEW_NONE);
   },
 };
 
