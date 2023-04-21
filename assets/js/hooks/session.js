@@ -137,7 +137,7 @@ const Session = {
     );
 
     this.getElement("presentation-toggle").addEventListener("click", (event) =>
-      this.togglePresentation()
+      this.setPresentation(!this.presentation)
     );
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
@@ -1005,6 +1005,31 @@ const Session = {
     }
   },
 
+  setPresentation(enabled) {
+    this.presentation = enabled;
+
+    // If nothing is focused, use the first cell in the viewport
+    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
+
+    if (enabled) {
+      this.el.setAttribute("data-js-presentation", "");
+    } else {
+      this.el.removeAttribute("data-js-presentation");
+    }
+
+    if (this.presentation && focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(focusedId);
+
+      if (visibleId !== this.focused) {
+        this.setFocusedEl(visibleId, { scroll: false });
+      }
+
+      if (visibleId) {
+        this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
+      }
+    }
+  },
+
   toggleCollapseSection() {
     if (this.focusedId) {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
@@ -1039,27 +1064,6 @@ const Session = {
       }
     }
   },
-
-  togglePresentation() {
-    this.el.toggleAttribute("data-js-presentation");
-    this.presentation = this.el.hasAttribute("data-js-presentation");
-
-    // If nothing is focused, use the first cell in the viewport
-    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
-
-    if (this.presentation && focusedId) {
-      const visibleId = this.ensureVisibleFocusableEl(focusedId);
-
-      if (visibleId !== this.focused) {
-        this.setFocusedEl(visibleId, { scroll: false });
-      }
-
-      if (visibleId) {
-        this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
-      }
-    }
-  },
-
   // Server event handlers
 
   handleCellInserted(cellId) {
