@@ -137,7 +137,7 @@ const Session = {
     );
 
     this.getElement("presentation-toggle").addEventListener("click", (event) =>
-      this.toggleShowcaseMode()
+      this.togglePresentation()
     );
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
@@ -1040,7 +1040,7 @@ const Session = {
     }
   },
 
-  toggleShowcaseMode() {
+  togglePresentation() {
     this.el.toggleAttribute("data-js-presentation");
     this.presentation = this.el.hasAttribute("data-js-presentation");
 
