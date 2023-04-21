@@ -82,5 +82,7 @@ COPY --from=build /app/_build/prod/rel/livebook /app
 # Make release files available to any user, in case someone
 # runs the container with `--user`
 RUN chmod -R go=u /app
+# Ditto allow dialyzer to write to $MIX_HOME
+RUN chmod -R go=u $MIX_HOME
 
 CMD [ "/app/bin/livebook", "start" ]
