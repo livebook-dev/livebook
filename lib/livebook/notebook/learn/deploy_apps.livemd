@@ -8,7 +8,7 @@ Mix.install([
 
 ## Introduction
 
-In this notebook, we will build and deplay a chat application.
+In this notebook, we will build and deploy a chat application.
 To do so, we will use Livebook's companion library called
 [`kino`](https://github.com/livebook-dev/kino).
 
