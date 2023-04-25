@@ -1227,6 +1227,7 @@ defmodule Livebook.Session.Data do
           eval_info
           | status: :ready,
             errored: metadata.errored,
+            evaluation_digest: metadata.evaluation_digest,
             evaluation_time_ms: metadata.evaluation_time_ms,
             identifiers_used: metadata.identifiers_used,
             identifiers_defined: metadata.identifiers_defined,
@@ -1413,7 +1414,8 @@ defmodule Livebook.Session.Data do
               status: :evaluating,
               evaluation_number: eval_info.evaluation_number + 1,
               outputs_batch_number: eval_info.outputs_batch_number + 1,
-              evaluation_digest: info.sources.primary.digest,
+              # Will be set in the evaluator to avoid race conditions
+              evaluation_digest: nil,
               new_bound_to_input_ids: MapSet.new(),
               # Keep the notebook state before evaluation
               data: data,

@@ -15,9 +15,11 @@ defmodule Livebook.Session.DataTest do
     uses = opts[:uses] || []
     defines = opts[:defines] || %{}
     errored = Keyword.get(opts, :errored, false)
+    code = Keyword.get(opts, :code, "")
 
     %{
       errored: errored,
+      evaluation_digest: :erlang.md5(code),
       evaluation_time_ms: 10,
       identifiers_used: uses,
       identifiers_defined: defines
