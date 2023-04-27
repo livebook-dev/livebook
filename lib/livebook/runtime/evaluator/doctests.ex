@@ -45,7 +45,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         |> String.replace_prefix("Elixir.", "")
       end)
       |> :erlang.md5()
-      |> Base.encode64()
+      |> Base.encode32(padding: false)
 
     name = Module.concat([LivebookDoctest, "TestModule#{id}"])
 
