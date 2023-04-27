@@ -1457,7 +1457,7 @@ defmodule Livebook.Session do
         state = handle_operation(state, operation)
 
         # Note that we intentionally use a separate operation, so that
-        # the new source digest is hydrated on the clients
+        # the new source digest is already hydrated on the clients
         state =
           if info.reevaluate do
             handle_operation(state, {:queue_smart_cell_reevaluation, @client_id, id})
