@@ -154,7 +154,7 @@ defmodule Livebook.Intellisense.Docs do
         true
 
       {:docs_v1, _, _, _, _, _, docs} ->
-        Enum.filter(docs, &match?({_, _, _, %{}, _}, &1)) != []
+        Enum.any?(docs, &match?({_, _, _, %{}, _}, &1))
 
       _ ->
         false
