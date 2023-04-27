@@ -82,5 +82,7 @@ COPY --from=build /app/_build/prod/rel/livebook /app
 # Make release files available to any user, in case someone
 # runs the container with `--user`
 RUN chmod -R go=u /app
+# Make all home files available (specifically .mix/)
+RUN chmod -R go=u $HOME
 
 CMD [ "/app/bin/livebook", "start" ]
