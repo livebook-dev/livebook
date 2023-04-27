@@ -2856,7 +2856,7 @@ defmodule Livebook.Session.DataTest do
 
       attrs = %{"text" => "content!"}
       delta2 = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
-      operation = {:update_smart_cell, client_id, "c1", attrs, delta2, nil, false}
+      operation = {:update_smart_cell, client_id, "c1", attrs, delta2, nil}
 
       assert {:ok,
               %{
@@ -2867,8 +2867,28 @@ defmodule Livebook.Session.DataTest do
               [{:broadcast_delta, ^client_id, _cell, :primary, ^delta2}]} =
                Data.apply_operation(data, operation)
     end
+  end
 
-    test "queues the cell when already evaluated and reevaluate is specified" do
+  describe "apply_operation/2 given :queue_smart_cell_reevaluation" do
+    test "returns error if the cell is fresh" do
+      client_id = "client1"
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil}
+        ])
+
+      operation = {:queue_smart_cell_reevaluation, client_id, "c1"}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "queues the cell when already evaluated" do
       client_id = "client1"
 
       data =
@@ -2879,11 +2899,10 @@ defmodule Livebook.Session.DataTest do
           {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
           {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, @cid, "c1", Delta.new(), nil, %{}, nil},
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
+          evaluate_cells_operations(["c1"])
         ])
 
-      operation = {:update_smart_cell, client_id, "c1", %{}, Delta.new(), nil, true}
+      operation = {:queue_smart_cell_reevaluation, client_id, "c1"}
 
       assert {:ok,
               %{

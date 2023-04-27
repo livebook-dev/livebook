@@ -1453,8 +1453,19 @@ defmodule Livebook.Session do
       {:ok, cell, _section} ->
         chunks = info[:chunks]
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks, info.reevaluate}
-        {:noreply, handle_operation(state, operation)}
+        operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks}
+        state = handle_operation(state, operation)
+
+        # Note that we intentionally use a separate operation, so that
+        # the new source digest is hydrated on the clients
+        state =
+          if info.reevaluate do
+            handle_operation(state, {:queue_smart_cell_reevaluation, @client_id, id})
+          else
+            state
+          end
+
+        {:noreply, state}
 
       :error ->
         {:noreply, state}
@@ -1873,7 +1884,7 @@ defmodule Livebook.Session do
   defp after_operation(
          state,
          _prev_state,
-         {:update_smart_cell, _client_id, cell_id, _attrs, _delta, _chunks, _reevaluate}
+         {:update_smart_cell, _client_id, cell_id, _attrs, _delta, _chunks}
        ) do
     hydrate_cell_source_digest(state, cell_id, :primary)
     state
