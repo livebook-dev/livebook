@@ -20,6 +20,7 @@
   <body
     class="bg-white"
     data-feature-flags={Livebook.Config.enabled_feature_flags() |> Enum.join(",")}
+    data-within-iframe={Livebook.Config.within_iframe?()}
   >
     <%= @inner_content %>
   </body>

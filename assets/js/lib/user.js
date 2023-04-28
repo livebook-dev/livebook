@@ -38,6 +38,14 @@ function getCookieValue(key) {
 }
 
 function setCookie(key, value, maxAge) {
-  const cookie = `${key}=${value};max-age=${maxAge};path=/`;
+  const cookie = `${key}=${value};max-age=${maxAge};path=/${cookieOptions()}`;
   document.cookie = cookie;
+}
+
+function cookieOptions() {
+  if (document.body.hasAttribute("data-within-iframe")) {
+    return ";SameSite=None;Secure";
+  } else {
+    return ";SameSite=Lax";
+  }
 }
