@@ -69,7 +69,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
-    this.codeZen = false;
+    this.view = null;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
@@ -131,20 +131,9 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("code-zen-enable-button").addEventListener(
-      "click",
-      (event) => this.setCodeZen(true)
-    );
-
-    this.getElement("code-zen-disable-button").addEventListener(
-      "click",
-      (event) => this.setCodeZen(false)
-    );
-
-    this.getElement("code-zen-outputs-toggle").addEventListener(
-      "click",
-      (event) => this.el.toggleAttribute("data-js-no-outputs")
-    );
+    this.getElement("views").addEventListener("click", (event) => {
+      this.handleViewsClick(event);
+    });
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
@@ -421,15 +410,17 @@ const Session = {
       } else if (keyBuffer.tryMatch(["N"])) {
         this.insertCellAboveFocused("code");
       } else if (keyBuffer.tryMatch(["m"])) {
-        !this.codeZen && this.insertCellBelowFocused("markdown");
+        !this.isViewCodeZen() && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
-        !this.codeZen && this.insertCellAboveFocused("markdown");
-      } else if (keyBuffer.tryMatch(["z"])) {
-        this.setCodeZen(!this.codeZen);
+        !this.isViewCodeZen() && this.insertCellAboveFocused("markdown");
+      } else if (keyBuffer.tryMatch(["v", "z"])) {
+        this.toggleView("code-zen");
+      } else if (keyBuffer.tryMatch(["v", "p"])) {
+        this.toggleView("presentation");
       } else if (keyBuffer.tryMatch(["c"])) {
-        !this.codeZen && this.toggleCollapseSection();
+        !this.isViewCodeZen() && this.toggleCollapseSection();
       } else if (keyBuffer.tryMatch(["C"])) {
-        !this.codeZen && this.toggleCollapseAllSections();
+        !this.isViewCodeZen() && this.toggleCollapseAllSections();
       }
     }
   },
@@ -975,17 +966,26 @@ const Session = {
     });
   },
 
-  setCodeZen(enabled) {
-    this.codeZen = enabled;
+  handleViewsClick(event) {
+    const button = event.target.closest(`[data-el-view-toggle]`);
+
+    if (button) {
+      const view = button.getAttribute("data-el-view-toggle");
+      this.toggleView(view);
+    }
+  },
+
+  toggleView(view) {
+    if (this.view === view) {
+      this.view = null;
+      this.el.removeAttribute("data-js-view");
+    } else {
+      this.view = view;
+      this.el.setAttribute("data-js-view", view);
+    }
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
-
-    if (enabled) {
-      this.el.setAttribute("data-js-code-zen", "");
-    } else {
-      this.el.removeAttribute("data-js-code-zen");
-    }
 
     if (focusedId) {
       const visibleId = this.ensureVisibleFocusableEl(focusedId);
@@ -1034,7 +1034,6 @@ const Session = {
       }
     }
   },
-
   // Server event handlers
 
   handleCellInserted(cellId) {
@@ -1046,7 +1045,7 @@ const Session = {
 
   handleCellDeleted(cellId, siblingCellId) {
     if (this.focusedId === cellId) {
-      if (this.codeZen) {
+      if (this.isViewCodeZen()) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
         this.setFocusedEl(visibleSiblingId);
       } else {
@@ -1332,6 +1331,14 @@ const Session = {
 
   getElement(name) {
     return this.el.querySelector(`[data-el-${name}]`);
+  },
+
+  isViewCodeZen() {
+    return this.view === "code-zen";
+  },
+
+  isViewPresentation() {
+    return this.view === "presentation";
   },
 };
 

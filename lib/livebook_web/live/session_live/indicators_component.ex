@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
-          <.code_zen_indicator />
+          <.view_indicator />
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
@@ -52,38 +52,36 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp code_zen_indicator(assigns) do
+  defp view_indicator(assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Enter code zen (z)" data-el-code-zen-enable>
-      <button
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="enter code zen"
-        data-el-code-zen-enable-button
-      >
-        <.remix_icon icon="code-line" class="text-xl text-gray-400" />
-      </button>
-    </span>
-    <div data-el-focus-mode-options>
-      <.menu id="focus-mode-menu" position={:top_right}>
+    <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
+      <.menu id="views-menu" position={:top_right}>
         <:toggle>
           <button
-            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-            aria-label="code zen options"
+            class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+            aria-label="choose views to activate"
+            data-el-views-disabled
           >
-            <.remix_icon icon="code-line" class="text-xl text-green-bright-400" />
+            <.remix_icon icon="layout-5-line" class="text-xl text-gray-400" />
+          </button>
+          <button
+            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+            aria-label="choose views to activate"
+            data-el-views-enabled
+          >
+            <.remix_icon icon="layout-5-line" class="text-xl text-green-bright-400" />
           </button>
         </:toggle>
         <.menu_item>
-          <button role="menuitem" data-el-code-zen-outputs-toggle>
-            <.remix_icon icon="layout-bottom-2-line" />
-            <span data-label-show>Show outputs</span>
-            <span data-label-hide>Hide outputs</span>
+          <button role="menuitem" data-el-view-toggle="code-zen">
+            <.remix_icon icon="code-line" />
+            <span>Code zen</span>
           </button>
         </.menu_item>
         <.menu_item>
-          <button role="menuitem" data-el-code-zen-disable-button>
-            <.remix_icon icon="close-line" />
-            <span>Exit code zen</span>
+          <button role="menuitem" data-el-view-toggle="presentation">
+            <.remix_icon icon="slideshow-2-line" />
+            <span>Presentation</span>
           </button>
         </.menu_item>
       </.menu>
