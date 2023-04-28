@@ -1,4 +1,4 @@
-import { decodeBase64, encodeBase64 } from "./utils";
+import { cookieOptions, decodeBase64, encodeBase64 } from "./utils";
 
 const USER_DATA_COOKIE = "lb:user_data";
 
@@ -38,6 +38,6 @@ function getCookieValue(key) {
 }
 
 function setCookie(key, value, maxAge) {
-  const cookie = `${key}=${value};max-age=${maxAge};path=/`;
+  const cookie = `${key}=${value};max-age=${maxAge};path=/${cookieOptions()}`;
   document.cookie = cookie;
 }

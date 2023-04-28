@@ -45,9 +45,11 @@ defmodule LivebookWeb.UserPlug do
     else
       user_data = user_data(User.new())
       encoded = user_data |> Jason.encode!() |> Base.encode64()
-      # Set `http_only` to `false`, so that it can be accessed on the client
-      # Set expiration in 5 years
-      put_resp_cookie(conn, "lb:user_data", encoded, http_only: false, max_age: 157_680_000)
+
+      # We disable HttpOnly, so that it can be accessed on the client
+      # and set expiration to 5 years
+      opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
+      put_resp_cookie(conn, "lb:user_data", encoded, opts)
     end
   end
 

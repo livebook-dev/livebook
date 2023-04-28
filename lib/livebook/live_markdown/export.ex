@@ -86,7 +86,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp app_settings_metadata(app_settings) do
-    keys = [:slug, :access_type]
+    keys = [:slug, :access_type, :show_source]
 
     put_unless_default(
       %{},

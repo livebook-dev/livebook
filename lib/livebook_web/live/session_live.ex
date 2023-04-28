@@ -273,24 +273,6 @@ defmodule LivebookWeb.SessionLive do
                     <span>Fork</span>
                   </button>
                 </.menu_item>
-                <span
-                  class="tooltip left"
-                  data-tooltip={@data_view.file == nil && "Save this notebook before starring it"}
-                >
-                  <.menu_item disabled={@data_view.file == nil}>
-                    <%= if @data_view.file in @starred_files do %>
-                      <button type="button" role="menuitem" phx-click="unstar_notebook">
-                        <.remix_icon icon="star-fill" />
-                        <span>Unstar notebook</span>
-                      </button>
-                    <% else %>
-                      <button type="button" role="menuitem" phx-click="star_notebook">
-                        <.remix_icon icon="star-line" />
-                        <span>Star notebook</span>
-                      </button>
-                    <% end %>
-                  </.menu_item>
-                </span>
                 <.menu_item>
                   <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
                     <.remix_icon icon="dashboard-2-line" />
@@ -305,35 +287,60 @@ defmodule LivebookWeb.SessionLive do
                 </.menu_item>
               </.menu>
             </div>
-            <.menu position={:bottom_left} id="notebook-hub-menu">
-              <:toggle>
-                <div
-                  class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
-                  aria-label={@data_view.hub.hub_name}
-                >
-                  <span>in</span>
-                  <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
-                  <span><%= @data_view.hub.hub_name %></span>
-                  <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
-                </div>
-              </:toggle>
-              <.menu_item :for={hub <- @saved_hubs}>
-                <button
-                  id={"select-hub-#{hub.id}"}
-                  phx-click={JS.push("select_hub", value: %{id: hub.id})}
-                  aria-label={hub.name}
-                  role="menuitem"
-                >
-                  <%= hub.emoji %>
-                  <span class="ml-2"><%= hub.name %></span>
-                </button>
-              </.menu_item>
-              <.menu_item>
-                <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
-                  <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
-                </.link>
-              </.menu_item>
-            </.menu>
+            <div class="flex flex-nowrap place-content-between items-center gap-2">
+              <.menu position={:bottom_left} id="notebook-hub-menu">
+                <:toggle>
+                  <div
+                    class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
+                    aria-label={@data_view.hub.hub_name}
+                  >
+                    <span>in</span>
+                    <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
+                    <span><%= @data_view.hub.hub_name %></span>
+                    <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
+                  </div>
+                </:toggle>
+                <.menu_item :for={hub <- @saved_hubs}>
+                  <button
+                    id={"select-hub-#{hub.id}"}
+                    phx-click={JS.push("select_hub", value: %{id: hub.id})}
+                    aria-label={hub.name}
+                    role="menuitem"
+                  >
+                    <%= hub.emoji %>
+                    <span class="ml-2"><%= hub.name %></span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
+                    <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
+                  </.link>
+                </.menu_item>
+              </.menu>
+
+              <div class="px-[1px]">
+                <%= cond do %>
+                  <% @data_view.file == nil -> %>
+                    <span class="tooltip left" data-tooltip="Save this notebook before starring it">
+                      <button class="icon-button" disabled>
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
+                    </span>
+                  <% @data_view.file in @starred_files -> %>
+                    <span class="tooltip left" data-tooltip="Unstar notebook">
+                      <button class="icon-button" phx-click="unstar_notebook">
+                        <.remix_icon icon="star-fill text-lg text-yellow-600" />
+                      </button>
+                    </span>
+                  <% true -> %>
+                    <span class="tooltip left" data-tooltip="Star notebook">
+                      <button class="icon-button" phx-click="star_notebook">
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
+                    </span>
+                <% end %>
+              </div>
+            </div>
           </div>
           <div>
             <.live_component
@@ -737,8 +744,8 @@ defmodule LivebookWeb.SessionLive do
 
     ~H"""
     <div class="py-6 flex flex-col justify-center">
-      <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
-        <span class="text-gray-500 uppercase">Memory</span>
+      <div class="mb-1 text-sm text-gray-800 flex flex-row justify-between">
+        <span class="text-gray-500 font-semibold uppercase">Memory</span>
         <span class="text-right">
           <%= format_bytes(@memory_usage.system.free) %> available
         </span>

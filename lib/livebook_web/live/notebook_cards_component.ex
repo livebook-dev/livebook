@@ -9,12 +9,12 @@ defmodule LivebookWeb.NotebookCardsComponent do
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" role="group">
       <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
         <div
-          class="flex flex-col p-5 border bg-gray-50 border-gray-300 rounded-lg"
+          class="flex flex-col p-4 border bg-gray-50 border-gray-300 rounded-lg"
           data-test-idx={idx}
         >
           <div class="flex items-center justify-between">
             <span class="tooltip top" data-tooltip={info.file.path}>
-              <span class="text-gray-800 text-lg font-medium">
+              <span class="text-gray-800 font-medium">
                 <%= info.name %>
               </span>
             </span>

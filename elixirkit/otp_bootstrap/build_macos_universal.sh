@@ -33,6 +33,11 @@ else
     lipo $i $dir2/$i -create -output $i.universal
     mv $i.universal $i
   done
+  for i in `find . -name "*.a"`; do
+    echo lipo $otp_rel_dir/$i
+    lipo $i $dir2/$i -create -output $i.universal
+    mv $i.universal $i
+  done
   cd -
 fi
 

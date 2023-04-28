@@ -8,7 +8,7 @@ Mix.install([
 
 ## Introduction
 
-In this notebook, we will build and deplay a chat application.
+In this notebook, we will build and deploy a chat application.
 To do so, we will use Livebook's companion library called
 [`kino`](https://github.com/livebook-dev/kino).
 
@@ -56,34 +56,33 @@ re-execute the cell above. For each click, there is a new message in
 our inbox. There are several ways we can consume this message.
 Let's see a different one in the next example.
 
-<!-- livebook:{"branch_parent_index":0} -->
-
 ## Enumerating controls
 
 All Kino controls are enumerable. This means we can treat them
-as a collection, an infinite collection in this case, and consume
-their events. Let's define another button:
+as a collection, an infinite stream of events in this case.
+Let's define another button:
 
 ```elixir
 click_me_again = Kino.Control.button("Click me again!")
 ```
 
-And now let's consume it:
+And now let's consume those events. Because the stream is
+infinite, we will consume them inside a separate process,
+in order to not block our notebook:
 
 ```elixir
-for event <- click_me_again do
-  IO.inspect(event)
-end
+spawn(fn ->
+  for event <- click_me_again do
+    IO.inspect(event)
+  end
+end)
 ```
 
 Now, as you submit the button, you should see a new event
-printed. However, there is a downside: we are now stuck
-inside this infinite loop of events. Luckily, we started
-this particular section as a branched section, which means
-the main execution flow will not be interrupted. But it
-is something you should keep in mind in the future. You
-can also stop it by pressing the "Stop" button above the
-Code cell.
+printed. It happens this pattern of consuming events without
+blocking the notebook is so common that `Kino` even has a
+convenience functions for it, such as `Kino.animate/2` and
+`Kino.listen/2`. Let's keep on learning.
 
 ## Kino.Frame and animations
 
@@ -175,10 +174,10 @@ inputs = [
 form = Kino.Control.form(inputs, submit: "Send", reset_on_submit: [:message])
 ```
 
-Now, every time the form is submitted, we want to append
-the message to a frame. We have learned about `Kino.animate/3`,
+Now we want to append the message to a frame every time the
+form is submitted. We have learned about `Kino.animate/3`,
 that receives control events, but unfortunately it only updates
-frames in place, while we want to always append content.
+frames in place while we want to always append content.
 We could accumulate the content ourselves and always re-render
 it all on the frame, but that sounds a bit wasteful.
 
@@ -203,16 +202,27 @@ Execute the cell above and your chat app should be
 fully operational. Scroll up, submit messages via the
 form, and see them appear in the frame.
 
-Implementation-wise, our `listen` above receives the
+Implementation-wise, the call to `listen` receives the
 form events, which includes the value of each input.
 If a name and message have been given, we append it
-to the frame. If one of them is missing, we append an
-error message to the frame with the `to: origin` option.
-This means that particular message will be sent only to
-the user who submitted the form, instead of everyone.
+to the frame.
+
+The `append` function also accepts two options worth
+discussing. The first one, used in the example above,
+is the `to: origin` option. This means the particular
+message will be sent only to the user who submitted
+the form, instead of everyone.
+
+Another option frequently used is `:temporary`. All
+messages are stored in the frame by default. This means
+that, if you reload the page, or join late, you can see
+all history. If you set `:temporary` to true, that will
+no longer be the case. Note all messages sent with the
+`:to` option are temporary.
 
 You can also open up this notebook on different tabs
 and emulate how different users can chat with each other.
+Give it a try!
 
 ## Deploying
 
@@ -224,26 +234,21 @@ Now, define a slug for your deployment, such as "chat-app",
 set a password (or disable password protection), and click
 "Deploy".
 
-Once you do so, you will see that... the deployed application
-will be in a "Booting" state forever? Well, clearly something
-has gone wrong.
+Now you can click the URL and interact with the chat app,
+as you did inside the notebook. There are a couple things to
+keep in mind:
 
-To understand what went wrong, we need to talk about how
-the Deploy feature works. When you deploy a notebook,
-Livebook will execute all of the code cells in the notebook.
-Your application will effectively be all frames, controls,
-etc. that you rendered on the page. Once all cells _successfully
-evaluate_, the application finishes booting.
+* Deployed applications only show `Kino` outputs. Sections,
+  Markdown, non-Kino results, are all discarded.
 
-However, if you remember the "Enumerating controls" section,
-we did create an infinite loop there! And because that cell
-never terminates, the booting process never completes.
+* To deploy a notebook, Livebook will execute all of the code
+  cells in the notebook from beginning to end. If your notebook
+  cannot fully execute all of its cells, then its deployment
+  will be in a "Booting" stage forever. You can click the
+  <i class="ri-livebook-terminal"></i> icon on the deployment
+  to join its session and debug it.
 
-The solution is easy, delete the whole "Enumerating controls"
-section (or just that code cell), and try again. Now booting should
-finish rather quickly and you will be able to interact with
-your newly deployed app. Feel free to further improve it,
-by removing frames from previous sections that do not belong
-to the chat app or by adding new features.
+That's it. Feel free to adjust the deployed application, by
+removing unused outputs or by adding new features.
 
 Congratulations on shipping!

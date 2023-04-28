@@ -31,7 +31,7 @@ export function renderMermaid(definition) {
         return svg;
       })
       .catch((error) => {
-        return `<div class="error-box whitespace-pre-wrap"><span class="font-semibold">Mermaid</span>\n${e.message}</div>`;
+        return `<div class="error-box whitespace-pre-wrap"><span class="font-semibold">Mermaid</span>\n${error.message}</div>`;
       });
   });
 }

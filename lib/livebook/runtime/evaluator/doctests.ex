@@ -36,7 +36,18 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp define_test_module(modules) do
-    name = Module.concat([LivebookDoctest | modules])
+    id =
+      modules
+      |> Enum.sort()
+      |> Enum.map_join("-", fn module ->
+        module
+        |> Atom.to_string()
+        |> String.replace_prefix("Elixir.", "")
+      end)
+      |> :erlang.md5()
+      |> Base.encode32(padding: false)
+
+    name = Module.concat([LivebookDoctest, "TestModule#{id}"])
 
     try do
       defmodule name do

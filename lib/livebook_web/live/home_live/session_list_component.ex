@@ -170,36 +170,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <span>Fork</span>
             </button>
           </.menu_item>
-          <span
-            class="tooltip left"
-            data-tooltip={session.file == nil && "Save this notebook before starring it"}
-          >
-            <.menu_item disabled={session.file == nil}>
-              <%= if notebook_starred?(session, @starred_notebooks) do %>
-                <button
-                  type="button"
-                  role="menuitem"
-                  phx-click="unstar_notebook"
-                  phx-target={@myself}
-                  phx-value-id={session.id}
-                >
-                  <.remix_icon icon="star-fill" />
-                  <span>Unstar notebook</span>
-                </button>
-              <% else %>
-                <button
-                  type="button"
-                  role="menuitem"
-                  phx-click="star_notebook"
-                  phx-target={@myself}
-                  phx-value-id={session.id}
-                >
-                  <.remix_icon icon="star-line" />
-                  <span>Star notebook</span>
-                </button>
-              <% end %>
-            </.menu_item>
-          </span>
           <.menu_item>
             <a role="menuitem" href={live_dashboard_process_path(session.pid)} target="_blank">
               <.remix_icon icon="dashboard-2-line" />
@@ -366,18 +336,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
      )}
   end
 
-  def handle_event("star_notebook", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Livebook.NotebookManager.add_starred_notebook(session.file, session.notebook_name)
-    {:noreply, socket}
-  end
-
-  def handle_event("unstar_notebook", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Livebook.NotebookManager.remove_starred_notebook(session.file)
-    {:noreply, socket}
-  end
-
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Session.disconnect_runtime(session.pid)
@@ -438,11 +396,5 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
-  end
-
-  defp notebook_starred?(%{file: nil} = _session, _starred_notebooks), do: false
-
-  defp notebook_starred?(session, starred_notebooks) do
-    Enum.any?(starred_notebooks, &(&1.file == session.file))
   end
 end

@@ -2,7 +2,7 @@ defmodule Livebook.MixProject do
   use Mix.Project
 
   @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
-  @version "0.9.1"
+  @version "0.9.2"
   @description "Automate code & data workflows with interactive notebooks"
 
   @app_elixir_version "1.14.2"
@@ -93,16 +93,15 @@ defmodule Livebook.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 1.0"},
+      {:ecto, "~> 3.10"},
+      {:phoenix_ecto, "~> 4.4"},
       {:aws_signature, "~> 0.3.0"},
-      {:ecto, "~> 3.9.0"},
-      {:phoenix_ecto, "~> 4.4.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.8.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
-      {:bypass, "~> 2.1", only: :test},
-      {:connection, "~> 1.1.0"}
+      {:bypass, "~> 2.1", only: :test}
     ]
   end
 
