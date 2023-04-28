@@ -1,4 +1,4 @@
-import { decodeBase64, encodeBase64 } from "./utils";
+import { cookieOptions, decodeBase64, encodeBase64 } from "./utils";
 
 const USER_DATA_COOKIE = "lb:user_data";
 
@@ -40,12 +40,4 @@ function getCookieValue(key) {
 function setCookie(key, value, maxAge) {
   const cookie = `${key}=${value};max-age=${maxAge};path=/${cookieOptions()}`;
   document.cookie = cookie;
-}
-
-function cookieOptions() {
-  if (document.body.hasAttribute("data-within-iframe")) {
-    return ";SameSite=None;Secure";
-  } else {
-    return ";SameSite=Lax";
-  }
 }

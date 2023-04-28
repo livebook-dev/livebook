@@ -104,6 +104,14 @@ defmodule LivebookWeb.Endpoint do
     end
   end
 
+  def cookie_options() do
+    if Livebook.Config.within_iframe?() do
+      [same_site: "None", secure: true]
+    else
+      [same_site: "Lax"]
+    end
+  end
+
   # Because we run on localhost, we may accumulate
   # cookies from several other apps. Our header limit
   # is set to 32kB. Once we are 75% of said limit,

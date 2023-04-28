@@ -235,3 +235,11 @@ export function isFeatureFlagEnabled(feature) {
     return features.split(",").includes(feature);
   }
 }
+
+export function cookieOptions() {
+  if (document.body.hasAttribute("data-within-iframe")) {
+    return ";SameSite=None;Secure";
+  } else {
+    return ";SameSite=Lax";
+  }
+}

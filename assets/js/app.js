@@ -17,6 +17,7 @@ import { loadUserData } from "./lib/user";
 import { loadAppAuthToken } from "./lib/app";
 import { settingsStore } from "./lib/settings";
 import { registerTopbar, registerGlobalEventHandlers } from "./events";
+import { cookieOptions } from "./lib/utils";
 
 function connect() {
   const csrfToken = document
@@ -83,9 +84,8 @@ function connect() {
 //
 //   * Brave also implements storage partitioning (3)
 //
-// To detect whether cookies are allowed, we check for the user data cookie,
-// which should be set by the server on the initial request and is accessible
-// from JavaScript (without HttpOnly).
+// To detect whether cookies are allowed, we check if we can programmatically
+// set a cookie.
 //
 // Also see the proposal (4), which may streamline this in the future.
 //
@@ -94,7 +94,9 @@ function connect() {
 // (3): https://brave.com/privacy-updates/7-ephemeral-storage
 // (4): https://github.com/privacycg/CHIPS
 
-if (loadUserData() === null) {
+if (hasCookiesAccess()) {
+  connect();
+} else {
   const overlayEl = document.createElement("div");
 
   overlayEl.innerHTML = `
@@ -121,6 +123,12 @@ if (loadUserData() === null) {
   overlayEl.querySelector("#open-app").href = window.location;
 
   document.body.appendChild(overlayEl);
-} else {
-  connect();
+}
+
+function hasCookiesAccess() {
+  document.cookie = `lb:probe_cookie=;path=/${cookieOptions()}`;
+
+  return document.cookie
+    .split("; ")
+    .some((cookie) => cookie.startsWith(`lb:probe_cookie=`));
 }
