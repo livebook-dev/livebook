@@ -67,8 +67,19 @@ function connect() {
 // is not stored, so CSRF tokens are invalid. Consequently, LV keeps reloading
 // the page, as we try to connect the socket with invalid token. To work around
 // this we tell the user to open Livebook outside the iframe.
+//
+// Firefox implements state partitioning (1) and it is enabled for storage
+// by default since Firefox 103 (2). With storage partitioning, the embedded
+// Livebook site gets a separate storage bucket scoped by the top-level origin,
+// which is enough in our case, so for Firefox we proceed as usually.
+//
+// Also see (3) for further reference.
+//
+// (1): https://developer.mozilla.org/en-US/docs/Web/Privacy/State_Partitioning#state_partitioning
+// (2): https://www.mozilla.org/en-US/firefox/103.0/releasenotes
+// (3): https://github.com/privacycg/CHIPS
 
-if (document.hasStorageAccess) {
+if (document.hasStorageAccess && !isFirefox()) {
   document.hasStorageAccess().then((hasStorageAccess) => {
     if (hasStorageAccess) {
       connect();
@@ -95,11 +106,15 @@ if (document.hasStorageAccess) {
         </div>
       `;
 
-      overlayEl.querySelector("#open-app").href = window.location;
+      overlayEl.querySelector("#open-app").href = window.location
 
       document.body.appendChild(overlayEl);
     }
   });
 } else {
   connect();
+}
+
+function isFirefox() {
+  return navigator.userAgent.includes("Firefox");
 }
