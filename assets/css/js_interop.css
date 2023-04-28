@@ -301,7 +301,10 @@ solely client-side operations.
 [data-el-session][data-js-view="presentation"]
   [data-el-section-subheadline]:not([data-js-focused]),
 [data-el-session][data-js-view="presentation"]
-  [data-el-cell]:not([data-js-focused]) {
+  [data-el-cell]:not([data-js-focused]),
+[data-el-session][data-js-view="presentation"]
+  [data-el-js-view-iframes]
+  iframe:not([data-js-focused]) {
   @apply opacity-10;
 }
 

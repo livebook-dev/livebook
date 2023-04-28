@@ -147,6 +147,11 @@ const JSView = {
       // default timeout of 10s, so we increase it
       30_000
     );
+
+    this.unsubscribeFromCellEvents = globalPubSub.subscribe(
+      "navigation",
+      (event) => this.handleNavigationEvent(event)
+    );
   },
 
   updated() {
@@ -167,6 +172,7 @@ const JSView = {
     this.channel.push("disconnect", { ref: this.props.ref });
 
     this.unsubscribeFromJSViewEvents();
+    this.unsubscribeFromCellEvents();
   },
 
   getProps() {
@@ -452,6 +458,23 @@ const JSView = {
         type: "secretSelected",
         secretName: event.secretName,
       });
+    }
+  },
+
+  handleNavigationEvent(event) {
+    if (event.type === "element_focused") {
+      // If a parent focusable element is focused, mirror the attribute
+      // to the iframe element. This way if we need to apply style rules
+      // (such as opacity) to focused elements, we can target the iframe
+      // elements placed elsewhere in the DOM
+
+      const focusableEl = this.el.closest(`[data-focusable-id]`);
+      const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
+
+      this.iframe.toggleAttribute(
+        "data-js-focused",
+        focusableId === event.focusableId
+      );
     }
   },
 };
