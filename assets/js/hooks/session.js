@@ -16,10 +16,6 @@ import monaco from "./cell_editor/live_editor/monaco";
 import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
-const VIEW_NONE = null;
-const VIEW_CODE_ZEN = "code-zen";
-const VIEW_PRESENTATION = "presentation";
-
 /**
  * A hook managing the whole session.
  *
@@ -73,7 +69,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
-    this.view = VIEW_NONE;
+    this.view = null;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
@@ -135,13 +131,9 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("code-zen-toggle").addEventListener("click", (event) =>
-      this.setCodeZen(!this.isViewCodeZen())
-    );
-
-    this.getElement("presentation-toggle").addEventListener("click", (event) =>
-      this.setPresentation(!this.isViewPresentation())
-    );
+    this.getElement("views").addEventListener("click", (event) => {
+      this.handleViewsClick(event);
+    });
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
@@ -421,8 +413,10 @@ const Session = {
         !this.isViewCodeZen() && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
         !this.isViewCodeZen() && this.insertCellAboveFocused("markdown");
-      } else if (keyBuffer.tryMatch(["z"])) {
-        this.setCodeZen(!this.isViewCodeZen());
+      } else if (keyBuffer.tryMatch(["v", "z"])) {
+        this.toggleView("code-zen");
+      } else if (keyBuffer.tryMatch(["v", "p"])) {
+        this.toggleView("presentation");
       } else if (keyBuffer.tryMatch(["c"])) {
         !this.isViewCodeZen() && this.toggleCollapseSection();
       } else if (keyBuffer.tryMatch(["C"])) {
@@ -485,17 +479,6 @@ const Session = {
     const focusableEl = event.target.closest(`[data-focusable-id]`);
     const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
     const insertMode = this.editableElementClicked(event, focusableEl);
-
-    // When in presentation, keep the focus as is
-    if (
-      this.isViewPresentation() ||
-      event.target.closest(`[data-el-presentation-toggle]`)
-    ) {
-      if (this.insertMode !== insertMode) {
-        this.setInsertMode(insertMode);
-      }
-      return;
-    }
 
     if (focusableId !== this.focusedId) {
       this.setFocusedEl(focusableId, { scroll: false, focusElement: false });
@@ -983,51 +966,28 @@ const Session = {
     });
   },
 
-  resetViews() {
-    this.el.removeAttribute("data-js-code-zen");
-    this.el.removeAttribute("data-js-presentation");
+  handleViewsClick(event) {
+    const button = event.target.closest(`[data-el-view-toggle]`);
+
+    if (button) {
+      const view = button.getAttribute("data-el-view-toggle");
+      this.toggleView(view);
+    }
   },
 
-  setCodeZen(enabled) {
-    this.resetViews();
-    this.toggleViewToCodeZen(enabled);
+  toggleView(view) {
+    if (this.view === view) {
+      this.view = null;
+      this.el.removeAttribute("data-js-view");
+    } else {
+      this.view = view;
+      this.el.setAttribute("data-js-view", view);
+    }
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
-
-    if (enabled) {
-      this.el.setAttribute("data-js-code-zen", "");
-    } else {
-      this.el.removeAttribute("data-js-code-zen");
-    }
 
     if (focusedId) {
-      const visibleId = this.ensureVisibleFocusableEl(focusedId);
-
-      if (visibleId !== this.focused) {
-        this.setFocusedEl(visibleId, { scroll: false });
-      }
-
-      if (visibleId) {
-        this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
-      }
-    }
-  },
-
-  setPresentation(enabled) {
-    this.resetViews();
-    this.toggleViewToPresentation(enabled);
-
-    // If nothing is focused, use the first cell in the viewport
-    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
-
-    if (enabled) {
-      this.el.setAttribute("data-js-presentation", "");
-    } else {
-      this.el.removeAttribute("data-js-presentation");
-    }
-
-    if (this.isViewPresentation() && focusedId) {
       const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
@@ -1374,19 +1334,11 @@ const Session = {
   },
 
   isViewCodeZen() {
-    return this.view === VIEW_CODE_ZEN;
+    return this.view === "code-zen";
   },
 
   isViewPresentation() {
-    return this.view === VIEW_PRESENTATION;
-  },
-
-  toggleViewToCodeZen(enabled) {
-    return (this.view = enabled ? VIEW_CODE_ZEN : VIEW_NONE);
-  },
-
-  toggleViewToPresentation(enabled) {
-    return (this.view = enabled ? VIEW_PRESENTATION : VIEW_NONE);
+    return this.view === "presentation";
   },
 };
 

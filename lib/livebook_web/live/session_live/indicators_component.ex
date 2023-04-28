@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
-          <.views_indicator />
+          <.view_indicator />
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
@@ -52,7 +52,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp views_indicator(assigns) do
+  defp view_indicator(assigns) do
     ~H"""
     <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
       <.menu id="views-menu" position={:top_right}>
@@ -73,13 +73,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </button>
         </:toggle>
         <.menu_item>
-          <button role="menuitem" data-el-code-zen-toggle>
+          <button role="menuitem" data-el-view-toggle="code-zen">
             <.remix_icon icon="code-line" />
             <span>Code zen</span>
           </button>
         </.menu_item>
         <.menu_item>
-          <button role="menuitem" data-el-presentation-toggle>
+          <button role="menuitem" data-el-view-toggle="presentation">
             <.remix_icon icon="slideshow-2-line" />
             <span>Presentation</span>
           </button>
