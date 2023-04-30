@@ -148,8 +148,8 @@ defmodule Livebook.Runtime.Evaluator do
 
   """
   @spec evaluate_code(t(), String.t(), ref(), list(ref()), keyword()) :: :ok
-  def evaluate_code(evaluator, code, ref, parent_refs, opts \\ []) do
-    cast(evaluator, {:evaluate_code, code, ref, parent_refs, opts})
+  def evaluate_code(evaluator, language, code, ref, parent_refs, opts \\ []) do
+    cast(evaluator, {:evaluate_code, language, code, ref, parent_refs, opts})
   end
 
   @doc """
@@ -337,8 +337,8 @@ defmodule Livebook.Runtime.Evaluator do
     %{id: random_id(), binding: [], env: env, pdict: %{}}
   end
 
-  defp handle_cast({:evaluate_code, code, ref, parent_refs, opts}, state) do
-    do_evaluate_code(code, ref, parent_refs, opts, state)
+  defp handle_cast({:evaluate_code, language, code, ref, parent_refs, opts}, state) do
+    do_evaluate_code(language, code, ref, parent_refs, opts, state)
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
@@ -390,7 +390,7 @@ defmodule Livebook.Runtime.Evaluator do
     {:reply, result, state}
   end
 
-  defp do_evaluate_code(code, ref, parent_refs, opts, state) do
+  defp do_evaluate_code(language, code, ref, parent_refs, opts, state) do
     {old_context, state} = pop_in(state.contexts[ref])
 
     if old_context do
@@ -402,10 +402,10 @@ defmodule Livebook.Runtime.Evaluator do
     # We remove the old context from state and jump to a tail-recursive
     # function. This way we are sure there is no reference to the old
     # state and we can garbage collect the old context before the evaluation
-    continue_do_evaluate_code(code, ref, parent_refs, opts, state)
+    continue_do_evaluate_code(language, code, ref, parent_refs, opts, state)
   end
 
-  defp continue_do_evaluate_code(code, ref, parent_refs, opts, state) do
+  defp continue_do_evaluate_code(language, code, ref, parent_refs, opts, state) do
     :erlang.garbage_collect(self())
 
     Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
@@ -419,7 +419,7 @@ defmodule Livebook.Runtime.Evaluator do
     set_pdict(context, state.ignored_pdict_keys)
 
     start_time = System.monotonic_time()
-    eval_result = eval(code, context.binding, context.env)
+    eval_result = eval(language, code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
@@ -600,11 +600,65 @@ defmodule Livebook.Runtime.Evaluator do
 
   @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
 
-  defp eval(code, binding, env) do
+  defp eval("elixir", code, binding, env) do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
       {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
       {:ok, value, binding, env}
+    catch
+      kind, error ->
+        stacktrace = prune_stacktrace(__STACKTRACE__)
+
+        code_error =
+          if code_error?(error) and (error.file == env.file and error.file != "nofile") do
+            %{line: error.line, description: error.description}
+          else
+            nil
+          end
+
+        {:error, kind, error, stacktrace, code_error}
+    end
+  end
+
+  defp eval("erlang", code, binding, env) do
+    try do
+      erl_binding =
+        binding
+        |> Enum.reduce(%{}, fn {name, value}, erl_binding ->
+          :erl_eval.add_binding(
+            name
+            |> :erlang.atom_to_binary()
+            |> Macro.camelize()
+            |> :erlang.binary_to_atom(),
+            value,
+            erl_binding
+          )
+        end)
+
+      {:ok, tokens, _} = :erl_scan.string(code |> String.to_charlist())
+      {:ok, parsed} = :erl_parse.parse_exprs(tokens)
+
+      {:value, result, new_erl_binding} =
+        :erl_eval.exprs(
+          parsed,
+          erl_binding
+        )
+
+      binding =
+        new_erl_binding
+        |> Map.drop(Map.keys(erl_binding))
+        |> Enum.reduce(binding, fn {name, value}, binding ->
+          binding
+          |> Keyword.put(
+            name
+            |> :erlang.atom_to_binary()
+            |> Macro.underscore()
+            |> :erlang.binary_to_atom(),
+            value
+          )
+        end)
+
+      {:ok, result, binding, env}
     catch
       kind, error ->
         stacktrace = prune_stacktrace(__STACKTRACE__)

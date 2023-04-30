@@ -405,8 +405,8 @@ defprotocol Livebook.Runtime do
       to be evaluated, if applicable
 
   """
-  @spec evaluate_code(t(), String.t(), locator(), parent_locators(), keyword()) :: :ok
-  def evaluate_code(runtime, code, locator, parent_locators, opts \\ [])
+  @spec evaluate_code(t(), String.t(), String.t(), locator(), parent_locators(), keyword()) :: :ok
+  def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ [])
 
   @doc """
   Disposes of an evaluation identified by the given locator.

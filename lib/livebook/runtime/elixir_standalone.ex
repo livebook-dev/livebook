@@ -110,8 +110,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.ElixirStandalone.new()
   end
 
-  def evaluate_code(runtime, code, locator, parent_locators, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, parent_locators, opts)
+  def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, language, code, locator, parent_locators, opts)
   end
 
   def forget_evaluation(runtime, locator) do

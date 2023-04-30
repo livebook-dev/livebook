@@ -20,8 +20,19 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-type="code"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
+          phx-value-language="elixir"
         >
           + Code
+        </button>
+        <button
+          class="button-base button-small"
+          phx-click="insert_cell_below"
+          phx-value-type="code"
+          phx-value-section_id={@section_id}
+          phx-value-cell_id={@cell_id}
+          phx-value-language="erlang"
+        >
+          + Erlang
         </button>
         <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
           <:toggle>

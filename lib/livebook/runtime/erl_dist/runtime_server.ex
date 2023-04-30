@@ -86,12 +86,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @spec evaluate_code(
           pid(),
           String.t(),
+          String.t(),
           Runtime.locator(),
           Runtime.parent_locators(),
           keyword()
         ) :: :ok
-  def evaluate_code(pid, code, locator, parent_locators, opts \\ []) do
-    GenServer.cast(pid, {:evaluate_code, code, locator, parent_locators, opts})
+  def evaluate_code(pid, language, code, locator, parent_locators, opts \\ []) do
+    GenServer.cast(pid, {:evaluate_code, language, code, locator, parent_locators, opts})
   end
 
   @doc """
@@ -429,7 +430,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, {container_ref, evaluation_ref} = locator, parent_locators, opts},
+        {:evaluate_code, language, code, {container_ref, evaluation_ref} = locator, parent_locators, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
@@ -456,6 +457,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
+      language,
       code,
       evaluation_ref,
       parent_evaluation_refs,
@@ -464,7 +466,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     {:noreply, %{state | last_evaluator: state.evaluators[container_ref]}}
   end
-
   def handle_cast({:forget_evaluation, {container_ref, evaluation_ref}}, state) do
     with {:ok, evaluator} <- Map.fetch(state.evaluators, container_ref) do
       Evaluator.forget_evaluation(evaluator, evaluation_ref)

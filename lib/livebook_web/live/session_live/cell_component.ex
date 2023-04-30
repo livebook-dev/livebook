@@ -89,7 +89,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           tag="primary"
           source_view={@cell_view.source_view}
-          language="elixir"
+          language={@cell_view.language}
           intellisense
         />
         <div class="absolute bottom-2 right-2">

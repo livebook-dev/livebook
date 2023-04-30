@@ -1765,7 +1765,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
-  defp cell_type_and_attrs_from_params(%{"type" => "code"}), do: {:code, %{}}
+  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language}), do: {:code, %{language: language}}
 
   defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
     source = """
@@ -2057,6 +2057,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
+      language: cell.language,
       source_view: source_view(cell.source, info.sources.primary),
       eval: eval_info_to_view(cell, info.eval, data),
       reevaluate_automatically: cell.reevaluate_automatically
