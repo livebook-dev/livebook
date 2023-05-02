@@ -8,25 +8,31 @@ defmodule Livebook.Hubs.Enterprise do
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          url: String.t() | nil,
-          token: String.t() | nil,
-          external_id: String.t() | nil,
+          org_id: pos_integer() | nil,
+          user_id: pos_integer() | nil,
+          org_key_id: pos_integer() | nil,
+          teams_key: String.t() | nil,
+          session_token: String.t() | nil,
           hub_name: String.t() | nil,
           hub_emoji: String.t() | nil
         }
 
   embedded_schema do
-    field :url, :string
-    field :token, :string
-    field :external_id, :string
+    field :org_id, :integer
+    field :user_id, :integer
+    field :org_key_id, :integer
+    field :teams_key, :string
+    field :session_token, :string
     field :hub_name, :string
     field :hub_emoji, :string
   end
 
   @fields ~w(
-    url
-    token
-    external_id
+    org_id
+    user_id
+    org_key_id
+    teams_key
+    session_token
     hub_name
     hub_emoji
   )a
@@ -63,7 +69,7 @@ defmodule Livebook.Hubs.Enterprise do
     if Hubs.hub_exists?(id) do
       {:error,
        changeset
-       |> add_error(:external_id, "already exists")
+       |> add_error(:hub_name, "already exists")
        |> Map.replace!(:action, :validate)}
     else
       with {:ok, struct} <- apply_action(changeset, :insert) do
@@ -92,7 +98,7 @@ defmodule Livebook.Hubs.Enterprise do
     else
       {:error,
        changeset
-       |> add_error(:external_id, "does not exists")
+       |> add_error(:hub_name, "does not exists")
        |> Map.replace!(:action, :validate)}
     end
   end
@@ -105,9 +111,9 @@ defmodule Livebook.Hubs.Enterprise do
   end
 
   defp add_id(changeset) do
-    case get_field(changeset, :external_id) do
+    case get_field(changeset, :hub_name) do
       nil -> changeset
-      external_id -> put_change(changeset, :id, "enterprise-#{external_id}")
+      hub_name -> put_change(changeset, :id, "enterprise-#{hub_name}")
     end
   end
 end
@@ -119,9 +125,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Enterprise do
     %{
       enterprise
       | id: fields.id,
-        url: fields.url,
-        token: fields.token,
-        external_id: fields.external_id,
+        session_token: fields.session_token,
+        teams_key: fields.teams_key,
+        org_id: fields.org_id,
+        user_id: fields.user_id,
+        org_key_id: fields.org_key_id,
         hub_name: fields.hub_name,
         hub_emoji: fields.hub_emoji
     }
