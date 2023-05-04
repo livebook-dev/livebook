@@ -94,7 +94,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["c"], desc: "Expand/collapse section"},
       %{seq: ["C"], desc: "Expand/collapse all sections"},
       %{seq: ["v", "z"], desc: "Toggle code zen view"},
-      %{seq: ["v", "p"], desc: "Toggle presentation view]"},
+      %{seq: ["v", "p"], desc: "Toggle presentation view"},
       %{seq: ["d", "d"], desc: "Delete cell", basic: true},
       %{seq: ["e", "e"], desc: "Evaluate cell"},
       %{seq: ["e", "s"], desc: "Evaluate section"},
