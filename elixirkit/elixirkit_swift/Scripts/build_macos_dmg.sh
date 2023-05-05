@@ -33,7 +33,7 @@ if [ -n "$team_id" ]; then
     --progress \
     --wait \
     $dmg_path \
-    | tee /dev/tty | grep -q "status: Accepted"
+    | tee /dev/stderr | grep -q "status: Accepted"
   echo "notarization ok"
 else
   echo "[warning] skipping notarization. Please set ELIXIRKIT_NOTARY_{TEAM_ID,APPLE_ID,PASSWORD} environment variables"
