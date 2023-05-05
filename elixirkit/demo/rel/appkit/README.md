@@ -7,3 +7,7 @@ Run the app, just the executable:
 Run the app bundle:
 
     $ ./run_app.sh
+
+Build the .dmg:
+
+    $ ./build_dmg.sh
