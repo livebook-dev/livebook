@@ -114,8 +114,9 @@ by pressing <kbd>?</kbd>.
 
 Elixir code cells also support autocompletion. Autocompletion
 happens automatically as you type but you can explicitly trigger
-it with <kbd>ctrl</kbd> + <kbd>␣</kbd>. You must execute a cell at 
-least once for the autocompletion engine to load.
+it with <kbd>ctrl</kbd> + <kbd>␣</kbd>. You must start the runtime,
+by executing any cell at least once, for the autocompletion engine
+to load.
 
 Let's try autocompleting the code below to `System.version()`.
 First put the cursor after the `System` below and type `.`:
