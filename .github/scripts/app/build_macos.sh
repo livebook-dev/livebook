@@ -23,7 +23,7 @@ main() {
 bootstrap_otp() {
   dir=$PWD
   cd elixirkit/otp_bootstrap
- . ./build_macos_universal.sh $OTP_VERSION "1.1.1s"
+  . ./build_macos_universal.sh $OTP_VERSION "1.1.1s"
   cd $dir
 }
 
