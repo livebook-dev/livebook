@@ -29,12 +29,12 @@ hdiutil create $dmg_path -ov -volname ${app_name}Install -fs HFS+ -srcfolder $dm
 
 if [ -n "$team_id" ]; then
   xcrun notarytool submit \
-    --team-id "${team_id}" \
-    --apple-id "${apple_id}" \
-    --password "${password}" \
+    --team-id "${team_id}" --apple-id "${apple_id}" --password "${password}" \
     --progress \
     --wait \
-    $dmg_path
+    $dmg_path \
+    | tee /dev/tty | grep -q "status: Accepted"
+  echo "notarization ok"
 else
   echo "[warning] skipping notarization. Please set ELIXIRKIT_NOTARY_{TEAM_ID,APPLE_ID,PASSWORD} environment variables"
 fi
