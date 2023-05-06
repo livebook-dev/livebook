@@ -53,7 +53,6 @@ module.exports = (env, options) => {
         languages: [
           "markdown",
           "elixir",
-          "erlang",
           "xml",
           "json",
           "sql",
