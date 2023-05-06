@@ -146,7 +146,7 @@ defmodule Livebook.LiveMarkdown.Export do
     metadata = cell_metadata(cell)
 
     cell =
-      [delimiter, "elixir\n", code, "\n", delimiter]
+      [delimiter, cell.language, "\n", code, "\n", delimiter]
       |> prepend_metadata(metadata)
 
     if outputs == [] do
