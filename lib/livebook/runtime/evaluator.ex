@@ -426,7 +426,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     {new_context, result, code_error, identifiers_used, identifiers_defined} =
       case eval_result do
-        {:ok, value, binding, env} ->
+        {:ok, value, binding, used_vars, env} ->
           context_id = random_id()
 
           new_context = %{
@@ -440,7 +440,7 @@ defmodule Livebook.Runtime.Evaluator do
             identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
-          {new_context, result, nil, identifiers_used, identifiers_defined}
+          {new_context, result, nil, identifiers_used ++ used_vars, identifiers_defined}
 
         {:error, kind, error, stacktrace, code_error} ->
           for {module, _} <- tracer_info.modules_defined do
@@ -604,7 +604,7 @@ defmodule Livebook.Runtime.Evaluator do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
       {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      {:ok, value, binding, env}
+      {:ok, value, binding, [], env}
     catch
       kind, error ->
         stacktrace = prune_stacktrace(__STACKTRACE__)
@@ -625,17 +625,26 @@ defmodule Livebook.Runtime.Evaluator do
       erl_binding =
         binding
         |> Enum.reduce(%{}, fn {name, value}, erl_binding ->
-          :erl_eval.add_binding(
-            name
-            |> :erlang.atom_to_binary()
-            |> Macro.camelize()
-            |> :erlang.binary_to_atom(),
-            value,
-            erl_binding
-          )
+          :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
       {:ok, tokens, _} = :erl_scan.string(code |> String.to_charlist())
+      # Primitive heuristic to detect the used variables. This will not handle
+      # shadowing of variables in funs and will only work well enough for
+      # expressions, not for modules.
+      used_vars =
+        tokens
+        |> Enum.filter(fn
+          {:var, _, _} ->
+            true
+
+          _ ->
+            false
+        end)
+        |> Enum.map(fn {:var, _, name} ->
+          erlang_to_elixir_var(name)
+        end)
+
       {:ok, parsed} = :erl_parse.parse_exprs(tokens)
 
       {:value, result, new_erl_binding} =
@@ -648,17 +657,10 @@ defmodule Livebook.Runtime.Evaluator do
         new_erl_binding
         |> Map.drop(Map.keys(erl_binding))
         |> Enum.reduce(binding, fn {name, value}, binding ->
-          binding
-          |> Keyword.put(
-            name
-            |> :erlang.atom_to_binary()
-            |> Macro.underscore()
-            |> :erlang.binary_to_atom(),
-            value
-          )
+          Keyword.put(binding, erlang_to_elixir_var(name), value)
         end)
 
-      {:ok, result, binding, env}
+      {:ok, result, binding, used_vars, env}
     catch
       kind, error ->
         stacktrace = prune_stacktrace(__STACKTRACE__)
@@ -672,6 +674,20 @@ defmodule Livebook.Runtime.Evaluator do
 
         {:error, kind, error, stacktrace, code_error}
     end
+  end
+
+  defp elixir_to_erlang_var(name) do
+    name
+    |> :erlang.atom_to_binary()
+    |> Macro.camelize()
+    |> :erlang.binary_to_atom()
+  end
+
+  defp erlang_to_elixir_var(name) do
+    name
+    |> :erlang.atom_to_binary()
+    |> Macro.underscore()
+    |> :erlang.binary_to_atom()
   end
 
   defp code_error?(%SyntaxError{}), do: true
