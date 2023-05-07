@@ -440,7 +440,13 @@ defmodule Livebook.Runtime.Evaluator do
             identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
-          {new_context, result, nil, identifiers_used ++ used_vars, identifiers_defined}
+
+          identifiers_used =
+            (identifiers_used ++ used_vars)
+            |> MapSet.new()
+            |> MapSet.to_list()
+
+          {new_context, result, nil, identifiers_used, identifiers_defined}
 
         {:error, kind, error, stacktrace, code_error} ->
           for {module, _} <- tracer_info.modules_defined do
@@ -607,7 +613,7 @@ defmodule Livebook.Runtime.Evaluator do
       {:ok, value, binding, [], env}
     catch
       kind, error ->
-        stacktrace = prune_stacktrace(__STACKTRACE__)
+        stacktrace = prune_stacktrace(:elixir_eval, __STACKTRACE__)
 
         code_error =
           if code_error?(error) and (error.file == env.file and error.file != "nofile") do
@@ -628,51 +634,56 @@ defmodule Livebook.Runtime.Evaluator do
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      {:ok, tokens, _} = :erl_scan.string(code |> String.to_charlist())
-      # Primitive heuristic to detect the used variables. This will not handle
-      # shadowing of variables in funs and will only work well enough for
-      # expressions, not for modules.
-      used_vars =
-        tokens
-        |> Enum.filter(fn
-          {:var, _, _} ->
-            true
+      with {:ok, tokens, _} <- :erl_scan.string(code |> String.to_charlist()),
+           {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
+           {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
+        # Primitive heuristic to detect the used variables. This will not handle
+        # shadowing of variables in funs and will only work well enough for
+        # expressions, not for modules.
+        used_vars =
+          tokens
+          |> Enum.reduce(%{}, fn
+            {:var, _, name}, acc when not is_map_key(acc, name) ->
+              Map.put(acc, name, erlang_to_elixir_var(name))
 
-          _ ->
-            false
-        end)
-        |> Enum.map(fn {:var, _, name} ->
-          erlang_to_elixir_var(name)
-        end)
+            _, acc ->
+              acc
+          end)
+          |> Map.values()
 
-      {:ok, parsed} = :erl_parse.parse_exprs(tokens)
+        binding =
+          new_erl_binding
+          |> Map.drop(Map.keys(erl_binding))
+          |> Enum.reduce(binding, fn {name, value}, binding ->
+            Keyword.put(binding, erlang_to_elixir_var(name), value)
+          end)
 
-      {:value, result, new_erl_binding} =
-        :erl_eval.exprs(
-          parsed,
-          erl_binding
-        )
+        {:ok, result, binding, used_vars, env}
+      else
+        # Tokenizer error
+        {:error, err, location} ->
+          code_error = %{
+            line: :erl_anno.line(location),
+            description: "Tokenizer #{err}"
+          }
 
-      binding =
-        new_erl_binding
-        |> Map.drop(Map.keys(erl_binding))
-        |> Enum.reduce(binding, fn {name, value}, binding ->
-          Keyword.put(binding, erlang_to_elixir_var(name), value)
-        end)
+          {:error, :error, {:token, err}, [], code_error}
 
-      {:ok, result, binding, used_vars, env}
+        # Parser error
+        {:error, {location, _module, err}} ->
+          err = :erlang.list_to_binary(err)
+
+          code_error = %{
+            line: :erl_anno.line(location),
+            description: "Parser #{err}"
+          }
+
+          {:error, :error, err, [], code_error}
+      end
     catch
       kind, error ->
-        stacktrace = prune_stacktrace(__STACKTRACE__)
-
-        code_error =
-          if code_error?(error) and (error.file == env.file and error.file != "nofile") do
-            %{line: error.line, description: error.description}
-          else
-            nil
-          end
-
-        {:error, kind, error, stacktrace, code_error}
+        stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
+        {:error, kind, error, stacktrace, nil}
     end
   end
 
@@ -821,15 +832,16 @@ defmodule Livebook.Runtime.Evaluator do
         do: var
   end
 
-  defp prune_stacktrace([{Livebook.Runtime.Evaluator.Tracer, _fun, _arity, _meta} | _]), do: []
+  defp prune_stacktrace(_module, [{Livebook.Runtime.Evaluator.Tracer, _fun, _arity, _meta} | _]),
+    do: []
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below
   if System.otp_release() >= "25" do
-    defp prune_stacktrace(stack) do
+    defp prune_stacktrace(module, stack) do
       stack
       |> Enum.reverse()
-      |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
+      |> Enum.drop_while(&(elem(&1, 0) != module))
       |> Enum.reverse()
       |> case do
         [] -> stack
@@ -841,7 +853,7 @@ defmodule Livebook.Runtime.Evaluator do
                         [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
                         [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
-    defp prune_stacktrace(stacktrace) do
+    defp prune_stacktrace(_, stacktrace) do
       # The order in which each drop_while is listed is important.
       # For example, the user may call Code.eval_string/2 in their
       # code and if there is an error we should not remove erl_eval
