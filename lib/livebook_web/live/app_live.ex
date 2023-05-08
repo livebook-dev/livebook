@@ -119,6 +119,10 @@ defmodule LivebookWeb.AppLive do
               input_values={output_view.input_values}
             />
           </div>
+          <div :if={@data_view.output_views == []} class="info-box">
+            This deployed notebook is empty. Deployed apps only render Kino outputs.
+            Ensure you use Kino for interactive visualizations and dynamic content.
+          </div>
         </div>
         <div style="height: 80vh"></div>
       </div>
