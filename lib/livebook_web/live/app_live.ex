@@ -54,8 +54,6 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def render(assigns) when assigns.app_authenticated? do
-    IO.inspect(assigns)
-
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
@@ -122,7 +120,8 @@ defmodule LivebookWeb.AppLive do
             />
           </div>
           <div :if={@data_view.output_views == []} class="info-box">
-            Note: In deployed notebooks, only Kino outputs are rendered. Ensure you use Kino for interactive visualizations and dynamic content.
+            This deployed notebook is empty. Deployed apps only render Kino outputs.
+            Ensure you use Kino for interactive visualizations and dynamic content.
           </div>
         </div>
         <div style="height: 80vh"></div>
