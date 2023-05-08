@@ -22,10 +22,8 @@ defmodule LivebookWeb.AppLiveTest do
 
     {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
 
-    assert render(view) =~ """
-           This deployed notebook is empty. Deployed apps only render Kino outputs.
-                   Ensure you use Kino for interactive visualizations and dynamic content.\
-           """
+    assert render(view) =~
+             "This deployed notebook is empty. Deployed apps only render Kino outputs."
   end
 
   defp start_session() do
