@@ -162,6 +162,7 @@ defmodule Livebook.Runtime.Definitions do
   @code_block_definitions [
     %{
       name: "Form",
+      icon: "bill-line",
       variants: [
         %{
           name: "Default",

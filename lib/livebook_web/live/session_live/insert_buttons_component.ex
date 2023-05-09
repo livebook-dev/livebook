@@ -75,14 +75,17 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <span>Image</span>
             </.link>
           </.menu_item>
-          <.menu_item :for={definition <- Livebook.Runtime.code_block_definitions(@runtime)}>
-            <.code_block_insert_button
-              definition={definition}
-              runtime={@runtime}
-              section_id={@section_id}
-              cell_id={@cell_id}
-            />
-          </.menu_item>
+          <%= if @code_block_definitions != [] do %>
+            <div class="my-2 border-b border-gray-200"></div>
+            <.menu_item :for={definition <- Enum.sort_by(@code_block_definitions, & &1.name)}>
+              <.code_block_insert_button
+                definition={definition}
+                runtime={@runtime}
+                section_id={@section_id}
+                cell_id={@cell_id}
+              />
+            </.menu_item>
+          <% end %>
         </.menu>
         <%= cond do %>
           <% not Livebook.Runtime.connected?(@runtime) -> %>
@@ -124,7 +127,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     <.submenu>
       <:primary>
         <button role="menuitem">
-          <.remix_icon icon="terminal-box-line" />
+          <.remix_icon icon={@definition.icon} />
           <span><%= @definition.name %></span>
         </button>
       </:primary>
@@ -146,7 +149,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       role="menuitem"
       phx-click={on_code_block_click(@definition, 0, @runtime, @section_id, @cell_id)}
     >
-      <.remix_icon icon="terminal-box-line" />
+      <.remix_icon icon={@definition.icon} />
       <span><%= @definition.name %></span>
     </button>
     """

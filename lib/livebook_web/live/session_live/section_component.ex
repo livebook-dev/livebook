@@ -165,6 +165,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             id={"insert-buttons-#{@section_view.id}-first"}
             persistent={@section_view.cell_views == []}
             smart_cell_definitions={@smart_cell_definitions}
+            code_block_definitions={@code_block_definitions}
             runtime={@runtime}
             section_id={@section_view.id}
             cell_id={nil}
@@ -187,6 +188,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               id={"insert-buttons-#{@section_view.id}-#{index}"}
               persistent={false}
               smart_cell_definitions={@smart_cell_definitions}
+              code_block_definitions={@code_block_definitions}
               runtime={@runtime}
               section_id={@section_view.id}
               cell_id={cell_view.id}
