@@ -61,7 +61,10 @@ const ConfirmModal = {
       }
     };
 
+    // Events dispatched with JS.dispatch
     window.addEventListener("lb:confirm_request", this.handleConfirmRequest);
+    // Events dispatched with push_event
+    window.addEventListener("phx:lb:confirm_request", this.handleConfirmRequest);
 
     this.el.addEventListener("lb:confirm", (event) => {
       const { opt_out_id } = confirmEvent.detail;
@@ -71,12 +74,17 @@ const ConfirmModal = {
         store(OPT_OUT_IDS_KEY, optedOutIds);
       }
 
-      liveSocket.execJS(confirmEvent.target, confirmEvent.detail.on_confirm);
+      // Events dispatched with push_event have window as target,
+      // in which case we pass body, which is an actual element
+      const target = confirmEvent.target === window ? document.body : confirmEvent.target;
+
+      liveSocket.execJS(target, confirmEvent.detail.on_confirm);
     });
   },
 
   destroyed() {
     window.removeEventListener("lb:confirm_request", this.handleConfirmRequest);
+    window.removeEventListener("phx:lb:confirm_request", this.handleConfirmRequest);
   },
 };
 

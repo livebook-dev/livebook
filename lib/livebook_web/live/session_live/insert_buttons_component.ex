@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   use LivebookWeb, :live_component
 
+  defguardp is_many(list) when tl(list) != []
+
   def render(assigns) do
     ~H"""
     <div
@@ -62,18 +64,6 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </button>
           </.menu_item>
           <.menu_item>
-            <button
-              role="menuitem"
-              phx-click={on_form_cell_click(@section_id, @cell_id)}
-              phx-value-type="form"
-              phx-value-section_id={@section_id}
-              phx-value-cell_id={@cell_id}
-            >
-              <.remix_icon icon="terminal-box-line" />
-              <span>Form</span>
-            </button>
-          </.menu_item>
-          <.menu_item>
             <.link
               patch={
                 ~p"/sessions/#{@session_id}/cell-upload?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
@@ -85,22 +75,22 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <span>Image</span>
             </.link>
           </.menu_item>
+          <.menu_item :for={definition <- Livebook.Runtime.code_block_definitions(@runtime)}>
+            <.code_block_insert_button
+              definition={definition}
+              runtime={@runtime}
+              section_id={@section_id}
+              cell_id={@cell_id}
+            />
+          </.menu_item>
         </.menu>
         <%= cond do %>
           <% not Livebook.Runtime.connected?(@runtime) -> %>
             <button
               class="button-base button-small"
               phx-click={
-                with_confirm(
-                  JS.push("setup_default_runtime"),
-                  title: "Setup runtime",
-                  description: ~s'''
-                  To see the available smart cells, you need a connected runtime.
-                  Do you want to connect and setup the default one?
-                  ''',
-                  confirm_text: "Setup runtime",
-                  confirm_icon: "play-line",
-                  danger: false
+                setup_runtime_with_confirm(
+                  "To see the available smart cells, you need a connected runtime."
                 )
               }
             >
@@ -129,38 +119,19 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp on_form_cell_click(section_id, cell_id) do
-    with_confirm(
-      JS.push("add_form_cell_dependencies", [])
-      |> JS.push("insert_cell_below",
-        value: %{type: "form", section_id: section_id, cell_id: cell_id}
-      )
-      |> JS.push("queue_cells_reevaluation"),
-      title: "Add packages",
-      description: ~s'''
-      The <span class="font-semibold">“Form“</span>
-      smart cell requires the #{code_tag("kino")} package. Do you want to add
-      it as a dependency and restart?
-      ''',
-      confirm_text: "Add and restart",
-      confirm_icon: "add-line",
-      danger: false,
-      html: true
-    )
-  end
-
-  defp smart_cell_insert_button(%{definition: %{requirement: %{variants: [_, _ | _]}}} = assigns) do
+  defp code_block_insert_button(assigns) when is_many(assigns.definition.variants) do
     ~H"""
     <.submenu>
       <:primary>
         <button role="menuitem">
+          <.remix_icon icon="terminal-box-line" />
           <span><%= @definition.name %></span>
         </button>
       </:primary>
-      <.menu_item :for={{variant, idx} <- Enum.with_index(@definition.requirement.variants)}>
+      <.menu_item :for={{variant, idx} <- Enum.with_index(@definition.variants)}>
         <button
           role="menuitem"
-          phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
+          phx-click={on_code_block_click(@definition, idx, @runtime, @section_id, @cell_id)}
         >
           <span><%= variant.name %></span>
         </button>
@@ -169,60 +140,84 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp smart_cell_insert_button(assigns) do
+  defp code_block_insert_button(assigns) do
     ~H"""
-    <button role="menuitem" phx-click={on_smart_cell_click(@definition, 0, @section_id, @cell_id)}>
+    <button
+      role="menuitem"
+      phx-click={on_code_block_click(@definition, 0, @runtime, @section_id, @cell_id)}
+    >
+      <.remix_icon icon="terminal-box-line" />
       <span><%= @definition.name %></span>
     </button>
     """
   end
 
-  defp on_smart_cell_click(%{requirement: nil} = definition, _variant_idx, section_id, cell_id) do
-    insert_smart_cell(definition, section_id, cell_id)
+  defp smart_cell_insert_button(assigns) when is_many(assigns.definition.requirement_presets) do
+    ~H"""
+    <.submenu>
+      <:primary>
+        <button role="menuitem">
+          <span><%= @definition.name %></span>
+        </button>
+      </:primary>
+      <.menu_item :for={{preset, idx} <- Enum.with_index(@definition.requirement_presets)}>
+        <button
+          role="menuitem"
+          phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
+        >
+          <span><%= preset.name %></span>
+        </button>
+      </.menu_item>
+    </.submenu>
+    """
   end
 
-  defp on_smart_cell_click(%{requirement: %{}} = definition, variant_idx, section_id, cell_id) do
-    variant = Enum.fetch!(definition.requirement.variants, variant_idx)
+  defp smart_cell_insert_button(assigns) do
+    ~H"""
+    <button role="menuitem" phx-click={on_smart_cell_click(@definition, @section_id, @cell_id)}>
+      <span><%= @definition.name %></span>
+    </button>
+    """
+  end
 
-    with_confirm(
-      JS.push("add_smart_cell_dependencies",
-        value: %{kind: definition.kind, variant_idx: variant_idx}
+  defp on_code_block_click(definition, variant_idx, runtime, section_id, cell_id) do
+    if Livebook.Runtime.connected?(runtime) do
+      JS.push("insert_code_block_below",
+        value: %{
+          definition_name: definition.name,
+          variant_idx: variant_idx,
+          section_id: section_id,
+          cell_id: cell_id
+        }
       )
-      |> insert_smart_cell(definition, section_id, cell_id)
-      |> JS.push("queue_cells_reevaluation"),
-      title: "Add packages",
-      description:
-        case variant.packages do
-          [%{name: name}] ->
-            ~s'''
-            The <span class="font-semibold">“#{definition.name}“</span>
-            smart cell requires the #{code_tag(name)} package. Do you want to add
-            it as a dependency and restart?
-            '''
+    else
+      setup_runtime_with_confirm("To insert this block, you need a connected runtime.")
+    end
+  end
 
-          packages ->
-            ~s'''
-            The <span class="font-semibold">“#{definition.name}“</span>
-            smart cell requires the #{packages |> Enum.map(&code_tag(&1.name)) |> format_items()}
-            packages. Do you want to add them as dependencies and restart?
-            '''
-        end,
-      confirm_text: "Add and restart",
-      confirm_icon: "add-line",
-      danger: false,
-      html: true
+  defp setup_runtime_with_confirm(reason) do
+    with_confirm(
+      JS.push("setup_default_runtime"),
+      title: "Setup runtime",
+      description: "#{reason} Do you want to connect and setup the default one?",
+      confirm_text: "Setup runtime",
+      confirm_icon: "play-line",
+      danger: false
     )
   end
 
-  defp code_tag(text), do: "<code>#{text}</code>"
+  defp on_smart_cell_click(definition, section_id, cell_id) do
+    preset_idx = if definition.requirement_presets == [], do: nil, else: 0
+    on_smart_cell_click(definition, preset_idx, section_id, cell_id)
+  end
 
-  defp insert_smart_cell(js \\ %JS{}, definition, section_id, cell_id) do
-    JS.push(js, "insert_cell_below",
+  defp on_smart_cell_click(definition, preset_idx, section_id, cell_id) do
+    JS.push("insert_smart_cell_below",
       value: %{
-        type: "smart",
         kind: definition.kind,
         section_id: section_id,
-        cell_id: cell_id
+        cell_id: cell_id,
+        preset_idx: preset_idx
       }
     )
   end

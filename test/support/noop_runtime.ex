@@ -50,6 +50,10 @@ defmodule Livebook.Runtime.NoopRuntime do
       Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
     end
 
+    def has_dependencies?(_runtime, _dependencies), do: true
+
+    def code_block_definitions(_runtime), do: []
+
     def search_packages(_, _, _), do: make_ref()
 
     def disable_dependencies_cache(_), do: :ok

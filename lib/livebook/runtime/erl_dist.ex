@@ -21,6 +21,7 @@ defmodule Livebook.Runtime.ErlDist do
   # Modules to load into the connected node.
   def required_modules do
     [
+      Livebook.Runtime.Definitions,
       Livebook.Runtime.Evaluator,
       Livebook.Runtime.Evaluator.IOProxy,
       Livebook.Runtime.Evaluator.Tracer,

@@ -8,7 +8,7 @@ defmodule Livebook.Session.DataTest do
   alias Livebook.Users.User
 
   @eval_resp {:ok, [1, 2, 3]}
-  @smart_cell_definitions [%{kind: "text", name: "Text", requirement: nil}]
+  @smart_cell_definitions [%{kind: "text", name: "Text", requirement_presets: []}]
   @cid "__anonymous__"
 
   defp eval_meta(opts \\ []) do

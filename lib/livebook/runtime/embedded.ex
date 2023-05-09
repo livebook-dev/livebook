@@ -124,6 +124,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
   end
 
+  def has_dependencies?(runtime, dependencies) do
+    RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
+  end
+
+  def code_block_definitions(_runtime) do
+    Livebook.Runtime.Definitions.code_block_definitions()
+  end
+
   def search_packages(_runtime, send_to, search) do
     {mod, fun, args} = config()[:load_packages]
     packages = apply(mod, fun, args)
