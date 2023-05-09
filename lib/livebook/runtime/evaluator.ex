@@ -426,7 +426,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     {new_context, result, code_error, identifiers_used, identifiers_defined} =
       case eval_result do
-        {:ok, value, binding, used_vars, env} ->
+        {:ok, value, binding, env} ->
           context_id = random_id()
 
           new_context = %{
@@ -440,11 +440,6 @@ defmodule Livebook.Runtime.Evaluator do
             identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
-
-          identifiers_used =
-            (identifiers_used ++ used_vars)
-            |> MapSet.new()
-            |> MapSet.to_list()
 
           {new_context, result, nil, identifiers_used, identifiers_defined}
 
@@ -610,7 +605,7 @@ defmodule Livebook.Runtime.Evaluator do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
       {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      {:ok, value, binding, [], env}
+      {:ok, value, binding, env}
     catch
       kind, error ->
         stacktrace = prune_stacktrace(:elixir_eval, __STACKTRACE__)
@@ -637,6 +632,19 @@ defmodule Livebook.Runtime.Evaluator do
       with {:ok, tokens, _} <- :erl_scan.string(code |> String.to_charlist()),
            {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
+        new_erl_binding =
+          new_erl_binding
+          |> Map.drop(Map.keys(erl_binding))
+          |> Enum.reduce(%{}, fn {name, value}, acc ->
+            Map.put(acc, erlang_to_elixir_var(name), value)
+          end)
+
+        binding =
+          new_erl_binding
+          |> Enum.reduce(binding, fn {name, value}, binding ->
+            Keyword.put(binding, name, value)
+          end)
+
         # Primitive heuristic to detect the used variables. This will not handle
         # shadowing of variables in funs and will only work well enough for
         # expressions, not for modules.
@@ -644,21 +652,31 @@ defmodule Livebook.Runtime.Evaluator do
           tokens
           |> Enum.reduce(%{}, fn
             {:var, _, name}, acc when not is_map_key(acc, name) ->
-              Map.put(acc, name, erlang_to_elixir_var(name))
+              Map.put(acc, name, {erlang_to_elixir_var(name), nil})
 
             _, acc ->
               acc
           end)
           |> Map.values()
+          |> MapSet.new()
 
-        binding =
-          new_erl_binding
-          |> Map.drop(Map.keys(erl_binding))
-          |> Enum.reduce(binding, fn {name, value}, binding ->
-            Keyword.put(binding, erlang_to_elixir_var(name), value)
-          end)
+        env =
+          update_in(
+            env.versioned_vars,
+            fn versioned_vars ->
+              versioned_vars
+              |> Map.filter(fn {name, _} -> MapSet.member?(used_vars, name) end)
+              |> Map.merge(
+                new_erl_binding
+                |> Map.keys()
+                |> Enum.map(&({&1, nil}))
+                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1)
+                |> Map.new()
+              )
+            end
+          )
 
-        {:ok, result, binding, used_vars, env}
+        {:ok, result, binding, env}
       else
         # Tokenizer error
         {:error, err, location} ->
