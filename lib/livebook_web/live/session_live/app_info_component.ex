@@ -118,6 +118,10 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         notebook for people to interact with. Use
         inputs and controls to build interactive
         UIs, perfect for demos and tasks.
+        When deploying, choose between
+        'Single-instance' (one running instance)
+        and 'Multi-instance' (multiple instances,
+        join or create new ones).
         '''
       }
     >
@@ -198,6 +202,14 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <% end %>
         </div>
         <.checkbox_field field={f[:show_source]} label="Show source" />
+        <.radio_field
+          field={f[:app_type]}
+          label="Application type"
+          options={[
+            {"single", "Single-instance"},
+            {"multi", "Multi-instance"}
+          ]}
+        />
       </div>
       <div class="mt-6 flex space-x-2">
         <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
