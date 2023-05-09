@@ -17,173 +17,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_vega_lite = %{
-    name: "kino_vega_lite",
-    dependency: %{dep: {:kino_vega_lite, "~> 0.1.7"}, config: []}
-  }
-
-  kino_db = %{
-    name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.1"}, config: []}
-  }
-
-  kino_maplibre = %{
-    name: "kino_maplibre",
-    dependency: %{dep: {:kino_maplibre, "~> 0.1.7"}, config: []}
-  }
-
-  kino_slack = %{
-    name: "kino_slack",
-    dependency: %{dep: {:kino_slack, "~> 0.1.1"}, config: []}
-  }
-
-  kino_bumblebee = %{
-    name: "kino_bumblebee",
-    dependency: %{dep: {:kino_bumblebee, "~> 0.3.0"}, config: []}
-  }
-
-  exla = %{
-    name: "exla",
-    dependency: %{dep: {:exla, "~> 0.5.1"}, config: [nx: [default_backend: EXLA.Backend]]}
-  }
-
-  torchx = %{
-    name: "torchx",
-    dependency: %{dep: {:torchx, "~> 0.5.1"}, config: [nx: [default_backend: Torchx.Backend]]}
-  }
-
-  kino_explorer = %{
-    name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.4"}, config: []}
-  }
-
-  windows? = match?({:win32, _}, :os.type())
-  nx_backend_package = if(windows?, do: torchx, else: exla)
-
-  @extra_smart_cell_definitions [
-    %{
-      kind: "Elixir.KinoDB.ConnectionCell",
-      name: "Database connection",
-      requirement: %{
-        variants: [
-          %{
-            name: "Amazon Athena",
-            packages: [
-              kino_db,
-              %{
-                name: "req_athena",
-                dependency: %{dep: {:req_athena, "~> 0.1.3"}, config: []}
-              }
-            ]
-          },
-          %{
-            name: "Google BigQuery",
-            packages: [
-              kino_db,
-              %{
-                name: "req_bigquery",
-                dependency: %{dep: {:req_bigquery, "~> 0.1.1"}, config: []}
-              }
-            ]
-          },
-          %{
-            name: "MySQL",
-            packages: [
-              kino_db,
-              %{name: "myxql", dependency: %{dep: {:myxql, "~> 0.6.2"}, config: []}}
-            ]
-          },
-          %{
-            name: "PostgreSQL",
-            packages: [
-              kino_db,
-              %{name: "postgrex", dependency: %{dep: {:postgrex, "~> 0.16.3"}, config: []}}
-            ]
-          },
-          %{
-            name: "SQLite",
-            packages: [
-              kino_db,
-              %{name: "exqlite", dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}}
-            ]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoDB.SQLCell",
-      name: "SQL query",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_db]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoVegaLite.ChartCell",
-      name: "Chart",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_vega_lite]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoMapLibre.MapCell",
-      name: "Map",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_maplibre]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoSlack.MessageCell",
-      name: "Slack message",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_slack]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoBumblebee.TaskCell",
-      name: "Neural Network task",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_bumblebee, nx_backend_package]
-          }
-        ]
-      }
-    },
-    %{
-      kind: "Elixir.KinoExplorer.DataTransformCell",
-      name: "Data transform",
-      requirement: %{
-        variants: [
-          %{
-            name: "Default",
-            packages: [kino_explorer]
-          }
-        ]
-      }
-    }
-  ]
-
   @doc """
   Returns a new runtime instance.
   """
@@ -213,7 +46,9 @@ defmodule Livebook.Runtime.ElixirStandalone do
       argv = [parent_node]
 
       init_opts = [
-        runtime_server_opts: [extra_smart_cell_definitions: @extra_smart_cell_definitions]
+        runtime_server_opts: [
+          extra_smart_cell_definitions: Livebook.Runtime.Definitions.smart_cell_definitions()
+        ]
       ]
 
       with {:ok, elixir_path} <- find_elixir_executable(),
@@ -319,6 +154,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
 
   def add_dependencies(_runtime, code, dependencies) do
     Livebook.Runtime.Dependencies.add_dependencies(code, dependencies)
+  end
+
+  def has_dependencies?(runtime, dependencies) do
+    RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
+  end
+
+  def code_block_definitions(_runtime) do
+    Livebook.Runtime.Definitions.code_block_definitions()
   end
 
   def search_packages(_runtime, send_to, search) do

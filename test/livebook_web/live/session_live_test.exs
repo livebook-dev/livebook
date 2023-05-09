@@ -538,7 +538,7 @@ defmodule LivebookWeb.SessionLiveTest do
       send(
         session.pid,
         {:runtime_smart_cell_definitions,
-         [%{kind: "dbconn", name: "Database connection", requirement: nil}]}
+         [%{kind: "dbconn", name: "Database connection", requirement_presets: []}]}
       )
 
       wait_for_session_update(session.pid)

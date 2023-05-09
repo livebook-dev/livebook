@@ -917,6 +917,83 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("insert_code_block_below", params, socket) do
+    data = socket.private.data
+    add_dependencies? = params["add_dependencies"] == true
+
+    with {:ok, section, index} <-
+           section_with_next_index(data.notebook, params["section_id"], params["cell_id"]),
+         {:ok, definition} <- code_block_definition_by_name(data, params["definition_name"]) do
+      variant = Enum.fetch!(definition.variants, params["variant_idx"])
+      dependencies = Enum.map(variant.packages, & &1.dependency)
+
+      has_dependencies? =
+        dependencies == [] or Livebook.Runtime.has_dependencies?(data.runtime, dependencies)
+
+      cond do
+        has_dependencies? or add_dependencies? ->
+          attrs = %{source: variant.source}
+          Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+
+          socket =
+            if has_dependencies? do
+              socket
+            else
+              add_dependencies_and_reevaluate(socket, dependencies)
+            end
+
+          {:noreply, socket}
+
+        Livebook.Runtime.fixed_dependencies?(data.runtime) ->
+          {:noreply,
+           put_flash(socket, :error, "This runtime doesn't support adding dependencies")}
+
+        true ->
+          js = JS.push("insert_code_block_below", value: put_in(params["add_dependencies"], true))
+          socket = confirm_add_packages(socket, js, variant.packages, definition.name, "block")
+          {:noreply, socket}
+      end
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("insert_smart_cell_below", params, socket) do
+    data = socket.private.data
+    add_dependencies? = params["add_dependencies"] == true
+
+    with {:ok, section, index} <-
+           section_with_next_index(data.notebook, params["section_id"], params["cell_id"]),
+         {:ok, definition} <- smart_cell_definition_by_kind(data, params["kind"]) do
+      preset =
+        if preset_idx = params["preset_idx"] do
+          Enum.at(definition.requirement_presets, preset_idx)
+        end
+
+      if preset == nil or add_dependencies? do
+        attrs = %{kind: params["kind"]}
+        Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
+
+        socket =
+          if preset == nil do
+            socket
+          else
+            {:ok, preset} = Enum.fetch(definition.requirement_presets, preset_idx)
+            dependencies = Enum.map(preset.packages, & &1.dependency)
+            add_dependencies_and_reevaluate(socket, dependencies)
+          end
+
+        {:noreply, socket}
+      else
+        js = JS.push("insert_smart_cell_below", value: put_in(params["add_dependencies"], true))
+        socket = confirm_add_packages(socket, js, preset.packages, definition.name, "smart cell")
+        {:noreply, socket}
+      end
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
@@ -1005,17 +1082,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event(
-        "add_smart_cell_dependencies",
-        %{"kind" => kind, "variant_idx" => variant_idx},
-        socket
-      ) do
-    with %{requirement: %{variants: variants}} <-
-           Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
-         {:ok, variant} <- Enum.fetch(variants, variant_idx) do
-      dependencies = Enum.map(variant.packages, & &1.dependency)
-      Session.add_dependencies(socket.assigns.session.pid, dependencies)
-    end
+  def handle_event("add_form_cell_dependencies", %{}, socket) do
+    Session.add_dependencies(socket.assigns.session.pid, [%{dep: {:kino, "~> 0.8.1"}, config: []}])
 
     {status, socket} = maybe_reconnect_runtime(socket)
 
@@ -1063,12 +1131,6 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     Session.cancel_cell_evaluation(socket.assigns.session.pid, cell_id)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("queue_cells_reevaluation", %{}, socket) do
-    Session.queue_cells_reevaluation(socket.assigns.session.pid)
 
     {:noreply, socket}
   end
@@ -1666,10 +1728,6 @@ defmodule LivebookWeb.SessionLive do
   defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
   defp cell_type_and_attrs_from_params(%{"type" => "code"}), do: {:code, %{}}
 
-  defp cell_type_and_attrs_from_params(%{"type" => "smart", "kind" => kind}) do
-    {:smart, %{kind: kind}}
-  end
-
   defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
     source = """
     <!-- Learn more at https://mermaid-js.github.io/mermaid -->
@@ -1771,6 +1829,55 @@ defmodule LivebookWeb.SessionLive do
 
   defp starred_files(starred_notebooks) do
     for info <- starred_notebooks, into: MapSet.new(), do: info.file
+  end
+
+  defp code_block_definition_by_name(data, name) do
+    data.runtime
+    |> Livebook.Runtime.code_block_definitions()
+    |> Enum.find_value(:error, &(&1.name == name && {:ok, &1}))
+  end
+
+  defp smart_cell_definition_by_kind(data, kind) do
+    Enum.find_value(data.smart_cell_definitions, :error, &(&1.kind == kind && {:ok, &1}))
+  end
+
+  defp add_dependencies_and_reevaluate(socket, dependencies) do
+    Session.add_dependencies(socket.assigns.session.pid, dependencies)
+
+    {status, socket} = maybe_reconnect_runtime(socket)
+
+    if status == :ok do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      Session.queue_cells_reevaluation(socket.assigns.session.pid)
+    end
+
+    socket
+  end
+
+  defp confirm_add_packages(socket, js, packages, target_name, target_type) do
+    confirm(socket, js,
+      title: "Add packages",
+      description:
+        case packages do
+          [package] ->
+            ~s'''
+            The <span class="font-semibold">“#{target_name}“</span> #{target_type} requires
+            the #{code_tag(package.name)} package. Do you want to add it as a dependency
+            and restart?
+            '''
+
+          packages ->
+            ~s'''
+            The <span class="font-semibold">“#{target_name}“</span> #{target_type} requires the
+            #{packages |> Enum.map(&code_tag(&1.name)) |> format_items()} packages. Do you want
+            to add them as dependencies and restart?
+            '''
+        end,
+      confirm_text: "Add and restart",
+      confirm_icon: "add-line",
+      danger: false,
+      html: true
+    )
   end
 
   # Builds view-specific structure of data by cherry-picking

@@ -209,17 +209,13 @@ defprotocol Livebook.Runtime do
     * `{:runtime_smart_cell_definitions, list(smart_cell_definition())}`
 
   Additionally, the runtime may report extra definitions that require
-  installing external packages, as described by `:requirement`. Also
-  see `add_dependencies/3`.
+  installing external packages, as described by `:requirement_presets`.
+  Also see `add_dependencies/3`.
   """
   @type smart_cell_definition :: %{
           kind: String.t(),
           name: String.t(),
-          requirement: nil | smart_cell_requirement()
-        }
-
-  @type smart_cell_requirement :: %{
-          variants:
+          requirement_presets:
             list(%{
               name: String.t(),
               packages: list(%{name: String.t(), dependency: dependency()})
@@ -236,6 +232,19 @@ defprotocol Livebook.Runtime do
           description: String.t() | nil,
           url: String.t() | nil,
           dependency: dependency()
+        }
+
+  @typedoc """
+  An information about a predefined code block.
+  """
+  @type code_block_definition :: %{
+          name: String.t(),
+          variants:
+            list(%{
+              name: String.t(),
+              source: String.t(),
+              packages: list(%{name: String.t(), dependency: dependency()})
+            })
         }
 
   @typedoc """
@@ -534,6 +543,18 @@ defprotocol Livebook.Runtime do
   @spec add_dependencies(t(), String.t(), list(dependency())) ::
           {:ok, String.t()} | {:error, String.t()}
   def add_dependencies(runtime, code, dependencies)
+
+  @doc """
+  Checks if the given dependencies are installed within the runtime.
+  """
+  @spec has_dependencies?(t(), list(dependency())) :: boolean()
+  def has_dependencies?(runtime, dependencies)
+
+  @doc """
+  Returns a list of predefined code blocks.
+  """
+  @spec code_block_definitions(t()) :: list(code_block_definition())
+  def code_block_definitions(runtime)
 
   @doc """
   Looks up packages matching the given search.

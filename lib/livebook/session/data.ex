@@ -1908,7 +1908,7 @@ defmodule Livebook.Session.Data do
 
       kinds =
         for definition <- data.smart_cell_definitions,
-            definition.requirement == nil,
+            definition.requirement_presets == [],
             do: definition.kind
 
       cells_ready_to_start = Enum.filter(dead_cells, fn {cell, _} -> cell.kind in kinds end)

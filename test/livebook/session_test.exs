@@ -123,7 +123,8 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
       send(
@@ -851,7 +852,8 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
       Session.subscribe(session.id)
@@ -878,7 +880,8 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
       server_pid = self()
@@ -915,7 +918,8 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
       server_pid = self()
@@ -953,7 +957,8 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
       )
 
       Session.subscribe(session.id)

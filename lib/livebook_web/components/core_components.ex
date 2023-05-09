@@ -276,8 +276,23 @@ defmodule LivebookWeb.CoreComponents do
           }>
           Delete
         </button>
+
   """
   def with_confirm(js \\ %JS{}, on_confirm, opts) do
+    JS.dispatch(js, "lb:confirm_request", detail: confirm_payload(on_confirm, opts))
+  end
+
+  @doc """
+  Asks the client to show a confirmation modal before executing the
+  given JS action.
+
+  Same as `with_confirm/3`, except it is triggered from the server.
+  """
+  def confirm(socket, on_confirm, opts) do
+    Phoenix.LiveView.push_event(socket, "lb:confirm_request", confirm_payload(on_confirm, opts))
+  end
+
+  defp confirm_payload(on_confirm, opts) do
     opts =
       Keyword.validate!(
         opts,
@@ -292,18 +307,16 @@ defmodule LivebookWeb.CoreComponents do
         ]
       )
 
-    JS.dispatch(js, "lb:confirm_request",
-      detail: %{
-        on_confirm: Jason.encode!(on_confirm.ops),
-        title: opts[:title],
-        description: Keyword.fetch!(opts, :description),
-        confirm_text: opts[:confirm_text],
-        confirm_icon: opts[:confirm_icon],
-        danger: opts[:danger],
-        html: opts[:html],
-        opt_out_id: opts[:opt_out_id]
-      }
-    )
+    %{
+      on_confirm: Jason.encode!(on_confirm.ops),
+      title: opts[:title],
+      description: Keyword.fetch!(opts, :description),
+      confirm_text: opts[:confirm_text],
+      confirm_icon: opts[:confirm_icon],
+      danger: opts[:danger],
+      html: opts[:html],
+      opt_out_id: opts[:opt_out_id]
+    }
   end
 
   @doc """

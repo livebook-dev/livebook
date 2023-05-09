@@ -154,6 +154,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     raise "not supported"
   end
 
+  def has_dependencies?(runtime, dependencies) do
+    RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
+  end
+
+  def code_block_definitions(_runtime) do
+    Livebook.Runtime.Definitions.code_block_definitions()
+  end
+
   def search_packages(_runtime, _send_to, _search) do
     raise "not supported"
   end

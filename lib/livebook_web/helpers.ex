@@ -98,4 +98,10 @@ defmodule LivebookWeb.Helpers do
     {leading, [last]} = Enum.split(list, -1)
     Enum.join(leading, ", ") <> " and " <> last
   end
+
+  @doc """
+  Wraps the given text in a `<code>` tag.
+  """
+  @spec code_tag(String.t()) :: String.t()
+  def code_tag(text), do: "<code>#{text}</code>"
 end

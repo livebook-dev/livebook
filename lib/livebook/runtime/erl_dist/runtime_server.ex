@@ -244,6 +244,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Checks if the given dependencies are already installed within the
+  runtime.
+  """
+  @spec has_dependencies?(pid(), list(Runtime.dependency())) :: boolean()
+  def has_dependencies?(pid, dependencies) do
+    GenServer.call(pid, {:has_dependencies?, dependencies})
+  end
+
+  @doc """
   Disables dependencies cache globally.
   """
   @spec disable_dependencies_cache(pid()) :: :ok
@@ -645,6 +654,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:reply, reply, state}
   end
 
+  def handle_call({:has_dependencies?, dependencies}, _from, state) do
+    has_dependencies? = Enum.all?(dependencies, &dependency_installed?/1)
+    {:reply, has_dependencies?, state}
+  end
+
   defp file_path(state, file_id) do
     if tmp_dir = state.tmp_dir do
       Path.join([tmp_dir, "files", file_id])
@@ -698,7 +712,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     else
       available_defs =
         for definition <- smart_cell_definitions,
-            do: %{kind: definition.kind, name: definition.name, requirement: nil}
+            do: %{kind: definition.kind, name: definition.name, requirement_presets: []}
 
       defs = Enum.uniq_by(available_defs ++ state.extra_smart_cell_definitions, & &1.kind)
 
@@ -852,5 +866,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     File.stream!(path, [], 2048)
     |> Enum.reduce(:erlang.md5_init(), &:erlang.md5_update(&2, &1))
     |> :erlang.md5_final()
+  end
+
+  defp dependency_installed?(dependency) do
+    name = elem(dependency.dep, 0)
+    Application.spec(name) != nil
   end
 end
