@@ -239,6 +239,7 @@ defprotocol Livebook.Runtime do
   """
   @type code_block_definition :: %{
           name: String.t(),
+          icon: String.t(),
           variants:
             list(%{
               name: String.t(),

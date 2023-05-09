@@ -371,6 +371,7 @@ defmodule LivebookWeb.SessionLive do
               client_id={@client_id}
               runtime={@data_view.runtime}
               smart_cell_definitions={@data_view.smart_cell_definitions}
+              code_block_definitions={@data_view.code_block_definitions}
               installing?={@data_view.installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               section_view={section_view}
@@ -1893,6 +1894,7 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       runtime: data.runtime,
       smart_cell_definitions: data.smart_cell_definitions,
+      code_block_definitions: Livebook.Runtime.code_block_definitions(data.runtime),
       global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
