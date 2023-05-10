@@ -119,7 +119,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             />
             <.radio_field
               field={f[:hub_id]}
-              label="Storage"
               options={[
                 {"", "only this session"},
                 {@hub.id, "in #{@hub.hub_emoji} #{@hub.hub_name}"}

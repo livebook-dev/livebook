@@ -241,16 +241,19 @@ defmodule LivebookWeb.AppLive do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs),
+        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
         do: output
   end
 
-  defp filter_outputs(outputs) do
+  defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
+
+  defp rich_outputs(outputs) do
     for output <- outputs, output = filter_output(output), do: output
   end
 
   defp filter_output({idx, output})
-       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control],
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
        do: {idx, output}
 
   defp filter_output({idx, {:tabs, outputs, metadata}}) do
@@ -265,7 +268,7 @@ defmodule LivebookWeb.AppLive do
   end
 
   defp filter_output({idx, {:grid, outputs, metadata}}) do
-    outputs = filter_outputs(outputs)
+    outputs = rich_outputs(outputs)
 
     if outputs != [] do
       {idx, {:grid, outputs, metadata}}
@@ -273,7 +276,7 @@ defmodule LivebookWeb.AppLive do
   end
 
   defp filter_output({idx, {:frame, outputs, metadata}}) do
-    outputs = filter_outputs(outputs)
+    outputs = rich_outputs(outputs)
     {idx, {:frame, outputs, metadata}}
   end
 

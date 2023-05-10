@@ -198,6 +198,11 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <% end %>
         </div>
         <.checkbox_field field={f[:show_source]} label="Show source" />
+        <.radio_field
+          field={f[:output_type]}
+          label="Output type"
+          options={[{"all", "All"}, {"rich", "Rich only"}]}
+        />
       </div>
       <div class="mt-6 flex space-x-2">
         <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>

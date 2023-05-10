@@ -750,7 +750,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "app settings" do
     test "imports settings" do
       markdown = """
-      <!-- livebook:{"app_settings":{"access_type":"public","show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """
@@ -759,7 +759,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       assert %Notebook{
                name: "My Notebook",
-               app_settings: %{slug: "app", access_type: :public, show_source: true}
+               app_settings: %{
+                 slug: "app",
+                 access_type: :public,
+                 show_source: true,
+                 output_type: :rich
+               }
              } = notebook
     end
 
