@@ -635,15 +635,12 @@ defmodule Livebook.Runtime.Evaluator do
         new_erl_binding =
           new_erl_binding
           |> Map.drop(Map.keys(erl_binding))
-          |> Enum.reduce(%{}, fn {name, value}, acc ->
-            Map.put(acc, erlang_to_elixir_var(name), value)
+          |> Map.new(fn {name, value} ->
+            {erlang_to_elixir_var(name), value}
           end)
 
         binding =
-          new_erl_binding
-          |> Enum.reduce(binding, fn {name, value}, binding ->
-            Keyword.put(binding, name, value)
-          end)
+          Keyword.merge(binding, Map.to_list(new_erl_binding))
 
         # Primitive heuristic to detect the used variables. This will not handle
         # shadowing of variables in funs and will only work well enough for
@@ -669,8 +666,7 @@ defmodule Livebook.Runtime.Evaluator do
               |> Map.merge(
                 new_erl_binding
                 |> Map.keys()
-                |> Enum.map(&({&1, nil}))
-                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1)
+                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1, fn var, index -> {{var, nil}, index} end)
                 |> Map.new()
               )
             end
