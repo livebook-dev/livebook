@@ -202,124 +202,6 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   @doc """
-  Renders the confirmation modal for `with_confirm/3`.
-  """
-  attr :id, :string, required: true
-
-  def confirm_modal(assigns) do
-    ~H"""
-    <.modal id={@id} width={:medium} phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
-      <div id={"#{@id}-confirm-content"} class="p-6 flex flex-col" phx-update="ignore">
-        <h3 class="text-2xl font-semibold text-gray-800" data-title></h3>
-        <p class="mt-8 text-gray-700" data-description></p>
-        <label class="mt-6 text-gray-700 flex items-center" data-opt-out>
-          <input class="checkbox mr-3" type="checkbox" />
-          <span class="text-sm">
-            Don't show this message again
-          </span>
-        </label>
-        <div class="mt-8 flex justify-end">
-          <div class="flex space-x-2" data-actions>
-            <button class="button-base button-outlined-gray" phx-click={hide_modal(@id)}>
-              Cancel
-            </button>
-            <button
-              class="button-base"
-              phx-click={hide_modal(@id) |> JS.dispatch("lb:confirm", to: "##{@id}")}
-              data-confirm-button
-            >
-              <i aria-hidden="true" data-confirm-icon></i>
-              <span data-confirm-text></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </.modal>
-    """
-  end
-
-  @doc """
-  Shows a confirmation modal before executing the given JS action.
-
-  The modal template must already be on the page, see `confirm_modal/1`.
-
-  ## Options
-
-    * `:title` - title of the confirmation modal. Defaults to `"Are you sure?"`
-
-    * `:description` - content of the confirmation modal. Required
-
-    * `:confirm_text` - text of the confirm button. Defaults to `"Yes"`
-
-    * `:confirm_icon` - icon in the confirm button. Optional
-
-    * `:danger` - whether the action is destructive or regular. Defaults to `true`
-
-    * `:html` - whether the `:description` is a raw HTML. Defaults to `false`
-
-    * `:opt_out_id` - enables the "Don't show this message again"
-      checkbox. Once checked by the user, the confirmation with this
-      id is never shown again. Optional
-
-  ## Examples
-
-        <button class="..."
-          phx-click={
-            with_confirm(
-              JS.push("delete_item", value: %{id: @item_id}),
-              title: "Delete item",
-              description: "Are you sure you want to delete item?",
-              confirm_text: "Delete",
-              confirm_icon: "delete-bin-6-line",
-              opt_out_id: "delete-item"
-            )
-          }>
-          Delete
-        </button>
-
-  """
-  def with_confirm(js \\ %JS{}, on_confirm, opts) do
-    JS.dispatch(js, "lb:confirm_request", detail: confirm_payload(on_confirm, opts))
-  end
-
-  @doc """
-  Asks the client to show a confirmation modal before executing the
-  given JS action.
-
-  Same as `with_confirm/3`, except it is triggered from the server.
-  """
-  def confirm(socket, on_confirm, opts) do
-    Phoenix.LiveView.push_event(socket, "lb:confirm_request", confirm_payload(on_confirm, opts))
-  end
-
-  defp confirm_payload(on_confirm, opts) do
-    opts =
-      Keyword.validate!(
-        opts,
-        [
-          :confirm_icon,
-          :description,
-          :opt_out_id,
-          title: "Are you sure?",
-          confirm_text: "Yes",
-          danger: true,
-          html: false
-        ]
-      )
-
-    %{
-      on_confirm: Jason.encode!(on_confirm.ops),
-      title: opts[:title],
-      description: Keyword.fetch!(opts, :description),
-      confirm_text: opts[:confirm_text],
-      confirm_icon: opts[:confirm_icon],
-      danger: opts[:danger],
-      html: opts[:html],
-      opt_out_id: opts[:opt_out_id]
-    }
-  end
-
-  @doc """
   Renders a popup menu that shows up on toggle click.
 
   ## Examples
@@ -633,6 +515,46 @@ defmodule LivebookWeb.CoreComponents do
         <%= render_slot(@actions) %>
       </div>
     </div>
+    """
+  end
+
+  @doc """
+  Returns the text in singular or plural depending on the quantity.
+
+  ## Examples
+
+    <.listing items={@packages}>
+      <:item :let={package}><code><%= package.name %></code></:item>
+      <:singular_suffix>package</:singular_suffix>
+      <:plural_suffix>packages</:plural_suffix>
+    </.listing>
+
+  """
+
+  attr :items, :list, required: true
+
+  slot :item, required: true
+  slot :plural_suffix
+  slot :singular_suffix
+
+  def listing(%{items: [_]} = assigns) do
+    ~H"""
+    <%= render_slot(@item, hd(@items)) %>
+    <%= render_slot(@singular_suffix) %>
+    """
+  end
+
+  def listing(%{items: [_, _ | _]} = assigns) do
+    {items, assigns} = Map.pop!(assigns, :items)
+    {leading, [second_to_last, last]} = Enum.split(items, -2)
+    assigns = assign(assigns, leading: leading, second_to_last: second_to_last, last: last)
+
+    ~H"""
+    <%= for item <- @leading do %>
+      <%= render_slot(@item, item) %>,
+    <% end %>
+    <%= render_slot(@item, @second_to_last) %> and <%= render_slot(@item, @last) %>
+    <%= render_slot(@plural_suffix) %>
     """
   end
 

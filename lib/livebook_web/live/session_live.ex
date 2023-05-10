@@ -920,85 +920,101 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("insert_code_block_below", params, socket) do
     data = socket.private.data
-    add_dependencies? = params["add_dependencies"] == true
+    %{"section_id" => section_id, "cell_id" => cell_id} = params
 
-    with {:ok, section, index} <-
-           section_with_next_index(data.notebook, params["section_id"], params["cell_id"]),
-         {:ok, definition} <- code_block_definition_by_name(data, params["definition_name"]) do
-      variant = Enum.fetch!(definition.variants, params["variant_idx"])
-      dependencies = Enum.map(variant.packages, & &1.dependency)
+    case code_block_definition_by_name(data, params["definition_name"]) do
+      {:ok, definition} ->
+        variant = Enum.fetch!(definition.variants, params["variant_idx"])
+        dependencies = Enum.map(variant.packages, & &1.dependency)
 
-      has_dependencies? =
-        dependencies == [] or Livebook.Runtime.has_dependencies?(data.runtime, dependencies)
+        has_dependencies? =
+          dependencies == [] or Livebook.Runtime.has_dependencies?(data.runtime, dependencies)
 
-      cond do
-        has_dependencies? or add_dependencies? ->
-          attrs = %{source: variant.source}
-          Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+        cond do
+          has_dependencies? ->
+            insert_code_block_below(socket, variant, section_id, cell_id)
+            {:noreply, socket}
 
-          socket =
-            if has_dependencies? do
-              socket
-            else
-              add_dependencies_and_reevaluate(socket, dependencies)
+          Livebook.Runtime.fixed_dependencies?(data.runtime) ->
+            {:noreply,
+             put_flash(socket, :error, "This runtime doesn't support adding dependencies")}
+
+          true ->
+            on_confirm = fn socket ->
+              case insert_code_block_below(socket, variant, section_id, cell_id) do
+                :ok -> add_dependencies_and_reevaluate(socket, dependencies)
+                :error -> socket
+              end
             end
 
-          {:noreply, socket}
+            socket =
+              confirm_add_packages(socket, on_confirm, variant.packages, definition.name, "block")
 
-        Livebook.Runtime.fixed_dependencies?(data.runtime) ->
-          {:noreply,
-           put_flash(socket, :error, "This runtime doesn't support adding dependencies")}
+            {:noreply, socket}
+        end
 
-        true ->
-          js = JS.push("insert_code_block_below", value: put_in(params["add_dependencies"], true))
-          socket = confirm_add_packages(socket, js, variant.packages, definition.name, "block")
-          {:noreply, socket}
-      end
-    else
-      _ -> {:noreply, socket}
+      _ ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("insert_smart_cell_below", params, socket) do
     data = socket.private.data
-    add_dependencies? = params["add_dependencies"] == true
+    %{"section_id" => section_id, "cell_id" => cell_id} = params
 
-    with {:ok, section, index} <-
-           section_with_next_index(data.notebook, params["section_id"], params["cell_id"]),
-         {:ok, definition} <- smart_cell_definition_by_kind(data, params["kind"]) do
-      preset =
-        if preset_idx = params["preset_idx"] do
-          Enum.at(definition.requirement_presets, preset_idx)
-        end
-
-      if preset == nil or add_dependencies? do
-        attrs = %{kind: params["kind"]}
-        Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
-
-        socket =
-          if preset == nil do
-            socket
-          else
-            {:ok, preset} = Enum.fetch(definition.requirement_presets, preset_idx)
-            dependencies = Enum.map(preset.packages, & &1.dependency)
-            add_dependencies_and_reevaluate(socket, dependencies)
+    case smart_cell_definition_by_kind(data, params["kind"]) do
+      {:ok, definition} ->
+        preset =
+          if preset_idx = params["preset_idx"] do
+            Enum.at(definition.requirement_presets, preset_idx)
           end
 
+        if preset == nil do
+          insert_smart_cell_below(socket, definition, section_id, cell_id)
+          {:noreply, socket}
+        else
+          on_confirm = fn socket ->
+            case insert_smart_cell_below(socket, definition, section_id, cell_id) do
+              :ok ->
+                dependencies = Enum.map(preset.packages, & &1.dependency)
+                add_dependencies_and_reevaluate(socket, dependencies)
+
+              :error ->
+                socket
+            end
+          end
+
+          socket =
+            confirm_add_packages(
+              socket,
+              on_confirm,
+              preset.packages,
+              definition.name,
+              "smart cell"
+            )
+
+          {:noreply, socket}
+        end
+
+      _ ->
         {:noreply, socket}
-      else
-        js = JS.push("insert_smart_cell_below", value: put_in(params["add_dependencies"], true))
-        socket = confirm_add_packages(socket, js, preset.packages, definition.name, "smart cell")
-        {:noreply, socket}
-      end
-    else
-      _ -> {:noreply, socket}
     end
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    Session.delete_cell(socket.assigns.session.pid, cell_id)
+    on_confirm = fn socket ->
+      Session.delete_cell(socket.assigns.session.pid, cell_id)
+      socket
+    end
 
-    {:noreply, socket}
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete cell",
+       description: "Once you delete this cell, it will be moved to the bin.",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line",
+       opt_out_id: "delete-cell"
+     )}
   end
 
   def handle_event("set_notebook_name", %{"value" => name}, socket) do
@@ -1078,9 +1094,20 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
-    Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
+    on_confirm = fn socket ->
+      Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
+      socket
+    end
 
-    {:noreply, socket}
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Convert cell",
+       description:
+         "Once you convert this Smart cell to a Code cell, the Smart cell will be moved to the bin.",
+       confirm_text: "Convert",
+       confirm_icon: "arrow-up-down-line",
+       opt_out_id: "convert-smart-cell"
+     )}
   end
 
   def handle_event("add_form_cell_dependencies", %{}, socket) do
@@ -1167,14 +1194,25 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("setup_default_runtime", %{}, socket) do
-    {status, socket} = connect_runtime(socket)
+  def handle_event("setup_default_runtime", %{"reason" => reason}, socket) do
+    on_confirm = fn socket ->
+      {status, socket} = connect_runtime(socket)
 
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      if status == :ok do
+        Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+      end
+
+      socket
     end
 
-    {:noreply, socket}
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Setup runtime",
+       description: "#{reason} Do you want to connect and setup the default one?",
+       confirm_text: "Setup runtime",
+       confirm_icon: "play-line",
+       danger: false
+     )}
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
@@ -1855,30 +1893,43 @@ defmodule LivebookWeb.SessionLive do
     socket
   end
 
-  defp confirm_add_packages(socket, js, packages, target_name, target_type) do
-    confirm(socket, js,
-      title: "Add packages",
-      description:
-        case packages do
-          [package] ->
-            ~s'''
-            The <span class="font-semibold">“#{target_name}“</span> #{target_type} requires
-            the #{code_tag(package.name)} package. Do you want to add it as a dependency
-            and restart?
-            '''
+  defp confirm_add_packages(socket, on_confirm, packages, target_name, target_type) do
+    assigns = %{packages: packages, target_name: target_name, target_type: target_type}
 
-          packages ->
-            ~s'''
-            The <span class="font-semibold">“#{target_name}“</span> #{target_type} requires the
-            #{packages |> Enum.map(&code_tag(&1.name)) |> format_items()} packages. Do you want
-            to add them as dependencies and restart?
-            '''
-        end,
+    description = ~H"""
+    The <span class="font-semibold">“<%= @target_name %>“</span> <%= @target_type %> requires the
+    <.listing items={@packages}>
+      <:item :let={package}><code><%= package.name %></code></:item>
+      <:singular_suffix>package. Do you want to add it as a dependency and restart?</:singular_suffix>
+      <:plural_suffix>packages. Do you want to add them as dependencies and restart?</:plural_suffix>
+    </.listing>
+    """
+
+    confirm(socket, on_confirm,
+      title: "Add packages",
+      description: description,
       confirm_text: "Add and restart",
       confirm_icon: "add-line",
-      danger: false,
-      html: true
+      danger: false
     )
+  end
+
+  defp insert_code_block_below(socket, variant, section_id, cell_id) do
+    with {:ok, section, index} <-
+           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+      attrs = %{source: variant.source}
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+      :ok
+    end
+  end
+
+  defp insert_smart_cell_below(socket, definition, section_id, cell_id) do
+    with {:ok, section, index} <-
+           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+      attrs = %{kind: definition.kind}
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
+      :ok
+    end
   end
 
   # Builds view-specific structure of data by cherry-picking

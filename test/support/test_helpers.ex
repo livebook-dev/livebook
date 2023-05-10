@@ -1,6 +1,8 @@
 defmodule Livebook.TestHelpers do
   @moduledoc false
 
+  import Phoenix.LiveViewTest
+
   alias Livebook.Session.Data
 
   @doc """
@@ -44,4 +46,14 @@ defmodule Livebook.TestHelpers do
   Converts a Unix-like absolute path into OS-compatible absolute path.
   """
   defmacro p("/" <> path), do: Path.expand("/") <> path
+
+  @doc """
+  Confirms the action guarded by `LivebookWeb.Confirm/3` and
+  returns the rendered result.
+  """
+  def render_confirm(view) do
+    view
+    |> element(~s/[data-el-confirm-form]/)
+    |> render_submit()
+  end
 end

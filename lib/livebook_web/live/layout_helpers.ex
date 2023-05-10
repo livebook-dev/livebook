@@ -114,15 +114,7 @@ defmodule LivebookWeb.LayoutHelpers do
             :if={Livebook.Config.shutdown_callback()}
             class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
             aria-label="shutdown"
-            phx-click={
-              with_confirm(
-                JS.push("shutdown"),
-                title: "Shut Down",
-                description: "Are you sure you want to shut down Livebook now?",
-                confirm_text: "Shut Down",
-                confirm_icon: "shut-down-line"
-              )
-            }
+            phx-click="shutdown"
           >
             <.remix_icon icon="shut-down-line" class="text-lg leading-6 w-[56px] flex justify-center" />
             <span class="text-sm font-medium">

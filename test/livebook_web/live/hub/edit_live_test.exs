@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   use LivebookWeb.ConnCase
 
   import Phoenix.LiveViewTest
+  import Livebook.TestHelpers
 
   alias Livebook.Hubs
 
@@ -65,9 +66,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
+      view
+      |> element("button", "Delete hub")
+      |> render_click()
+
       assert {:ok, view, _html} =
                view
-               |> render_click("delete_hub", %{"id" => hub_id})
+               |> render_confirm()
                |> follow_redirect(conn)
 
       hubs_html = view |> element("#hubs") |> render()
@@ -191,10 +196,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       :ok = Agent.update(pid, fn state -> %{state | type: :mount} end)
 
+      view
+      |> element(~s/#env-var-FOO_ENV_VAR-delete/)
+      |> render_click()
+
       assert {:ok, _view, html} =
                view
-               |> with_target("#fly-form-component")
-               |> render_click("delete_env_var", %{"env_var" => "FOO_ENV_VAR"})
+               |> render_confirm()
                |> follow_redirect(conn)
 
       assert html =~ "Environment variable deleted"
@@ -355,16 +363,14 @@ defmodule LivebookWeb.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> with_target("#personal-form-component")
-      |> render_click("delete_hub_secret", %{
-        name: secret.name,
-        value: secret.value,
-        hub_id: secret.hub_id
-      })
+      |> element("#hub-secret-PERSONAL_DELETE_SECRET-delete", "Delete")
+      |> render_click()
+
+      render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
       assert render(view) =~ "Secret deleted successfully"
-      refute render(view) =~ secret.name
+      refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
   end

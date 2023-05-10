@@ -446,17 +446,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         class="icon-button"
         aria-label="toggle source"
         data-link-package-search
-        phx-click={
-          with_confirm(
-            JS.push("convert_smart_cell", value: %{cell_id: @cell_id}),
-            title: "Convert cell",
-            description:
-              "Once you convert this Smart cell to a Code cell, the Smart cell will be moved to the bin.",
-            confirm_text: "Convert",
-            confirm_icon: "arrow-up-down-line",
-            opt_out_id: "convert-smart-cell"
-          )
-        }
+        phx-click={JS.push("convert_smart_cell", value: %{cell_id: @cell_id})}
       >
         <.remix_icon icon="pencil-line" class="text-xl" />
       </button>
@@ -563,16 +553,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <button
         class="icon-button"
         aria-label="delete cell"
-        phx-click={
-          with_confirm(
-            JS.push("delete_cell", value: %{cell_id: @cell_id}),
-            title: "Delete cell",
-            description: "Once you delete this cell, it will be moved to the bin.",
-            confirm_text: "Delete",
-            confirm_icon: "delete-bin-6-line",
-            opt_out_id: "delete-cell"
-          )
-        }
+        phx-click={JS.push("delete_cell", value: %{cell_id: @cell_id})}
       >
         <.remix_icon icon="delete-bin-6-line" class="text-xl" />
       </button>

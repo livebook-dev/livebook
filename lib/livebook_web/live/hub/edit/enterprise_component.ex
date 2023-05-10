@@ -22,15 +22,7 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
         <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
         <button
-          phx-click={
-            with_confirm(
-              JS.push("delete_hub", value: %{id: @hub.id}),
-              title: "Delete hub",
-              description: "Are you sure you want to delete this hub?",
-              confirm_text: "Delete",
-              confirm_icon: "close-circle-line"
-            )
-          }
+          phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
           class="absolute right-0 button-base button-red"
         >
           Delete hub

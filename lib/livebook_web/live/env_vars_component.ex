@@ -59,15 +59,7 @@ defmodule LivebookWeb.EnvVarsComponent do
             <button
               id={"env-var-#{@env_var.name}-delete"}
               type="button"
-              phx-click={
-                with_confirm(
-                  JS.push("delete_env_var", value: %{env_var: @env_var.name}),
-                  title: "Delete #{@env_var.name}",
-                  description: "Are you sure you want to delete environment variable?",
-                  confirm_text: "Delete",
-                  confirm_icon: "delete-bin-6-line"
-                )
-              }
+              phx-click={JS.push("delete_env_var", value: %{env_var: @env_var.name})}
               phx-target={@target}
               role="menuitem"
             >

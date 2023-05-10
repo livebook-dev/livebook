@@ -54,7 +54,8 @@ defmodule LivebookWeb.Router do
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
   end
 
-  live_session :default, on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook] do
+  live_session :default,
+    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
@@ -106,7 +107,8 @@ defmodule LivebookWeb.Router do
     end
   end
 
-  live_session :apps, on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook] do
+  live_session :apps,
+    on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :user]
 

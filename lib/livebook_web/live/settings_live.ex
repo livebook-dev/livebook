@@ -305,14 +305,24 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("detach_file_system", %{"id" => file_system_id}, socket) do
-    Livebook.Settings.remove_file_system(file_system_id)
+    on_confirm = fn socket ->
+      Livebook.Settings.remove_file_system(file_system_id)
 
-    file_systems = Livebook.Settings.file_systems()
+      file_systems = Livebook.Settings.file_systems()
+
+      assign(socket,
+        file_systems: file_systems,
+        default_file_system_id: Livebook.Settings.default_file_system_id()
+      )
+    end
 
     {:noreply,
-     assign(socket,
-       file_systems: file_systems,
-       default_file_system_id: Livebook.Settings.default_file_system_id()
+     confirm(socket, on_confirm,
+       title: "Detach file system",
+       description:
+         "Are you sure you want to detach this file system? Any sessions using it will keep the access until they get closed.",
+       confirm_text: "Detach",
+       confirm_icon: "close-circle-line"
      )}
   end
 
@@ -344,8 +354,18 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
-    Livebook.Settings.unset_env_var(key)
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      Livebook.Settings.unset_env_var(key)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete #{key}",
+       description: "Are you sure you want to delete environment variable?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 
   @impl true

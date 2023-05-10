@@ -3,6 +3,7 @@ defmodule LivebookWeb.SettingsLiveTest do
   @moduletag :tmp_dir
 
   import Phoenix.LiveViewTest
+  import Livebook.TestHelpers
 
   alias Livebook.Settings
 
@@ -75,9 +76,15 @@ defmodule LivebookWeb.SettingsLiveTest do
 
       assert html =~ env_var.name
 
-      render_click(view, "delete_env_var", %{"env_var" => env_var.name})
+      view
+      |> element("#env-var-#{env_var.name}-delete")
+      |> render_click()
 
-      refute render(view) =~ env_var.name
+      render_confirm(view)
+
+      refute view
+             |> element("#env-vars")
+             |> render() =~ env_var.name
     end
   end
 end

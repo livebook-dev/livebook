@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Livebook.SessionHelpers
+  import Livebook.TestHelpers
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
@@ -245,6 +246,8 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{[data-el-session]})
       |> render_hook("delete_cell", %{"cell_id" => cell_id})
+
+      render_confirm(view)
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
     end

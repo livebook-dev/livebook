@@ -214,19 +214,13 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id={"hub-secret-#{@secret.name}-delete"}
               type="button"
               phx-click={
-                with_confirm(
-                  JS.push("delete_hub_secret",
-                    value: %{
-                      name: @secret.name,
-                      value: @secret.value,
-                      hub_id: @secret.hub_id
-                    },
-                    target: @target
-                  ),
-                  title: "Delete hub secret - #{@secret.name}",
-                  description: "Are you sure you want to delete this hub secret?",
-                  confirm_text: "Delete",
-                  confirm_icon: "delete-bin-6-line"
+                JS.push("delete_hub_secret",
+                  value: %{
+                    name: @secret.name,
+                    value: @secret.value,
+                    hub_id: @secret.hub_id
+                  },
+                  target: @target
                 )
               }
               phx-target={@target}
@@ -265,10 +259,21 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   end
 
   def handle_event("delete_hub_secret", attrs, socket) do
-    {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-    :ok = Livebook.Hubs.delete_secret(socket.assigns.hub, secret)
+    %{hub: hub} = socket.assigns
 
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
+      :ok = Livebook.Hubs.delete_secret(hub, secret)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete hub secret - #{attrs["name"]}",
+       description: "Are you sure you want to delete this hub secret?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 
   defp save(params, changeset_name, socket) do

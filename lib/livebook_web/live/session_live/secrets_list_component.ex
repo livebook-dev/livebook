@@ -46,16 +46,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 id={"session-secret-#{secret.name}-delete"}
                 type="button"
                 phx-click={
-                  with_confirm(
-                    JS.push("delete_session_secret",
-                      value: %{secret_name: secret.name},
-                      target: @myself
-                    ),
-                    title: "Delete session secret - #{secret.name}",
-                    description: "Are you sure you want to delete this session secret?",
-                    confirm_text: "Delete",
-                    confirm_icon: "delete-bin-6-line"
-                  )
+                  JS.push("delete_session_secret", value: %{secret_name: secret.name}, target: @myself)
                 }
                 class="hover:text-gray-900"
               >
@@ -158,19 +149,13 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               id={"#{@id}-delete"}
               type="button"
               phx-click={
-                with_confirm(
-                  JS.push("delete_hub_secret",
-                    value: %{
-                      name: @secret.name,
-                      value: @secret.value,
-                      hub_id: @secret.hub_id
-                    },
-                    target: @myself
-                  ),
-                  title: "Delete hub secret - #{@secret.name}",
-                  description: "Are you sure you want to delete this hub secret?",
-                  confirm_text: "Delete",
-                  confirm_icon: "delete-bin-6-line"
+                JS.push("delete_hub_secret",
+                  value: %{
+                    name: @secret.name,
+                    value: @secret.value,
+                    hub_id: @secret.hub_id
+                  },
+                  target: @myself
                 )
               }
               class="hover:text-gray-900"
@@ -222,15 +207,36 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   end
 
   def handle_event("delete_session_secret", %{"secret_name" => secret_name}, socket) do
-    Session.unset_secret(socket.assigns.session.pid, secret_name)
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      Session.unset_secret(socket.assigns.session.pid, secret_name)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete session secret - #{secret_name}",
+       description: "Are you sure you want to delete this session secret?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 
   def handle_event("delete_hub_secret", attrs, socket) do
-    {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-    :ok = Hubs.delete_secret(socket.assigns.hub, secret)
-    :ok = Session.unset_secret(socket.assigns.session.pid, secret.name)
+    %{hub: hub, session: session} = socket.assigns
 
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
+      :ok = Hubs.delete_secret(hub, secret)
+      :ok = Session.unset_secret(session.pid, secret.name)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete hub secret - #{attrs["name"]}",
+       description: "Are you sure you want to delete this hub secret?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 end

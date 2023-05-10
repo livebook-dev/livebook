@@ -78,12 +78,21 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_event("delete_hub", %{"id" => id}, socket) do
-    Hubs.delete_hub(id)
+    on_confirm = fn socket ->
+      Hubs.delete_hub(id)
+
+      socket
+      |> put_flash(:success, "Hub deleted successfully")
+      |> push_navigate(to: "/")
+    end
 
     {:noreply,
-     socket
-     |> put_flash(:success, "Hub deleted successfully")
-     |> push_navigate(to: "/")}
+     confirm(socket, on_confirm,
+       title: "Delete hub",
+       description: "Are you sure you want to delete this hub?",
+       confirm_text: "Delete",
+       confirm_icon: "close-circle-line"
+     )}
   end
 
   @impl true
