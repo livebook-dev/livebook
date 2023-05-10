@@ -25,5 +25,13 @@ defmodule Livebook.Secrets.Secret do
       message: "should contain only alphanumeric characters and underscore"
     )
     |> validate_required([:name, :value])
+    |> put_readonly()
+  end
+
+  defp put_readonly(changeset) do
+    case get_field(changeset, :hub_id) do
+      "enterprise" <> _ -> put_change(changeset, :readonly, true)
+      _any -> changeset
+    end
   end
 end
