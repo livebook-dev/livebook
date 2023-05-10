@@ -958,24 +958,6 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp insert_code_block_below(socket, variant, section_id, cell_id) do
-    with {:ok, section, index} <-
-           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
-      attrs = %{source: variant.source}
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
-      :ok
-    end
-  end
-
-  defp insert_smart_cell_below(socket, definition, section_id, cell_id) do
-    with {:ok, section, index} <-
-           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
-      attrs = %{kind: definition.kind}
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
-      :ok
-    end
-  end
-
   def handle_event("insert_smart_cell_below", params, socket) do
     data = socket.private.data
     %{"section_id" => section_id, "cell_id" => cell_id} = params
@@ -1930,6 +1912,24 @@ defmodule LivebookWeb.SessionLive do
       confirm_icon: "add-line",
       danger: false
     )
+  end
+
+  defp insert_code_block_below(socket, variant, section_id, cell_id) do
+    with {:ok, section, index} <-
+           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+      attrs = %{source: variant.source}
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+      :ok
+    end
+  end
+
+  defp insert_smart_cell_below(socket, definition, section_id, cell_id) do
+    with {:ok, section, index} <-
+           section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+      attrs = %{kind: definition.kind}
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, :smart, attrs)
+      :ok
+    end
   end
 
   # Builds view-specific structure of data by cherry-picking
