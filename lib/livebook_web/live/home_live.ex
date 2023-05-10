@@ -120,15 +120,7 @@ defmodule LivebookWeb.HomeLive do
                 <span class="tooltip top" data-tooltip="Unstar">
                   <button
                     aria-label="unstar notebook"
-                    phx-click={
-                      with_confirm(
-                        JS.push("unstar_notebook", value: %{idx: idx}),
-                        title: "Unstar notebook",
-                        description: "Once you unstar this notebook, you can always star it again.",
-                        confirm_text: "Unstar",
-                        opt_out_id: "unstar-notebook"
-                      )
-                    }
+                    phx-click={JS.push("unstar_notebook", value: %{idx: idx})}
                   >
                     <.remix_icon icon="star-fill" class="text-yellow-600" />
                   </button>
@@ -278,9 +270,19 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("unstar_notebook", %{"idx" => idx}, socket) do
-    %{file: file} = Enum.fetch!(socket.assigns.starred_notebooks, idx)
-    Livebook.NotebookManager.remove_starred_notebook(file)
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      %{file: file} = Enum.fetch!(socket.assigns.starred_notebooks, idx)
+      Livebook.NotebookManager.remove_starred_notebook(file)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Unstar notebook",
+       description: "Once you unstar this notebook, you can always star it again.",
+       confirm_text: "Unstar",
+       opt_out_id: "unstar-notebook"
+     )}
   end
 
   def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do

@@ -18,6 +18,10 @@ import { loadAppAuthToken } from "./lib/app";
 import { settingsStore } from "./lib/settings";
 import { registerTopbar, registerGlobalEventHandlers } from "./events";
 import { cookieOptions } from "./lib/utils";
+import {
+  loadConfirmOptOutIds,
+  registerGlobalEventHandlersForConfirm,
+} from "./confirm";
 
 function connect() {
   const csrfToken = document
@@ -34,6 +38,7 @@ function connect() {
           // Pass the most recent user data to the LiveView in `connect_params`
           user_data: loadUserData(),
           app_auth_token: loadAppAuthToken(),
+          confirm_opt_out_ids: loadConfirmOptOutIds(),
         };
       },
       hooks: hooks,
@@ -46,6 +51,8 @@ function connect() {
 
   // Handle custom events dispatched with JS.dispatch/3
   registerGlobalEventHandlers();
+
+  registerGlobalEventHandlersForConfirm();
 
   // Reflect global configuration in attributes to enable CSS rules
   settingsStore.getAndSubscribe((settings) => {

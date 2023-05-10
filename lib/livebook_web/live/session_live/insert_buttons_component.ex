@@ -92,8 +92,8 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             <button
               class="button-base button-small"
               phx-click={
-                setup_runtime_with_confirm(
-                  "To see the available smart cells, you need a connected runtime."
+                JS.push("setup_default_runtime",
+                  value: %{reason: "To see the available smart cells, you need a connected runtime."}
                 )
               }
             >
@@ -194,19 +194,10 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         }
       )
     else
-      setup_runtime_with_confirm("To insert this block, you need a connected runtime.")
+      JS.push("setup_default_runtime",
+        value: %{reason: "To insert this block, you need a connected runtime."}
+      )
     end
-  end
-
-  defp setup_runtime_with_confirm(reason) do
-    with_confirm(
-      JS.push("setup_default_runtime"),
-      title: "Setup runtime",
-      description: "#{reason} Do you want to connect and setup the default one?",
-      confirm_text: "Setup runtime",
-      confirm_icon: "play-line",
-      danger: false
-    )
   end
 
   defp on_smart_cell_click(definition, section_id, cell_id) do

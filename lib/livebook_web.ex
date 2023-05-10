@@ -62,6 +62,7 @@ defmodule LivebookWeb do
       # Core UI components
       import LivebookWeb.CoreComponents
       import LivebookWeb.FormComponents
+      import LivebookWeb.Confirm
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

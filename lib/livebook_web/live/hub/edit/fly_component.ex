@@ -40,15 +40,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
         <button
-          phx-click={
-            with_confirm(
-              JS.push("delete_hub", value: %{id: @hub.id}),
-              title: "Delete hub",
-              description: "Are you sure you want to delete this hub?",
-              confirm_text: "Delete",
-              confirm_icon: "close-circle-line"
-            )
-          }
+          phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
           class="absolute right-0 button-base button-red"
         >
           Delete hub
@@ -195,18 +187,26 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
-    case FlyClient.unset_secrets(socket.assigns.hub, [key]) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:success, "Environment variable deleted")
-         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+    on_confirm = fn socket ->
+      case FlyClient.unset_secrets(socket.assigns.hub, [key]) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:success, "Environment variable deleted")
+          |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
 
-      {:error, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to delete environment variable")
-         |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+        {:error, _} ->
+          socket
+          |> put_flash(:error, "Failed to delete environment variable")
+          |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
+      end
     end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete #{key}",
+       description: "Are you sure you want to delete environment variable?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 end

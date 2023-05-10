@@ -118,15 +118,7 @@ defmodule LivebookWeb.OpenLive do
                 <span class="tooltip top" data-tooltip="Hide notebook">
                   <button
                     aria-label="hide notebook"
-                    phx-click={
-                      with_confirm(
-                        JS.push("hide_recent_notebook", value: %{idx: idx}),
-                        title: "Hide notebook",
-                        description: "The notebook will reappear here when you open it again.",
-                        confirm_text: "Hide",
-                        opt_out_id: "hide-notebook"
-                      )
-                    }
+                    phx-click={JS.push("hide_recent_notebook", value: %{idx: idx})}
                   >
                     <.remix_icon icon="close-fill" class="text-gray-600 text-lg" />
                   </button>
@@ -194,9 +186,19 @@ defmodule LivebookWeb.OpenLive do
   end
 
   def handle_event("hide_recent_notebook", %{"idx" => idx}, socket) do
-    %{file: file} = Enum.fetch!(socket.assigns.recent_notebooks, idx)
-    Livebook.NotebookManager.remove_recent_notebook(file)
-    {:noreply, socket}
+    on_confirm = fn socket ->
+      %{file: file} = Enum.fetch!(socket.assigns.recent_notebooks, idx)
+      Livebook.NotebookManager.remove_recent_notebook(file)
+      socket
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Hide notebook",
+       description: "The notebook will reappear here when you open it again.",
+       confirm_text: "Hide",
+       opt_out_id: "hide-notebook"
+     )}
   end
 
   @impl true
