@@ -44,13 +44,15 @@ defmodule Livebook.SessionHelpers do
 
   def insert_section(session_pid) do
     Session.insert_section(session_pid, 0)
-    %{notebook: %{sections: [section]}} = Session.get_data(session_pid)
+    %{notebook: %{sections: [section | _]}} = Session.get_data(session_pid)
     section.id
   end
 
   def insert_text_cell(session_pid, section_id, type, content \\ " ") do
     Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
-    %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_pid)
+    data = Session.get_data(session_pid)
+    {:ok, section} = Livebook.Notebook.fetch_section(data.notebook, section_id)
+    cell = hd(section.cells)
     cell.id
   end
 
