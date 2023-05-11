@@ -14,15 +14,14 @@ defmodule Livebook.TeamsTest do
                 "id" => _org_id,
                 "user_code" => _user_code,
                 "verification_uri" => _verification_uri
-              }} = Teams.create_org(org)
+              }} = Teams.create_org(org, %{})
     end
 
     test "returns changeset errors when data is invalid" do
-      assert {:error, errors} = Teams.create_org(build(:org, name: nil))
-      assert "can't be blank" in errors.name
+      org = build(:org)
 
-      assert {:error, errors} = Teams.create_org(build(:org, teams_key: nil))
-      assert "can't be blank" in errors.teams_key
+      assert {:error, changeset} = Teams.create_org(org, %{name: nil})
+      assert "can't be blank" in errors_on(changeset).name
     end
   end
 
@@ -35,7 +34,7 @@ defmodule Livebook.TeamsTest do
         build(:org,
           id: org_request.id,
           name: org_request.name,
-          teams_key: org_request.key_hash,
+          teams_key: Base.url_encode64(org_request.key_hash, padding: false),
           user_code: org_request.user_code
         )
 
@@ -67,8 +66,12 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) ==
-               {:ok, %{"status" => "awaiting_confirmation"}}
+      assert Teams.get_org_request_completion_data(org) == {:ok, :awaiting_confirmation}
+    end
+
+    test "returns error when org request doesn't exist" do
+      org = build(:org, id: 0)
+      assert Teams.get_org_request_completion_data(org) == {:error, :not_found}
     end
 
     test "returns error when org request expired", %{node: node} do
@@ -86,7 +89,7 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) == {:error, "Gone"}
+      assert Teams.get_org_request_completion_data(org) == {:error, :expired}
     end
   end
 end

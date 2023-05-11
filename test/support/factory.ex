@@ -74,7 +74,7 @@ defmodule Livebook.Factory do
   def build(:org) do
     %Livebook.Teams.Org{
       id: nil,
-      name: "Org Name #{unique_integer()}",
+      name: "Org Name #{System.unique_integer([:positive])}",
       teams_key: Livebook.Teams.Org.teams_key(),
       user_code: "request"
     }
@@ -87,8 +87,6 @@ defmodule Livebook.Factory do
   def params_for(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs) |> Map.from_struct()
   end
-
-  defp unique_integer, do: System.unique_integer([:positive])
 
   def insert_hub(factory_name, attrs \\ %{}) do
     factory_name

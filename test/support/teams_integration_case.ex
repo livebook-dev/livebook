@@ -5,9 +5,10 @@ defmodule Livebook.TeamsIntegrationCase do
 
   using do
     quote do
+      use Livebook.DataCase
       use LivebookWeb.ConnCase
 
-      @moduletag :enterprise_integration
+      @moduletag :teams_integration
 
       alias Livebook.TeamsServer
     end
