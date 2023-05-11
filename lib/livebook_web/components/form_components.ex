@@ -276,6 +276,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+      <.label :if={@label} for={@id}><%= @label %></.label>
       <div class="flex gap-4 text-gray-600">
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input

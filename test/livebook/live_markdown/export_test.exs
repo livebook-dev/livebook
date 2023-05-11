@@ -1150,12 +1150,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             Notebook.AppSettings.new()
             | slug: "app",
               access_type: :public,
-              show_source: true
+              show_source: true,
+              output_type: :rich
           }
       }
 
       expected_document = """
-      <!-- livebook:{"app_settings":{"access_type":"public","show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """

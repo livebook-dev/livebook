@@ -410,6 +410,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {"access_type", access_type}, attrs when access_type in ["public", "protected"] ->
         Map.put(attrs, :access_type, String.to_atom(access_type))
 
+      {"output_type", output_type}, attrs when output_type in ["all", "rich"] ->
+        Map.put(attrs, :output_type, String.to_atom(output_type))
+
       _entry, attrs ->
         attrs
     end)

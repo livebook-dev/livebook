@@ -9,7 +9,8 @@ defmodule Livebook.Notebook.AppSettings do
           slug: String.t() | nil,
           access_type: access_type(),
           password: String.t() | nil,
-          show_source: boolean()
+          show_source: boolean(),
+          output_type: :all | :rich
         }
 
   @type access_type :: :public | :protected
@@ -20,6 +21,7 @@ defmodule Livebook.Notebook.AppSettings do
     field :access_type, Ecto.Enum, values: [:public, :protected]
     field :password, :string
     field :show_source, :boolean
+    field :output_type, Ecto.Enum, values: [:all, :rich]
   end
 
   @doc """
@@ -31,7 +33,8 @@ defmodule Livebook.Notebook.AppSettings do
       slug: nil,
       access_type: :protected,
       password: generate_password(),
-      show_source: false
+      show_source: false,
+      output_type: :all
     }
   end
 
@@ -58,8 +61,8 @@ defmodule Livebook.Notebook.AppSettings do
 
   defp changeset(settings, attrs) do
     settings
-    |> cast(attrs, [:slug, :access_type, :show_source])
-    |> validate_required([:slug, :access_type, :show_source])
+    |> cast(attrs, [:slug, :access_type, :show_source, :output_type])
+    |> validate_required([:slug, :access_type, :show_source, :output_type])
     |> validate_format(:slug, ~r/^[a-zA-Z0-9-]+$/,
       message: "slug can only contain alphanumeric characters and dashes"
     )
