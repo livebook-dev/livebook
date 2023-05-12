@@ -27,14 +27,20 @@ defmodule Livebook.TeamsTest do
 
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [])
+      teams_key = Teams.Org.teams_key()
+
+      org_request =
+        :erpc.call(node, Hub.Integration, :create_org_request, [
+          [key_hash: :crypto.hash(:sha256, teams_key)]
+        ])
+
       org_request = :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
 
       org =
         build(:org,
           id: org_request.id,
           name: org_request.name,
-          teams_key: Base.url_encode64(org_request.key_hash, padding: false),
+          teams_key: teams_key,
           user_code: org_request.user_code
         )
 
@@ -56,13 +62,18 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns the org request awaiting confirmation", %{node: node} do
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [])
+      teams_key = Teams.Org.teams_key()
+
+      org_request =
+        :erpc.call(node, Hub.Integration, :create_org_request, [
+          [key_hash: :crypto.hash(:sha256, teams_key)]
+        ])
 
       org =
         build(:org,
           id: org_request.id,
           name: org_request.name,
-          teams_key: org_request.key_hash,
+          teams_key: teams_key,
           user_code: org_request.user_code
         )
 
@@ -77,15 +88,18 @@ defmodule Livebook.TeamsTest do
     test "returns error when org request expired", %{node: node} do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
+      teams_key = Teams.Org.teams_key()
 
       org_request =
-        :erpc.call(node, Hub.Integration, :create_org_request, [[expires_at: expires_at]])
+        :erpc.call(node, Hub.Integration, :create_org_request, [
+          [expires_at: expires_at, key_hash: :crypto.hash(:sha256, teams_key)]
+        ])
 
       org =
         build(:org,
           id: org_request.id,
           name: org_request.name,
-          teams_key: org_request.key_hash,
+          teams_key: teams_key,
           user_code: org_request.user_code
         )
 
