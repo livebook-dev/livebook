@@ -7,7 +7,8 @@ defmodule Livebook.Teams.Client do
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
-  @spec create_org(Org.t()) :: {:ok, map()} | {:error, map()} | {:transport_error, term()}
+  @spec create_org(Org.t()) ::
+          {:ok, map()} | {:error, map()} | {:transport_error, :httpc.posix() | String.t()}
   def create_org(org) do
     post("/api/org-request", %{name: org.name, teams_key: org.teams_key})
   end
@@ -16,7 +17,7 @@ defmodule Livebook.Teams.Client do
   Send a request to Livebook Team API to get an org request.
   """
   @spec get_org_request_completion_data(pos_integer()) ::
-          {:ok, map()} | {:error, map()} | {:transport_error, term()}
+          {:ok, map()} | {:error, map()} | {:transport_error, :httpc.posix() | String.t()}
   def get_org_request_completion_data(id) do
     get("/api/org-request/#{id}")
   end
