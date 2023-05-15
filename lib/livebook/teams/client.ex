@@ -10,7 +10,10 @@ defmodule Livebook.Teams.Client do
   @spec create_org(Org.t()) ::
           {:ok, map()} | {:error, map()} | {:transport_error, :httpc.posix() | String.t()}
   def create_org(org) do
-    post("/api/org-request", %{name: org.name, teams_key: org.teams_key})
+    hash = :crypto.hash(:sha256, org.teams_key)
+    key_hash = Base.url_encode64(hash)
+
+    post("/api/org-request", %{name: org.name, key_hash: key_hash})
   end
 
   @doc """

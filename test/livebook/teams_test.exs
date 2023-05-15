@@ -28,12 +28,9 @@ defmodule Livebook.TeamsTest do
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()
+      key_hash = :crypto.hash(:sha256, teams_key)
 
-      org_request =
-        :erpc.call(node, Hub.Integration, :create_org_request, [
-          [key_hash: :crypto.hash(:sha256, teams_key)]
-        ])
-
+      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
       org_request = :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
 
       org =
@@ -63,11 +60,9 @@ defmodule Livebook.TeamsTest do
 
     test "returns the org request awaiting confirmation", %{node: node} do
       teams_key = Teams.Org.teams_key()
+      key_hash = :crypto.hash(:sha256, teams_key)
 
-      org_request =
-        :erpc.call(node, Hub.Integration, :create_org_request, [
-          [key_hash: :crypto.hash(:sha256, teams_key)]
-        ])
+      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
 
       org =
         build(:org,
@@ -89,10 +84,11 @@ defmodule Livebook.TeamsTest do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
       teams_key = Teams.Org.teams_key()
+      key_hash = :crypto.hash(:sha256, teams_key)
 
       org_request =
         :erpc.call(node, Hub.Integration, :create_org_request, [
-          [expires_at: expires_at, key_hash: :crypto.hash(:sha256, teams_key)]
+          [expires_at: expires_at, key_hash: key_hash]
         ])
 
       org =
