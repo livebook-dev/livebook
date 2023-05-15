@@ -11,6 +11,7 @@ defmodule Livebook.Teams.Org do
           user_code: String.t() | nil
         }
 
+  @primary_key {:id, :id, autogenerate: false}
   embedded_schema do
     field :name, :string
     field :teams_key, :string
