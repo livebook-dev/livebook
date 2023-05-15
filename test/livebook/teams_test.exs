@@ -77,7 +77,7 @@ defmodule Livebook.TeamsTest do
 
     test "returns error when org request doesn't exist" do
       org = build(:org, id: 0)
-      assert Teams.get_org_request_completion_data(org) == {:error, :not_found}
+      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org)
     end
 
     test "returns error when org request expired", %{node: node} do

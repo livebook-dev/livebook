@@ -3,9 +3,6 @@ defmodule Livebook.Teams do
 
   alias Livebook.Teams.{Client, Org}
 
-  @timeout_error_message "Well, looks like we didn't get a response in time. Could you please try again?"
-  @any_error_message "Well, this is embarrassing... An error has occurred and we're working to fix the problem!"
-
   @doc """
   Creates an Org.
 
@@ -26,9 +23,6 @@ defmodule Livebook.Teams do
       {:error, %Ecto.Changeset{} = changeset} ->
         {:error, changeset}
 
-      {:error, %{"errors" => %{"detail" => reason}}} ->
-        {:error, reason}
-
       {:error, %{"errors" => errors_map}} ->
         errors_map =
           if errors = errors_map["key_hash"],
@@ -37,11 +31,8 @@ defmodule Livebook.Teams do
 
         {:error, add_org_errors(changeset, errors_map)}
 
-      {:transport_error, :timeout} ->
-        {:transport_error, @timeout_error_message}
-
-      {:transport_error, _reason} ->
-        {:transport_error, @any_error_message}
+      any ->
+        any
     end
   end
 
@@ -64,10 +55,8 @@ defmodule Livebook.Teams do
     case Client.get_org_request_completion_data(id) do
       {:ok, %{"status" => "awaiting_confirmation"}} -> {:ok, :awaiting_confirmation}
       {:ok, completion_data} -> {:ok, completion_data}
-      {:error, %{"errors" => %{"detail" => "Not Found"}}} -> {:error, :not_found}
-      {:error, %{"errors" => %{"detail" => "Gone"}}} -> {:error, :expired}
-      {:transport_error, :timeout} -> {:transport_error, @timeout_error_message}
-      {:transport_error, _} -> {:transport_error, @any_error_message}
+      {:error, %{"status" => "expired"}} -> {:error, :expired}
+      any -> any
     end
   end
 

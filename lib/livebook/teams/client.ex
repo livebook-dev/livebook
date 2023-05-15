@@ -42,17 +42,26 @@ defmodule Livebook.Teams.Client do
     url = endpoint <> path
 
     case HTTP.request(method, url, opts) do
-      {:ok, status, _, body} when status in 200..299 ->
-        {:ok, Jason.decode!(body)}
+      {:ok, status, header, body} when status in 200..299 ->
+        if json?(header),
+          do: {:ok, Jason.decode!(body)},
+          else: {:error, body}
 
-      {:ok, _, _, body} ->
-        case Jason.decode(body) do
-          {:ok, decoded_body} -> {:error, decoded_body}
-          {:error, _exception} -> {:transport_error, body}
-        end
+      {:ok, status, header, body} when status in [410, 422] ->
+        if json?(header),
+          do: {:error, Jason.decode!(body)},
+          else: {:transport_error, body}
 
-      {:error, reason} ->
-        {:transport_error, reason}
+      _otherwise ->
+        {:transport_error,
+         "Well, this is embarrassing... An error has occurred and we're working to fix the problem!"}
     end
+  end
+
+  defp json?(header) do
+    for {"content-type", value} <- header,
+        value =~ "application/json",
+        reduce: false,
+        do: (_ -> true)
   end
 end
