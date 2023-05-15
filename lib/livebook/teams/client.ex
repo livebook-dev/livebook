@@ -53,7 +53,7 @@ defmodule Livebook.Teams.Client do
 
       _otherwise ->
         {:transport_error,
-         "Well, this is embarrassing... An error has occurred and we're working to fix the problem!"}
+         "Something went wrong, try again later or please file a bug if it persists"}
     end
   end
 
