@@ -11,7 +11,7 @@ defmodule Livebook.Teams do
   """
   @spec create_org(Org.t(), map()) ::
           {:ok, map()}
-          | {:error, String.t() | Ecto.Changeset.t()}
+          | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_org(%Org{} = org, attrs) do
     changeset = Org.changeset(org, attrs)
@@ -49,7 +49,7 @@ defmodule Livebook.Teams do
   """
   @spec get_org_request_completion_data(Org.t()) ::
           {:ok, map() | :awaiting_confirmation}
-          | {:error, atom()}
+          | {:error, :expired}
           | {:transport_error, String.t()}
   def get_org_request_completion_data(%Org{id: id}) do
     case Client.get_org_request_completion_data(id) do
