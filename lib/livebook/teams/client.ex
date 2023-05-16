@@ -7,7 +7,8 @@ defmodule Livebook.Teams.Client do
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
-  @spec create_org(Org.t()) :: {:ok, map()} | {:error, map()} | {:transport_error, String.t()}
+  @spec create_org(Org.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
     hash = :crypto.hash(:sha256, org.teams_key)
     key_hash = Base.url_encode64(hash)
@@ -19,7 +20,7 @@ defmodule Livebook.Teams.Client do
   Send a request to Livebook Team API to get an org request.
   """
   @spec get_org_request_completion_data(pos_integer()) ::
-          {:ok, map()} | {:error, map()} | {:transport_error, String.t()}
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def get_org_request_completion_data(id) do
     get("/api/org-request/#{id}")
   end
