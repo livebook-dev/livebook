@@ -17,6 +17,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       teams_key = Livebook.Teams.Org.teams_key()
 
       {:ok, view, _html} = live(conn, ~p"/hub")
+      path = ~p"/hub/enterprise-#{name}"
 
       # select the new org option
       assert view
@@ -24,7 +25,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
              |> render_click() =~ "2. Create your Organization"
 
       # builds the form data
-      org_attrs = %{"new_org" => %{"name" => name, "teams_key" => teams_key}}
+      org_attrs = %{"new_org" => %{"name" => name, "teams_key" => teams_key, "emoji" => "🐈"}}
 
       # finds the form and change data
       new_org_form = element(view, "#new-org-form")
@@ -41,36 +42,20 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       assert [_port, [org_request_id]] = Regex.scan(~r/(?<=\D|^)\d{1,4}(?=\D|$)/, url)
       id = String.to_integer(org_request_id)
 
-      # confirm org request
+      # force org request confirmation
       org_request = :erpc.call(node, Hub.Integration, :get_org_request!, [id])
       :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
 
       # wait for the c:handle_info/2 cycle
-      Process.sleep(1200)
+      # check if the page redirected to edit hub page
+      # and check the flash message
+      %{"success" => "Hub added successfully"} = assert_redirect(view, path, 1200)
 
-      # shows the new hub form
-      assert render(view) =~ "🏭"
-
-      # builds the form data
-      hub_attrs = %{"enterprise" => %{"hub_name" => name, "hub_emoji" => "🐈"}}
-
-      # finds the form and change data
-      hub_form = element(view, "#hub-form")
-      render_change(hub_form, hub_attrs)
-
-      # submits the form and check if the
-      # page redirected to edit hub page
-      assert {:ok, view, _html} =
-               hub_form
-               |> render_submit(hub_attrs)
-               |> follow_redirect(conn)
-
-      # checks the success flash
-      assert render(view) =~ "Hub added successfully"
-
-      # checks the hub in the sidebar
+      # checks if the hub is in the sidebar
+      {:ok, view, _html} = live(conn, path)
       hubs_html = view |> element("#hubs") |> render()
       assert hubs_html =~ "🐈"
+      assert hubs_html =~ path
       assert hubs_html =~ name
     end
   end

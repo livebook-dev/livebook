@@ -7,7 +7,7 @@ defmodule LivebookWeb.Hub.NewLive do
   alias LivebookWeb.LayoutHelpers
   alias Phoenix.LiveView.JS
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,11 +20,8 @@ defmodule LivebookWeb.Hub.NewLive do
        enabled?: enabled?,
        requested_code: false,
        org: nil,
-       hub: nil,
        verification_uri: nil,
-       org_form: nil,
-       hub_form: nil,
-       created: false
+       org_form: nil
      )}
   end
 
@@ -88,15 +85,12 @@ defmodule LivebookWeb.Hub.NewLive do
         </div>
 
         <.org_form
-          :if={!@created}
           form={@org_form}
-          selected={@selected_option}
-          requested_code={@requested_code}
-          verification_uri={@verification_uri}
           org={@org}
+          requested_code={@requested_code}
+          selected={@selected_option}
+          verification_uri={@verification_uri}
         />
-
-        <.hub_form :if={@created} form={@hub_form} hub={@hub} />
       </div>
     </LayoutHelpers.layout>
     """
@@ -137,8 +131,10 @@ defmodule LivebookWeb.Hub.NewLive do
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <.text_field field={f[:name]} label="Name" />
-          <.password_field readonly field={f[:teams_key]} label="Livebook Teams Key" />
+          <.emoji_field field={f[:emoji]} label="Emoji" />
         </div>
+
+        <.password_field readonly field={f[:teams_key]} label="Livebook Teams Key" />
 
         <div :if={@requested_code} class="grid grid-cols-1 gap-3">
           <span>
@@ -152,35 +148,11 @@ defmodule LivebookWeb.Hub.NewLive do
           <span><%= @org.user_code %></span>
         </div>
 
-        <button class="button-base button-blue" phx-disable-with="Creating...">
+        <button :if={!@requested_code} class="button-base button-blue" phx-disable-with="Creating...">
           Create Org
         </button>
       </.form>
     </div>
-    """
-  end
-
-  defp hub_form(assigns) do
-    ~H"""
-    <.form
-      :let={f}
-      id="hub-form"
-      class="flex flex-col space-y-4"
-      for={@form}
-      phx-submit="save"
-      phx-change="validate"
-    >
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <.text_field field={f[:hub_name]} label="Name" readonly />
-        <.emoji_field field={f[:hub_emoji]} label="Emoji" />
-      </div>
-
-      <div>
-        <button class="button-base button-blue" type="submit" phx-disable-with="Add...">
-          Add Hub
-        </button>
-      </div>
-    </.form>
     """
   end
 
@@ -235,11 +207,7 @@ defmodule LivebookWeb.Hub.NewLive do
       |> Teams.change_org(attrs)
       |> Map.replace!(:action, :validate)
 
-    {:noreply, assign_new_org_form(socket, changeset)}
-  end
-
-  def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign_new_hub_form(socket, Enterprise.validate_hub(socket.assigns.hub, attrs))}
+    {:noreply, assign_form(socket, changeset)}
   end
 
   def handle_event("save", %{"new_org" => attrs}, socket) do
@@ -258,26 +226,13 @@ defmodule LivebookWeb.Hub.NewLive do
            org: org,
            verification_uri: response["verification_uri"]
          )
-         |> assign_new_org_form(changeset)}
+         |> assign_form(changeset)}
 
       {:error, changeset} ->
-        {:noreply, assign_new_org_form(socket, changeset)}
+        {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->
         {:noreply, put_flash(socket, :error, message)}
-    end
-  end
-
-  def handle_event("save", %{"enterprise" => attrs}, socket) do
-    case Enterprise.create_hub(socket.assigns.hub, attrs) do
-      {:ok, hub} ->
-        {:noreply,
-         socket
-         |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
-
-      {:error, changeset} ->
-        {:noreply, assign_new_hub_form(socket, changeset)}
     end
   end
 
@@ -290,23 +245,26 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply, socket}
 
       {:ok, response} ->
-        hub = %Enterprise{
+        attrs = %{
           org_id: response["id"],
           user_id: response["user_id"],
           org_key_id: response["org_key_id"],
           session_token: response["session_token"],
           teams_key: org.teams_key,
           hub_name: response["name"],
-          hub_emoji: "🏭"
+          hub_emoji: org.emoji
         }
 
-        changeset = Enterprise.change_hub(hub)
+        case Enterprise.create_hub(%Enterprise{}, attrs) do
+          {:ok, hub} ->
+            {:noreply,
+             socket
+             |> put_flash(:success, "Hub added successfully")
+             |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
-        {:noreply,
-         socket
-         |> assign(hub: hub, created: true)
-         |> assign_new_hub_form(changeset)
-         |> put_flash(:info, "Org created")}
+          {:error, changeset} ->
+            {:noreply, assign_form(socket, changeset)}
+        end
 
       {:error, :expired} ->
         org = Map.replace!(socket.assigns.org, :user_code, "requested")
@@ -324,7 +282,7 @@ defmodule LivebookWeb.Hub.NewLive do
            :error,
            "Oh no! Your org creation request expired, could you please try again?"
          )
-         |> assign_new_org_form(changeset)}
+         |> assign_form(changeset)}
 
       {:transport_error, message} ->
         {:noreply, put_flash(socket, :error, message)}
@@ -334,19 +292,15 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(_any, socket), do: {:noreply, socket}
 
   defp assign_form(socket, "new-org") do
-    org = %Org{user_code: "request"}
+    org = %Org{user_code: "request", emoji: "🏭️"}
     changeset = Teams.change_org(org)
 
     socket
     |> assign(org: org)
-    |> assign_new_org_form(changeset)
+    |> assign_form(changeset)
   end
 
-  defp assign_new_hub_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, hub_form: to_form(changeset))
-  end
-
-  defp assign_new_org_form(socket, %Ecto.Changeset{} = changeset) do
+  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, org_form: to_form(changeset, as: :new_org))
   end
 end

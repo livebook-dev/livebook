@@ -6,6 +6,7 @@ defmodule Livebook.Teams.Org do
 
   @type t :: %__MODULE__{
           id: pos_integer() | nil,
+          emoji: String.t() | nil,
           name: String.t() | nil,
           teams_key: String.t() | nil,
           user_code: String.t() | nil
@@ -13,12 +14,13 @@ defmodule Livebook.Teams.Org do
 
   @primary_key {:id, :id, autogenerate: false}
   embedded_schema do
+    field :emoji, :string
     field :name, :string
     field :teams_key, :string
     field :user_code, :string
   end
 
-  @fields ~w(id name teams_key user_code)a
+  @fields ~w(id emoji name teams_key user_code)a
 
   @doc """
   Generates a new teams key.
