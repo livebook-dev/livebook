@@ -57,10 +57,7 @@ defmodule Livebook.Teams.Client do
     end
   end
 
-  defp json?(header) do
-    for {"content-type", value} <- header,
-        value =~ "application/json",
-        reduce: false,
-        do: (_ -> true)
+  defp json?(headers) do
+    HTTP.fetch_content_type(headers) == {:ok, "application/json"}
   end
 end
