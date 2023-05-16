@@ -51,7 +51,7 @@ defmodule Livebook.WebSocket.ClientConnection do
         send(data.listener, {:connect, :ok, :connected})
         send(self(), {:loop_ping, ref})
 
-        {:ok, %__MODULE__{data | http_conn: conn, ref: ref, websocket: websocket}}
+        {:keep_state, %__MODULE__{data | http_conn: conn, ref: ref, websocket: websocket}}
 
       {:transport_error, reason} ->
         send(data.listener, {:connect, :error, reason})
@@ -60,8 +60,13 @@ defmodule Livebook.WebSocket.ClientConnection do
       {:server_error, binary} ->
         {:response, %{type: {:error, error}}} = decode_response_or_event(binary)
         send(data.listener, {:connect, :error, error.details})
+
         {:keep_state_and_data, {{:timeout, :reconnect}, @backoff, nil}}
     end
+  end
+
+  def handle_event({:timeout, :backoff}, nil, _state, _data) do
+    {:keep_state_and_data, {:next_event, :internal, :connect}}
   end
 
   def handle_event({:timeout, :reconnect}, nil, _state, _data) do

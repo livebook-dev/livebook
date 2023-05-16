@@ -71,6 +71,15 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:org) do
+    %Livebook.Teams.Org{
+      id: nil,
+      name: "Org Name #{System.unique_integer([:positive])}",
+      teams_key: Livebook.Teams.Org.teams_key(),
+      user_code: "request"
+    }
+  end
+
   def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end
