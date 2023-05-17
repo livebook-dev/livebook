@@ -464,7 +464,7 @@ class LiveEditor {
       if (codeUntilLastStop === signatureCache.codeUntilLastStop) {
         return {
           value: signatureResponseToSignatureHelp(signatureCache.response),
-          dispose: () => {},
+          dispose: () => { },
         };
       }
 
@@ -477,7 +477,7 @@ class LiveEditor {
 
           return {
             value: signatureResponseToSignatureHelp(response),
-            dispose: () => {},
+            dispose: () => { },
           };
         })
         .catch(() => null);
@@ -566,7 +566,41 @@ class LiveEditor {
       );
     });
   }
+
+  addDoctestDecorations(decorations) {
+    const collectionItems = decorations.map(
+      ([line, success]) => {
+        const lineNumber = Number(line)
+        if (success) {
+          const successDecoration = {
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+              isWholeLine: true,
+              linesDecorationsClassName: "line-circle-green",
+            }
+          }
+          return successDecoration
+        }
+        else {
+          const failureDecoration = {
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+              isWholeLine: true,
+              linesDecorationsClassName: "line-circle-red",
+            }
+          }
+          return failureDecoration
+        }
+      }
+    )
+    this.editorDoctestDecorations = this.editor.createDecorationsCollection(collectionItems)
+  }
+
+  clearDoctestDecorations() {
+    this.editorDoctestDecorations?.clear()
+  }
 }
+
 
 function completionItemsToSuggestions(items, settings) {
   return items
@@ -592,9 +626,9 @@ function parseItem(item, settings) {
       monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
     command: settings.editor_auto_signature
       ? {
-          title: "Trigger Parameter Hint",
-          id: "editor.action.triggerParameterHints",
-        }
+        title: "Trigger Parameter Hint",
+        id: "editor.action.triggerParameterHints",
+      }
       : null,
   };
 }

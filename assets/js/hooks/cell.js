@@ -242,6 +242,20 @@ const Cell = {
             liveEditor.setCodeErrorMarker(code_error);
           }
         );
+
+        this.handleEvent(
+          `start_evaluation:${this.props.cellId}`,
+          () => {
+            liveEditor.clearDoctestDecorations()
+          }
+        );
+
+        this.handleEvent(
+          `doctests_result:${this.props.cellId}`,
+          (results) => {
+            liveEditor.addDoctestDecorations(Object.entries(results))
+          }
+        );
       }
     }
   },

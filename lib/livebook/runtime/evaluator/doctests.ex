@@ -23,7 +23,9 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
             |> Enum.map(&run_test/1)
 
           formatted = format_results(tests)
+          doctests_result = doctest_prune_metadata(tests)
           put_output({:text, formatted})
+          put_output({:doctests_result, doctests_result})
         end
 
         delete_test_module(test_module)
@@ -33,6 +35,15 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
 
     :ok
+  end
+
+  defp doctest_prune_metadata(test_results) do
+    for doctest <- test_results do
+      %{
+        doctest_line: doctest.tags.doctest_line,
+        state: get_in(doctest, [Access.key(:state), Access.elem(0)]) || :success
+      }
+    end
   end
 
   defp define_test_module(modules) do

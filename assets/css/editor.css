@@ -158,3 +158,26 @@ Also some spacing adjustments.
   margin-left: 2px;
   transform: none;
 }
+
+/* To style circles for doctest results */
+.line-circle-red {
+  background-color: red;
+  box-sizing: border-box;
+  border-radius: 100%;
+  border-style: solid;
+  border-width: 2px;
+  max-width: 15px;
+  height: 15px !important;
+  margin: 3px;
+}
+
+.line-circle-green {
+  background-color: green;
+  box-sizing: border-box;
+  border-radius: 100%;
+  border-style: solid;
+  border-width: 2px;
+  max-width: 15px;
+  height: 15px !important;
+  margin: 3px;
+}

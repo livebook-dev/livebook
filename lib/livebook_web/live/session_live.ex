@@ -1743,6 +1743,10 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp handle_action(socket, {:start_evaluation, cell, _section}) do
+    push_event(socket, "start_evaluation:#{cell.id}", %{})
+  end
+
   defp handle_action(socket, _action), do: socket
 
   defp client_info(id, user) do
