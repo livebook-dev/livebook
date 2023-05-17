@@ -70,6 +70,8 @@ defmodule LivebookWeb.Hub.EditLive do
               hub={@hub}
               id="enterprise-form"
             />
+          <% "team" -> %>
+            <.live_component module={LivebookWeb.Hub.Edit.TeamComponent} hub={@hub} id="team-form" />
         <% end %>
       </div>
     </LayoutHelpers.layout>
