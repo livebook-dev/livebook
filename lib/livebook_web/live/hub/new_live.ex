@@ -1,7 +1,6 @@
 defmodule LivebookWeb.Hub.NewLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.Hubs.Enterprise
   alias Livebook.Teams
   alias Livebook.Teams.Org
   alias LivebookWeb.LayoutHelpers
@@ -217,15 +216,11 @@ defmodule LivebookWeb.Hub.NewLive do
         changeset = Teams.change_org(socket.assigns.org, attrs)
         org = Ecto.Changeset.apply_action!(changeset, :insert)
 
-        Process.send_after(self(), {:check_completion_data, org}, 1000)
+        Process.send_after(self(), :check_completion_data, 1000)
 
         {:noreply,
          socket
-         |> assign(
-           requested_code: true,
-           org: org,
-           verification_uri: response["verification_uri"]
-         )
+         |> assign(requested_code: true, org: org, verification_uri: response["verification_uri"])
          |> assign_form(changeset)}
 
       {:error, changeset} ->
@@ -237,47 +232,36 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
-  def handle_info({:check_completion_data, %Org{} = org}, socket) do
+  def handle_info(:check_completion_data, %{assigns: %{org: org}} = socket) do
     case Teams.get_org_request_completion_data(org) do
       {:ok, :awaiting_confirmation} ->
-        Process.send_after(self(), {:check_completion_data, org}, 1000)
+        Process.send_after(self(), :check_completion_data, 1000)
 
         {:noreply, socket}
 
-      {:ok, response} ->
-        attrs = %{
-          org_id: response["id"],
-          user_id: response["user_id"],
-          org_key_id: response["org_key_id"],
-          session_token: response["session_token"],
-          teams_key: org.teams_key,
-          hub_name: response["name"],
-          hub_emoji: org.emoji
-        }
-
-        case Enterprise.create_hub(%Enterprise{}, attrs) do
-          {:ok, hub} ->
-            {:noreply,
-             socket
-             |> put_flash(:success, "Hub added successfully")
-             |> push_navigate(to: ~p"/hub/#{hub.id}")}
-
-          {:error, changeset} ->
-            {:noreply, assign_form(socket, changeset)}
-        end
-
-      {:error, :expired} ->
-        org = Map.replace!(socket.assigns.org, :user_code, "requested")
-        changeset = Teams.change_org(org, %{})
+      {:ok, %{"id" => _id, "session_token" => _session_token} = response} ->
+        hub =
+          Teams.create_hub!(%{
+            org_id: response["id"],
+            user_id: response["user_id"],
+            org_key_id: response["org_key_id"],
+            session_token: response["session_token"],
+            teams_key: org.teams_key,
+            hub_name: org.name,
+            hub_emoji: org.emoji
+          })
 
         {:noreply,
          socket
-         |> assign(
-           requested_code: false,
-           org: org,
-           verification_uri: nil,
-           created: false
-         )
+         |> put_flash(:success, "Hub added successfully")
+         |> push_navigate(to: ~p"/hub/#{hub.id}")}
+
+      {:error, :expired} ->
+        changeset = Teams.change_org(org, %{user_code: nil})
+
+        {:noreply,
+         socket
+         |> assign(requested_code: false, org: org, verification_uri: nil)
          |> put_flash(
            :error,
            "Oh no! Your org creation request expired, could you please try again?"
@@ -292,7 +276,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(_any, socket), do: {:noreply, socket}
 
   defp assign_form(socket, "new-org") do
-    org = %Org{user_code: "request", emoji: "🏭️"}
+    org = %Org{emoji: "🏭️"}
     changeset = Teams.change_org(org)
 
     socket

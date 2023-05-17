@@ -17,7 +17,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       teams_key = Livebook.Teams.Org.teams_key()
 
       {:ok, view, _html} = live(conn, ~p"/hub")
-      path = ~p"/hub/enterprise-#{name}"
+      path = ~p"/hub/team-#{name}"
 
       # select the new org option
       assert view
