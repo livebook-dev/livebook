@@ -1,7 +1,11 @@
 defmodule Livebook.Teams do
   @moduledoc false
 
+  alias Livebook.Hubs
+  alias Livebook.Hubs.Team
   alias Livebook.Teams.{Client, Org}
+
+  import Ecto.Changeset, only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
 
   @doc """
   Creates an Org.
@@ -16,7 +20,7 @@ defmodule Livebook.Teams do
   def create_org(%Org{} = org, attrs) do
     changeset = Org.changeset(org, attrs)
 
-    with {:ok, %Org{} = org} <- Ecto.Changeset.apply_action(changeset, :insert),
+    with {:ok, %Org{} = org} <- apply_action(changeset, :insert),
          {:ok, response} <- Client.create_org(org) do
       {:ok, response}
     else
@@ -60,12 +64,45 @@ defmodule Livebook.Teams do
     end
   end
 
+  @doc """
+  Creates a Hub.
+
+  It notifies interested processes about hub metadatas data change.
+  """
+  @spec create_hub!(map()) :: Team.t()
+  def create_hub!(attrs) do
+    changeset = Team.change_hub(%Team{}, attrs)
+    team = apply_action!(changeset, :insert)
+
+    Hubs.save_hub(team)
+  end
+
+  @doc """
+  Updates a Hub.
+
+  With success, notifies interested processes about hub metadatas data change.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec update_hub(Team.t(), map()) :: {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def update_hub(%Team{} = team, attrs) do
+    changeset = Team.change_hub(team, attrs)
+    id = get_field(changeset, :id)
+
+    if Hubs.hub_exists?(id) do
+      with {:ok, struct} <- apply_action(changeset, :update) do
+        {:ok, Hubs.save_hub(struct)}
+      end
+    else
+      {:error, add_error(changeset, :hub_name, "does not exists")}
+    end
+  end
+
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
     for {key, errors} <- errors_map,
         field <- String.to_atom(key),
         field in Org.__schema__(:fields),
         error <- errors,
         reduce: changeset,
-        do: (acc -> Ecto.Changeset.add_error(acc, field, error))
+        do: (acc -> add_error(acc, field, error))
   end
 end
