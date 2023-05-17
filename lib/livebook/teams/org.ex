@@ -21,6 +21,7 @@ defmodule Livebook.Teams.Org do
   end
 
   @fields ~w(id emoji name teams_key user_code)a
+  @required_fields @fields -- ~w(id user_code)a
 
   @doc """
   Generates a new teams key.
@@ -33,7 +34,7 @@ defmodule Livebook.Teams.Org do
     org
     |> cast(attrs, @fields)
     |> generate_teams_key()
-    |> validate_required(@fields -- [:id])
+    |> validate_required(@required_fields)
   end
 
   defp generate_teams_key(changeset) do
