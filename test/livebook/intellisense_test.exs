@@ -1502,6 +1502,9 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{active_argument: 2, signature_items: [_item]} =
                Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", context)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("elem(x, 1 + ", context)
     end
 
     test "returns correct active argument when using pipe operator" do
