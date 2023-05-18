@@ -6,6 +6,7 @@ defmodule Livebook.SessionHelpers do
 
   import ExUnit.Assertions
   import Phoenix.LiveViewTest
+  import Livebook.TestHelpers
 
   def wait_for_session_update(session_pid) do
     # This call is synchronous, so it gives the session time
@@ -20,15 +21,7 @@ defmodule Livebook.SessionHelpers do
   end
 
   def insert_cell_with_output(session_pid, section_id, output) do
-    code =
-      quote do
-        send(
-          Process.group_leader(),
-          {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
-        )
-      end
-      |> Macro.to_string()
-
+    code = source_for_output(output)
     cell_id = insert_text_cell(session_pid, section_id, :code, code)
     Session.queue_cell_evaluation(session_pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}

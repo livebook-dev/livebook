@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   </div>
                   <div class="flex justify-end space-x-2">
                     <span class="text-sm text-gray-500">
-                      <%= format_date_relatively(entry.deleted_at) %>
+                      <%= format_datetime_relatively(entry.deleted_at) %> ago
                     </span>
                   </div>
                 </div>
@@ -187,11 +187,6 @@ defmodule LivebookWeb.SessionLive.BinComponent do
   defp cell_language(%Cell.Markdown{}), do: "markdown"
   defp cell_language(%Cell.Code{}), do: "elixir"
   defp cell_language(%Cell.Smart{}), do: "elixir"
-
-  defp format_date_relatively(date) do
-    time_words = date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
-    time_words <> " ago"
-  end
 
   @impl true
   def handle_event("search", %{"search" => search}, socket) do

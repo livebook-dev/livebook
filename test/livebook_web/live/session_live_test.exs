@@ -1402,52 +1402,66 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
 
-      insert_cell_with_output(session.pid, section_id, {:markdown, "Hello from the app!"})
+      insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
 
       slug = Livebook.Utils.random_short_id()
+
+      Livebook.Apps.subscribe()
 
       view
       |> element(~s/[data-el-app-info] form/)
       |> render_submit(%{"app_settings" => %{"slug" => slug}})
 
-      assert_receive {:operation, {:add_app, _, _, app_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, _, true}}
+      assert_receive {:app_created, %{slug: ^slug} = app}
+
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
 
       assert render(view) =~ "/apps/#{slug}"
 
-      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
+      {:ok, view, _} =
+        conn
+        |> live(~p"/apps/#{slug}")
+        |> follow_redirect(conn)
 
-      assert_push_event(view, "markdown_renderer:" <> _, %{content: "Hello from the app!"})
+      assert render(view) =~ "Hello from the app!"
 
-      Session.app_unregistered(app_session_pid)
+      Livebook.App.close(app.pid)
     end
 
-    test "stopping and terminating an app", %{conn: conn, session: session} do
+    test "stopping and terminating app session", %{conn: conn, session: session} do
       Session.subscribe(session.id)
 
       slug = Livebook.Utils.random_short_id()
       app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
       Session.set_app_settings(session.pid, app_settings)
+
+      Livebook.Apps.subscribe()
       Session.deploy_app(session.pid)
 
-      assert_receive {:operation, {:add_app, _, _, _}}
-      assert_receive {:operation, {:set_app_registered, _, _, true}}
+      assert_receive {:app_created, %{slug: ^slug} = app}
+
+      assert_receive {:app_updated,
+                      %{slug: ^slug, sessions: [%{app_status: :executed} = app_session]}}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="stop app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="deactivate app session"]/)
       |> render_click()
 
-      assert_receive {:operation, {:set_app_registered, _, _, false}}
+      assert_receive {:app_updated, %{slug: ^slug, sessions: [%{app_status: :deactivated}]}}
+
+      assert render(view) =~ "/apps/#{slug}/#{app_session.id}"
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="terminate app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="terminate app session"]/)
       |> render_click()
 
-      assert_receive {:operation, {:delete_app, _, _}}
+      assert_receive {:app_updated, %{slug: ^slug, sessions: []}}
 
-      refute render(view) =~ "/apps/#{slug}"
+      refute render(view) =~ "/apps/#{slug}/#{app_session.id}"
+
+      Livebook.App.close(app.pid)
     end
   end
 

@@ -21,23 +21,18 @@ defmodule Livebook.AppsTest do
       # App 2
       """)
 
-      Livebook.Sessions.subscribe()
+      Livebook.Apps.subscribe()
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
 
-      assert_receive {:session_created, %{app_info: %{slug: "app1"}}}
+      assert_receive {:app_created, %{slug: "app1"} = app1}
+      assert_receive {:app_updated, %{slug: "app1", sessions: [%{app_status: :executed}]}}
 
-      assert_receive {:session_updated,
-                      %{app_info: %{slug: "app1", status: :running, registered: true}} =
-                        app1_session}
+      assert_receive {:app_created, %{slug: "app2"} = app2}
+      assert_receive {:app_updated, %{slug: "app2", sessions: [%{app_status: :executed}]}}
 
-      assert_receive {:session_created, %{app_info: %{slug: "app2"}}}
-
-      assert_receive {:session_updated,
-                      %{app_info: %{slug: "app2", status: :running, registered: true}} =
-                        app2_session}
-
-      Livebook.Session.close([app1_session.pid, app2_session.pid])
+      Livebook.App.close(app1.pid)
+      Livebook.App.close(app2.pid)
     end
 
     @tag :tmp_dir
@@ -63,14 +58,15 @@ defmodule Livebook.AppsTest do
       # App
       """)
 
-      Livebook.Sessions.subscribe()
+      Livebook.Apps.subscribe()
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir, password: "verylongpass")
 
-      assert_receive {:session_created, %{app_info: %{slug: "app"}} = session}
+      assert_receive {:app_created, %{slug: "app"} = app}
 
-      %{access_type: :protected, password: "verylongpass"} =
-        Livebook.Session.get_app_settings(session.pid)
+      %{access_type: :protected, password: "verylongpass"} = Livebook.App.get_settings(app.pid)
+
+      Livebook.App.close(app.pid)
     end
   end
 end

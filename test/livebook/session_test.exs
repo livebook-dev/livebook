@@ -3,7 +3,7 @@ defmodule Livebook.SessionTest do
 
   import Livebook.TestHelpers
 
-  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
+  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem, Apps, App}
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
   alias Livebook.NotebookManager
@@ -566,12 +566,7 @@ defmodule Livebook.SessionTest do
     test "schedules file for deletion when a linked client leaves", %{tmp_dir: tmp_dir} do
       session = start_session(registered_file_deletion_delay: 0)
 
-      client_pid =
-        spawn_link(fn ->
-          receive do
-            :stop -> :ok
-          end
-        end)
+      client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
 
       user = Livebook.Users.User.new()
       {_data, client_id} = Session.register_client(session.pid, client_pid, user)
@@ -1126,7 +1121,7 @@ defmodule Livebook.SessionTest do
     Session.set_runtime(session.pid, runtime)
 
     archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
-    hash = "test-" <> Livebook.Utils.random_id()
+    hash = "test-" <> Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
     js_output = {:js, %{js_view: %{assets: assets_info}}}
     frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
@@ -1143,30 +1138,69 @@ defmodule Livebook.SessionTest do
     assert :ok = Session.fetch_assets(session.pid, hash)
   end
 
-  describe "apps" do
-    test "deploying an app under the same slug terminates the old one", %{session: session} do
+  describe "deploy_app/1" do
+    test "deploys current notebook and keeps track of the deployed app", %{session: session} do
       Session.subscribe(session.id)
 
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
       Session.set_app_settings(session.pid, app_settings)
 
-      Session.deploy_app(session.pid)
-      assert_receive {:operation, {:add_app, _, app1_session_id, _app1_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, true}}
-
-      Session.app_subscribe(app1_session_id)
+      Apps.subscribe()
 
       Session.deploy_app(session.pid)
-      assert_receive {:operation, {:add_app, _, app2_session_id, app2_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, false}}
-      assert_receive {:operation, {:set_app_registered, _, ^app2_session_id, true}}
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
 
-      assert_receive {:app_terminated, ^app1_session_id}
+      assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
+      App.close(app_pid)
 
-      assert {:ok, %{id: ^app2_session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, nil}}
+    end
+  end
 
-      Session.app_unregistered(app2_session_pid)
+  describe "apps" do
+    test "app session terminates when the app is terminated" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
+
+      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+
+      ref = Process.monitor(session_pid)
+
+      App.close(app_pid)
+
+      assert_receive {:DOWN, ^ref, :process, _, _}
+    end
+
+    test "when shutting down, terminates once clients leave" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
+
+      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+
+      client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
+
+      user = Livebook.Users.User.new()
+      {_, _client_id} = Session.register_client(session_pid, client_pid, user)
+
+      Session.app_shutdown(session_pid)
+      ref = Process.monitor(session_pid)
+
+      # Still operational
+      assert %{} = Session.get_by_pid(session_pid)
+
+      send(client_pid, :stop)
+      assert_receive {:DOWN, ^ref, :process, _, _}
+
+      App.close(app_pid)
     end
 
     test "recovers on failure", %{test: test} do
@@ -1181,28 +1215,23 @@ defmodule Livebook.SessionTest do
 
       cell = %{Notebook.Cell.new(:code) | source: code}
       section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | sections: [section]}
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
-      session = start_session(notebook: notebook)
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
 
-      Session.subscribe(session.id)
-
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-      Session.set_app_settings(session.pid, app_settings)
-
-      Session.deploy_app(session.pid)
-
-      assert_receive {:operation, {:add_app, _, app_session_id, app_session_pid}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+      assert_receive {:app_created, %{pid: ^app_pid} = app}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
 
       Process.exit(Process.whereis(test), :shutdown)
 
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :error}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :booting}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :error}]}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executing}]}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
 
-      Session.app_unregistered(app_session_pid)
+      App.close(app.pid)
     end
   end
 

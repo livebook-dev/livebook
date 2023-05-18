@@ -750,7 +750,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "app settings" do
     test "imports settings" do
       markdown = """
-      <!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","auto_session_startup":true,"auto_shutdown_type":"inactive_1h","multi_session":true,"output_type":"rich","show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """
@@ -761,6 +761,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                name: "My Notebook",
                app_settings: %{
                  slug: "app",
+                 multi_session: true,
+                 zero_downtime: false,
+                 auto_session_startup: true,
+                 auto_shutdown_type: :inactive_1h,
                  access_type: :public,
                  show_source: true,
                  output_type: :rich
