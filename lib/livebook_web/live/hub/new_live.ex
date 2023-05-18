@@ -6,7 +6,9 @@ defmodule LivebookWeb.Hub.NewLive do
   alias LivebookWeb.LayoutHelpers
   alias Phoenix.LiveView.JS
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
+
+  @check_completion_data_internal 3000
 
   @impl true
   def mount(_params, _session, socket) do
@@ -216,7 +218,7 @@ defmodule LivebookWeb.Hub.NewLive do
         changeset = Teams.change_org(socket.assigns.org, attrs)
         org = Ecto.Changeset.apply_action!(changeset, :insert)
 
-        Process.send_after(self(), :check_completion_data, 1000)
+        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
 
         {:noreply,
          socket
@@ -235,7 +237,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(:check_completion_data, %{assigns: %{org: org}} = socket) do
     case Teams.get_org_request_completion_data(org) do
       {:ok, :awaiting_confirmation} ->
-        Process.send_after(self(), :check_completion_data, 1000)
+        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
 
         {:noreply, socket}
 
@@ -276,7 +278,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(_any, socket), do: {:noreply, socket}
 
   defp assign_form(socket, "new-org") do
-    org = %Org{emoji: "🏭️"}
+    org = %Org{emoji: "💡"}
     changeset = Teams.change_org(org)
 
     socket
