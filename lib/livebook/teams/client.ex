@@ -11,7 +11,7 @@ defmodule Livebook.Teams.Client do
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
     hash = :crypto.hash(:sha256, org.teams_key)
-    key_hash = Base.url_encode64(hash)
+    key_hash = Base.url_encode64(hash, padding: false)
 
     post("/api/org-request", %{name: org.name, key_hash: key_hash})
   end
