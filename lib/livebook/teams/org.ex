@@ -33,13 +33,6 @@ defmodule Livebook.Teams.Org do
   def changeset(org, attrs) do
     org
     |> cast(attrs, @fields)
-    |> generate_teams_key()
     |> validate_required(@required_fields)
-  end
-
-  defp generate_teams_key(changeset) do
-    if get_field(changeset, :teams_key),
-      do: changeset,
-      else: put_change(changeset, :teams_key, teams_key())
   end
 end
