@@ -22,7 +22,10 @@ defmodule LivebookWeb.Hub.NewLive do
        requested_code: false,
        org: nil,
        verification_uri: nil,
-       org_form: nil
+       form: nil,
+       form_title: nil,
+       button_label: nil,
+       request_code_info: nil
      )}
   end
 
@@ -85,75 +88,69 @@ defmodule LivebookWeb.Hub.NewLive do
           </p>
         </div>
 
-        <.org_form
-          form={@org_form}
-          org={@org}
-          requested_code={@requested_code}
-          selected={@selected_option}
-          verification_uri={@verification_uri}
-        />
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+            1. Select your option
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <.card_item id="new-org" selected={@selected_option} title="Create a new organization">
+              <:logo><.remix_icon icon="add-circle-fill" class="text-black text-3xl" /></:logo>
+              <:headline>Create a new organization and invite your team members.</:headline>
+            </.card_item>
+
+            <.card_item id="join-org" selected={@selected_option} title="Join an organization">
+              <:logo><.remix_icon icon="user-add-fill" class="text-black text-3xl" /></:logo>
+              <:headline>Join within the organization of your team members.</:headline>
+            </.card_item>
+          </div>
+        </div>
+
+        <div :if={@selected_option} class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+            2. <%= @form_title %>
+          </h2>
+
+          <.form
+            :let={f}
+            id={"#{@selected_option}-form"}
+            class="flex flex-col space-y-4"
+            for={@form}
+            phx-submit="save"
+            phx-change="validate"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <.text_field field={f[:name]} label="Name" />
+              <.emoji_field field={f[:emoji]} label="Emoji" />
+            </div>
+
+            <.password_field
+              readonly={@selected_option == "new-org"}
+              field={f[:teams_key]}
+              label="Livebook Teams Key"
+            />
+
+            <div :if={@requested_code} class="grid grid-cols-1 gap-3">
+              <span><%= @request_code_info %></span>
+
+              <.link navigate={@verification_uri} target="_blank" class="font-bold text-blue-500">
+                <%= @verification_uri %>
+              </.link>
+
+              <span><%= @org.user_code %></span>
+            </div>
+
+            <button
+              :if={!@requested_code}
+              class="button-base button-blue"
+              phx-disable-with="Creating..."
+            >
+              <%= @button_label %>
+            </button>
+          </.form>
+        </div>
       </div>
     </LayoutHelpers.layout>
-    """
-  end
-
-  defp org_form(assigns) do
-    ~H"""
-    <div class="flex flex-col space-y-4">
-      <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-        1. Select your option
-      </h2>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <.card_item id="new-org" selected={@selected} title="Create a new organization">
-          <:logo><.remix_icon icon="add-circle-fill" class="text-black text-3xl" /></:logo>
-          <:headline>Create a new organization and invite your team members.</:headline>
-        </.card_item>
-
-        <.card_item id="join-org" selected={@selected} disabled title="Join an organization">
-          <:logo><.remix_icon icon="user-add-fill" class="text-black text-3xl" /></:logo>
-          <:headline>Coming soon...</:headline>
-        </.card_item>
-      </div>
-    </div>
-
-    <div :if={@selected == "new-org"} class="flex flex-col space-y-4">
-      <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-        2. Create your Organization
-      </h2>
-
-      <.form
-        :let={f}
-        id="new-org-form"
-        class="flex flex-col space-y-4"
-        for={@form}
-        phx-submit="save"
-        phx-change="validate"
-      >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.text_field field={f[:name]} label="Name" />
-          <.emoji_field field={f[:emoji]} label="Emoji" />
-        </div>
-
-        <.password_field readonly field={f[:teams_key]} label="Livebook Teams Key" />
-
-        <div :if={@requested_code} class="grid grid-cols-1 gap-3">
-          <span>
-            Access the following URL and input the User Code below to confirm the Organization creation.
-          </span>
-
-          <.link navigate={@verification_uri} target="_blank" class="font-bold text-blue-500">
-            <%= @verification_uri %>
-          </.link>
-
-          <span><%= @org.user_code %></span>
-        </div>
-
-        <button :if={!@requested_code} class="button-base button-blue" phx-disable-with="Creating...">
-          Create Org
-        </button>
-      </.form>
-    </div>
     """
   end
 
@@ -163,7 +160,7 @@ defmodule LivebookWeb.Hub.NewLive do
     ~H"""
     <div
       id={@id}
-      class={["flex flex-col cursor-pointer", disabled_class(@disabled)]}
+      class="flex flex-col cursor-pointer"
       phx-click={JS.push("select_option", value: %{value: @id})}
     >
       <div class={[
@@ -185,9 +182,6 @@ defmodule LivebookWeb.Hub.NewLive do
     """
   end
 
-  defp disabled_class(true), do: "opacity-30 pointer-events-none"
-  defp disabled_class(false), do: ""
-
   defp card_item_border_class(id, id), do: "border-gray-200"
   defp card_item_border_class(_, _), do: "border-gray-100"
 
@@ -198,11 +192,11 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_event("select_option", %{"value" => option}, socket) do
     {:noreply,
      socket
-     |> assign(selected_option: option)
+     |> assign(selected_option: option, requested_code: false, verification_uri: nil)
      |> assign_form(option)}
   end
 
-  def handle_event("validate", %{"new_org" => attrs}, socket) do
+  def handle_event("validate", %{"org" => attrs}, socket) do
     changeset =
       socket.assigns.org
       |> Teams.change_org(attrs)
@@ -211,8 +205,14 @@ defmodule LivebookWeb.Hub.NewLive do
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("save", %{"new_org" => attrs}, socket) do
-    case Teams.create_org(socket.assigns.org, attrs) do
+  def handle_event("save", %{"org" => attrs}, socket) do
+    result =
+      case socket.assigns.selected_option do
+        "new-org" -> Teams.create_org(socket.assigns.org, attrs)
+        "join-org" -> Teams.join_org(socket.assigns.org, attrs)
+      end
+
+    case result do
       {:ok, response} ->
         attrs = Map.merge(attrs, response)
         changeset = Teams.change_org(socket.assigns.org, attrs)
@@ -264,10 +264,7 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> assign(requested_code: false, org: org, verification_uri: nil)
-         |> put_flash(
-           :error,
-           "Oh no! Your org creation request expired, could you please try again?"
-         )
+         |> put_flash(:error, "Oh no! Your org request expired, could you please try again?")
          |> assign_form(changeset)}
 
       {:transport_error, message} ->
@@ -277,16 +274,37 @@ defmodule LivebookWeb.Hub.NewLive do
 
   def handle_info(_any, socket), do: {:noreply, socket}
 
-  defp assign_form(socket, "new-org") do
+  defp assign_form(socket, "join-org") do
     org = %Org{emoji: "💡"}
     changeset = Teams.change_org(org)
 
     socket
-    |> assign(org: org)
+    |> assign(
+      org: org,
+      form_title: "Join an Organization",
+      button_label: "Join Org",
+      request_code_info:
+        "Access the following URL and input the User Code below to confirm the Organization creation."
+    )
+    |> assign_form(changeset)
+  end
+
+  defp assign_form(socket, "new-org") do
+    org = %Org{emoji: "💡", teams_key: Org.teams_key()}
+    changeset = Teams.change_org(org)
+
+    socket
+    |> assign(
+      org: org,
+      form_title: "Create your Organization",
+      button_label: "Create Org",
+      request_code_info:
+        "Access the following URL and input the User Code below to confirm to join an Organization."
+    )
     |> assign_form(changeset)
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, org_form: to_form(changeset, as: :new_org))
+    assign(socket, form: to_form(changeset))
   end
 end
