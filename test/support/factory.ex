@@ -31,15 +31,17 @@ defmodule Livebook.Factory do
   end
 
   def build(:enterprise) do
-    id = Livebook.Utils.random_id()
+    name = "Enteprise #{Livebook.Utils.random_short_id()}"
 
     %Livebook.Hubs.Enterprise{
-      id: "enterprise-#{id}",
-      hub_name: "Enterprise",
+      id: "enterprise-#{name}",
+      hub_name: name,
       hub_emoji: "🏭",
-      external_id: id,
-      token: Livebook.Utils.random_cookie(),
-      url: "http://localhost"
+      org_id: 1,
+      user_id: 1,
+      org_key_id: 1,
+      teams_key: Livebook.Utils.random_id(),
+      session_token: Livebook.Utils.random_cookie()
     }
   end
 
@@ -74,6 +76,7 @@ defmodule Livebook.Factory do
   def build(:org) do
     %Livebook.Teams.Org{
       id: nil,
+      emoji: "🏭",
       name: "Org Name #{System.unique_integer([:positive])}",
       teams_key: Livebook.Teams.Org.teams_key(),
       user_code: "request"
