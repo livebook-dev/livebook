@@ -25,6 +25,28 @@ defmodule Livebook.TeamsTest do
     end
   end
 
+  describe "join_org/1" do
+    test "returns the device flow data to confirm the org creation" do
+      org = build(:org)
+
+      assert {:ok,
+              %{
+                "device_code" => _device_code,
+                "expires_in" => 300,
+                "id" => _org_id,
+                "user_code" => _user_code,
+                "verification_uri" => _verification_uri
+              }} = Teams.join_org(org, %{})
+    end
+
+    test "returns changeset errors when data is invalid" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{name: nil})
+      assert "can't be blank" in errors_on(changeset).name
+    end
+  end
+
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()

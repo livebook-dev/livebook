@@ -17,6 +17,18 @@ defmodule Livebook.Teams.Client do
   end
 
   @doc """
+  Send a request to Livebook Team API to join an org.
+  """
+  @spec join_org(Org.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def join_org(org) do
+    hash = :crypto.hash(:sha256, org.teams_key)
+    key_hash = Base.url_encode64(hash, padding: false)
+
+    post("/api/org-request/join", %{name: org.name, key_hash: key_hash})
+  end
+
+  @doc """
   Send a request to Livebook Team API to get an org request.
   """
   @spec get_org_request_completion_data(pos_integer()) ::
