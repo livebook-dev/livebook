@@ -122,7 +122,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     end
   end
 
-  defp check_completion_data_internal do
+  defp check_completion_data_interval do
     Application.fetch_env!(:livebook, :teams_completion_data_interval) + 100
   end
 end
