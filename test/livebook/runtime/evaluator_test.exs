@@ -952,6 +952,24 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
   end
 
+  describe "erlang evaluation" do
+    test "evaluate erlang code", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "erlang", "X = lists:seq(1, 3), X.", :code_1, [])
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, [1,2,3]}, metadata()}
+    end
+
+    test "mixed erlang/elixir bindings", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "elixir", "x = 1", :code_1, [])
+      Evaluator.evaluate_code(evaluator, "erlang", "Y = X.", :code_2, [:code_1])
+      Evaluator.evaluate_code(evaluator, "elixir", "z = y", :code_3, [:code_2])
+
+      %{binding: binding} =
+        Evaluator.get_evaluation_context(evaluator, [:code_3, :code_2, :code_1])
+
+      assert [{:z, 1}, {:y, 1}, {:x, 1}] == binding
+    end
+  end
+
   # Helpers
 
   # Some of the code passed to Evaluator above is expected
