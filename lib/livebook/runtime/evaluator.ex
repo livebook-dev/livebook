@@ -665,9 +665,8 @@ defmodule Livebook.Runtime.Evaluator do
               |> Map.merge(
                 new_erl_binding
                 |> Map.keys()
-                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1, fn var, index ->
-                  {{var, nil}, index}
-                end)
+                |> Enum.map(&{&1, nil})
+                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1)
                 |> Map.new()
               )
             end
