@@ -10,7 +10,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
   @check_completion_data_interval Application.compile_env(
                                     :livebook,
-                                    :teams_completion_data_interval,
+                                    :check_completion_data_interval,
                                     3000
                                   )
 
@@ -222,7 +222,7 @@ defmodule LivebookWeb.Hub.NewLive do
         changeset = Teams.change_org(socket.assigns.org, attrs)
         org = Ecto.Changeset.apply_action!(changeset, :insert)
 
-        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
+        Process.send_after(self(), :check_completion_data, @check_completion_data_interval)
 
         {:noreply,
          socket
@@ -241,7 +241,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(:check_completion_data, %{assigns: %{org: org}} = socket) do
     case Teams.get_org_request_completion_data(org) do
       {:ok, :awaiting_confirmation} ->
-        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
+        Process.send_after(self(), :check_completion_data, @check_completion_data_interval)
 
         {:noreply, socket}
 

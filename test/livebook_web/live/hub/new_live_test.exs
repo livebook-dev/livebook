@@ -54,7 +54,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, path, check_completion_data_internal())
+        assert_redirect(view, path, check_completion_data_interval())
 
       # checks if the hub is in the sidebar
       {:ok, view, _html} = live(conn, path)
@@ -111,7 +111,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, path, check_completion_data_internal())
+        assert_redirect(view, path, check_completion_data_interval())
 
       # checks if the hub is in the sidebar
       {:ok, view, _html} = live(conn, path)
@@ -123,6 +123,6 @@ defmodule LivebookWeb.Hub.NewLiveTest do
   end
 
   defp check_completion_data_interval do
-    Application.fetch_env!(:livebook, :teams_completion_data_interval) + 100
+    Application.fetch_env!(:livebook, :check_completion_data_interval) + 100
   end
 end

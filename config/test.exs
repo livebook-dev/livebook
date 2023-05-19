@@ -33,4 +33,4 @@ if System.get_env("CI") == "true" do
 end
 
 # Teams
-config :livebook, teams_completion_data_interval: 300
+config :livebook, check_completion_data_interval: 300
