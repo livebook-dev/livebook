@@ -806,12 +806,12 @@ defmodule Livebook.Session do
   defp schedule_auto_shutdown(state) do
     client_count = map_size(state.data.clients_map)
 
-    case {client_count, state.auto_shutdown_timer_ref, state.auto_shutdown_ms} do
-      {0, nil, auto_shutdown_ms} when auto_shutdown_ms != nil ->
-        timer_ref = Process.send_after(self(), :close, auto_shutdown_ms)
+    case {client_count, state.auto_shutdown_timer_ref} do
+      {0, nil} when state.auto_shutdown_ms != nil ->
+        timer_ref = Process.send_after(self(), :close, state.auto_shutdown_ms)
         %{state | auto_shutdown_timer_ref: timer_ref}
 
-      {client_count, timer_ref, _} when client_count > 0 and timer_ref != nil ->
+      {client_count, timer_ref} when client_count > 0 and timer_ref != nil ->
         if Process.cancel_timer(timer_ref) == false do
           receive do
             :close -> :ok
