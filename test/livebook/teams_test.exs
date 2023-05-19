@@ -51,6 +51,14 @@ defmodule Livebook.TeamsTest do
       assert {:error, changeset} = Teams.join_org(org, %{name: nil})
       assert "can't be blank" in errors_on(changeset).name
     end
+
+    test "returns changeset errors when org doesn't exist" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{})
+      assert "does not exist" in errors_on(changeset).name
+      assert "does not exist" in errors_on(changeset).teams_key
+    end
   end
 
   describe "get_org_request_completion_data/1" do
