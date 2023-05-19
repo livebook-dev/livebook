@@ -10,10 +10,7 @@ defmodule Livebook.Teams.Client do
   @spec create_org(Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
-    hash = :crypto.hash(:sha256, org.teams_key)
-    key_hash = Base.url_encode64(hash, padding: false)
-
-    post("/api/org-request", %{name: org.name, key_hash: key_hash})
+    post("/api/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
   end
 
   @doc """
@@ -22,10 +19,7 @@ defmodule Livebook.Teams.Client do
   @spec join_org(Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def join_org(org) do
-    hash = :crypto.hash(:sha256, org.teams_key)
-    key_hash = Base.url_encode64(hash, padding: false)
-
-    post("/api/org-request/join", %{name: org.name, key_hash: key_hash})
+    post("/api/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
   end
 
   @doc """
