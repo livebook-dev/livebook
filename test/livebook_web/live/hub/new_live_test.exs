@@ -1,6 +1,8 @@
 defmodule LivebookWeb.Hub.NewLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
+  alias Livebook.Teams.Org
+
   import Phoenix.LiveViewTest
 
   test "render hub selection cards", %{conn: conn} do
@@ -15,9 +17,10 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
       name = "New Org Test #{System.unique_integer([:positive])}"
       teams_key = Livebook.Teams.Org.teams_key()
+      key_hash = Org.key_hash(build(:org, teams_key: teams_key))
+      path = ~p"/hub/team-#{name}"
 
       {:ok, view, _html} = live(conn, ~p"/hub")
-      path = ~p"/hub/team-#{name}"
 
       # select the new org option
       assert view
@@ -34,16 +37,17 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # submits the form 
       render_submit(form, attrs)
 
+      # gets the org request by name and key hash
+      org_request =
+        :erpc.call(node, Hub.Integration, :get_org_request_by!, [
+          [name: name, key_hash: key_hash]
+        ])
+
       # check if the form has the url to confirm
       link_element = element(view, "#new-org-form a")
-      html = render(link_element)
-      parsed_html = Floki.parse_document!(html)
-      assert [url] = Floki.attribute(parsed_html, "href")
-      assert [_port, [org_request_id]] = Regex.scan(~r/(?<=\D|^)\d{1,4}(?=\D|$)/, url)
-      id = String.to_integer(org_request_id)
+      assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
-      org_request = :erpc.call(node, Hub.Integration, :get_org_request!, [id])
       :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
 
       # wait for the c:handle_info/2 cycle
@@ -65,9 +69,15 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
       name = "New Org Test #{System.unique_integer([:positive])}"
       teams_key = Livebook.Teams.Org.teams_key()
+      key_hash = Org.key_hash(build(:org, teams_key: teams_key))
+      path = ~p"/hub/team-#{name}"
 
       {:ok, view, _html} = live(conn, ~p"/hub")
-      path = ~p"/hub/team-#{name}"
+
+      # previously create the org and associate user with org
+      org = :erpc.call(node, Hub.Integration, :create_org, [[name: name]])
+      :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
 
       # select the new org option
       assert view
@@ -84,20 +94,15 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # submits the form 
       render_submit(form, attrs)
 
+      # gets the org request by name and key hash
+      org_request =
+        :erpc.call(node, Hub.Integration, :get_org_request_by!, [
+          [name: name, key_hash: key_hash]
+        ])
+
       # check if the form has the url to confirm
       link_element = element(view, "#join-org-form a")
-      html = render(link_element)
-      parsed_html = Floki.parse_document!(html)
-      assert [url] = Floki.attribute(parsed_html, "href")
-      assert [_port, [org_request_id]] = Regex.scan(~r/(?<=\D|^)\d{1,4}(?=\D|$)/, url)
-      id = String.to_integer(org_request_id)
-
-      # create org based on key hash and name from request
-      org_request = :erpc.call(node, Hub.Integration, :get_org_request!, [id])
-      org = :erpc.call(node, Hub.Integration, :create_org, [[name: org_request.name]])
-      key_hash = org_request.key_hash
-      :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-      :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
+      assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
       :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
