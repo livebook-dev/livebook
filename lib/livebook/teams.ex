@@ -117,7 +117,7 @@ defmodule Livebook.Teams do
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
     for {key, errors} <- errors_map,
-        field <- String.to_atom(key),
+        field = String.to_atom(key),
         field in Org.__schema__(:fields),
         error <- errors,
         reduce: changeset,
