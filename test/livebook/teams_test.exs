@@ -2,6 +2,7 @@ defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.Teams
+  alias Livebook.Teams.Org
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -26,8 +27,13 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "join_org/1" do
-    test "returns the device flow data to confirm the org creation" do
+    test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
       org = build(:org)
+      key_hash = Org.key_hash(org)
+
+      teams_org = :erpc.call(node, Hub.Integration, :create_org, [[name: org.name]])
+      :erpc.call(node, Hub.Integration, :create_org_key, [[org: teams_org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_user_org, [[org: teams_org, user: user]])
 
       assert {:ok,
               %{
