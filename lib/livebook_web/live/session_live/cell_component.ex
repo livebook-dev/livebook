@@ -94,7 +94,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
         <div class="absolute bottom-2 right-2">
           <div class="flex text-xs text-gray-400">
-            <%= @cell_view.language |> String.capitalize %>
+            <%= @cell_view.language |> String.capitalize() %>
           </div>
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>

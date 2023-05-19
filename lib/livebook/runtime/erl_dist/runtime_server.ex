@@ -430,7 +430,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, language, code, {container_ref, evaluation_ref} = locator, parent_locators, opts},
+        {:evaluate_code, language, code, {container_ref, evaluation_ref} = locator,
+         parent_locators, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
@@ -466,6 +467,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     {:noreply, %{state | last_evaluator: state.evaluators[container_ref]}}
   end
+
   def handle_cast({:forget_evaluation, {container_ref, evaluation_ref}}, state) do
     with {:ok, evaluator} <- Map.fetch(state.evaluators, container_ref) do
       Evaluator.forget_evaluation(evaluator, evaluation_ref)

@@ -2070,7 +2070,15 @@ defmodule Livebook.Session do
 
     locator = {container_ref_for_section(section), cell.id}
     parent_locators = parent_locators_for_cell(state.data, cell)
-    Runtime.evaluate_code(state.data.runtime, cell.language, cell.source, locator, parent_locators, opts)
+
+    Runtime.evaluate_code(
+      state.data.runtime,
+      cell.language,
+      cell.source,
+      locator,
+      parent_locators,
+      opts
+    )
 
     state
   end

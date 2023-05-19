@@ -639,8 +639,7 @@ defmodule Livebook.Runtime.Evaluator do
             {erlang_to_elixir_var(name), value}
           end)
 
-        binding =
-          Keyword.merge(binding, Map.to_list(new_erl_binding))
+        binding = Keyword.merge(binding, Map.to_list(new_erl_binding))
 
         # Primitive heuristic to detect the used variables. This will not handle
         # shadowing of variables in funs and will only work well enough for
@@ -666,7 +665,9 @@ defmodule Livebook.Runtime.Evaluator do
               |> Map.merge(
                 new_erl_binding
                 |> Map.keys()
-                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1, fn var, index -> {{var, nil}, index} end)
+                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1, fn var, index ->
+                  {{var, nil}, index}
+                end)
                 |> Map.new()
               )
             end

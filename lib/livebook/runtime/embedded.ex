@@ -77,7 +77,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do
-    RuntimeServer.evaluate_code(runtime.server_pid, language, code, locator, parent_locators, opts)
+    RuntimeServer.evaluate_code(
+      runtime.server_pid,
+      language,
+      code,
+      locator,
+      parent_locators,
+      opts
+    )
   end
 
   def forget_evaluation(runtime, locator) do

@@ -1765,7 +1765,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
-  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language}), do: {:code, %{language: language}}
+
+  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language}),
+    do: {:code, %{language: language}}
 
   defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
     source = """
