@@ -15,7 +15,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "new-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "New Org Test #{System.unique_integer([:positive])}"
+      name = "NewOrgTest"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
@@ -67,7 +67,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "join-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "New Org Test #{System.unique_integer([:positive])}"
+      name = "JoinOrgTest"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
@@ -123,6 +123,6 @@ defmodule LivebookWeb.Hub.NewLiveTest do
   end
 
   defp check_completion_data_internal do
-    Application.fetch_env!(:livebook, :teams_completion_data_interval) + 1
+    Application.fetch_env!(:livebook, :teams_completion_data_interval) + 100
   end
 end
