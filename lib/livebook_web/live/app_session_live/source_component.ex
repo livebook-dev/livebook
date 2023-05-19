@@ -1,4 +1,4 @@
-defmodule LivebookWeb.AppLive.SourceComponent do
+defmodule LivebookWeb.AppSessionLive.SourceComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Session

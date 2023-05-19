@@ -4,6 +4,7 @@ defmodule Livebook.Tracker do
   use Phoenix.Tracker
 
   alias Livebook.Session
+  alias Livebook.App
 
   @name __MODULE__
 
@@ -13,6 +14,7 @@ defmodule Livebook.Tracker do
   end
 
   @sessions_topic "sessions"
+  @apps_topic "apps"
 
   @doc """
   Starts tracking the given session, making it visible globally.
@@ -60,6 +62,48 @@ defmodule Livebook.Tracker do
     end
   end
 
+  @doc """
+  Starts tracking the given app, making it visible globally.
+  """
+  @spec track_app(App.t()) :: :ok | {:error, any()}
+  def track_app(app) do
+    case Phoenix.Tracker.track(@name, app.pid, @apps_topic, app.slug, %{app: app}) do
+      {:ok, _ref} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Updates the tracked app object matching the given slug.
+  """
+  @spec update_app(App.t()) :: :ok | {:error, any()}
+  def update_app(app) do
+    case Phoenix.Tracker.update(@name, app.pid, @apps_topic, app.slug, %{app: app}) do
+      {:ok, _ref} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Returns all tracked apps.
+  """
+  @spec list_apps() :: list(App.t())
+  def list_apps() do
+    presences = Phoenix.Tracker.list(@name, @apps_topic)
+    for {_slug, %{app: app}} <- presences, do: app
+  end
+
+  @doc """
+  Returns tracked app with the given slug.
+  """
+  @spec fetch_app(String.t()) :: {:ok, App.t()} | :error
+  def fetch_app(slug) do
+    case Phoenix.Tracker.get_by_key(@name, @apps_topic, slug) do
+      [{_slug, %{app: app}}] -> {:ok, app}
+      _ -> :error
+    end
+  end
+
   @impl true
   def init(opts) do
     server = Keyword.fetch!(opts, :pubsub_server)
@@ -93,6 +137,29 @@ defmodule Livebook.Tracker do
         state.node_name,
         state.pubsub_server,
         "tracker_sessions",
+        message
+      )
+    end
+  end
+
+  defp handle_topic_diff(@apps_topic, {joins, leaves}, state) do
+    joins = Map.new(joins)
+    leaves = Map.new(leaves)
+
+    messages =
+      for slug <- Enum.uniq(Map.keys(joins) ++ Map.keys(leaves)) do
+        case {joins[slug], leaves[slug]} do
+          {%{app: app}, nil} -> {:app_created, app}
+          {nil, %{app: app}} -> {:app_closed, app}
+          {%{app: app}, %{}} -> {:app_updated, app}
+        end
+      end
+
+    for message <- messages do
+      Phoenix.PubSub.direct_broadcast!(
+        state.node_name,
+        state.pubsub_server,
+        "tracker_apps",
         message
       )
     end

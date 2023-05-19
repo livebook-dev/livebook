@@ -150,15 +150,17 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/")
 
+      Livebook.NotebookManager.subscribe_starred_notebooks()
+
       Livebook.NotebookManager.add_starred_notebook(file, "Special notebook")
-      render(view)
+      assert_receive {:starred_notebooks_updated, _}
 
       assert view
              |> element(~s/#starred-notebooks/, "Special notebook")
              |> has_element?()
 
       Livebook.NotebookManager.remove_starred_notebook(file)
-      render(view)
+      assert_receive {:starred_notebooks_updated, _}
 
       refute view
              |> element(~s/#starred-notebooks/, "Special notebook")

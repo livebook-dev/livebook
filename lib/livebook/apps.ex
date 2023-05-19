@@ -1,96 +1,143 @@
 defmodule Livebook.Apps do
   @moduledoc false
 
+  # This module is responsible for starting and discovering apps.
+  #
+  # App processes are tracked using `Livebook.Tracker` in the same way
+  # that sessions are.
+
   require Logger
 
-  alias Livebook.Session
+  alias Livebook.App
 
   @doc """
-  Registers an app session under the given slug.
+  Deploys the given notebook as an app.
 
-  In case another app is already registered under the given slug,
-  this function atomically replaces the registration and instructs
-  the previous app to shut down.
+  If there is no app process under the corresponding slug, it is started.
+  Otherwise the notebook is deployed as a new version into the existing
+  app.
   """
-  @spec register(pid(), String.t()) :: :ok
-  def register(session_pid, slug) do
+  @spec deploy(Livebook.Notebook.t()) :: {:ok, pid()} | {:error, term()}
+  def deploy(notebook) do
+    slug = notebook.app_settings.slug
     name = name(slug)
 
-    :global.trans({{:app_registration, name}, node()}, fn ->
-      case :global.whereis_name(name) do
-        :undefined ->
-          :ok
+    case :global.whereis_name(name) do
+      :undefined ->
+        :global.trans({{:app_registration, name}, node()}, fn ->
+          case :global.whereis_name(name) do
+            :undefined ->
+              with {:ok, pid} <- start_app(notebook) do
+                :yes = :global.register_name(name, pid)
+                {:ok, pid}
+              end
 
-        pid ->
-          :global.unregister_name(name)
-          Session.app_unregistered(pid)
-      end
+            pid ->
+              App.deploy(pid, notebook)
+              {:ok, pid}
+          end
+        end)
 
-      :yes = :global.register_name(name, session_pid)
-    end)
+      pid ->
+        App.deploy(pid, notebook)
+        {:ok, pid}
+    end
+  end
 
-    :ok
+  defp start_app(notebook) do
+    opts = [notebook: notebook]
+
+    case DynamicSupervisor.start_child(Livebook.AppSupervisor, {App, opts}) do
+      {:ok, pid} ->
+        app = App.get_by_pid(pid)
+
+        case Livebook.Tracker.track_app(app) do
+          :ok ->
+            {:ok, pid}
+
+          {:error, reason} ->
+            App.close(pid)
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   @doc """
-  Unregisters an app session from the given slug.
+  Returns app process pid for the given slug.
   """
-  @spec unregister(pid(), String.t()) :: :ok
-  def unregister(session_pid, slug) do
-    name = name(slug)
+  @spec fetch_pid(App.slug()) :: {:ok, pid()} | :error
+  def fetch_pid(slug) do
+    case :global.whereis_name(name(slug)) do
+      :undefined -> :error
+      pid -> {:ok, pid}
+    end
+  end
 
-    :global.trans({{:app_registration, name}, node()}, fn ->
-      case :global.whereis_name(name) do
-        :undefined ->
-          :ok
-
-        ^session_pid ->
-          :global.unregister_name(name)
-      end
-    end)
-
-    :ok
+  @doc """
+  Returns app info for the given slug.
+  """
+  @spec fetch_app(App.slug()) :: {:ok, App.t()} | :error
+  def fetch_app(slug) do
+    case :global.whereis_name(name(slug)) do
+      :undefined -> :error
+      pid -> {:ok, App.get_by_pid(pid)}
+    end
   end
 
   @doc """
   Checks if app with the given slug exists.
   """
-  @spec exists?(String.t()) :: boolean()
+  @spec exists?(App.slug()) :: boolean()
   def exists?(slug) do
     :global.whereis_name(name(slug)) != :undefined
   end
 
   @doc """
-  Looks up app session with the given slug.
+  Looks up app with the given slug and returns its settings.
   """
-  @spec fetch_session_by_slug(String.t()) :: {:ok, Session.t()} | :error
-  def fetch_session_by_slug(slug) do
-    case :global.whereis_name(name(slug)) do
-      :undefined ->
-        :error
-
-      pid ->
-        session = Session.get_by_pid(pid)
-        {:ok, session}
-    end
-  end
-
-  @doc """
-  Looks up app session with the given slug and returns its settings.
-  """
-  @spec fetch_settings_by_slug(String.t()) :: {:ok, Livebook.Notebook.AppSettings.t()} | :error
-  def fetch_settings_by_slug(slug) do
-    case :global.whereis_name(name(slug)) do
-      :undefined ->
-        :error
-
-      pid ->
-        app_settings = Session.get_app_settings(pid)
-        {:ok, app_settings}
+  @spec fetch_settings(App.slug()) :: {:ok, Livebook.Notebook.AppSettings.t()} | :error
+  def fetch_settings(slug) do
+    with {:ok, pid} <- fetch_pid(slug) do
+      app_settings = App.get_settings(pid)
+      {:ok, app_settings}
     end
   end
 
   defp name(slug), do: {:app, slug}
+
+  @doc """
+  Returns all the running apps.
+  """
+  @spec list_apps() :: list(App.t())
+  def list_apps() do
+    Livebook.Tracker.list_apps()
+  end
+
+  @doc """
+  Updates the given app info across the cluster.
+  """
+  @spec update_app(App.t()) :: :ok | {:error, any()}
+  def update_app(app) do
+    Livebook.Tracker.update_app(app)
+  end
+
+  @doc """
+  Subscribes to update in apps list.
+
+  ## Messages
+
+    * `{:app_created, app}`
+    * `{:app_updated, app}`
+    * `{:app_closed, app}`
+
+  """
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe() do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_apps")
+  end
 
   @doc """
   Deploys an app for each notebook in the given directory.
@@ -131,8 +178,7 @@ defmodule Livebook.Apps do
         end
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
-        {:ok, session} = Livebook.Sessions.create_session(notebook: notebook, mode: :app)
-        Livebook.Session.app_build(session.pid)
+        deploy(notebook)
       else
         Logger.warning("Skipping app deployment at #{path} due to invalid settings")
       end

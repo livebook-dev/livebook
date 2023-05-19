@@ -228,7 +228,6 @@ defmodule LivebookWeb.FormComponents do
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
 
-  attr :disabled, :boolean, default: false
   attr :checked_value, :string, default: "true"
   attr :unchecked_value, :string, default: "false"
 
@@ -243,7 +242,7 @@ defmodule LivebookWeb.FormComponents do
         <input type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
-          class="checkbox"
+          class="checkbox shrink-0"
           value={@checked_value}
           name={@name}
           id={@id || @name}
@@ -282,6 +281,55 @@ defmodule LivebookWeb.FormComponents do
           <input
             type="radio"
             class="radio"
+            name={@name}
+            value={value}
+            checked={to_string(@value) == value}
+            {@rest}
+          />
+          <span><%= description %></span>
+        </label>
+      </div>
+      <.error :for={msg <- @errors}><%= msg %></.error>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders radio inputs presented with label and error messages presented
+  as button group.
+  """
+  attr :id, :any, default: nil
+  attr :name, :any
+  attr :label, :string, default: nil
+  attr :value, :any
+  attr :errors, :list, default: []
+  attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+
+  attr :options, :list, default: [], doc: "a list of `{value, description}` tuples"
+  attr :full_width, :boolean, default: false
+
+  attr :rest, :global
+
+  def radio_button_group_field(assigns) do
+    assigns = assigns_from_field(assigns)
+
+    ~H"""
+    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+      <.label :if={@label} for={@id}><%= @label %></.label>
+      <div class="flex">
+        <label
+          :for={{value, description} <- @options}
+          class={[
+            @full_width && "flex-grow text-center",
+            "px-3 py-2 first:rounded-l-lg last:rounded-r-lg font-medium text-sm whitespace-nowrap cursor-pointer",
+            "border border-r-0 last:border-r border-gray-500 text-gray-500 hover:bg-gray-100 focus:bg-gray-100",
+            to_string(@value) == value &&
+              "bg-gray-500 text-gray-50 hover:bg-gray-500 focus:bg-gray-500"
+          ]}
+        >
+          <input
+            type="radio"
+            class="hidden"
             name={@name}
             value={value}
             checked={to_string(@value) == value}

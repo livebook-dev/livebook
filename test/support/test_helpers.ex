@@ -56,4 +56,17 @@ defmodule Livebook.TestHelpers do
     |> element(~s/[data-el-confirm-form]/)
     |> render_submit()
   end
+
+  @doc """
+  Builds code that renders the given output as part of evaluation.
+  """
+  def source_for_output(output) do
+    quote do
+      send(
+        Process.group_leader(),
+        {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
+      )
+    end
+    |> Macro.to_string()
+  end
 end

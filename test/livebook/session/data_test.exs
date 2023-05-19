@@ -2834,7 +2834,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{sections: [%{cells: [%{id: "c1", source: "content"}]}]}
               },
-              [{:broadcast_delta, ^client_id, _cell, :primary, ^delta}]} =
+              [{:report_delta, ^client_id, _cell, :primary, ^delta}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -2864,7 +2864,7 @@ defmodule Livebook.Session.DataTest do
                   sections: [%{cells: [%{id: "c1", source: "content!", attrs: ^attrs}]}]
                 }
               },
-              [{:broadcast_delta, ^client_id, _cell, :primary, ^delta2}]} =
+              [{:report_delta, ^client_id, _cell, :primary, ^delta2}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3323,7 +3323,7 @@ defmodule Livebook.Session.DataTest do
 
       transformed_delta2 = Delta.new() |> Delta.retain(4) |> Delta.insert("tea")
 
-      assert {:ok, _data, [{:broadcast_delta, ^client2_id, _cell, :primary, ^transformed_delta2}]} =
+      assert {:ok, _data, [{:report_delta, ^client2_id, _cell, :primary, ^transformed_delta2}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3752,88 +3752,42 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :add_app" do
-    test "adds app to the app list" do
-      settings = %{Notebook.AppSettings.new() | slug: "slug"}
+  describe "apply_operation/2 given :set_deployed_app_slug" do
+    test "updates deployed app slug" do
+      settings = %{Notebook.AppSettings.new() | slug: "new-slug"}
 
       data =
         data_after_operations!([
           {:set_app_settings, @cid, settings}
         ])
 
-      operation = {:add_app, @cid, "as1", self()}
+      operation = {:set_deployed_app_slug, @cid, "new-slug"}
 
-      assert {:ok, %{apps: [%{session_id: "as1", settings: ^settings}]}, []} =
-               Data.apply_operation(data, operation)
+      assert {:ok, %{deployed_app_slug: "new-slug"}, []} = Data.apply_operation(data, operation)
     end
   end
 
-  describe "apply_operation/2 given :set_app_status" do
-    test "returns an error given invalid app session id" do
-      data = Data.new()
-      operation = {:set_app_status, @cid, "as1", :running}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "updates status of the given app" do
-      data =
-        data_after_operations!([
-          {:add_app, @cid, "as1", self()},
-          {:add_app, @cid, "as2", self()}
-        ])
-
-      operation = {:set_app_status, @cid, "as2", :running}
-
-      assert {:ok, %{apps: [%{status: :running}, %{status: :booting}]}, []} =
-               Data.apply_operation(data, operation)
-    end
-  end
-
-  describe "apply_operation/2 given :set_app_registered" do
-    test "returns an error given invalid app session id" do
-      data = Data.new()
-      operation = {:set_app_registered, @cid, "as1", true}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "updates registration flag of the given app" do
-      data =
-        data_after_operations!([
-          {:add_app, @cid, "as1", self()},
-          {:add_app, @cid, "as2", self()}
-        ])
-
-      operation = {:set_app_registered, @cid, "as2", true}
-
-      assert {:ok, %{apps: [%{registered: true}, %{registered: false}]}, []} =
-               Data.apply_operation(data, operation)
-    end
-  end
-
-  describe "apply_operation/2 given :delete_app" do
-    test "returns an error given invalid app session id" do
-      data = Data.new()
-      operation = {:delete_app, @cid, "as1"}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "deletes app from the app list" do
-      data =
-        data_after_operations!([
-          {:add_app, @cid, "as1", self()},
-          {:add_app, @cid, "as2", self()}
-        ])
-
-      operation = {:delete_app, @cid, "as1"}
-
-      assert {:ok, %{apps: [%{session_id: "as2"}]}, []} = Data.apply_operation(data, operation)
-    end
-  end
-
-  describe "apply_operation/2 given :app_unregistered" do
+  describe "apply_operation/2 given :app_deactivate" do
     test "returns an error if not in app mode" do
       data = Data.new()
-      operation = {:app_unregistered, @cid}
+      operation = {:app_deactivate, @cid}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates app status" do
+      data = Data.new(mode: :app)
+
+      operation = {:app_deactivate, @cid}
+
+      assert {:ok, %{app_data: %{status: :deactivated}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :app_shutdown" do
+    test "returns an error if not in app mode" do
+      data = Data.new()
+      operation = {:app_shutdown, @cid}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3844,10 +3798,10 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup"])
         ])
 
-      operation = {:app_unregistered, @cid}
+      operation = {:app_shutdown, @cid}
 
-      assert {:ok, %{app_data: %{status: :shutting_down}},
-              [:app_broadcast_status, :app_terminate]} = Data.apply_operation(data, operation)
+      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_report_status, :app_terminate]} =
+               Data.apply_operation(data, operation)
     end
 
     test "does not return terminate action if there are clients" do
@@ -3858,51 +3812,15 @@ defmodule Livebook.Session.DataTest do
           {:client_join, @cid, User.new()}
         ])
 
-      operation = {:app_unregistered, @cid}
+      operation = {:app_shutdown, @cid}
 
-      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_broadcast_status]} =
-               Data.apply_operation(data, operation)
-    end
-  end
-
-  describe "apply_operation/2 given :app_stop" do
-    test "returns an error if not in app mode" do
-      data = Data.new()
-      operation = {:app_stop, @cid}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "returns an error if app is not registered" do
-      data = Data.new()
-      operation = {:app_unregistered, @cid}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
-    test "updates app status" do
-      data = Data.new(mode: :app)
-
-      operation = {:app_stop, @cid}
-
-      assert {:ok, %{app_data: %{status: :stopped}}, [:app_broadcast_status]} =
-               Data.apply_operation(data, operation)
-    end
-
-    test "returns :app_unregister action when registered" do
-      data =
-        data_after_operations!(Data.new(mode: :app), [
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"])
-        ])
-
-      operation = {:app_stop, @cid}
-
-      assert {:ok, %{app_data: %{status: :stopped}}, [:app_broadcast_status, :app_unregister]} =
+      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
   end
 
   describe "apply_operation/2 app status transitions" do
-    test "keeps status as :booting when an intermediate evaluation finishes" do
+    test "keeps status as :executing when an intermediate evaluation finishes" do
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
@@ -3915,7 +3833,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :booting}}, _actions} =
+      assert {:ok, %{app_data: %{status: :executing}}, _actions} =
                Data.apply_operation(data, operation)
     end
 
@@ -3933,11 +3851,11 @@ defmodule Livebook.Session.DataTest do
       operation =
         {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)}
 
-      assert {:ok, %{app_data: %{status: :error}}, [:app_broadcast_status]} =
+      assert {:ok, %{app_data: %{status: :error}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
-    test "changes status to :running when all evaluation finishes and returns register action" do
+    test "changes status to :executed when all evaluation finishes" do
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
@@ -3950,7 +3868,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :running}}, [:app_broadcast_status, :app_register]} =
+      assert {:ok, %{app_data: %{status: :executed}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3966,11 +3884,11 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:reflect_main_evaluation_failure, @cid}
 
-      assert {:ok, %{app_data: %{status: :error}}, [:app_broadcast_status, :app_recover]} =
+      assert {:ok, %{app_data: %{status: :error}}, [:app_report_status, :app_recover]} =
                Data.apply_operation(data, operation)
     end
 
-    test "changes status back to :running after recovery" do
+    test "changes status back to :executed after recovery" do
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
@@ -3985,7 +3903,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :running}}, [:app_broadcast_status]} =
+      assert {:ok, %{app_data: %{status: :executed}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3995,7 +3913,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:client_join, @cid, User.new()},
-          {:app_unregistered, @cid}
+          {:app_shutdown, @cid}
         ])
 
       operation = {:client_leave, @cid}
