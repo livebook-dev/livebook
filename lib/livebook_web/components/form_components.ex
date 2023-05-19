@@ -14,6 +14,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
   attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
@@ -22,7 +23,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <input
         type="text"
         name={@name}
@@ -44,6 +45,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :resizable, :boolean, default: false
 
@@ -53,7 +55,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <textarea
         id={@id || @name}
         name={@name}
@@ -91,6 +93,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
   attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
@@ -99,7 +102,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <.with_password_toggle id={@id <> "-toggle"}>
         <input
           type="password"
@@ -123,6 +126,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :randomize, JS, default: %JS{}
   attr :rest, :global
@@ -131,7 +135,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <div class="flex space-x-4 items-center">
         <div
           class="border-[3px] rounded-lg p-1 flex justify-center items-center"
@@ -168,11 +172,11 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :disabled, :boolean, default: false
   attr :checked_value, :string, default: "true"
   attr :unchecked_value, :string, default: "false"
-  attr :tooltip, :string, default: nil
 
   attr :rest, :global
 
@@ -182,12 +186,9 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
       <div class="flex items-center gap-1 sm:gap-3 justify-between">
-        <span
-          :if={@label}
-          class={["text-gray-700", @tooltip && "tooltip top"]}
-          data-tooltip={@tooltip}
-        >
+        <span :if={@label} class="text-gray-700 flex gap-1 items-center">
           <%= @label %>
+          <.help :if={@help} text={@help} />
         </span>
         <label class={[
           "relative inline-block w-14 h-7 select-none",
@@ -227,6 +228,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :checked_value, :string, default: "true"
   attr :unchecked_value, :string, default: "false"
@@ -249,7 +251,10 @@ defmodule LivebookWeb.FormComponents do
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <span :if={@label} class="text-gray-700"><%= @label %></span>
+        <span :if={@label} class="text-gray-700 flex gap-1 items-center">
+          <%= @label %>
+          <.help :if={@help} text={@help} />
+        </span>
       </label>
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
@@ -265,6 +270,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :options, :list, default: [], doc: "a list of `{value, description}` tuples"
 
@@ -275,7 +281,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
-      <.label :if={@label} for={@id}><%= @label %></.label>
+      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex gap-4 text-gray-600">
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
@@ -304,6 +310,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :options, :list, default: [], doc: "a list of `{value, description}` tuples"
   attr :full_width, :boolean, default: false
@@ -315,7 +322,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
-      <.label :if={@label} for={@id}><%= @label %></.label>
+      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex">
         <label
           :for={{value, description} <- @options}
@@ -352,6 +359,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :rest, :global
 
@@ -359,7 +367,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <div class="flex border bg-gray-50 rounded-lg space-x-4 items-center">
         <div id={"#{@id}-picker"} class="flex w-full" phx-hook="EmojiPicker">
           <div class="grow p-1 pl-3">
@@ -396,6 +404,7 @@ defmodule LivebookWeb.FormComponents do
   attr :value, :any
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
+  attr :help, :string, default: nil
 
   attr :options, :list, default: []
   attr :prompt, :string, default: nil
@@ -406,7 +415,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors}>
+    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <select id={@id} name={@name} class="input" {@rest}>
         <option :if={@prompt} value="" disabled selected><%= @prompt %></option>
         <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
@@ -440,12 +449,13 @@ defmodule LivebookWeb.FormComponents do
   attr :name, :any, required: true
   attr :label, :string, required: true
   attr :errors, :list, required: true
+  attr :help, :string, required: true
   slot :inner_block, required: true
 
   defp field_wrapper(assigns) do
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
-      <.label :if={@label} for={@id}><%= @label %></.label>
+      <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <%= render_slot(@inner_block) %>
       <.error :for={msg <- @errors}><%= msg %></.error>
     </div>
@@ -456,12 +466,14 @@ defmodule LivebookWeb.FormComponents do
   Renders a label.
   """
   attr :for, :string, default: nil
+  attr :help, :string, default: nil
   slot :inner_block, required: true
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="mb-1 block text-sm text-gray-800 font-medium">
+    <label for={@for} class="mb-1 block text-sm text-gray-800 font-medium flex items-center gap-1">
       <%= render_slot(@inner_block) %>
+      <.help :if={@help} text={@help} />
     </label>
     """
   end
@@ -476,6 +488,14 @@ defmodule LivebookWeb.FormComponents do
     <p class="mt-0.5 text-red-600 text-sm hidden phx-form-error:block">
       <%= render_slot(@inner_block) %>
     </p>
+    """
+  end
+
+  defp help(assigns) do
+    ~H"""
+    <span class="cursor-pointer tooltip top" data-tooltip={@text}>
+      <.remix_icon icon="question-line" class="text-sm leading-none" />
+    </span>
     """
   end
 

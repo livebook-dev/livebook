@@ -430,6 +430,21 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :app_settings}
+      id="app-settings-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.AppSettingsComponent}
+        id="app-settings"
+        session={@session}
+        settings={@data_view.app_settings}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -529,7 +544,7 @@ defmodule LivebookWeb.SessionLive do
       ) %>
     </.modal>
 
-    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:medium} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.SecretsComponent}
         id="secrets"
@@ -1230,6 +1245,31 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("disconnect_runtime", %{}, socket) do
     Session.disconnect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
+  end
+
+  def handle_event("deploy_app", %{}, socket) do
+    on_confirm = fn socket ->
+      Livebook.Session.deploy_app(socket.assigns.session.pid)
+      socket
+    end
+
+    data = socket.private.data
+    slug = data.notebook.app_settings.slug
+    slug_taken? = slug != data.deployed_app_slug and Livebook.Apps.exists?(slug)
+
+    socket =
+      if slug_taken? do
+        confirm(socket, on_confirm,
+          title: "Deploy app",
+          description:
+            "An app with this slug already exists, do you want to deploy a new version?",
+          confirm_text: "Replace"
+        )
+      else
+        on_confirm.(socket)
+      end
+
     {:noreply, socket}
   end
 

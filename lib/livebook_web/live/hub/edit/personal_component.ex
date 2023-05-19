@@ -143,7 +143,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
         :if={@live_action in [:new_secret, :edit_secret]}
         id="secrets-modal"
         show
-        width={:big}
+        width={:medium}
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component
