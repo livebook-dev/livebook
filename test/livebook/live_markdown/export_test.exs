@@ -1151,8 +1151,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | slug: "app",
               multi_session: true,
               zero_downtime: false,
-              auto_session_startup: true,
-              auto_shutdown_type: :inactive_1h,
+              show_existing_sessions: false,
+              auto_shutdown_ms: 5_000,
               access_type: :public,
               show_source: true,
               output_type: :rich
@@ -1160,7 +1160,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       }
 
       expected_document = """
-      <!-- livebook:{"app_settings":{"access_type":"public","auto_session_startup":true,"auto_shutdown_type":"inactive_1h","multi_session":true,"output_type":"rich","show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","auto_shutdown_ms":5000,"multi_session":true,"output_type":"rich","show_existing_sessions":false,"show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """

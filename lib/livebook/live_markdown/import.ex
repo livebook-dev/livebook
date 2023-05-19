@@ -410,12 +410,11 @@ defmodule Livebook.LiveMarkdown.Import do
       {"zero_downtime", zero_downtime}, attrs ->
         Map.put(attrs, :zero_downtime, zero_downtime)
 
-      {"auto_session_startup", auto_session_startup}, attrs ->
-        Map.put(attrs, :auto_session_startup, auto_session_startup)
+      {"show_existing_sessions", show_existing_sessions}, attrs ->
+        Map.put(attrs, :show_existing_sessions, show_existing_sessions)
 
-      {"auto_shutdown_type", auto_shutdown_type}, attrs
-      when auto_shutdown_type in ~w(never inactive_5s inactive_1m inactive_1h new_version) ->
-        Map.put(attrs, :auto_shutdown_type, String.to_atom(auto_shutdown_type))
+      {"auto_shutdown_ms", auto_shutdown_ms}, attrs ->
+        Map.put(attrs, :auto_shutdown_ms, auto_shutdown_ms)
 
       {"access_type", access_type}, attrs when access_type in ["public", "protected"] ->
         Map.put(attrs, :access_type, String.to_atom(access_type))

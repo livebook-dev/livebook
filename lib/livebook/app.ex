@@ -13,7 +13,7 @@ defmodule Livebook.App do
   # always taken from the most recently deployed notebook (e.g. access
   # type, automatic shutdown, deployment strategy).
 
-  defstruct [:slug, :pid, :version, :notebook_name, :public?, :sessions]
+  defstruct [:slug, :pid, :version, :notebook_name, :public?, :multi_session, :sessions]
 
   @type t :: %{
           slug: slug(),
@@ -21,6 +21,7 @@ defmodule Livebook.App do
           version: pos_integer(),
           notebook_name: String.t(),
           public?: boolean(),
+          multi_session: boolean(),
           sessions: list(app_session())
         }
 
@@ -38,8 +39,6 @@ defmodule Livebook.App do
 
   use GenServer, restart: :temporary
 
-  @auto_shutdown_inactivity_ms %{inactive_5s: 5_000, inactive_1m: 60_000, inactive_1h: 3600_000}
-
   @doc """
   Starts an apps process.
 
@@ -47,21 +46,12 @@ defmodule Livebook.App do
 
     * `:notebook` (required) - the notebook for initial deployment
 
-    * `:auto_shutdown_inactivity_ms` - mapping from
-      `t:Livebook.Notebook.AppSettings.auto_shutdown_type/0` to the
-      number of inactivity milliseconds after which automatic shutdown
-      should be triggered. This can be used in tests to artificially
-      shorten reaction time
-
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
     notebook = Keyword.fetch!(opts, :notebook)
 
-    auto_shutdown_inactivity_ms =
-      Keyword.get(opts, :auto_shutdown_inactivity_ms, @auto_shutdown_inactivity_ms)
-
-    GenServer.start_link(__MODULE__, {notebook, auto_shutdown_inactivity_ms})
+    GenServer.start_link(__MODULE__, {notebook})
   end
 
   @doc """
@@ -146,15 +136,13 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def init({notebook, auto_shutdown_inactivity_ms}) do
+  def init({notebook}) do
     {:ok,
      %{
        version: 1,
        notebook: notebook,
        sessions: [],
-       users: %{},
-       auto_shutdown_inactivity_ms: auto_shutdown_inactivity_ms,
-       inactivities: %{}
+       users: %{}
      }
      |> start_eagerly()}
   end
@@ -194,7 +182,6 @@ defmodule Livebook.App do
     {:noreply,
      %{state | notebook: notebook, version: state.version + 1}
      |> start_eagerly()
-     |> reschedule_shutdowns()
      |> shutdown_old_versions()
      |> notify_update()}
   end
@@ -206,24 +193,13 @@ defmodule Livebook.App do
   end
 
   def handle_info({:app_client_count_changed, session_id, client_count}, state) do
-    any_clients? = client_count > 0
-
-    state =
-      if any_clients? do
-        untrack_inactivity(state, session_id)
-      else
-        track_inactivity(state, session_id)
-      end
-
     state = update_app_session(state, session_id, &%{&1 | client_count: client_count})
-
     {:noreply, notify_update(state)}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     app_session = Enum.find(state.sessions, &(&1.pid == pid))
     state = update_in(state.sessions, &(&1 -- [app_session]))
-    state = untrack_inactivity(state, app_session.id)
 
     state =
       if user_id = app_session.started_by_id do
@@ -233,12 +209,6 @@ defmodule Livebook.App do
       end
 
     {:noreply, notify_update(state)}
-  end
-
-  def handle_info({:inactive_timeout, session_id}, state) do
-    app_session = Enum.find(state.sessions, &(&1.id == session_id))
-    shutdown_session(app_session)
-    {:noreply, state}
   end
 
   def handle_info({:user_change, user}, state) do
@@ -253,6 +223,7 @@ defmodule Livebook.App do
       version: state.version,
       notebook_name: state.notebook.name,
       public?: state.notebook.app_settings.access_type == :public,
+      multi_session: state.notebook.app_settings.multi_session,
       sessions:
         for session <- state.sessions do
           {started_by_id, session} = Map.pop!(session, :started_by_id)
@@ -284,7 +255,12 @@ defmodule Livebook.App do
   end
 
   defp start_app_session(state, user \\ nil) do
-    opts = [notebook: state.notebook, mode: :app, app_pid: self()]
+    opts = [
+      notebook: state.notebook,
+      mode: :app,
+      app_pid: self(),
+      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms
+    ]
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
@@ -301,7 +277,6 @@ defmodule Livebook.App do
         Process.monitor(session.pid)
 
         state = update_in(state.sessions, &[app_session | &1])
-        state = track_inactivity(state, app_session.id)
 
         state =
           if user do
@@ -326,65 +301,10 @@ defmodule Livebook.App do
     end)
   end
 
-  defp track_inactivity(state, session_id) do
-    timer_ref =
-      if timer_ms = shutdown_after_ms(state) do
-        Process.send_after(self(), {:inactive_timeout, session_id}, timer_ms)
-      end
+  defp temporary_sessions?(app_settings), do: app_settings.auto_shutdown_ms != nil
 
-    put_in(state.inactivities[session_id], %{since: DateTime.utc_now(), timer_ref: timer_ref})
-  end
-
-  defp untrack_inactivity(state, session_id) do
-    {inactivity, state} = pop_in(state.inactivities[session_id])
-
-    if timer_ref = inactivity[:timer_ref] do
-      Process.cancel_timer(timer_ref)
-    end
-
-    state
-  end
-
-  defp shutdown_after_ms(state) do
-    state.auto_shutdown_inactivity_ms[state.notebook.app_settings.auto_shutdown_type]
-  end
-
-  defp temporary_sessions?(app_settings) do
-    app_settings.auto_shutdown_type in [:inactive_5s, :inactive_1m, :inactive_1h]
-  end
-
-  defp reschedule_shutdowns(state) do
-    now = DateTime.utc_now()
-
-    timer_ms = shutdown_after_ms(state)
-
-    inactivities =
-      Map.new(state.inactivities, fn {session_id, inactivity} ->
-        if timer_ref = inactivity.timer_ref do
-          Process.cancel_timer(timer_ref)
-        end
-
-        timer_ref =
-          if timer_ms do
-            inactivity_ms = DateTime.diff(now, inactivity.since, :millisecond)
-            adjusted_timer_ms = max(timer_ms - inactivity_ms, 0)
-            Process.send_after(self(), {:inactive_timeout, session_id}, adjusted_timer_ms)
-          end
-
-        inactivity = put_in(inactivity.timer_ref, timer_ref)
-
-        {session_id, inactivity}
-      end)
-
-    %{state | inactivities: inactivities}
-  end
-
-  defp shutdown_old_versions(state)
-       when state.notebook.app_settings.auto_shutdown_type == :new_version do
-    single_session_app_session =
-      unless state.notebook.app_settings.multi_session do
-        single_session_app_session(state)
-      end
+  defp shutdown_old_versions(state) when not state.notebook.app_settings.multi_session do
+    single_session_app_session = single_session_app_session(state)
 
     for app_session <- state.sessions,
         app_session != single_session_app_session,

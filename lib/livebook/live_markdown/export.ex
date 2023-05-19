@@ -90,8 +90,8 @@ defmodule Livebook.LiveMarkdown.Export do
       :slug,
       :multi_session,
       :zero_downtime,
-      :auto_session_startup,
-      :auto_shutdown_type,
+      :show_existing_sessions,
+      :auto_shutdown_ms,
       :access_type,
       :show_source,
       :output_type

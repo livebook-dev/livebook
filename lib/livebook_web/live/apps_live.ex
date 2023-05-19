@@ -36,7 +36,7 @@ defmodule LivebookWeb.AppsLive do
     """
   end
 
-  defp app_list(%{app: []} = assigns) do
+  defp app_list(%{apps: []} = assigns) do
     ~H"""
     <.no_entries>
       You do not have any apps running. <br />
@@ -72,6 +72,11 @@ defmodule LivebookWeb.AppsLive do
                 v<%= app.version %>
               </.labeled_text>
             </div>
+            <div class="flex-1">
+              <.labeled_text label="Session type" one_line>
+                <%= if(app.multi_session, do: "Multi", else: "Single") %>
+              </.labeled_text>
+            </div>
           </div>
           <div class="flex flex-col md:flex-row md:items-center gap-2">
             <span class="tooltip top" data-tooltip="Terminate">
@@ -85,77 +90,79 @@ defmodule LivebookWeb.AppsLive do
             </span>
           </div>
         </div>
-        <div class="my-2 text-gray-600 font-medium text-sm">
-          App sessions
-        </div>
-        <.table rows={app.sessions}>
-          <:col :let={app_session} label="Status">
-            <a
-              aria-label="debug app"
-              href={app_session.app_status == :error && ~p"/sessions/#{app_session.id}"}
-              target="_blank"
-            >
-              <.app_status status={app_session.app_status} />
-            </a>
-          </:col>
-          <:col :let={app_session} label="Uptime">
-            <%= format_datetime_relatively(app_session.created_at) %>
-          </:col>
-          <:col :let={app_session} label="Version" align={:center}>
-            v<%= app_session.version %>
-          </:col>
-          <:col :let={app_session} label="Clients" align={:center}>
-            <%= app_session.client_count %>
-          </:col>
-          <:actions :let={app_session}>
-            <span class="tooltip left" data-tooltip="Open">
+        <div class="ml-4">
+          <div class="my-2 text-gray-600 font-medium text-sm">
+            App sessions
+          </div>
+          <.table rows={app.sessions}>
+            <:col :let={app_session} label="Status">
               <a
-                class={[
-                  "icon-button",
-                  not Livebook.Session.Data.app_active?(app_session.app_status) && "disabled"
-                ]}
-                aria-label="open app"
-                href={~p"/apps/#{app.slug}/#{app_session.id}"}
+                aria-label="debug app"
+                href={app_session.app_status == :error && ~p"/sessions/#{app_session.id}"}
+                target="_blank"
               >
-                <.remix_icon icon="link" class="text-lg" />
+                <.app_status status={app_session.app_status} />
               </a>
-            </span>
-            <span class="tooltip left" data-tooltip="Debug">
-              <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
-                <.remix_icon icon="terminal-line" class="text-lg" />
-              </a>
-            </span>
-            <%= if Livebook.Session.Data.app_active?(app_session.app_status) do %>
-              <span class="tooltip left" data-tooltip="Deactivate">
-                <button
-                  class="icon-button"
-                  aria-label="deactivate app session"
-                  phx-click={
-                    JS.push("deactivate_app_session",
-                      value: %{slug: app.slug, session_id: app_session.id}
-                    )
-                  }
+            </:col>
+            <:col :let={app_session} label="Uptime">
+              <%= format_datetime_relatively(app_session.created_at) %>
+            </:col>
+            <:col :let={app_session} label="Version" align={:center}>
+              v<%= app_session.version %>
+            </:col>
+            <:col :let={app_session} label="Clients" align={:center}>
+              <%= app_session.client_count %>
+            </:col>
+            <:actions :let={app_session}>
+              <span class="tooltip left" data-tooltip="Open">
+                <a
+                  class={[
+                    "icon-button",
+                    not Livebook.Session.Data.app_active?(app_session.app_status) && "disabled"
+                  ]}
+                  aria-label="open app"
+                  href={~p"/apps/#{app.slug}/#{app_session.id}"}
                 >
-                  <.remix_icon icon="stop-circle-line" class="text-lg" />
-                </button>
+                  <.remix_icon icon="link" class="text-lg" />
+                </a>
               </span>
-            <% else %>
-              <span class="tooltip left" data-tooltip="Terminate">
-                <button
-                  class="icon-button"
-                  aria-label="terminate app session"
-                  phx-click={
-                    JS.push("terminate_app_session",
-                      value: %{slug: app.slug, session_id: app_session.id}
-                    )
-                  }
-                >
-                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                </button>
+              <span class="tooltip left" data-tooltip="Debug">
+                <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
+                  <.remix_icon icon="terminal-line" class="text-lg" />
+                </a>
               </span>
-            <% end %>
-          </:actions>
-        </.table>
+              <%= if Livebook.Session.Data.app_active?(app_session.app_status) do %>
+                <span class="tooltip left" data-tooltip="Deactivate">
+                  <button
+                    class="icon-button"
+                    aria-label="deactivate app session"
+                    phx-click={
+                      JS.push("deactivate_app_session",
+                        value: %{slug: app.slug, session_id: app_session.id}
+                      )
+                    }
+                  >
+                    <.remix_icon icon="stop-circle-line" class="text-lg" />
+                  </button>
+                </span>
+              <% else %>
+                <span class="tooltip left" data-tooltip="Terminate">
+                  <button
+                    class="icon-button"
+                    aria-label="terminate app session"
+                    phx-click={
+                      JS.push("terminate_app_session",
+                        value: %{slug: app.slug, session_id: app_session.id}
+                      )
+                    }
+                  >
+                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                  </button>
+                </span>
+              <% end %>
+            </:actions>
+          </.table>
+        </div>
       </div>
     </div>
     """

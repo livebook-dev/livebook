@@ -148,6 +148,9 @@ defmodule Livebook.Session do
 
     * `:app_pid` - the parent app process, when in running in `:app` mode
 
+    * `:auto_shutdown_ms` - the inactivity period (no clients) after which
+      the session should close automatically
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -702,6 +705,7 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+      state = schedule_auto_shutdown(state)
 
       if file = state.data.file do
         Livebook.NotebookManager.add_recent_notebook(file, state.data.notebook.name)
@@ -740,7 +744,9 @@ defmodule Livebook.Session do
         registered_files: %{},
         client_id_with_assets: %{},
         deployed_app_monitor_ref: nil,
-        app_pid: opts[:app_pid]
+        app_pid: opts[:app_pid],
+        auto_shutdown_ms: opts[:auto_shutdown_ms],
+        auto_shutdown_timer_ref: nil
       }
 
       {:ok, state}
@@ -795,6 +801,28 @@ defmodule Livebook.Session do
     end
 
     %{state | autosave_timer_ref: nil}
+  end
+
+  defp schedule_auto_shutdown(state) do
+    client_count = map_size(state.data.clients_map)
+
+    case {client_count, state.auto_shutdown_timer_ref, state.auto_shutdown_ms} do
+      {0, nil, auto_shutdown_ms} when auto_shutdown_ms != nil ->
+        timer_ref = Process.send_after(self(), :close, auto_shutdown_ms)
+        %{state | auto_shutdown_timer_ref: timer_ref}
+
+      {client_count, timer_ref, _} when client_count > 0 and timer_ref != nil ->
+        if Process.cancel_timer(timer_ref) == false do
+          receive do
+            :close -> :ok
+          end
+        end
+
+        %{state | auto_shutdown_timer_ref: nil}
+
+      _ ->
+        state
+    end
   end
 
   @impl true
@@ -1773,7 +1801,7 @@ defmodule Livebook.Session do
 
     app_report_client_count_change(state)
 
-    state
+    schedule_auto_shutdown(state)
   end
 
   defp after_operation(state, prev_state, {:client_leave, client_id}) do
@@ -1788,7 +1816,7 @@ defmodule Livebook.Session do
 
     app_report_client_count_change(state)
 
-    state
+    schedule_auto_shutdown(state)
   end
 
   defp after_operation(state, _prev_state, {:delete_cell, _client_id, cell_id}) do

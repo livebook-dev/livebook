@@ -90,26 +90,27 @@ defmodule LivebookWeb.AppLiveTest do
       App.close(app_pid)
     end
 
-    test "redirects to a new session page if automatic session startup is enabled", %{conn: conn} do
+    test "does not list existing session if configured not to", %{conn: conn} do
       slug = Utils.random_short_id()
 
       app_settings = %{
         Notebook.AppSettings.new()
         | slug: slug,
           multi_session: true,
-          auto_session_startup: true
+          show_existing_sessions: false
       }
 
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
+
       {:ok, app_pid} = Apps.deploy(notebook)
+      session_id = App.get_session_id(app_pid)
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: ^session_id}]}}
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: []}}
+      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
 
-      {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/apps/#{slug}")
-      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
-      assert to == ~p"/apps/#{slug}/#{session_id}"
+      refute render(view) =~ session_id
 
       App.close(app_pid)
     end

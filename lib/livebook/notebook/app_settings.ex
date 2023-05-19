@@ -9,15 +9,14 @@ defmodule Livebook.Notebook.AppSettings do
           slug: String.t() | nil,
           multi_session: boolean(),
           zero_downtime: boolean(),
-          auto_session_startup: boolean(),
-          auto_shutdown_type: auto_shutdown_type(),
+          show_existing_sessions: boolean(),
+          auto_shutdown_ms: pos_integer() | nil,
           access_type: access_type(),
           password: String.t() | nil,
           show_source: boolean(),
           output_type: output_type()
         }
 
-  @type auto_shutdown_type :: :never | :inactive_5s | :inactive_1m | :inactive_1h | :new_version
   @type access_type :: :public | :protected
   @type output_type :: :all | :rich
 
@@ -26,11 +25,8 @@ defmodule Livebook.Notebook.AppSettings do
     field :slug, :string
     field :multi_session, :boolean
     field :zero_downtime, :boolean
-    field :auto_session_startup, :boolean
-
-    field :auto_shutdown_type, Ecto.Enum,
-      values: [:never, :inactive_5s, :inactive_1m, :inactive_1h, :new_version]
-
+    field :show_existing_sessions, :boolean
+    field :auto_shutdown_ms, :integer
     field :access_type, Ecto.Enum, values: [:public, :protected]
     field :password, :string
     field :show_source, :boolean
@@ -46,8 +42,8 @@ defmodule Livebook.Notebook.AppSettings do
       slug: nil,
       multi_session: false,
       zero_downtime: false,
-      auto_session_startup: false,
-      auto_shutdown_type: :new_version,
+      show_existing_sessions: true,
+      auto_shutdown_ms: nil,
       access_type: :protected,
       password: generate_password(),
       show_source: false,
@@ -81,7 +77,7 @@ defmodule Livebook.Notebook.AppSettings do
     |> cast(attrs, [
       :slug,
       :multi_session,
-      :auto_shutdown_type,
+      :auto_shutdown_ms,
       :access_type,
       :show_source,
       :output_type
@@ -89,7 +85,6 @@ defmodule Livebook.Notebook.AppSettings do
     |> validate_required([
       :slug,
       :multi_session,
-      :auto_shutdown_type,
       :access_type,
       :show_source,
       :output_type
@@ -121,15 +116,14 @@ defmodule Livebook.Notebook.AppSettings do
         changeset
         |> cast(attrs, [:zero_downtime])
         |> validate_required([:zero_downtime])
-        # Automatic startup is not applicable to single-session apps,
-        # since they have a single session and it is always started
-        # automatically
-        |> put_change(:auto_session_startup, false)
+        # Listing sessions is not applicable to single-session apps,
+        # since they have a single session at a time
+        |> put_change(:show_existing_sessions, true)
 
       true ->
         changeset
-        |> cast(attrs, [:auto_session_startup])
-        |> validate_required([:auto_session_startup])
+        |> cast(attrs, [:show_existing_sessions])
+        |> validate_required([:show_existing_sessions])
         # Zero-downtime deployment is not applicable to multi-session
         # apps, since they are inherently zero-downtime. We reset to
         # the default, so we do not persist it unnecessarily
@@ -144,11 +138,11 @@ defmodule Livebook.Notebook.AppSettings do
 
       false ->
         changeset
-        |> put_change(:auto_shutdown_type, :new_version)
+        |> put_change(:auto_shutdown_ms, nil)
 
       true ->
         changeset
-        |> put_change(:auto_shutdown_type, :inactive_5s)
+        |> put_change(:auto_shutdown_ms, 5_000)
     end
   end
 

@@ -56,6 +56,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             <.labeled_text label="Version" one_line>
               v<%= @app.version %>
             </.labeled_text>
+            <.labeled_text label="Session type" one_line>
+              <%= if(@app.multi_session, do: "Multi", else: "Single") %>
+            </.labeled_text>
           </div>
           <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
             <div class="grow" />
@@ -228,25 +231,25 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         />
         <.radio_button_group_field
           field={f[:multi_session]}
-          options={[{"false", "Single-session"}, {"true", "Multi-session"}]}
+          options={[{"false", "Single"}, {"true", "Multi"}]}
+          label="Session type"
           full_width
         />
         <.select_field
-          field={f[:auto_shutdown_type]}
-          label="Auto shutdown"
+          field={f[:auto_shutdown_ms]}
+          label="Shutdown after inactivity"
           options={[
-            {"Never", "never"},
-            {"No users", "inactive_5s"},
-            {"No users for 1 minute", "inactive_1m"},
-            {"No users for 1 hour", "inactive_1h"},
-            {"New version", "new_version"}
+            {"Never", ""},
+            {"5 seconds", "5000"},
+            {"1 minute", "60000"},
+            {"1 hour", "3600000"}
           ]}
         />
         <%= unless Ecto.Changeset.get_field(@changeset, :multi_session) do %>
           <.checkbox_field field={f[:zero_downtime]} label="Zero-downtime deployment" />
         <% end %>
         <%= if Ecto.Changeset.get_field(@changeset, :multi_session) do %>
-          <.checkbox_field field={f[:auto_session_startup]} label="Start sessions automatically" />
+          <.checkbox_field field={f[:show_existing_sessions]} label="List existing sessions" />
         <% end %>
         <div class="flex flex-col space-y-1">
           <.checkbox_field
@@ -260,10 +263,11 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <% end %>
         </div>
         <.checkbox_field field={f[:show_source]} label="Show source" />
-        <.radio_field
+        <.checkbox_field
           field={f[:output_type]}
-          label="Output type"
-          options={[{"all", "All"}, {"rich", "Rich only"}]}
+          label="Only render rich outputs"
+          checked_value="rich"
+          unchecked_value="all"
         />
       </div>
       <div class="mt-6 flex space-x-2">

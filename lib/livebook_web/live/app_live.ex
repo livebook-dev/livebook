@@ -5,8 +5,7 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do
-    if socket.assigns.app_settings.multi_session and
-         not socket.assigns.app_settings.auto_session_startup do
+    if socket.assigns.app_settings.multi_session do
       {:ok, app} = Livebook.Apps.fetch_app(slug)
 
       if connected?(socket) do
@@ -56,7 +55,11 @@ defmodule LivebookWeb.AppLive do
           App sessions
         </h3>
         <p class="text-gray-700">
-          This is a multi-session app, pick an existing session or create a new one.
+          <%= if @app_settings.show_existing_sessions do %>
+            This is a multi-session app, pick an existing session or create a new one.
+          <% else %>
+            This is a multi-session app, create a new one to get started.
+          <% end %>
         </p>
         <div class="flex justify-end">
           <button class="button-base button-outlined-blue" phx-click="new_session">
@@ -64,7 +67,7 @@ defmodule LivebookWeb.AppLive do
             <span>New session</span>
           </button>
         </div>
-        <div class="w-full flex flex-col space-y-4">
+        <div :if={@app_settings.show_existing_sessions} class="w-full flex flex-col space-y-4">
           <.link
             :for={app_session <- active_sessions(@app.sessions)}
             navigate={~p"/apps/#{@app.slug}/#{app_session.id}"}
