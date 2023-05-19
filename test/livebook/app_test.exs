@@ -175,6 +175,30 @@ defmodule Livebook.AppTest do
 
       assert %{sessions: [%{id: ^session_id2}, %{id: ^session_id1}]} = App.get_by_pid(app_pid)
     end
+
+    test "adds optional user information in multi-session mode" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      app_pid = start_app(notebook)
+
+      assert %{sessions: []} = App.get_by_pid(app_pid)
+
+      user = %{Livebook.Users.User.new() | name: "Jake Peralta"}
+      session_id = App.get_session_id(app_pid, user: user)
+
+      assert %{sessions: [%{id: ^session_id, started_by: ^user}]} = App.get_by_pid(app_pid)
+
+      # Tracks user updates
+
+      App.subscribe(slug)
+
+      user = %{user | name: "Jake"}
+      Livebook.Users.update_user(user)
+
+      assert_receive {:app_updated, %{sessions: [%{id: ^session_id, started_by: ^user}]}}
+    end
   end
 
   describe "automatic shutdown" do
@@ -254,7 +278,7 @@ defmodule Livebook.AppTest do
       App.deploy(app_pid, notebook)
 
       # It's been 50ms of inactivity, so the session should be closed right away
-      assert_receive {:app_updated, %{sessions: []}}, 10
+      assert_receive {:app_updated, %{sessions: []}}, 20
     end
   end
 

@@ -16,7 +16,7 @@ defmodule LivebookWeb.AppLive do
       {:ok, assign(socket, app: app)}
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
-      session_id = Livebook.App.get_session_id(pid)
+      session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
       {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/#{session_id}")}
     end
   end
@@ -70,8 +70,13 @@ defmodule LivebookWeb.AppLive do
             navigate={~p"/apps/#{@app.slug}/#{app_session.id}"}
             class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
           >
-            <span class="font-semibold">
-              Started <%= format_datetime_relatively(app_session.created_at) %> ago
+            <span>
+              Started
+              <span :if={app_session.started_by}>
+                by
+                <span class="font-semibold"><%= app_session.started_by.name || "Anonymous" %></span>
+              </span>
+              <%= format_datetime_relatively(app_session.created_at) %> ago
             </span>
             <div class="mr-0.5 flex">
               <.app_status status={app_session.app_status} show_label={false} />
@@ -87,7 +92,9 @@ defmodule LivebookWeb.AppLive do
 
   @impl true
   def handle_event("new_session", %{}, socket) do
-    session_id = Livebook.App.get_session_id(socket.assigns.app.pid)
+    session_id =
+      Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
+
     {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/#{session_id}")}
   end
 

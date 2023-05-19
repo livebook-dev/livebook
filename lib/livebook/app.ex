@@ -32,7 +32,8 @@ defmodule Livebook.App do
           version: pos_integer(),
           created_at: DateTime.t(),
           app_status: Livebook.Session.Data.app_status(),
-          client_count: non_neg_integer()
+          client_count: non_neg_integer(),
+          started_by: Livebook.Users.User.t() | nil
         }
 
   use GenServer, restart: :temporary
@@ -91,10 +92,19 @@ defmodule Livebook.App do
   exists, otherwise creating a new one. If zero-downtime deployment
   is enabled, an old session may be returned unless the new session
   is fully executed.
+
+  ## Options
+
+    * `:user` - the user requesting the session. In multi-session app,
+      we track who starts each session
+
   """
-  @spec get_session_id(pid()) :: Livebook.Session.id()
-  def get_session_id(pid) do
-    GenServer.call(pid, :get_session_id)
+  @spec get_session_id(pid(), keyword()) :: Livebook.Session.id()
+  def get_session_id(pid, opts \\ []) do
+    opts = Keyword.validate!(opts, [:user])
+    user = opts[:user]
+
+    GenServer.call(pid, {:get_session_id, user})
   end
 
   @doc """
@@ -142,6 +152,7 @@ defmodule Livebook.App do
        version: 1,
        notebook: notebook,
        sessions: [],
+       users: %{},
        auto_shutdown_inactivity_ms: auto_shutdown_inactivity_ms,
        inactivities: %{}
      }
@@ -153,21 +164,16 @@ defmodule Livebook.App do
     {:reply, self_from_state(state), state}
   end
 
-  def handle_call(:get_session_id, _from, state) do
+  def handle_call({:get_session_id, user}, _from, state) do
     {session_id, state} =
       case {state.notebook.app_settings.multi_session, single_session_app_session(state)} do
         {false, %{} = app_session} ->
           {app_session.id, state}
 
-        _ ->
-          {:ok, app_session} = start_app_session(state)
-
-          state =
-            state
-            |> add_app_session(app_session)
-            |> notify_update()
-
-          {app_session.id, state}
+        {multi_session, _} ->
+          user = if(multi_session, do: user)
+          {:ok, state, app_session} = start_app_session(state, user)
+          {app_session.id, notify_update(state)}
       end
 
     {:reply, session_id, state}
@@ -218,6 +224,14 @@ defmodule Livebook.App do
     app_session = Enum.find(state.sessions, &(&1.pid == pid))
     state = update_in(state.sessions, &(&1 -- [app_session]))
     state = untrack_inactivity(state, app_session.id)
+
+    state =
+      if user_id = app_session.started_by_id do
+        untrack_user(state, user_id)
+      else
+        state
+      end
+
     {:noreply, notify_update(state)}
   end
 
@@ -227,6 +241,11 @@ defmodule Livebook.App do
     {:noreply, state}
   end
 
+  def handle_info({:user_change, user}, state) do
+    state = put_in(state.users[user.id].user, user)
+    {:noreply, notify_update(state)}
+  end
+
   defp self_from_state(state) do
     %{
       slug: state.notebook.app_settings.slug,
@@ -234,7 +253,12 @@ defmodule Livebook.App do
       version: state.version,
       notebook_name: state.notebook.name,
       public?: state.notebook.app_settings.access_type == :public,
-      sessions: state.sessions
+      sessions:
+        for session <- state.sessions do
+          {started_by_id, session} = Map.pop!(session, :started_by_id)
+          started_by = started_by_id && state.users[started_by_id].user
+          Map.put(session, :started_by, started_by)
+        end
     }
   end
 
@@ -254,12 +278,12 @@ defmodule Livebook.App do
     if temporary_sessions?(state.notebook.app_settings) do
       state
     else
-      {:ok, app_session} = start_app_session(state)
-      add_app_session(state, app_session)
+      {:ok, state, _app_session} = start_app_session(state)
+      state
     end
   end
 
-  defp start_app_session(state) do
+  defp start_app_session(state, user \\ nil) do
     opts = [notebook: state.notebook, mode: :app, app_pid: self()]
 
     case Livebook.Sessions.create_session(opts) do
@@ -270,21 +294,27 @@ defmodule Livebook.App do
           version: state.version,
           created_at: session.created_at,
           app_status: :executing,
-          client_count: 0
+          client_count: 0,
+          started_by_id: user && user.id
         }
 
         Process.monitor(session.pid)
 
-        {:ok, app_session}
+        state = update_in(state.sessions, &[app_session | &1])
+        state = track_inactivity(state, app_session.id)
+
+        state =
+          if user do
+            track_user(state, user)
+          else
+            state
+          end
+
+        {:ok, state, app_session}
 
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  defp add_app_session(state, app_session) do
-    state = update_in(state.sessions, &[app_session | &1])
-    track_inactivity(state, app_session.id)
   end
 
   defp update_app_session(state, session_id, fun) do
@@ -382,5 +412,24 @@ defmodule Livebook.App do
 
   defp broadcast_message(slug, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{slug}", message)
+  end
+
+  defp track_user(state, user) do
+    if Map.has_key?(state.users, user.id) do
+      update_in(state.users[user.id].count, &(&1 + 1))
+    else
+      Livebook.Users.subscribe(user.id)
+      put_in(state.users[user.id], %{user: user, count: 1})
+    end
+  end
+
+  defp untrack_user(state, user_id) do
+    if state.users[user_id] == 1 do
+      {_, state} = pop_in(state.users[user_id])
+      Livebook.Users.unsubscribe(user_id)
+      state
+    else
+      update_in(state.users[user_id].count, &(&1 - 1))
+    end
   end
 end
