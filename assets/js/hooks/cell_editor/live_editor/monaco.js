@@ -1,7 +1,7 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/commands";
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
-import ErlangMonarchLanguage from './erlang';
+import ErlangMonarchLanguage from "./erlang";
 import { theme, lightTheme } from "./theme";
 
 import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
