@@ -955,7 +955,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
   describe "erlang evaluation" do
     test "evaluate erlang code", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, "erlang", "X = lists:seq(1, 3), X.", :code_1, [])
-      assert_receive {:runtime_evaluation_response, :code_1, {:ok, [1,2,3]}, metadata()}
+      assert_receive {:runtime_evaluation_response, :code_1, {:ok, [1, 2, 3]}, metadata()}
     end
 
     test "mixed erlang/elixir bindings", %{evaluator: evaluator} do
