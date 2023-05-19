@@ -8,7 +8,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
   on_mount LivebookWeb.SidebarHook
 
-  @check_completion_data_internal Application.compile_env(
+  @check_completion_data_interval Application.compile_env(
                                     :livebook,
                                     :teams_completion_data_interval,
                                     3000
