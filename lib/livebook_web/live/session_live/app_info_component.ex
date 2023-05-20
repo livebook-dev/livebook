@@ -44,7 +44,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </div>
         <%= if @app do %>
           <h3 class="mt-10 uppercase text-sm font-semibold text-gray-500">
-            Deployment
+            Latest deployment
           </h3>
           <div class="mt-2 border border-gray-200 rounded-lg">
             <div class="p-4 flex flex-col space-y-3">
@@ -73,9 +73,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </span>
             </div>
           </div>
-          <div class="mt-2 text-gray-600 font-medium text-sm">
-            App sessions
-          </div>
+          <h3 class="mt-10 uppercase text-sm font-semibold text-gray-500">
+            Running sessions
+          </h3>
           <div class="mt-2 flex flex-col space-y-4">
             <div :for={app_session <- @app.sessions} class="border border-gray-200 rounded-lg">
               <div class="p-4 flex flex-col space-y-3">
