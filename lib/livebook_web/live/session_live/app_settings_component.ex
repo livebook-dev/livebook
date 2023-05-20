@@ -40,7 +40,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           </div>
           <.radio_button_group_field
             field={f[:multi_session]}
-            options={[{"false", "Single"}, {"true", "Multi"}]}
+            options={[{"false", "Single-session"}, {"true", "Multi-session"}]}
             label="Session type"
             help={
               ~S'''
@@ -63,7 +63,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             help={
               ~S'''
               Shuts down the session if it has no
-              users for the specified amount of time
+              users for the specified amount of time.
               '''
             }
           />
@@ -72,8 +72,8 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             label="Show source"
             help={
               ~S'''
-              When enabled, makes notebook source
-              accessible in the app menu
+              When enabled, it makes notebook source
+              accessible in the app menu.
               '''
             }
           />
@@ -96,8 +96,9 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               label="List existing sessions"
               help={
                 ~S'''
-                When enabled, shows all existing
-                sessions on the app page
+                When enabled, the user can see all
+                currently running sessions and join
+                them before creating a new session.
                 '''
               }
             />
