@@ -108,9 +108,10 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               label="Zero-downtime deployment"
               help={
                 ~S'''
-                When enabled, app keeps pointing
-                to an old session, until the newly
-                deployed notebook is fully executed
+                When enabled, a new version only becomes
+                available after it executes all of its
+                cells, making sure it is ready to use.
+                If an error happens, deploy is aborted.
                 '''
               }
             />
