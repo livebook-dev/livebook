@@ -1409,8 +1409,16 @@ defmodule LivebookWeb.SessionLiveTest do
       Livebook.Apps.subscribe()
 
       view
-      |> element(~s/[data-el-app-info] form/)
-      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+      |> element(~s/[data-el-app-info] a/, "Configure")
+      |> render_click()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_change(%{"app_settings" => %{"slug" => slug}})
+
+      view
+      |> element(~s/#app-settings-modal button/, "Deploy")
+      |> render_click()
 
       assert_receive {:app_created, %{slug: ^slug} = app}
 
