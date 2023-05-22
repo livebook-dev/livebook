@@ -393,21 +393,20 @@ defmodule Livebook.Intellisense do
   """
   @spec get_details(String.t(), pos_integer(), context()) :: Runtime.details_response() | nil
   def get_details(line, column, context) do
-    case IdentifierMatcher.locate_identifier(line, column, context) do
-      %{matches: []} ->
+    %{matches: matches, range: range} = IdentifierMatcher.locate_identifier(line, column, context)
+
+    case Enum.filter(matches, &include_in_details?/1) do
+      [] ->
         nil
 
-      %{matches: matches, range: range} ->
-        contents =
-          matches
-          |> Enum.filter(&include_in_details?/1)
-          |> Enum.map(&format_details_item/1)
-
+      matches ->
+        contents = Enum.map(matches, &format_details_item/1)
         %{range: range, contents: contents}
     end
   end
 
   defp include_in_details?(%{kind: :function, from_default: true}), do: false
+  defp include_in_details?(%{kind: :bitstring_modifier}), do: false
   defp include_in_details?(_), do: true
 
   defp format_details_item(%{kind: :variable, name: name}), do: code(name)
