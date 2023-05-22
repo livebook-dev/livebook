@@ -19,6 +19,18 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
             imports_defined?: false,
             undefined_vars: MapSet.new()
 
+  @type t :: %__MODULE__{
+          modules_used: MapSet.t(),
+          modules_defined: map(),
+          aliases_used: MapSet.t(),
+          aliases_defined: map(),
+          requires_used: MapSet.t(),
+          requires_defined: MapSet.t(),
+          imports_used?: boolean(),
+          imports_defined?: boolean(),
+          undefined_vars: MapSet.t()
+        }
+
   @doc false
   def trace(event, env) do
     case event_to_updates(event, env) do
