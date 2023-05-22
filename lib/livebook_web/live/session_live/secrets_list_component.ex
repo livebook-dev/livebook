@@ -46,7 +46,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 id={"session-secret-#{secret.name}-delete"}
                 type="button"
                 phx-click={
-                  JS.push("delete_session_secret", value: %{secret_name: secret.name}, target: @myself)
+                  JS.push("delete_session_secret",
+                    value: %{secret_name: secret.name},
+                    target: @myself
+                  )
                 }
                 class="hover:text-gray-900"
               >

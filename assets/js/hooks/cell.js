@@ -238,8 +238,8 @@ const Cell = {
 
         this.handleEvent(
           `evaluation_finished:${this.props.cellId}`,
-          ({ code_error }) => {
-            liveEditor.setCodeErrorMarker(code_error);
+          ({ code_markers }) => {
+            liveEditor.setCodeMarkers(code_markers);
           }
         );
       }

@@ -419,12 +419,12 @@ defmodule Livebook.Runtime.Evaluator do
     set_pdict(context, state.ignored_pdict_keys)
 
     start_time = System.monotonic_time()
-    eval_result = eval(code, context.binding, context.env)
+    {eval_result, code_markers} = eval(code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
 
-    {new_context, result, code_error, identifiers_used, identifiers_defined} =
+    {new_context, result, identifiers_used, identifiers_defined} =
       case eval_result do
         {:ok, value, binding, env} ->
           context_id = random_id()
@@ -440,9 +440,9 @@ defmodule Livebook.Runtime.Evaluator do
             identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
-          {new_context, result, nil, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined}
 
-        {:error, kind, error, stacktrace, code_error} ->
+        {:error, kind, error, stacktrace} ->
           for {module, _} <- tracer_info.modules_defined do
             delete_module(module)
           end
@@ -452,7 +452,7 @@ defmodule Livebook.Runtime.Evaluator do
           identifiers_defined = %{}
           # Empty context
           new_context = initial_context()
-          {new_context, result, code_error, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined}
       end
 
     if ebin_path() do
@@ -469,7 +469,7 @@ defmodule Livebook.Runtime.Evaluator do
       errored: elem(result, 0) == :error,
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
-      code_error: code_error,
+      code_markers: code_markers,
       identifiers_used: identifiers_used,
       identifiers_defined: identifiers_defined
     }
@@ -598,32 +598,91 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
-
   defp eval(code, binding, env) do
-    try do
-      quoted = Code.string_to_quoted!(code, file: env.file)
-      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      {:ok, value, binding, env}
-    catch
-      kind, error ->
-        stacktrace = prune_stacktrace(__STACKTRACE__)
+    {{result, extra_diagnostics}, diagnostics} =
+      with_diagnostics([log: true], fn ->
+        try do
+          quoted = Code.string_to_quoted!(code, file: env.file)
 
-        code_error =
-          if code_error?(error) and (error.file == env.file and error.file != "nofile") do
-            %{line: error.line, description: error.description}
-          else
-            nil
+          try do
+            {value, binding, env} =
+              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+            {:ok, value, binding, env}
+          catch
+            kind, error ->
+              stacktrace = prune_stacktrace(__STACKTRACE__)
+              {:error, kind, error, stacktrace}
           end
+        catch
+          kind, error ->
+            {:error, kind, error, []}
+        end
+        |> case do
+          {:ok, value, binding, env} ->
+            {{:ok, value, binding, env}, []}
 
-        {:error, kind, error, stacktrace, code_error}
+          {:error, kind, error, stacktrace} ->
+            # Mimic a diagnostic for relevant errors where it's not
+            # the case by default
+            extra_diagnostics =
+              if extra_diagnostic?(error) do
+                [
+                  %{
+                    file: error.file,
+                    severity: :error,
+                    message: error.description,
+                    position: error.line,
+                    stacktrace: stacktrace
+                  }
+                ]
+              else
+                []
+              end
+
+            {{:error, kind, error, stacktrace}, extra_diagnostics}
+        end
+      end)
+
+    code_markers =
+      for diagnostic <- diagnostics ++ extra_diagnostics,
+          # Ignore diagnostics from other evaluations, such as inner Code.eval_string/3
+          diagnostic.file == env.file and diagnostic.file != "nofile" do
+        %{
+          line:
+            case diagnostic.position do
+              {line, _column} -> line
+              line -> line
+            end,
+          description: diagnostic.message,
+          severity: diagnostic.severity
+        }
+      end
+
+    {result, code_markers}
+  end
+
+  # TODO: remove once we require Elixir v1.15
+  if function_exported?(Code, :with_diagnostics, 2) do
+    defp with_diagnostics(opts, fun) do
+      Code.with_diagnostics(opts, fun)
+    end
+  else
+    defp with_diagnostics(_opts, fun) do
+      {fun.(), []}
     end
   end
 
-  defp code_error?(%SyntaxError{}), do: true
-  defp code_error?(%TokenMissingError{}), do: true
-  defp code_error?(%CompileError{}), do: true
-  defp code_error?(_error), do: false
+  defp extra_diagnostic?(%SyntaxError{}), do: true
+  defp extra_diagnostic?(%TokenMissingError{}), do: true
+
+  defp extra_diagnostic?(%CompileError{
+         description: "cannot compile file (errors have been logged)"
+       }),
+       do: false
+
+  defp extra_diagnostic?(%CompileError{}), do: true
+  defp extra_diagnostic?(_error), do: false
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()

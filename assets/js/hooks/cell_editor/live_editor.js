@@ -197,33 +197,34 @@ class LiveEditor {
   }
 
   /**
-   * Adds an underline marker for the given syntax error.
+   * Sets underline markers for warnings and errors.
    *
-   * To clear an existing marker `null` error is also supported.
+   * Passing an empty list clears all markers.
    */
-  setCodeErrorMarker(error) {
+  setCodeMarkers(codeMarkers) {
     this._ensureMounted();
 
-    const owner = "livebook.error.syntax";
+    const owner = "livebook.code-marker";
 
-    if (error) {
-      const line = this.editor.getModel().getLineContent(error.line);
+    const editorMarkers = codeMarkers.map((codeMarker) => {
+      const line = this.editor.getModel().getLineContent(codeMarker.line);
       const [, leadingWhitespace, trailingWhitespace] =
         line.match(/^(\s*).*?(\s*)$/);
 
-      monaco.editor.setModelMarkers(this.editor.getModel(), owner, [
-        {
-          startLineNumber: error.line,
-          startColumn: leadingWhitespace.length + 1,
-          endLineNumber: error.line,
-          endColumn: line.length + 1 - trailingWhitespace.length,
-          message: error.description,
-          severity: monaco.MarkerSeverity.Error,
-        },
-      ]);
-    } else {
-      monaco.editor.setModelMarkers(this.editor.getModel(), owner, []);
-    }
+      return {
+        startLineNumber: codeMarker.line,
+        startColumn: leadingWhitespace.length + 1,
+        endLineNumber: codeMarker.line,
+        endColumn: line.length + 1 - trailingWhitespace.length,
+        message: codeMarker.description,
+        severity: {
+          error: monaco.MarkerSeverity.Error,
+          warning: monaco.MarkerSeverity.Warning,
+        }[codeMarker.severity],
+      };
+    });
+
+    monaco.editor.setModelMarkers(this.editor.getModel(), owner, editorMarkers);
   }
 
   _mountEditor() {
@@ -488,7 +489,7 @@ class LiveEditor {
 
       return this._asyncIntellisenseRequest("format", { code: content })
         .then((response) => {
-          this.setCodeErrorMarker(response.code_error);
+          this.setCodeMarkers(response.code_markers);
 
           if (response.code) {
             /**

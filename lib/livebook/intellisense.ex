@@ -65,11 +65,11 @@ defmodule Livebook.Intellisense do
         |> Code.format_string!()
         |> IO.iodata_to_binary()
 
-      %{code: formatted, code_error: nil}
+      %{code: formatted, code_markers: []}
     rescue
       error ->
-        code_error = %{line: error.line, description: error.description}
-        %{code: nil, code_error: code_error}
+        code_marker = %{line: error.line, description: error.description, severity: :error}
+        %{code: nil, code_markers: [code_marker]}
     end
   end
 

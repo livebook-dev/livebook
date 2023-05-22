@@ -1775,7 +1775,7 @@ defmodule LivebookWeb.SessionLive do
        ) do
     socket
     |> prune_outputs()
-    |> push_event("evaluation_finished:#{cell_id}", %{code_error: metadata.code_error})
+    |> push_event("evaluation_finished:#{cell_id}", %{code_markers: metadata.code_markers})
   end
 
   defp after_operation(

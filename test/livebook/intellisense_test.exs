@@ -21,16 +21,19 @@ defmodule Livebook.IntellisenseTest do
 
   describe "format_code/1" do
     test "formats valid code" do
-      assert %{code: "1 + 1", code_error: nil} = Intellisense.format_code("1+1")
+      assert %{code: "1 + 1", code_markers: []} = Intellisense.format_code("1+1")
     end
 
     test "returns a syntax error when invalid code is given" do
       assert %{
                code: nil,
-               code_error: %{
-                 line: 1,
-                 description: "syntax error: expression is incomplete"
-               }
+               code_markers: [
+                 %{
+                   line: 1,
+                   description: "syntax error: expression is incomplete",
+                   severity: :error
+                 }
+               ]
              } = Intellisense.format_code("1+")
     end
   end
