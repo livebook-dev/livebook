@@ -251,11 +251,26 @@ const Cell = {
         );
 
         this.handleEvent(
-          `doctests_result:${this.props.cellId}`,
-          (results) => {
-            liveEditor.addDoctestDecorations(Object.entries(results))
+          `evaluating_doctest:${this.props.cellId}`,
+          ({ line }) => {
+            liveEditor.appendEvaluatingDoctestDecoration(line)
           }
         );
+
+        this.handleEvent(
+          `success_doctest:${this.props.cellId}`,
+          ({ line }) => {
+            liveEditor.appendSuccessfulDoctestDecoration(line)
+          }
+        );
+
+        this.handleEvent(
+          `failed_doctest:${this.props.cellId}`,
+          ({ line }) => {
+            liveEditor.appendFailedDoctestDecoration(line)
+          }
+        );
+
       }
     }
   },

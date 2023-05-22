@@ -35,6 +35,15 @@ class LiveEditor {
     this._onBlur = [];
     this._onCursorSelectionChange = [];
     this._remoteUserByClientId = {};
+    /* For doctest decorations we store the params to create the
+     * decorations and also the result of creating the decorations.
+     * The params are IModelDeltaDecoration from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IModelDeltaDecoration.html
+     * and the result is IEditorDecorationsCollection from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IEditorDecorationsCollection.html
+     */
+    this._doctestDecorations = {
+      deltaDecorations: [],
+      decorationCollection: null,
+    }
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -269,6 +278,8 @@ class LiveEditor {
           ? "on"
           : "off",
     });
+
+    this._doctestDecorations.decorationCollection = this.editor.createDecorationsCollection([])
 
     this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
@@ -567,6 +578,49 @@ class LiveEditor {
     });
   }
 
+  clearDoctestDecorations() {
+    this._doctestDecorations.decorationCollection.clear()
+    this._doctestDecorations.deltaDecorations = []
+  }
+
+  _createDoctestDecoration(line, className) {
+    const lineNumber = Number(line)
+    return {
+      range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+      options: {
+        isWholeLine: true,
+        linesDecorationsClassName: className,
+      }
+    }
+  }
+
+  _appendDoctestDecoration(line, className) {
+    const newDecoration = this._createDoctestDecoration(line, className)
+    this._doctestDecorations.deltaDecorations.push(newDecoration)
+    const decos = this._doctestDecorations.deltaDecorations
+    this._doctestDecorations.decorationCollection.set(decos)
+  }
+
+  _popPushDoctestDecoration(line, className) {
+    const newDecoration = this._createDoctestDecoration(line, className)
+    this._doctestDecorations.deltaDecorations.pop()
+    this._doctestDecorations.deltaDecorations.push(newDecoration)
+    const decos = this._doctestDecorations.deltaDecorations
+    this._doctestDecorations.decorationCollection.set(decos)
+  }
+
+  appendSuccessfulDoctestDecoration(line) {
+    this._popPushDoctestDecoration(line, "line-circle-green")
+  }
+
+  appendFailedDoctestDecoration(line) {
+    this._popPushDoctestDecoration(line, "line-circle-red")
+  }
+
+  appendEvaluatingDoctestDecoration(line) {
+    this._appendDoctestDecoration(line, "line-circle-grey")
+  }
+
   addDoctestDecorations(decorations) {
     const collectionItems = decorations.map(
       ([line, success]) => {
@@ -593,12 +647,10 @@ class LiveEditor {
         }
       }
     )
-    this.editorDoctestDecorations = this.editor.createDecorationsCollection(collectionItems)
+    this._doctestDecorations.deltaDecorations = collectionItems
+    this._doctestDecorations.decorationCollection.set(collectionItems)
   }
 
-  clearDoctestDecorations() {
-    this.editorDoctestDecorations?.clear()
-  }
 }
 
 
