@@ -1285,6 +1285,13 @@ defmodule Livebook.IntellisenseTest do
       assert to_string_fn =~ "Converts the argument to a string"
     end
 
+    test "returns nil for bitstring modifiers" do
+      context = eval(do: nil)
+
+      assert nil == Intellisense.get_details("<<x :: integer>>", 6, context)
+      assert nil == Intellisense.get_details("<<x :: integer>>", 10, context)
+    end
+
     test "includes full module name in the docs" do
       context = eval(do: nil)
 
