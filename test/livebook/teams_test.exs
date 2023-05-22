@@ -57,7 +57,7 @@ defmodule Livebook.TeamsTest do
 
       assert {:error, changeset} = Teams.join_org(org, %{})
       assert "does not exist" in errors_on(changeset).name
-      assert "does not exist" in errors_on(changeset).teams_key
+      assert "does not match existing key" in errors_on(changeset).teams_key
     end
   end
 
