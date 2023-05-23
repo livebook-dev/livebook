@@ -15,7 +15,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "new-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "NewOrgTest"
+      name = "new-org-test"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
@@ -67,7 +67,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "join-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "JoinOrgTest"
+      name = "join-org-test"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
