@@ -46,7 +46,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               phx-debounce
               class="uppercase"
             />
-            <.text_field
+            <.password_field
               field={f[:value]}
               label="Value"
               autofocus={@secret_name != nil}
