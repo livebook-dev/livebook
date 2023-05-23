@@ -15,7 +15,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "new-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "new_org_test"
+      name = "new-org-test"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
@@ -34,7 +34,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       form = element(view, "#new-org-form")
       render_change(form, attrs)
 
-      # submits the form 
+      # submits the form
       render_submit(form, attrs)
 
       # gets the org request by name and key hash
@@ -67,7 +67,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   describe "join-org" do
     test "persist a new hub", %{conn: conn, node: node, user: user} do
-      name = "join_org_test"
+      name = "join-org-test"
       teams_key = Livebook.Teams.Org.teams_key()
       key_hash = Org.key_hash(build(:org, teams_key: teams_key))
       path = ~p"/hub/team-#{name}"
@@ -91,7 +91,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       form = element(view, "#join-org-form")
       render_change(form, attrs)
 
-      # submits the form 
+      # submits the form
       render_submit(form, attrs)
 
       # gets the org request by name and key hash
