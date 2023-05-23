@@ -663,7 +663,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   # TODO: remove once we require Elixir v1.15
-  if function_exported?(Code, :with_diagnostics, 2) do
+  if Code.ensure_loaded?(Code) and function_exported?(Code, :with_diagnostics, 2) do
     defp with_diagnostics(opts, fun) do
       Code.with_diagnostics(opts, fun)
     end
