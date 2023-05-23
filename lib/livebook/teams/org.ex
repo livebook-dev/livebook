@@ -41,6 +41,6 @@ defmodule Livebook.Teams.Org do
     org
     |> cast(attrs, @fields)
     |> validate_required(@required_fields)
-    |> validate_format(:name, ~r/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    |> validate_format(:name, ~r/^[a-z0-9][a-z0-9\w]*$/)
   end
 end

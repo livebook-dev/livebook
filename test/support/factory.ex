@@ -77,7 +77,7 @@ defmodule Livebook.Factory do
     %Livebook.Teams.Org{
       id: nil,
       emoji: "🏭",
-      name: "org-name-#{System.unique_integer([:positive])}",
+      name: "org_name_#{System.unique_integer([:positive])}",
       teams_key: Livebook.Teams.Org.teams_key(),
       user_code: nil
     }
