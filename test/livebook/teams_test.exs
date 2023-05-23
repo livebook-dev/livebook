@@ -2,6 +2,7 @@ defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.Teams
+  alias Livebook.Teams.Org
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -22,6 +23,41 @@ defmodule Livebook.TeamsTest do
 
       assert {:error, changeset} = Teams.create_org(org, %{name: nil})
       assert "can't be blank" in errors_on(changeset).name
+    end
+  end
+
+  describe "join_org/1" do
+    test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
+      org = build(:org)
+      key_hash = Org.key_hash(org)
+
+      teams_org = :erpc.call(node, Hub.Integration, :create_org, [[name: org.name]])
+      :erpc.call(node, Hub.Integration, :create_org_key, [[org: teams_org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_user_org, [[org: teams_org, user: user]])
+
+      assert {:ok,
+              %{
+                "device_code" => _device_code,
+                "expires_in" => 300,
+                "id" => _org_id,
+                "user_code" => _user_code,
+                "verification_uri" => _verification_uri
+              }} = Teams.join_org(org, %{})
+    end
+
+    test "returns changeset errors when data is invalid" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{name: nil})
+      assert "can't be blank" in errors_on(changeset).name
+    end
+
+    test "returns changeset errors when org doesn't exist" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{})
+      assert "does not exist" in errors_on(changeset).name
+      assert "does not match existing key" in errors_on(changeset).teams_key
     end
   end
 
