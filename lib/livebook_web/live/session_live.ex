@@ -2167,7 +2167,7 @@ defmodule LivebookWeb.SessionLive do
 
         data_view
 
-      {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}} ->
+      {:add_cell_evaluation_output, _client_id, _cell_id, {:doctest_result, _result}} ->
         data_view
 
       {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
