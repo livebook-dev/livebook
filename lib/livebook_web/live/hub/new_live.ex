@@ -291,6 +291,12 @@ defmodule LivebookWeb.Hub.NewLive do
          |> assign_form(changeset)}
 
       {:transport_error, message} ->
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
+
         {:noreply, put_flash(socket, :error, message)}
     end
   end
