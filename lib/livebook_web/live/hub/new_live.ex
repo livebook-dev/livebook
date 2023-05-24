@@ -132,7 +132,7 @@ defmodule LivebookWeb.Hub.NewLive do
             </div>
 
             <.password_field
-              readonly={@selected_option == "new-org"}
+              :if={@selected_option == "join-org"}
               field={f[:teams_key]}
               label="Livebook Teams Key"
             />
