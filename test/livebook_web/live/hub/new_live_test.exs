@@ -1,166 +1,128 @@
 defmodule LivebookWeb.Hub.NewLiveTest do
-  use LivebookWeb.ConnCase
+  use Livebook.TeamsIntegrationCase, async: true
+
+  alias Livebook.Teams.Org
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Hubs
-
   test "render hub selection cards", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/hub")
+    {:ok, view, _html} = live(conn, ~p"/hub")
 
-    assert html =~ "Fly"
-    assert html =~ "Livebook Teams"
+    # shows the new options
+    assert has_element?(view, "#new-org")
+    assert has_element?(view, "#join-org")
   end
 
-  describe "fly" do
-    test "persists new hub", %{conn: conn} do
-      fly_bypass("123456789")
+  describe "new-org" do
+    test "persist a new hub", %{conn: conn, node: node, user: user} do
+      name = "new-org-test"
+      teams_key = Livebook.Teams.Org.teams_key()
+      key_hash = Org.key_hash(build(:org, teams_key: teams_key))
+      path = ~p"/hub/team-#{name}"
 
       {:ok, view, _html} = live(conn, ~p"/hub")
 
+      # select the new org option
       assert view
-             |> element("#fly")
-             |> render_click() =~ "2. Configure your Hub"
+             |> element("#new-org")
+             |> render_click() =~ "2. Create your Organization"
 
-      assert view
-             |> element(~s/input[name="fly[access_token]"]/)
-             |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
-               ~s(<option value="123456789">Foo Bar - 123456789</option>)
+      # builds the form data
+      attrs = %{"org" => %{"name" => name, "teams_key" => teams_key, "emoji" => "🐈"}}
 
-      attrs = %{
-        "access_token" => "dummy access token",
-        "application_id" => "123456789",
-        "hub_name" => "My Foo Hub",
-        "hub_emoji" => "🐈"
-      }
+      # finds the form and change data
+      form = element(view, "#new-org-form")
+      render_change(form, attrs)
 
-      view
-      |> element("#fly-form")
-      |> render_change(%{"fly" => attrs})
+      # submits the form
+      render_submit(form, attrs)
 
-      refute view
-             |> element("#fly-form .invalid-feedback")
-             |> has_element?()
+      # gets the org request by name and key hash
+      org_request =
+        :erpc.call(node, Hub.Integration, :get_org_request_by!, [
+          [name: name, key_hash: key_hash]
+        ])
 
-      assert {:ok, view, _html} =
-               view
-               |> element("#fly-form")
-               |> render_submit(%{"fly" => attrs})
-               |> follow_redirect(conn)
+      # check if the form has the url to confirm
+      link_element = element(view, "#new-org-form a")
+      assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
-      assert render(view) =~ "Hub added successfully"
+      # force org request confirmation
+      :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
 
+      # wait for the c:handle_info/2 cycle
+      # check if the page redirected to edit hub page
+      # and check the flash message
+      %{"success" => "Hub added successfully"} =
+        assert_redirect(view, path, check_completion_data_interval())
+
+      # checks if the hub is in the sidebar
+      {:ok, view, _html} = live(conn, path)
       hubs_html = view |> element("#hubs") |> render()
-
       assert hubs_html =~ "🐈"
-      assert hubs_html =~ "/hub/fly-123456789"
-      assert hubs_html =~ "My Foo Hub"
+      assert hubs_html =~ path
+      assert hubs_html =~ name
     end
+  end
 
-    test "fails to create existing hub", %{conn: conn} do
-      hub = insert_hub(:fly, id: "fly-foo", application_id: "foo")
-      fly_bypass(hub.application_id)
+  describe "join-org" do
+    test "persist a new hub", %{conn: conn, node: node, user: user} do
+      name = "join-org-test"
+      teams_key = Livebook.Teams.Org.teams_key()
+      key_hash = Org.key_hash(build(:org, teams_key: teams_key))
+      path = ~p"/hub/team-#{name}"
 
       {:ok, view, _html} = live(conn, ~p"/hub")
 
+      # previously create the org and associate user with org
+      org = :erpc.call(node, Hub.Integration, :create_org, [[name: name]])
+      :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
+
+      # select the new org option
       assert view
-             |> element("#fly")
-             |> render_click() =~ "2. Configure your Hub"
+             |> element("#join-org")
+             |> render_click() =~ "2. Join an Organization"
 
-      assert view
-             |> element(~s/input[name="fly[access_token]"]/)
-             |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
-               ~s(<option value="foo">Foo Bar - foo</option>)
+      # builds the form data
+      attrs = %{"org" => %{"name" => name, "teams_key" => teams_key, "emoji" => "🐈"}}
 
-      attrs = %{
-        "access_token" => "dummy access token",
-        "application_id" => "foo",
-        "hub_name" => "My Foo Hub",
-        "hub_emoji" => "🐈"
-      }
+      # finds the form and change data
+      form = element(view, "#join-org-form")
+      render_change(form, attrs)
 
-      view
-      |> element("#fly-form")
-      |> render_change(%{"fly" => attrs})
+      # submits the form
+      render_submit(form, attrs)
 
-      refute view
-             |> element("#fly-form .invalid-feedback")
-             |> has_element?()
+      # gets the org request by name and key hash
+      org_request =
+        :erpc.call(node, Hub.Integration, :get_org_request_by!, [
+          [name: name, key_hash: key_hash]
+        ])
 
-      assert view
-             |> element("#fly-form")
-             |> render_submit(%{"fly" => attrs}) =~ "already exists"
+      # check if the form has the url to confirm
+      link_element = element(view, "#join-org-form a")
+      assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
-      assert_hub(view, hub)
-      assert Hubs.fetch_hub!(hub.id) == hub
+      # force org request confirmation
+      :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
+
+      # wait for the c:handle_info/2 cycle
+      # check if the page redirected to edit hub page
+      # and check the flash message
+      %{"success" => "Hub added successfully"} =
+        assert_redirect(view, path, check_completion_data_interval())
+
+      # checks if the hub is in the sidebar
+      {:ok, view, _html} = live(conn, path)
+      hubs_html = view |> element("#hubs") |> render()
+      assert hubs_html =~ "🐈"
+      assert hubs_html =~ path
+      assert hubs_html =~ name
     end
   end
 
-  defp fly_bypass(app_id) do
-    bypass = Bypass.open()
-    Application.put_env(:livebook, :fly_graphql_endpoint, "http://localhost:#{bypass.port}")
-
-    Bypass.expect(bypass, "POST", "/", fn conn ->
-      {:ok, body, conn} = Plug.Conn.read_body(conn)
-      body = Jason.decode!(body)
-
-      response =
-        cond do
-          body["query"] =~ "apps" -> fetch_apps_response(app_id)
-          body["query"] =~ "app" -> fetch_app_response(app_id)
-        end
-
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.resp(200, Jason.encode!(response))
-    end)
-  end
-
-  defp fetch_apps_response(app_id) do
-    app = %{
-      "id" => app_id,
-      "organization" => %{
-        "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-        "name" => "Foo Bar",
-        "type" => "PERSONAL"
-      }
-    }
-
-    %{"data" => %{"apps" => %{"nodes" => [app]}}}
-  end
-
-  defp fetch_app_response(app_id) do
-    app = %{
-      "id" => app_id,
-      "name" => app_id,
-      "hostname" => app_id <> ".fly.dev",
-      "platformVersion" => "nomad",
-      "deployed" => true,
-      "status" => "running",
-      "secrets" => [
-        %{
-          "createdAt" => to_string(DateTime.utc_now()),
-          "digest" => to_string(Livebook.Utils.random_cookie()),
-          "id" => Livebook.Utils.random_short_id(),
-          "name" => "LIVEBOOK_PASSWORD"
-        },
-        %{
-          "createdAt" => to_string(DateTime.utc_now()),
-          "digest" => to_string(Livebook.Utils.random_cookie()),
-          "id" => Livebook.Utils.random_short_id(),
-          "name" => "LIVEBOOK_SECRET_KEY_BASE"
-        }
-      ]
-    }
-
-    %{"data" => %{"app" => app}}
-  end
-
-  defp assert_hub(view, hub) do
-    hubs_html = view |> element("#hubs") |> render()
-
-    assert hubs_html =~ hub.hub_emoji
-    assert hubs_html =~ ~p"/hub/#{hub.id}"
-    assert hubs_html =~ hub.hub_name
+  defp check_completion_data_interval do
+    Application.fetch_env!(:livebook, :check_completion_data_interval) + 100
   end
 end

@@ -46,34 +46,33 @@ defmodule LivebookWeb.Hub.EditLive do
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <%= case @type do %>
-          <% "fly" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.FlyComponent}
-              hub={@hub}
-              id="fly-form"
-              live_action={@live_action}
-              env_var_id={@env_var_id}
-            />
-          <% "personal" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.PersonalComponent}
-              hub={@hub}
-              secrets={@secrets}
-              live_action={@live_action}
-              secret_name={@secret_name}
-              id="personal-form"
-            />
-          <% "enterprise" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.EnterpriseComponent}
-              hub={@hub}
-              id="enterprise-form"
-            />
-        <% end %>
+        <.hub_component
+          type={@type}
+          hub={@hub}
+          live_action={@live_action}
+          secrets={@secrets}
+          secret_name={@secret_name}
+        />
       </div>
     </LayoutHelpers.layout>
     """
+  end
+
+  defp hub_component(%{type: "personal"} = assigns) do
+    ~H"""
+    <.live_component
+      module={LivebookWeb.Hub.Edit.PersonalComponent}
+      hub={@hub}
+      secrets={@secrets}
+      live_action={@live_action}
+      secret_name={@secret_name}
+      id="personal-form"
+    />
+    """
+  end
+
+  defp hub_component(%{type: "team"} = assigns) do
+    ~H(<.live_component module={LivebookWeb.Hub.Edit.TeamComponent} hub={@hub} id="team-form" />)
   end
 
   @impl true

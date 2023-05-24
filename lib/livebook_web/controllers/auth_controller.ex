@@ -76,7 +76,7 @@ defmodule LivebookWeb.AuthController do
   end
 
   defp any_public_app?() do
-    Livebook.Sessions.list_sessions()
-    |> Enum.any?(&(&1.mode == :app and &1.app_info.public?))
+    Livebook.Apps.list_apps()
+    |> Enum.any?(& &1.public?)
   end
 end

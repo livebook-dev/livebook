@@ -28,6 +28,8 @@ defmodule Livebook.Application do
         Livebook.NotebookManager,
         # Start the tracker server on this node
         {Livebook.Tracker, pubsub_server: Livebook.PubSub},
+        # Start the supervisor dynamically managing apps
+        {DynamicSupervisor, name: Livebook.AppSupervisor, strategy: :one_for_one},
         # Start the supervisor dynamically managing sessions
         {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
         # Start the server responsible for associating files with sessions

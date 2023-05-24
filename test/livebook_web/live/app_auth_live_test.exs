@@ -4,10 +4,10 @@ defmodule LivebookWeb.AppAuthLiveTest do
   import Phoenix.LiveViewTest
 
   setup ctx do
-    {slug, session} = create_app(ctx[:app_settings] || %{})
+    {slug, app_pid} = create_app(ctx[:app_settings] || %{})
 
     on_exit(fn ->
-      Livebook.Session.close(session.pid)
+      Livebook.App.close(app_pid)
     end)
 
     Application.put_env(:livebook, :authentication_mode, :password)
@@ -31,14 +31,9 @@ defmodule LivebookWeb.AppAuthLiveTest do
 
     notebook = %{Livebook.Notebook.new() | app_settings: app_settings}
 
-    {:ok, session} = Livebook.Sessions.create_session(notebook: notebook, mode: :app)
-    Livebook.Session.app_subscribe(session.id)
-    Livebook.Session.app_build(session.pid)
+    {:ok, app_pid} = Livebook.Apps.deploy(notebook)
 
-    session_id = session.id
-    assert_receive {:app_registration_changed, ^session_id, true}
-
-    {slug, session}
+    {slug, app_pid}
   end
 
   # Integration tests for the authentication scenarios
@@ -47,7 +42,11 @@ defmodule LivebookWeb.AppAuthLiveTest do
     @describetag app_settings: %{access_type: :public}
 
     test "does not require authentication", %{conn: conn, slug: slug} do
-      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
+      {:ok, view, _} =
+        conn
+        |> live(~p"/apps/#{slug}")
+        |> follow_redirect(conn)
+
       assert render(view) =~ "Untitled notebook"
     end
   end
@@ -85,21 +84,41 @@ defmodule LivebookWeb.AppAuthLiveTest do
 
       # Then, the client passes the token in connect params
 
+      conn = put_connect_params(conn, %{"app_auth_token" => token})
+
       {:ok, view, _} =
         conn
-        |> put_connect_params(%{"app_auth_token" => token})
         |> live("/apps/#{slug}")
+        |> follow_redirect(conn)
 
       assert render(view) =~ "Untitled notebook"
 
       # The auth page redirects to the app
 
-      {:error, {:live_redirect, %{to: to}}} =
-        conn
-        |> put_connect_params(%{"app_auth_token" => token})
-        |> live("/apps/#{slug}/authenticate")
+      {:error, {:live_redirect, %{to: to}}} = live(conn, "/apps/#{slug}/authenticate")
 
       assert to == "/apps/#{slug}"
+    end
+
+    test "when redirected from app session page, returns to that same page",
+         %{conn: conn, slug: slug} do
+      {:ok, %{sessions: [%{id: session_id}]}} = Livebook.Apps.fetch_app(slug)
+
+      # We navigate to a specific session and get redirected to auth
+
+      {:ok, view, _} =
+        conn
+        |> live(~p"/apps/#{slug}/#{session_id}")
+        |> follow_redirect(conn)
+
+      view
+      |> element("form")
+      |> render_submit(%{password: "long_app_password"})
+
+      assert_push_event(view, "persist_app_auth", %{"slug" => ^slug, "token" => _token})
+
+      assert {:error, {:live_redirect, %{to: to}}} = render_hook(view, "app_auth_persisted")
+      assert to == ~p"/apps/#{slug}/#{session_id}"
     end
 
     test "redirects to the app page when authenticating in Livebook", %{conn: conn, slug: slug} do
@@ -109,7 +128,11 @@ defmodule LivebookWeb.AppAuthLiveTest do
       conn = post(conn, ~p"/authenticate", password: "long_livebook_password")
       assert redirected_to(conn) == "/apps/#{slug}"
 
-      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
+      {:ok, view, _} =
+        conn
+        |> live(~p"/apps/#{slug}")
+        |> follow_redirect(conn)
+
       assert render(view) =~ "Untitled notebook"
 
       # The auth page redirects to the app

@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider}
+  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
@@ -167,6 +167,10 @@ defmodule Livebook.Hubs do
 
   defp to_struct(%{id: "personal-" <> _} = fields) do
     Provider.load(%Personal{}, fields)
+  end
+
+  defp to_struct(%{id: "team-" <> _} = fields) do
+    Provider.load(%Team{}, fields)
   end
 
   @doc """

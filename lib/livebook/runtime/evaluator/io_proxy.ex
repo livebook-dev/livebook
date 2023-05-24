@@ -58,7 +58,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   @doc """
   Flushes any buffered output and returns gathered metadata.
   """
-  @spec after_evaluation(pid()) :: %{tracer_info: %Evaluator.Tracer{}}
+  @spec after_evaluation(pid()) :: %{tracer_info: Evaluator.Tracer.t()}
   def after_evaluation(pid) do
     GenServer.call(pid, :after_evaluation)
   end

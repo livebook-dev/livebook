@@ -1,17 +1,18 @@
-defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
+defmodule LivebookWeb.Hub.Edit.TeamComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.Enterprise
+  alias Livebook.Hubs.Team
+  alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
 
   @impl true
   def update(assigns, socket) do
-    changeset = Enterprise.change_hub(assigns.hub)
+    changeset = Team.change_hub(assigns.hub)
 
     {:ok,
      socket
      |> assign(assigns)
-     |> assign(changeset: changeset)}
+     |> assign_form(changeset)}
   end
 
   @impl true
@@ -39,7 +40,7 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             :let={f}
             id={@id}
             class="flex flex-col mt-4 space-y-4"
-            for={@changeset}
+            for={@form}
             phx-submit="save"
             phx-change="validate"
             phx-target={@myself}
@@ -47,16 +48,10 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
             <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
               <.emoji_field field={f[:hub_emoji]} label="Emoji" />
             </div>
-            <div>
-              <button
-                class="button-base button-blue"
-                type="submit"
-                phx-disable-with="Updating..."
-                disabled={not @changeset.valid?}
-              >
-                Update Hub
-              </button>
-            </div>
+
+            <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+              Update Hub
+            </button>
           </.form>
         </div>
       </div>
@@ -65,8 +60,8 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
   end
 
   @impl true
-  def handle_event("save", %{"enterprise" => params}, socket) do
-    case Enterprise.update_hub(socket.assigns.hub, params) do
+  def handle_event("save", %{"team" => params}, socket) do
+    case Teams.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->
         {:noreply,
          socket
@@ -74,11 +69,20 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
          |> push_navigate(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
+        {:noreply, assign_form(socket, changeset)}
     end
   end
 
-  def handle_event("validate", %{"enterprise" => attrs}, socket) do
-    {:noreply, assign(socket, changeset: Enterprise.validate_hub(socket.assigns.hub, attrs))}
+  def handle_event("validate", %{"team" => attrs}, socket) do
+    changeset =
+      socket.assigns.hub
+      |> Team.change_hub(attrs)
+      |> Map.replace!(:action, :validate)
+
+    {:noreply, assign_form(socket, changeset)}
+  end
+
+  defp assign_form(socket, %Ecto.Changeset{} = changeset) do
+    assign(socket, form: to_form(changeset))
   end
 end

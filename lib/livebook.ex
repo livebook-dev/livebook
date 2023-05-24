@@ -122,6 +122,10 @@ defmodule Livebook do
       config :livebook, :iframe_url, url
     end
 
+    if url = Livebook.Config.teams_url!("LIVEBOOK_TEAMS_URL") do
+      config :livebook, :teams_url, url
+    end
+
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
       config :livebook, :shutdown_callback, {System, :stop, []}
     end

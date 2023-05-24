@@ -107,7 +107,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     <div class="flex flex-col" role="group" aria-label="running sessions list">
       <div
         :for={session <- @sessions}
-        class="py-4 flex items-center border-b border-gray-300"
+        class="py-4 flex items-center border-b last:border-b-0 border-gray-300"
         data-test-session-id={session.id}
       >
         <div id={"#{session.id}-checkbox"} phx-update="ignore">

@@ -1285,6 +1285,13 @@ defmodule Livebook.IntellisenseTest do
       assert to_string_fn =~ "Converts the argument to a string"
     end
 
+    test "returns nil for bitstring modifiers" do
+      context = eval(do: nil)
+
+      assert nil == Intellisense.get_details("<<x :: integer>>", 6, context)
+      assert nil == Intellisense.get_details("<<x :: integer>>", 10, context)
+    end
+
     test "includes full module name in the docs" do
       context = eval(do: nil)
 
@@ -1502,6 +1509,9 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{active_argument: 2, signature_items: [_item]} =
                Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", context)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("elem(x, 1 + ", context)
     end
 
     test "returns correct active argument when using pipe operator" do

@@ -34,7 +34,7 @@ defmodule Livebook.Session.Data do
     :secrets,
     :hub_secrets,
     :mode,
-    :apps,
+    :deployed_app_slug,
     :app_data
   ]
 
@@ -60,7 +60,7 @@ defmodule Livebook.Session.Data do
           secrets: secrets(),
           hub_secrets: list(Secret.t()),
           mode: session_mode(),
-          apps: list(app()),
+          deployed_app_slug: String.t() | nil,
           app_data: nil | app_data()
         }
 
@@ -149,19 +149,13 @@ defmodule Livebook.Session.Data do
 
   @type session_mode :: :default | :app
 
-  @type app :: %{
-          session_id: Livebook.Session.id(),
-          session_pid: pid(),
-          settings: Livebook.Notebook.AppSettings.t(),
-          status: app_status(),
-          registered: boolean()
-        }
-
-  @type app_status :: :booting | :running | :error | :shutting_down | :stopped
+  # Note that technically the first state is :initial, but we always
+  # expect app to start evaluating right away, so distinguishing that
+  # state from :executing would not bring any value
+  @type app_status :: :executing | :executed | :error | :shutting_down | :deactivated
 
   @type app_data :: %{
-          status: app_status(),
-          registered: boolean()
+          status: app_status()
         }
 
   # Note that all operations carry the id of whichever client
@@ -218,12 +212,9 @@ defmodule Livebook.Session.Data do
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
           | {:set_app_settings, client_id(), AppSettings.t()}
-          | {:add_app, client_id(), Livebook.Session.id(), pid()}
-          | {:set_app_status, client_id(), Livebook.Session.id(), app_status()}
-          | {:set_app_registered, client_id(), Livebook.Session.id(), boolean()}
-          | {:delete_app, client_id(), Livebook.Session.id()}
-          | {:app_unregistered, client_id()}
-          | {:app_stop, client_id()}
+          | {:set_deployed_app_slug, client_id(), String.t()}
+          | {:app_deactivate, client_id()}
+          | {:app_shutdown, client_id()}
 
   @type action ::
           :connect_runtime
@@ -233,10 +224,9 @@ defmodule Livebook.Session.Data do
           | {:start_smart_cell, Cell.t(), Section.t()}
           | {:set_smart_cell_parents, Cell.t(), Section.t(),
              parent :: {Cell.t(), Section.t()} | nil}
-          | {:broadcast_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
+          | {:report_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
           | {:clean_up_input_values, %{input_id() => term()}}
-          | :app_broadcast_status
-          | :app_register
+          | :app_report_status
           | :app_recover
           | :app_terminate
 
@@ -260,7 +250,7 @@ defmodule Livebook.Session.Data do
 
     app_data =
       if opts[:mode] == :app do
-        %{status: :booting, registered: false}
+        %{status: :executing}
       end
 
     hub = Hubs.fetch_hub!(notebook.hub_id)
@@ -293,7 +283,7 @@ defmodule Livebook.Session.Data do
       secrets: secrets,
       hub_secrets: hub_secrets,
       mode: opts[:mode],
-      apps: [],
+      deployed_app_slug: nil,
       app_data: app_data
     }
 
@@ -906,64 +896,30 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:add_app, _client_id, session_id, session_pid}) do
+  def apply_operation(data, {:set_deployed_app_slug, _client_id, slug}) do
     data
     |> with_actions()
-    |> add_app(session_id, session_pid)
+    |> set_deployed_app_slug(slug)
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_app_status, _client_id, session_id, status}) do
-    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
-      data
-      |> with_actions()
-      |> set_app_status(app, status)
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
-  def apply_operation(data, {:set_app_registered, _client_id, session_id, registered}) do
-    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
-      data
-      |> with_actions()
-      |> set_app_registered(app, registered)
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
-  def apply_operation(data, {:delete_app, _client_id, session_id}) do
-    with {:ok, app} <- fetch_app_by_session_id(data, session_id) do
-      data
-      |> with_actions()
-      |> delete_app(app)
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
-  def apply_operation(data, {:app_unregistered, _client_id}) do
-    with :app <- data.mode,
-         true <- data.app_data.registered do
-      data
-      |> with_actions()
-      |> app_unregistered()
-      |> app_maybe_terminate()
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
-  def apply_operation(data, {:app_stop, _client_id}) do
+  def apply_operation(data, {:app_deactivate, _client_id}) do
     with :app <- data.mode do
       data
       |> with_actions()
-      |> app_stop()
+      |> app_deactivate()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:app_shutdown, _client_id}) do
+    with :app <- data.mode do
+      data
+      |> with_actions()
+      |> app_shutdown()
+      |> app_maybe_terminate()
       |> wrap_ok()
     else
       _ -> :error
@@ -1604,7 +1560,7 @@ defmodule Livebook.Session.Data do
       info = put_in(info.sources.primary, source_info)
       put_in(info.sources.secondary, new_source_info(editor && editor.source, data.clients_map))
     end)
-    |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
+    |> add_action({:report_delta, client_id, updated_cell, :primary, delta})
   end
 
   defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta, chunks) do
@@ -1623,7 +1579,7 @@ defmodule Livebook.Session.Data do
     |> update_cell_info!(cell.id, fn info ->
       put_in(info.sources.primary, source_info)
     end)
-    |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
+    |> add_action({:report_delta, client_id, updated_cell, :primary, delta})
   end
 
   defp smart_cell_down(data_actions, cell) do
@@ -1773,7 +1729,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> update_cell_info!(cell.id, &put_in(&1.sources[tag], source_info))
-    |> add_action({:broadcast_delta, client_id, updated_cell, tag, transformed_new_delta})
+    |> add_action({:report_delta, client_id, updated_cell, tag, transformed_new_delta})
   end
 
   # Note: the clients drop cell's source once it's no longer needed
@@ -1847,50 +1803,20 @@ defmodule Livebook.Session.Data do
     set!(data_actions, notebook: %{data.notebook | app_settings: settings})
   end
 
-  defp add_app({data, _} = data_actions, session_id, session_pid) do
-    app = %{
-      session_id: session_id,
-      session_pid: session_pid,
-      settings: data.notebook.app_settings,
-      status: :booting,
-      registered: false
-    }
-
-    set!(data_actions, apps: [app | data.apps])
+  defp set_deployed_app_slug(data_actions, slug) do
+    set!(data_actions, deployed_app_slug: slug)
   end
 
-  defp set_app_status(data_actions, app, status) do
-    update_app!(data_actions, app.session_id, &%{&1 | status: status})
-  end
-
-  defp set_app_registered(data_actions, app, registered) do
-    update_app!(data_actions, app.session_id, &%{&1 | registered: registered})
-  end
-
-  defp delete_app({data, _} = data_actions, app) do
-    apps = Enum.reject(data.apps, &(&1.session_id == app.session_id))
-    set!(data_actions, apps: apps)
-  end
-
-  defp app_unregistered(data_actions) do
+  defp app_deactivate(data_actions) do
     data_actions
-    |> set_app_data!(status: :shutting_down, registered: false)
-    |> add_action(:app_broadcast_status)
+    |> set_app_data!(status: :deactivated)
+    |> add_action(:app_report_status)
   end
 
-  defp app_stop({data, _} = data_actions) do
-    data_actions =
-      data_actions
-      |> set_app_data!(status: :stopped)
-      |> add_action(:app_broadcast_status)
-
-    if data.app_data.registered do
-      data_actions
-      |> set_app_data!(registered: false)
-      |> add_action(:app_unregister)
-    else
-      data_actions
-    end
+  defp app_shutdown(data_actions) do
+    data_actions
+    |> set_app_data!(status: :shutting_down)
+    |> add_action(:app_report_status)
   end
 
   defp app_maybe_terminate({data, _} = data_actions) do
@@ -1898,14 +1824,6 @@ defmodule Livebook.Session.Data do
       add_action(data_actions, :app_terminate)
     else
       data_actions
-    end
-  end
-
-  defp fetch_app_by_session_id(data, session_id) do
-    if app = Enum.find(data.apps, &(&1.session_id == session_id)) do
-      {:ok, app}
-    else
-      :error
     end
   end
 
@@ -2163,16 +2081,6 @@ defmodule Livebook.Session.Data do
 
   defp valid_attrs_for?(struct, attrs) do
     Enum.all?(attrs, fn {key, _} -> Map.has_key?(struct, key) end)
-  end
-
-  defp update_app!({data, _} = data_actions, session_id, fun) do
-    apps =
-      Enum.map(data.apps, fn
-        %{session_id: ^session_id} = app -> fun.(app)
-        app -> app
-      end)
-
-    set!(data_actions, apps: apps)
   end
 
   defp set_app_data!({data, _} = data_actions, changes) do
@@ -2448,19 +2356,19 @@ defmodule Livebook.Session.Data do
        do: data_actions
 
   defp app_compute_status({data, _} = data_actions)
-       when data.app_data.status in [:shutting_down, :stopped],
+       when data.app_data.status in [:shutting_down, :deactivated],
        do: data_actions
 
   defp app_compute_status({data, _} = data_actions) do
     status =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
-      |> Enum.find_value(:running, fn {cell, _section} ->
+      |> Enum.find_value(:executed, fn {cell, _section} ->
         case data.cell_infos[cell.id].eval do
           %{validity: :aborted} -> :error
           %{errored: true} -> :error
-          %{validity: :fresh} -> :booting
-          %{status: :evaluating} -> :booting
+          %{validity: :fresh} -> :executing
+          %{status: :evaluating} -> :executing
           _ -> nil
         end
       end)
@@ -2469,20 +2377,11 @@ defmodule Livebook.Session.Data do
       if data.app_data.status == status do
         data_actions
       else
-        add_action(data_actions, :app_broadcast_status)
+        add_action(data_actions, :app_report_status)
       end
 
     data_actions =
-      if not data.app_data.registered and status == :running do
-        data_actions
-        |> set_app_data!(registered: true)
-        |> add_action(:app_register)
-      else
-        data_actions
-      end
-
-    data_actions =
-      if data.app_data.status == :running and status == :error do
+      if data.app_data.status == :executed and status == :error do
         add_action(data_actions, :app_recover)
       else
         data_actions
@@ -2666,5 +2565,13 @@ defmodule Livebook.Session.Data do
     else
       secret.value
     end
+  end
+
+  @doc """
+  Checks if the app should be accessible and accepts new clients.
+  """
+  @spec app_active?(app_status()) :: boolean()
+  def app_active?(app_status) do
+    app_status not in [:deactivated, :shutting_down]
   end
 end

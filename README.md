@@ -277,11 +277,10 @@ mix phx.server
 
 # Run tests
 mix test
-
-# To test escript
-MIX_ENV=prod mix escript.build
-./livebook server
 ```
+
+Once you submit a pull request, [Uffizzi](https://www.uffizzi.com) will setup
+a preview environment where anyone can try out your changes and give feedback.
 
 ### Livebook Desktop
 

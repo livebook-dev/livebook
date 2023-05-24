@@ -139,6 +139,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the configured URL for the Livebook Teams endpoint.
+  """
+  @spec teams_url() :: String.t() | nil
+  def teams_url() do
+    Application.get_env(:livebook, :teams_url)
+  end
+
+  @doc """
   Shuts down the system, if possible.
   """
   def shutdown do
@@ -404,6 +412,13 @@ defmodule Livebook.Config do
   Parses iframe url from env.
   """
   def iframe_url!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses teams url from env.
+  """
+  def teams_url!(env) do
     System.get_env(env)
   end
 

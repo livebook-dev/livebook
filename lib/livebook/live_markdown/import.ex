@@ -404,11 +404,23 @@ defmodule Livebook.LiveMarkdown.Import do
       {"slug", slug}, attrs ->
         Map.put(attrs, :slug, slug)
 
-      {"show_source", show_source}, attrs ->
-        Map.put(attrs, :show_source, show_source)
+      {"multi_session", multi_session}, attrs ->
+        Map.put(attrs, :multi_session, multi_session)
+
+      {"zero_downtime", zero_downtime}, attrs ->
+        Map.put(attrs, :zero_downtime, zero_downtime)
+
+      {"show_existing_sessions", show_existing_sessions}, attrs ->
+        Map.put(attrs, :show_existing_sessions, show_existing_sessions)
+
+      {"auto_shutdown_ms", auto_shutdown_ms}, attrs ->
+        Map.put(attrs, :auto_shutdown_ms, auto_shutdown_ms)
 
       {"access_type", access_type}, attrs when access_type in ["public", "protected"] ->
         Map.put(attrs, :access_type, String.to_atom(access_type))
+
+      {"show_source", show_source}, attrs ->
+        Map.put(attrs, :show_source, show_source)
 
       {"output_type", output_type}, attrs when output_type in ["all", "rich"] ->
         Map.put(attrs, :output_type, String.to_atom(output_type))

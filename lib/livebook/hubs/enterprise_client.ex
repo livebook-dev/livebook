@@ -55,6 +55,8 @@ defmodule Livebook.Hubs.EnterpriseClient do
   @spec get_secrets(String.t()) :: list(Secret.t())
   def get_secrets(id) do
     GenServer.call(registry_name(id), :get_secrets)
+  catch
+    :exit, _ -> []
   end
 
   @doc """
@@ -80,9 +82,9 @@ defmodule Livebook.Hubs.EnterpriseClient do
   ## GenServer callbacks
 
   @impl true
-  def init(%Enterprise{url: url, token: token} = enterprise) do
-    headers = [{"X-Auth-Token", token}]
-    {:ok, pid} = ClientConnection.start_link(self(), url, headers)
+  def init(%Enterprise{} = enterprise) do
+    # TODO: Make it work with new struct and `Livebook.Teams`
+    {:ok, pid} = ClientConnection.start_link(self(), Livebook.Config.teams_url())
 
     {:ok, %__MODULE__{hub: enterprise, server: pid}}
   end

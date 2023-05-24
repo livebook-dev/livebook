@@ -50,7 +50,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <span>Section</span>
             </button>
           </.menu_item>
-          <div class="my-2 border-b border-gray-200"></div>
+          <div class="flex items-center mt-4 mb-1 px-5 text-xs text-gray-400 font-light">
+            MARKDOWN
+          </div>
           <.menu_item>
             <button
               role="menuitem"
@@ -76,7 +78,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </.link>
           </.menu_item>
           <%= if @code_block_definitions != [] do %>
-            <div class="my-2 border-b border-gray-200"></div>
+            <div class="flex items-center mt-4 mb-1 px-5 text-xs text-gray-400 font-light">
+              CODE
+            </div>
             <.menu_item :for={definition <- Enum.sort_by(@code_block_definitions, & &1.name)}>
               <.code_block_insert_button
                 definition={definition}

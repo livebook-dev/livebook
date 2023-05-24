@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -29,6 +29,17 @@ defmodule LivebookWeb.SessionLive do
           else
             data = Session.get_data(session_pid)
             {data, nil}
+          end
+
+        app =
+          if slug = data.deployed_app_slug do
+            {:ok, app} = Livebook.Apps.fetch_app(slug)
+
+            if connected?(socket) do
+              Livebook.App.subscribe(slug)
+            end
+
+            app
           end
 
         socket =
@@ -53,6 +64,7 @@ defmodule LivebookWeb.SessionLive do
          |> assign(
            self_path: ~p"/sessions/#{session.id}",
            session: session,
+           app: app,
            client_id: client_id,
            platform: platform,
            data_view: data_to_view(data),
@@ -140,7 +152,7 @@ defmodule LivebookWeb.SessionLive do
             data-el-app-indicator
             class={[
               "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
-              app_status_color(@data_view.apps_status)
+              app_status_color(app_status(@app))
             ]}
           />
         </div>
@@ -207,7 +219,8 @@ defmodule LivebookWeb.SessionLive do
             id="app-info"
             session={@session}
             settings={@data_view.app_settings}
-            apps={@data_view.apps}
+            app={@app}
+            deployed_app_slug={@data_view.deployed_app_slug}
           />
         </div>
         <div data-el-runtime-info>
@@ -417,6 +430,21 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :app_settings}
+      id="app-settings-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.AppSettingsComponent}
+        id="app-settings"
+        session={@session}
+        settings={@data_view.app_settings}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -516,7 +544,7 @@ defmodule LivebookWeb.SessionLive do
       ) %>
     </.modal>
 
-    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:medium} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.SecretsComponent}
         id="secrets"
@@ -1220,6 +1248,31 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("deploy_app", %{}, socket) do
+    on_confirm = fn socket ->
+      Livebook.Session.deploy_app(socket.assigns.session.pid)
+      socket
+    end
+
+    data = socket.private.data
+    slug = data.notebook.app_settings.slug
+    slug_taken? = slug != data.deployed_app_slug and Livebook.Apps.exists?(slug)
+
+    socket =
+      if slug_taken? do
+        confirm(socket, on_confirm,
+          title: "Deploy app",
+          description:
+            "An app with this slug already exists, do you want to deploy a new version?",
+          confirm_text: "Replace"
+        )
+      else
+        on_confirm.(socket)
+      end
+
+    {:noreply, socket}
+  end
+
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
     request =
       case params do
@@ -1429,6 +1482,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
     {:noreply, assign(socket, starred_files: starred_files(starred_notebooks))}
+  end
+
+  def handle_info({:app_updated, app}, socket) when socket.assigns.app != nil do
+    {:noreply, assign(socket, :app, app)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -1740,13 +1797,34 @@ defmodule LivebookWeb.SessionLive do
     prune_cell_sources(socket)
   end
 
+  defp after_operation(socket, prev_socket, {:set_deployed_app_slug, _client_id, slug}) do
+    prev_slug = prev_socket.private.data.deployed_app_slug
+
+    if slug == prev_slug do
+      socket
+    else
+      if prev_slug do
+        Livebook.App.unsubscribe(prev_slug)
+      end
+
+      app =
+        if slug do
+          {:ok, app} = Livebook.Apps.fetch_app(slug)
+          Livebook.App.subscribe(slug)
+          app
+        end
+
+      assign(socket, app: app)
+    end
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:broadcast_delta, client_id, cell, tag, delta}) do
+  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta}) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
@@ -1983,9 +2061,8 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
-      apps_status: apps_status(data),
       app_settings: data.notebook.app_settings,
-      apps: data.apps
+      deployed_app_slug: data.deployed_app_slug
     }
   end
 
@@ -2134,8 +2211,8 @@ defmodule LivebookWeb.SessionLive do
     Map.take(data.input_values, input_ids)
   end
 
-  defp apps_status(%{apps: []}), do: nil
-  defp apps_status(%{apps: [app | _]}), do: app.status
+  def app_status(%{sessions: [app_session | _]}), do: app_session.app_status
+  def app_status(_), do: nil
 
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
@@ -2148,7 +2225,7 @@ defmodule LivebookWeb.SessionLive do
       {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
-      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks, _reevaluate} ->
+      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
@@ -2250,9 +2327,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp app_status_color(nil), do: "bg-gray-400"
-  defp app_status_color(:booting), do: "bg-blue-500"
-  defp app_status_color(:running), do: "bg-green-bright-400"
+  defp app_status_color(:executing), do: "bg-blue-500"
+  defp app_status_color(:executed), do: "bg-green-bright-400"
   defp app_status_color(:error), do: "bg-red-400"
   defp app_status_color(:shutting_down), do: "bg-gray-500"
-  defp app_status_color(:stopped), do: "bg-gray-500"
+  defp app_status_color(:deactivated), do: "bg-gray-500"
 end
