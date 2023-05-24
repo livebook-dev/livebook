@@ -41,7 +41,7 @@ class LiveEditor {
      * and the result is IEditorDecorationsCollection from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IEditorDecorationsCollection.html
      */
     this._doctestDecorations = {
-      deltaDecorations: [],
+      deltaDecorations: {},
       decorationCollection: null,
     }
 
@@ -580,11 +580,10 @@ class LiveEditor {
 
   clearDoctestDecorations() {
     this._doctestDecorations.decorationCollection.clear()
-    this._doctestDecorations.deltaDecorations = []
+    this._doctestDecorations.deltaDecorations = {}
   }
 
-  _createDoctestDecoration(line, className) {
-    const lineNumber = Number(line)
+  _createDoctestDecoration(lineNumber, className) {
     return {
       range: new monaco.Range(lineNumber, 1, lineNumber, 1),
       options: {
@@ -594,61 +593,23 @@ class LiveEditor {
     }
   }
 
-  _appendDoctestDecoration(line, className) {
+  _addDoctestDecoration(line, className) {
     const newDecoration = this._createDoctestDecoration(line, className)
-    this._doctestDecorations.deltaDecorations.push(newDecoration)
-    const decos = this._doctestDecorations.deltaDecorations
+    this._doctestDecorations.deltaDecorations[line] = newDecoration
+    const decos = Object.values(this._doctestDecorations.deltaDecorations)
     this._doctestDecorations.decorationCollection.set(decos)
   }
 
-  _popPushDoctestDecoration(line, className) {
-    const newDecoration = this._createDoctestDecoration(line, className)
-    this._doctestDecorations.deltaDecorations.pop()
-    this._doctestDecorations.deltaDecorations.push(newDecoration)
-    const decos = this._doctestDecorations.deltaDecorations
-    this._doctestDecorations.decorationCollection.set(decos)
+  addSuccessfulDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-green")
   }
 
-  appendSuccessfulDoctestDecoration(line) {
-    this._popPushDoctestDecoration(line, "line-circle-green")
+  addFailedDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-red")
   }
 
-  appendFailedDoctestDecoration(line) {
-    this._popPushDoctestDecoration(line, "line-circle-red")
-  }
-
-  appendEvaluatingDoctestDecoration(line) {
-    this._appendDoctestDecoration(line, "line-circle-grey")
-  }
-
-  addDoctestDecorations(decorations) {
-    const collectionItems = decorations.map(
-      ([line, success]) => {
-        const lineNumber = Number(line)
-        if (success) {
-          const successDecoration = {
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-              isWholeLine: true,
-              linesDecorationsClassName: "line-circle-green",
-            }
-          }
-          return successDecoration
-        }
-        else {
-          const failureDecoration = {
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-              isWholeLine: true,
-              linesDecorationsClassName: "line-circle-red",
-            }
-          }
-          return failureDecoration
-        }
-      }
-    )
-    this._doctestDecorations.deltaDecorations = collectionItems
-    this._doctestDecorations.decorationCollection.set(collectionItems)
+  addEvaluatingDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-grey")
   }
 
 }

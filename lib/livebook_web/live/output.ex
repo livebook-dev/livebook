@@ -16,27 +16,20 @@ defmodule LivebookWeb.Output do
       id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
       data-el-output
       data-border={border?(output)}
-      hidden={hide_doctest_result(output)}
     >
       <%= render_output(output, %{
         id: "output-#{idx}",
         session_id: @session_id,
         session_pid: @session_pid,
         input_values: @input_values,
-        client_id: @client_id,
-        cell_id: @cell_id
+        client_id: @client_id
       }) %>
     </div>
     """
   end
 
-  # hide_doctest_result just for the meanwhile
-  defp hide_doctest_result({:doctest_result, _}), do: true
-  defp hide_doctest_result(_), do: false
-
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:doctest_result, _results}), do: true
   defp border?({:error, _message, _type}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
@@ -52,10 +45,6 @@ defmodule LivebookWeb.Output do
     ~H"""
     <Output.TextComponent.render id={@id} content={@text} />
     """
-  end
-
-  defp render_output({:doctest_result, result}, %{id: id, cell_id: cell_id}) do
-    live_component(Output.DoctestComponent, id: id, result: result, cell_id: cell_id)
   end
 
   defp render_output({:plain_text, text}, %{id: id}) do

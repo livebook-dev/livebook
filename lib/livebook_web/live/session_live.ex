@@ -1706,6 +1706,14 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
+         {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}}
+       ) do
+    push_doctest_event(socket, cell_id, result)
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
          {:add_cell_evaluation_output, _client_id, _cell_id, _output}
        ) do
     prune_outputs(socket)
@@ -1730,6 +1738,15 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
+
+  defp push_doctest_event(socket, cell_id, %{state: :evaluating, doctest_line: line}),
+    do: push_event(socket, "evaluating_doctest:#{cell_id}", %{line: line})
+
+  defp push_doctest_event(socket, cell_id, %{state: :success, doctest_line: line}),
+    do: push_event(socket, "success_doctest:#{cell_id}", %{line: line})
+
+  defp push_doctest_event(socket, cell_id, %{state: :failed, doctest_line: line}),
+    do: push_event(socket, "failed_doctest:#{cell_id}", %{line: line})
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
@@ -2147,6 +2164,7 @@ defmodule LivebookWeb.SessionLive do
        {:frame, _outputs, %{type: type, ref: ref}}}
       when type != :default ->
         for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
             outputs: frame_outputs,
@@ -2154,6 +2172,9 @@ defmodule LivebookWeb.SessionLive do
           )
         end
 
+        data_view
+
+      {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}} ->
         data_view
 
       {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->

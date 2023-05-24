@@ -253,21 +253,21 @@ const Cell = {
         this.handleEvent(
           `evaluating_doctest:${this.props.cellId}`,
           ({ line }) => {
-            liveEditor.appendEvaluatingDoctestDecoration(line)
+            liveEditor.addEvaluatingDoctestDecoration(line)
           }
         );
 
         this.handleEvent(
           `success_doctest:${this.props.cellId}`,
           ({ line }) => {
-            liveEditor.appendSuccessfulDoctestDecoration(line)
+            liveEditor.addSuccessfulDoctestDecoration(line)
           }
         );
 
         this.handleEvent(
           `failed_doctest:${this.props.cellId}`,
           ({ line }) => {
-            liveEditor.appendFailedDoctestDecoration(line)
+            liveEditor.addFailedDoctestDecoration(line)
           }
         );
 
