@@ -16,12 +16,22 @@ defmodule LivebookWeb.Output.FileInputComponent do
       else
         socket
         |> allow_upload(:file,
-          accept: socket.assigns.accept,
+          # The file input specifies the accepted formats, but in order
+          # to handle unknown MIME types, we need to pass :any to
+          # allow_upload and add the input accept attribute ourselves
+          accept: :any,
           max_entries: 1,
           progress: &handle_progress/3,
           auto_upload: true
         )
-        |> assign(initialized: true)
+        |> assign(
+          initialized: true,
+          accept:
+            case socket.assigns.accept do
+              :any -> nil
+              types when is_list(types) -> Enum.join(types, ",")
+            end
+        )
       end
 
     {:ok, socket}
@@ -44,7 +54,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
             Click to select a file or drag a local file here
           <% end %>
         </div>
-        <.live_file_input upload={@uploads.file} class="hidden" />
+        <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
       </label>
     </form>
     """
