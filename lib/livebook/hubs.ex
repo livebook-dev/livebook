@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Broadcasts, Enterprise, Fly, Metadata, Personal, Provider, Team}
+  alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
 
   @namespace :hubs
@@ -155,14 +155,6 @@ defmodule Livebook.Hubs do
 
   def unsubscribe(topic) do
     Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
-  defp to_struct(%{id: "fly-" <> _} = fields) do
-    Provider.load(%Fly{}, fields)
-  end
-
-  defp to_struct(%{id: "enterprise-" <> _} = fields) do
-    Provider.load(%Enterprise{}, fields)
   end
 
   defp to_struct(%{id: "personal-" <> _} = fields) do
