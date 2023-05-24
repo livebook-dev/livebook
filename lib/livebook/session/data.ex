@@ -536,6 +536,19 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  def apply_operation(
+        data,
+        {:add_cell_evaluation_output, _client_id, id, {:doctest_result, _result}}
+      ) do
+    with {:ok, _cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:add_cell_evaluation_output, _client_id, id, output}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data

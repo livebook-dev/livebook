@@ -35,6 +35,15 @@ class LiveEditor {
     this._onBlur = [];
     this._onCursorSelectionChange = [];
     this._remoteUserByClientId = {};
+    /* For doctest decorations we store the params to create the
+     * decorations and also the result of creating the decorations.
+     * The params are IModelDeltaDecoration from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IModelDeltaDecoration.html
+     * and the result is IEditorDecorationsCollection from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IEditorDecorationsCollection.html
+     */
+    this._doctestDecorations = {
+      deltaDecorations: {},
+      decorationCollection: null,
+    };
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -269,6 +278,9 @@ class LiveEditor {
           ? "on"
           : "off",
     });
+
+    this._doctestDecorations.decorationCollection =
+      this.editor.createDecorationsCollection([]);
 
     this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
@@ -565,6 +577,40 @@ class LiveEditor {
         }
       );
     });
+  }
+
+  clearDoctestDecorations() {
+    this._doctestDecorations.decorationCollection.clear();
+    this._doctestDecorations.deltaDecorations = {};
+  }
+
+  _createDoctestDecoration(lineNumber, className) {
+    return {
+      range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+      options: {
+        isWholeLine: true,
+        linesDecorationsClassName: className,
+      },
+    };
+  }
+
+  _addDoctestDecoration(line, className) {
+    const newDecoration = this._createDoctestDecoration(line, className);
+    this._doctestDecorations.deltaDecorations[line] = newDecoration;
+    const decos = Object.values(this._doctestDecorations.deltaDecorations);
+    this._doctestDecorations.decorationCollection.set(decos);
+  }
+
+  addSuccessDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-green");
+  }
+
+  addFailedDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-red");
+  }
+
+  addEvaluatingDoctestDecoration(line) {
+    this._addDoctestDecoration(line, "line-circle-grey");
   }
 }
 

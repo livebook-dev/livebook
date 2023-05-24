@@ -242,6 +242,28 @@ const Cell = {
             liveEditor.setCodeErrorMarker(code_error);
           }
         );
+
+        this.handleEvent(`start_evaluation:${this.props.cellId}`, () => {
+          liveEditor.clearDoctestDecorations();
+        });
+
+        this.handleEvent(
+          `doctest_result:${this.props.cellId}`,
+          ({ state, line }) => {
+            console.log({ state, line });
+            switch (state) {
+              case "evaluating":
+                liveEditor.addEvaluatingDoctestDecoration(line);
+                break;
+              case "success":
+                liveEditor.addSuccessDoctestDecoration(line);
+                break;
+              case "failed":
+                liveEditor.addFailedDoctestDecoration(line);
+                break;
+            }
+          }
+        );
       }
     }
   },

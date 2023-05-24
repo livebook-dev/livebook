@@ -1763,6 +1763,17 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
+         {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}}
+       ) do
+    push_event(socket, "doctest_result:#{cell_id}", %{
+      state: result.state,
+      line: result.doctest_line
+    })
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
          {:add_cell_evaluation_output, _client_id, _cell_id, _output}
        ) do
     prune_outputs(socket)
@@ -1819,6 +1830,10 @@ defmodule LivebookWeb.SessionLive do
     else
       push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
     end
+  end
+
+  defp handle_action(socket, {:start_evaluation, cell, _section}) do
+    push_event(socket, "start_evaluation:#{cell.id}", %{})
   end
 
   defp handle_action(socket, _action), do: socket
@@ -2227,6 +2242,9 @@ defmodule LivebookWeb.SessionLive do
           )
         end
 
+        data_view
+
+      {:add_cell_evaluation_output, _client_id, _cell_id, {:doctest_result, _result}} ->
         data_view
 
       {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
