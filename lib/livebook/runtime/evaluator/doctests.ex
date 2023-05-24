@@ -21,9 +21,9 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
             test_module.tests
             |> Enum.sort_by(& &1.tags.doctest_line)
             |> Enum.map(fn test ->
-              decorate_live_editor(:evaluating, test)
+              report_doctest_state(:evaluating, test)
               test = run_test(test)
-              decorate_live_editor(:success_or_failed, test)
+              report_doctest_state(:success_or_failed, test)
               test
             end)
 
@@ -40,7 +40,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     :ok
   end
 
-  defp decorate_live_editor(:evaluating, test) do
+  defp report_doctest_state(:evaluating, test) do
     result = %{
       doctest_line: test.tags.doctest_line,
       state: :evaluating
@@ -49,7 +49,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     put_output({:doctest_result, result})
   end
 
-  defp decorate_live_editor(:success_or_failed, test) do
+  defp report_doctest_state(:success_or_failed, test) do
     result = %{
       doctest_line: test.tags.doctest_line,
       state: get_in(test, [Access.key(:state), Access.elem(0)]) || :success
