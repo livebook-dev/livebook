@@ -205,7 +205,7 @@ defmodule Livebook.TeamsServer do
   end
 
   defp app_port do
-    System.get_env("TEAMS_PORT", "4043")
+    System.get_env("TEAMS_PORT", "5053")
   end
 
   defp debug do
