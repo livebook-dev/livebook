@@ -103,37 +103,15 @@ defmodule LivebookWeb.Hub.NewLive do
                   id="new-org"
                   selected={@selected_option}
                   title="Create a new organization"
-                >
-                  <.remix_icon
-                    icon="lightbulb-flash-line"
-                    class={[
-                      "group-hover:text-blue-500 text-lg",
-                      if @selected_option == "new-org" do
-                        "text-blue-500"
-                      else
-                        "text-gray-500"
-                      end
-                    ]}
-                  />
-                </.tab_button>
+                  icon="lightbulb-flash-line"
+                />
                 <!-- Join Org -->
                 <.tab_button
                   id="join-org"
                   selected={@selected_option}
                   title="Join an existing organization"
-                >
-                  <.remix_icon
-                    icon="organization-chart"
-                    class={[
-                      "group-hover:text-blue-500 text-lg",
-                      if @selected_option == "join-org" do
-                        "text-blue-500"
-                      else
-                        "text-gray-500"
-                      end
-                    ]}
-                  />
-                </.tab_button>
+                  icon="organization-chart"
+                />
               </ul>
             </div>
           </div>
@@ -201,7 +179,17 @@ defmodule LivebookWeb.Hub.NewLive do
           selected_tab_button(@id, @selected)
         ]}>
           <span class="relative max-[370px]:hidden">
-            <%= render_slot(@inner_block) %>
+            <.remix_icon
+              icon={@icon}
+              class={[
+                "group-hover:text-blue-500 text-lg",
+                if @selected == @id do
+                  "text-blue-500"
+                else
+                  "text-gray-500"
+                end
+              ]}
+            />
           </span>
           <span class="truncate text-sm font-medium"><%= @title %></span>
         </div>
@@ -215,19 +203,8 @@ defmodule LivebookWeb.Hub.NewLive do
 
   defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
 
-  defp tab_button_icon(assigns) do
-    ~H"""
-    <i class={["ri-#{@icon} icon text-lg", color_class(@selected, @class)]} aria-hidden="true"></i>
-    """
-  end
-
-  defp color_class(true, class), do: class
-  defp color_class(false, _class), do: "text-gray-500 group-hover:text-blue-500"
-
   @impl true
-  def handle_event("select_option", %{"option" => option} = metadata, socket) do
-    IO.puts("select_option: #{inspect(metadata)}")
-
+  def handle_event("select_option", %{"option" => option}, socket) do
     {:noreply,
      socket
      |> assign(selected_option: option, requested_code: false, verification_uri: nil)
