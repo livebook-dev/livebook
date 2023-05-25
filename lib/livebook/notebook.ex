@@ -604,6 +604,17 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Removes all outputs from the notebook.
+  """
+  @spec clear_outputs(t()) :: t()
+  def clear_outputs(notebook) do
+    update_cells(notebook, fn
+      %{outputs: _outputs} = cell -> %{cell | outputs: []}
+      cell -> cell
+    end)
+  end
+
+  @doc """
   Adds new output to the given cell.
 
   Automatically merges stdout outputs and updates frames.

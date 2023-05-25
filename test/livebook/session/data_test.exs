@@ -15,9 +15,11 @@ defmodule Livebook.Session.DataTest do
     uses = opts[:uses] || []
     defines = opts[:defines] || %{}
     errored = Keyword.get(opts, :errored, false)
+    interrupted = Keyword.get(opts, :interrupted, false)
 
     %{
       errored: errored,
+      interrupted: interrupted,
       evaluation_time_ms: 10,
       identifiers_used: uses,
       identifiers_defined: defines
@@ -65,6 +67,27 @@ defmodule Livebook.Session.DataTest do
                Data.new(notebook: notebook)
 
       assert snapshot != nil
+    end
+
+    test "clears all outputs when in app mode" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Notebook.Section.new()
+              | id: "s1",
+                cells: [
+                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hello!"}}]}
+                ]
+            }
+          ]
+      }
+
+      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]}]}} =
+               Data.new(notebook: notebook)
+
+      assert %{notebook: %{sections: [%{cells: [%{outputs: []}]}]}} =
+               Data.new(notebook: notebook, mode: :app)
     end
   end
 
@@ -3779,7 +3802,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:app_deactivate, @cid}
 
-      assert {:ok, %{app_data: %{status: :deactivated}}, [:app_report_status]} =
+      assert {:ok, %{app_data: %{status: %{lifecycle: :deactivated}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3800,8 +3823,8 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:app_shutdown, @cid}
 
-      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_report_status, :app_terminate]} =
-               Data.apply_operation(data, operation)
+      assert {:ok, %{app_data: %{status: %{lifecycle: :shutting_down}}},
+              [:app_report_status, :app_terminate]} = Data.apply_operation(data, operation)
     end
 
     test "does not return terminate action if there are clients" do
@@ -3814,7 +3837,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:app_shutdown, @cid}
 
-      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_report_status]} =
+      assert {:ok, %{app_data: %{status: %{lifecycle: :shutting_down}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3833,7 +3856,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :executing}}, _actions} =
+      assert {:ok, %{app_data: %{status: %{execution: :executing}}}, _actions} =
                Data.apply_operation(data, operation)
     end
 
@@ -3851,7 +3874,7 @@ defmodule Livebook.Session.DataTest do
       operation =
         {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta(errored: true)}
 
-      assert {:ok, %{app_data: %{status: :error}}, [:app_report_status]} =
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3868,7 +3891,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :executed}}, [:app_report_status]} =
+      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3884,7 +3907,43 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:reflect_main_evaluation_failure, @cid}
 
-      assert {:ok, %{app_data: %{status: :error}}, [:app_report_status, :app_recover]} =
+      assert {:ok, %{app_data: %{status: %{execution: :error}}},
+              [:app_report_status, :app_recover]} = Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :error when evaluation finishes with error" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1"]),
+          {:queue_cells_evaluation, @cid, ["c2"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta(errored: true)}
+
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :interrupted when evaluation fails with interrupt error" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1"]),
+          {:queue_cells_evaluation, @cid, ["c2"]}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta(interrupted: true)}
+
+      assert {:ok, %{app_data: %{status: %{execution: :interrupted}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3903,7 +3962,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()}
 
-      assert {:ok, %{app_data: %{status: :executed}}, [:app_report_status]} =
+      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, [:app_report_status]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3918,7 +3977,28 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:client_leave, @cid}
 
-      assert {:ok, %{app_data: %{status: :shutting_down}}, [:app_terminate]} =
+      assert {:ok, %{app_data: %{status: %{lifecycle: :shutting_down}}}, [:app_terminate]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :executing on automatic reevaluation" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2"], bind_inputs: %{"c2" => ["i1"]})
+        ])
+
+      operation = {:set_input_value, @cid, "i1", "stuff"}
+
+      assert {:ok, %{app_data: %{status: %{execution: :executing}}}, _actions} =
                Data.apply_operation(data, operation)
     end
   end

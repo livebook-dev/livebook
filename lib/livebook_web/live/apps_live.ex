@@ -116,10 +116,7 @@ defmodule LivebookWeb.AppsLive do
             <:actions :let={app_session}>
               <span class="tooltip left" data-tooltip="Open">
                 <a
-                  class={[
-                    "icon-button",
-                    not Livebook.Session.Data.app_active?(app_session.app_status) && "disabled"
-                  ]}
+                  class={["icon-button", app_session.app_status.lifecycle != :active && "disabled"]}
                   aria-label="open app"
                   href={~p"/apps/#{app.slug}/#{app_session.id}"}
                 >
@@ -131,7 +128,7 @@ defmodule LivebookWeb.AppsLive do
                   <.remix_icon icon="terminal-line" class="text-lg" />
                 </a>
               </span>
-              <%= if Livebook.Session.Data.app_active?(app_session.app_status) do %>
+              <%= if app_session.app_status.lifecycle == :active do %>
                 <span class="tooltip left" data-tooltip="Deactivate">
                   <button
                     class="icon-button"

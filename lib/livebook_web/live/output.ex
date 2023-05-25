@@ -8,6 +8,14 @@ defmodule LivebookWeb.Output do
   @doc """
   Renders a list of cell outputs.
   """
+  attr :outputs, :list, required: true
+  attr :session_id, :string, required: true
+  attr :session_pid, :any, required: true
+  attr :input_values, :map, required: true
+  attr :dom_id_map, :map, required: true
+  attr :client_id, :string, required: true
+  attr :cell_id, :string, required: true
+
   def outputs(assigns) do
     ~H"""
     <div
@@ -22,7 +30,8 @@ defmodule LivebookWeb.Output do
         session_id: @session_id,
         session_pid: @session_pid,
         input_values: @input_values,
-        client_id: @client_id
+        client_id: @client_id,
+        cell_id: @cell_id
       }) %>
     </div>
     """
@@ -30,6 +39,7 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
+  defp border?({:error, _message, {:interrupt, _, _}}), do: false
   defp border?({:error, _message, _type}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
@@ -86,7 +96,8 @@ defmodule LivebookWeb.Output do
          session_id: session_id,
          session_pid: session_pid,
          input_values: input_values,
-         client_id: client_id
+         client_id: client_id,
+         cell_id: cell_id
        }) do
     live_component(Output.FrameComponent,
       id: id,
@@ -94,7 +105,8 @@ defmodule LivebookWeb.Output do
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
-      client_id: client_id
+      client_id: client_id,
+      cell_id: cell_id
     )
   end
 
@@ -103,7 +115,8 @@ defmodule LivebookWeb.Output do
          session_id: session_id,
          session_pid: session_pid,
          input_values: input_values,
-         client_id: client_id
+         client_id: client_id,
+         cell_id: cell_id
        }) do
     {labels, active_idx} =
       if info.labels == :__pruned__ do
@@ -125,7 +138,8 @@ defmodule LivebookWeb.Output do
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
-      client_id: client_id
+      client_id: client_id,
+      cell_id: cell_id
     }
 
     # After pruning we don't render labels and we render only those
@@ -164,6 +178,7 @@ defmodule LivebookWeb.Output do
             session_pid={@session_pid}
             input_values={@input_values}
             client_id={@client_id}
+            cell_id={@cell_id}
           />
         </div>
       </div>
@@ -176,7 +191,8 @@ defmodule LivebookWeb.Output do
          session_id: session_id,
          session_pid: session_pid,
          input_values: input_values,
-         client_id: client_id
+         client_id: client_id,
+         cell_id: cell_id
        }) do
     columns = info[:columns] || 1
     gap = info[:gap] || 8
@@ -189,7 +205,8 @@ defmodule LivebookWeb.Output do
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
-      client_id: client_id
+      client_id: client_id,
+      cell_id: cell_id
     }
 
     ~H"""
@@ -208,6 +225,7 @@ defmodule LivebookWeb.Output do
             session_pid={@session_pid}
             input_values={@input_values}
             client_id={@client_id}
+            cell_id={@cell_id}
           />
         </div>
       </div>
@@ -272,6 +290,38 @@ defmodule LivebookWeb.Output do
         </.link>
       </div>
       <%= render_formatted_error_message(@message) %>
+    </div>
+    """
+  end
+
+  defp render_output({:error, _formatted, {:interrupt, variant, message}}, %{cell_id: cell_id}) do
+    assigns = %{variant: variant, message: message, cell_id: cell_id}
+
+    ~H"""
+    <div class={[
+      "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
+      case @variant do
+        :error -> "text-red-400 border-red-400"
+        :normal -> "text-gray-500 border-gray-300"
+      end
+    ]}>
+      <div>
+        <%= @message %>
+      </div>
+      <button
+        class={[
+          "button-base bg-transparent",
+          case @variant do
+            :error -> "border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
+            :normal -> "border-gray-300 text-gray-500 hover:bg-gray-100 focus:bg-gray-100"
+          end
+        ]}
+        phx-click="queue_interrupted_cell_evaluation"
+        phx-value-cell_id={@cell_id}
+      >
+        <.remix_icon icon="play-circle-fill" class="align-middle mr-1" />
+        <span>Continue</span>
+      </button>
     </div>
     """
   end

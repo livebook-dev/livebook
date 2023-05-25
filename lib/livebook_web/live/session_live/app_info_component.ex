@@ -96,10 +96,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
                 <span class="tooltip top" data-tooltip="Open">
                   <a
-                    class={[
-                      "icon-button",
-                      not Livebook.Session.Data.app_active?(app_session.app_status) && "disabled"
-                    ]}
+                    class={["icon-button", app_session.app_status.lifecycle != :active && "disabled"]}
                     aria-label="open app"
                     href={~p"/apps/#{@app.slug}/#{app_session.id}"}
                   >
@@ -112,22 +109,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                     <.remix_icon icon="terminal-line" class="text-lg" />
                   </a>
                 </span>
-                <%= if app_session.app_status in [:deactivated, :shutting_down] do %>
-                  <span class="tooltip top" data-tooltip="Terminate">
-                    <button
-                      class="icon-button"
-                      aria-label="terminate app session"
-                      phx-click={
-                        JS.push("terminate_app_session",
-                          value: %{session_id: app_session.id},
-                          target: @myself
-                        )
-                      }
-                    >
-                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                    </button>
-                  </span>
-                <% else %>
+                <%= if app_session.app_status.lifecycle == :active do %>
                   <span class="tooltip top" data-tooltip="Deactivate">
                     <button
                       class="icon-button"
@@ -140,6 +122,21 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                       }
                     >
                       <.remix_icon icon="stop-circle-line" class="text-lg" />
+                    </button>
+                  </span>
+                <% else %>
+                  <span class="tooltip top" data-tooltip="Terminate">
+                    <button
+                      class="icon-button"
+                      aria-label="terminate app session"
+                      phx-click={
+                        JS.push("terminate_app_session",
+                          value: %{session_id: app_session.id},
+                          target: @myself
+                        )
+                      }
+                    >
+                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
                     </button>
                   </span>
                 <% end %>

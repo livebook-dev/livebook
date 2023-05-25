@@ -26,10 +26,14 @@ defmodule Livebook.AppsTest do
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
 
       assert_receive {:app_created, %{slug: "app1"} = app1}
-      assert_receive {:app_updated, %{slug: "app1", sessions: [%{app_status: :executed}]}}
+
+      assert_receive {:app_updated,
+                      %{slug: "app1", sessions: [%{app_status: %{execution: :executed}}]}}
 
       assert_receive {:app_created, %{slug: "app2"} = app2}
-      assert_receive {:app_updated, %{slug: "app2", sessions: [%{app_status: :executed}]}}
+
+      assert_receive {:app_updated,
+                      %{slug: "app2", sessions: [%{app_status: %{execution: :executed}}]}}
 
       Livebook.App.close(app1.pid)
       Livebook.App.close(app2.pid)

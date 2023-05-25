@@ -10,6 +10,7 @@ defmodule Livebook.SessionTest do
 
   @eval_meta %{
     errored: false,
+    interrupted: false,
     evaluation_time_ms: 10,
     identifiers_used: [],
     identifiers_defined: %{}
@@ -1223,13 +1224,20 @@ defmodule Livebook.SessionTest do
       {:ok, app_pid} = Apps.deploy(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid} = app}
-      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
+
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
       Process.exit(Process.whereis(test), :shutdown)
 
-      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :error}]}}
-      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executing}]}}
-      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :error}}]}}
+
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executing}}]}}
+
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
       App.close(app.pid)
     end

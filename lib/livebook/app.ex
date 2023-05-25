@@ -269,7 +269,7 @@ defmodule Livebook.App do
           pid: session.pid,
           version: state.version,
           created_at: session.created_at,
-          app_status: :executing,
+          app_status: %{execution: :executing, lifecycle: :active},
           client_count: 0,
           started_by_id: user && user.id
         }
@@ -318,7 +318,7 @@ defmodule Livebook.App do
   defp shutdown_old_versions(state), do: state
 
   defp shutdown_session(app_session) do
-    if Livebook.Session.Data.app_active?(app_session.app_status) do
+    if app_session.app_status.lifecycle == :active do
       Livebook.Session.app_shutdown(app_session.pid)
     end
   end

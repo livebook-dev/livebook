@@ -109,6 +109,6 @@ defmodule LivebookWeb.AppLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp active_sessions(sessions) do
-    Enum.filter(sessions, &Livebook.Session.Data.app_active?(&1.app_status))
+    Enum.filter(sessions, &(&1.app_status.lifecycle == :active))
   end
 end
