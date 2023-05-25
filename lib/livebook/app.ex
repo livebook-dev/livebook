@@ -237,11 +237,14 @@ defmodule Livebook.App do
     app_session = Enum.find(state.sessions, &(&1.version == state.version))
 
     if app_session do
-      if state.notebook.app_settings.zero_downtime and app_session.app_status != :executed do
-        Enum.find(state.sessions, &(&1.app_status == :executed))
+      if state.notebook.app_settings.zero_downtime and not status_ready?(app_session.app_status) do
+        Enum.find(state.sessions, &status_ready?(&1.app_status))
       end || app_session
     end
   end
+
+  defp status_ready?(%{execution: :executed, lifecycle: :active}), do: true
+  defp status_ready?(_status), do: false
 
   defp start_eagerly(state) when state.notebook.app_settings.multi_session, do: state
 
