@@ -25,10 +25,10 @@ defmodule Livebook.Teams.Client do
   @doc """
   Send a request to Livebook Team API to get an org request.
   """
-  @spec get_org_request_completion_data(pos_integer()) ::
+  @spec get_org_request_completion_data(pos_integer(), binary) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def get_org_request_completion_data(id) do
-    get("/api/org-request/#{id}")
+  def get_org_request_completion_data(id, device_code) do
+    get("/api/org-request/#{id}?device_code=#{device_code}")
   end
 
   defp post(path, json, header \\ []) do

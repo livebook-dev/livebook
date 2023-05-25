@@ -4,6 +4,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
   alias Livebook.Teams.Org
 
   import Phoenix.LiveViewTest
+  @check_completion_data_interval 5000
 
   test "render hub selection cards", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/hub")
@@ -54,7 +55,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, path, check_completion_data_interval())
+        assert_redirect(view, path, @check_completion_data_interval)
 
       # checks if the hub is in the sidebar
       {:ok, view, _html} = live(conn, path)
@@ -111,7 +112,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, path, check_completion_data_interval())
+        assert_redirect(view, path, @check_completion_data_interval)
 
       # checks if the hub is in the sidebar
       {:ok, view, _html} = live(conn, path)
@@ -120,9 +121,5 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       assert hubs_html =~ path
       assert hubs_html =~ name
     end
-  end
-
-  defp check_completion_data_interval do
-    Application.fetch_env!(:livebook, :check_completion_data_interval) + 100
   end
 end

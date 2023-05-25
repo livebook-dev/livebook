@@ -228,12 +228,16 @@ defmodule LivebookWeb.Hub.NewLive do
       end
 
     case result do
-      {:ok, response} ->
+      {:ok, %{"device_code" => device_code} = response} ->
         attrs = Map.merge(attrs, response)
         changeset = Teams.change_org(socket.assigns.org, attrs)
         org = Ecto.Changeset.apply_action!(changeset, :insert)
 
-        Process.send_after(self(), :check_completion_data, @check_completion_data_interval)
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
 
         {:noreply,
          socket
@@ -249,10 +253,14 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
-  def handle_info(:check_completion_data, %{assigns: %{org: org}} = socket) do
-    case Teams.get_org_request_completion_data(org) do
+  def handle_info({:check_completion_data, device_code}, %{assigns: %{org: org}} = socket) do
+    case Teams.get_org_request_completion_data(org, device_code) do
       {:ok, :awaiting_confirmation} ->
-        Process.send_after(self(), :check_completion_data, @check_completion_data_interval)
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
 
         {:noreply, socket}
 

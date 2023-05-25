@@ -69,12 +69,12 @@ defmodule Livebook.Teams do
   @doc """
   Send a request to Livebook Teams API to get an org request.
   """
-  @spec get_org_request_completion_data(Org.t()) ::
+  @spec get_org_request_completion_data(Org.t(), binary()) ::
           {:ok, map() | :awaiting_confirmation}
           | {:error, :expired}
           | {:transport_error, String.t()}
-  def get_org_request_completion_data(%Org{id: id}) do
-    case Client.get_org_request_completion_data(id) do
+  def get_org_request_completion_data(%Org{id: id}, device_code) do
+    case Client.get_org_request_completion_data(id, device_code) do
       {:ok, %{"status" => "awaiting_confirmation"}} -> {:ok, :awaiting_confirmation}
       {:ok, completion_data} -> {:ok, completion_data}
       {:error, %{"status" => "expired"}} -> {:error, :expired}
