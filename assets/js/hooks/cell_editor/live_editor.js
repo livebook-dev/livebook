@@ -605,8 +605,36 @@ class LiveEditor {
     this._addDoctestDecoration(line, "line-circle-green");
   }
 
-  addFailedDoctestDecoration(line) {
+  addFailedDoctestDecoration(line, contents) {
     this._addDoctestDecoration(line, "line-circle-red");
+
+    let overlayDom = document.createElement('div');
+    overlayDom.innerHTML = contents.join("\n");
+    overlayDom.style.fontFamily = "monospace";
+    overlayDom.style.whiteSpace = "pre";
+    overlayDom.style.marginLeft = '80px';
+
+    // https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.ioverlaywidget.html
+    let overlayWidget = {
+      getId: () => 'overlay.zone.widget',
+      getDomNode: () => overlayDom,
+      getPosition: () => null
+    };
+    this.editor.addOverlayWidget(overlayWidget);
+
+    this.editor.changeViewZones(function(changeAccessor) {
+      changeAccessor.addZone({
+        afterLineNumber: line,
+        heightInLines: contents.length,
+        domNode: document.createElement('div'),
+        onDomNodeTop: top => {
+          overlayDom.style.top = top + "px";
+        },
+        onComputedHeight: height => {
+          overlayDom.style.height = height + "px";
+        }
+      });
+    });
   }
 
   addEvaluatingDoctestDecoration(line) {

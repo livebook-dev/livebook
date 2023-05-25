@@ -462,6 +462,7 @@ const Session = {
    * (e.g. if the user starts selecting some text within the editor)
    */
   handleDocumentMouseDown(event) {
+    // TODO: FIX ME
     // If the click is outside the notebook element, keep the focus as is
     if (!event.target.closest(`[data-el-notebook]`)) {
       if (this.insertMode) {

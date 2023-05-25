@@ -1765,10 +1765,18 @@ defmodule LivebookWeb.SessionLive do
          _prev_socket,
          {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}}
        ) do
-    push_event(socket, "doctest_result:#{cell_id}", %{
-      state: result.state,
-      line: result.doctest_line
-    })
+    result =
+      Map.replace_lazy(
+        result,
+        :contents,
+        fn contents ->
+          contents
+          |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
+          |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+        end
+      )
+
+    push_event(socket, "doctest_result:#{cell_id}", result)
   end
 
   defp after_operation(

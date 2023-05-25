@@ -42,17 +42,28 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
 
   defp report_doctest_state(:evaluating, test) do
     result = %{
-      doctest_line: test.tags.doctest_line,
+      line: test.tags.doctest_line,
       state: :evaluating
     }
 
     put_output({:doctest_result, result})
   end
 
-  defp report_doctest_state(:success_or_failed, test) do
+  defp report_doctest_state(:success_or_failed, %{state: nil} = test) do
     result = %{
-      doctest_line: test.tags.doctest_line,
-      state: get_in(test, [Access.key(:state), Access.elem(0)]) || :success
+      line: test.tags.doctest_line,
+      state: :success
+    }
+
+    put_output({:doctest_result, result})
+  end
+
+  defp report_doctest_state(:success_or_failed, %{state: {:failed, failure}} = test) do
+    IO.inspect test
+    result = %{
+      line: test.tags.doctest_line,
+      state: :failed,
+      contents: IO.iodata_to_binary(format_failure(failure, test))
     }
 
     put_output({:doctest_result, result})
@@ -215,16 +226,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         [colorize(:red, message), "\n"]
       end)
 
-    source_io =
-      if_io(source, fn ->
-        [
-          String.duplicate(" ", @pad_size),
-          format_label("doctest"),
-          "\n",
-          pad(source, @pad_size + 2)
-        ]
-      end)
-
     expected_io =
       if_io(expected, fn ->
         [
@@ -249,7 +250,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         ]
       end)
 
-    message_io ++ source_io ++ expected_io ++ got_io
+    [message_io, expected_io, got_io]
   end
 
   defp format_failure({kind, reason, stacktrace}, test) do

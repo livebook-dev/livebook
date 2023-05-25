@@ -249,8 +249,8 @@ const Cell = {
 
         this.handleEvent(
           `doctest_result:${this.props.cellId}`,
-          ({ state, line }) => {
-            console.log({ state, line });
+          ({ state, line, contents }) => {
+            console.log({ state, line, contents });
             switch (state) {
               case "evaluating":
                 liveEditor.addEvaluatingDoctestDecoration(line);
@@ -259,7 +259,7 @@ const Cell = {
                 liveEditor.addSuccessDoctestDecoration(line);
                 break;
               case "failed":
-                liveEditor.addFailedDoctestDecoration(line);
+                liveEditor.addFailedDoctestDecoration(line, contents);
                 break;
             }
           }
