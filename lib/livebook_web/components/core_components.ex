@@ -13,9 +13,9 @@ defmodule LivebookWeb.CoreComponents do
       <.remix_icon icon="cpu-line" class="align-middle mr-1" />
 
   """
-  attr(:icon, :string, required: true)
-  attr(:class, :any, default: nil)
-  attr(:rest, :global)
+  attr :icon, :string, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
   def remix_icon(assigns) do
     ~H"""
@@ -31,14 +31,13 @@ defmodule LivebookWeb.CoreComponents do
       <.flash kind={:info} flash={@flash} />
 
   """
-  attr(:flash, :map, default: %{}, doc: "the map of flash messages to display")
+  attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
 
-  attr(:kind, :atom,
+  attr :kind, :atom,
     values: [:info, :success, :warning, :error],
     doc: "used for styling and flash lookup"
-  )
 
-  attr(:rest, :global, doc: "the arbitrary HTML attributes to add to the flash container")
+  attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   def flash(assigns) do
     ~H"""
@@ -73,7 +72,7 @@ defmodule LivebookWeb.CoreComponents do
       <.flash_group flash={@flash} />
 
   """
-  attr(:flash, :map, required: true, doc: "the map of flash messages")
+  attr :flash, :map, required: true, doc: "the map of flash messages"
 
   def flash_group(assigns) do
     ~H"""
@@ -118,15 +117,15 @@ defmodule LivebookWeb.CoreComponents do
       </.modal>
 
   """
-  attr(:id, :string, required: true)
-  attr(:show, :boolean, default: false)
-  attr(:patch, :string, default: nil)
-  attr(:navigate, :string, default: nil)
-  attr(:class, :string, default: nil)
-  attr(:width, :atom, values: [:small, :medium, :big, :large], required: true)
-  attr(:rest, :global)
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :patch, :string, default: nil
+  attr :navigate, :string, default: nil
+  attr :class, :string, default: nil
+  attr :width, :atom, values: [:small, :medium, :big, :large], required: true
+  attr :rest, :global
 
-  slot(:inner_block, required: true)
+  slot :inner_block, required: true
 
   def modal(assigns) do
     ~H"""
@@ -220,27 +219,24 @@ defmodule LivebookWeb.CoreComponents do
       </.menu>
 
   """
-  attr(:id, :string, required: true)
-  attr(:disabled, :boolean, default: false, doc: "whether the menu is active")
+  attr :id, :string, required: true
+  attr :disabled, :boolean, default: false, doc: "whether the menu is active"
 
-  attr(:position, :atom,
+  attr :position, :atom,
     default: :bottom_right,
     values: [:top_left, :top_right, :bottom_left, :bottom_right]
-  )
 
-  attr(:distant, :boolean,
+  attr :distant, :boolean,
     default: false,
     doc: "whether the menu should be further from the anchor element"
-  )
 
-  attr(:secondary_click, :boolean,
+  attr :secondary_click, :boolean,
     default: false,
     doc: "whether secondary click (usually right mouse click) should open the menu"
-  )
 
-  slot(:toggle, required: true)
+  slot :toggle, required: true
 
-  slot(:inner_block, required: true)
+  slot :inner_block, required: true
 
   def menu(assigns) do
     ~H"""
@@ -306,8 +302,8 @@ defmodule LivebookWeb.CoreComponents do
       </.submenu>
 
   """
-  slot(:primary, required: true)
-  slot(:inner_block, required: true)
+  slot :primary, required: true
+  slot :inner_block, required: true
 
   def submenu(assigns) do
     ~H"""
@@ -325,10 +321,10 @@ defmodule LivebookWeb.CoreComponents do
   @doc """
   Renders a menu item used in `menu/1` and `submenu/1`.
   """
-  attr(:disabled, :boolean, default: false)
-  attr(:variant, :atom, default: :default, values: [:default, :selected, :danger])
+  attr :disabled, :boolean, default: false
+  attr :variant, :atom, default: :default, values: [:default, :selected, :danger]
 
-  slot(:inner_block, required: true)
+  slot :inner_block, required: true
 
   def menu_item(assigns) do
     ~H"""
@@ -350,8 +346,8 @@ defmodule LivebookWeb.CoreComponents do
   @doc """
   Renders a text content skeleton.
   """
-  attr(:empty, :boolean, default: false, doc: "if the source is empty")
-  attr(:bg_class, :string, default: "bg-gray-200", doc: "the skeleton background color")
+  attr :empty, :boolean, default: false, doc: "if the source is empty"
+  attr :bg_class, :string, default: "bg-gray-200", doc: "the skeleton background color"
 
   def content_skeleton(assigns) do
     ~H"""
@@ -380,9 +376,9 @@ defmodule LivebookWeb.CoreComponents do
         source="System.version()" />
 
   """
-  attr(:source_id, :string, required: true)
-  attr(:language, :string, required: true)
-  attr(:source, :string, required: true)
+  attr :source_id, :string, required: true
+  attr :language, :string, required: true
+  attr :source, :string, required: true
 
   def code_preview(assigns) do
     ~H"""
@@ -405,14 +401,13 @@ defmodule LivebookWeb.CoreComponents do
       <.labeled_text label="Name">Sherlock Holmes</.labeled_text>
 
   """
-  attr(:label, :string, required: true)
+  attr :label, :string, required: true
 
-  attr(:one_line, :boolean,
+  attr :one_line, :boolean,
     default: false,
     doc: "whether to force the text into a single scrollable line"
-  )
 
-  slot(:inner_block, required: true)
+  slot :inner_block, required: true
 
   def labeled_text(assigns) do
     ~H"""
@@ -439,12 +434,12 @@ defmodule LivebookWeb.CoreComponents do
       </.choice_button>
 
   """
-  attr(:active, :boolean, required: true)
-  attr(:disabled, :boolean)
-  attr(:class, :string, default: nil)
-  attr(:rest, :global)
+  attr :active, :boolean, required: true
+  attr :disabled, :boolean
+  attr :class, :string, default: nil
+  attr :rest, :global
 
-  slot(:inner_block, required: true)
+  slot :inner_block, required: true
 
   def choice_button(assigns) do
     assigns =
@@ -469,10 +464,9 @@ defmodule LivebookWeb.CoreComponents do
   @doc """
   Renders an status indicator circle.
   """
-  attr(:variant, :atom,
+  attr :variant, :atom,
     required: true,
     values: [:success, :warning, :error, :inactive, :waiting, :progressing]
-  )
 
   def status_indicator(assigns) do
     ~H"""
@@ -505,8 +499,8 @@ defmodule LivebookWeb.CoreComponents do
   Renders an informative box as a placeholder for a list.
   """
 
-  slot(:inner_block, required: true)
-  slot(:actions)
+  slot :inner_block, required: true
+  slot :actions
 
   def no_entries(assigns) do
     ~H"""
@@ -537,11 +531,11 @@ defmodule LivebookWeb.CoreComponents do
 
   """
 
-  attr(:items, :list, required: true)
+  attr :items, :list, required: true
 
-  slot(:item, required: true)
-  slot(:plural_suffix)
-  slot(:singular_suffix)
+  slot :item, required: true
+  slot :plural_suffix
+  slot :singular_suffix
 
   def listing(%{items: [_]} = assigns) do
     ~H"""
