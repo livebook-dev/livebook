@@ -78,12 +78,14 @@ defmodule Livebook.TeamsTest do
         )
 
       %{
-        org: %{id: id, name: name, keys: [%{id: org_key_id}]},
-        user: %{id: user_id},
-        sessions: [%{token: token}]
-      } = org_request.user_org
+        token: token,
+        user_org: %{
+          org: %{id: id, name: name, keys: [%{id: org_key_id}]},
+          user: %{id: user_id}
+        }
+      } = org_request.user_org_session
 
-      assert Teams.get_org_request_completion_data(org) ==
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
                {:ok,
                 %{
                   "id" => id,
@@ -108,12 +110,13 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) == {:ok, :awaiting_confirmation}
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
+               {:ok, :awaiting_confirmation}
     end
 
     test "returns error when org request doesn't exist" do
       org = build(:org, id: 0)
-      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org)
+      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org, "")
     end
 
     test "returns error when org request expired", %{node: node} do
@@ -135,7 +138,8 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) == {:error, :expired}
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
+               {:error, :expired}
     end
   end
 end
