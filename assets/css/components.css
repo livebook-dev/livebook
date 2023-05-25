@@ -171,13 +171,4 @@
   .info-box {
     @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
   }
-
-  /* Tab Icons */
-  .hover-green:hover .icon {
-    @apply text-green-500 font-medium;
-  }
-
-  .hover-purple:hover .icon {
-    @apply text-purple-500 font-medium;
-  }
 }

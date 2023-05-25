@@ -105,14 +105,11 @@ defmodule LivebookWeb.Hub.NewLive do
                   selected={@selected_option}
                   title="Create a new organization"
                 >
-                  <:logo selected={@selected_option == "new-org"}>
-                    <.tab_button_icon
-                      icon="chat-new-line"
-                      class="text-green-500"
-                      hover_color="hover:text-green-500"
-                      selected={@selected_option == "new-org"}
-                    />
-                  </:logo>
+                  <.tab_button_icon
+                    icon="lightbulb-flash-line"
+                    class="text-blue-500"
+                    selected={@selected_option == "new-org"}
+                  />
                 </.tab_button>
                 <!-- Join Org -->
                 <.tab_button
@@ -120,14 +117,11 @@ defmodule LivebookWeb.Hub.NewLive do
                   selected={@selected_option}
                   title="Join an existing organization"
                 >
-                  <:logo selected={@selected_option == "join-org"}>
-                    <.tab_button_icon
-                      icon="organization-chart"
-                      class="text-purple-500"
-                      hover_color="hover:text-purple-500"
-                      selected={@selected_option == "join-org"}
-                    />
-                  </:logo>
+                  <.tab_button_icon
+                    icon="organization-chart"
+                    class="text-blue-500 group-hover:text-blue-500"
+                    selected={@selected_option == "join-org"}
+                  />
                 </.tab_button>
               </ul>
             </div>
@@ -178,9 +172,7 @@ defmodule LivebookWeb.Hub.NewLive do
     """
   end
 
-  def tab_button(assigns) do
-    assigns = assign_new(assigns, :disabled, fn -> false end)
-
+  defp tab_button(assigns) do
     ~H"""
     <li class="group/toggle w-full">
       <button
@@ -193,13 +185,11 @@ defmodule LivebookWeb.Hub.NewLive do
         phx-click={JS.push("select_option", value: %{value: @id})}
       >
         <div class={[
-          "group/button relative flex w-full items-center justify-center gap-1 rounded-lg border py-3 transition-opacity duration-100 sm:w-auto sm:min-w-[250px] md:gap-2 md:py-2.5",
-          selected_tab_button(@id, @selected),
-          @id == "new-org" && "hover-green",
-          @id == "join-org" && "hover-purple"
+          "group button relative flex w-full items-center justify-center gap-1 rounded-lg border py-3 transition-opacity duration-100 sm:w-auto sm:min-w-[250px] md:gap-2 md:py-2.5",
+          selected_tab_button(@id, @selected)
         ]}>
           <span class="relative max-[370px]:hidden">
-            <%= render_slot(@logo, id: @id, selected: @selected == @id) %>
+            <%= render_slot(@inner_block) %>
           </span>
           <span class="truncate text-sm font-medium"><%= @title %></span>
         </div>
@@ -209,11 +199,11 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp selected_tab_button(id, id),
-    do: "border-black/10 bg-white shadow-[0_1px_7px_0px_rgba(0,0,0,0.06)] hover:!opacity-100"
+    do: "border-black/10 bg-white drop-shadow-sm hover:!opacity-100"
 
   defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
 
-  def tab_button_icon(assigns) do
+  defp tab_button_icon(assigns) do
     assigns = assign_new(assigns, :selected, fn -> false end)
 
     ~H"""
@@ -222,7 +212,7 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp color_class(true, class), do: class
-  defp color_class(false, _class), do: "text-gray-500"
+  defp color_class(false, _class), do: "text-gray-500 group-hover:text-blue-500"
 
   @impl true
   def handle_event("select_option", %{"value" => option}, socket) do
