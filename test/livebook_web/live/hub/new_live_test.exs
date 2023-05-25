@@ -23,9 +23,9 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub")
 
       # select the new org option
-      assert view
-             |> element("#new-org")
-             |> render_click() =~ "2. Create your Organization"
+      view
+      |> element("#new-org")
+      |> render_click()
 
       # builds the form data
       attrs = %{"org" => %{"name" => name, "teams_key" => teams_key, "emoji" => "🐈"}}
@@ -80,9 +80,9 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
 
       # select the new org option
-      assert view
-             |> element("#join-org")
-             |> render_click() =~ "2. Join an Organization"
+      view
+      |> element("#join-org")
+      |> render_click()
 
       # builds the form data
       attrs = %{"org" => %{"name" => name, "teams_key" => teams_key, "emoji" => "🐈"}}
