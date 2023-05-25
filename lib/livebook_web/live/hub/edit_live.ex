@@ -30,8 +30,8 @@ defmodule LivebookWeb.Hub.EditLive do
        hub: hub,
        type: type,
        secrets: Hubs.get_secrets(hub),
-       params: params,
-       secret_name: params["secret_name"]
+       secret_name: params["secret_name"],
+       show_key: params["show-key"] == "true"
      )}
   end
 
@@ -45,6 +45,7 @@ defmodule LivebookWeb.Hub.EditLive do
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <.hub_component
+          show_key={@show_key}
           type={@type}
           hub={@hub}
           live_action={@live_action}
@@ -70,7 +71,14 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   defp hub_component(%{type: "team"} = assigns) do
-    ~H(<.live_component module={LivebookWeb.Hub.Edit.TeamComponent} hub={@hub} id="team-form" />)
+    ~H"""
+    <.live_component
+      module={LivebookWeb.Hub.Edit.TeamComponent}
+      hub={@hub}
+      show_key={@show_key}
+      id="team-form"
+    />
+    """
   end
 
   @impl true

@@ -279,7 +279,7 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
+         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
 
       {:error, :expired} ->
         changeset = Teams.change_org(org, %{user_code: nil})
