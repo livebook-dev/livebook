@@ -14,7 +14,7 @@ defmodule LivebookWeb.CoreComponents do
 
   """
   attr :icon, :string, required: true
-  attr :class, :string, default: nil
+  attr :class, :any, default: nil
   attr :rest, :global
 
   def remix_icon(assigns) do
