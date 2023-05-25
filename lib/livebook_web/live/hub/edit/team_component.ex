@@ -35,7 +35,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             you to store it somewhere safe:
           </div>
           <div class=" w-full">
-            <.with_password_toggle id="teams-key-toggle">
+            <div id="teams-key-toggle" class="relative flex">
               <input
                 type="password"
                 id="teams-key"
@@ -43,7 +43,62 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 value={Phoenix.HTML.Form.normalize_value("text", @hub.teams_key)}
                 class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
               />
-            </.with_password_toggle>
+
+              <div class="flex items-center absolute inset-y-0 right-1">
+                <button
+                  class="icon-button"
+                  data-copy
+                  data-tooltip="Copied to clipboard"
+                  type="button"
+                  aria-label="copy to clipboard"
+                  phx-click={
+                    JS.dispatch("phx:copy", to: "#teams-key")
+                    |> JS.add_class(
+                      "tooltip top",
+                      to: "#teams-key-toggle [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                    )
+                    |> JS.remove_class(
+                      "tooltip top",
+                      to: "#teams-key-toggle [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                      time: 2000
+                    )
+                  }
+                >
+                  <.remix_icon icon="clipboard-line" class="text-xl" />
+                </button>
+
+                <button
+                  class="icon-button"
+                  data-show
+                  type="button"
+                  aria-label="show password"
+                  phx-click={
+                    JS.remove_attribute("type", to: "#teams-key-toggle input")
+                    |> JS.set_attribute({"type", "text"}, to: "#teams-key-toggle input")
+                    |> JS.add_class("hidden", to: "#teams-key-toggle [data-show]")
+                    |> JS.remove_class("hidden", to: "#teams-key-toggle [data-hide]")
+                  }
+                >
+                  <.remix_icon icon="eye-line" class="text-xl" />
+                </button>
+                <button
+                  class="icon-button hidden"
+                  data-hide
+                  type="button"
+                  aria-label="hide password"
+                  phx-click={
+                    JS.remove_attribute("type", to: "#teams-key-toggle input")
+                    |> JS.set_attribute({"type", "password"}, to: "#teams-key-toggle input")
+                    |> JS.remove_class("hidden", to: "#teams-key-toggle [data-show]")
+                    |> JS.add_class("hidden", to: "#teams-key-toggle [data-hide]")
+                  }
+                >
+                  <.remix_icon icon="eye-off-line" class="text-xl" />
+                </button>
+              </div>
+            </div>
           </div>
           <div class="justify-center">
             With this key, you can share within your team members to join your organization!
