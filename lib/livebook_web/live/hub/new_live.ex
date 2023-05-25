@@ -18,19 +18,22 @@ defmodule LivebookWeb.Hub.NewLive do
   def mount(_params, _session, socket) do
     enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
 
-    {:ok,
-     assign(socket,
-       selected_option: nil,
-       page_title: "Hub - Livebook",
-       enabled?: enabled?,
-       requested_code: false,
-       org: nil,
-       verification_uri: nil,
-       form: nil,
-       form_title: nil,
-       button_label: nil,
-       request_code_info: nil
-     )}
+    socket =
+      assign(socket,
+        selected_option: "new-org",
+        page_title: "Hub - Livebook",
+        enabled?: enabled?,
+        requested_code: false,
+        org: nil,
+        verification_uri: nil,
+        form: nil,
+        button_label: nil,
+        request_code_info: nil
+      )
+
+    socket = assign_form(socket, "new-org")
+
+    {:ok, socket}
   end
 
   @impl true
@@ -91,30 +94,47 @@ defmodule LivebookWeb.Hub.NewLive do
             Manage your Livebooks in the cloud with Hubs.
           </p>
         </div>
-
+        <!-- TABS -->
         <div class="flex flex-col space-y-4">
-          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-            1. Select your option
-          </h2>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <.card_item id="new-org" selected={@selected_option} title="Create a new organization">
-              <:logo><.remix_icon icon="add-circle-fill" class="text-black text-3xl" /></:logo>
-              <:headline>Create a new organization and invite your team members.</:headline>
-            </.card_item>
-
-            <.card_item id="join-org" selected={@selected_option} title="Join an organization">
-              <:logo><.remix_icon icon="user-add-fill" class="text-black text-3xl" /></:logo>
-              <:headline>Join within the organization of your team members.</:headline>
-            </.card_item>
+          <div class="relative flex flex-col items-stretch justify-center gap-2 sm:items-center">
+            <div class="relative flex rounded-xl bg-gray-100 p-1">
+              <ul class="flex w-full list-none gap-1 sm:w-auto">
+                <!-- New Org -->
+                <.tab_button
+                  id="new-org"
+                  selected={@selected_option}
+                  title="Create a new organization"
+                >
+                  <:logo selected={@selected_option == "new-org"}>
+                    <.tab_button_icon
+                      icon="chat-new-line"
+                      class="text-green-500"
+                      hover_color="hover:text-green-500"
+                      selected={@selected_option == "new-org"}
+                    />
+                  </:logo>
+                </.tab_button>
+                <!-- Join Org -->
+                <.tab_button
+                  id="join-org"
+                  selected={@selected_option}
+                  title="Join an existing organization"
+                >
+                  <:logo selected={@selected_option == "join-org"}>
+                    <.tab_button_icon
+                      icon="organization-chart"
+                      class="text-purple-500"
+                      hover_color="hover:text-purple-500"
+                      selected={@selected_option == "join-org"}
+                    />
+                  </:logo>
+                </.tab_button>
+              </ul>
+            </div>
           </div>
         </div>
-
+        <!-- FORMS -->
         <div :if={@selected_option} class="flex flex-col space-y-4">
-          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-            2. <%= @form_title %>
-          </h2>
-
           <.form
             :let={f}
             id={"#{@selected_option}-form"}
@@ -146,7 +166,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
             <button
               :if={!@requested_code}
-              class="button-base button-blue"
+              class="button-base button-blue self-start"
               phx-disable-with="Creating..."
             >
               <%= @button_label %>
@@ -158,39 +178,51 @@ defmodule LivebookWeb.Hub.NewLive do
     """
   end
 
-  defp card_item(assigns) do
+  def tab_button(assigns) do
     assigns = assign_new(assigns, :disabled, fn -> false end)
 
     ~H"""
-    <div
-      id={@id}
-      class="flex flex-col cursor-pointer"
-      phx-click={JS.push("select_option", value: %{value: @id})}
-    >
-      <div class={[
-        "flex items-center justify-center p-6 border-2 rounded-t-2xl h-[150px]",
-        card_item_border_class(@id, @selected)
-      ]}>
-        <%= render_slot(@logo) %>
-      </div>
-      <div class={["px-6 py-4 rounded-b-2xl grow", card_item_class(@id, @selected)]}>
-        <p class="text-gray-800 font-semibold cursor-pointer">
-          <%= @title %>
-        </p>
-
-        <p class="mt-2 text-sm text-gray-600">
-          <%= render_slot(@headline) %>
-        </p>
-      </div>
-    </div>
+    <li class="group/toggle w-full">
+      <button
+        type="button"
+        id={@id}
+        aria-haspopup="menu"
+        aria-expanded="false"
+        data-state="closed"
+        class="w-full"
+        phx-click={JS.push("select_option", value: %{value: @id})}
+      >
+        <div class={[
+          "group/button relative flex w-full items-center justify-center gap-1 rounded-lg border py-3 transition-opacity duration-100 sm:w-auto sm:min-w-[250px] md:gap-2 md:py-2.5",
+          selected_tab_button(@id, @selected),
+          @id == "new-org" && "hover-green",
+          @id == "join-org" && "hover-purple"
+        ]}>
+          <span class="relative max-[370px]:hidden">
+            <%= render_slot(@logo, id: @id, selected: @selected == @id) %>
+          </span>
+          <span class="truncate text-sm font-medium"><%= @title %></span>
+        </div>
+      </button>
+    </li>
     """
   end
 
-  defp card_item_border_class(id, id), do: "border-gray-200"
-  defp card_item_border_class(_, _), do: "border-gray-100"
+  defp selected_tab_button(id, id),
+    do: "border-black/10 bg-white shadow-[0_1px_7px_0px_rgba(0,0,0,0.06)] hover:!opacity-100"
 
-  defp card_item_class(id, id), do: "bg-gray-200"
-  defp card_item_class(_, _), do: "bg-gray-100"
+  defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
+
+  def tab_button_icon(assigns) do
+    assigns = assign_new(assigns, :selected, fn -> false end)
+
+    ~H"""
+    <i class={["ri-#{@icon} icon", color_class(@selected, @class)]} aria-hidden="true"></i>
+    """
+  end
+
+  defp color_class(true, class), do: class
+  defp color_class(false, _class), do: "text-gray-500"
 
   @impl true
   def handle_event("select_option", %{"value" => option}, socket) do
@@ -285,8 +317,7 @@ defmodule LivebookWeb.Hub.NewLive do
     socket
     |> assign(
       org: org,
-      form_title: "Join an Organization",
-      button_label: "Join Org",
+      button_label: "Join",
       request_code_info:
         "Access the following URL and input the User Code below to confirm the Organization creation."
     )
@@ -294,14 +325,13 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp assign_form(socket, "new-org") do
-    org = %Org{emoji: "💡", teams_key: Org.teams_key()}
+    org = %Org{emoji: "⭐️", teams_key: Org.teams_key()}
     changeset = Teams.change_org(org)
 
     socket
     |> assign(
       org: org,
-      form_title: "Create your Organization",
-      button_label: "Create Org",
+      button_label: "Create",
       request_code_info:
         "Access the following URL and input the User Code below to confirm to join an Organization."
     )
