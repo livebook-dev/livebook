@@ -4,7 +4,6 @@ defmodule LivebookWeb.Hub.NewLive do
   alias Livebook.Teams
   alias Livebook.Teams.Org
   alias LivebookWeb.LayoutHelpers
-  alias Phoenix.LiveView.JS
 
   on_mount LivebookWeb.SidebarHook
 
@@ -105,10 +104,16 @@ defmodule LivebookWeb.Hub.NewLive do
                   selected={@selected_option}
                   title="Create a new organization"
                 >
-                  <.tab_button_icon
+                  <.remix_icon
                     icon="lightbulb-flash-line"
-                    class="text-blue-500"
-                    selected={@selected_option == "new-org"}
+                    class={[
+                      "group-hover:text-blue-500 text-lg",
+                      if @selected_option == "new-org" do
+                        "text-blue-500"
+                      else
+                        "text-gray-500"
+                      end
+                    ]}
                   />
                 </.tab_button>
                 <!-- Join Org -->
@@ -117,10 +122,16 @@ defmodule LivebookWeb.Hub.NewLive do
                   selected={@selected_option}
                   title="Join an existing organization"
                 >
-                  <.tab_button_icon
+                  <.remix_icon
                     icon="organization-chart"
-                    class="text-blue-500 group-hover:text-blue-500"
-                    selected={@selected_option == "join-org"}
+                    class={[
+                      "group-hover:text-blue-500 text-lg",
+                      if @selected_option == "join-org" do
+                        "text-blue-500"
+                      else
+                        "text-gray-500"
+                      end
+                    ]}
                   />
                 </.tab_button>
               </ul>
@@ -182,7 +193,8 @@ defmodule LivebookWeb.Hub.NewLive do
         aria-expanded="false"
         data-state="closed"
         class="w-full"
-        phx-click={JS.push("select_option", value: %{value: @id})}
+        phx-click="select_option"
+        phx-value-option={@id}
       >
         <div class={[
           "group button relative flex w-full items-center justify-center gap-1 rounded-lg border py-3 transition-opacity duration-100 sm:w-auto sm:min-w-[250px] md:gap-2 md:py-2.5",
@@ -204,10 +216,8 @@ defmodule LivebookWeb.Hub.NewLive do
   defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
 
   defp tab_button_icon(assigns) do
-    assigns = assign_new(assigns, :selected, fn -> false end)
-
     ~H"""
-    <i class={["ri-#{@icon} icon", color_class(@selected, @class)]} aria-hidden="true"></i>
+    <i class={["ri-#{@icon} icon text-lg", color_class(@selected, @class)]} aria-hidden="true"></i>
     """
   end
 
@@ -215,7 +225,9 @@ defmodule LivebookWeb.Hub.NewLive do
   defp color_class(false, _class), do: "text-gray-500 group-hover:text-blue-500"
 
   @impl true
-  def handle_event("select_option", %{"value" => option}, socket) do
+  def handle_event("select_option", %{"option" => option} = metadata, socket) do
+    IO.puts("select_option: #{inspect(metadata)}")
+
     {:noreply,
      socket
      |> assign(selected_option: option, requested_code: false, verification_uri: nil)
