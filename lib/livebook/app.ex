@@ -237,11 +237,14 @@ defmodule Livebook.App do
     app_session = Enum.find(state.sessions, &(&1.version == state.version))
 
     if app_session do
-      if state.notebook.app_settings.zero_downtime and app_session.app_status != :executed do
-        Enum.find(state.sessions, &(&1.app_status == :executed))
+      if state.notebook.app_settings.zero_downtime and not status_ready?(app_session.app_status) do
+        Enum.find(state.sessions, &status_ready?(&1.app_status))
       end || app_session
     end
   end
+
+  defp status_ready?(%{execution: :executed, lifecycle: :active}), do: true
+  defp status_ready?(_status), do: false
 
   defp start_eagerly(state) when state.notebook.app_settings.multi_session, do: state
 
@@ -269,7 +272,7 @@ defmodule Livebook.App do
           pid: session.pid,
           version: state.version,
           created_at: session.created_at,
-          app_status: :executing,
+          app_status: %{execution: :executing, lifecycle: :active},
           client_count: 0,
           started_by_id: user && user.id
         }
@@ -318,7 +321,7 @@ defmodule Livebook.App do
   defp shutdown_old_versions(state), do: state
 
   defp shutdown_session(app_session) do
-    if Livebook.Session.Data.app_active?(app_session.app_status) do
+    if app_session.app_status.lifecycle == :active do
       Livebook.Session.app_shutdown(app_session.pid)
     end
   end

@@ -59,7 +59,10 @@ defmodule LivebookWeb.AppLiveTest do
       Livebook.Session.app_deactivate(session_pid3)
 
       assert_receive {:app_updated,
-                      %{pid: ^app_pid, sessions: [%{app_status: :deactivated}, _, _]}}
+                      %{
+                        pid: ^app_pid,
+                        sessions: [%{app_status: %{lifecycle: :deactivated}}, _, _]
+                      }}
 
       refute render(view) =~ ~p"/apps/#{slug}/#{session_id3}"
 

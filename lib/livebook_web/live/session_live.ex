@@ -1173,6 +1173,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("queue_interrupted_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    data = socket.private.data
+
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- data.cell_infos[cell.id].eval.interrupted do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_section_evaluation", %{"section_id" => section_id}, socket) do
     Session.queue_section_evaluation(socket.assigns.session.pid, section_id)
 
@@ -2327,9 +2339,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp app_status_color(nil), do: "bg-gray-400"
-  defp app_status_color(:executing), do: "bg-blue-500"
-  defp app_status_color(:executed), do: "bg-green-bright-400"
-  defp app_status_color(:error), do: "bg-red-400"
-  defp app_status_color(:shutting_down), do: "bg-gray-500"
-  defp app_status_color(:deactivated), do: "bg-gray-500"
+  defp app_status_color(%{lifecycle: :shutting_down}), do: "bg-gray-500"
+  defp app_status_color(%{lifecycle: :deactivated}), do: "bg-gray-500"
+  defp app_status_color(%{execution: :executing}), do: "bg-blue-500"
+  defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
+  defp app_status_color(%{execution: :error}), do: "bg-red-400"
+  defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 end

@@ -467,6 +467,11 @@ defmodule Livebook.Runtime.Evaluator do
 
     metadata = %{
       errored: elem(result, 0) == :error,
+      interrupted:
+        match?(
+          {:error, _kind, error, _stacktrace} when is_struct(error, Kino.InterruptError),
+          result
+        ),
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
       code_error: code_error,

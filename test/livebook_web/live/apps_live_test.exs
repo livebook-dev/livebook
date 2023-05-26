@@ -59,13 +59,16 @@ defmodule LivebookWeb.AppsLiveTest do
     {:ok, app_pid} = Apps.deploy(notebook)
 
     assert_receive {:app_created, %{pid: ^app_pid}}
-    assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="deactivate app session"]/)
     |> render_click()
 
-    assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :deactivated}]}}
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
 
     view
     |> element(~s/[data-app-slug="#{slug}"] button[aria-label="terminate app session"]/)

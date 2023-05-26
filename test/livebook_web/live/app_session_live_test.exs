@@ -34,7 +34,9 @@ defmodule LivebookWeb.AppSessionLiveTest do
                     %{pid: ^app_pid, sessions: [%{id: session_id, pid: session_pid}]}}
 
     Livebook.Session.app_deactivate(session_pid)
-    assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :deactivated}]}}
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
 
     {:ok, view, _} = live(conn, ~p"/apps/#{slug}/#{session_id}")
     assert render(view) =~ "This app session does not exist"
@@ -94,12 +96,54 @@ defmodule LivebookWeb.AppSessionLiveTest do
     {:ok, app_pid} = Apps.deploy(notebook)
 
     assert_receive {:app_created, %{pid: ^app_pid} = app}
-    assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{app_status: :executed}]}}
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
     {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
 
     refute render(view) =~ "Printed output"
     assert render(view) =~ "Custom text"
+
+    Livebook.App.close(app.pid)
+  end
+
+  test "only shows an error message when session errors", %{conn: conn} do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: app_settings,
+        sections: [
+          %{
+            Livebook.Notebook.Section.new()
+            | cells: [
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: source_for_output({:stdout, "Printed output"})
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: ~s/raise "oops"/
+                }
+              ]
+          }
+        ]
+    }
+
+    Livebook.Apps.subscribe()
+    {:ok, app_pid} = Apps.deploy(notebook)
+
+    assert_receive {:app_created, %{pid: ^app_pid} = app}
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :error}}]}}
+
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+
+    assert render(view) =~ "Something went wrong"
+    refute render(view) =~ "Printed output"
 
     Livebook.App.close(app.pid)
   end
