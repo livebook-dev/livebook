@@ -14,7 +14,9 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        Enum.find(secrets, &(&1.name == secret_name))[:value]
+        secrets
+        |> Enum.find(&(&1.name == secret_name))
+        |> Map.get(:value)
       end
 
     {:ok,
