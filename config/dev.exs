@@ -13,14 +13,7 @@ config :livebook, LivebookWeb.Endpoint,
   debug_errors: true,
   check_origin: false,
   watchers: [
-    node: [
-      "node_modules/webpack/bin/webpack.js",
-      "--mode",
-      "development",
-      "--watch",
-      "--watch-options-stdin",
-      cd: Path.expand("../assets", __DIR__)
-    ]
+    npm: ["run", "watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
 config :livebook, :iframe_port, 4001
