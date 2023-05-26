@@ -28,6 +28,16 @@ if [ -d Resources ]; then
   done
 fi
 
+if [ -d Assets.xcassets ]; then
+  actool \
+    --development-region en --errors --notices --warnings \
+    --target-device mac --platform macosx --minimum-deployment-target 11.0 \
+    --app-icon AppIcon \
+    --compile $app_dir/Contents/Resources \
+    --output-partial-info-plist .build/partial-info.plist \
+    Assets.xcassets
+fi
+
 (
   cd $ELIXIRKIT_PROJECT_DIR
   mix release $release_name --overwrite --path=$rel_dir
