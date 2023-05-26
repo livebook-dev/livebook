@@ -94,9 +94,4 @@ export function registerGlobalEventHandlers() {
     },
     { capture: true }
   );
-
-  // Copy input value to clipboard
-  window.addEventListener("phx:click", ({ target: { value } }) => {
-    navigator.clipboard.writeText(value);
-  });
 }
