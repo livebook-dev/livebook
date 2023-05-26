@@ -95,9 +95,9 @@ defmodule LivebookWeb.Hub.NewLive do
         </div>
         <!-- TABS -->
         <div class="flex flex-col space-y-4">
-          <div class="relative flex flex-col items-stretch justify-center gap-2 sm:items-center">
-            <div class="relative flex rounded-xl bg-gray-100 p-1">
-              <ul class="flex w-full list-none gap-1 sm:w-auto">
+          <div class="flex flex-col justify-center sm:items-center sm:m-auto">
+            <div class="flex rounded-xl bg-gray-100 p-1">
+              <ul class="flex flex-col sm:flex-row md:flex-col lg:flex-row w-full list-none gap-1">
                 <!-- New Org -->
                 <.tab_button
                   id="new-org"
@@ -175,10 +175,10 @@ defmodule LivebookWeb.Hub.NewLive do
         phx-value-option={@id}
       >
         <div class={[
-          "group button relative flex w-full items-center justify-center gap-1 rounded-lg border py-3 transition-opacity duration-100 sm:w-auto sm:min-w-[250px] md:gap-2 md:py-2.5",
+          "group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100",
           selected_tab_button(@id, @selected)
         ]}>
-          <span class="relative max-[370px]:hidden">
+          <span>
             <.remix_icon
               icon={@icon}
               class={[
@@ -191,7 +191,9 @@ defmodule LivebookWeb.Hub.NewLive do
               ]}
             />
           </span>
-          <span class="truncate text-sm font-medium"><%= @title %></span>
+          <span class="truncate text-sm font-medium">
+            <%= @title %>
+          </span>
         </div>
       </button>
     </li>
