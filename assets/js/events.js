@@ -49,8 +49,6 @@ export function registerGlobalEventHandlers() {
 
   window.addEventListener("lb:clipcopy", (event) => {
     if ("clipboard" in navigator) {
-      const value = event.target.value;
-      const text = event.target.textContent;
       const tag = event.target.tagName;
 
       if (tag === "INPUT") {
