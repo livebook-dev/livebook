@@ -54,9 +54,9 @@ export function registerGlobalEventHandlers() {
       const tag = event.target.tagName;
 
       if (tag === "INPUT") {
-        navigator.clipboard.writeText(value);
+        navigator.clipboard.writeText(event.target.value);
       } else {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(event.target.tagName);
       }
     } else {
       alert(
