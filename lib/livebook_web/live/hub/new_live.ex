@@ -132,7 +132,7 @@ defmodule LivebookWeb.Hub.NewLive do
             </div>
 
             <.password_field
-              readonly={@selected_option == "new-org"}
+              :if={@selected_option == "join-org"}
               field={f[:teams_key]}
               label="Livebook Teams Key"
             />
@@ -281,7 +281,7 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
+         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
 
       {:error, :expired} ->
         changeset = Teams.change_org(org, %{user_code: nil})
@@ -293,6 +293,12 @@ defmodule LivebookWeb.Hub.NewLive do
          |> assign_form(changeset)}
 
       {:transport_error, message} ->
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
+
         {:noreply, put_flash(socket, :error, message)}
     end
   end

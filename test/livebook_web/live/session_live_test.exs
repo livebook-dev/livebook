@@ -1479,7 +1479,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, session: session} do
-      hub = insert_hub(:fly)
+      hub = insert_hub(:team)
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 

@@ -1122,16 +1122,16 @@ defmodule Livebook.LiveMarkdown.ExportTest do
   end
 
   test "persists hub id when not default" do
-    Livebook.Factory.insert_hub(:fly, id: "fly-persisted-id")
+    Livebook.Factory.insert_hub(:team, id: "team-persisted-id")
 
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
-        hub_id: "fly-persisted-id"
+        hub_id: "team-persisted-id"
     }
 
     expected_document = """
-    <!-- livebook:{"hub_id":"fly-persisted-id"} -->
+    <!-- livebook:{"hub_id":"team-persisted-id"} -->
 
     # My Notebook
     """

@@ -9,38 +9,21 @@ defmodule Livebook.Factory do
     }
   end
 
-  def build(:fly_metadata) do
-    :fly |> build() |> Livebook.Hubs.Provider.to_metadata()
+  def build(:team_metadata) do
+    :team |> build() |> Livebook.Hubs.Provider.to_metadata()
   end
 
-  def build(:fly) do
-    %Livebook.Hubs.Fly{
-      id: "fly-foo-bar-baz",
-      hub_name: "My Personal Hub",
-      hub_emoji: "🚀",
-      access_token: Livebook.Utils.random_cookie(),
-      organization_id: Livebook.Utils.random_id(),
-      organization_type: "PERSONAL",
-      organization_name: "Foo",
-      application_id: "foo-bar-baz"
-    }
-  end
+  def build(:team) do
+    org = build(:org)
 
-  def build(:enterprise_metadata) do
-    :enterprise |> build() |> Livebook.Hubs.Provider.to_metadata()
-  end
-
-  def build(:enterprise) do
-    name = "Enteprise #{Livebook.Utils.random_short_id()}"
-
-    %Livebook.Hubs.Enterprise{
-      id: "enterprise-#{name}",
-      hub_name: name,
+    %Livebook.Hubs.Team{
+      id: "team-#{org.name}",
+      hub_name: org.name,
       hub_emoji: "🏭",
       org_id: 1,
       user_id: 1,
       org_key_id: 1,
-      teams_key: Livebook.Utils.random_id(),
+      teams_key: org.teams_key,
       session_token: Livebook.Utils.random_cookie()
     }
   end

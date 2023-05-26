@@ -1,23 +1,32 @@
 defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Hubs
   alias Livebook.Hubs.Personal
   alias LivebookWeb.LayoutHelpers
 
   @impl true
   def update(assigns, socket) do
+    socket = assign(socket, assigns)
     changeset = Personal.change_hub(assigns.hub)
+    secrets = Hubs.get_secrets(assigns.hub)
+    secret_name = assigns.params["secret_name"]
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        secret = Enum.find(assigns.secrets, &(&1.name == assigns.secret_name))
-        secret.value
+        secrets
+        |> Enum.find(&(&1.name == secret_name))
+        |> Map.get(:value)
       end
 
     {:ok,
-     socket
-     |> assign(assigns)
-     |> assign(changeset: changeset, stamp_changeset: changeset, secret_value: secret_value)}
+     assign(socket,
+       secrets: secrets,
+       changeset: changeset,
+       stamp_changeset: changeset,
+       secret_name: secret_name,
+       secret_value: secret_value
+     )}
   end
 
   @impl true

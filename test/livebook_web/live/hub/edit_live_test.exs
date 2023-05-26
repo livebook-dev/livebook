@@ -71,14 +71,16 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
+      assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret created successfully"
-      assert render(view) =~ secret.name
+      assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "updates secret", %{conn: conn, hub: hub} do
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       secret = insert_secret(name: "PERSONAL_EDIT_SECRET", value: "GetTheBonk")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       attrs = %{
         secret: %{
@@ -112,14 +114,16 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
+      assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret updated successfully"
-      assert render(view) =~ secret.name
+      assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "deletes secret", %{conn: conn, hub: hub} do
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       secret = insert_secret(name: "PERSONAL_DELETE_SECRET", value: "GetTheBonk")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       refute view
              |> element("#secrets-form button[disabled]")
