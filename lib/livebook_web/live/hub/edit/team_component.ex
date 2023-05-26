@@ -7,11 +7,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   @impl true
   def update(assigns, socket) do
+    socket = assign(socket, assigns)
     changeset = Team.change_hub(assigns.hub)
+    show_key? = assigns.params["show-key"] == "true"
 
     {:ok,
      socket
-     |> assign(assigns)
+     |> assign(show_key: show_key?)
      |> assign_form(changeset)}
   end
 
@@ -31,8 +33,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             Teams Key
           </h3>
           <div class="justify-center">
-            This is your <strong>Teams Key</strong> and we strongly recommend
-            you to store it somewhere safe:
+            This is your <strong>Teams Key</strong>. If you want to join or invite others
+            to your organization, you will need to share your Teams Key with them. We
+            recommend storing it somewhere safe:
           </div>
           <div class=" w-full">
             <div id="teams-key-toggle" class="relative flex">
@@ -40,7 +43,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 type="password"
                 id="teams-key"
                 readonly
-                value={Phoenix.HTML.Form.normalize_value("text", @hub.teams_key)}
+                value={@hub.teams_key}
                 class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
               />
 
@@ -99,9 +102,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 </button>
               </div>
             </div>
-          </div>
-          <div class="justify-center">
-            With this key, you can share within your team members to join your organization!
           </div>
         </div>
       </.modal>

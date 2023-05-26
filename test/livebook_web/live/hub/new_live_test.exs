@@ -123,9 +123,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
     end
   end
 
-  defp check_completion_data_interval() do
-    Application.fetch_env!(:livebook, :check_completion_data_interval) + 100
-  end
+  defp check_completion_data_interval(), do: 2000
 
   defp assert_hub(view, path, name, emoji \\ "🐈") do
     hubs_html = view |> element("#hubs") |> render()

@@ -21,18 +21,11 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    Livebook.Hubs.subscribe([:secrets])
+    Hubs.subscribe([:secrets])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
-    {:noreply,
-     assign(socket,
-       hub: hub,
-       type: type,
-       secrets: Hubs.get_secrets(hub),
-       secret_name: params["secret_name"],
-       show_key: params["show-key"] == "true"
-     )}
+    {:noreply, assign(socket, hub: hub, type: type, params: params)}
   end
 
   @impl true
@@ -44,14 +37,7 @@ defmodule LivebookWeb.Hub.EditLive do
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <.hub_component
-          show_key={@show_key}
-          type={@type}
-          hub={@hub}
-          live_action={@live_action}
-          secrets={@secrets}
-          secret_name={@secret_name}
-        />
+        <.hub_component type={@type} hub={@hub} live_action={@live_action} params={@params} />
       </div>
     </LayoutHelpers.layout>
     """
@@ -62,9 +48,8 @@ defmodule LivebookWeb.Hub.EditLive do
     <.live_component
       module={LivebookWeb.Hub.Edit.PersonalComponent}
       hub={@hub}
-      secrets={@secrets}
+      params={@params}
       live_action={@live_action}
-      secret_name={@secret_name}
       id="personal-form"
     />
     """
@@ -75,7 +60,7 @@ defmodule LivebookWeb.Hub.EditLive do
     <.live_component
       module={LivebookWeb.Hub.Edit.TeamComponent}
       hub={@hub}
-      show_key={@show_key}
+      params={@params}
       id="team-form"
     />
     """
@@ -104,29 +89,25 @@ defmodule LivebookWeb.Hub.EditLive do
   def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> push_redirect(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret created successfully")}
   end
 
   def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> push_redirect(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret updated successfully")}
   end
 
   def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> push_redirect(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret deleted successfully")}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
-  end
-
-  defp refresh_secrets(socket) do
-    assign(socket, secrets: Livebook.Hubs.get_secrets(socket.assigns.hub))
   end
 end
