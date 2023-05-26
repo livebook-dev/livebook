@@ -198,7 +198,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, [], file: "file.ex")
 
       expected_stacktrace = [
-        {:elixir_expand, :expand, 3, [file: ~c"src/elixir_expand.erl", line: 378]},
+        {:elixir_expand, :expand, 3, [file: ~c"src/elixir_expand.erl", line: 383]},
         {:elixir_eval, :__FILE__, 1, [file: ~c"file.ex", line: 1]}
       ]
 
