@@ -93,14 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ aNotification: Notification) {
-        if (self.initialURLs == []) {
-            ElixirKit.API.publish("open", "")
-        }
-        else {
-            for url in self.initialURLs {
-                ElixirKit.API.publish("open", url.absoluteString)
-            }
-        }
+        ElixirKit.API.publish("open", "")
     }
 
     func application(_ app: NSApplication, open urls: [URL]) {
