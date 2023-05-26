@@ -92,6 +92,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ElixirKit.API.stop()
     }
 
+    func applicationDidBecomeActive(_ aNotification: Notification) {
+        ElixirKit.API.publish("open", "")
+    }
+
     func application(_ app: NSApplication, open urls: [URL]) {
         if !ElixirKit.API.isRunning {
             initialURLs = urls

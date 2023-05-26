@@ -10,6 +10,8 @@
   <string>$(app_version)</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
+  <key>CFBundleExecutable</key>
+  <string>Livebook</string>
   <key>LSUIElement</key>
   <true/>
   <key>LSRequiresNativeExecution</key>
