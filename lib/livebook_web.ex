@@ -1,7 +1,7 @@
 defmodule LivebookWeb do
   @moduledoc false
 
-  def static_paths, do: ~w(js css fonts images favicon.svg favicon.png robots.txt)
+  def static_paths, do: ~w(assets images favicon.svg favicon.png robots.txt)
 
   def controller do
     quote do
