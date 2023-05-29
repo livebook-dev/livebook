@@ -55,7 +55,6 @@ ExUnit.start(
   assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
   exclude: [
     erl_docs: erl_docs_available?,
-    enterprise_integration: not Livebook.EnterpriseServer.available?(),
     teams_integration: not Livebook.TeamsServer.available?()
   ]
 )

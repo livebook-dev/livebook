@@ -4,53 +4,53 @@ defmodule Livebook.HubsTest do
   alias Livebook.Hubs
 
   test "get_hubs/0 returns a list of persisted hubs" do
-    fly = insert_hub(:fly, id: "fly-baz")
-    assert fly in Hubs.get_hubs()
+    team = insert_hub(:team, id: "team-baz")
+    assert team in Hubs.get_hubs()
 
-    Hubs.delete_hub("fly-baz")
-    refute fly in Hubs.get_hubs()
+    Hubs.delete_hub("team-baz")
+    refute team in Hubs.get_hubs()
   end
 
   test "get_metadata/0 returns a list of persisted hubs normalized" do
-    fly = insert_hub(:fly, id: "fly-livebook")
-    metadata = Hubs.Provider.to_metadata(fly)
+    team = insert_hub(:team, id: "team-livebook")
+    metadata = Hubs.Provider.to_metadata(team)
 
     assert metadata in Hubs.get_metadatas()
 
-    Hubs.delete_hub("fly-livebook")
+    Hubs.delete_hub("team-livebook")
     refute metadata in Hubs.get_metadatas()
   end
 
-  test "fetch_hub!/1 returns one persisted fly" do
+  test "fetch_hub!/1 returns one persisted team" do
     assert_raise Livebook.Storage.NotFoundError,
-                 ~s/could not find entry in \"hubs\" with ID "fly-exception-foo"/,
+                 ~s/could not find entry in \"hubs\" with ID "team-exception-foo"/,
                  fn ->
-                   Hubs.fetch_hub!("fly-exception-foo")
+                   Hubs.fetch_hub!("team-exception-foo")
                  end
 
-    fly = insert_hub(:fly, id: "fly-exception-foo")
+    team = insert_hub(:team, id: "team-exception-foo")
 
-    assert Hubs.fetch_hub!("fly-exception-foo") == fly
+    assert Hubs.fetch_hub!("team-exception-foo") == team
   end
 
   test "hub_exists?/1" do
-    refute Hubs.hub_exists?("fly-bar")
-    insert_hub(:fly, id: "fly-bar")
-    assert Hubs.hub_exists?("fly-bar")
+    refute Hubs.hub_exists?("team-bar")
+    insert_hub(:team, id: "team-bar")
+    assert Hubs.hub_exists?("team-bar")
   end
 
   test "save_hub/1 persists hub" do
-    fly = build(:fly, id: "fly-foo")
-    Hubs.save_hub(fly)
+    team = build(:team, id: "team-foo")
+    Hubs.save_hub(team)
 
-    assert Hubs.fetch_hub!("fly-foo") == fly
+    assert Hubs.fetch_hub!("team-foo") == team
   end
 
   test "save_hub/1 updates hub" do
-    fly = insert_hub(:fly, id: "fly-foo2")
-    Hubs.save_hub(%{fly | hub_emoji: "🐈"})
+    team = insert_hub(:team, id: "team-foo2")
+    Hubs.save_hub(%{team | hub_emoji: "🐈"})
 
-    refute Hubs.fetch_hub!("fly-foo2") == fly
-    assert Hubs.fetch_hub!("fly-foo2").hub_emoji == "🐈"
+    refute Hubs.fetch_hub!("team-foo2") == team
+    assert Hubs.fetch_hub!("team-foo2").hub_emoji == "🐈"
   end
 end

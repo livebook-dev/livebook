@@ -14,7 +14,7 @@ defmodule LivebookWeb.AppSessionLive do
 
     app_session = Enum.find(app.sessions, &(&1.id == session_id))
 
-    if app_session && Session.Data.app_active?(app_session.app_status) do
+    if app_session && app_session.app_status.lifecycle == :active do
       %{pid: session_pid} = app_session
       session = Session.get_by_pid(session_pid)
 
@@ -127,18 +127,29 @@ defmodule LivebookWeb.AppSessionLive do
           </h1>
         </div>
         <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
-          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
-            <LivebookWeb.Output.outputs
-              outputs={[output_view.output]}
-              dom_id_map={%{}}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              input_values={output_view.input_values}
-            />
-          </div>
+          <%= if @data_view.app_status.execution == :error do %>
+            <div class="error-box flex items-center gap-2">
+              <.remix_icon icon="error-warning-line" class="text-xl" />
+              <span>Something went wrong</span>
+            </div>
+          <% else %>
+            <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
+              <LivebookWeb.Output.outputs
+                outputs={[output_view.output]}
+                dom_id_map={%{}}
+                session_id={@session.id}
+                session_pid={@session.pid}
+                client_id={@client_id}
+                cell_id={output_view.cell_id}
+                input_values={output_view.input_values}
+              />
+            </div>
+          <% end %>
         </div>
         <div style="height: 80vh"></div>
+      </div>
+      <div :if={show_app_status?(@data_view.app_status)} class="fixed right-6 bottom-4">
+        <.app_status status={@data_view.app_status} />
       </div>
     </div>
 
@@ -166,6 +177,18 @@ defmodule LivebookWeb.AppSessionLive do
 
   @impl true
   def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("queue_interrupted_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    data = socket.private.data
+
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- data.cell_infos[cell.id].eval.interrupted do
+      Session.queue_full_evaluation(socket.assigns.session.pid, [cell_id])
+    end
+
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_info({:operation, operation}, socket) do
@@ -250,10 +273,11 @@ defmodule LivebookWeb.AppSessionLive do
       notebook_name: data.notebook.name,
       output_views:
         for(
-          output <- visible_outputs(data.notebook),
+          {cell_id, output} <- visible_outputs(data.notebook),
           do: %{
             output: output,
-            input_values: input_values_for_output(output, data)
+            input_values: input_values_for_output(output, data),
+            cell_id: cell_id
           }
         ),
       app_status: data.app_data.status,
@@ -272,7 +296,7 @@ defmodule LivebookWeb.AppSessionLive do
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
         output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
-        do: output
+        do: {cell.id, output}
   end
 
   defp filter_outputs(outputs, :all), do: outputs
@@ -310,5 +334,11 @@ defmodule LivebookWeb.AppSessionLive do
     {idx, {:frame, outputs, metadata}}
   end
 
+  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+    do: {idx, output}
+
   defp filter_output(_output), do: nil
+
+  defp show_app_status?(%{execution: :executed, lifecycle: :active}), do: false
+  defp show_app_status?(_status), do: true
 end

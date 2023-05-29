@@ -139,5 +139,8 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   defp error_type(%System.EnvError{env: "LB_" <> secret_name}),
     do: {:missing_secret, secret_name}
 
+  defp error_type(error) when is_struct(error, Kino.InterruptError),
+    do: {:interrupt, error.variant, error.message}
+
   defp error_type(_), do: :other
 end

@@ -62,7 +62,9 @@ defmodule Livebook.AppTest do
       assert_receive {:app_updated,
                       %{
                         version: 2,
-                        sessions: [%{id: ^session_id, app_status: :executed, version: 1}]
+                        sessions: [
+                          %{id: ^session_id, app_status: %{execution: :executed}, version: 1}
+                        ]
                       }}
     end
 
@@ -74,12 +76,17 @@ defmodule Livebook.AppTest do
       App.subscribe(slug)
 
       app_pid = start_app(notebook)
-      assert_receive {:app_updated, %{sessions: [%{app_status: :executed, version: 1}]}}
+
+      assert_receive {:app_updated,
+                      %{sessions: [%{app_status: %{execution: :executed}, version: 1}]}}
 
       App.deploy(app_pid, notebook)
 
-      assert_receive {:app_updated, %{sessions: [%{app_status: :executing, version: 2}]}}
-      assert_receive {:app_updated, %{sessions: [%{app_status: :executed, version: 2}]}}
+      assert_receive {:app_updated,
+                      %{sessions: [%{app_status: %{execution: :executing}, version: 2}]}}
+
+      assert_receive {:app_updated,
+                      %{sessions: [%{app_status: %{execution: :executed}, version: 2}]}}
     end
 
     test "keeps old executed session during single-session zero-downtime deployment" do
@@ -90,19 +97,22 @@ defmodule Livebook.AppTest do
       App.subscribe(slug)
 
       app_pid = start_app(notebook)
-      assert_receive {:app_updated, %{sessions: [%{app_status: :executed, version: 1}]}}
+
+      assert_receive {:app_updated,
+                      %{sessions: [%{app_status: %{execution: :executed}, version: 1}]}}
 
       App.deploy(app_pid, notebook)
 
       assert_receive {:app_updated,
                       %{
                         sessions: [
-                          %{app_status: :executing, version: 2},
-                          %{app_status: :executed, version: 1}
+                          %{app_status: %{execution: :executing}, version: 2},
+                          %{app_status: %{execution: :executed}, version: 1}
                         ]
                       }}
 
-      assert_receive {:app_updated, %{sessions: [%{app_status: :executed, version: 2}]}}
+      assert_receive {:app_updated,
+                      %{sessions: [%{app_status: %{execution: :executed}, version: 2}]}}
     end
   end
 
@@ -130,21 +140,25 @@ defmodule Livebook.AppTest do
       App.subscribe(slug)
 
       app_pid = start_app(notebook)
-      assert_receive {:app_updated, %{sessions: [%{id: session_id1, app_status: :executed}]}}
+
+      assert_receive {:app_updated,
+                      %{sessions: [%{id: session_id1, app_status: %{execution: :executed}}]}}
 
       App.deploy(app_pid, notebook)
 
       assert_receive {:app_updated,
                       %{
                         sessions: [
-                          %{id: session_id2, app_status: :executing},
-                          %{id: ^session_id1, app_status: :executed}
+                          %{id: session_id2, app_status: %{execution: :executing}},
+                          %{id: ^session_id1, app_status: %{execution: :executed}}
                         ]
                       }}
 
       assert ^session_id1 = App.get_session_id(app_pid)
 
-      assert_receive {:app_updated, %{sessions: [%{id: ^session_id2, app_status: :executed}]}}
+      assert_receive {:app_updated,
+                      %{sessions: [%{id: ^session_id2, app_status: %{execution: :executed}}]}}
+
       assert ^session_id2 = App.get_session_id(app_pid)
     end
 

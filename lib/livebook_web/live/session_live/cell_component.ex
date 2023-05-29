@@ -594,6 +594,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         session_id={@session_id}
         session_pid={@session_pid}
         client_id={@client_id}
+        cell_id={@cell_view.id}
         input_values={@cell_view.eval.input_values}
       />
     </div>

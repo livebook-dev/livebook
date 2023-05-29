@@ -231,7 +231,7 @@ const AudioInput = {
     }
 
     // If the server uses different endianness, we swap bytes accordingly
-    for (const i = 0; i < buffer.byteLength / 4; i++) {
+    for (let i = 0; i < buffer.byteLength / 4; i++) {
       const b1 = buffer[i];
       const b2 = buffer[i + 1];
       const b3 = buffer[i + 2];

@@ -10,19 +10,25 @@ defmodule Livebook.Teams.Client do
   @spec create_org(Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
-    hash = :crypto.hash(:sha256, org.teams_key)
-    key_hash = Base.url_encode64(hash)
+    post("/api/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
+  end
 
-    post("/api/org-request", %{name: org.name, key_hash: key_hash})
+  @doc """
+  Send a request to Livebook Team API to join an org.
+  """
+  @spec join_org(Org.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def join_org(org) do
+    post("/api/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
   end
 
   @doc """
   Send a request to Livebook Team API to get an org request.
   """
-  @spec get_org_request_completion_data(pos_integer()) ::
+  @spec get_org_request_completion_data(pos_integer(), binary) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def get_org_request_completion_data(id) do
-    get("/api/org-request/#{id}")
+  def get_org_request_completion_data(id, device_code) do
+    get("/api/org-request/#{id}?device_code=#{device_code}")
   end
 
   defp post(path, json, header \\ []) do

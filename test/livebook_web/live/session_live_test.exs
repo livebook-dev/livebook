@@ -1401,8 +1401,8 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
-
       insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
+      wait_for_session_update(session.pid)
 
       slug = Livebook.Utils.random_short_id()
 
@@ -1449,7 +1449,10 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:app_created, %{slug: ^slug} = app}
 
       assert_receive {:app_updated,
-                      %{slug: ^slug, sessions: [%{app_status: :executed} = app_session]}}
+                      %{
+                        slug: ^slug,
+                        sessions: [%{app_status: %{execution: :executed}} = app_session]
+                      }}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -1457,7 +1460,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-app-info] button[aria-label="deactivate app session"]/)
       |> render_click()
 
-      assert_receive {:app_updated, %{slug: ^slug, sessions: [%{app_status: :deactivated}]}}
+      assert_receive {:app_updated,
+                      %{slug: ^slug, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
 
       assert render(view) =~ "/apps/#{slug}/#{app_session.id}"
 
@@ -1475,7 +1479,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, session: session} do
-      hub = insert_hub(:fly)
+      hub = insert_hub(:team)
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 

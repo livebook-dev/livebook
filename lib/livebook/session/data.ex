@@ -149,10 +149,13 @@ defmodule Livebook.Session.Data do
 
   @type session_mode :: :default | :app
 
-  # Note that technically the first state is :initial, but we always
-  # expect app to start evaluating right away, so distinguishing that
-  # state from :executing would not bring any value
-  @type app_status :: :executing | :executed | :error | :shutting_down | :deactivated
+  @type app_status :: %{
+          # Note that technically the first state is :initial, but we always
+          # expect app to start evaluating right away, so distinguishing that
+          # state from :executing would not bring any value
+          execution: :executing | :executed | :error,
+          lifecycle: :active | :shutting_down | :deactivated
+        }
 
   @type app_data :: %{
           status: app_status()
@@ -242,15 +245,23 @@ defmodule Livebook.Session.Data do
 
     notebook = opts[:notebook]
 
+    notebook =
+      if opts[:mode] == :app do
+        Livebook.Notebook.clear_outputs(notebook)
+      else
+        notebook
+      end
+
     default_runtime =
-      case opts[:mode] do
-        :app -> Livebook.Config.default_app_runtime()
-        _ -> Livebook.Config.default_runtime()
+      if opts[:mode] == :app do
+        Livebook.Config.default_app_runtime()
+      else
+        Livebook.Config.default_runtime()
       end
 
     app_data =
       if opts[:mode] == :app do
-        %{status: :executing}
+        %{status: %{execution: :executing, lifecycle: :active}}
       end
 
     hub = Hubs.fetch_hub!(notebook.hub_id)
@@ -529,10 +540,22 @@ defmodule Livebook.Session.Data do
       end)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
-      |> app_compute_status()
       |> wrap_ok()
     else
       :error
+    end
+  end
+
+  def apply_operation(
+        data,
+        {:add_cell_evaluation_output, _client_id, id, {:doctest_result, _result}}
+      ) do
+    with {:ok, _cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -560,7 +583,6 @@ defmodule Livebook.Session.Data do
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> mark_dirty_if_persisting_outputs()
-      |> app_compute_status()
       |> wrap_ok()
     else
       _ -> :error
@@ -587,7 +609,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> clear_main_evaluation()
     |> update_smart_cell_bases(data)
-    |> app_compute_status()
+    |> app_update_execution_status()
     |> wrap_ok()
   end
 
@@ -597,7 +619,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> clear_section_evaluation(section)
       |> update_smart_cell_bases(data)
-      |> app_compute_status()
+      |> app_update_execution_status()
       |> wrap_ok()
     end
   end
@@ -609,7 +631,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> cancel_cell_evaluation(cell, section)
       |> update_smart_cell_bases(data)
-      |> app_compute_status()
+      |> app_update_execution_status()
       |> wrap_ok()
     else
       _ -> :error
@@ -811,7 +833,6 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_runtime(data, runtime)
-    |> app_compute_status()
     |> wrap_ok()
   end
 
@@ -1200,6 +1221,7 @@ defmodule Livebook.Session.Data do
           eval_info
           | status: :ready,
             errored: metadata.errored,
+            interrupted: metadata.interrupted,
             evaluation_time_ms: metadata.evaluation_time_ms,
             identifiers_used: metadata.identifiers_used,
             identifiers_defined: metadata.identifiers_defined,
@@ -1585,13 +1607,7 @@ defmodule Livebook.Session.Data do
   defp erase_outputs({data, _} = data_actions) do
     data_actions
     |> clear_all_evaluation()
-    |> set!(
-      notebook:
-        Notebook.update_cells(data.notebook, fn
-          %{outputs: _outputs} = cell -> %{cell | outputs: []}
-          cell -> cell
-        end)
-    )
+    |> set!(notebook: Notebook.clear_outputs(data.notebook))
     |> update_every_cell_info(fn
       %{eval: _} = info ->
         info = update_in(info.eval.outputs_batch_number, &(&1 + 1))
@@ -1796,18 +1812,19 @@ defmodule Livebook.Session.Data do
 
   defp app_deactivate(data_actions) do
     data_actions
-    |> set_app_data!(status: :deactivated)
+    |> update_app_data!(&put_in(&1.status.lifecycle, :deactivated))
     |> add_action(:app_report_status)
   end
 
   defp app_shutdown(data_actions) do
     data_actions
-    |> set_app_data!(status: :shutting_down)
+    |> update_app_data!(&put_in(&1.status.lifecycle, :shutting_down))
     |> add_action(:app_report_status)
   end
 
   defp app_maybe_terminate({data, _} = data_actions) do
-    if data.mode == :app and data.app_data.status == :shutting_down and data.clients_map == %{} do
+    if data.mode == :app and data.app_data.status.lifecycle == :shutting_down and
+         data.clients_map == %{} do
       add_action(data_actions, :app_terminate)
     else
       data_actions
@@ -1996,6 +2013,7 @@ defmodule Livebook.Session.Data do
       validity: :fresh,
       status: :ready,
       errored: false,
+      interrupted: false,
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
@@ -2070,13 +2088,8 @@ defmodule Livebook.Session.Data do
     Enum.all?(attrs, fn {key, _} -> Map.has_key?(struct, key) end)
   end
 
-  defp set_app_data!({data, _} = data_actions, changes) do
-    app_data =
-      Enum.reduce(changes, data.app_data, fn {key, value}, app_data ->
-        Map.replace!(app_data, key, value)
-      end)
-
-    set!(data_actions, app_data: app_data)
+  defp update_app_data!({data, _} = data_actions, fun) do
+    set!(data_actions, app_data: fun.(data.app_data))
   end
 
   @doc """
@@ -2144,12 +2157,14 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    |> app_update_execution_status()
     |> update_reevaluates_automatically()
     # After updating validity there may be new stale cells, so we check
-    # if any of them is configured for automatic reevaluation
+    # if any of them should be automatically reevaluated
     |> maybe_queue_reevaluating_cells()
     |> queue_prerequisite_cells_evaluation_for_queued()
     |> maybe_evaluate_queued()
+    |> app_update_execution_status()
   end
 
   defp compute_snapshots({data, _} = data_actions) do
@@ -2288,6 +2303,9 @@ defmodule Livebook.Session.Data do
     end)
   end
 
+  defp update_reevaluates_automatically({data, _} = data_actions) when data.mode == :app,
+    do: data_actions
+
   defp update_reevaluates_automatically({data, _} = data_actions) do
     eval_parents = cell_evaluation_parents(data)
 
@@ -2326,7 +2344,18 @@ defmodule Livebook.Session.Data do
       |> Notebook.evaluable_cells_with_section()
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-        match?(%{status: :ready, validity: :stale, reevaluates_automatically: true}, info.eval)
+
+        case data.mode do
+          :default ->
+            match?(
+              %{status: :ready, validity: :stale, reevaluates_automatically: true},
+              info.eval
+            )
+
+          :app ->
+            match?(%{status: :ready, validity: :stale}, info.eval) and
+              data.app_data.status.execution in [:executing, :executed]
+        end
       end)
 
     cell_ids = for {cell, _section} <- cells_to_reevaluate, do: cell.id
@@ -2338,43 +2367,43 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp app_compute_status({data, _} = data_actions)
+  defp app_update_execution_status({data, _} = data_actions)
        when data.mode != :app,
        do: data_actions
 
-  defp app_compute_status({data, _} = data_actions)
-       when data.app_data.status in [:shutting_down, :deactivated],
-       do: data_actions
-
-  defp app_compute_status({data, _} = data_actions) do
-    status =
+  defp app_update_execution_status({data, _} = data_actions) do
+    execution_status =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
       |> Enum.find_value(:executed, fn {cell, _section} ->
         case data.cell_infos[cell.id].eval do
           %{validity: :aborted} -> :error
+          %{interrupted: true} -> :interrupted
           %{errored: true} -> :error
           %{validity: :fresh} -> :executing
           %{status: :evaluating} -> :executing
+          %{status: :queued} -> :executing
           _ -> nil
         end
       end)
 
     data_actions =
-      if data.app_data.status == status do
+      if data.app_data.status.execution == execution_status do
         data_actions
       else
         add_action(data_actions, :app_report_status)
       end
 
+    # If everything was executed and an error happened, it means it
+    # was a runtime crash and everything is aborted
     data_actions =
-      if data.app_data.status == :executed and status == :error do
+      if data.app_data.status.execution == :executed and execution_status == :error do
         add_action(data_actions, :app_recover)
       else
         data_actions
       end
 
-    set_app_data!(data_actions, status: status)
+    update_app_data!(data_actions, &put_in(&1.status.execution, execution_status))
   end
 
   @doc """
@@ -2552,13 +2581,5 @@ defmodule Livebook.Session.Data do
     else
       secret.value
     end
-  end
-
-  @doc """
-  Checks if the app should be accessible and accepts new clients.
-  """
-  @spec app_active?(app_status()) :: boolean()
-  def app_active?(app_status) do
-    app_status not in [:deactivated, :shutting_down]
   end
 end
