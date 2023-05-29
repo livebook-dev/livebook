@@ -5,7 +5,7 @@ defmodule LivebookWeb.Hub.NewLive do
   alias Livebook.Teams.Org
   alias LivebookWeb.LayoutHelpers
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @check_completion_data_interval Application.compile_env(
                                     :livebook,
@@ -27,7 +27,8 @@ defmodule LivebookWeb.Hub.NewLive do
         verification_uri: nil,
         form: nil,
         button_label: nil,
-        request_code_info: nil
+        request_code_info: nil,
+        content: nil
       )
 
     socket = assign_form(socket, "new-org")
@@ -86,7 +87,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <LayoutHelpers.title text="Add Hub" />
           <p class="mt-4 text-gray-700">
@@ -137,27 +138,71 @@ defmodule LivebookWeb.Hub.NewLive do
               label="Livebook Teams Key"
             />
 
-            <div :if={@requested_code} class="grid grid-cols-1 gap-3">
-              <span><%= @request_code_info %></span>
-
-              <.link navigate={@verification_uri} target="_blank" class="font-bold text-blue-500">
-                <%= @verification_uri %>
-              </.link>
-
-              <span><%= @org.user_code %></span>
-            </div>
-
             <button
               :if={!@requested_code}
               class="button-base button-blue self-start"
-              phx-disable-with="Creating..."
+              phx-disable-with="Loading..."
             >
               <%= @button_label %>
             </button>
+            <div class="invisible"></div>
+            <div
+              :if={@requested_code}
+              class="flex flex-col place-self-start items-center rounded-xl bg-gray-50 px-10 py-6 mt-10"
+            >
+              <div class="rounded-xl bg-gray-50 px-10 py-6 mt-10">
+                <span class="text-base font-semibold text-gray-900">
+                  <%= @request_code_info %>
+                </span>
+                <span class="italic text-sm mb-6 mt-1">
+                  Enter the code on your application.
+                </span>
+                <.copyclip id={@selected_option} , content={@org.user_code} />
+                <.link
+                  href={@verification_uri}
+                  target="_blank"
+                  class="button-base button-blue button-outlined-gray mt-6"
+                >
+                  Confirm on Teams
+                </.link>
+              </div>
+            </div>
           </.form>
         </div>
       </div>
     </LayoutHelpers.layout>
+    """
+  end
+
+  defp copyclip(assigns) do
+    ~H"""
+    <div
+      id={"virtualized-text-#{@id}"}
+      class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
+      phx-hook="VirtualizedLines inline-block"
+    >
+      <div class="icon-button invisible">
+        <.remix_icon icon="clipboard-line" class="text-lg" />
+      </div>
+
+      <div
+        data-template
+        class="text-blue-600 font-semibold text-xl leading-none"
+        id={"virtualized-text-#{@id}-template"}
+        phx-no-format
+      ><%= for line <- ansi_string_to_html_lines(@content) do %><div data-line><%= [
+        line,
+        "\n"
+            ] %></div><% end %></div>
+
+      <button
+        class="icon-button pl-4"
+        data-el-clipcopy
+        phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}
+      >
+        <.remix_icon icon="clipboard-line" class="text-lg" />
+      </button>
+    </div>
     """
   end
 
@@ -178,19 +223,17 @@ defmodule LivebookWeb.Hub.NewLive do
           "group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100",
           selected_tab_button(@id, @selected)
         ]}>
-          <span>
-            <.remix_icon
-              icon={@icon}
-              class={[
-                "group-hover:text-blue-500 text-lg",
-                if @selected == @id do
-                  "text-blue-500"
-                else
-                  "text-gray-500"
-                end
-              ]}
-            />
-          </span>
+          <.remix_icon
+            icon={@icon}
+            class={[
+              "group-hover:text-blue-500 text-lg",
+              if @selected == @id do
+                "text-blue-500"
+              else
+                "text-gray-500"
+              end
+            ]}
+          />
           <span class="truncate text-sm font-medium">
             <%= @title %>
           </span>
@@ -307,8 +350,7 @@ defmodule LivebookWeb.Hub.NewLive do
     |> assign(
       org: org,
       button_label: "Join",
-      request_code_info:
-        "Access the following URL and input the User Code below to confirm the Organization creation."
+      request_code_info: "Join an Organization"
     )
     |> assign_form(changeset)
   end
@@ -321,8 +363,7 @@ defmodule LivebookWeb.Hub.NewLive do
     |> assign(
       org: org,
       button_label: "Create",
-      request_code_info:
-        "Access the following URL and input the User Code below to confirm to join an Organization."
+      request_code_info: "Confirm Organization Creation"
     )
     |> assign_form(changeset)
   end
