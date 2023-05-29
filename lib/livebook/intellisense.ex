@@ -148,6 +148,15 @@ defmodule Livebook.Intellisense do
       insert_text: Atom.to_string(name)
     }
 
+  defp format_completion_item(%{kind: :in_map_field, name: name}),
+    do: %{
+      label: Atom.to_string(name),
+      kind: :field,
+      detail: "field",
+      documentation: nil,
+      insert_text: "#{name}: "
+    }
+
   defp format_completion_item(%{
          kind: :in_struct_field,
          struct: struct,
@@ -412,6 +421,8 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :variable, name: name}), do: code(name)
 
   defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
+
+  defp format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
 
   defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([
