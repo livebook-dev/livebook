@@ -160,7 +160,7 @@ defmodule LivebookWeb.Hub.NewLive do
                     </span>
                   </div>
                 </.link>
-                <.copyclip id={@selected_option} content={@org.user_code} />
+                <.copyclip content={@org.user_code} />
               </div>
             </div>
           </.form>
