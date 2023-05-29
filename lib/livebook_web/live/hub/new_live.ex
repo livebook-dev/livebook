@@ -146,25 +146,22 @@ defmodule LivebookWeb.Hub.NewLive do
               <%= @button_label %>
             </button>
             <div class="invisible"></div>
-            <div
-              :if={@requested_code}
-              class="flex flex-col place-self-start items-center rounded-xl bg-gray-50 px-10 py-6 mt-10"
-            >
-              <div class="rounded-xl bg-gray-50 px-10 py-6 mt-10">
-                <span class="text-base font-semibold text-gray-900">
+            <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
+              <div class="flex flex-col items-center rounded-xl bg-gray-50">
+                <span class="text-base font-semibold text-center text-gray-900">
                   <%= @request_code_info %>
                 </span>
-                <span class="italic text-sm mb-6 mt-1">
-                  Enter the code on your application.
-                </span>
-                <.copyclip id={@selected_option} , content={@org.user_code} />
-                <.link
-                  href={@verification_uri}
-                  target="_blank"
-                  class="button-base button-blue button-outlined-gray mt-6"
-                >
-                  Confirm on Teams
+                <.link>
+                  <div class=" text-center text-sm mb-6 mt-2">
+                    <a href={@verification_uri} , target="_blank" class="text-blue-600 ">
+                      Visit Livebook Teams
+                    </a>
+                    <span>
+                      and paste the code below
+                    </span>
+                  </div>
                 </.link>
+                <.copyclip id={@selected_option} , content={@org.user_code} />
               </div>
             </div>
           </.form>
@@ -187,7 +184,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
       <div
         data-template
-        class="text-blue-600 font-semibold text-xl leading-none"
+        class="text-[#e44c75] font-semibold text-xl leading-none"
         id={"virtualized-text-#{@id}-template"}
         phx-no-format
       ><%= for line <- ansi_string_to_html_lines(@content) do %><div data-line><%= [
@@ -196,7 +193,7 @@ defmodule LivebookWeb.Hub.NewLive do
             ] %></div><% end %></div>
 
       <button
-        class="icon-button pl-4"
+        class="icon-button ml-4"
         data-el-clipcopy
         phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}
       >
@@ -226,9 +223,9 @@ defmodule LivebookWeb.Hub.NewLive do
           <.remix_icon
             icon={@icon}
             class={[
-              "group-hover:text-blue-500 text-lg",
+              "group-hover:text-blue-600 text-lg",
               if @selected == @id do
-                "text-blue-500"
+                "text-blue-600"
               else
                 "text-gray-500"
               end
@@ -350,7 +347,7 @@ defmodule LivebookWeb.Hub.NewLive do
     |> assign(
       org: org,
       button_label: "Join",
-      request_code_info: "Join an Organization"
+      request_code_info: "Autheticate with your organization"
     )
     |> assign_form(changeset)
   end
@@ -363,7 +360,7 @@ defmodule LivebookWeb.Hub.NewLive do
     |> assign(
       org: org,
       button_label: "Create",
-      request_code_info: "Confirm Organization Creation"
+      request_code_info: "Verify your new organization"
     )
     |> assign_form(changeset)
   end
