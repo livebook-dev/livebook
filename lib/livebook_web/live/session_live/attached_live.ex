@@ -38,9 +38,9 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       </p>
       <div class="text-gray-700 markdown">
         <%= if longname = Livebook.Config.longname() do %>
-          <pre><code>iex --name test@<%= longname %> --cookie mycookie</code></pre>
+          <pre><code>iex --name test@<%= longname %> --cookie mycookie</code> -S mix</pre>
         <% else %>
-          <pre><code>iex --sname test --cookie mycookie</code></pre>
+          <pre><code>iex --sname test --cookie mycookie -S mix</code></pre>
         <% end %>
       </div>
       <p class="text-gray-700">
