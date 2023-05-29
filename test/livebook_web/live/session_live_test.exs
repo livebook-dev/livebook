@@ -1401,8 +1401,8 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
-
       insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
+      wait_for_session_update(session.pid)
 
       slug = Livebook.Utils.random_short_id()
 
