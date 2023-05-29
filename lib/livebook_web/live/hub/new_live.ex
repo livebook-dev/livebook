@@ -176,7 +176,6 @@ defmodule LivebookWeb.Hub.NewLive do
     <div
       id="clipboard"
       class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
-      phx-hook="VirtualizedLines inline-block"
     >
       <div class="icon-button invisible">
         <.remix_icon icon="clipboard-line" class="text-lg" />
