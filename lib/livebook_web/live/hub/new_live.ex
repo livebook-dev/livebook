@@ -27,8 +27,7 @@ defmodule LivebookWeb.Hub.NewLive do
         verification_uri: nil,
         form: nil,
         button_label: nil,
-        request_code_info: nil,
-        content: nil
+        request_code_info: nil
       )
 
     socket = assign_form(socket, "new-org")
