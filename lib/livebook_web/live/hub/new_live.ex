@@ -5,7 +5,7 @@ defmodule LivebookWeb.Hub.NewLive do
   alias Livebook.Teams.Org
   alias LivebookWeb.LayoutHelpers
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @check_completion_data_interval Application.compile_env(
                                     :livebook,
