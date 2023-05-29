@@ -153,7 +153,7 @@ defmodule LivebookWeb.Hub.NewLive do
                 </span>
                 <.link>
                   <div class=" text-center text-sm mb-6 mt-2">
-                    <a href={@verification_uri} , target="_blank" class="text-blue-600 ">
+                    <a href={@verification_uri} target="_blank" class="text-blue-600 ">
                       Visit Livebook Teams
                     </a>
                     <span>
@@ -161,7 +161,7 @@ defmodule LivebookWeb.Hub.NewLive do
                     </span>
                   </div>
                 </.link>
-                <.copyclip id={@selected_option} , content={@org.user_code} />
+                <.copyclip id={@selected_option} content={@org.user_code} />
               </div>
             </div>
           </.form>
@@ -174,7 +174,7 @@ defmodule LivebookWeb.Hub.NewLive do
   defp copyclip(assigns) do
     ~H"""
     <div
-      id={"virtualized-text-#{@id}"}
+      id="clipboard"
       class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
       phx-hook="VirtualizedLines inline-block"
     >
@@ -182,20 +182,15 @@ defmodule LivebookWeb.Hub.NewLive do
         <.remix_icon icon="clipboard-line" class="text-lg" />
       </div>
 
-      <div
-        data-template
-        class="text-[#e44c75] font-semibold text-xl leading-none"
-        id={"virtualized-text-#{@id}-template"}
-        phx-no-format
-      ><%= for line <- ansi_string_to_html_lines(@content) do %><div data-line><%= [
-        line,
-        "\n"
-            ] %></div><% end %></div>
+      <div data-template class="text-[#e44c75] font-semibold text-xl leading-none" id="clipboard-code">
+        <%= @content %>
+      </div>
 
       <button
         class="icon-button ml-4"
         data-el-clipcopy
-        phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}
+        phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
+        type="button"
       >
         <.remix_icon icon="clipboard-line" class="text-lg" />
       </button>
@@ -347,7 +342,7 @@ defmodule LivebookWeb.Hub.NewLive do
     |> assign(
       org: org,
       button_label: "Join",
-      request_code_info: "Autheticate with your organization"
+      request_code_info: "Authenticate with your organization"
     )
     |> assign_form(changeset)
   end
