@@ -449,8 +449,8 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <button
       class={[
-        "px-5 py-2 rounded-lg border text-gray-700 bg-white border-gray-200",
-        @active && "bg-blue-100 border-blue-600",
+        "px-5 py-2 rounded-lg text-gray-700 border",
+        if(@active, do: "bg-blue-100 border-blue-600", else: "bg-white border-gray-200"),
         @class
       ]}
       disabled={@disabled}
