@@ -60,6 +60,8 @@ defmodule Livebook.Hubs.Team do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
+  alias Livebook.Hubs.TeamClient
+
   def load(team, fields) do
     %{
       team
@@ -80,17 +82,17 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
       name: team.hub_name,
       provider: team,
       emoji: team.hub_emoji,
-      connected?: false
+      connected?: TeamClient.connected?(team.id)
     }
   end
 
   def type(_team), do: "team"
 
-  def connection_spec(_team), do: nil
+  def connection_spec(team), do: {TeamClient, team}
 
-  def disconnect(_team), do: raise("not implemented")
+  def disconnect(team), do: TeamClient.stop(team.id)
 
-  def capabilities(_team), do: []
+  def capabilities(_team), do: ~w(connect)a
 
   def get_secrets(_team), do: []
 
@@ -100,7 +102,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def delete_secret(_team, _secret), do: :ok
 
-  def connection_error(_team), do: raise("not implemented")
+  def connection_error(team) do
+    reason = TeamClient.get_connection_error(team.id)
+    "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
+  end
 
   def notebook_stamp(_hub, _notebook_source, _metadata) do
     :skip
