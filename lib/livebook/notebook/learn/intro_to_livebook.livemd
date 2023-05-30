@@ -230,14 +230,12 @@ setup cell to invoke `Mix.install/2` with the following arguments:
 <!-- livebook:{"force_markdown":true} -->
 
 ```elixir
-my_app_root = Path.join(__DIR__, "..")
-
 Mix.install(
   [
-    {:my_app, path: my_app_root, env: :dev}
+    {:my_app, path: Path.join(__DIR__, ".."), env: :dev}
   ],
-  config_path: Path.join(my_app_root, "config/config.exs"),
-  lockfile: Path.join(my_app_root, "mix.lock")
+  config_path: :my_app,
+  lockfile: :my_app
 )
 ```
 

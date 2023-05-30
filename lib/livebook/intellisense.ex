@@ -65,11 +65,11 @@ defmodule Livebook.Intellisense do
         |> Code.format_string!()
         |> IO.iodata_to_binary()
 
-      %{code: formatted, code_error: nil}
+      %{code: formatted, code_markers: []}
     rescue
       error ->
-        code_error = %{line: error.line, description: error.description}
-        %{code: nil, code_error: code_error}
+        code_marker = %{line: error.line, description: error.description, severity: :error}
+        %{code: nil, code_markers: [code_marker]}
     end
   end
 
@@ -146,6 +146,15 @@ defmodule Livebook.Intellisense do
       detail: "field",
       documentation: nil,
       insert_text: Atom.to_string(name)
+    }
+
+  defp format_completion_item(%{kind: :in_map_field, name: name}),
+    do: %{
+      label: Atom.to_string(name),
+      kind: :field,
+      detail: "field",
+      documentation: nil,
+      insert_text: "#{name}: "
     }
 
   defp format_completion_item(%{
@@ -412,6 +421,8 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :variable, name: name}), do: code(name)
 
   defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
+
+  defp format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
 
   defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([

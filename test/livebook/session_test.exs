@@ -718,6 +718,8 @@ defmodule Livebook.SessionTest do
   describe "start_link/1" do
     @tag :tmp_dir
     test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do
+      Process.flag(:trap_exit, true)
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       start_session(file: file)

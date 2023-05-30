@@ -29,7 +29,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       %{
         evaluation_time_ms: _,
         memory_usage: %{},
-        code_error: _,
+        code_markers: _,
         identifiers_used: _,
         identifiers_defined: _
       }
@@ -61,10 +61,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         Evaluator.evaluate_code(evaluator, "x", :code_2, [])
 
         assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind,
-                         %CompileError{
-                           description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, metadata()}
+                        {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
       end)
     end
 
@@ -163,12 +160,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %TokenMissingError{}, _stacktrace},
+                      {:error, :error, %TokenMissingError{}, []},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description: "syntax error: expression is incomplete"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "syntax error: expression is incomplete",
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -180,10 +180,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1,
                       {:error, :error, %CompileError{}, _stacktrace},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description: "undefined function x/0 (there is no such import)"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: ~s/undefined variable "x"/,
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -195,11 +198,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, [], file: "file.ex")
 
       expected_stacktrace = [
+        {:elixir_expand, :expand, 3, [file: ~c"src/elixir_expand.erl", line: 383]},
         {:elixir_eval, :__FILE__, 1, [file: ~c"file.ex", line: 1]}
       ]
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %CompileError{}, ^expected_stacktrace}, %{code_error: nil}}
+                      {:error, :error, %CompileError{}, ^expected_stacktrace},
+                      %{code_markers: []}}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
@@ -331,11 +336,14 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_2,
                       {:error, :error, %CompileError{}, []},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description:
-                            "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description:
+                              "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined",
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -633,11 +641,16 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     test "reports parentheses-less arity-0 import as a used variable", %{evaluator: evaluator} do
+      # TODO: remove all logic around undefined unused vars once we require Elixir v1.15
+      Code.put_compiler_option(:on_undefined_variable, :warn)
+
       identifiers =
         """
         self
         """
         |> eval(evaluator, 0)
+
+      Code.put_compiler_option(:on_undefined_variable, :raise)
 
       assert {:variable, {:self, nil}} in identifiers.used
       assert :imports in identifiers.used
@@ -961,10 +974,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         Evaluator.evaluate_code(evaluator, "x", :code_2, [:code_1])
 
         assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind,
-                         %CompileError{
-                           description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, metadata()}
+                        {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
       end)
     end
 
