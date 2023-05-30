@@ -85,14 +85,12 @@ const Session = {
     this._handleDocumentMouseDown = this.handleDocumentMouseDown.bind(this);
     this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
     this._handleDocumentClick = this.handleDocumentClick.bind(this);
-    this._handleDocumentDoubleClick = this.handleDocumentDoubleClick.bind(this);
 
     document.addEventListener("keydown", this._handleDocumentKeyDown, true);
     document.addEventListener("mousedown", this._handleDocumentMouseDown);
     // Note: the focus event doesn't bubble, so we register for the capture phase
     document.addEventListener("focus", this._handleDocumentFocus, true);
     document.addEventListener("click", this._handleDocumentClick);
-    document.addEventListener("dblclick", this._handleDocumentDoubleClick);
 
     this.getElement("sections-list").addEventListener("click", (event) => {
       this.handleSectionsListClick(event);
@@ -255,7 +253,6 @@ const Session = {
     document.removeEventListener("mousedown", this._handleDocumentMouseDown);
     document.removeEventListener("focus", this._handleDocumentFocus, true);
     document.removeEventListener("click", this._handleDocumentClick);
-    document.removeEventListener("dblclick", this._handleDocumentDoubleClick);
 
     setFavicon("favicon");
 
@@ -563,18 +560,6 @@ const Session = {
           window.location.pathname + window.location.search
         );
       }
-    }
-  },
-
-  /**
-   * Enters insert mode when a markdown cell is double-clicked.
-   */
-  handleDocumentDoubleClick(event) {
-    const cell = event.target.closest(`[data-el-cell]`);
-    const type = cell && cell.getAttribute("data-type");
-
-    if (type && type === "markdown" && this.focusedId && !this.insertMode) {
-      this.setInsertMode(true);
     }
   },
 
