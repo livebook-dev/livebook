@@ -482,6 +482,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
     end
 
+    # TODO: Run this test on Elixir v1.15+
+    @tag :skip
     test "multiple assertions at once", %{evaluator: evaluator} do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.DoctestsMiddle do

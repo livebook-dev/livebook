@@ -60,37 +60,42 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     doctest_line = test.tags.doctest_line
     [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
 
-    interval =
+    end_line =
       if end_line = test.tags[:doctest_data][:end_line] do
-        end_line - doctest_line + 1
+        end_line
       else
         # TODO: Remove this branch once we require Elixir v1.15+
-        lines
-        |> Enum.take_while(&(not end_of_doctest?(&1)))
-        |> length()
+        interval =
+          lines
+          |> Enum.take_while(&(not end_of_doctest?(&1)))
+          |> length()
+
+        interval + doctest_line - 1
       end
 
-    interval =
+    end_line =
       with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
            assertion_line = location[:line],
-           true <- assertion_line in doctest_line..(doctest_line + interval) do
-        interval -
+           # TODO: Remove this check once we require Elixir v1.15+
+           true <- is_integer(test.tags[:doctest_data][:end_line]),
+           true <- assertion_line in doctest_line..end_line do
+        end_line -
           length(
             lines
-            |> Enum.take(interval)
+            |> Enum.take(end_line - doctest_line + 1)
             |> Enum.drop(assertion_line - doctest_line)
             |> Enum.drop_while(&prompt?(&1))
             |> Enum.drop_while(&(not prompt?(&1)))
           )
       else
         _ ->
-          interval
+          end_line
       end
 
     result = %{
       column: count_columns(prompt_line, 0),
       line: doctest_line,
-      end_line: interval + doctest_line - 1,
+      end_line: end_line,
       state: :failed,
       contents: IO.iodata_to_binary(format_failure(failure, test))
     }
