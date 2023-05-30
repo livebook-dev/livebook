@@ -83,7 +83,12 @@ defmodule Livebook.AppTest do
       App.deploy(app_pid, notebook)
 
       assert_receive {:app_updated,
-                      %{sessions: [%{app_status: %{execution: :executing}, version: 2}]}}
+                      %{
+                        sessions: [
+                          %{version: 2},
+                          %{app_status: %{lifecycle: :shutting_down}, version: 1}
+                        ]
+                      }}
 
       assert_receive {:app_updated,
                       %{sessions: [%{app_status: %{execution: :executed}, version: 2}]}}

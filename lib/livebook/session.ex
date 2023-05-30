@@ -1324,6 +1324,11 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_doctest_report, cell_id, doctest_report}, state) do
+    operation = {:add_cell_doctest_report, @client_id, cell_id, doctest_report}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     broadcast_operation(state.session_id, operation)

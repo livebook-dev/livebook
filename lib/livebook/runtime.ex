@@ -93,6 +93,24 @@ defprotocol Livebook.Runtime do
         }
 
   @typedoc """
+  Includes information about a running or finished doctest.
+
+  Failed doctests have additional details formatted as a string.
+  """
+  @type doctest_report ::
+          %{
+            status: :running | :success,
+            line: pos_integer()
+          }
+          | %{
+              status: :failed,
+              column: pos_integer(),
+              line: pos_integer(),
+              end_line: pos_integer(),
+              details: String.t()
+            }
+
+  @typedoc """
   Recognised intellisense request.
   """
   @type intellisense_request ::
@@ -402,6 +420,13 @@ defprotocol Livebook.Runtime do
     * `{:runtime_container_down, container_ref, message}`
 
   to notify the owner.
+
+  ### Doctests
+
+  If the cell includes doctests, the runtime can evaluate them and
+  send reports as a message:
+
+    * `{:runtime_doctest_report, evaluation_ref, doctest_report}`
 
   ## Options
 

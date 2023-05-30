@@ -69,4 +69,29 @@ defmodule Livebook.TestHelpers do
     end
     |> Macro.to_string()
   end
+
+  @doc """
+  Builds code that awaits for a messages before finishing.
+
+  Returns `{code, continue_fun}`, where calling `continue_fun` should
+  continue execution. Embedded runtime must be used for this to work.
+  """
+  def source_for_blocking() do
+    name = Livebook.Utils.random_short_id() |> String.to_atom()
+
+    code =
+      quote do
+        # This test uses the Embedded runtime, so we can target the
+        # process by name
+        Process.register(self(), unquote(name))
+        receive do: (:stop -> :ok)
+      end
+      |> Macro.to_string()
+
+    ack_fun = fn ->
+      send(Process.whereis(name), :pong)
+    end
+
+    {code, ack_fun}
+  end
 end

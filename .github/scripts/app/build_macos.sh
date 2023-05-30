@@ -34,7 +34,7 @@ download_elixir() {
   if [ ! -d $elixir_dir ]; then
     otp_release=$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')
     elixir_zip=v${ELIXIR_VERSION}-otp-${otp_release}.zip
-    url=https://repo.hex.pm/builds/elixir/$elixir_zip
+    url=https://builds.hex.pm/builds/elixir/$elixir_zip
     echo downloading $url
     curl --fail -LO $url
     mkdir -p $elixir_dir
