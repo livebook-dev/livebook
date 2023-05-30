@@ -100,9 +100,7 @@ module.exports = {
           800: "#854D0E",
           900: "#713F12",
         },
-        "brand-pink": {
-          500: "#e44c75",
-        },
+        "brand-pink": "#e44c75",
       },
     },
   },
