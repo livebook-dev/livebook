@@ -57,20 +57,32 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp report_doctest_result(%{state: {:failed, failure}} = test, lines) do
-    line = test.tags.doctest_line
-    [prompt_line | _] = lines = Enum.drop(lines, line - 1)
-
-    interval =
-      lines
-      |> Enum.take_while(&(not end_of_doctest?(&1)))
-      |> length()
-      |> Kernel.-(1)
+    doctest_line = test.tags.doctest_line
+    [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
 
     # TODO: end_line must come from Elixir to be reliable
+    doctest_lines = Enum.take_while(lines, &(not end_of_doctest?(&1)))
+
+    interval =
+      with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
+           assertion_line = location[:line],
+           true <- is_integer(assertion_line) and assertion_line >= doctest_line do
+        length(doctest_lines) -
+          length(
+            doctest_lines
+            |> Enum.drop(assertion_line - doctest_line)
+            |> Enum.drop_while(&prompt?(&1))
+            |> Enum.drop_while(&(not prompt?(&1)))
+          )
+      else
+        _ ->
+          length(doctest_lines)
+      end
+
     result = %{
       column: count_columns(prompt_line, 0),
-      line: line,
-      end_line: interval + line,
+      line: doctest_line,
+      end_line: interval + doctest_line - 1,
       state: :failed,
       contents: IO.iodata_to_binary(format_failure(failure, test))
     }
@@ -81,6 +93,16 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   defp count_columns(" " <> rest, counter), do: count_columns(rest, counter + 1)
   defp count_columns("\t" <> rest, counter), do: count_columns(rest, counter + 2)
   defp count_columns(_, counter), do: counter
+
+  defp prompt?(line) do
+    case String.trim_leading(line) do
+      "iex>" <> _ -> true
+      "iex(" <> _ -> true
+      "...>" <> _ -> true
+      "...(" <> _ -> true
+      _ -> false
+    end
+  end
 
   defp end_of_doctest?(line) do
     case String.trim_leading(line) do
