@@ -184,9 +184,7 @@ defmodule LivebookWeb.Hub.NewLive do
         data-template
         class="text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
-      >
-        <%= @content %>
-      </div>
+      ><%= @content %></div>
 
       <button
         class="icon-button ml-4"
