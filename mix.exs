@@ -5,7 +5,7 @@ defmodule Livebook.MixProject do
   @version "0.9.2"
   @description "Automate code & data workflows with interactive notebooks"
 
-  @app_elixir_version "1.14.2"
+  @app_elixir_version "1.15.0-rc.1"
   @app_rebar3_version "3.19.0"
 
   def project do

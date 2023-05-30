@@ -1,9 +1,10 @@
 ARG ELIXIR_VERSION
 ARG ERLANG_VERSION
+ARG UBUNTU_VERSION
 
 ARG CUDA_VERSION
 
-FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-focal-20211006 AS elixir
+FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-${UBUNTU_VERSION} AS elixir
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04
 

@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=hexpm/elixir:1.14.2-erlang-24.3.4.2-debian-bullseye-20210902-slim
+ARG BASE_IMAGE=hexpm/elixir:1.15.0-rc.1-erlang-25.3.2-debian-bullseye-20230522-slim
 
 # Stage 1
 # Builds the Livebook release
@@ -12,6 +12,15 @@ RUN apt-get update && apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# This flag disables JIT behaviour that causes a segfault under QEMU.
+# Note that we set this runtime flag only during the build stage and
+# it has no impact when running the final image. See [1] for more
+# information.
+#
+# [1]: https://github.com/erlang/otp/pull/6340
+ENV ERL_FLAGS="+JPperf true"
+# TODO: use "+JMsingle true" on OTP 26
 
 # Install hex and rebar
 RUN mix local.hex --force && \
