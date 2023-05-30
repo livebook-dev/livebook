@@ -48,10 +48,13 @@ defmodule LivebookWeb.AppsLive do
 
   defp app_list(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-10">
+    <div class="flex flex-col space-y-16">
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
-        <div class="mb-2 text-gray-800 font-medium text-lg">
+        <div class="mb-2 text-gray-800 font-medium text-xl">
           <%= "/" <> app.slug %>
+        </div>
+        <div class="mt-4 mb-2 text-gray-600 font-medium text-sm">
+          App info
         </div>
         <div class="border border-gray-200 rounded-lg flex justify-between p-4">
           <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 w-full max-w-2xl">
@@ -90,9 +93,9 @@ defmodule LivebookWeb.AppsLive do
             </span>
           </div>
         </div>
-        <div class="ml-4">
-          <div class="my-2 text-gray-600 font-medium text-sm">
-            App sessions
+        <div>
+          <div class="mt-5 mb-2 text-gray-600 font-medium text-sm">
+            Running sessions
           </div>
           <.table rows={app.sessions}>
             <:col :let={app_session} label="Status">
