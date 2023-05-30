@@ -180,7 +180,7 @@ defmodule LivebookWeb.Hub.NewLive do
         <.remix_icon icon="clipboard-line" class="text-lg" />
       </div>
 
-      <div=
+      <div
         class="text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
         phx-no-format
