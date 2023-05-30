@@ -92,8 +92,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ElixirKit.API.stop()
     }
 
-    func applicationDidBecomeActive(_ aNotification: Notification) {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         ElixirKit.API.publish("open", "")
+        return true
     }
 
     func application(_ app: NSApplication, open urls: [URL]) {
