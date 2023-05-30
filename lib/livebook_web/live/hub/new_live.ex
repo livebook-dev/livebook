@@ -180,7 +180,11 @@ defmodule LivebookWeb.Hub.NewLive do
         <.remix_icon icon="clipboard-line" class="text-lg" />
       </div>
 
-      <div data-template class="text-[#e44c75] font-semibold text-xl leading-none" id="clipboard-code">
+      <div
+        data-template
+        class="text-brand-pink font-semibold text-xl leading-none"
+        id="clipboard-code"
+      >
         <%= @content %>
       </div>
 
