@@ -60,23 +60,31 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     doctest_line = test.tags.doctest_line
     [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
 
-    # TODO: end_line must come from Elixir to be reliable
-    doctest_lines = Enum.take_while(lines, &(not end_of_doctest?(&1)))
+    interval =
+      if end_line = test.tags[:doctest_data][:end_line] do
+        end_line - doctest_line + 1
+      else
+        # TODO: Remove this branch once we require Elixir v1.15+
+        lines
+        |> Enum.take_while(&(not end_of_doctest?(&1)))
+        |> length()
+      end
 
     interval =
       with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
            assertion_line = location[:line],
-           true <- is_integer(assertion_line) and assertion_line >= doctest_line do
-        length(doctest_lines) -
+           true <- assertion_line in doctest_line..(doctest_line + interval) do
+        interval -
           length(
-            doctest_lines
+            lines
+            |> Enum.take(interval)
             |> Enum.drop(assertion_line - doctest_line)
             |> Enum.drop_while(&prompt?(&1))
             |> Enum.drop_while(&(not prompt?(&1)))
           )
       else
         _ ->
-          length(doctest_lines)
+          interval
       end
 
     result = %{
