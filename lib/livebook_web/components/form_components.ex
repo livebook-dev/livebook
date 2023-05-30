@@ -329,9 +329,11 @@ defmodule LivebookWeb.FormComponents do
           class={[
             @full_width && "flex-grow text-center",
             "px-3 py-2 first:rounded-l-lg last:rounded-r-lg font-medium text-sm whitespace-nowrap cursor-pointer",
-            "border border-r-0 last:border-r border-gray-500 text-gray-500 hover:bg-gray-100 focus:bg-gray-100",
-            to_string(@value) == value &&
-              "bg-gray-500 text-gray-50 hover:bg-gray-500 focus:bg-gray-500"
+            "border border-r-0 last:border-r border-gray-500",
+            if(to_string(@value) == value,
+              do: "text-gray-50 bg-gray-500",
+              else: "text-gray-500 hover:bg-gray-100 focus:bg-gray-100"
+            )
           ]}
         >
           <input
