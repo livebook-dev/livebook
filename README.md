@@ -242,6 +242,9 @@ The following environment variables can be used to configure Livebook on boot:
     standard schemes by default (such as http and https). Set it to a comma-separated
     list of schemes.
 
+  * LIVEBOOK_CLOUDFLARE - controls whether CloudFlare Zero Trust authentication is enabled.
+    Disabled by default. Set it to your CloudFlare team name to enable it.
+
 <!-- Environment variables -->
 
 When running Livebook Desktop, Livebook will invoke on boot a file named

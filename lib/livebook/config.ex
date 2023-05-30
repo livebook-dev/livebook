@@ -3,7 +3,7 @@ defmodule Livebook.Config do
 
   alias Livebook.FileSystem
 
-  @type auth_mode() :: :token | :password | :disabled
+  @type auth_mode() :: :token | :password | :cloudflare | :disabled
 
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
@@ -492,5 +492,12 @@ defmodule Livebook.Config do
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
+  end
+
+  @doc """
+  Parses cloudflare team name from env.
+  """
+  def cloudflare_team_name!(env) do
+    System.get_env(env)
   end
 end

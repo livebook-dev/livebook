@@ -43,6 +43,11 @@ defmodule LivebookWeb.UserPlug do
     if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
     else
+      user =
+        get_req_header(conn, "cf-access-authenticated-user-email")
+        |> List.first()
+        |> User.new()
+
       user_data = user_data(User.new())
       encoded = user_data |> Jason.encode!() |> Base.encode64()
 

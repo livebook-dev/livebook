@@ -50,6 +50,7 @@
             </span>
           </div>
           <button
+            :if={@auth_mode != :cloudflare}
             type="submit"
             class="mt-4 py-2 w-full rounded-lg text-gray-200 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700"
           >

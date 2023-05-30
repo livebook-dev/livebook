@@ -107,6 +107,9 @@ defmodule Livebook do
       password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
         config :livebook, authentication_mode: :password, password: password
 
+      cloudflare_team_name = Livebook.Config.cloudflare_team_name!("LIVEBOOK_CLOUDFLARE") ->
+        config :livebook, authentication_mode: :cloudflare, cloudflare: cloudflare_team_name
+
       Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
         config :livebook, token: Livebook.Utils.random_id()
 
