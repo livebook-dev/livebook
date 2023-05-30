@@ -119,7 +119,8 @@ defmodule LivebookWeb.SessionLiveTest do
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
+      {source, continue_fun} = source_for_blocking()
+      cell_id = insert_text_cell(session.pid, section_id, :code, source)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -129,6 +130,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
                Session.get_data(session.pid)
+
+      continue_fun.()
     end
 
     test "reevaluting the setup cell", %{conn: conn, session: session} do
@@ -1402,7 +1405,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
       insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
-      wait_for_session_update(session.pid)
 
       slug = Livebook.Utils.random_short_id()
 
@@ -1430,6 +1432,9 @@ defmodule LivebookWeb.SessionLiveTest do
         conn
         |> live(~p"/apps/#{slug}")
         |> follow_redirect(conn)
+
+      assert_receive {:app_updated,
+                      %{slug: ^slug, sessions: [%{app_status: %{execution: :executed}}]}}
 
       assert render(view) =~ "Hello from the app!"
 
