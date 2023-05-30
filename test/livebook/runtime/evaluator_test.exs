@@ -416,8 +416,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
               precinct: 99
             }
 
-            iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
-            %{name: "Jake Peralta", description: "NYPD detective"}
+          iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
+          %{name: "Jake Peralta", description: "NYPD detective"}
         """
         def data() do
           %{
@@ -447,15 +447,108 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1, {:text, doctest_result}}
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 4, state: :evaluating}}}
 
-      assert doctest_result =~ "8 doctests, 7 failures"
-      assert doctest_result =~ "Doctest did not compile, got: (TokenMissingError)"
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result,
+                       %{
+                         column: 6,
+                         contents:
+                           "\e[31mexpected exception ArgumentError but got RuntimeError with message \"oops\"\e[0m",
+                         end_line: 5,
+                         line: 4,
+                         state: :failed
+                       }}}
 
-      assert doctest_result =~
-               "expected exception ArgumentError but got RuntimeError with message \"oops\""
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 7, state: :evaluating}}}
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result,
+                       %{
+                         column: 6,
+                         contents:
+                           "\e[31mDoctest did not compile, got: (TokenMissingError) " <> _,
+                         end_line: 8,
+                         line: 7,
+                         state: :failed
+                       }}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 10, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result,
+                       %{
+                         column: 6,
+                         contents: "\e[31mmatch (=) failed" <> _,
+                         end_line: 10,
+                         line: 10,
+                         state: :failed
+                       }}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 12, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {
+                        :doctest_result,
+                        %{
+                          column: 6,
+                          contents: "\e[31mExpected truthy, got false\e[0m",
+                          end_line: 13,
+                          line: 12,
+                          state: :failed
+                        }
+                      }}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 17, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 17, state: :success}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 24, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {
+                        :doctest_result,
+                        %{column: 4, contents: _, end_line: 25, line: 24, state: :failed}
+                      }}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 36, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {
+                        :doctest_result,
+                        %{
+                          column: 6,
+                          contents:
+                            "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
+                              _,
+                          end_line: 37,
+                          line: 36,
+                          state: :failed
+                        }
+                      }}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {:doctest_result, %{line: 44, state: :evaluating}}}
+
+      assert_receive {:runtime_evaluation_output, :code_1,
+                      {
+                        :doctest_result,
+                        %{
+                          column: 6,
+                          contents: "\e[31m** (EXIT from #PID<" <> _,
+                          end_line: 45,
+                          line: 44,
+                          state: :failed
+                        }
+                      }}
     end
   end
 

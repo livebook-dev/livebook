@@ -462,8 +462,12 @@ const Session = {
    * (e.g. if the user starts selecting some text within the editor)
    */
   handleDocumentMouseDown(event) {
-    // If the click is outside the notebook element, keep the focus as is
-    if (!event.target.closest(`[data-el-notebook]`)) {
+    if (
+      // If the click is outside the notebook element, keep the focus as is
+      !event.target.closest(`[data-el-notebook]`) ||
+      // If the click is inside the custom doctest editor widget, keep the focus as is
+      event.target.closest(`.doctest-failure-overlay`)
+    ) {
       if (this.insertMode) {
         this.setInsertMode(false);
       }

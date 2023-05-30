@@ -244,22 +244,21 @@ const Cell = {
         );
 
         this.handleEvent(`start_evaluation:${this.props.cellId}`, () => {
-          liveEditor.clearDoctestDecorations();
+          liveEditor.clearDoctests();
         });
 
         this.handleEvent(
           `doctest_result:${this.props.cellId}`,
-          ({ state, line }) => {
-            console.log({ state, line });
+          ({ state, column, line, end_line, contents }) => {
             switch (state) {
               case "evaluating":
-                liveEditor.addEvaluatingDoctestDecoration(line);
+                liveEditor.addEvaluatingDoctest(line);
                 break;
               case "success":
-                liveEditor.addSuccessDoctestDecoration(line);
+                liveEditor.addSuccessDoctest(line);
                 break;
               case "failed":
-                liveEditor.addFailedDoctestDecoration(line);
+                liveEditor.addFailedDoctest(column, line, end_line, contents);
                 break;
             }
           }
