@@ -185,7 +185,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
   defp sidebar_hub_link_with_tooltip(assigns) do
     ~H"""
-    <.link {hub_connection_link_opts(@hub.provider, @to, @current)}>
+    <.link {hub_connection_link_opts(@hub, @to, @current)}>
       <div class="text-lg leading-6 w-[56px] flex justify-center">
         <span class="relative">
           <%= @hub.emoji %>
@@ -238,10 +238,14 @@ defmodule LivebookWeb.LayoutHelpers do
     class =
       "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
-    if tooltip = Provider.connection_error(hub) do
-      [navigate: to, data_tooltip: tooltip, class: "tooltip right " <> class]
-    else
+    if hub.connected? do
       [navigate: to, class: class]
+    else
+      [
+        navigate: to,
+        data_tooltip: Provider.connection_error(hub.provider),
+        class: "tooltip right " <> class
+      ]
     end
   end
 
