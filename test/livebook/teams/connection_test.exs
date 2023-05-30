@@ -33,12 +33,12 @@ defmodule Livebook.Teams.ConnectionTest do
       assert {:ok, _conn} = Connection.start_link(self(), header)
 
       assert_receive {:connect, :error, reason}
-      assert reason =~ "could not authenticate the user from given credentials"
+      assert Regex.match?(~r/^[could not authenticate the user from given credentials]/, reason)
 
       assert {:ok, _conn} = Connection.start_link(self(), [])
 
       assert_receive {:connect, :error, reason}
-      assert reason =~ "could not find the request credentials"
+      assert Regex.match?(~r/^[could not find the request credentials]/, reason)
     end
   end
 end

@@ -49,7 +49,8 @@ defmodule Livebook.Teams.Connection do
         {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
 
       {:server_error, error} ->
-        send(data.listener, {:connect, :error, error})
+        reason = LivebookProto.Error.decode(error).details
+        send(data.listener, {:connect, :error, reason})
 
         {:keep_state_and_data, {{:timeout, :reconnect}, @backoff, nil}}
     end
