@@ -159,46 +159,50 @@ Also some spacing adjustments.
   transform: none;
 }
 
-/* To style circles for doctest results */
-.line-circle-red,
-.line-circle-green,
-.line-circle-grey {
+/* === Doctest status decoration === */
+
+.doctest-status-decoration-running,
+.doctest-status-decoration-success,
+.doctest-status-decoration-failed {
   height: 100%;
   position: relative;
 }
 
-.line-circle-red::after,
-.line-circle-green::after,
-.line-circle-grey::after {
+.doctest-status-decoration-running::after,
+.doctest-status-decoration-success::after,
+.doctest-status-decoration-failed::after {
   box-sizing: border-box;
   border-radius: 2px;
   content: "";
   display: block;
   height: 12px;
   width: 12px;
-  margin-left: 6px;
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.line-circle-red::after {
-  background-color: rgb(233 117 121);
+.doctest-status-decoration-running::after {
+  @apply bg-gray-400;
 }
 
-.line-circle-green::after {
-  background-color: rgb(74 222 128);
+.doctest-status-decoration-success::after {
+  @apply bg-green-bright-400;
 }
 
-.line-circle-grey::after {
-  background-color: rgb(97 117 138);
+.doctest-status-decoration-failed::after {
+  @apply bg-red-400;
 }
 
-.doctest-failure-overlay {
+/* === Doctest failure details === */
+
+.doctest-details-widget {
   @apply font-editor;
   white-space: pre;
   background-color: rgba(0, 0, 0, 0.05);
-  padding-left: calc(68px + 6ch);
+  padding-top: 6px;
+  padding-bottom: 6px;
   position: absolute;
   width: 100%;
 }

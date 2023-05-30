@@ -1,8 +1,8 @@
 /*
 Variables for HTML-ized ANSI string.
 
-Many colors are taken from the One Light theme
-to be consistent with the editor.
+Many colors are taken from the One Light and One Dark theme for
+consistency with the editor.
 */
 
 :root {
@@ -24,19 +24,21 @@ to be consistent with the editor.
   --ansi-color-light-white: white;
 }
 
-/* The same as above but brightned by 10% */
-[data-editor-theme="default"] {
-  --ansi-color-red: #dd1f53;
-  --ansi-color-green: #5ab756;
-  --ansi-color-yellow: #d9930b;
-  --ansi-color-blue: #4d8cfb;
-  --ansi-color-magenta: #b02fbb;
-  --ansi-color-cyan: #05a4d0;
-  --ansi-color-light-black: #676e7b;
-  --ansi-color-light-red: #f35c57;
-  --ansi-color-light-green: #42dcab;
-  --ansi-color-light-yellow: #fdea9a;
-  --ansi-color-light-blue: #77c0fc;
-  --ansi-color-light-magenta: #d181e5;
-  --ansi-color-light-cyan: #64ccda;
+body[data-editor-theme="default"] .editor-theme-aware-ansi {
+  --ansi-color-black: black;
+  --ansi-color-red: #be5046;
+  --ansi-color-green: #98c379;
+  --ansi-color-yellow: #e5c07b;
+  --ansi-color-blue: #61afef;
+  --ansi-color-magenta: #c678dd;
+  --ansi-color-cyan: #56b6c2;
+  --ansi-color-white: white;
+  --ansi-color-light-black: #5c6370;
+  --ansi-color-light-red: #e06c75;
+  --ansi-color-light-green: #34d399;
+  --ansi-color-light-yellow: #fde68a;
+  --ansi-color-light-blue: #93c5fd;
+  --ansi-color-light-magenta: #f472b6;
+  --ansi-color-light-cyan: #6be3f2;
+  --ansi-color-light-white: white;
 }

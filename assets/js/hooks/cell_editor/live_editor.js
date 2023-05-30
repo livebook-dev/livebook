@@ -7,6 +7,7 @@ import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../../lib/text_utils";
 import { settingsStore, EDITOR_FONT_SIZE } from "../../lib/settings";
+import Doctest from "./live_editor/doctest";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -35,19 +36,7 @@ class LiveEditor {
     this._onBlur = [];
     this._onCursorSelectionChange = [];
     this._remoteUserByClientId = {};
-
-    /* For doctest decorations we store the params to create the
-     * decorations and also the result of creating the decorations.
-     * The params are IModelDeltaDecoration from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IModelDeltaDecoration.html
-     * and the result is IEditorDecorationsCollection from https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IEditorDecorationsCollection.html
-     */
-    this._doctestDecorations = {
-      deltaDecorations: {},
-      decorationCollection: null,
-    };
-
-    this._doctestZones = [];
-    this._doctestOverlays = [];
+    this._doctestByLine = {};
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -210,6 +199,33 @@ class LiveEditor {
   }
 
   /**
+   * Either adds or updates doctest indicators.
+   */
+  updateDoctest(doctestReport) {
+    this._ensureMounted();
+
+    if (this._doctestByLine[doctestReport.line]) {
+      this._doctestByLine[doctestReport.line].update(doctestReport);
+    } else {
+      this._doctestByLine[doctestReport.line] = new Doctest(
+        this.editor,
+        doctestReport
+      );
+    }
+  }
+
+  /**
+   * Removes doctest indicators.
+   */
+  clearDoctests() {
+    this._ensureMounted();
+
+    Object.values(this._doctestByLine).forEach((doctest) => doctest.dispose());
+
+    this._doctestByLine = {};
+  }
+
+  /**
    * Sets underline markers for warnings and errors.
    *
    * Passing an empty list clears all markers.
@@ -242,8 +258,6 @@ class LiveEditor {
 
   _mountEditor() {
     const settings = settingsStore.get();
-
-    this.settings = settings;
 
     this.editor = monaco.editor.create(this.container, {
       language: this.language,
@@ -285,9 +299,6 @@ class LiveEditor {
           ? "on"
           : "off",
     });
-
-    this._doctestDecorations.decorationCollection =
-      this.editor.createDecorationsCollection([]);
 
     this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
@@ -584,83 +595,6 @@ class LiveEditor {
         }
       );
     });
-  }
-
-  clearDoctests() {
-    this._doctestDecorations.decorationCollection.clear();
-    this._doctestDecorations.deltaDecorations = {};
-    this._doctestOverlays.forEach((overlay) =>
-      this.editor.removeOverlayWidget(overlay)
-    );
-    this.editor.changeViewZones((changeAccessor) => {
-      this._doctestZones.forEach((zone) => changeAccessor.removeZone(zone));
-    });
-  }
-
-  _createDoctestDecoration(lineNumber, className) {
-    return {
-      range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-      options: {
-        isWholeLine: true,
-        linesDecorationsClassName: className,
-      },
-    };
-  }
-
-  _addDoctestDecoration(line, className) {
-    const newDecoration = this._createDoctestDecoration(line, className);
-    this._doctestDecorations.deltaDecorations[line] = newDecoration;
-    const decos = Object.values(this._doctestDecorations.deltaDecorations);
-    this._doctestDecorations.decorationCollection.set(decos);
-  }
-
-  _addDoctestOverlay(column, line, endLine, contents) {
-    let overlayDom = document.createElement("div");
-    overlayDom.innerHTML = contents.join("\n");
-    overlayDom.classList.add("doctest-failure-overlay");
-    overlayDom.style.fontSize = `${this.settings.editor_font_size}px`;
-    overlayDom.style.paddingLeft =
-      this.settings.editor_font_size === EDITOR_FONT_SIZE.large
-        ? `calc(74px + ${column}ch)`
-        : `calc(68px + ${column}ch)`;
-
-    // https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.ioverlaywidget.html
-    let overlayWidget = {
-      getId: () => `doctest-overlay-${line}`,
-      getDomNode: () => overlayDom,
-      getPosition: () => null,
-    };
-    this.editor.addOverlayWidget(overlayWidget);
-    this._doctestOverlays.push(overlayWidget);
-
-    this.editor.changeViewZones((changeAccessor) => {
-      this._doctestZones.push(
-        changeAccessor.addZone({
-          afterLineNumber: endLine,
-          heightInLines: contents.length,
-          domNode: document.createElement("div"),
-          onDomNodeTop: (top) => {
-            overlayDom.style.top = top + "px";
-          },
-          onComputedHeight: (height) => {
-            overlayDom.style.height = height + "px";
-          },
-        })
-      );
-    });
-  }
-
-  addSuccessDoctest(line) {
-    this._addDoctestDecoration(line, "line-circle-green");
-  }
-
-  addFailedDoctest(column, line, endLine, contents) {
-    this._addDoctestDecoration(line, "line-circle-red");
-    this._addDoctestOverlay(column, line, endLine, contents);
-  }
-
-  addEvaluatingDoctest(line) {
-    this._addDoctestDecoration(line, "line-circle-grey");
   }
 }
 
