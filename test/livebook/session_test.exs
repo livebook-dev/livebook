@@ -587,7 +587,7 @@ defmodule Livebook.SessionTest do
       File.write!(source_path, "content")
       {:ok, old_file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), old_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
@@ -599,7 +599,8 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
 
-      Process.sleep(50)
+      {:file, file_id} = old_file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(old_path)
       assert File.exists?(new_path)
@@ -620,14 +621,15 @@ defmodule Livebook.SessionTest do
       {:ok, file_ref} =
         Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       send(client_pid, :stop)
 
-      Process.sleep(50)
+      {:file, file_id} = file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(path)
     end
@@ -660,14 +662,15 @@ defmodule Livebook.SessionTest do
         client_name: "data.txt"
       })
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       Session.erase_outputs(session.pid)
 
-      Process.sleep(50)
+      {:file, file_id} = file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(path)
     end
@@ -1314,8 +1317,8 @@ defmodule Livebook.SessionTest do
     {section_id, cell_id}
   end
 
-  defp connected_noop_runtime() do
-    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+  defp connected_noop_runtime(trace_to \\ nil) do
+    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new(trace_to) |> Livebook.Runtime.connect()
     runtime
   end
 
