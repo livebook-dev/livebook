@@ -118,6 +118,12 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>View source</span>
               </.link>
             </.menu_item>
+            <.menu_item :if={@livebook_authenticated?}>
+              <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
+                <.remix_icon icon="terminal-line" />
+                <span>Debug</span>
+              </.link>
+            </.menu_item>
           </.menu>
         </div>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
