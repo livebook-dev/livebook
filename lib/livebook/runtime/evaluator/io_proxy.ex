@@ -240,6 +240,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {:ok, state}
   end
 
+  defp io_request({:livebook_doctest_report, doctest_report}, state) do
+    send(state.send_to, {:runtime_doctest_report, state.ref, doctest_report})
+    {:ok, state}
+  end
+
   defp io_request({:livebook_get_input_value, input_id}, state) do
     input_cache =
       Map.put_new_lazy(state.input_cache, input_id, fn ->

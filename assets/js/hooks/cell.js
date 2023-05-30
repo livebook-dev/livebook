@@ -248,19 +248,9 @@ const Cell = {
         });
 
         this.handleEvent(
-          `doctest_result:${this.props.cellId}`,
-          ({ state, column, line, end_line, contents }) => {
-            switch (state) {
-              case "evaluating":
-                liveEditor.addEvaluatingDoctest(line);
-                break;
-              case "success":
-                liveEditor.addSuccessDoctest(line);
-                break;
-              case "failed":
-                liveEditor.addFailedDoctest(column, line, end_line, contents);
-                break;
-            }
+          `doctest_report:${this.props.cellId}`,
+          (doctestReport) => {
+            liveEditor.updateDoctest(doctestReport);
           }
         );
       }

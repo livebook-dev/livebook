@@ -181,6 +181,7 @@ defmodule Livebook.Session.Data do
           | {:move_cell, client_id(), Cell.id(), offset :: integer()}
           | {:move_section, client_id(), Section.id(), offset :: integer()}
           | {:queue_cells_evaluation, client_id(), list(Cell.id())}
+          | {:add_cell_doctest_report, client_id(), Cell.id(), Runtime.doctest_report()}
           | {:add_cell_evaluation_output, client_id(), Cell.id(), term()}
           | {:add_cell_evaluation_response, client_id(), Cell.id(), term(), metadata :: map()}
           | {:bind_input, client_id(), code_cell_id :: Cell.id(), input_id()}
@@ -546,10 +547,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(
-        data,
-        {:add_cell_evaluation_output, _client_id, id, {:doctest_result, _result}}
-      ) do
+  def apply_operation(data, {:add_cell_doctest_report, _client_id, id, _doctest_report}) do
     with {:ok, _cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()

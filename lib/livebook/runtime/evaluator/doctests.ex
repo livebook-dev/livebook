@@ -22,7 +22,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
           test_module.tests
           |> Enum.sort_by(& &1.tags.doctest_line)
           |> Enum.each(fn test ->
-            report_doctest_evaluating(test)
+            report_doctest_running(test)
             test = run_test(test)
             report_doctest_result(test, lines)
             test
@@ -38,22 +38,18 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     :ok
   end
 
-  defp report_doctest_evaluating(test) do
-    result = %{
+  defp report_doctest_running(test) do
+    send_doctest_report(%{
       line: test.tags.doctest_line,
-      state: :evaluating
-    }
-
-    put_output({:doctest_result, result})
+      status: :running
+    })
   end
 
   defp report_doctest_result(%{state: nil} = test, _lines) do
-    result = %{
+    send_doctest_report(%{
       line: test.tags.doctest_line,
-      state: :success
-    }
-
-    put_output({:doctest_result, result})
+      status: :success
+    })
   end
 
   defp report_doctest_result(%{state: {:failed, failure}} = test, lines) do
@@ -92,15 +88,13 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
           end_line
       end
 
-    result = %{
+    send_doctest_report(%{
       column: count_columns(prompt_line, 0),
       line: doctest_line,
       end_line: end_line,
-      state: :failed,
-      contents: IO.iodata_to_binary(format_failure(failure, test))
-    }
-
-    put_output({:doctest_result, result})
+      status: :failed,
+      details: IO.iodata_to_binary(format_failure(failure, test))
+    })
   end
 
   defp count_columns(" " <> rest, counter), do: count_columns(rest, counter + 1)
@@ -338,10 +332,18 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp put_output(output) do
+    send_livebook_message({:livebook_put_output, output})
+  end
+
+  defp send_doctest_report(doctest_report) do
+    send_livebook_message({:livebook_doctest_report, doctest_report})
+  end
+
+  defp send_livebook_message(message) do
     gl = Process.group_leader()
     ref = make_ref()
 
-    send(gl, {:io_request, self(), ref, {:livebook_put_output, output}})
+    send(gl, {:io_request, self(), ref, message})
 
     receive do
       {:io_reply, ^ref, reply} -> {:ok, reply}

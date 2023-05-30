@@ -437,49 +437,37 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 4, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result,
-                       %{
-                         column: 6,
-                         contents:
-                           "\e[31mexpected exception ArgumentError but got RuntimeError with message \"oops\"\e[0m",
-                         end_line: 5,
-                         line: 4,
-                         state: :failed
-                       }}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 7, state: :evaluating}}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {
-                        :doctest_result,
-                        %{
-                          column: 6,
-                          contents: "\e[31mExpected truthy, got false\e[0m",
-                          end_line: 8,
-                          line: 7,
-                          state: :failed
-                        }
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details:
+                          "\e[31mexpected exception ArgumentError but got RuntimeError with message \"oops\"\e[0m",
+                        end_line: 5,
+                        line: 4,
+                        status: :failed
                       }}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 12, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 7, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 12, state: :success}}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 19, state: :evaluating}}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {
-                        :doctest_result,
-                        %{column: 4, contents: _, end_line: 20, line: 19, state: :failed}
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mExpected truthy, got false\e[0m",
+                        end_line: 8,
+                        line: 7,
+                        status: :failed
                       }}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 12, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 12, status: :success}}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 19, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{column: 4, details: _, end_line: 20, line: 19, status: :failed}}
     end
 
     # TODO: Run this test on Elixir v1.15+
@@ -502,18 +490,16 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 4, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result,
-                       %{
-                         column: 6,
-                         contents: _,
-                         end_line: 7,
-                         line: 4,
-                         state: :failed
-                       }}}
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: _,
+                        end_line: 7,
+                        line: 4,
+                        status: :failed
+                      }}
     end
 
     test "runtime errors", %{evaluator: evaluator} do
@@ -545,49 +531,39 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 4, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result,
-                       %{
-                         column: 6,
-                         contents: "\e[31mmatch (=) failed" <> _,
-                         end_line: 4,
-                         line: 4,
-                         state: :failed
-                       }}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 9, state: :evaluating}}}
-
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {
-                        :doctest_result,
-                        %{
-                          column: 6,
-                          contents:
-                            "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
-                              _,
-                          end_line: 10,
-                          line: 9,
-                          state: :failed
-                        }
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mmatch (=) failed" <> _,
+                        end_line: 4,
+                        line: 4,
+                        status: :failed
                       }}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 17, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 9, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {
-                        :doctest_result,
-                        %{
-                          column: 6,
-                          contents: "\e[31m** (EXIT from #PID<" <> _,
-                          end_line: 18,
-                          line: 17,
-                          state: :failed
-                        }
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details:
+                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
+                            _,
+                        end_line: 10,
+                        line: 9,
+                        status: :failed
+                      }}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 17, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31m** (EXIT from #PID<" <> _,
+                        end_line: 18,
+                        line: 17,
+                        status: :failed
                       }}
     end
 
@@ -606,19 +582,16 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result, %{line: 4, state: :evaluating}}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
 
-      assert_receive {:runtime_evaluation_output, :code_1,
-                      {:doctest_result,
-                       %{
-                         column: 6,
-                         contents:
-                           "\e[31mDoctest did not compile, got: (TokenMissingError) " <> _,
-                         end_line: 5,
-                         line: 4,
-                         state: :failed
-                       }}}
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mDoctest did not compile, got: (TokenMissingError) " <> _,
+                        end_line: 5,
+                        line: 4,
+                        status: :failed
+                      }}
     end
   end
 

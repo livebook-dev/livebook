@@ -1775,25 +1775,6 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:add_cell_evaluation_output, _client_id, cell_id, {:doctest_result, result}}
-       ) do
-    result =
-      Map.replace_lazy(
-        result,
-        :contents,
-        fn contents ->
-          contents
-          |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
-          |> Enum.map(&Phoenix.HTML.safe_to_string/1)
-        end
-      )
-
-    push_event(socket, "doctest_result:#{cell_id}", result)
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
          {:add_cell_evaluation_output, _client_id, _cell_id, _output}
        ) do
     prune_outputs(socket)
@@ -1807,6 +1788,21 @@ defmodule LivebookWeb.SessionLive do
     socket
     |> prune_outputs()
     |> push_event("evaluation_finished:#{cell_id}", %{code_markers: metadata.code_markers})
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_doctest_report, _client_id, cell_id, doctest_report}
+       ) do
+    doctest_report =
+      Map.replace_lazy(doctest_report, :details, fn details ->
+        details
+        |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
+        |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+      end)
+
+    push_event(socket, "doctest_report:#{cell_id}", doctest_report)
   end
 
   defp after_operation(
@@ -2264,9 +2260,6 @@ defmodule LivebookWeb.SessionLive do
 
         data_view
 
-      {:add_cell_evaluation_output, _client_id, _cell_id, {:doctest_result, _result}} ->
-        data_view
-
       {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
         # Lookup in previous data to see if the output is already there
         case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
@@ -2277,6 +2270,9 @@ defmodule LivebookWeb.SessionLive do
           _ ->
             data_to_view(data)
         end
+
+      {:doctest_report, _client_id, _cell_id, _doctest_report} ->
+        data_view
 
       _ ->
         data_to_view(data)
