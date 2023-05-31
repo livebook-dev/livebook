@@ -95,9 +95,8 @@ defmodule Livebook.Teams.Connection do
 
   defp handle_websocket_message(message, %__MODULE__{} = data) do
     case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do
-      {:ok, conn, websocket, binaries} ->
+      {:ok, conn, websocket, _binaries} ->
         data = %__MODULE__{data | http_conn: conn, websocket: websocket}
-        send_received(binaries, data)
 
         {:keep_state, data}
 
@@ -106,15 +105,6 @@ defmodule Livebook.Teams.Connection do
         data = %__MODULE__{data | http_conn: conn, websocket: websocket}
 
         {:keep_state, data, {:next_event, :internal, :connect}}
-    end
-  end
-
-  defp send_received([], _data), do: :ok
-
-  defp send_received([_ | _] = binaries, data) do
-    for binary <- binaries do
-      %{type: {name, struct}} = LivebookProto.Event.decode(binary)
-      send(data.listener, {:event, name, struct})
     end
   end
 end
