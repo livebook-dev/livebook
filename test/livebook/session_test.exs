@@ -13,7 +13,8 @@ defmodule Livebook.SessionTest do
     interrupted: false,
     evaluation_time_ms: 10,
     identifiers_used: [],
-    identifiers_defined: %{}
+    identifiers_defined: %{},
+    code_markers: []
   }
 
   describe "file_name_for_download/1" do

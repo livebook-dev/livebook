@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
       data-eval-errored={get_in(@cell_view, [:eval, :errored])}
-      data-js-empty={empty?(@cell_view.source_view)}
+      data-js-empty={@cell_view.empty}
       data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
       data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
     >
@@ -38,12 +38,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_actions>
     <.cell_body>
       <div class="pb-4" data-el-editor-box>
-        <.live_component
-          module={LivebookWeb.SessionLive.CellEditorComponent}
-          id={"#{@cell_view.id}-primary"}
+        <.cell_editor
           cell_id={@cell_view.id}
           tag="primary"
-          source_view={@cell_view.source_view}
+          empty={@cell_view.empty}
           language="markdown"
         />
       </div>
@@ -53,7 +51,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore"
       >
-        <.content_skeleton empty={empty?(@cell_view.source_view)} />
+        <.content_skeleton empty={@cell_view.empty} />
       </div>
     </.cell_body>
     """
@@ -83,12 +81,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_actions>
     <.cell_body>
       <div class="relative">
-        <.live_component
-          module={LivebookWeb.SessionLive.CellEditorComponent}
-          id={"#{@cell_view.id}-primary"}
+        <.cell_editor
           cell_id={@cell_view.id}
           tag="primary"
-          source_view={@cell_view.source_view}
+          empty={@cell_view.empty}
           language="elixir"
           intellisense
         />
@@ -132,12 +128,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <div data-el-editor-box>
         <div class="relative">
-          <.live_component
-            module={LivebookWeb.SessionLive.CellEditorComponent}
-            id={"#{@cell_view.id}-primary"}
+          <.cell_editor
             cell_id={@cell_view.id}
             tag="primary"
-            source_view={@cell_view.source_view}
+            empty={@cell_view.empty}
             language="elixir"
             intellisense
           />
@@ -192,13 +186,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 session_id={@session_id}
                 client_id={@client_id}
               />
-              <.live_component
+              <.cell_editor
                 :if={@cell_view.editor}
-                module={LivebookWeb.SessionLive.CellEditorComponent}
-                id={"#{@cell_view.id}-secondary"}
                 cell_id={@cell_view.id}
                 tag="secondary"
-                source_view={@cell_view.editor.source_view}
+                empty={@cell_view.editor.empty}
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
               />
@@ -235,12 +227,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <div data-el-editor-box>
         <div class="relative">
-          <.live_component
-            module={LivebookWeb.SessionLive.CellEditorComponent}
-            id={"#{@cell_view.id}-primary"}
+          <.cell_editor
             cell_id={@cell_view.id}
             tag="primary"
-            source_view={@cell_view.source_view}
+            empty={@cell_view.empty}
             language="elixir"
             intellisense
             read_only
@@ -580,6 +570,39 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  attr :cell_id, :string, required: true
+  attr :tag, :string, required: true
+  attr :empty, :boolean, required: true
+  attr :language, :string, required: true
+  attr :intellisense, :boolean, default: false
+  attr :read_only, :boolean, default: false
+  attr :rounded, :atom, default: :both
+
+  defp cell_editor(assigns) do
+    ~H"""
+    <div
+      id={"cell-editor-#{@cell_id}-#{@tag}"}
+      phx-update="ignore"
+      phx-hook="CellEditor"
+      data-cell-id={@cell_id}
+      data-tag={@tag}
+      data-language={@language}
+      data-intellisense={to_string(@intellisense)}
+      data-read-only={to_string(@read_only)}
+    >
+      <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
+        <div class="px-8" data-el-skeleton>
+          <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp rounded_class(:both), do: "rounded-lg"
+  defp rounded_class(:top), do: "rounded-t-lg"
+  defp rounded_class(:bottom), do: "rounded-b-lg"
+
   defp evaluation_outputs(assigns) do
     ~H"""
     <div
@@ -600,9 +623,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </div>
     """
   end
-
-  defp empty?(%{source: ""} = _source_view), do: true
-  defp empty?(_source_view), do: false
 
   defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""

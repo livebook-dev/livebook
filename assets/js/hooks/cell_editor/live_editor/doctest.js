@@ -80,10 +80,6 @@ class DetailsWidget {
     const detailsHtml = details.join("\n");
     const numberOfLines = details.length;
 
-    const marginWidth = this._editor
-      .getDomNode()
-      .querySelector(".margin-view-overlays").offsetWidth;
-
     const fontSize = this._editor.getOption(
       monaco.editor.EditorOption.fontSize
     );
@@ -99,7 +95,6 @@ class DetailsWidget {
       "editor-theme-aware-ansi"
     );
     detailsNode.style.fontSize = `${fontSize}px`;
-    detailsNode.style.paddingLeft = `calc(${marginWidth}px + ${column}ch)`;
 
     this._overlayWidget = {
       getId: () => `livebook.doctest.overlay.${line}`,
@@ -117,6 +112,12 @@ class DetailsWidget {
         domNode: document.createElement("div"),
         onDomNodeTop: (top) => {
           detailsNode.style.top = `${top}px`;
+
+          const marginWidth = this._editor
+            .getDomNode()
+            .querySelector(".margin-view-overlays").offsetWidth;
+
+          detailsNode.style.paddingLeft = `calc(${marginWidth}px + ${column}ch)`;
         },
         onComputedHeight: (height) => {
           detailsNode.style.height = `${height}px`;

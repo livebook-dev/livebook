@@ -253,6 +253,11 @@ const Cell = {
             liveEditor.updateDoctest(doctestReport);
           }
         );
+
+        this.handleEvent(`erase_outputs`, () => {
+          liveEditor.setCodeMarkers([]);
+          liveEditor.clearDoctests();
+        });
       }
     }
   },

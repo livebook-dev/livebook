@@ -547,16 +547,6 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_doctest_report, _client_id, id, _doctest_report}) do
-    with {:ok, _cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
-      data
-      |> with_actions()
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
   def apply_operation(data, {:add_cell_evaluation_output, _client_id, id, output}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
@@ -581,6 +571,17 @@ defmodule Livebook.Session.Data do
       |> update_validity_and_evaluation()
       |> update_smart_cell_bases(data)
       |> mark_dirty_if_persisting_outputs()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:add_cell_doctest_report, _client_id, id, doctest_report}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> add_cell_doctest_report(cell, doctest_report)
       |> wrap_ok()
     else
       _ -> :error
@@ -1224,7 +1225,8 @@ defmodule Livebook.Session.Data do
             identifiers_used: metadata.identifiers_used,
             identifiers_defined: metadata.identifiers_defined,
             bound_to_input_ids: eval_info.new_bound_to_input_ids,
-            evaluation_end: DateTime.utc_now()
+            evaluation_end: DateTime.utc_now(),
+            code_markers: metadata.code_markers
         }
       end)
       |> update_cell_evaluation_snapshot(cell, section)
@@ -1260,6 +1262,14 @@ defmodule Livebook.Session.Data do
     |> update_cell_eval_info!(
       cell.id,
       &%{&1 | evaluation_snapshot: evaluation_snapshot, data: nil}
+    )
+  end
+
+  defp add_cell_doctest_report(data_actions, cell, doctest_report) do
+    data_actions
+    |> update_cell_eval_info!(
+      cell.id,
+      &put_in(&1.doctest_reports[doctest_report.line], doctest_report)
     )
   end
 
@@ -1413,7 +1423,9 @@ defmodule Livebook.Session.Data do
               # This is a rough estimate, the exact time is measured in the
               # evaluator itself
               evaluation_start: DateTime.utc_now(),
-              evaluation_end: nil
+              evaluation_end: nil,
+              code_markers: [],
+              doctest_reports: %{}
           }
         end)
       end)
@@ -1609,7 +1621,7 @@ defmodule Livebook.Session.Data do
     |> update_every_cell_info(fn
       %{eval: _} = info ->
         info = update_in(info.eval.outputs_batch_number, &(&1 + 1))
-        put_in(info.eval.validity, :fresh)
+        update_in(info.eval, &%{&1 | validity: :fresh, code_markers: [], doctest_reports: %{}})
 
       info ->
         info
@@ -2025,6 +2037,8 @@ defmodule Livebook.Session.Data do
       snapshot: nil,
       evaluation_snapshot: nil,
       data: nil,
+      code_markers: [],
+      doctest_reports: %{},
       reevaluates_automatically: false
     }
   end
