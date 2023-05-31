@@ -89,6 +89,9 @@ defmodule Livebook.Runtime.Evaluator do
     * `:ebin_path` - a directory to write modules bytecode into. When
       not specified, modules are not written to disk
 
+    * `:io_proxy_registry` - the registry to register IO proxy
+      processes in
+
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
@@ -271,9 +274,17 @@ defmodule Livebook.Runtime.Evaluator do
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
     ebin_path = Keyword.get(opts, :ebin_path)
+    io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
 
     {:ok, io_proxy} =
-      Evaluator.IOProxy.start(self(), send_to, runtime_broadcast_to, object_tracker, ebin_path)
+      Evaluator.IOProxy.start(
+        self(),
+        send_to,
+        runtime_broadcast_to,
+        object_tracker,
+        ebin_path,
+        io_proxy_registry
+      )
 
     io_proxy_monitor = Process.monitor(io_proxy)
 

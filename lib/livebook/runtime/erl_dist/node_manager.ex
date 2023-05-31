@@ -19,6 +19,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   alias Livebook.Runtime.ErlDist
 
   @name __MODULE__
+  @io_proxy_registry_name __MODULE__.IOProxyRegistry
 
   @doc """
   Starts the node manager.
@@ -62,6 +63,14 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     GenServer.call(server(node), {:start_runtime_server, opts})
   end
 
+  @doc false
+  def known_io_proxy?(pid) do
+    case Registry.keys(@io_proxy_registry_name, pid) do
+      [_] -> true
+      [] -> false
+    end
+  end
+
   defp server(node) when is_atom(node), do: {@name, node}
 
   @impl true
@@ -76,6 +85,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.flag(:trap_exit, true)
 
     {:ok, server_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
+
+    {:ok, io_proxy_registry} =
+      Registry.start_link(name: @io_proxy_registry_name, keys: :duplicate)
 
     # Register our own standard error IO device that proxies
     # to sender's group leader.
@@ -123,7 +135,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        original_standard_error: original_standard_error,
        parent_node: parent_node,
        capture_orphan_logs: capture_orphan_logs,
-       tmp_dir: tmp_dir
+       tmp_dir: tmp_dir,
+       io_proxy_registry: io_proxy_registry
      }}
   end
 
@@ -198,6 +211,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
       |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
       |> Keyword.put_new(:base_path_env, System.get_env("PATH", ""))
+      |> Keyword.put_new(:io_proxy_registry, @io_proxy_registry_name)
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})

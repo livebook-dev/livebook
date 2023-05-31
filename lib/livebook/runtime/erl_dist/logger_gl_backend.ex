@@ -96,19 +96,10 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
   defp log_event(level, msg, ts, md, gl, state) do
     output = format_event(level, msg, ts, md, state)
 
-    if io_proxy?(gl) do
+    if Livebook.Runtime.ErlDist.NodeManager.known_io_proxy?(gl) do
       async_io(gl, output)
     else
       send(Livebook.Runtime.ErlDist.NodeManager, {:orphan_log, output})
-    end
-  end
-
-  defp io_proxy?(pid) do
-    try do
-      info = Process.info(pid, [:dictionary])
-      info[:dictionary][:"$initial_call"] == {Livebook.Runtime.Evaluator.IOProxy, :init, 1}
-    rescue
-      _ -> false
     end
   end
 
