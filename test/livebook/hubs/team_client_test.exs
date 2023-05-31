@@ -17,6 +17,8 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       team =
         build(:team,
+          id: "team-#{org.name}",
+          hub_name: org.name,
           user_id: user.id,
           org_id: org.id,
           org_key_id: org_key.id,
@@ -45,6 +47,8 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       assert error ==
                "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
+
+      refute Livebook.Hubs.hub_exists?(team.id)
     end
   end
 end
