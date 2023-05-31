@@ -19,6 +19,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   alias Livebook.Runtime.ErlDist
 
   @name __MODULE__
+  @io_proxy_registry_name __MODULE__.IOProxyRegistry
 
   @doc """
   Starts the node manager.
@@ -28,12 +29,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     * `:unload_modules_on_termination` - whether to unload all
       Livebook related modules from the node on termination.
       Defaults to `true`
-
-    * `:anonymous` - configures whether manager should
-      be registered under a global name or not.
-      In most cases we enforce a single manager per node
-      and identify it by a name, but this can be opted-out
-      from by using this option. Defaults to `false`
 
     * `:auto_termination` - whether to terminate the manager
       when the last runtime server terminates. Defaults to `true`
@@ -48,8 +43,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   """
   def start(opts \\ []) do
-    {opts, gen_opts} = split_opts(opts)
-    GenServer.start(__MODULE__, opts, gen_opts)
+    GenServer.start(__MODULE__, opts, name: @name)
   end
 
   @doc """
@@ -58,29 +52,25 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   See `start/1` for available options.
   """
   def start_link(opts \\ []) do
-    {opts, gen_opts} = split_opts(opts)
-    GenServer.start_link(__MODULE__, opts, gen_opts)
-  end
-
-  defp split_opts(opts) do
-    {anonymous?, opts} = Keyword.pop(opts, :anonymous, false)
-
-    gen_opts = [
-      name: if(anonymous?, do: nil, else: @name)
-    ]
-
-    {opts, gen_opts}
+    GenServer.start_link(__MODULE__, opts, name: @name)
   end
 
   @doc """
   Starts a new `Livebook.Runtime.ErlDist.RuntimeServer` for evaluation.
   """
-  @spec start_runtime_server(node() | pid(), keyword()) :: pid()
-  def start_runtime_server(node_or_pid, opts \\ []) do
-    GenServer.call(server(node_or_pid), {:start_runtime_server, opts})
+  @spec start_runtime_server(node(), keyword()) :: pid()
+  def start_runtime_server(node, opts \\ []) do
+    GenServer.call(server(node), {:start_runtime_server, opts})
   end
 
-  defp server(pid) when is_pid(pid), do: pid
+  @doc false
+  def known_io_proxy?(pid) do
+    case Registry.keys(@io_proxy_registry_name, pid) do
+      [_] -> true
+      [] -> false
+    end
+  end
+
   defp server(node) when is_atom(node), do: {@name, node}
 
   @impl true
@@ -95,6 +85,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.flag(:trap_exit, true)
 
     {:ok, server_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
+
+    {:ok, io_proxy_registry} =
+      Registry.start_link(name: @io_proxy_registry_name, keys: :duplicate)
 
     # Register our own standard error IO device that proxies
     # to sender's group leader.
@@ -142,7 +135,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        original_standard_error: original_standard_error,
        parent_node: parent_node,
        capture_orphan_logs: capture_orphan_logs,
-       tmp_dir: tmp_dir
+       tmp_dir: tmp_dir,
+       io_proxy_registry: io_proxy_registry
      }}
   end
 
@@ -217,6 +211,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
       |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
       |> Keyword.put_new(:base_path_env, System.get_env("PATH", ""))
+      |> Keyword.put_new(:io_proxy_registry, @io_proxy_registry_name)
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})

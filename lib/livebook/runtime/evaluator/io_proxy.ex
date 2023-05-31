@@ -26,22 +26,23 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   For all supported requests a message is sent to the configured
   `:send_to` process, so this device serves as a proxy.
   """
-  @spec start(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
-  def start(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+  @spec start(pid(), pid(), pid(), pid(), String.t() | nil, atom() | nil) :: GenServer.on_start()
+  def start(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, registry) do
     GenServer.start(
       __MODULE__,
-      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, registry}
     )
   end
 
   @doc """
   Linking version of `start/4`.
   """
-  @spec start_link(pid(), pid(), pid(), pid(), String.t() | nil) :: GenServer.on_start()
-  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path) do
+  @spec start_link(pid(), pid(), pid(), pid(), String.t() | nil, atom() | nil) ::
+          GenServer.on_start()
+  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, registry) do
     GenServer.start_link(
       __MODULE__,
-      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, registry}
     )
   end
 
@@ -72,8 +73,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def init({evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path}) do
+  def init({evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, registry}) do
     evaluator_monitor = Process.monitor(evaluator)
+
+    if registry do
+      Registry.register(registry, nil, nil)
+    end
 
     {:ok,
      %{
