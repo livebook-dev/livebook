@@ -101,7 +101,7 @@ defmodule Livebook.Teams.Connection do
         {:keep_state, data}
 
       {:server_error, conn, websocket, reason} ->
-        send(data.listener, {:server_error, reason})
+        send(data.listener, {:connection_error, reason})
         data = %__MODULE__{data | http_conn: conn, websocket: websocket}
 
         {:keep_state, data, {:next_event, :internal, :connect}}
