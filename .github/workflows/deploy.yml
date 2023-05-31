@@ -6,7 +6,7 @@ on:
     tags:
       - "v*.*.*"
 env:
-  otp: "26.0"
+  otp: "25.3.2"
   elixir: "1.15.0-rc.1"
 jobs:
   assets:
