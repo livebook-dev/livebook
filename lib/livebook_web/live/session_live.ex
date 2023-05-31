@@ -51,7 +51,10 @@ defmodule LivebookWeb.SessionLive do
                 end)
             }
 
-            push_event(socket, "session_init", payload)
+            socket = push_event(socket, "session_init", payload)
+
+            cells = for {cell, _} <- Notebook.cells_with_section(data.notebook), do: cell
+            push_cell_editor_payloads(socket, data, cells)
           else
             socket
           end
@@ -1720,6 +1723,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
+    {:ok, cell, _section} =
+      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
     socket = prune_cell_sources(socket)
 
     if client_id == socket.assigns.client_id do
@@ -1747,6 +1755,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:restore_cell, client_id, cell_id}) do
+    {:ok, cell, _section} =
+      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
     socket = prune_cell_sources(socket)
 
     if client_id == socket.assigns.client_id do
@@ -1795,14 +1808,7 @@ defmodule LivebookWeb.SessionLive do
          _prev_socket,
          {:add_cell_doctest_report, _client_id, cell_id, doctest_report}
        ) do
-    doctest_report =
-      Map.replace_lazy(doctest_report, :details, fn details ->
-        details
-        |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
-        |> Enum.map(&Phoenix.HTML.safe_to_string/1)
-      end)
-
-    push_event(socket, "doctest_report:#{cell_id}", doctest_report)
+    push_event(socket, "doctest_report:#{cell_id}", doctest_report_payload(doctest_report))
   end
 
   defp after_operation(
@@ -1811,6 +1817,10 @@ defmodule LivebookWeb.SessionLive do
          {:smart_cell_started, _client_id, _cell_id, _delta, _chunks, _js_view, _editor}
        ) do
     prune_cell_sources(socket)
+  end
+
+  defp after_operation(socket, _prev_socket, {:erase_outputs, _client_id}) do
+    push_event(socket, "erase_outputs", %{})
   end
 
   defp after_operation(socket, prev_socket, {:set_deployed_app_slug, _client_id, slug}) do
@@ -2041,6 +2051,74 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp push_cell_editor_payloads(socket, data, cells) do
+    for cell <- cells,
+        {tag, payload} <- cell_editor_init_payloads(cell, data.cell_infos[cell.id]),
+        reduce: socket do
+      socket ->
+        push_event(socket, "cell_editor_init:#{cell.id}:#{tag}", payload)
+    end
+  end
+
+  defp cell_editor_init_payloads(%Cell.Code{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: cell_info.eval.code_markers,
+        doctest_reports:
+          for {_, doctest_report} <- cell_info.eval.doctest_reports do
+            doctest_report_payload(doctest_report)
+          end
+      }
+    ]
+  end
+
+  defp cell_editor_init_payloads(%Cell.Markdown{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: [],
+        doctest_reports: []
+      }
+    ]
+  end
+
+  defp cell_editor_init_payloads(%Cell.Smart{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: cell_info.eval.code_markers,
+        doctest_reports:
+          for {_, doctest_report} <- cell_info.eval.doctest_reports do
+            doctest_report_payload(doctest_report)
+          end
+      }
+    ] ++
+      if cell.editor do
+        [
+          secondary: %{
+            source: cell.editor.source,
+            revision: cell_info.sources.secondary.revision,
+            code_markers: [],
+            doctest_reports: []
+          }
+        ]
+      else
+        []
+      end
+  end
+
+  defp doctest_report_payload(doctest_report) do
+    Map.replace_lazy(doctest_report, :details, fn details ->
+      details
+      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
+      |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+    end)
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -2149,13 +2227,11 @@ defmodule LivebookWeb.SessionLive do
     %{id: section.id, name: section.name}
   end
 
-  defp cell_to_view(%Cell.Markdown{} = cell, data) do
-    info = data.cell_infos[cell.id]
-
+  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
     %{
       id: cell.id,
       type: :markdown,
-      source_view: source_view(cell.source, info.sources.primary)
+      empty: cell.source == ""
     }
   end
 
@@ -2165,7 +2241,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
-      source_view: source_view(cell.source, info.sources.primary),
+      empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data),
       reevaluate_automatically: cell.reevaluate_automatically
     }
@@ -2177,16 +2253,16 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
-      source_view: source_view(cell.source, info.sources.primary),
+      empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data),
       status: info.status,
       js_view: cell.js_view,
       editor:
         cell.editor &&
           %{
+            empty: cell.editor.souruce == "",
             language: cell.editor.language,
-            placement: cell.editor.placement,
-            source_view: source_view(cell.editor.source, info.sources.secondary)
+            placement: cell.editor.placement
           }
     }
   end
@@ -2204,17 +2280,6 @@ defmodule LivebookWeb.SessionLive do
       outputs_batch_number: eval_info.outputs_batch_number,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
-    }
-  end
-
-  defp source_view(:__pruned__, _source_info) do
-    :__pruned__
-  end
-
-  defp source_view(source, source_info) do
-    %{
-      source: source,
-      revision: source_info.revision
     }
   end
 

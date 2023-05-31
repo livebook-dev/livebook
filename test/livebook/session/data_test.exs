@@ -22,7 +22,8 @@ defmodule Livebook.Session.DataTest do
       interrupted: interrupted,
       evaluation_time_ms: 10,
       identifiers_used: uses,
-      identifiers_defined: defines
+      identifiers_defined: defines,
+      code_markers: []
     }
   end
 
@@ -2493,6 +2494,59 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :add_cell_doctest_report" do
+    test "returns an error given invalid cell id" do
+      data = Data.new()
+      operation = {:add_cell_doctest_report, @cid, "c1", %{status: :running, line: 5}}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "adds doctest report to cell evaluation info" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      doctest_report = %{status: :running, line: 5}
+
+      operation = {:add_cell_doctest_report, @cid, "c1", doctest_report}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{doctest_reports: %{5 => ^doctest_report}}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "updates doctest report by line" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_doctest_report, @cid, "c1", %{status: :running, line: 5}}
+        ])
+
+      doctest_report = %{status: :success, line: 5}
+
+      operation = {:add_cell_doctest_report, @cid, "c1", doctest_report}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{eval: %{doctest_reports: %{5 => ^doctest_report}}}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :bind_input" do
     test "returns an error given invalid input cell id" do
       data =
@@ -3046,6 +3100,24 @@ defmodule Livebook.Session.DataTest do
                   ]
                 }
               }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "removes doctest reports" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1"]),
+          {:add_cell_doctest_report, @cid, "c1", %{status: :running, line: 5}}
+        ])
+
+      operation = {:erase_outputs, @cid}
+
+      empty_map = %{}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{eval: %{doctest_reports: ^empty_map}}}}, []} =
+               Data.apply_operation(data, operation)
     end
   end
 

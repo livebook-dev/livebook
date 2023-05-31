@@ -205,4 +205,5 @@ Also some spacing adjustments.
   padding-bottom: 6px;
   position: absolute;
   width: 100%;
+  overflow-y: auto;
 }

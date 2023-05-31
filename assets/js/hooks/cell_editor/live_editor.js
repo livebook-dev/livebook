@@ -22,7 +22,9 @@ class LiveEditor {
     revision,
     language,
     intellisense,
-    readOnly
+    readOnly,
+    codeMarkers,
+    doctestReports
   ) {
     this.hook = hook;
     this.container = container;
@@ -37,6 +39,14 @@ class LiveEditor {
     this._onCursorSelectionChange = [];
     this._remoteUserByClientId = {};
     this._doctestByLine = {};
+
+    this._initializeWidgets = () => {
+      this.setCodeMarkers(codeMarkers);
+
+      doctestReports.forEach((doctestReport) => {
+        this.updateDoctest(doctestReport);
+      });
+    };
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -351,6 +361,9 @@ class LiveEditor {
     this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
       commandPaletteNode
     );
+
+    // Add the widgets that the editor was initialized with
+    this._initializeWidgets();
   }
 
   /**
