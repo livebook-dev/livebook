@@ -150,17 +150,29 @@ defmodule LivebookWeb.Hub.NewLive do
                 <span class="text-base font-semibold text-center text-gray-900">
                   <%= @request_code_info %>
                 </span>
-                <.link>
-                  <div class=" text-center text-sm mb-6 mt-2">
-                    <a href={@verification_uri} target="_blank" class="text-blue-600 ">
-                      Visit Livebook Teams
-                    </a>
-                    <span>
-                      and paste the code below
-                    </span>
+                <div class="text-center mt-4 text-gray-700">
+                  <span class="text-sm">
+                    <span class="font-semibold text-gray-700">1.</span> Copy the code:
+                  </span>
+                  <div class="mt-3 text-center">
+                    <.copyclip content={@org.user_code} />
                   </div>
-                </.link>
-                <.copyclip content={@org.user_code} />
+                </div>
+                <div class="text-center mt-4 text-gray-700">
+                  <span class="text-sm">
+                    <span class="font-semibold text-gray-700">2.</span>
+                    Visit Livebook Teams and paste it:
+                  </span>
+                  <div>
+                    <a
+                      href={@verification_uri}
+                      target="_blank"
+                      class="mt-3 button-base button-outlined-gray"
+                    >
+                      Go to Teams
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </.form>
@@ -192,7 +204,7 @@ defmodule LivebookWeb.Hub.NewLive do
         phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
         type="button"
       >
-        <.remix_icon icon="clipboard-line" class="text-lg" />
+        <.remix_icon icon="clipboard-line" class="text-lg text-blue-500" />
       </button>
     </div>
     """
