@@ -152,7 +152,7 @@ defmodule LivebookWeb.Hub.NewLive do
                 </span>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
-                    <span class="font-semibold text-gray-700">1.</span> Copy the code:
+                    1. Copy the code:
                   </span>
                   <div class="mt-3 text-center">
                     <.copyclip content={@org.user_code} />
@@ -160,8 +160,7 @@ defmodule LivebookWeb.Hub.NewLive do
                 </div>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
-                    <span class="font-semibold text-gray-700">2.</span>
-                    Visit Livebook Teams and paste it:
+                    2. Visit Livebook Teams and paste it:
                   </span>
                   <div>
                     <a
