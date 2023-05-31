@@ -36,7 +36,7 @@ defmodule LivebookWeb.SidebarHook do
   end
 
   defp handle_info({:hub_server_error, error}, socket) do
-    {:halt,
+    {:cont,
      socket
      |> assign(saved_hubs: Livebook.Hubs.get_metadatas())
      |> put_flash(:error, error)}
