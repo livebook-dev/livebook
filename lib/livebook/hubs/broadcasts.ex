@@ -26,11 +26,11 @@ defmodule Livebook.Hubs.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@connection_topic}` topic when hub disconnected.
+  Broadcasts under `#{@connection_topic}` topic when hub is out-of-date.
   """
-  @spec hub_disconnected() :: broadcast()
-  def hub_disconnected do
-    broadcast(@connection_topic, :hub_disconnected)
+  @spec hub_server_error(String.t()) :: broadcast()
+  def hub_server_error(reason) when is_binary(reason) do
+    broadcast(@connection_topic, {:hub_server_error, reason})
   end
 
   @doc """

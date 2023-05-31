@@ -19,7 +19,7 @@ defmodule Livebook.Teams.ConnectionTest do
       ]
 
       assert {:ok, _conn} = Connection.start_link(self(), header)
-      assert_receive {:connect, :ok, :connected}
+      assert_receive :connected
     end
 
     test "rejects the websocket connection with invalid credentials", %{user: user} do
@@ -32,13 +32,13 @@ defmodule Livebook.Teams.ConnectionTest do
 
       assert {:ok, _conn} = Connection.start_link(self(), header)
 
-      assert_receive {:connect, :error, reason}
-      assert Regex.match?(~r/^[could not authenticate the user from given credentials]/, reason)
+      assert_receive {:server_error,
+                      "Your session is out-of-date. Please re-join the organization."}
 
       assert {:ok, _conn} = Connection.start_link(self(), [])
 
-      assert_receive {:connect, :error, reason}
-      assert Regex.match?(~r/^[could not find the request credentials]/, reason)
+      assert_receive {:server_error,
+                      "Invalid request. Please re-join the organization and update Livebook if the issue persists."}
     end
   end
 end

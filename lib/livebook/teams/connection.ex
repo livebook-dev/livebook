@@ -39,18 +39,18 @@ defmodule Livebook.Teams.Connection do
   def handle_event(:internal, :connect, @no_state, %__MODULE__{} = data) do
     case WebSocket.connect(data.headers) do
       {:ok, conn, websocket, ref} ->
-        send(data.listener, {:connect, :ok, :connected})
+        send(data.listener, :connected)
         send(self(), {:loop_ping, ref})
 
         {:keep_state, %__MODULE__{data | http_conn: conn, ref: ref, websocket: websocket}}
 
       {:transport_error, reason} ->
-        send(data.listener, {:connect, :error, reason})
+        send(data.listener, {:connection_error, reason})
         {:keep_state_and_data, {{:timeout, :backoff}, @backoff, nil}}
 
       {:server_error, error} ->
         reason = LivebookProto.Error.decode(error).details
-        send(data.listener, {:connect, :error, reason})
+        send(data.listener, {:server_error, reason})
 
         {:keep_state_and_data, {{:timeout, :reconnect}, @backoff, nil}}
     end
@@ -102,7 +102,7 @@ defmodule Livebook.Teams.Connection do
         {:keep_state, data}
 
       {:server_error, conn, websocket, reason} ->
-        send(data.listener, {:connect, :error, reason})
+        send(data.listener, {:server_error, reason})
         data = %__MODULE__{data | http_conn: conn, websocket: websocket}
 
         {:keep_state, data, {:next_event, :internal, :connect}}

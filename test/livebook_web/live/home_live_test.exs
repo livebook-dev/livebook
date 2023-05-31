@@ -198,14 +198,14 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
-  describe "hubs sidebar" do
-    test "render section", %{conn: conn} do
+  describe "hubs" do
+    test "renders sidebar section", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
       assert html =~ "Add Hub"
     end
 
-    test "render persisted hubs", %{conn: conn} do
+    test "renders sidebar persisted hubs", %{conn: conn} do
       team = insert_hub(:team, id: "team-foo-bar-id")
 
       {:ok, _view, html} = live(conn, ~p"/")

@@ -1,5 +1,5 @@
 defmodule LivebookWeb.Hub.EditLiveTest do
-  use LivebookWeb.ConnCase
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Livebook.TestHelpers

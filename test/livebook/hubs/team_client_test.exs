@@ -23,8 +23,11 @@ defmodule Livebook.Hubs.TeamClientTest do
           session_token: token
         )
 
+      refute TeamClient.connected?(team.id)
+
       TeamClient.start_link(team)
       assert_receive :hub_connected
+      assert TeamClient.connected?(team.id)
     end
 
     test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
@@ -37,8 +40,11 @@ defmodule Livebook.Hubs.TeamClientTest do
         )
 
       TeamClient.start_link(team)
-      assert_receive {:hub_connection_failed, reason}
-      assert Regex.match?(~r/^[could not authenticate the user from given credentials]/, reason)
+
+      assert_receive {:hub_server_error, error}
+
+      assert error ==
+               "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
     end
   end
 end
