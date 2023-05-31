@@ -45,7 +45,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns if the given enterprise is connected.
+  Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
   def connected?(id) do

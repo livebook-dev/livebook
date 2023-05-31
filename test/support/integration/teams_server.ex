@@ -100,7 +100,7 @@ defmodule Livebook.TeamsServer do
   end
 
   def handle_info({_port, {:exit_status, status}}, _state) do
-    error("enterprise quit with status #{status}")
+    error("team quit with status #{status}")
     System.halt(status)
   end
 
