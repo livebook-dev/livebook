@@ -463,7 +463,7 @@ const Session = {
       // If the click is outside the notebook element, keep the focus as is
       !event.target.closest(`[data-el-notebook]`) ||
       // If the click is inside the custom doctest editor widget, keep the focus as is
-      event.target.closest(`.doctest-failure-overlay`)
+      event.target.closest(`.doctest-details-widget`)
     ) {
       if (this.insertMode) {
         this.setInsertMode(false);
