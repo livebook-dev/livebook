@@ -29,12 +29,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       Livebook related modules from the node on termination.
       Defaults to `true`
 
-    * `:anonymous` - configures whether manager should
-      be registered under a global name or not.
-      In most cases we enforce a single manager per node
-      and identify it by a name, but this can be opted-out
-      from by using this option. Defaults to `false`
-
     * `:auto_termination` - whether to terminate the manager
       when the last runtime server terminates. Defaults to `true`
 
@@ -48,8 +42,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   """
   def start(opts \\ []) do
-    {opts, gen_opts} = split_opts(opts)
-    GenServer.start(__MODULE__, opts, gen_opts)
+    GenServer.start(__MODULE__, opts, name: @name)
   end
 
   @doc """
@@ -58,29 +51,17 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   See `start/1` for available options.
   """
   def start_link(opts \\ []) do
-    {opts, gen_opts} = split_opts(opts)
-    GenServer.start_link(__MODULE__, opts, gen_opts)
-  end
-
-  defp split_opts(opts) do
-    {anonymous?, opts} = Keyword.pop(opts, :anonymous, false)
-
-    gen_opts = [
-      name: if(anonymous?, do: nil, else: @name)
-    ]
-
-    {opts, gen_opts}
+    GenServer.start_link(__MODULE__, opts, name: @name)
   end
 
   @doc """
   Starts a new `Livebook.Runtime.ErlDist.RuntimeServer` for evaluation.
   """
-  @spec start_runtime_server(node() | pid(), keyword()) :: pid()
-  def start_runtime_server(node_or_pid, opts \\ []) do
-    GenServer.call(server(node_or_pid), {:start_runtime_server, opts})
+  @spec start_runtime_server(node(), keyword()) :: pid()
+  def start_runtime_server(node, opts \\ []) do
+    GenServer.call(server(node), {:start_runtime_server, opts})
   end
 
-  defp server(pid) when is_pid(pid), do: pid
   defp server(node) when is_atom(node), do: {@name, node}
 
   @impl true
