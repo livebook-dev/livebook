@@ -1,5 +1,5 @@
 defmodule Livebook.HubsTest do
-  use Livebook.DataCase
+  use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.Hubs
 
