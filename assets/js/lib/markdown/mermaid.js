@@ -37,10 +37,7 @@ export function renderMermaid(definition) {
 }
 
 function importMermaid() {
-  return import(
-    /* webpackChunkName: "mermaid" */
-    "mermaid"
-  ).then(({ default: mermaid }) => {
+  return import("mermaid").then(({ default: mermaid }) => {
     if (!mermaidInitialized) {
       mermaid.initialize({ startOnLoad: false });
       mermaidInitialized = true;

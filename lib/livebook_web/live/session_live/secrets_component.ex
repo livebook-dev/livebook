@@ -109,7 +109,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               phx-debounce
               class="uppercase"
             />
-            <.text_field
+            <.password_field
               field={f[:value]}
               label="Value"
               autofocus={@prefill_secret_name != nil}

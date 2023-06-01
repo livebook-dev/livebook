@@ -10,11 +10,13 @@
     <.live_title>
       <%= assigns[:page_title] || "Livebook" %>
     </.live_title>
-    <link phx-track-static rel="stylesheet" href={~p"/css/app.css"} />
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script>
       window.LIVEBOOK_BASE_URL_PATH = "<%= Livebook.Config.base_url_path() %>";
     </script>
-    <script phx-track-static defer type="text/javascript" src={~p"/js/app.js"}>
+    <%!-- This prevents the script to be loaded twice in Chrome --%>
+    <link rel="modulepreload" href={~p"/assets/app.js"} />
+    <script phx-track-static type="module" type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
   <body

@@ -5,8 +5,8 @@ on:
     branches:
       - main
 env:
-  otp: "25.0.4"
-  elixir: "1.14.2"
+  otp: "25.3.2"
+  elixir: "1.15.0-rc.1"
 jobs:
   main:
     runs-on: ubuntu-latest

@@ -150,15 +150,17 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/")
 
+      Livebook.NotebookManager.subscribe_starred_notebooks()
+
       Livebook.NotebookManager.add_starred_notebook(file, "Special notebook")
-      render(view)
+      assert_receive {:starred_notebooks_updated, _}
 
       assert view
              |> element(~s/#starred-notebooks/, "Special notebook")
              |> has_element?()
 
       Livebook.NotebookManager.remove_starred_notebook(file)
-      render(view)
+      assert_receive {:starred_notebooks_updated, _}
 
       refute view
              |> element(~s/#starred-notebooks/, "Special notebook")
@@ -204,13 +206,13 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "render persisted hubs", %{conn: conn} do
-      fly = insert_hub(:fly, id: "fly-foo-bar-id")
+      team = insert_hub(:team, id: "team-foo-bar-id")
 
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
-      assert html =~ fly.hub_name
+      assert html =~ team.hub_name
 
-      Livebook.Hubs.delete_hub("fly-foo-bar-id")
+      Livebook.Hubs.delete_hub("team-foo-bar-id")
     end
   end
 

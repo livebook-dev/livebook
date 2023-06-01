@@ -18,10 +18,28 @@ defmodule Livebook.Teams do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_org(%Org{} = org, attrs) do
+    create_org_request(org, attrs, &Client.create_org/1)
+  end
+
+  @doc """
+  Joins an Org.
+
+  With success, returns the response from Livebook Teams API to continue the org joining flow.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec join_org(Org.t(), map()) ::
+          {:ok, map()}
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def join_org(%Org{} = org, attrs) do
+    create_org_request(org, attrs, &Client.join_org/1)
+  end
+
+  defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
     changeset = Org.changeset(org, attrs)
 
     with {:ok, %Org{} = org} <- apply_action(changeset, :insert),
-         {:ok, response} <- Client.create_org(org) do
+         {:ok, response} <- callback.(org) do
       {:ok, response}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -51,12 +69,12 @@ defmodule Livebook.Teams do
   @doc """
   Send a request to Livebook Teams API to get an org request.
   """
-  @spec get_org_request_completion_data(Org.t()) ::
+  @spec get_org_request_completion_data(Org.t(), binary()) ::
           {:ok, map() | :awaiting_confirmation}
           | {:error, :expired}
           | {:transport_error, String.t()}
-  def get_org_request_completion_data(%Org{id: id}) do
-    case Client.get_org_request_completion_data(id) do
+  def get_org_request_completion_data(%Org{id: id}, device_code) do
+    case Client.get_org_request_completion_data(id, device_code) do
       {:ok, %{"status" => "awaiting_confirmation"}} -> {:ok, :awaiting_confirmation}
       {:ok, completion_data} -> {:ok, completion_data}
       {:error, %{"status" => "expired"}} -> {:error, :expired}
@@ -99,7 +117,7 @@ defmodule Livebook.Teams do
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
     for {key, errors} <- errors_map,
-        field <- String.to_atom(key),
+        field = String.to_atom(key),
         field in Org.__schema__(:fields),
         error <- errors,
         reduce: changeset,

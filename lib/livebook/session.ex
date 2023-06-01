@@ -55,8 +55,7 @@ defmodule Livebook.Session do
     :mode,
     :images_dir,
     :created_at,
-    :memory_usage,
-    :app_info
+    :memory_usage
   ]
 
   use GenServer, restart: :temporary
@@ -83,8 +82,7 @@ defmodule Livebook.Session do
           mode: Data.session_mode(),
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage(),
-          app_info: app_info() | nil
+          memory_usage: memory_usage()
         }
 
   @type state :: %{
@@ -111,13 +109,6 @@ defmodule Livebook.Session do
             runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.SystemResources.memory()
           }
-
-  @type app_info :: %{
-          slug: String.t(),
-          status: Data.app_status(),
-          registered: boolean(),
-          public?: boolean()
-        }
 
   @typedoc """
   An id assigned to every running session process.
@@ -154,6 +145,11 @@ defmodule Livebook.Session do
 
     * `:mode` - the mode in which the session operates, either `:default`
       or `:app`. Defaults to `:default`
+
+    * `:app_pid` - the parent app process, when in running in `:app` mode
+
+    * `:auto_shutdown_ms` - the inactivity period (no clients) after which
+      the session should close automatically
 
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
@@ -203,14 +199,6 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Returns the current app settings.
-  """
-  @spec get_app_settings(pid()) :: Notebook.AppSettings.t()
-  def get_app_settings(pid) do
-    GenServer.call(pid, :get_app_settings, @timeout)
-  end
-
-  @doc """
   Subscribes to session messages.
 
   ## Messages
@@ -225,21 +213,6 @@ defmodule Livebook.Session do
   @spec subscribe(id()) :: :ok | {:error, term()}
   def subscribe(session_id) do
     Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
-  end
-
-  @doc """
-  Subscribes to app session messages.
-
-  ## Messages
-
-    * `{:app_status_changed, session_id, status}`
-    * `{:app_registration_changed, session_id, registered}`
-    * `{:app_terminated, session_id}`
-
-  """
-  @spec app_subscribe(id()) :: :ok | {:error, term()}
-  def app_subscribe(session_id) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps:#{session_id}")
   end
 
   @doc """
@@ -567,7 +540,7 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret addition request to the server.
   """
-  @spec set_secret(pid(), map()) :: :ok
+  @spec set_secret(pid(), Livebook.Secrets.Secret.t()) :: :ok
   def set_secret(pid, secret) do
     GenServer.cast(pid, {:set_secret, self(), secret})
   end
@@ -575,7 +548,7 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret deletion request to the server.
   """
-  @spec unset_secret(pid(), map()) :: :ok
+  @spec unset_secret(pid(), String.t()) :: :ok
   def unset_secret(pid, secret_name) do
     GenServer.cast(pid, {:unset_secret, self(), secret_name})
   end
@@ -687,33 +660,27 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a app build request to the server.
+  Sends an app deactivation request to the server.
+
+  When an app is deactivated, the session is still running, but the
+  app is no longer accessible (and connected clients should be
+  redirected).
   """
-  @spec app_build(pid()) :: :ok
-  def app_build(pid) do
-    GenServer.cast(pid, {:app_build, self()})
+  @spec app_deactivate(pid()) :: :ok
+  def app_deactivate(pid) do
+    GenServer.cast(pid, {:app_deactivate, self()})
   end
 
   @doc """
-  Sends a app shutdown request to the server.
+  Sends an app shutdown request to the server.
 
-  The shutdown is graceful, so the app only terminates once all of the
-  currently connected clients leave.
+  The shutdown is graceful, the app is no longer accessible, but
+  connected clients should not be impacted. Once all clients
+  disconnects the session is automatically closed.
   """
-  @spec app_unregistered(pid()) :: :ok
-  def app_unregistered(pid) do
-    GenServer.cast(pid, {:app_unregistered, self()})
-  end
-
-  @doc """
-  Sends a app stop request to the server.
-
-  This results in the app being unregistered under the given slug,
-  however it is still running.
-  """
-  @spec app_stop(pid()) :: :ok
-  def app_stop(pid) do
-    GenServer.cast(pid, {:app_stop, self()})
+  @spec app_shutdown(pid()) :: :ok
+  def app_shutdown(pid) do
+    GenServer.cast(pid, {:app_shutdown, self()})
   end
 
   ## Callbacks
@@ -738,12 +705,21 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+      state = schedule_auto_shutdown(state)
 
       if file = state.data.file do
         Livebook.NotebookManager.add_recent_notebook(file, state.data.notebook.name)
       end
 
-      {:ok, state}
+      if app_pid = state.app_pid do
+        Process.monitor(app_pid)
+      end
+
+      if state.data.mode == :app do
+        {:ok, state, {:continue, :app_init}}
+      else
+        {:ok, state}
+      end
     else
       {:error, error} ->
         {:stop, error}
@@ -766,7 +742,11 @@ defmodule Livebook.Session do
         worker_pid: worker_pid,
         registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
         registered_files: %{},
-        client_id_with_assets: %{}
+        client_id_with_assets: %{},
+        deployed_app_monitor_ref: nil,
+        app_pid: opts[:app_pid],
+        auto_shutdown_ms: opts[:auto_shutdown_ms],
+        auto_shutdown_timer_ref: nil
       }
 
       {:ok, state}
@@ -823,6 +803,35 @@ defmodule Livebook.Session do
     %{state | autosave_timer_ref: nil}
   end
 
+  defp schedule_auto_shutdown(state) do
+    client_count = map_size(state.data.clients_map)
+
+    case {client_count, state.auto_shutdown_timer_ref} do
+      {0, nil} when state.auto_shutdown_ms != nil ->
+        timer_ref = Process.send_after(self(), :close, state.auto_shutdown_ms)
+        %{state | auto_shutdown_timer_ref: timer_ref}
+
+      {client_count, timer_ref} when client_count > 0 and timer_ref != nil ->
+        if Process.cancel_timer(timer_ref) == false do
+          receive do
+            :close -> :ok
+          end
+        end
+
+        %{state | auto_shutdown_timer_ref: nil}
+
+      _ ->
+        state
+    end
+  end
+
+  @impl true
+  def handle_continue(:app_init, state) do
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
+    operation = {:queue_cells_evaluation, @client_id, cell_ids}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_call(:describe_self, _from, state) do
     {:reply, self_from_state(state), state}
@@ -872,10 +881,6 @@ defmodule Livebook.Session do
 
   def handle_call(:get_notebook, _from, state) do
     {:reply, state.data.notebook, state}
-  end
-
-  def handle_call(:get_app_settings, _from, state) do
-    {:reply, state.data.notebook.app_settings, state}
   end
 
   def handle_call(:save_sync, _from, state) do
@@ -1217,45 +1222,30 @@ defmodule Livebook.Session do
   def handle_cast({:deploy_app, _client_pid}, state) do
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
-    state =
-      if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-        opts = [notebook: state.data.notebook, mode: :app]
+    if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
+      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook)
 
-        case Livebook.Sessions.create_session(opts) do
-          {:ok, session} ->
-            app_subscribe(session.id)
-            app_build(session.pid)
-            operation = {:add_app, @client_id, session.id, session.pid}
-            handle_operation(state, operation)
-
-          {:error, reason} ->
-            broadcast_error(
-              state.session_id,
-              "failed to create app session - #{Exception.format_exit(reason)}"
-            )
-
-            state
-        end
-      else
-        state
+      if ref = state.deployed_app_monitor_ref do
+        Process.demonitor(ref, [:flush])
       end
 
-    {:noreply, state}
+      ref = Process.monitor(pid)
+      state = put_in(state.deployed_app_monitor_ref, ref)
+
+      operation = {:set_deployed_app_slug, @client_id, state.data.notebook.app_settings.slug}
+      {:noreply, handle_operation(state, operation)}
+    else
+      {:noreply, state}
+    end
   end
 
-  def handle_cast({:app_build, _client_pid}, state) do
-    cell_ids = Data.cell_ids_for_full_evaluation(state.data, [])
-    operation = {:queue_cells_evaluation, @client_id, cell_ids}
+  def handle_cast({:app_deactivate, _client_pid}, state) do
+    operation = {:app_deactivate, @client_id}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:app_unregistered, _client_pid}, state) do
-    operation = {:app_unregistered, @client_id}
-    {:noreply, handle_operation(state, operation)}
-  end
-
-  def handle_cast({:app_stop, _client_pid}, state) do
-    operation = {:app_stop, @client_id}
+  def handle_cast({:app_shutdown, _client_pid}, state) do
+    operation = {:app_shutdown, @client_id}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1266,7 +1256,8 @@ defmodule Livebook.Session do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
+  def handle_info({:DOWN, ref, :process, _, reason}, state)
+      when ref == state.runtime_monitor_ref do
     broadcast_error(
       state.session_id,
       "runtime node terminated unexpectedly - #{Exception.format_exit(reason)}"
@@ -1277,6 +1268,19 @@ defmodule Livebook.Session do
      |> handle_operation(
        {:set_runtime, @client_id, Livebook.Runtime.duplicate(state.data.runtime)}
      )}
+  end
+
+  def handle_info({:DOWN, ref, :process, _, _}, state)
+      when ref == state.deployed_app_monitor_ref do
+    {:noreply,
+     %{state | deployed_app_monitor_ref: nil}
+     |> handle_operation({:set_deployed_app_slug, @client_id, nil})}
+  end
+
+  def handle_info({:DOWN, _, :process, pid, _}, state)
+      when state.data.mode == :app and pid == state.app_pid do
+    send(self(), :close)
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
@@ -1318,6 +1322,11 @@ defmodule Livebook.Session do
       end
 
     {:noreply, state}
+  end
+
+  def handle_info({:runtime_doctest_report, cell_id, doctest_report}, state) do
+    operation = {:add_cell_doctest_report, @client_id, cell_id, doctest_report}
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
@@ -1518,21 +1527,6 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:app_status_changed, session_id, status}, state) do
-    operation = {:set_app_status, @client_id, session_id, status}
-    {:noreply, handle_operation(state, operation)}
-  end
-
-  def handle_info({:app_registration_changed, session_id, registered}, state) do
-    operation = {:set_app_registered, @client_id, session_id, registered}
-    {:noreply, handle_operation(state, operation)}
-  end
-
-  def handle_info({:app_terminated, session_id}, state) do
-    operation = {:delete_app, @client_id, session_id}
-    {:noreply, handle_operation(state, operation)}
-  end
-
   def handle_info(:close, state) do
     before_close(state)
     {:stop, :shutdown, state}
@@ -1569,16 +1563,7 @@ defmodule Livebook.Session do
       mode: state.data.mode,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
-      memory_usage: state.memory_usage,
-      app_info:
-        if state.data.mode == :app do
-          %{
-            slug: state.data.notebook.app_settings.slug,
-            status: state.data.app_data.status,
-            registered: state.data.app_data.registered,
-            public?: state.data.notebook.app_settings.access_type == :public
-          }
-        end
+      memory_usage: state.memory_usage
     }
   end
 
@@ -1819,7 +1804,9 @@ defmodule Livebook.Session do
 
     state = put_in(state.client_id_with_assets[client_id], %{})
 
-    state
+    app_report_client_count_change(state)
+
+    schedule_auto_shutdown(state)
   end
 
   defp after_operation(state, prev_state, {:client_leave, client_id}) do
@@ -1832,7 +1819,9 @@ defmodule Livebook.Session do
     state = delete_client_files(state, client_id)
     {_, state} = pop_in(state.client_id_with_assets[client_id])
 
-    state
+    app_report_client_count_change(state)
+
+    schedule_auto_shutdown(state)
   end
 
   defp after_operation(state, _prev_state, {:delete_cell, _client_id, cell_id}) do
@@ -1898,12 +1887,6 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
     if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
     state
-  end
-
-  defp after_operation(state, _prev_state, {:app_unregistered, _client_id}) do
-    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
-
-    notify_update(state)
   end
 
   defp after_operation(state, _prev_state, {:set_notebook_hub, _client_id, _id}) do
@@ -2008,23 +1991,9 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, :app_broadcast_status) do
+  defp handle_action(state, :app_report_status) do
     status = state.data.app_data.status
-    broadcast_app_message(state.session_id, {:app_status_changed, state.session_id, status})
-
-    notify_update(state)
-  end
-
-  defp handle_action(state, :app_register) do
-    Livebook.Apps.register(self(), state.data.notebook.app_settings.slug)
-    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, true})
-
-    notify_update(state)
-  end
-
-  defp handle_action(state, :app_unregister) do
-    Livebook.Apps.unregister(self(), state.data.notebook.app_settings.slug)
-    broadcast_app_message(state.session_id, {:app_registration_changed, state.session_id, false})
+    send(state.app_pid, {:app_status_changed, state.session_id, status})
 
     notify_update(state)
   end
@@ -2101,10 +2070,6 @@ defmodule Livebook.Session do
 
   defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
-  end
-
-  defp broadcast_app_message(session_id, message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{session_id}", message)
   end
 
   defp put_memory_usage(state, runtime) do
@@ -2292,11 +2257,14 @@ defmodule Livebook.Session do
   defp before_close(state) do
     maybe_save_notebook_sync(state)
     broadcast_message(state.session_id, :session_closed)
-
-    if state.data.mode == :app do
-      broadcast_app_message(state.session_id, {:app_terminated, state.session_id})
-    end
   end
+
+  defp app_report_client_count_change(state) when state.data.mode == :app do
+    client_count = map_size(state.data.clients_map)
+    send(state.app_pid, {:app_client_count_changed, state.session_id, client_count})
+  end
+
+  defp app_report_client_count_change(state), do: state
 
   @doc """
   Subscribes the caller to runtime messages under the given topic.

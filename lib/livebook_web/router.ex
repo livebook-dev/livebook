@@ -87,6 +87,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
+      live "/sessions/:id/settings/app", SessionLive, :app_settings
       live "/sessions/:id/bin", SessionLive, :bin
       get "/sessions/:id/export/download/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
@@ -114,7 +115,9 @@ defmodule LivebookWeb.Router do
 
       live "/apps/:slug", AppLive, :page
       live "/apps/:slug/authenticate", AppAuthLive, :page
-      live "/apps/:slug/source", AppLive, :source
+
+      live "/apps/:slug/:id", AppSessionLive, :page
+      live "/apps/:slug/:id/source", AppSessionLive, :source
     end
   end
 

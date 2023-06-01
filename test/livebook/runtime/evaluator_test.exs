@@ -29,7 +29,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       %{
         evaluation_time_ms: _,
         memory_usage: %{},
-        code_error: _,
+        code_markers: _,
         identifiers_used: _,
         identifiers_defined: _
       }
@@ -57,15 +57,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, "elixir", "x = 1", :code_1, [])
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
-      ignore_warnings(fn ->
         Evaluator.evaluate_code(evaluator, "elixir", "x", :code_2, [])
 
-        assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind,
-                         %CompileError{
-                           description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, metadata()}
-      end)
+      assert_receive {:runtime_evaluation_response, :code_2,
+                      {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
     end
 
     test "given parent refs sees previous evaluation context", %{evaluator: evaluator} do
@@ -163,12 +158,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, "elixir", code, :code_1, [], file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %TokenMissingError{}, _stacktrace},
+                      {:error, :error, %TokenMissingError{}, []},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description: "syntax error: expression is incomplete"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: "syntax error: expression is incomplete",
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -180,10 +178,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1,
                       {:error, :error, %CompileError{}, _stacktrace},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description: "undefined function x/0 (there is no such import)"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description: ~s/undefined variable "x"/,
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -195,11 +196,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, "elixir", code, :code_1, [], file: "file.ex")
 
       expected_stacktrace = [
+        {:elixir_expand, :expand, 3, [file: ~c"src/elixir_expand.erl", line: 383]},
         {:elixir_eval, :__FILE__, 1, [file: ~c"file.ex", line: 1]}
       ]
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %CompileError{}, ^expected_stacktrace}, %{code_error: nil}}
+                      {:error, :error, %CompileError{}, ^expected_stacktrace},
+                      %{code_markers: []}}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
@@ -222,21 +225,19 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Livebook.Runtime.EvaluatorTest.Stacktrace.Cat.meow()
       """
 
-      ignore_warnings(fn ->
         Evaluator.evaluate_code(evaluator, "elixir", code, :code_1, [])
 
-        expected_stacktrace = [
-          {Livebook.Runtime.EvaluatorTest.Stacktrace.Math, :bad_math, 0,
-           [file: ~c"nofile", line: 3]},
-          {Livebook.Runtime.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: ~c"nofile", line: 10]},
-          {:elixir_eval, :__FILE__, 1, [file: ~c"nofile", line: 15]}
-        ]
+      expected_stacktrace = [
+        {Livebook.Runtime.EvaluatorTest.Stacktrace.Math, :bad_math, 0,
+         [file: ~c"nofile", line: 3]},
+        {Livebook.Runtime.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: ~c"nofile", line: 10]},
+        {:elixir_eval, :__FILE__, 1, [file: ~c"nofile", line: 15]}
+      ]
 
-        # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
-        assert_receive {:runtime_evaluation_response, :code_1,
-                        {:error, _kind, _error, ^expected_stacktrace}, metadata()},
-                       2_000
-      end)
+      # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
+      assert_receive {:runtime_evaluation_response, :code_1,
+                      {:error, _kind, _error, ^expected_stacktrace}, metadata()},
+                     2_000
     end
 
     test "in case of an error uses empty evaluation context as the resulting context",
@@ -332,11 +333,14 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_2,
                       {:error, :error, %CompileError{}, []},
                       %{
-                        code_error: %{
-                          line: 1,
-                          description:
-                            "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined"
-                        }
+                        code_markers: [
+                          %{
+                            line: 1,
+                            description:
+                              "module Livebook.Runtime.EvaluatorTest.Redefinition is already defined",
+                            severity: :error
+                          }
+                        ]
                       }}
     end
 
@@ -390,35 +394,33 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Exited)
     end
+  end
 
-    @tag :with_ebin_path
-    test "runs doctests when a module is defined", %{evaluator: evaluator} do
+  describe "doctests" do
+    @describetag :with_ebin_path
+
+    test "assertions", %{evaluator: evaluator} do
       code = ~S'''
-      defmodule Livebook.Runtime.EvaluatorTest.Doctests do
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsAssertions do
         @moduledoc """
 
             iex> raise "oops"
             ** (ArgumentError) not oops
-
-            iex> 1 +
-            :who_knows
-
-            iex> 1 = 2
 
             iex> require ExUnit.Assertions
             ...> ExUnit.Assertions.assert false
         """
 
         @doc """
-            iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
+            iex> Livebook.Runtime.EvaluatorTest.DoctestsAssertions.data()
             %{
               name: "Amy Santiago",
               description: "nypd detective",
               precinct: 99
             }
 
-            iex> Livebook.Runtime.EvaluatorTest.Doctests.data()
-            %{name: "Jake Peralta", description: "NYPD detective"}
+          iex> Livebook.Runtime.EvaluatorTest.DoctestsAssertions.data()
+          %{name: "Jake Peralta", description: "NYPD detective"}
         """
         def data() do
           %{
@@ -427,9 +429,87 @@ defmodule Livebook.Runtime.EvaluatorTest do
             precinct: 99
           }
         end
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details:
+                          "\e[31mexpected exception ArgumentError but got RuntimeError with message \"oops\"\e[0m",
+                        end_line: 5,
+                        line: 4,
+                        status: :failed
+                      }}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 7, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mExpected truthy, got false\e[0m",
+                        end_line: 8,
+                        line: 7,
+                        status: :failed
+                      }}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 12, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 12, status: :success}}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 19, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{column: 4, details: _, end_line: 20, line: 19, status: :failed}}
+    end
+
+    # TODO: Run this test on Elixir v1.15+
+    @tag :skip
+    test "multiple assertions at once", %{evaluator: evaluator} do
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsMiddle do
+        @moduledoc """
+
+            iex> 1 + 1
+            2
+            iex> 1 + 2
+            :wrong
+            iex> 1 + 3
+            4
+
+        """
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: _,
+                        end_line: 7,
+                        line: 4,
+                        status: :failed
+                      }}
+    end
+
+    test "runtime errors", %{evaluator: evaluator} do
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsRuntime do
+        @moduledoc """
+
+            iex> 1 = 2
+
+        """
 
         @doc """
-            iex> Livebook.Runtime.EvaluatorTest.Doctests.raise_with_stacktrace()
+            iex> Livebook.Runtime.EvaluatorTest.DoctestsRuntime.raise_with_stacktrace()
             :what
         """
         def raise_with_stacktrace() do
@@ -437,7 +517,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
         end
 
         @doc """
-            iex> Livebook.Runtime.EvaluatorTest.Doctests.exit()
+            iex> Livebook.Runtime.EvaluatorTest.DoctestsRuntime.exit()
             :what
         """
         def exit() do
@@ -448,15 +528,67 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, "elixir", code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_output, :code_1, {:text, doctest_result}}
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
 
-      assert doctest_result =~ "8 doctests, 7 failures"
-      assert doctest_result =~ "Doctest did not compile, got: (TokenMissingError)"
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mmatch (=) failed" <> _,
+                        end_line: 4,
+                        line: 4,
+                        status: :failed
+                      }}
 
-      assert doctest_result =~
-               "expected exception ArgumentError but got RuntimeError with message \"oops\""
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 9, status: :running}}
 
-      assert_receive {:runtime_evaluation_response, :code_1, {:ok, _}, metadata()}
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details:
+                          "\e[31m** (Protocol.UndefinedError) protocol Enumerable not implemented for 1 of type Integer. " <>
+                            _,
+                        end_line: 10,
+                        line: 9,
+                        status: :failed
+                      }}
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 17, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31m** (EXIT from #PID<" <> _,
+                        end_line: 18,
+                        line: 17,
+                        status: :failed
+                      }}
+    end
+
+    test "invalid", %{evaluator: evaluator} do
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsInvalid do
+        @doc """
+
+            iex> 1 +
+            :who_knows
+
+        """
+        def foo, do: :ok
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
+
+      assert_receive {:runtime_doctest_report, :code_1, %{line: 4, status: :running}}
+
+      assert_receive {:runtime_doctest_report, :code_1,
+                      %{
+                        column: 6,
+                        details: "\e[31mDoctest did not compile, got: (TokenMissingError) " <> _,
+                        end_line: 5,
+                        line: 4,
+                        status: :failed
+                      }}
     end
   end
 
@@ -541,11 +673,16 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     test "reports parentheses-less arity-0 import as a used variable", %{evaluator: evaluator} do
+      # TODO: remove all logic around undefined unused vars once we require Elixir v1.15
+      Code.put_compiler_option(:on_undefined_variable, :warn)
+
       identifiers =
         """
         self
         """
         |> eval(evaluator, 0)
+
+      Code.put_compiler_option(:on_undefined_variable, :raise)
 
       assert {:variable, {:self, nil}} in identifiers.used
       assert :imports in identifiers.used
@@ -868,12 +1005,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
       ignore_warnings(fn ->
         Evaluator.evaluate_code(evaluator, "elixir", "x", :code_2, [:code_1])
 
-        assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind,
-                         %CompileError{
-                           description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, metadata()}
-      end)
+      assert_receive {:runtime_evaluation_response, :code_2,
+                      {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
@@ -971,13 +1104,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   # Helpers
-
-  # Some of the code passed to Evaluator above is expected
-  # to produce compilation warnings, so we ignore them.
-  defp ignore_warnings(fun) do
-    ExUnit.CaptureIO.capture_io(:stderr, fun)
-    :ok
-  end
 
   # Returns a code that spawns a widget process, registers
   # a pointer for it and adds monitoring, then returns widget

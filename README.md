@@ -156,7 +156,7 @@ Livebook if said token is supplied as part of the URL.
 ## Environment variables
 <!-- Environment variables -->
 
-The following environment variables configure Livebook:
+The following environment variables can be used to configure Livebook on boot:
 
   * LIVEBOOK_APP_SERVICE_NAME - sets the application name used by the cloud
     provider to aid debugging.
@@ -257,7 +257,7 @@ such as:
   * or to configure the Erlang VM, for instance, by setting
     `ERL_AFLAGS="-proto_dist inet6_tcp"` if you need Livebook to run over IPv6
 
-Be careful when modifying said files, Livebook may be unable to start if
+Be careful when modifying boot files, Livebook may be unable to start if
 configured incorrectly.
 
 If running Livebook via the command line, run `livebook server --help` to see
@@ -270,18 +270,17 @@ Livebook is primarily a Phoenix web application and can be setup as such:
 ```shell
 git clone https://github.com/livebook-dev/livebook.git
 cd livebook
-mix dev.setup
+mix setup
 
 # Run the Livebook server
 mix phx.server
 
 # Run tests
 mix test
-
-# To test escript
-MIX_ENV=prod mix escript.build
-./livebook server
 ```
+
+Once you submit a pull request, [Uffizzi](https://www.uffizzi.com) will setup
+a preview environment where anyone can try out your changes and give feedback.
 
 ### Livebook Desktop
 

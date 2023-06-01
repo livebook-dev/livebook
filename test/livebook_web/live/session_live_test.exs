@@ -119,7 +119,8 @@ defmodule LivebookWeb.SessionLiveTest do
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
+      {source, continue_fun} = source_for_blocking()
+      cell_id = insert_text_cell(session.pid, section_id, :code, source)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -129,6 +130,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
                Session.get_data(session.pid)
+
+      continue_fun.()
     end
 
     test "reevaluting the setup cell", %{conn: conn, session: session} do
@@ -1401,59 +1404,87 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
-
-      insert_cell_with_output(session.pid, section_id, {:markdown, "Hello from the app!"})
+      insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
 
       slug = Livebook.Utils.random_short_id()
 
-      view
-      |> element(~s/[data-el-app-info] form/)
-      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+      Livebook.Apps.subscribe()
 
-      assert_receive {:operation, {:add_app, _, _, app_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, _, true}}
+      view
+      |> element(~s/[data-el-app-info] a/, "Configure")
+      |> render_click()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_change(%{"app_settings" => %{"slug" => slug}})
+
+      view
+      |> element(~s/#app-settings-modal button/, "Deploy")
+      |> render_click()
+
+      assert_receive {:app_created, %{slug: ^slug} = app}
+
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
 
       assert render(view) =~ "/apps/#{slug}"
 
-      {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
+      {:ok, view, _} =
+        conn
+        |> live(~p"/apps/#{slug}")
+        |> follow_redirect(conn)
 
-      assert_push_event(view, "markdown_renderer:" <> _, %{content: "Hello from the app!"})
+      assert_receive {:app_updated,
+                      %{slug: ^slug, sessions: [%{app_status: %{execution: :executed}}]}}
 
-      Session.app_unregistered(app_session_pid)
+      assert render(view) =~ "Hello from the app!"
+
+      Livebook.App.close(app.pid)
     end
 
-    test "stopping and terminating an app", %{conn: conn, session: session} do
+    test "stopping and terminating app session", %{conn: conn, session: session} do
       Session.subscribe(session.id)
 
       slug = Livebook.Utils.random_short_id()
       app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
       Session.set_app_settings(session.pid, app_settings)
+
+      Livebook.Apps.subscribe()
       Session.deploy_app(session.pid)
 
-      assert_receive {:operation, {:add_app, _, _, _}}
-      assert_receive {:operation, {:set_app_registered, _, _, true}}
+      assert_receive {:app_created, %{slug: ^slug} = app}
+
+      assert_receive {:app_updated,
+                      %{
+                        slug: ^slug,
+                        sessions: [%{app_status: %{execution: :executed}} = app_session]
+                      }}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="stop app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="deactivate app session"]/)
       |> render_click()
 
-      assert_receive {:operation, {:set_app_registered, _, _, false}}
+      assert_receive {:app_updated,
+                      %{slug: ^slug, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
+
+      assert render(view) =~ "/apps/#{slug}/#{app_session.id}"
 
       view
-      |> element(~s/[data-el-app-info] button[aria-label="terminate app"]/)
+      |> element(~s/[data-el-app-info] button[aria-label="terminate app session"]/)
       |> render_click()
 
-      assert_receive {:operation, {:delete_app, _, _}}
+      assert_receive {:app_updated, %{slug: ^slug, sessions: []}}
 
-      refute render(view) =~ "/apps/#{slug}"
+      refute render(view) =~ "/apps/#{slug}/#{app_session.id}"
+
+      Livebook.App.close(app.pid)
     end
   end
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, session: session} do
-      hub = insert_hub(:fly)
+      hub = insert_hub(:team)
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 

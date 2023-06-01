@@ -21,16 +21,19 @@ defmodule Livebook.IntellisenseTest do
 
   describe "format_code/1" do
     test "formats valid code" do
-      assert %{code: "1 + 1", code_error: nil} = Intellisense.format_code("1+1")
+      assert %{code: "1 + 1", code_markers: []} = Intellisense.format_code("1+1")
     end
 
     test "returns a syntax error when invalid code is given" do
       assert %{
                code: nil,
-               code_error: %{
-                 line: 1,
-                 description: "syntax error: expression is incomplete"
-               }
+               code_markers: [
+                 %{
+                   line: 1,
+                   description: "syntax error: expression is incomplete",
+                   severity: :error
+                 }
+               ]
              } = Intellisense.format_code("1+")
     end
   end
@@ -1061,10 +1064,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "completion for struct keys inside struct removes filled keys" do
-      context =
-        eval do
-          struct = %Livebook.IntellisenseTest.MyStruct{}
-        end
+      context = eval(do: nil)
 
       assert [] =
                Intellisense.get_completion_items(
@@ -1079,6 +1079,73 @@ defmodule Livebook.IntellisenseTest do
       completions = Intellisense.get_completion_items("%ArgumentError{", context)
 
       refute Enum.find(completions, &match?(%{label: "__exception__"}, &1))
+    end
+
+    test "completion for struct keys in update syntax" do
+      context = eval(do: nil)
+
+      assert [
+               %{
+                 label: "my_val",
+                 kind: :field,
+                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
+                 documentation: _my_val_doc,
+                 insert_text: "my_val: "
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{struct | ",
+                 context
+               )
+
+      assert [
+               %{
+                 label: "my_val",
+                 kind: :field,
+                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
+                 documentation: _my_val_doc,
+                 insert_text: "my_val: "
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{struct | my_v",
+                 context
+               )
+
+      assert [] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{struct | my_val: 123, ",
+                 context
+               )
+    end
+
+    test "completion for map keys in update syntax" do
+      context =
+        eval do
+          map = %{foo: 1}
+        end
+
+      assert [
+               %{
+                 label: "foo",
+                 kind: :field,
+                 detail: "field",
+                 documentation: nil,
+                 insert_text: "foo: "
+               }
+             ] = Intellisense.get_completion_items("%{map | ", context)
+
+      assert [
+               %{
+                 label: "foo",
+                 kind: :field,
+                 detail: "field",
+                 documentation: nil,
+                 insert_text: "foo: "
+               }
+             ] = Intellisense.get_completion_items("%{map | fo", context)
+
+      assert [] = Intellisense.get_completion_items("%{map | foo: 2, ", context)
     end
 
     test "ignore invalid Elixir module literals" do
@@ -1190,6 +1257,31 @@ defmodule Livebook.IntellisenseTest do
                label: "integer"
              } in Intellisense.get_completion_items("<<a::", context)
     end
+
+    test "completion for aliases in special forms" do
+      context = eval(do: nil)
+
+      assert [
+               %{
+                 label: "Range",
+                 kind: :struct,
+                 detail: "struct",
+                 documentation: "Returns an inclusive range between dates.",
+                 insert_text: "Range"
+               }
+             ] = Intellisense.get_completion_items("alias Date.", context)
+
+      assert %{
+               label: "Atom",
+               kind: :module,
+               detail: "module",
+               documentation: "Atoms are constants whose values are their own name.",
+               insert_text: "Atom"
+             } in Intellisense.get_completion_items("alias ", context)
+
+      refute Intellisense.get_completion_items("alias ", context)
+             |> Enum.any?(&(&1.kind == :function))
+    end
   end
 
   describe "get_details/3" do
@@ -1283,6 +1375,13 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [to_string_fn]} = Intellisense.get_details("to_string(1)", 3, context)
 
       assert to_string_fn =~ "Converts the argument to a string"
+    end
+
+    test "returns nil for bitstring modifiers" do
+      context = eval(do: nil)
+
+      assert nil == Intellisense.get_details("<<x :: integer>>", 6, context)
+      assert nil == Intellisense.get_details("<<x :: integer>>", 10, context)
     end
 
     test "includes full module name in the docs" do

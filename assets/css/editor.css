@@ -158,3 +158,52 @@ Also some spacing adjustments.
   margin-left: 2px;
   transform: none;
 }
+
+/* === Doctest status decoration === */
+
+.doctest-status-decoration-running,
+.doctest-status-decoration-success,
+.doctest-status-decoration-failed {
+  height: 100%;
+  position: relative;
+}
+
+.doctest-status-decoration-running::after,
+.doctest-status-decoration-success::after,
+.doctest-status-decoration-failed::after {
+  box-sizing: border-box;
+  border-radius: 2px;
+  content: "";
+  display: block;
+  height: 12px;
+  width: 12px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.doctest-status-decoration-running::after {
+  @apply bg-gray-400;
+}
+
+.doctest-status-decoration-success::after {
+  @apply bg-green-bright-400;
+}
+
+.doctest-status-decoration-failed::after {
+  @apply bg-red-400;
+}
+
+/* === Doctest failure details === */
+
+.doctest-details-widget {
+  @apply font-editor;
+  white-space: pre;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  position: absolute;
+  width: 100%;
+  overflow-y: auto;
+}

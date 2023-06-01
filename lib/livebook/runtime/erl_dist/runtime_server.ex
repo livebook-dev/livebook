@@ -51,6 +51,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       to merge new values into when setting environment variables.
       Defaults to `System.get_env("PATH", "")`
 
+    * `:io_proxy_registry` - the registry to register IO proxy
+      processes in
+
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -317,6 +320,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        base_env_path:
          Keyword.get_lazy(opts, :base_env_path, fn -> System.get_env("PATH", "") end),
        ebin_path: Keyword.get(opts, :ebin_path),
+       io_proxy_registry: Keyword.get(opts, :io_proxy_registry),
        tmp_dir: Keyword.get(opts, :tmp_dir)
      }}
   end
@@ -678,7 +682,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           send_to: state.owner,
           runtime_broadcast_to: state.runtime_broadcast_to,
           object_tracker: state.object_tracker,
-          ebin_path: state.ebin_path
+          ebin_path: state.ebin_path,
+          io_proxy_registry: state.io_proxy_registry
         )
 
       Process.monitor(evaluator.pid)

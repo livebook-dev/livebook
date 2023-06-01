@@ -6,7 +6,8 @@ import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../../lib/text_utils";
-import { settingsStore } from "../../lib/settings";
+import { settingsStore, EDITOR_FONT_SIZE } from "../../lib/settings";
+import Doctest from "./live_editor/doctest";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -21,7 +22,9 @@ class LiveEditor {
     revision,
     language,
     intellisense,
-    readOnly
+    readOnly,
+    codeMarkers,
+    doctestReports
   ) {
     this.hook = hook;
     this.container = container;
@@ -35,6 +38,15 @@ class LiveEditor {
     this._onBlur = [];
     this._onCursorSelectionChange = [];
     this._remoteUserByClientId = {};
+    this._doctestByLine = {};
+
+    this._initializeWidgets = () => {
+      this.setCodeMarkers(codeMarkers);
+
+      doctestReports.forEach((doctestReport) => {
+        this.updateDoctest(doctestReport);
+      });
+    };
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -197,33 +209,61 @@ class LiveEditor {
   }
 
   /**
-   * Adds an underline marker for the given syntax error.
-   *
-   * To clear an existing marker `null` error is also supported.
+   * Either adds or updates doctest indicators.
    */
-  setCodeErrorMarker(error) {
+  updateDoctest(doctestReport) {
     this._ensureMounted();
 
-    const owner = "livebook.error.syntax";
+    if (this._doctestByLine[doctestReport.line]) {
+      this._doctestByLine[doctestReport.line].update(doctestReport);
+    } else {
+      this._doctestByLine[doctestReport.line] = new Doctest(
+        this.editor,
+        doctestReport
+      );
+    }
+  }
 
-    if (error) {
-      const line = this.editor.getModel().getLineContent(error.line);
+  /**
+   * Removes doctest indicators.
+   */
+  clearDoctests() {
+    this._ensureMounted();
+
+    Object.values(this._doctestByLine).forEach((doctest) => doctest.dispose());
+
+    this._doctestByLine = {};
+  }
+
+  /**
+   * Sets underline markers for warnings and errors.
+   *
+   * Passing an empty list clears all markers.
+   */
+  setCodeMarkers(codeMarkers) {
+    this._ensureMounted();
+
+    const owner = "livebook.code-marker";
+
+    const editorMarkers = codeMarkers.map((codeMarker) => {
+      const line = this.editor.getModel().getLineContent(codeMarker.line);
       const [, leadingWhitespace, trailingWhitespace] =
         line.match(/^(\s*).*?(\s*)$/);
 
-      monaco.editor.setModelMarkers(this.editor.getModel(), owner, [
-        {
-          startLineNumber: error.line,
-          startColumn: leadingWhitespace.length + 1,
-          endLineNumber: error.line,
-          endColumn: line.length + 1 - trailingWhitespace.length,
-          message: error.description,
-          severity: monaco.MarkerSeverity.Error,
-        },
-      ]);
-    } else {
-      monaco.editor.setModelMarkers(this.editor.getModel(), owner, []);
-    }
+      return {
+        startLineNumber: codeMarker.line,
+        startColumn: leadingWhitespace.length + 1,
+        endLineNumber: codeMarker.line,
+        endColumn: line.length + 1 - trailingWhitespace.length,
+        message: codeMarker.description,
+        severity: {
+          error: monaco.MarkerSeverity.Error,
+          warning: monaco.MarkerSeverity.Warning,
+        }[codeMarker.severity],
+      };
+    });
+
+    monaco.editor.setModelMarkers(this.editor.getModel(), owner, editorMarkers);
   }
 
   _mountEditor() {
@@ -321,6 +361,9 @@ class LiveEditor {
     this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
       commandPaletteNode
     );
+
+    // Add the widgets that the editor was initialized with
+    this._initializeWidgets();
   }
 
   /**
@@ -488,7 +531,7 @@ class LiveEditor {
 
       return this._asyncIntellisenseRequest("format", { code: content })
         .then((response) => {
-          this.setCodeErrorMarker(response.code_error);
+          this.setCodeMarkers(response.code_markers);
 
           if (response.code) {
             /**

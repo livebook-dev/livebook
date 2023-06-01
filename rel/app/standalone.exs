@@ -93,7 +93,7 @@ defmodule Standalone do
   end
 
   defp download_elixir_at_destination(destination, version) do
-    url = "https://repo.hex.pm/builds/elixir/v#{version}-otp-#{System.otp_release()}.zip"
+    url = "https://builds.hex.pm/builds/elixir/v#{version}-otp-#{System.otp_release()}.zip"
     path = Path.join(System.tmp_dir!(), "elixir_#{version}.zip")
 
     unless File.exists?(path) do

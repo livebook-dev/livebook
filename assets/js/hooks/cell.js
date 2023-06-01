@@ -238,10 +238,26 @@ const Cell = {
 
         this.handleEvent(
           `evaluation_finished:${this.props.cellId}`,
-          ({ code_error }) => {
-            liveEditor.setCodeErrorMarker(code_error);
+          ({ code_markers }) => {
+            liveEditor.setCodeMarkers(code_markers);
           }
         );
+
+        this.handleEvent(`start_evaluation:${this.props.cellId}`, () => {
+          liveEditor.clearDoctests();
+        });
+
+        this.handleEvent(
+          `doctest_report:${this.props.cellId}`,
+          (doctestReport) => {
+            liveEditor.updateDoctest(doctestReport);
+          }
+        );
+
+        this.handleEvent(`erase_outputs`, () => {
+          liveEditor.setCodeMarkers([]);
+          liveEditor.clearDoctests();
+        });
       }
     }
   },

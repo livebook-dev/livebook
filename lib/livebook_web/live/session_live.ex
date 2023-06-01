@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -31,6 +31,17 @@ defmodule LivebookWeb.SessionLive do
             {data, nil}
           end
 
+        app =
+          if slug = data.deployed_app_slug do
+            {:ok, app} = Livebook.Apps.fetch_app(slug)
+
+            if connected?(socket) do
+              Livebook.App.subscribe(slug)
+            end
+
+            app
+          end
+
         socket =
           if connected?(socket) do
             payload = %{
@@ -40,7 +51,10 @@ defmodule LivebookWeb.SessionLive do
                 end)
             }
 
-            push_event(socket, "session_init", payload)
+            socket = push_event(socket, "session_init", payload)
+
+            cells = for {cell, _} <- Notebook.cells_with_section(data.notebook), do: cell
+            push_cell_editor_payloads(socket, data, cells)
           else
             socket
           end
@@ -53,6 +67,7 @@ defmodule LivebookWeb.SessionLive do
          |> assign(
            self_path: ~p"/sessions/#{session.id}",
            session: session,
+           app: app,
            client_id: client_id,
            platform: platform,
            data_view: data_to_view(data),
@@ -140,7 +155,7 @@ defmodule LivebookWeb.SessionLive do
             data-el-app-indicator
             class={[
               "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
-              app_status_color(@data_view.apps_status)
+              app_status_color(app_status(@app))
             ]}
           />
         </div>
@@ -207,7 +222,8 @@ defmodule LivebookWeb.SessionLive do
             id="app-info"
             session={@session}
             settings={@data_view.app_settings}
-            apps={@data_view.apps}
+            app={@app}
+            deployed_app_slug={@data_view.deployed_app_slug}
           />
         </div>
         <div data-el-runtime-info>
@@ -417,6 +433,21 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :app_settings}
+      id="app-settings-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.AppSettingsComponent}
+        id="app-settings"
+        session={@session}
+        settings={@data_view.app_settings}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -516,7 +547,7 @@ defmodule LivebookWeb.SessionLive do
       ) %>
     </.modal>
 
-    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:big} patch={@self_path}>
+    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:medium} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.SecretsComponent}
         id="secrets"
@@ -1145,6 +1176,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("queue_interrupted_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    data = socket.private.data
+
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- data.cell_infos[cell.id].eval.interrupted do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_section_evaluation", %{"section_id" => section_id}, socket) do
     Session.queue_section_evaluation(socket.assigns.session.pid, section_id)
 
@@ -1217,6 +1260,31 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("disconnect_runtime", %{}, socket) do
     Session.disconnect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
+  end
+
+  def handle_event("deploy_app", %{}, socket) do
+    on_confirm = fn socket ->
+      Livebook.Session.deploy_app(socket.assigns.session.pid)
+      socket
+    end
+
+    data = socket.private.data
+    slug = data.notebook.app_settings.slug
+    slug_taken? = slug != data.deployed_app_slug and Livebook.Apps.exists?(slug)
+
+    socket =
+      if slug_taken? do
+        confirm(socket, on_confirm,
+          title: "Deploy app",
+          description:
+            "An app with this slug already exists, do you want to deploy a new version?",
+          confirm_text: "Replace"
+        )
+      else
+        on_confirm.(socket)
+      end
+
     {:noreply, socket}
   end
 
@@ -1429,6 +1497,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
     {:noreply, assign(socket, starred_files: starred_files(starred_notebooks))}
+  end
+
+  def handle_info({:app_updated, app}, socket) when socket.assigns.app != nil do
+    {:noreply, assign(socket, :app, app)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -1651,6 +1723,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
+    {:ok, cell, _section} =
+      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
     socket = prune_cell_sources(socket)
 
     if client_id == socket.assigns.client_id do
@@ -1678,6 +1755,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:restore_cell, client_id, cell_id}) do
+    {:ok, cell, _section} =
+      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+
+    socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
+
     socket = prune_cell_sources(socket)
 
     if client_id == socket.assigns.client_id do
@@ -1718,7 +1800,15 @@ defmodule LivebookWeb.SessionLive do
        ) do
     socket
     |> prune_outputs()
-    |> push_event("evaluation_finished:#{cell_id}", %{code_error: metadata.code_error})
+    |> push_event("evaluation_finished:#{cell_id}", %{code_markers: metadata.code_markers})
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_doctest_report, _client_id, cell_id, doctest_report}
+       ) do
+    push_event(socket, "doctest_report:#{cell_id}", doctest_report_payload(doctest_report))
   end
 
   defp after_operation(
@@ -1729,18 +1819,47 @@ defmodule LivebookWeb.SessionLive do
     prune_cell_sources(socket)
   end
 
+  defp after_operation(socket, _prev_socket, {:erase_outputs, _client_id}) do
+    push_event(socket, "erase_outputs", %{})
+  end
+
+  defp after_operation(socket, prev_socket, {:set_deployed_app_slug, _client_id, slug}) do
+    prev_slug = prev_socket.private.data.deployed_app_slug
+
+    if slug == prev_slug do
+      socket
+    else
+      if prev_slug do
+        Livebook.App.unsubscribe(prev_slug)
+      end
+
+      app =
+        if slug do
+          {:ok, app} = Livebook.Apps.fetch_app(slug)
+          Livebook.App.subscribe(slug)
+          app
+        end
+
+      assign(socket, app: app)
+    end
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:broadcast_delta, client_id, cell, tag, delta}) do
+  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta}) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
       push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
     end
+  end
+
+  defp handle_action(socket, {:start_evaluation, cell, _section}) do
+    push_event(socket, "start_evaluation:#{cell.id}", %{})
   end
 
   defp handle_action(socket, _action), do: socket
@@ -1934,6 +2053,74 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp push_cell_editor_payloads(socket, data, cells) do
+    for cell <- cells,
+        {tag, payload} <- cell_editor_init_payloads(cell, data.cell_infos[cell.id]),
+        reduce: socket do
+      socket ->
+        push_event(socket, "cell_editor_init:#{cell.id}:#{tag}", payload)
+    end
+  end
+
+  defp cell_editor_init_payloads(%Cell.Code{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: cell_info.eval.code_markers,
+        doctest_reports:
+          for {_, doctest_report} <- cell_info.eval.doctest_reports do
+            doctest_report_payload(doctest_report)
+          end
+      }
+    ]
+  end
+
+  defp cell_editor_init_payloads(%Cell.Markdown{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: [],
+        doctest_reports: []
+      }
+    ]
+  end
+
+  defp cell_editor_init_payloads(%Cell.Smart{} = cell, cell_info) do
+    [
+      primary: %{
+        source: cell.source,
+        revision: cell_info.sources.primary.revision,
+        code_markers: cell_info.eval.code_markers,
+        doctest_reports:
+          for {_, doctest_report} <- cell_info.eval.doctest_reports do
+            doctest_report_payload(doctest_report)
+          end
+      }
+    ] ++
+      if cell.editor do
+        [
+          secondary: %{
+            source: cell.editor.source,
+            revision: cell_info.sources.secondary.revision,
+            code_markers: [],
+            doctest_reports: []
+          }
+        ]
+      else
+        []
+      end
+  end
+
+  defp doctest_report_payload(doctest_report) do
+    Map.replace_lazy(doctest_report, :details, fn details ->
+      details
+      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
+      |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+    end)
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -1970,9 +2157,8 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
-      apps_status: apps_status(data),
       app_settings: data.notebook.app_settings,
-      apps: data.apps
+      deployed_app_slug: data.deployed_app_slug
     }
   end
 
@@ -2043,13 +2229,11 @@ defmodule LivebookWeb.SessionLive do
     %{id: section.id, name: section.name}
   end
 
-  defp cell_to_view(%Cell.Markdown{} = cell, data) do
-    info = data.cell_infos[cell.id]
-
+  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
     %{
       id: cell.id,
       type: :markdown,
-      source_view: source_view(cell.source, info.sources.primary)
+      empty: cell.source == ""
     }
   end
 
@@ -2060,7 +2244,7 @@ defmodule LivebookWeb.SessionLive do
       id: cell.id,
       type: :code,
       language: cell.language,
-      source_view: source_view(cell.source, info.sources.primary),
+      empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data),
       reevaluate_automatically: cell.reevaluate_automatically
     }
@@ -2072,16 +2256,16 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
-      source_view: source_view(cell.source, info.sources.primary),
+      empty: cell.source == "",
       eval: eval_info_to_view(cell, info.eval, data),
       status: info.status,
       js_view: cell.js_view,
       editor:
         cell.editor &&
           %{
+            empty: cell.editor.souruce == "",
             language: cell.editor.language,
-            placement: cell.editor.placement,
-            source_view: source_view(cell.editor.source, info.sources.secondary)
+            placement: cell.editor.placement
           }
     }
   end
@@ -2102,17 +2286,6 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp source_view(:__pruned__, _source_info) do
-    :__pruned__
-  end
-
-  defp source_view(source, source_info) do
-    %{
-      source: source,
-      revision: source_info.revision
-    }
-  end
-
   defp input_values_for_cell(cell, data) do
     input_ids =
       for output <- cell.outputs,
@@ -2122,8 +2295,8 @@ defmodule LivebookWeb.SessionLive do
     Map.take(data.input_values, input_ids)
   end
 
-  defp apps_status(%{apps: []}), do: nil
-  defp apps_status(%{apps: [app | _]}), do: app.status
+  def app_status(%{sessions: [app_session | _]}), do: app_session.app_status
+  def app_status(_), do: nil
 
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
@@ -2136,7 +2309,7 @@ defmodule LivebookWeb.SessionLive do
       {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
-      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks, _reevaluate} ->
+      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
@@ -2165,6 +2338,9 @@ defmodule LivebookWeb.SessionLive do
           _ ->
             data_to_view(data)
         end
+
+      {:doctest_report, _client_id, _cell_id, _doctest_report} ->
+        data_view
 
       _ ->
         data_to_view(data)
@@ -2235,9 +2411,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp app_status_color(nil), do: "bg-gray-400"
-  defp app_status_color(:booting), do: "bg-blue-500"
-  defp app_status_color(:running), do: "bg-green-bright-400"
-  defp app_status_color(:error), do: "bg-red-400"
-  defp app_status_color(:shutting_down), do: "bg-gray-500"
-  defp app_status_color(:stopped), do: "bg-gray-500"
+  defp app_status_color(%{lifecycle: :shutting_down}), do: "bg-gray-500"
+  defp app_status_color(%{lifecycle: :deactivated}), do: "bg-gray-500"
+  defp app_status_color(%{execution: :executing}), do: "bg-blue-500"
+  defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
+  defp app_status_color(%{execution: :error}), do: "bg-red-400"
+  defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 end

@@ -66,7 +66,11 @@ defprotocol Livebook.Runtime do
           # A control element
           | {:control, attrs :: map()}
           # Internal output format for errors
-          | {:error, message :: String.t(), type :: {:missing_secret, String.t()} | :other}
+          | {:error, message :: String.t(),
+             type ::
+               {:missing_secret, name :: String.t()}
+               | {:interrupt, variant :: :normal | :error, message :: String.t()}
+               | :other}
 
   @typedoc """
   Additional information about a completed evaluation.
@@ -82,11 +86,29 @@ defprotocol Livebook.Runtime do
   @type evaluation_response_metadata :: %{
           errored: boolean(),
           evaluation_time_ms: non_neg_integer(),
-          code_error: code_error(),
+          code_markers: list(code_marker()),
           memory_usage: runtime_memory(),
           identifiers_used: list(identifier :: term()) | :unknown,
           identifiers_defined: %{(identifier :: term()) => version :: term()}
         }
+
+  @typedoc """
+  Includes information about a running or finished doctest.
+
+  Failed doctests have additional details formatted as a string.
+  """
+  @type doctest_report ::
+          %{
+            status: :running | :success,
+            line: pos_integer()
+          }
+          | %{
+              status: :failed,
+              column: pos_integer(),
+              line: pos_integer(),
+              end_line: pos_integer(),
+              details: String.t()
+            }
 
   @typedoc """
   Recognised intellisense request.
@@ -171,13 +193,17 @@ defprotocol Livebook.Runtime do
 
   @type format_response :: %{
           code: String.t() | nil,
-          code_error: code_error() | nil
+          code_markers: list(code_marker())
         }
 
   @typedoc """
-  A descriptive error pointing to a specific line in the code.
+  A descriptive error or warning pointing to a specific line in the code.
   """
-  @type code_error :: %{line: pos_integer(), description: String.t()}
+  @type code_marker :: %{
+          line: pos_integer(),
+          description: String.t(),
+          severity: :error | :warning
+        }
 
   @typedoc """
   A detailed runtime memory usage.
@@ -394,6 +420,13 @@ defprotocol Livebook.Runtime do
     * `{:runtime_container_down, container_ref, message}`
 
   to notify the owner.
+
+  ### Doctests
+
+  If the cell includes doctests, the runtime can evaluate them and
+  send reports as a message:
+
+    * `{:runtime_doctest_report, evaluation_ref, doctest_report}`
 
   ## Options
 

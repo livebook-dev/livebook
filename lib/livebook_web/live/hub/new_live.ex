@@ -4,26 +4,35 @@ defmodule LivebookWeb.Hub.NewLive do
   alias Livebook.Teams
   alias Livebook.Teams.Org
   alias LivebookWeb.LayoutHelpers
-  alias Phoenix.LiveView.JS
 
   on_mount LivebookWeb.SidebarHook
 
-  @check_completion_data_internal 3000
+  @check_completion_data_interval Application.compile_env(
+                                    :livebook,
+                                    :check_completion_data_interval,
+                                    3000
+                                  )
 
   @impl true
   def mount(_params, _session, socket) do
     enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
 
-    {:ok,
-     assign(socket,
-       selected_option: nil,
-       page_title: "Hub - Livebook",
-       enabled?: enabled?,
-       requested_code: false,
-       org: nil,
-       verification_uri: nil,
-       org_form: nil
-     )}
+    socket =
+      assign(socket,
+        selected_option: "new-org",
+        page_title: "Hub - Livebook",
+        enabled?: enabled?,
+        requested_code: false,
+        org: nil,
+        verification_uri: nil,
+        form: nil,
+        button_label: nil,
+        request_code_info: nil
+      )
+
+    socket = assign_form(socket, "new-org")
+
+    {:ok, socket}
   end
 
   @impl true
@@ -77,132 +86,180 @@ defmodule LivebookWeb.Hub.NewLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <LayoutHelpers.title text="Add Hub" />
           <p class="mt-4 text-gray-700">
             Manage your Livebooks in the cloud with Hubs.
           </p>
         </div>
+        <!-- TABS -->
+        <div class="flex flex-col space-y-4">
+          <div class="flex flex-col justify-center sm:items-center sm:m-auto">
+            <div class="flex rounded-xl bg-gray-100 p-1">
+              <ul class="flex flex-col sm:flex-row md:flex-col lg:flex-row w-full list-none gap-1">
+                <!-- New Org -->
+                <.tab_button
+                  id="new-org"
+                  selected={@selected_option}
+                  title="Create a new organization"
+                  icon="lightbulb-flash-line"
+                />
+                <!-- Join Org -->
+                <.tab_button
+                  id="join-org"
+                  selected={@selected_option}
+                  title="Join an existing organization"
+                  icon="organization-chart"
+                />
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- FORMS -->
+        <div :if={@selected_option} class="flex flex-col space-y-4">
+          <.form
+            :let={f}
+            id={"#{@selected_option}-form"}
+            class="flex flex-col space-y-4"
+            for={@form}
+            phx-submit="save"
+            phx-change="validate"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <.text_field field={f[:name]} label="Name" />
+              <.emoji_field field={f[:emoji]} label="Emoji" />
+            </div>
 
-        <.org_form
-          form={@org_form}
-          org={@org}
-          requested_code={@requested_code}
-          selected={@selected_option}
-          verification_uri={@verification_uri}
-        />
+            <.password_field
+              :if={@selected_option == "join-org"}
+              field={f[:teams_key]}
+              label="Livebook Teams Key"
+            />
+
+            <button
+              :if={!@requested_code}
+              class="button-base button-blue self-start"
+              phx-disable-with="Loading..."
+            >
+              <%= @button_label %>
+            </button>
+            <div class="invisible"></div>
+            <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
+              <div class="flex flex-col items-center rounded-xl bg-gray-50">
+                <span class="text-base font-semibold text-center text-gray-900">
+                  <%= @request_code_info %>
+                </span>
+                <div class="text-center mt-4 text-gray-700">
+                  <span class="text-sm">
+                    1. Copy the code:
+                  </span>
+                  <div class="mt-3 text-center">
+                    <.copyclip content={@org.user_code} />
+                  </div>
+                </div>
+                <div class="text-center mt-4 text-gray-700">
+                  <span class="text-sm">
+                    2. Visit Livebook Teams and paste it:
+                  </span>
+                  <div>
+                    <a
+                      href={@verification_uri}
+                      target="_blank"
+                      class="mt-3 button-base button-outlined-gray"
+                    >
+                      Go to Teams
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </.form>
+        </div>
       </div>
     </LayoutHelpers.layout>
     """
   end
 
-  defp org_form(assigns) do
-    ~H"""
-    <div class="flex flex-col space-y-4">
-      <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-        1. Select your option
-      </h2>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <.card_item id="new-org" selected={@selected} title="Create a new organization">
-          <:logo><.remix_icon icon="add-circle-fill" class="text-black text-3xl" /></:logo>
-          <:headline>Create a new organization and invite your team members.</:headline>
-        </.card_item>
-
-        <.card_item id="join-org" selected={@selected} disabled title="Join an organization">
-          <:logo><.remix_icon icon="user-add-fill" class="text-black text-3xl" /></:logo>
-          <:headline>Coming soon...</:headline>
-        </.card_item>
-      </div>
-    </div>
-
-    <div :if={@selected == "new-org"} class="flex flex-col space-y-4">
-      <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-        2. Create your Organization
-      </h2>
-
-      <.form
-        :let={f}
-        id="new-org-form"
-        class="flex flex-col space-y-4"
-        for={@form}
-        phx-submit="save"
-        phx-change="validate"
-      >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.text_field field={f[:name]} label="Name" />
-          <.emoji_field field={f[:emoji]} label="Emoji" />
-        </div>
-
-        <.password_field readonly field={f[:teams_key]} label="Livebook Teams Key" />
-
-        <div :if={@requested_code} class="grid grid-cols-1 gap-3">
-          <span>
-            Access the following URL and input the User Code below to confirm the Organization creation.
-          </span>
-
-          <.link navigate={@verification_uri} target="_blank" class="font-bold text-blue-500">
-            <%= @verification_uri %>
-          </.link>
-
-          <span><%= @org.user_code %></span>
-        </div>
-
-        <button :if={!@requested_code} class="button-base button-blue" phx-disable-with="Creating...">
-          Create Org
-        </button>
-      </.form>
-    </div>
-    """
-  end
-
-  defp card_item(assigns) do
-    assigns = assign_new(assigns, :disabled, fn -> false end)
-
+  defp copyclip(assigns) do
     ~H"""
     <div
-      id={@id}
-      class={["flex flex-col cursor-pointer", disabled_class(@disabled)]}
-      phx-click={JS.push("select_option", value: %{value: @id})}
+      id="clipboard"
+      class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
     >
-      <div class={[
-        "flex items-center justify-center p-6 border-2 rounded-t-2xl h-[150px]",
-        card_item_border_class(@id, @selected)
-      ]}>
-        <%= render_slot(@logo) %>
+      <div class="icon-button invisible">
+        <.remix_icon icon="clipboard-line" class="text-lg" />
       </div>
-      <div class={["px-6 py-4 rounded-b-2xl grow", card_item_class(@id, @selected)]}>
-        <p class="text-gray-800 font-semibold cursor-pointer">
-          <%= @title %>
-        </p>
 
-        <p class="mt-2 text-sm text-gray-600">
-          <%= render_slot(@headline) %>
-        </p>
-      </div>
+      <div
+        class="text-brand-pink font-semibold text-xl leading-none"
+        id="clipboard-code"
+        phx-no-format
+      ><%= @content %></div>
+
+      <button
+        class="icon-button ml-4"
+        data-el-clipcopy
+        phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
+        type="button"
+      >
+        <.remix_icon icon="clipboard-line" class="text-lg text-blue-500" />
+      </button>
     </div>
     """
   end
 
-  defp disabled_class(true), do: "opacity-30 pointer-events-none"
-  defp disabled_class(false), do: ""
+  defp tab_button(assigns) do
+    ~H"""
+    <li class="group/toggle w-full">
+      <button
+        type="button"
+        id={@id}
+        aria-haspopup="menu"
+        aria-expanded="false"
+        data-state="closed"
+        class="w-full"
+        phx-click="select_option"
+        phx-value-option={@id}
+      >
+        <div class={[
+          "group button flex w-full sm:w-72 items-center justify-center gap-1 md:gap-2 rounded-lg border py-3 md:py-2.5 px-5 transition-opacity duration-100",
+          selected_tab_button(@id, @selected)
+        ]}>
+          <.remix_icon
+            icon={@icon}
+            class={[
+              "group-hover:text-blue-600 text-lg",
+              if @selected == @id do
+                "text-blue-600"
+              else
+                "text-gray-500"
+              end
+            ]}
+          />
+          <span class="truncate text-sm font-medium">
+            <%= @title %>
+          </span>
+        </div>
+      </button>
+    </li>
+    """
+  end
 
-  defp card_item_border_class(id, id), do: "border-gray-200"
-  defp card_item_border_class(_, _), do: "border-gray-100"
+  defp selected_tab_button(id, id),
+    do: "border-black/10 bg-white drop-shadow-sm hover:!opacity-100"
 
-  defp card_item_class(id, id), do: "bg-gray-200"
-  defp card_item_class(_, _), do: "bg-gray-100"
+  defp selected_tab_button(_, _), do: "border-transparent text-gray-500 hover:text-gray-800"
 
   @impl true
-  def handle_event("select_option", %{"value" => option}, socket) do
+  def handle_event("select_option", %{"option" => option}, socket) do
     {:noreply,
      socket
-     |> assign(selected_option: option)
+     |> assign(selected_option: option, requested_code: false, verification_uri: nil)
      |> assign_form(option)}
   end
 
-  def handle_event("validate", %{"new_org" => attrs}, socket) do
+  def handle_event("validate", %{"org" => attrs}, socket) do
     changeset =
       socket.assigns.org
       |> Teams.change_org(attrs)
@@ -211,14 +268,24 @@ defmodule LivebookWeb.Hub.NewLive do
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("save", %{"new_org" => attrs}, socket) do
-    case Teams.create_org(socket.assigns.org, attrs) do
-      {:ok, response} ->
+  def handle_event("save", %{"org" => attrs}, socket) do
+    result =
+      case socket.assigns.selected_option do
+        "new-org" -> Teams.create_org(socket.assigns.org, attrs)
+        "join-org" -> Teams.join_org(socket.assigns.org, attrs)
+      end
+
+    case result do
+      {:ok, %{"device_code" => device_code} = response} ->
         attrs = Map.merge(attrs, response)
         changeset = Teams.change_org(socket.assigns.org, attrs)
         org = Ecto.Changeset.apply_action!(changeset, :insert)
 
-        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
 
         {:noreply,
          socket
@@ -234,10 +301,14 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
-  def handle_info(:check_completion_data, %{assigns: %{org: org}} = socket) do
-    case Teams.get_org_request_completion_data(org) do
+  def handle_info({:check_completion_data, device_code}, %{assigns: %{org: org}} = socket) do
+    case Teams.get_org_request_completion_data(org, device_code) do
       {:ok, :awaiting_confirmation} ->
-        Process.send_after(self(), :check_completion_data, @check_completion_data_internal)
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
 
         {:noreply, socket}
 
@@ -256,7 +327,7 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
+         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
 
       {:error, :expired} ->
         changeset = Teams.change_org(org, %{user_code: nil})
@@ -264,29 +335,49 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> assign(requested_code: false, org: org, verification_uri: nil)
-         |> put_flash(
-           :error,
-           "Oh no! Your org creation request expired, could you please try again?"
-         )
+         |> put_flash(:error, "Oh no! Your org request expired, could you please try again?")
          |> assign_form(changeset)}
 
       {:transport_error, message} ->
+        Process.send_after(
+          self(),
+          {:check_completion_data, device_code},
+          @check_completion_data_interval
+        )
+
         {:noreply, put_flash(socket, :error, message)}
     end
   end
 
   def handle_info(_any, socket), do: {:noreply, socket}
 
-  defp assign_form(socket, "new-org") do
+  defp assign_form(socket, "join-org") do
     org = %Org{emoji: "💡"}
     changeset = Teams.change_org(org)
 
     socket
-    |> assign(org: org)
+    |> assign(
+      org: org,
+      button_label: "Join",
+      request_code_info: "Authenticate with your organization"
+    )
+    |> assign_form(changeset)
+  end
+
+  defp assign_form(socket, "new-org") do
+    org = %Org{emoji: "⭐️", teams_key: Org.teams_key()}
+    changeset = Teams.change_org(org)
+
+    socket
+    |> assign(
+      org: org,
+      button_label: "Create",
+      request_code_info: "Verify your new organization"
+    )
     |> assign_form(changeset)
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, org_form: to_form(changeset, as: :new_org))
+    assign(socket, form: to_form(changeset))
   end
 end

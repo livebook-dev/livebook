@@ -3,106 +3,147 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
 
   import LivebookWeb.AppHelpers
 
-  alias Livebook.Notebook.AppSettings
-
-  @impl true
-  def mount(socket) do
-    {:ok, assign(socket, deploy_confirmation: false)}
-  end
-
-  @impl true
-  def update(assigns, socket) do
-    changeset =
-      case socket.assigns do
-        %{changeset: changeset} when changeset.data == assigns.settings -> changeset
-        _ -> AppSettings.change(assigns.settings)
-      end
-
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign(changeset: changeset)}
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col">
       <div class="flex items-center justify-between">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
-          App settings
+          App
         </h3>
         <.app_info_icon />
       </div>
-      <div class="mt-2">
-        <.app_form
-          changeset={@changeset}
-          deploy_confirmation={@deploy_confirmation}
-          session={@session}
-          myself={@myself}
-        />
-      </div>
-      <%= if @apps != [] do %>
-        <h3 class="mt-16 uppercase text-sm font-semibold text-gray-500">
-          Deployments
-        </h3>
-        <div class="mt-2 flex flex-col space-y-4">
-          <div :for={app <- @apps} class="border border-gray-200 rounded-lg">
-            <div class="p-4 flex flex-col space-y-3">
-              <.labeled_text label="Status">
-                <a
-                  class="inline-block"
-                  aria-label="debug app"
-                  href={app.status == :error && ~p"/sessions/#{app.session_id}"}
-                  target="_blank"
-                >
-                  <.app_status status={app.status} />
-                </a>
-              </.labeled_text>
-              <.labeled_text label="URL" one_line>
-                <%= if app.registered do %>
-                  <a href={~p"/apps/#{app.settings.slug}"}>
-                    <%= ~p"/apps/#{app.settings.slug}" %>
-                  </a>
-                <% else %>
-                  -
-                <% end %>
-              </.labeled_text>
-            </div>
-            <div class="border-t border-gray-200 px-3 py-2 flex space-x-2 justify-between">
-              <span class="tooltip top" data-tooltip="Debug">
-                <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app.session_id}"}>
-                  <.remix_icon icon="terminal-line" class="text-lg" />
-                </a>
-              </span>
-              <%= if app.registered do %>
-                <span class="tooltip top" data-tooltip="Stop">
-                  <button
-                    class="icon-button"
-                    aria-label="stop app"
-                    phx-click={
-                      JS.push("stop_app", value: %{session_id: app.session_id}, target: @myself)
-                    }
-                  >
-                    <.remix_icon icon="stop-circle-line" class="text-lg" />
-                  </button>
-                </span>
-              <% else %>
-                <span class="tooltip top" data-tooltip="Terminate">
-                  <button
-                    class="icon-button"
-                    aria-label="terminate app"
-                    phx-click={
-                      JS.push("terminate_app", value: %{session_id: app.session_id}, target: @myself)
-                    }
-                  >
-                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                  </button>
-                </span>
-              <% end %>
-            </div>
+      <%= if @session.mode == :app do %>
+        <div class="mt-5 flex flex-col space-y-6">
+          <span class="text-gray-700 text-sm">
+            This session is a running app. To deploy a modified version, you can fork it.
+          </span>
+          <div>
+            <button class="button-base button-blue" phx-click="fork_session">
+              <.remix_icon icon="git-branch-line" />
+              <span>Fork</span>
+            </button>
           </div>
         </div>
+      <% else %>
+        <div class="mt-5 flex space-x-2">
+          <button
+            class="button-base button-blue"
+            phx-click="deploy_app"
+            disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
+          >
+            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
+            <span>Deploy</span>
+          </button>
+          <.link
+            patch={~p"/sessions/#{@session.id}/settings/app"}
+            class="button-base button-outlined-gray bg-transparent"
+          >
+            Configure
+          </.link>
+        </div>
+        <%= if @app do %>
+          <h3 class="mt-10 uppercase text-sm font-semibold text-gray-500">
+            Latest deployment
+          </h3>
+          <div class="mt-2 border border-gray-200 rounded-lg">
+            <div class="p-4 flex flex-col space-y-3">
+              <.labeled_text label="URL" one_line>
+                <a href={~p"/apps/#{@app.slug}"}>
+                  <%= ~p"/apps/#{@app.slug}" %>
+                </a>
+              </.labeled_text>
+              <.labeled_text label="Version" one_line>
+                v<%= @app.version %>
+              </.labeled_text>
+              <.labeled_text label="Session type" one_line>
+                <%= if(@app.multi_session, do: "Multi", else: "Single") %>
+              </.labeled_text>
+            </div>
+            <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
+              <div class="grow" />
+              <span class="tooltip top" data-tooltip="Terminate">
+                <button
+                  class="icon-button"
+                  aria-label="terminate app"
+                  phx-click={JS.push("terminate_app", target: @myself)}
+                >
+                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                </button>
+              </span>
+            </div>
+          </div>
+          <h3 class="mt-10 uppercase text-sm font-semibold text-gray-500">
+            Running sessions
+          </h3>
+          <div class="mt-2 flex flex-col space-y-4">
+            <div :for={app_session <- @app.sessions} class="border border-gray-200 rounded-lg">
+              <div class="p-4 flex flex-col space-y-3">
+                <.labeled_text label="Status">
+                  <a
+                    class="inline-block"
+                    aria-label="debug app"
+                    href={app_session.app_status == :error && ~p"/sessions/#{app_session.id}"}
+                    target="_blank"
+                  >
+                    <.app_status status={app_session.app_status} />
+                  </a>
+                </.labeled_text>
+                <.labeled_text label="Version">
+                  v<%= app_session.version %>
+                </.labeled_text>
+              </div>
+              <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
+                <span class="tooltip top" data-tooltip="Open">
+                  <a
+                    class={["icon-button", app_session.app_status.lifecycle != :active && "disabled"]}
+                    aria-label="open app"
+                    href={~p"/apps/#{@app.slug}/#{app_session.id}"}
+                  >
+                    <.remix_icon icon="link" class="text-lg" />
+                  </a>
+                </span>
+                <div class="grow" />
+                <span class="tooltip top" data-tooltip="Debug">
+                  <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
+                    <.remix_icon icon="terminal-line" class="text-lg" />
+                  </a>
+                </span>
+                <%= if app_session.app_status.lifecycle == :active do %>
+                  <span class="tooltip top" data-tooltip="Deactivate">
+                    <button
+                      class="icon-button"
+                      aria-label="deactivate app session"
+                      phx-click={
+                        JS.push("deactivate_app_session",
+                          value: %{session_id: app_session.id},
+                          target: @myself
+                        )
+                      }
+                    >
+                      <.remix_icon icon="stop-circle-line" class="text-lg" />
+                    </button>
+                  </span>
+                <% else %>
+                  <span class="tooltip top" data-tooltip="Terminate">
+                    <button
+                      class="icon-button"
+                      aria-label="terminate app session"
+                      phx-click={
+                        JS.push("terminate_app_session",
+                          value: %{session_id: app_session.id},
+                          target: @myself
+                        )
+                      }
+                    >
+                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                    </button>
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
       <% end %>
     </div>
     """
@@ -126,160 +167,20 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
     """
   end
 
-  defp app_form(%{session: %{app_info: %{}}} = assigns) do
-    ~H"""
-    <div class="mt-5 flex flex-col space-y-6">
-      <span class="text-gray-700 text-sm">
-        This session is a running app. To deploy a modified version, you can fork it.
-      </span>
-      <div>
-        <button class="button-base button-blue" phx-click="fork_session">
-          <.remix_icon icon="git-branch-line" />
-          <span>Fork</span>
-        </button>
-      </div>
-    </div>
-    """
-  end
-
-  defp app_form(%{deploy_confirmation: true} = assigns) do
-    ~H"""
-    <div class="mt-5">
-      <span class="text-gray-700 text-sm">
-        Another app is already running under this slug, do you want to replace it?
-      </span>
-      <div class="mt-5 flex space-x-2">
-        <button
-          class="button-base button-red"
-          phx-click="deploy_confirmation_confirm"
-          phx-target={@myself}
-        >
-          Replace
-        </button>
-        <button
-          class="button-base button-outlined-gray bg-transparent"
-          phx-click="deploy_confirmation_cancel"
-          phx-target={@myself}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-    """
-  end
-
-  defp app_form(assigns) do
-    ~H"""
-    <.form
-      :let={f}
-      for={@changeset}
-      phx-submit="deploy"
-      phx-change="validate"
-      phx-target={@myself}
-      autocomplete="off"
-    >
-      <div class="flex flex-col space-y-4">
-        <.text_field
-          field={f[:slug]}
-          label="Slug"
-          spellcheck="false"
-          phx-debounce
-          class="bg-gray-100"
-        />
-        <div class="flex flex-col space-y-1">
-          <.checkbox_field
-            field={f[:access_type]}
-            label="Password-protected"
-            checked_value="protected"
-            unchecked_value="public"
-          />
-          <%= if Ecto.Changeset.get_field(@changeset, :access_type) == :protected do %>
-            <.password_field field={f[:password]} spellcheck="false" phx-debounce class="bg-gray-100" />
-          <% end %>
-        </div>
-        <.checkbox_field field={f[:show_source]} label="Show source" />
-        <.radio_field
-          field={f[:output_type]}
-          label="Output type"
-          options={[{"all", "All"}, {"rich", "Rich only"}]}
-        />
-      </div>
-      <div class="mt-6 flex space-x-2">
-        <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-          Deploy
-        </button>
-        <button class="button-base button-outlined-gray bg-transparent" type="reset" name="reset">
-          Reset
-        </button>
-      </div>
-    </.form>
-    """
-  end
-
   @impl true
-  def handle_event("validate", %{"_target" => ["reset"]}, socket) do
-    settings = AppSettings.new()
-    Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
-    {:noreply, assign(socket, changeset: AppSettings.change(settings))}
+  def handle_event("terminate_app", %{}, socket) do
+    {:noreply, confirm_app_termination(socket, socket.assigns.app.pid)}
   end
 
-  def handle_event("validate", %{"app_settings" => params}, socket) do
-    changeset =
-      socket.assigns.settings
-      |> AppSettings.change(params)
-      |> Map.put(:action, :validate)
-
-    with {:ok, settings} <- AppSettings.update(socket.assigns.settings, params) do
-      Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
-    end
-
-    {:noreply, assign(socket, changeset: changeset)}
-  end
-
-  def handle_event("deploy", %{"app_settings" => params}, socket) do
-    case AppSettings.update(socket.assigns.settings, params) do
-      {:ok, settings} ->
-        Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
-
-        if slug_taken?(settings.slug, socket.assigns.apps) do
-          {:noreply, assign(socket, deploy_confirmation: true)}
-        else
-          Livebook.Session.deploy_app(socket.assigns.session.pid)
-          {:noreply, socket}
-        end
-
-      {:error, _changeset} ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("deploy_confirmation_confirm", %{}, socket) do
-    Livebook.Session.deploy_app(socket.assigns.session.pid)
-    {:noreply, assign(socket, deploy_confirmation: false)}
-  end
-
-  def handle_event("deploy_confirmation_cancel", %{}, socket) do
-    {:noreply, assign(socket, deploy_confirmation: false)}
-  end
-
-  def handle_event("terminate_app", %{"session_id" => session_id}, socket) do
-    app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
-    Livebook.Session.close(app.session_pid)
+  def handle_event("terminate_app_session", %{"session_id" => session_id}, socket) do
+    app_session = Enum.find(socket.assigns.app.sessions, &(&1.id == session_id))
+    Livebook.Session.close(app_session.pid)
     {:noreply, socket}
   end
 
-  def handle_event("stop_app", %{"session_id" => session_id}, socket) do
-    app = Enum.find(socket.assigns.apps, &(&1.session_id == session_id))
-    Livebook.Session.app_stop(app.session_pid)
+  def handle_event("deactivate_app_session", %{"session_id" => session_id}, socket) do
+    app_session = Enum.find(socket.assigns.app.sessions, &(&1.id == session_id))
+    Livebook.Session.app_deactivate(app_session.pid)
     {:noreply, socket}
-  end
-
-  defp slug_taken?(slug, apps) do
-    own? =
-      Enum.any?(apps, fn app ->
-        app.registered and app.settings.slug == slug
-      end)
-
-    not own? and Livebook.Apps.exists?(slug)
   end
 end

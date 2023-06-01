@@ -31,3 +31,6 @@ config :livebook, :feature_flags, create_hub: true
 if System.get_env("CI") == "true" do
   config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
 end
+
+# Teams
+config :livebook, check_completion_data_interval: 300

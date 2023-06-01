@@ -87,6 +87,7 @@ defmodule LivebookWeb.Output.FrameComponent do
             session_pid={@session_pid}
             input_values={@input_values}
             client_id={@client_id}
+            cell_id={@cell_id}
           />
         </div>
       <% end %>

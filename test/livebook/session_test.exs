@@ -3,22 +3,19 @@ defmodule Livebook.SessionTest do
 
   import Livebook.TestHelpers
 
-  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
+  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem, Apps, App}
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
   alias Livebook.NotebookManager
 
   @eval_meta %{
     errored: false,
+    interrupted: false,
     evaluation_time_ms: 10,
     identifiers_used: [],
-    identifiers_defined: %{}
+    identifiers_defined: %{},
+    code_markers: []
   }
-
-  setup do
-    session = start_session()
-    %{session: session}
-  end
 
   describe "file_name_for_download/1" do
     @tag :tmp_dir
@@ -30,7 +27,9 @@ defmodule Livebook.SessionTest do
       assert Session.file_name_for_download(session) == "my_notebook"
     end
 
-    test "defaults to notebook name", %{session: session} do
+    test "defaults to notebook name" do
+      session = start_session()
+
       Session.set_notebook_name(session.pid, "Cat's guide to life!")
       # Get the updated struct
       session = Session.get_by_pid(session.pid)
@@ -38,7 +37,9 @@ defmodule Livebook.SessionTest do
       assert Session.file_name_for_download(session) == "cats_guide_to_life"
     end
 
-    test "removes non-ascii characters from notebook name", %{session: session} do
+    test "removes non-ascii characters from notebook name" do
+      session = start_session()
+
       Session.set_notebook_name(session.pid, "Notebook 😺")
       # Get the updated struct
       session = Session.get_by_pid(session.pid)
@@ -48,7 +49,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "set_notebook_attributes/2" do
-    test "sends an attributes update to subscribers", %{session: session} do
+    test "sends an attributes update to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       attrs = %{set_notebook_attributes: true}
@@ -58,7 +61,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "insert_section/2" do
-    test "sends an insert operation to subscribers", %{session: session} do
+    test "sends an insert operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       Session.insert_section(session.pid, 0)
@@ -67,7 +72,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "insert_cell/4" do
-    test "sends an insert operation to subscribers", %{session: session} do
+    test "sends an insert operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       Session.insert_section(session.pid, 0)
@@ -80,7 +87,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "delete_section/3" do
-    test "sends a delete operation to subscribers", %{session: session} do
+    test "sends a delete operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {section_id, _cell_id} = insert_section_and_cell(session.pid)
@@ -91,7 +100,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "delete_cell/2" do
-    test "sends a delete operation to subscribers", %{session: session} do
+    test "sends a delete operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -102,7 +113,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "restore_cell/2" do
-    test "sends a restore operation to subscribers", %{session: session} do
+    test "sends a restore operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -231,8 +244,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "add_dependencies/2" do
-    test "applies source change to the setup cell to include the given dependencies",
-         %{session: session} do
+    test "applies source change to the setup cell to include the given dependencies" do
+      session = start_session()
+
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
 
@@ -275,8 +289,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "queue_cell_evaluation/2" do
-    test "triggers evaluation and sends update operation once it finishes",
-         %{session: session} do
+    test "triggers evaluation and sends update operation once it finishes" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -292,7 +307,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "cancel_cell_evaluation/2" do
-    test "sends a cancel evaluation operation to subscribers", %{session: session} do
+    test "sends a cancel evaluation operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -305,7 +322,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "set_notebook_name/2" do
-    test "sends a notebook name update operation to subscribers", %{session: session} do
+    test "sends a notebook name update operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       Session.set_notebook_name(session.pid, "Cat's guide to life")
@@ -313,7 +332,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "updates name information in recent notebooks", %{session: session, tmp_dir: tmp_dir} do
+    test "updates name information in recent notebooks", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
       Session.set_file(session.pid, file)
@@ -328,7 +349,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "set_section_name/3" do
-    test "sends a section name update operation to subscribers", %{session: session} do
+    test "sends a section name update operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {section_id, _cell_id} = insert_section_and_cell(session.pid)
@@ -339,7 +362,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "apply_cell_delta/4" do
-    test "sends a cell delta operation to subscribers", %{session: session} do
+    test "sends a cell delta operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -359,7 +384,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "report_cell_revision/3" do
-    test "sends a revision report operation to subscribers", %{session: session} do
+    test "sends a revision report operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -373,7 +400,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "set_cell_attributes/3" do
-    test "sends an attributes update operation to subscribers", %{session: session} do
+    test "sends an attributes update operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -385,7 +414,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "connect_runtime/2" do
-    test "sends a runtime update operation to subscribers", %{session: session} do
+    test "sends a runtime update operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       runtime = connected_noop_runtime()
@@ -396,7 +427,9 @@ defmodule Livebook.SessionTest do
   end
 
   describe "disconnect_runtime/1" do
-    test "sends a runtime update operation to subscribers", %{session: session} do
+    test "sends a runtime update operation to subscribers" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       runtime = connected_noop_runtime()
@@ -414,8 +447,9 @@ defmodule Livebook.SessionTest do
 
   describe "set_file/1" do
     @tag :tmp_dir
-    test "sends a file update operation to subscribers",
-         %{session: session, tmp_dir: tmp_dir} do
+    test "sends a file update operation to subscribers", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       Session.subscribe(session.id)
 
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
@@ -426,8 +460,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "broadcasts an error if the path is already in use",
-         %{session: session, tmp_dir: tmp_dir} do
+    test "broadcasts an error if the path is already in use", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       start_session(file: file)
@@ -440,7 +475,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "moves images to the new directory", %{session: session, tmp_dir: tmp_dir} do
+    test "moves images to the new directory", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       %{images_dir: images_dir} = session
 
@@ -460,8 +497,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "does not remove images from the previous dir if not temporary",
-         %{session: session, tmp_dir: tmp_dir} do
+    test "does not remove images from the previous dir if not temporary", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
@@ -484,7 +522,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "adds the new file to recent notebooks", %{session: session, tmp_dir: tmp_dir} do
+    test "adds the new file to recent notebooks", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
@@ -498,7 +538,9 @@ defmodule Livebook.SessionTest do
   describe "save/1" do
     @tag :tmp_dir
     test "persists the notebook to the associated file and notifies subscribers",
-         %{session: session, tmp_dir: tmp_dir} do
+         %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
@@ -516,7 +558,9 @@ defmodule Livebook.SessionTest do
     end
 
     @tag :tmp_dir
-    test "creates nonexistent directories", %{session: session, tmp_dir: tmp_dir} do
+    test "creates nonexistent directories", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "nonexistent/dir/notebook.livemd")
       Session.set_file(session.pid, file)
@@ -544,7 +588,7 @@ defmodule Livebook.SessionTest do
       File.write!(source_path, "content")
       {:ok, old_file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), old_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
@@ -556,7 +600,8 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
 
-      Process.sleep(50)
+      {:file, file_id} = old_file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(old_path)
       assert File.exists?(new_path)
@@ -566,12 +611,7 @@ defmodule Livebook.SessionTest do
     test "schedules file for deletion when a linked client leaves", %{tmp_dir: tmp_dir} do
       session = start_session(registered_file_deletion_delay: 0)
 
-      client_pid =
-        spawn_link(fn ->
-          receive do
-            :stop -> :ok
-          end
-        end)
+      client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
 
       user = Livebook.Users.User.new()
       {_data, client_id} = Session.register_client(session.pid, client_pid, user)
@@ -582,14 +622,15 @@ defmodule Livebook.SessionTest do
       {:ok, file_ref} =
         Session.register_file(session.pid, source_path, "key", linked_client_id: client_id)
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       send(client_pid, :stop)
 
-      Process.sleep(50)
+      {:file, file_id} = file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(path)
     end
@@ -622,14 +663,15 @@ defmodule Livebook.SessionTest do
         client_name: "data.txt"
       })
 
-      runtime = connected_noop_runtime()
+      runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
       send(session.pid, {:runtime_file_lookup, self(), file_ref})
       assert_receive {:runtime_file_lookup_reply, {:ok, path}}
 
       Session.erase_outputs(session.pid)
 
-      Process.sleep(50)
+      {:file, file_id} = file_ref
+      assert_receive {:runtime_trace, :revoke_file, [^file_id]}
 
       refute File.exists?(path)
     end
@@ -638,7 +680,9 @@ defmodule Livebook.SessionTest do
   describe "close/1" do
     @tag :tmp_dir
     test "saves the notebook and notifies subscribers once the session is closed",
-         %{session: session, tmp_dir: tmp_dir} do
+         %{tmp_dir: tmp_dir} do
+      session = start_session()
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
@@ -657,7 +701,9 @@ defmodule Livebook.SessionTest do
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
 
-    test "clears session temporary directory", %{session: session} do
+    test "clears session temporary directory" do
+      session = start_session()
+
       %{images_dir: images_dir} = session
       :ok = FileSystem.File.create_dir(images_dir)
 
@@ -676,6 +722,8 @@ defmodule Livebook.SessionTest do
   describe "start_link/1" do
     @tag :tmp_dir
     test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do
+      Process.flag(:trap_exit, true)
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       start_session(file: file)
@@ -756,7 +804,9 @@ defmodule Livebook.SessionTest do
     assert_receive {:error, "runtime node terminated unexpectedly - no connection"}
   end
 
-  test "on user change sends an update operation subscribers", %{session: session} do
+  test "on user change sends an update operation subscribers" do
+    session = start_session()
+
     user = Livebook.Users.User.new()
     Session.register_client(session.pid, self(), user)
 
@@ -1088,7 +1138,9 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  test "session has the creation timestamp", %{session: session} do
+  test "session has the creation timestamp" do
+    session = start_session()
+
     assert %DateTime{} = session.created_at
     assert DateTime.compare(session.created_at, DateTime.utc_now()) in [:lt, :eq]
   end
@@ -1117,7 +1169,9 @@ defmodule Livebook.SessionTest do
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"
   end
 
-  test "successfully fetches assets for client-specific outputs", %{session: session} do
+  test "successfully fetches assets for client-specific outputs" do
+    session = start_session()
+
     Session.subscribe(session.id)
 
     {_section_id, cell_id} = insert_section_and_cell(session.pid)
@@ -1126,7 +1180,7 @@ defmodule Livebook.SessionTest do
     Session.set_runtime(session.pid, runtime)
 
     archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
-    hash = "test-" <> Livebook.Utils.random_id()
+    hash = "test-" <> Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
     js_output = {:js, %{js_view: %{assets: assets_info}}}
     frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
@@ -1143,30 +1197,71 @@ defmodule Livebook.SessionTest do
     assert :ok = Session.fetch_assets(session.pid, hash)
   end
 
-  describe "apps" do
-    test "deploying an app under the same slug terminates the old one", %{session: session} do
+  describe "deploy_app/1" do
+    test "deploys current notebook and keeps track of the deployed app" do
+      session = start_session()
+
       Session.subscribe(session.id)
 
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
       Session.set_app_settings(session.pid, app_settings)
 
-      Session.deploy_app(session.pid)
-      assert_receive {:operation, {:add_app, _, app1_session_id, _app1_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, true}}
-
-      Session.app_subscribe(app1_session_id)
+      Apps.subscribe()
 
       Session.deploy_app(session.pid)
-      assert_receive {:operation, {:add_app, _, app2_session_id, app2_session_pid}}
-      assert_receive {:operation, {:set_app_registered, _, ^app1_session_id, false}}
-      assert_receive {:operation, {:set_app_registered, _, ^app2_session_id, true}}
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, ^slug}}
 
-      assert_receive {:app_terminated, ^app1_session_id}
+      assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
+      App.close(app_pid)
 
-      assert {:ok, %{id: ^app2_session_id}} = Livebook.Apps.fetch_session_by_slug(slug)
+      assert_receive {:operation, {:set_deployed_app_slug, _client_id, nil}}
+    end
+  end
 
-      Session.app_unregistered(app2_session_pid)
+  describe "apps" do
+    test "app session terminates when the app is terminated" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
+
+      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+
+      ref = Process.monitor(session_pid)
+
+      App.close(app_pid)
+
+      assert_receive {:DOWN, ^ref, :process, _, _}
+    end
+
+    test "when shutting down, terminates once clients leave" do
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | app_settings: app_settings}
+
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
+
+      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+
+      client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
+
+      user = Livebook.Users.User.new()
+      {_, _client_id} = Session.register_client(session_pid, client_pid, user)
+
+      Session.app_shutdown(session_pid)
+      ref = Process.monitor(session_pid)
+
+      # Still operational
+      assert %{} = Session.get_by_pid(session_pid)
+
+      send(client_pid, :stop)
+      assert_receive {:DOWN, ^ref, :process, _, _}
+
+      App.close(app_pid)
     end
 
     test "recovers on failure", %{test: test} do
@@ -1181,28 +1276,30 @@ defmodule Livebook.SessionTest do
 
       cell = %{Notebook.Cell.new(:code) | source: code}
       section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | sections: [section]}
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
-      session = start_session(notebook: notebook)
+      Apps.subscribe()
+      {:ok, app_pid} = Apps.deploy(notebook)
 
-      Session.subscribe(session.id)
+      assert_receive {:app_created, %{pid: ^app_pid} = app}
 
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-      Session.set_app_settings(session.pid, app_settings)
-
-      Session.deploy_app(session.pid)
-
-      assert_receive {:operation, {:add_app, _, app_session_id, app_session_pid}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
       Process.exit(Process.whereis(test), :shutdown)
 
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :error}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :booting}}
-      assert_receive {:operation, {:set_app_status, _, ^app_session_id, :running}}
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :error}}]}}
 
-      Session.app_unregistered(app_session_pid)
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executing}}]}}
+
+      assert_receive {:app_updated,
+                      %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+
+      App.close(app.pid)
     end
   end
 
@@ -1221,8 +1318,8 @@ defmodule Livebook.SessionTest do
     {section_id, cell_id}
   end
 
-  defp connected_noop_runtime() do
-    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+  defp connected_noop_runtime(trace_to \\ nil) do
+    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new(trace_to) |> Livebook.Runtime.connect()
     runtime
   end
 

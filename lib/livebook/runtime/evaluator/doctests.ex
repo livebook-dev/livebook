@@ -8,22 +8,25 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   @doc """
   Runs doctests in the given modules.
   """
-  @spec run(list(module())) :: :ok
-  def run(modules)
+  @spec run(list(module()), String.t()) :: :ok
+  def run(modules, code)
 
-  def run([]), do: :ok
+  def run([], _code), do: :ok
 
-  def run(modules) do
+  def run(modules, code) do
     case define_test_module(modules) do
       {:ok, test_module} ->
         if test_module.tests != [] do
-          tests =
-            test_module.tests
-            |> Enum.sort_by(& &1.tags.doctest_line)
-            |> Enum.map(&run_test/1)
+          lines = String.split(code, ["\r\n", "\n"])
 
-          formatted = format_results(tests)
-          put_output({:text, formatted})
+          test_module.tests
+          |> Enum.sort_by(& &1.tags.doctest_line)
+          |> Enum.each(fn test ->
+            report_doctest_running(test)
+            test = run_test(test)
+            report_doctest_result(test, lines)
+            test
+          end)
         end
 
         delete_test_module(test_module)
@@ -33,6 +36,90 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
 
     :ok
+  end
+
+  defp report_doctest_running(test) do
+    send_doctest_report(%{
+      line: test.tags.doctest_line,
+      status: :running
+    })
+  end
+
+  defp report_doctest_result(%{state: nil} = test, _lines) do
+    send_doctest_report(%{
+      line: test.tags.doctest_line,
+      status: :success
+    })
+  end
+
+  defp report_doctest_result(%{state: {:failed, failure}} = test, lines) do
+    doctest_line = test.tags.doctest_line
+    [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
+
+    end_line =
+      if end_line = test.tags[:doctest_data][:end_line] do
+        end_line
+      else
+        # TODO: Remove this branch once we require Elixir v1.15+
+        interval =
+          lines
+          |> Enum.take_while(&(not end_of_doctest?(&1)))
+          |> length()
+
+        interval + doctest_line - 1
+      end
+
+    end_line =
+      with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
+           assertion_line = location[:line],
+           # TODO: Remove this check once we require Elixir v1.15+
+           true <- is_integer(test.tags[:doctest_data][:end_line]),
+           true <- assertion_line in doctest_line..end_line do
+        end_line -
+          length(
+            lines
+            |> Enum.take(end_line - doctest_line + 1)
+            |> Enum.drop(assertion_line - doctest_line)
+            |> Enum.drop_while(&prompt?(&1))
+            |> Enum.drop_while(&(not prompt?(&1)))
+          )
+      else
+        _ ->
+          end_line
+      end
+
+    send_doctest_report(%{
+      column: count_columns(prompt_line, 0),
+      line: doctest_line,
+      end_line: end_line,
+      status: :failed,
+      details: IO.iodata_to_binary(format_failure(failure, test))
+    })
+  end
+
+  defp count_columns(" " <> rest, counter), do: count_columns(rest, counter + 1)
+  defp count_columns("\t" <> rest, counter), do: count_columns(rest, counter + 2)
+  defp count_columns(_, counter), do: counter
+
+  defp prompt?(line) do
+    case String.trim_leading(line) do
+      "iex>" <> _ -> true
+      "iex(" <> _ -> true
+      "...>" <> _ -> true
+      "...(" <> _ -> true
+      _ -> false
+    end
+  end
+
+  defp end_of_doctest?(line) do
+    case String.trim_leading(line) do
+      "" -> true
+      "```" <> _ -> true
+      "~~~" <> _ -> true
+      "'''" <> _ -> true
+      "\"\"\"" <> _ -> true
+      _ -> false
+    end
   end
 
   defp define_test_module(modules) do
@@ -127,42 +214,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
 
   # Formatting
 
-  defp format_results(tests) do
-    filed_tests = Enum.reject(tests, &(&1.state == nil))
-
-    test_count = length(tests)
-    failure_count = length(filed_tests)
-
-    doctests_pl = pluralize(test_count, "doctest", "doctests")
-    failures_pl = pluralize(failure_count, "failure", "failures")
-
-    headline =
-      colorize(
-        if(failure_count == 0, do: :green, else: :red),
-        "#{test_count} #{doctests_pl}, #{failure_count} #{failures_pl}"
-      )
-
-    failures =
-      for {test, idx} <- Enum.with_index(filed_tests) do
-        {:failed, failure} = test.state
-
-        name =
-          test.name
-          |> Atom.to_string()
-          |> String.replace(~r/ \(\d+\)$/, "")
-
-        line = test.tags.doctest_line
-
-        [
-          "\n\n",
-          "#{idx + 1}) #{name} (line #{line})\n",
-          format_failure(failure, test)
-        ]
-      end
-
-    IO.iodata_to_binary([headline, failures])
-  end
-
   defp format_failure({:error, %ExUnit.AssertionError{} = reason, _stack}, _test) do
     diff =
       ExUnit.Formatter.format_assertion_diff(
@@ -175,58 +226,32 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     expected = diff[:right]
     got = diff[:left]
 
-    {expected_label, got_label, source} =
+    {expected_label, got_label} =
       if reason.doctest == ExUnit.AssertionError.no_value() do
-        {"right", "left", nil}
+        {"right", "left"}
       else
-        {"expected", "got", String.trim(reason.doctest)}
+        {"expected", "got"}
       end
 
     message_io =
       if_io(reason.message != "Doctest failed", fn ->
-        message =
-          reason.message
-          |> String.replace_prefix("Doctest failed: ", "")
-          |> pad(@pad_size)
-
-        [colorize(:red, message), "\n"]
-      end)
-
-    source_io =
-      if_io(source, fn ->
-        [
-          String.duplicate(" ", @pad_size),
-          format_label("doctest"),
-          "\n",
-          pad(source, @pad_size + 2)
-        ]
+        message = String.replace_prefix(reason.message, "Doctest failed: ", "")
+        colorize(:red, message)
       end)
 
     expected_io =
       if_io(expected, fn ->
-        [
-          "\n",
-          String.duplicate(" ", @pad_size),
-          format_label(expected_label),
-          "\n",
-          String.duplicate(" ", @pad_size + 2),
-          expected
-        ]
+        [format_label(expected_label), "\n  ", expected]
       end)
 
     got_io =
       if_io(got, fn ->
-        [
-          "\n",
-          String.duplicate(" ", @pad_size),
-          format_label(got_label),
-          "\n",
-          String.duplicate(" ", @pad_size + 2),
-          got
-        ]
+        [format_label(got_label), "\n  ", got]
       end)
 
-    message_io ++ source_io ++ expected_io ++ got_io
+    [message_io, expected_io, got_io]
+    |> Enum.filter(&(&1 != []))
+    |> Enum.intersperse("\n")
   end
 
   defp format_failure({kind, reason, stacktrace}, test) do
@@ -246,12 +271,11 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       end
 
     if stacktrace == [] do
-      pad(banner, @pad_size)
+      banner
     else
       [
-        pad(banner, @pad_size),
+        banner,
         "\n",
-        String.duplicate(" ", @pad_size),
         format_label("stacktrace"),
         format_stacktrace(stacktrace, test.module, test.name)
       ]
@@ -263,7 +287,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   defp format_stacktrace(stacktrace, test_case, test) do
     for entry <- stacktrace do
       message = format_stacktrace_entry(entry, test_case, test)
-      "\n" <> pad(message, @pad_size + 2)
+      "\n" <> pad(message, 2)
     end
   end
 
@@ -307,14 +331,19 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     |> IO.iodata_to_binary()
   end
 
-  defp pluralize(1, singular, _plural), do: singular
-  defp pluralize(_, _singular, plural), do: plural
-
   defp put_output(output) do
+    send_livebook_message({:livebook_put_output, output})
+  end
+
+  defp send_doctest_report(doctest_report) do
+    send_livebook_message({:livebook_doctest_report, doctest_report})
+  end
+
+  defp send_livebook_message(message) do
     gl = Process.group_leader()
     ref = make_ref()
 
-    send(gl, {:io_request, self(), ref, {:livebook_put_output, output}})
+    send(gl, {:io_request, self(), ref, message})
 
     receive do
       {:io_reply, ^ref, reply} -> {:ok, reply}

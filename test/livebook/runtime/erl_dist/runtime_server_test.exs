@@ -1,20 +1,16 @@
 defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
 
   setup ctx do
-    {:ok, manager_pid} =
-      start_supervised({NodeManager, [unload_modules_on_termination: false, anonymous: true]})
-
-    runtime_server_pid = NodeManager.start_runtime_server(manager_pid, ctx[:opts] || [])
+    runtime_server_pid = NodeManager.start_runtime_server(node(), ctx[:opts] || [])
     RuntimeServer.attach(runtime_server_pid, self())
-    {:ok, %{pid: runtime_server_pid, manager_pid: manager_pid}}
+    {:ok, %{pid: runtime_server_pid}}
   end
 
   describe "attach/2" do
-    test "starts watching the given process and terminates as soon as it terminates",
-         %{manager_pid: manager_pid} do
+    test "starts watching the given process and terminates as soon as it terminates" do
       owner =
         spawn(fn ->
           receive do
@@ -22,7 +18,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           end
         end)
 
-      pid = NodeManager.start_runtime_server(manager_pid)
+      pid = NodeManager.start_runtime_server(node())
       RuntimeServer.attach(pid, owner)
 
       # Make sure the node is running.
@@ -55,13 +51,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
         end)
 
-      assert stderr == ""
+      refute stderr =~ "redefining module Foo"
     end
 
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "elixir", ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, [])
+      RuntimeServer.evaluate_code(pid, "elixir", ~s{IO.puts(:stderr, "error to stdout")}, {:c1, :e1}, [])
 
-      assert_receive {:runtime_evaluation_output, :e1, {:stdout, "error\n"}}
+      assert_receive {:runtime_evaluation_output, :e1, {:stdout, output}}
+
+      assert output =~ "error to stdout\n"
     end
 
     @tag capture_log: true

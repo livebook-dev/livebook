@@ -280,6 +280,13 @@ const JSView = {
       }
     });
 
+    // Reflect focus based on whether there is a focused parent, this
+    // is later synced on "element_focused" events
+    this.iframe.toggleAttribute(
+      "data-js-focused",
+      !!this.el.closest(`[data-js-focused]`)
+    );
+
     // Cleanup
 
     const remove = () => {

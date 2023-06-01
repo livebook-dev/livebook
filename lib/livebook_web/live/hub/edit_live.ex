@@ -9,32 +9,16 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       hub: nil,
-       secrets: [],
-       type: nil,
-       page_title: "Hub - Livebook",
-       env_var_id: nil,
-       secret_name: nil
-     )}
+    {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    Livebook.Hubs.subscribe([:secrets])
+    Hubs.subscribe([:secrets])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
-    {:noreply,
-     assign(socket,
-       hub: hub,
-       type: type,
-       secrets: Hubs.get_secrets(hub),
-       params: params,
-       env_var_id: params["env_var_id"],
-       secret_name: params["secret_name"]
-     )}
+    {:noreply, assign(socket, hub: hub, type: type, params: params, counter: 0)}
   end
 
   @impl true
@@ -46,35 +30,39 @@ defmodule LivebookWeb.Hub.EditLive do
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <%= case @type do %>
-          <% "fly" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.FlyComponent}
-              hub={@hub}
-              id="fly-form"
-              live_action={@live_action}
-              env_var_id={@env_var_id}
-            />
-          <% "personal" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.PersonalComponent}
-              hub={@hub}
-              secrets={@secrets}
-              live_action={@live_action}
-              secret_name={@secret_name}
-              id="personal-form"
-            />
-          <% "enterprise" -> %>
-            <.live_component
-              module={LivebookWeb.Hub.Edit.EnterpriseComponent}
-              hub={@hub}
-              id="enterprise-form"
-            />
-          <% "team" -> %>
-            <.live_component module={LivebookWeb.Hub.Edit.TeamComponent} hub={@hub} id="team-form" />
-        <% end %>
+        <.hub_component
+          type={@type}
+          hub={@hub}
+          live_action={@live_action}
+          params={@params}
+          counter={@counter}
+        />
       </div>
     </LayoutHelpers.layout>
+    """
+  end
+
+  defp hub_component(%{type: "personal"} = assigns) do
+    ~H"""
+    <.live_component
+      module={LivebookWeb.Hub.Edit.PersonalComponent}
+      hub={@hub}
+      params={@params}
+      live_action={@live_action}
+      counter={@counter}
+      id="personal-form"
+    />
+    """
+  end
+
+  defp hub_component(%{type: "team"} = assigns) do
+    ~H"""
+    <.live_component
+      module={LivebookWeb.Hub.Edit.TeamComponent}
+      hub={@hub}
+      params={@params}
+      id="team-form"
+    />
     """
   end
 
@@ -101,21 +89,21 @@ defmodule LivebookWeb.Hub.EditLive do
   def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> increment_counter()
      |> put_flash(:success, "Secret created successfully")}
   end
 
   def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> increment_counter()
      |> put_flash(:success, "Secret updated successfully")}
   end
 
   def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply,
      socket
-     |> refresh_secrets()
+     |> increment_counter()
      |> put_flash(:success, "Secret deleted successfully")}
   end
 
@@ -123,7 +111,5 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply, socket}
   end
 
-  defp refresh_secrets(socket) do
-    assign(socket, secrets: Livebook.Hubs.get_secrets(socket.assigns.hub))
-  end
+  defp increment_counter(socket), do: assign(socket, counter: socket.assigns.counter + 1)
 end

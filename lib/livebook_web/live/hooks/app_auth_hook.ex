@@ -28,19 +28,29 @@ defmodule LivebookWeb.AppAuthHook do
   #     send it in mount connect params via the socket. Then on the
   #     server we use that token to authenticate.
   #
-  # This module defines a hook that sets the `:app_authenticated?`
-  # assign to reflect the current authentication state. For public
-  # apps (or in case the user has full access) it is set to `true`
-  # on both dead and live render.
+  # This module defines a hook that sets the following assigns:
+  #
+  #   * `:app_authenticated?` - reflects the current authentication.
+  #     For public apps (or in case the user has full access) it is
+  #     set to `true` on both dead and live render
+  #
+  #   * `:livebook_authenticated?` - if the user has full Livebook
+  #     access
+  #
+  #   * `:app_settings` - the current app settings
+  #
 
   def on_mount(:default, %{"slug" => slug}, session, socket) do
-    case Livebook.Apps.fetch_settings_by_slug(slug) do
+    livebook_authenticated? = livebook_authenticated?(session, socket)
+
+    socket = assign(socket, livebook_authenticated?: livebook_authenticated?)
+
+    case Livebook.Apps.fetch_settings(slug) do
       {:ok, %{access_type: :public} = app_settings} ->
         {:cont, assign(socket, app_authenticated?: true, app_settings: app_settings)}
 
       {:ok, %{access_type: :protected} = app_settings} ->
-        app_authenticated? =
-          livebook_authenticated?(session, socket) or has_valid_token?(socket, app_settings)
+        app_authenticated? = livebook_authenticated? or has_valid_token?(socket, app_settings)
 
         {:cont,
          assign(socket, app_authenticated?: app_authenticated?, app_settings: app_settings)}

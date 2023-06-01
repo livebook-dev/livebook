@@ -86,7 +86,16 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp app_settings_metadata(app_settings) do
-    keys = [:slug, :access_type, :show_source, :output_type]
+    keys = [
+      :slug,
+      :multi_session,
+      :zero_downtime,
+      :show_existing_sessions,
+      :auto_shutdown_ms,
+      :access_type,
+      :show_source,
+      :output_type
+    ]
 
     put_unless_default(
       %{},
@@ -241,7 +250,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_output(_output, _ctx), do: :ignored
 
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
-  defp encode_js_data(data), do: Jason.encode(data)
+  defp encode_js_data(data), do: data |> ensure_order() |> Jason.encode()
 
   defp get_code_cell_code(%{source: source, disable_formatting: true}),
     do: source
@@ -249,7 +258,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp get_code_cell_code(%{source: source}), do: format_code(source)
 
   defp render_metadata(metadata) do
-    metadata_json = Jason.encode!(metadata)
+    metadata_json = metadata |> ensure_order() |> Jason.encode!()
     ["<!-- livebook:", metadata_json, " -->"]
   end
 
@@ -324,7 +333,7 @@ defmodule Livebook.LiveMarkdown.Export do
     with {:ok, hub} <- Livebook.Hubs.fetch_hub(notebook.hub_id),
          {:ok, stamp} <- Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
       offset = IO.iodata_length(notebook_source)
-      json = Jason.encode!(%{"offset" => offset, "stamp" => stamp})
+      json = %{"offset" => offset, "stamp" => stamp} |> ensure_order() |> Jason.encode!()
       ["\n", "<!-- livebook:", json, " -->", "\n"]
     else
       _ -> []
@@ -334,5 +343,15 @@ defmodule Livebook.LiveMarkdown.Export do
   defp notebook_stamp_metadata(notebook) do
     keys = [:hub_secret_names]
     put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+  end
+
+  defp ensure_order(map) do
+    map
+    |> Enum.sort()
+    |> Enum.map(fn
+      {key, %{} = value} -> {key, ensure_order(value)}
+      pair -> pair
+    end)
+    |> Jason.OrderedObject.new()
   end
 end

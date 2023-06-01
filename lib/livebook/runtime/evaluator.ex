@@ -89,6 +89,9 @@ defmodule Livebook.Runtime.Evaluator do
     * `:ebin_path` - a directory to write modules bytecode into. When
       not specified, modules are not written to disk
 
+    * `:io_proxy_registry` - the registry to register IO proxy
+      processes in
+
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
@@ -271,9 +274,17 @@ defmodule Livebook.Runtime.Evaluator do
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
     ebin_path = Keyword.get(opts, :ebin_path)
+    io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
 
     {:ok, io_proxy} =
-      Evaluator.IOProxy.start(self(), send_to, runtime_broadcast_to, object_tracker, ebin_path)
+      Evaluator.IOProxy.start(
+        self(),
+        send_to,
+        runtime_broadcast_to,
+        object_tracker,
+        ebin_path,
+        io_proxy_registry
+      )
 
     io_proxy_monitor = Process.monitor(io_proxy)
 
@@ -419,12 +430,12 @@ defmodule Livebook.Runtime.Evaluator do
     set_pdict(context, state.ignored_pdict_keys)
 
     start_time = System.monotonic_time()
-    eval_result = eval(language, code, context.binding, context.env)
+    {eval_result, code_markers} = eval(language, code, context.binding, context.env)
     evaluation_time_ms = time_diff_ms(start_time)
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
 
-    {new_context, result, code_error, identifiers_used, identifiers_defined} =
+    {new_context, result, identifiers_used, identifiers_defined} =
       case eval_result do
         {:ok, value, binding, env} ->
           context_id = random_id()
@@ -440,10 +451,9 @@ defmodule Livebook.Runtime.Evaluator do
             identifier_dependencies(new_context, tracer_info, context)
 
           result = {:ok, value}
+          {new_context, result, identifiers_used, identifiers_defined}
 
-          {new_context, result, nil, identifiers_used, identifiers_defined}
-
-        {:error, kind, error, stacktrace, code_error} ->
+        {:error, kind, error, stacktrace} ->
           for {module, _} <- tracer_info.modules_defined do
             delete_module(module)
           end
@@ -453,13 +463,13 @@ defmodule Livebook.Runtime.Evaluator do
           identifiers_defined = %{}
           # Empty context
           new_context = initial_context()
-          {new_context, result, code_error, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined}
       end
 
     if ebin_path() do
       new_context.env.context_modules
       |> Enum.filter(&Livebook.Intellisense.Docs.any_docs?/1)
-      |> Livebook.Runtime.Evaluator.Doctests.run()
+      |> Livebook.Runtime.Evaluator.Doctests.run(code)
     end
 
     state = put_context(state, ref, new_context)
@@ -468,9 +478,14 @@ defmodule Livebook.Runtime.Evaluator do
 
     metadata = %{
       errored: elem(result, 0) == :error,
+      interrupted:
+        match?(
+          {:error, _kind, error, _stacktrace} when is_struct(error, Kino.InterruptError),
+          result
+        ),
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
-      code_error: code_error,
+      code_markers: code_markers,
       identifiers_used: identifiers_used,
       identifiers_defined: identifiers_defined
     }
@@ -599,26 +614,68 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  @compile {:no_warn_undefined, {Code, :eval_quoted_with_env, 4}}
-
   defp eval("elixir", code, binding, env) do
-    try do
-      quoted = Code.string_to_quoted!(code, file: env.file)
-      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      {:ok, value, binding, env}
-    catch
-      kind, error ->
-        stacktrace = prune_stacktrace(:elixir_eval, __STACKTRACE__)
+    {{result, extra_diagnostics}, diagnostics} =
+      with_diagnostics([log: true], fn ->
+        try do
+          quoted = Code.string_to_quoted!(code, file: env.file)
 
-        code_error =
-          if code_error?(error) and (error.file == env.file and error.file != "nofile") do
-            %{line: error.line, description: error.description}
-          else
-            nil
+          try do
+            {value, binding, env} =
+              Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+
+            {:ok, value, binding, env}
+          catch
+            kind, error ->
+              stacktrace = prune_stacktrace(:elixir_eval, __STACKTRACE__)
+              {:error, kind, error, stacktrace}
           end
+        catch
+          kind, error ->
+            {:error, kind, error, []}
+        end
+        |> case do
+          {:ok, value, binding, env} ->
+            {{:ok, value, binding, env}, []}
 
-        {:error, kind, error, stacktrace, code_error}
-    end
+          {:error, kind, error, stacktrace} ->
+            # Mimic a diagnostic for relevant errors where it's not
+            # the case by default
+            extra_diagnostics =
+              if extra_diagnostic?(error) do
+                [
+                  %{
+                    file: error.file,
+                    severity: :error,
+                    message: error.description,
+                    position: error.line,
+                    stacktrace: stacktrace
+                  }
+                ]
+              else
+                []
+              end
+
+            {{:error, kind, error, stacktrace}, extra_diagnostics}
+        end
+      end)
+
+    code_markers =
+      for diagnostic <- diagnostics ++ extra_diagnostics,
+          # Ignore diagnostics from other evaluations, such as inner Code.eval_string/3
+          diagnostic.file == env.file and diagnostic.file != "nofile" do
+        %{
+          line:
+            case diagnostic.position do
+              {line, _column} -> line
+              line -> line
+            end,
+          description: diagnostic.message,
+          severity: diagnostic.severity
+        }
+      end
+
+    {result, code_markers}
   end
 
   defp eval("erlang", code, binding, env) do
@@ -672,7 +729,7 @@ defmodule Livebook.Runtime.Evaluator do
             end
           )
 
-        {:ok, result, binding, env}
+        {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
         {:error, err, location} ->
@@ -681,7 +738,9 @@ defmodule Livebook.Runtime.Evaluator do
             description: "Tokenizer #{err}"
           }
 
-          {:error, :error, {:token, err}, [], code_error}
+          # TODO diagnostics
+          # {:error, :error, {:token, err}, [], code_error}
+          {{:error, :error, {:token, err}, []}, []}
 
         # Parser error
         {:error, {location, _module, err}} ->
@@ -692,12 +751,14 @@ defmodule Livebook.Runtime.Evaluator do
             description: "Parser #{err}"
           }
 
-          {:error, :error, err, [], code_error}
+          # TODO diagnostics
+          # {:error, :error, err, [], code_error}
+          {{:error, :error, err, []}, []}
       end
     catch
       kind, error ->
         stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
-        {:error, kind, error, stacktrace, nil}
+        {{:error, kind, error, stacktrace}, []}
     end
   end
 
@@ -715,10 +776,27 @@ defmodule Livebook.Runtime.Evaluator do
     |> :erlang.binary_to_atom()
   end
 
-  defp code_error?(%SyntaxError{}), do: true
-  defp code_error?(%TokenMissingError{}), do: true
-  defp code_error?(%CompileError{}), do: true
-  defp code_error?(_error), do: false
+    # TODO: remove once we require Elixir v1.15
+    if Code.ensure_loaded?(Code) and function_exported?(Code, :with_diagnostics, 2) do
+      defp with_diagnostics(opts, fun) do
+        Code.with_diagnostics(opts, fun)
+      end
+    else
+      defp with_diagnostics(_opts, fun) do
+        {fun.(), []}
+      end
+    end
+
+  defp extra_diagnostic?(%SyntaxError{}), do: true
+  defp extra_diagnostic?(%TokenMissingError{}), do: true
+
+  defp extra_diagnostic?(%CompileError{
+         description: "cannot compile file (errors have been logged)"
+       }),
+       do: false
+
+  defp extra_diagnostic?(%CompileError{}), do: true
+  defp extra_diagnostic?(_error), do: false
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
     identifiers_used = MapSet.new()

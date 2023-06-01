@@ -2,13 +2,23 @@ defmodule LivebookWeb.AppAuthLive do
   use LivebookWeb, :live_view
 
   @impl true
-  def mount(%{"slug" => slug}, _session, socket) when not socket.assigns.app_authenticated? do
-    {:ok, assign(socket, slug: slug, password: "", errors: [])}
+  def mount(%{"slug" => slug} = params, _session, socket)
+      when not socket.assigns.app_authenticated? do
+    {:ok,
+     assign(socket,
+       slug: slug,
+       authenticated_path: authenticated_path(params),
+       password: "",
+       errors: []
+     )}
   end
 
-  def mount(%{"slug" => slug}, _session, socket) do
-    {:ok, push_navigate(socket, to: ~p"/apps/#{slug}")}
+  def mount(params, _session, socket) do
+    {:ok, push_navigate(socket, to: authenticated_path(params))}
   end
+
+  defp authenticated_path(%{"slug" => slug, "id" => id}), do: ~p"/apps/#{slug}/#{id}"
+  defp authenticated_path(%{"slug" => slug}), do: ~p"/apps/#{slug}"
 
   @impl true
   def render(assigns) do
@@ -26,7 +36,7 @@ defmodule LivebookWeb.AppAuthLive do
           <span>Type the app password to access it or</span>
           <a
             class="border-b border-gray-700 hover:border-none"
-            href={~p"/authenticate?redirect_to=#{~p"/apps/#{@slug}"}"}
+            href={~p"/authenticate?redirect_to=#{@authenticated_path}"}
           >login into Livebook</a>.
         </div>
         <div class="text-2xl text-gray-800 w-full pt-2">
@@ -71,6 +81,6 @@ defmodule LivebookWeb.AppAuthLive do
   end
 
   def handle_event("app_auth_persisted", %{}, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.slug}")}
+    {:noreply, push_navigate(socket, to: socket.assigns.authenticated_path)}
   end
 end

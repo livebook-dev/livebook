@@ -74,4 +74,12 @@ defmodule LivebookWeb.Helpers do
   @spec pluralize(non_neg_integer(), String.t(), String.t()) :: String.t()
   def pluralize(1, singular, _plural), do: "1 #{singular}"
   def pluralize(count, _singular, plural), do: "#{count} #{plural}"
+
+  @doc """
+  Formats the given UTC datetime relatively to present.
+  """
+  @spec format_datetime_relatively(DateTime.t()) :: String.t()
+  def format_datetime_relatively(date) do
+    date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+  end
 end

@@ -29,6 +29,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               name: name()
             }
           | %{
+              kind: :in_map_field,
+              name: name()
+            }
+          | %{
               kind: :in_struct_field,
               module: module(),
               name: name(),
@@ -93,6 +97,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     {:utf16, 0},
     {:utf32, 0}
   ]
+
+  @alias_only_atoms ~w(alias import require)a
+  @alias_only_charlists ~w(alias import require)c
 
   @doc """
   Returns a list of identifiers matching the given `hint`
@@ -161,7 +168,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_erlang_module(List.to_string(unquoted_atom), ctx)
 
       {:dot, path, hint} ->
-        match_dot(path, List.to_string(hint), ctx)
+        if alias = dot_alias_only(path, hint, ctx.fragment, ctx) do
+          match_alias(List.to_string(alias), ctx, false)
+        else
+          match_dot(path, List.to_string(hint), ctx)
+        end
 
       {:dot_arity, path, hint} ->
         match_dot(path, List.to_string(hint), %{ctx | matcher: @exact_matcher})
@@ -170,16 +181,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_default(ctx)
 
       :expr ->
-        match_default(ctx)
+        match_container_context(ctx.fragment, :expr, "", ctx) || match_default(ctx)
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
-
-        match_container_context(ctx.fragment, hint) ||
-          match_in_struct_fields_or_local_or_var(hint, ctx)
+        match_container_context(ctx.fragment, :expr, hint, ctx) || match_local_or_var(hint, ctx)
 
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
+
+      {:local_call, local} when local in @alias_only_charlists ->
+        match_alias("", ctx, false)
 
       {:local_call, local} ->
         case ctx.type do
@@ -188,7 +200,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         end
 
       {:operator, operator} when operator in ~w(:: -)c ->
-        match_container_context(ctx.fragment, "") ||
+        match_container_context(ctx.fragment, :operator, "", ctx) ||
           match_local_or_var(List.to_string(operator), ctx)
 
       {:operator, operator} ->
@@ -196,6 +208,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
       {:operator_arity, operator} ->
         match_local(List.to_string(operator), %{ctx | matcher: @exact_matcher})
+
+      {:operator_call, operator} when operator in ~w(|)c ->
+        match_container_context(ctx.fragment, :expr, "", ctx) || match_default(ctx)
 
       {:operator_call, _operator} ->
         match_default(ctx)
@@ -280,7 +295,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_default(ctx) do
-    match_in_struct_fields_or_local_or_var("", ctx)
+    match_local_or_var("", ctx)
   end
 
   defp match_alias(hint, ctx, nested?) do
@@ -291,6 +306,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:ok, alias, hint} ->
         mod = expand_alias(alias, ctx)
         match_module(mod, hint, nested?, ctx)
+    end
+  end
+
+  defp dot_alias_only(path, hint, code, ctx) do
+    with {:alias, alias} <- path,
+         [] <- hint,
+         :alias_only <- container_context(code, ctx) do
+      alias ++ [?.]
+    else
+      _ -> nil
     end
   end
 
@@ -313,21 +338,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     match_module_function(mod, hint, ctx) ++ match_module_type(mod, hint, ctx)
   end
 
-  defp match_in_struct_fields_or_local_or_var(hint, ctx) do
-    case expand_struct_fields(ctx) do
-      {:ok, struct, fields} ->
-        for {field, default} <- fields,
-            name = Atom.to_string(field),
-            ctx.matcher.(name, hint),
-            do: %{kind: :in_struct_field, struct: struct, name: field, default: default}
+  defp match_container_context(code, context, hint, ctx) do
+    case container_context(code, ctx) do
+      {:map, map, pairs} when context == :expr ->
+        container_context_map_fields(pairs, map, hint, ctx)
 
-      _ ->
-        match_local_or_var(hint, ctx)
-    end
-  end
+      {:struct, alias, pairs} when context == :expr ->
+        container_context_struct_fields(pairs, alias, hint, ctx)
 
-  defp match_container_context(code, hint) do
-    case container_context(code) do
       :bitstring_modifier ->
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
@@ -341,12 +359,36 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp container_context(code) do
+  defp container_context(code, ctx) do
     case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
-          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
-          _ -> nil
+          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
+            container_context_struct(cursor, pairs, aliases, ctx)
+
+          [
+            cursor,
+            pairs,
+            {:|, _, _},
+            {:%{}, _, _},
+            {:%, _, [{:__aliases__, _, aliases}, _map]} | _
+          ] ->
+            container_context_struct(cursor, pairs, aliases, ctx)
+
+          [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
+            container_context_map(cursor, pairs, variable, ctx)
+
+          [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
+            :alias_only
+
+          [cursor | tail] ->
+            case remove_operators(tail, cursor) do
+              [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+              _ -> nil
+            end
+
+          _ ->
+            nil
         end
 
       {:error, _} ->
@@ -354,41 +396,59 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp expand_struct_fields(ctx) do
-    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(ctx.fragment),
-         {aliases, pairs} <- find_struct_fields(quoted) do
-      mod_name = Enum.join(aliases, ".")
-      mod = expand_alias(mod_name, ctx)
+  defp remove_operators([{op, _, [_, previous]} = head | tail], previous) when op in [:-],
+    do: remove_operators(tail, head)
 
-      fields =
-        if has_struct?(mod) do
-          # Remove the keys that have already been filled, and internal keys
-          Map.from_struct(mod.__struct__)
-          |> Map.drop(Keyword.keys(pairs))
-          |> Map.reject(fn {key, _} ->
-            key
-            |> Atom.to_string()
-            |> String.starts_with?("_")
-          end)
-        else
-          %{}
-        end
+  defp remove_operators(tail, _previous),
+    do: tail
 
-      {:ok, mod, fields}
+  defp container_context_struct(cursor, pairs, aliases, ctx) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         alias = expand_alias(aliases, ctx),
+         true <- Keyword.keyword?(pairs) and has_struct?(alias) do
+      {:struct, alias, pairs}
+    else
+      _ -> nil
     end
   end
 
-  defp find_struct_fields(ast) do
-    ast
-    |> Macro.prewalker()
-    |> Enum.find_value(fn node ->
-      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
-           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
-           true <- Keyword.keyword?(pairs) do
-        {aliases, pairs}
-      else
-        _ -> nil
-      end
+  defp container_context_map(cursor, pairs, variable, ctx) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, map} when is_map(map) <- value_from_binding([variable], ctx),
+         true <- Keyword.keyword?(pairs) do
+      {:map, map, pairs}
+    else
+      _ -> nil
+    end
+  end
+
+  defp container_context_map_fields(pairs, map, hint, ctx) do
+    map = filter_out_fields(map, pairs)
+
+    for {key, _value} <- map,
+        name = Atom.to_string(key),
+        ctx.matcher.(name, hint),
+        do: %{kind: :in_map_field, name: key}
+  end
+
+  defp container_context_struct_fields(pairs, mod, hint, ctx) do
+    map = Map.from_struct(mod.__struct__)
+    map = filter_out_fields(map, pairs)
+
+    for {field, default} <- map,
+        name = Atom.to_string(field),
+        ctx.matcher.(name, hint),
+        do: %{kind: :in_struct_field, struct: mod, name: field, default: default}
+  end
+
+  defp filter_out_fields(map, pairs) do
+    # Remove the keys that have already been filled, and internal keys
+    map
+    |> Map.drop(Keyword.keys(pairs))
+    |> Map.reject(fn {key, _} ->
+      key
+      |> Atom.to_string()
+      |> String.starts_with?("_")
     end)
   end
 
@@ -445,9 +505,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   # Converts alias string to module atom with regard to the given env
-  defp expand_alias(alias, ctx) do
-    [name | rest] = alias |> String.split(".") |> Enum.map(&String.to_atom/1)
+  defp expand_alias(alias, ctx) when is_binary(alias) do
+    alias
+    |> String.split(".")
+    |> Enum.map(&String.to_atom/1)
+    |> expand_alias(ctx)
+  end
 
+  defp expand_alias([name | rest], ctx) do
     case Macro.Env.fetch_alias(ctx.intellisense_context.env, name) do
       {:ok, name} when rest == [] -> name
       {:ok, name} -> Module.concat([name | rest])

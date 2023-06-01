@@ -1,5 +1,5 @@
 import LiveEditor from "./cell_editor/live_editor";
-import { getAttributeOrThrow } from "../lib/attribute";
+import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
 
 const CellEditor = {
   mounted() {
@@ -7,7 +7,7 @@ const CellEditor = {
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
-      ({ source_view, language, intellisense, read_only }) => {
+      ({ source, revision, doctest_reports, code_markers }) => {
         const editorContainer = this.el.querySelector(
           `[data-el-editor-container]`
         );
@@ -20,11 +20,13 @@ const CellEditor = {
           editorEl,
           this.props.cellId,
           this.props.tag,
-          source_view.source,
-          source_view.revision,
-          language,
-          intellisense,
-          read_only
+          source,
+          revision,
+          this.props.language,
+          this.props.intellisense,
+          this.props.readOnly,
+          code_markers,
+          doctest_reports
         );
 
         this.liveEditor.onMount(() => {
@@ -68,6 +70,13 @@ const CellEditor = {
     return {
       cellId: getAttributeOrThrow(this.el, "data-cell-id"),
       tag: getAttributeOrThrow(this.el, "data-tag"),
+      language: getAttributeOrThrow(this.el, "data-language"),
+      intellisense: getAttributeOrThrow(
+        this.el,
+        "data-intellisense",
+        parseBoolean
+      ),
+      readOnly: getAttributeOrThrow(this.el, "data-read-only", parseBoolean),
     };
   },
 };

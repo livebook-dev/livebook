@@ -62,7 +62,7 @@ defmodule LivebookCLI.Server do
 
     Starts a server and opens up a browser at a new notebook:
 
-        livebook server new
+        livebook server @new
 
     Starts a server and imports the notebook at the given URL:
 

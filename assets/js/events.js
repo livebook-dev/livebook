@@ -49,8 +49,11 @@ export function registerGlobalEventHandlers() {
 
   window.addEventListener("lb:clipcopy", (event) => {
     if ("clipboard" in navigator) {
-      const text = event.target.textContent;
-      navigator.clipboard.writeText(text);
+      if (event.target.tagName === "INPUT") {
+        navigator.clipboard.writeText(event.target.value);
+      } else {
+        navigator.clipboard.writeText(event.target.textContent);
+      }
     } else {
       alert(
         "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."

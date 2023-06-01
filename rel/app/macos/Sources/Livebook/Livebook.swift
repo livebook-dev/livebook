@@ -58,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let button = statusItem.button!
-        let icon = NSImage(named: "LivebookIcon")!
+        let icon = NSImage(named: "Icon")!
         let resizedIcon = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { (dstRect) -> Bool in
             icon.draw(in: dstRect)
             return true
@@ -90,6 +90,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ aNotification: Notification) {
         ElixirKit.API.stop()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        ElixirKit.API.publish("open", "")
+        return true
     }
 
     func application(_ app: NSApplication, open urls: [URL]) {

@@ -2,6 +2,7 @@ defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.Teams
+  alias Livebook.Teams.Org
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -25,6 +26,41 @@ defmodule Livebook.TeamsTest do
     end
   end
 
+  describe "join_org/1" do
+    test "returns the device flow data to confirm the org creation", %{user: user, node: node} do
+      org = build(:org)
+      key_hash = Org.key_hash(org)
+
+      teams_org = :erpc.call(node, Hub.Integration, :create_org, [[name: org.name]])
+      :erpc.call(node, Hub.Integration, :create_org_key, [[org: teams_org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_user_org, [[org: teams_org, user: user]])
+
+      assert {:ok,
+              %{
+                "device_code" => _device_code,
+                "expires_in" => 300,
+                "id" => _org_id,
+                "user_code" => _user_code,
+                "verification_uri" => _verification_uri
+              }} = Teams.join_org(org, %{})
+    end
+
+    test "returns changeset errors when data is invalid" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{name: nil})
+      assert "can't be blank" in errors_on(changeset).name
+    end
+
+    test "returns changeset errors when org doesn't exist" do
+      org = build(:org)
+
+      assert {:error, changeset} = Teams.join_org(org, %{})
+      assert "does not exist" in errors_on(changeset).name
+      assert "does not match existing key" in errors_on(changeset).teams_key
+    end
+  end
+
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()
@@ -42,12 +78,14 @@ defmodule Livebook.TeamsTest do
         )
 
       %{
-        org: %{id: id, name: name, keys: [%{id: org_key_id}]},
-        user: %{id: user_id},
-        sessions: [%{token: token}]
-      } = org_request.user_org
+        token: token,
+        user_org: %{
+          org: %{id: id, name: name, keys: [%{id: org_key_id}]},
+          user: %{id: user_id}
+        }
+      } = org_request.user_org_session
 
-      assert Teams.get_org_request_completion_data(org) ==
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
                {:ok,
                 %{
                   "id" => id,
@@ -72,12 +110,13 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) == {:ok, :awaiting_confirmation}
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
+               {:ok, :awaiting_confirmation}
     end
 
     test "returns error when org request doesn't exist" do
       org = build(:org, id: 0)
-      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org)
+      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org, "")
     end
 
     test "returns error when org request expired", %{node: node} do
@@ -99,7 +138,8 @@ defmodule Livebook.TeamsTest do
           user_code: org_request.user_code
         )
 
-      assert Teams.get_org_request_completion_data(org) == {:error, :expired}
+      assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
+               {:error, :expired}
     end
   end
 end

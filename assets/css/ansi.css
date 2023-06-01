@@ -1,8 +1,8 @@
 /*
 Variables for HTML-ized ANSI string.
 
-Many colors are taken from the One Light theme
-to be consistent with the editor.
+Many colors are taken from the One Light and One Dark theme for
+consistency with the editor.
 */
 
 :root {
@@ -21,5 +21,24 @@ to be consistent with the editor.
   --ansi-color-light-blue: #61afef;
   --ansi-color-light-magenta: #c678dd;
   --ansi-color-light-cyan: #56b6c2;
+  --ansi-color-light-white: white;
+}
+
+body[data-editor-theme="default"] .editor-theme-aware-ansi {
+  --ansi-color-black: black;
+  --ansi-color-red: #be5046;
+  --ansi-color-green: #98c379;
+  --ansi-color-yellow: #e5c07b;
+  --ansi-color-blue: #61afef;
+  --ansi-color-magenta: #c678dd;
+  --ansi-color-cyan: #56b6c2;
+  --ansi-color-white: white;
+  --ansi-color-light-black: #5c6370;
+  --ansi-color-light-red: #e06c75;
+  --ansi-color-light-green: #34d399;
+  --ansi-color-light-yellow: #fde68a;
+  --ansi-color-light-blue: #93c5fd;
+  --ansi-color-light-magenta: #f472b6;
+  --ansi-color-light-cyan: #6be3f2;
   --ansi-color-light-white: white;
 }

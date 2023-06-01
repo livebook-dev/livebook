@@ -721,17 +721,17 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   end
 
   test "imports notebook hub id when exists" do
-    Livebook.Factory.insert_hub(:fly, id: "fly-persisted-id")
+    Livebook.Factory.insert_hub(:team, id: "team-persisted-id")
 
     markdown = """
-    <!-- livebook:{"hub_id":"fly-persisted-id"} -->
+    <!-- livebook:{"hub_id":"team-persisted-id"} -->
 
     # My Notebook
     """
 
     {notebook, []} = Import.notebook_from_livemd(markdown)
 
-    assert %Notebook{name: "My Notebook", hub_id: "fly-persisted-id"} = notebook
+    assert %Notebook{name: "My Notebook", hub_id: "team-persisted-id"} = notebook
   end
 
   test "imports ignores hub id when does not exist" do
@@ -750,7 +750,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "app settings" do
     test "imports settings" do
       markdown = """
-      <!-- livebook:{"app_settings":{"access_type":"public","output_type":"rich","show_source":true,"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","auto_shutdown_ms":5000,"multi_session":true,"output_type":"rich","show_existing_sessions":false,"show_source":true,"slug":"app"}} -->
 
       # My Notebook
       """
@@ -761,6 +761,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                name: "My Notebook",
                app_settings: %{
                  slug: "app",
+                 multi_session: true,
+                 zero_downtime: false,
+                 show_existing_sessions: false,
+                 auto_shutdown_ms: 5_000,
                  access_type: :public,
                  show_source: true,
                  output_type: :rich
