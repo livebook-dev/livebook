@@ -64,6 +64,7 @@ defmodule LivebookWeb.AppLiveTest do
                         sessions: [%{app_status: %{lifecycle: :deactivated}}, _, _]
                       }}
 
+      assert render(view) =~ ~p"/apps/#{slug}/#{session_id1}"
       refute render(view) =~ ~p"/apps/#{slug}/#{session_id3}"
 
       App.close(app_pid)

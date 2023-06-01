@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
 
@@ -51,13 +51,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
         end)
 
-      assert stderr == ""
+      refute stderr =~ "redefining module Foo"
     end
 
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, [])
+      RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error to stdout")}, {:c1, :e1}, [])
 
-      assert_receive {:runtime_evaluation_output, :e1, {:stdout, "error\n"}}
+      assert_receive {:runtime_evaluation_output, :e1, {:stdout, output}}
+
+      assert output =~ "error to stdout\n"
     end
 
     @tag capture_log: true

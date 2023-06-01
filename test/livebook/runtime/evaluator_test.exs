@@ -57,12 +57,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, "x = 1", :code_1, [])
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
-      ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, "x", :code_2, [])
+      Evaluator.evaluate_code(evaluator, "x", :code_2, [])
 
-        assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
-      end)
+      assert_receive {:runtime_evaluation_response, :code_2,
+                      {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
     end
 
     test "given parent refs sees previous evaluation context", %{evaluator: evaluator} do
@@ -227,21 +225,19 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Livebook.Runtime.EvaluatorTest.Stacktrace.Cat.meow()
       """
 
-      ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, code, :code_1, [])
+      Evaluator.evaluate_code(evaluator, code, :code_1, [])
 
-        expected_stacktrace = [
-          {Livebook.Runtime.EvaluatorTest.Stacktrace.Math, :bad_math, 0,
-           [file: ~c"nofile", line: 3]},
-          {Livebook.Runtime.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: ~c"nofile", line: 10]},
-          {:elixir_eval, :__FILE__, 1, [file: ~c"nofile", line: 15]}
-        ]
+      expected_stacktrace = [
+        {Livebook.Runtime.EvaluatorTest.Stacktrace.Math, :bad_math, 0,
+         [file: ~c"nofile", line: 3]},
+        {Livebook.Runtime.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: ~c"nofile", line: 10]},
+        {:elixir_eval, :__FILE__, 1, [file: ~c"nofile", line: 15]}
+      ]
 
-        # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
-        assert_receive {:runtime_evaluation_response, :code_1,
-                        {:error, _kind, _error, ^expected_stacktrace}, metadata()},
-                       2_000
-      end)
+      # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
+      assert_receive {:runtime_evaluation_response, :code_1,
+                      {:error, _kind, _error, ^expected_stacktrace}, metadata()},
+                     2_000
     end
 
     test "in case of an error uses empty evaluation context as the resulting context",
@@ -1005,12 +1001,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.forget_evaluation(evaluator, :code_1)
 
-      ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, "x", :code_2, [:code_1])
+      Evaluator.evaluate_code(evaluator, "x", :code_2, [:code_1])
 
-        assert_receive {:runtime_evaluation_response, :code_2,
-                        {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
-      end)
+      assert_receive {:runtime_evaluation_response, :code_2,
+                      {:error, _kind, %CompileError{}, _stacktrace}, metadata()}
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
@@ -1090,13 +1084,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   # Helpers
-
-  # Some of the code passed to Evaluator above is expected
-  # to produce compilation warnings, so we ignore them.
-  defp ignore_warnings(fun) do
-    ExUnit.CaptureIO.capture_io(:stderr, fun)
-    :ok
-  end
 
   # Returns a code that spawns a widget process, registers
   # a pointer for it and adds monitoring, then returns widget
