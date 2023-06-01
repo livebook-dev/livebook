@@ -100,7 +100,7 @@ defmodule Livebook.TeamsServer do
   end
 
   def handle_info({_port, {:exit_status, status}}, _state) do
-    error("enterprise quit with status #{status}")
+    error("team quit with status #{status}")
     System.halt(status)
   end
 
@@ -212,6 +212,10 @@ defmodule Livebook.TeamsServer do
     System.get_env("TEAMS_DEBUG", "false")
   end
 
+  defp proto do
+    System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
+  end
+
   defp wait_on_start(state, port) do
     url = state.url || fetch_url(state)
 
@@ -256,6 +260,8 @@ defmodule Livebook.TeamsServer do
       "PORT" => to_string(app_port),
       "DEBUG" => debug()
     }
+
+    env = if proto(), do: Map.merge(env, %{"LIVEBOOK_PROTO_PATH" => proto()}), else: env
 
     if state_env do
       Map.merge(env, state_env)

@@ -1,9 +1,9 @@
-defmodule Livebook.WebSocket.Client do
+defmodule Livebook.Teams.WebSocket do
   @moduledoc false
 
   alias Mint.WebSocket.UpgradeFailureError
 
-  @ws_path "/livebook/websocket"
+  @ws_path "/user/websocket"
 
   @type conn :: Mint.HTTP.t()
   @type websocket :: Mint.WebSocket.t()
@@ -13,14 +13,14 @@ defmodule Livebook.WebSocket.Client do
   defguard is_frame(value) when value in [:close, :ping] or elem(value, 0) == :binary
 
   @doc """
-  Connects to the WebSocket server with given url and headers.
+  Connects to the WebSocket server with given headers.
   """
-  @spec connect(String.t(), list({String.t(), String.t()})) ::
+  @spec connect(list({String.t(), String.t()})) ::
           {:ok, conn(), websocket(), ref()}
           | {:transport_error, String.t()}
           | {:server_error, String.t()}
-  def connect(url, headers \\ []) do
-    uri = URI.parse(url)
+  def connect(headers \\ []) do
+    uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 

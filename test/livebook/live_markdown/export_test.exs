@@ -1122,7 +1122,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
   end
 
   test "persists hub id when not default" do
-    Livebook.Factory.insert_hub(:team, id: "team-persisted-id")
+    Livebook.Factory.build(:team, id: "team-persisted-id")
 
     notebook = %{
       Notebook.new()

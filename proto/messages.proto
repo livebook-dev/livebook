@@ -1,26 +1,12 @@
 syntax = "proto3";
 
-message User {
-  int32 id = 1;
-  string email = 2;
+message Error {
+  string details = 1;
 }
 
 message Secret {
   string name = 1;
   string value = 2;
-}
-
-message Error {
-  string details = 1;
-}
-
-message FieldError {
-  string field = 1;
-  repeated string details = 2;
-}
-
-message ChangesetError {
-  repeated FieldError errors = 1;
 }
 
 message SecretCreated {
@@ -39,55 +25,15 @@ message SecretDeleted {
 }
 
 message UserSynchronized {
-  string id = 1;
-  string name = 2;
-  repeated Secret secrets = 3;
-}
-
-message HandshakeRequest {
-  string app_version = 1;
-}
-
-message HandshakeResponse {
-  string id = 1;
-  string name = 2;
-  User user = 3;
-}
-
-message CreateSecretRequest {
   string name = 1;
-  string value = 2;
-}
-
-message CreateSecretResponse {
-}
-
-message Request {
-  int32 id = 1;
-
-  oneof type {
-    HandshakeRequest handshake = 2;
-    CreateSecretRequest create_secret = 3;
-  }
-}
-
-message Response {
-  int32 id = 1;
-
-  oneof type {
-    Error error = 2;
-    ChangesetError changeset = 3;
-
-    HandshakeResponse handshake = 4;
-    CreateSecretResponse create_secret = 5;
-  }
+  repeated Secret secrets = 2;
 }
 
 message Event {
   oneof type {
-    SecretCreated secret_created = 100;
-    SecretUpdated secret_updated = 101;
-    SecretDeleted secret_deleted = 102;
-    UserSynchronized user_synchronized = 103;
+    SecretCreated secret_created = 1;
+    SecretUpdated secret_updated = 2;
+    SecretDeleted secret_deleted = 3;
+    UserSynchronized user_synchronized = 4;
   }
 }

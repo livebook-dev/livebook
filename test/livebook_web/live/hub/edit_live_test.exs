@@ -1,5 +1,5 @@
 defmodule LivebookWeb.Hub.EditLiveTest do
-  use LivebookWeb.ConnCase
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Livebook.TestHelpers
@@ -22,7 +22,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_change(%{"personal" => attrs})
 
       refute view
-             |> element("#enterprise-form .invalid-feedback")
+             |> element("#personal-form .invalid-feedback")
              |> has_element?()
 
       assert {:ok, view, _html} =

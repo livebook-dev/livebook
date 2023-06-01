@@ -4,22 +4,22 @@ defmodule LivebookProto.Event do
 
   oneof :type, 0
 
-  field :secret_created, 100,
+  field :secret_created, 1,
     type: LivebookProto.SecretCreated,
     json_name: "secretCreated",
     oneof: 0
 
-  field :secret_updated, 101,
+  field :secret_updated, 2,
     type: LivebookProto.SecretUpdated,
     json_name: "secretUpdated",
     oneof: 0
 
-  field :secret_deleted, 102,
+  field :secret_deleted, 3,
     type: LivebookProto.SecretDeleted,
     json_name: "secretDeleted",
     oneof: 0
 
-  field :user_synchronized, 103,
+  field :user_synchronized, 4,
     type: LivebookProto.UserSynchronized,
     json_name: "userSynchronized",
     oneof: 0

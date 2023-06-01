@@ -24,7 +24,7 @@ defmodule Livebook.Factory do
       user_id: 1,
       org_key_id: 1,
       teams_key: org.teams_key,
-      session_token: Livebook.Utils.random_cookie()
+      session_token: Livebook.Utils.random_short_id()
     }
   end
 
