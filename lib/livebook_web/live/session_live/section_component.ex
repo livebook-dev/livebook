@@ -170,6 +170,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             section_id={@section_view.id}
             cell_id={nil}
             session_id={@session_id}
+            default_language={@default_language}
           />
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
             <.live_component
@@ -193,6 +194,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               section_id={@section_view.id}
               cell_id={cell_view.id}
               session_id={@session_id}
+              default_language={@default_language}
             />
           <% end %>
         </div>

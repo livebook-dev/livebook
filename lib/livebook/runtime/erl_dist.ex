@@ -26,7 +26,7 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Runtime.Evaluator.IOProxy,
       Livebook.Runtime.Evaluator.Tracer,
       Livebook.Runtime.Evaluator.ObjectTracker,
-      Livebook.Runtime.Evaluator.DefaultFormatter,
+      Livebook.Runtime.Evaluator.Formatter,
       Livebook.Runtime.Evaluator.Doctests,
       Livebook.Intellisense,
       Livebook.Intellisense.Docs,

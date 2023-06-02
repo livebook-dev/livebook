@@ -99,6 +99,8 @@ import "monaco-editor/esm/vs/basic-languages/xml/xml.contribution";
 
 import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/commands";
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
+import ErlangMonarchLanguage from "./erlang/monarch_language";
+import ErlangLanguageConfiguration from "./erlang/language_configuration";
 import { theme, lightTheme } from "./theme";
 
 import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
@@ -163,6 +165,13 @@ if (PieceTreeTextBufferBuilder.prototype.finish) {
 monaco.languages.registerOnTypeFormattingEditProvider(
   "elixir",
   ElixirOnTypeFormattingEditProvider
+);
+
+monaco.languages.register({ id: "erlang" });
+monaco.languages.setMonarchTokensProvider("erlang", ErlangMonarchLanguage);
+monaco.languages.setLanguageConfiguration(
+  "erlang",
+  ErlangLanguageConfiguration
 );
 
 // Define custom theme

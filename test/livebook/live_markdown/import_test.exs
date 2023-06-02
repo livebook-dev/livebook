@@ -54,6 +54,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     x * x
     ```
+
+    ```erlang
+    lists:seq(1, 10).
+    ```
     """
 
     {notebook, []} = Import.notebook_from_livemd(markdown)
@@ -128,6 +132,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      attrs: %{},
                      chunks: [{0, 5}, {7, 5}],
                      kind: "multi_chunk"
+                   },
+                   %Cell.Code{
+                     language: :erlang,
+                     source: """
+                     lists:seq(1, 10).\
+                     """
                    }
                  ]
                }
@@ -718,6 +728,18 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
+  end
+
+  test "imports notebook :default_language attribute" do
+    markdown = """
+    <!-- livebook:{"default_language":"erlang"} -->
+
+    # My Notebook
+    """
+
+    {notebook, []} = Import.notebook_from_livemd(markdown)
+
+    assert %Notebook{name: "My Notebook", default_language: :erlang} = notebook
   end
 
   test "imports notebook hub id when exists" do

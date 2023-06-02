@@ -21,7 +21,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def disconnect(runtime), do: {:ok, %{runtime | started: false}}
     def duplicate(_), do: Livebook.Runtime.NoopRuntime.new()
 
-    def evaluate_code(_, _, _, _, _ \\ []), do: :ok
+    def evaluate_code(_, _, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _), do: make_ref()

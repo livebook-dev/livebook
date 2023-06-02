@@ -22,8 +22,6 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   """
   @spec start_evaluator(pid(), keyword()) :: {:ok, Evaluator.t()} | {:error, any()}
   def start_evaluator(supervisor, opts) do
-    opts = Keyword.put_new(opts, :formatter, Evaluator.DefaultFormatter)
-
     case DynamicSupervisor.start_child(supervisor, {Evaluator, opts}) do
       {:ok, _pid, evaluator} -> {:ok, evaluator}
       {:error, reason} -> {:error, reason}

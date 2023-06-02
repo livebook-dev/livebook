@@ -152,11 +152,13 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp group_elements(
-         [{"pre", _, [{"code", [{"class", "elixir"}], [source], %{}}], %{}} | ast],
+         [{"pre", _, [{"code", [{"class", language}], [source], %{}}], %{}} | ast],
          elems
-       ) do
+       )
+       when language in ["elixir", "erlang"] do
     {outputs, ast} = take_outputs(ast, [])
-    group_elements(ast, [{:cell, :code, source, outputs} | elems])
+    language = String.to_atom(language)
+    group_elements(ast, [{:cell, :code, language, source, outputs} | elems])
   end
 
   defp group_elements([ast_node | ast], [{:cell, :markdown, md_ast} | rest]) do
@@ -226,7 +228,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook(
-         [{:cell, :code, source, outputs}, {:cell, :smart, data} | elems],
+         [{:cell, :code, :elixir, source, outputs}, {:cell, :smart, data} | elems],
          cells,
          sections,
          messages,
@@ -249,7 +251,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook(
-         [{:cell, :code, source, outputs} | elems],
+         [{:cell, :code, language, source, outputs} | elems],
          cells,
          sections,
          messages,
@@ -258,7 +260,11 @@ defmodule Livebook.LiveMarkdown.Import do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:code, metadata)
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
-    cell = %{Notebook.Cell.new(:code) | source: source, outputs: outputs} |> Map.merge(attrs)
+
+    cell =
+      %{Notebook.Cell.new(:code) | source: source, language: language, outputs: outputs}
+      |> Map.merge(attrs)
+
     build_notebook(elems, [cell | cells], sections, messages, output_counter)
   end
 
@@ -377,6 +383,11 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {"autosave_interval_s", autosave_interval_s}, {attrs, messages} ->
         {Map.put(attrs, :autosave_interval_s, autosave_interval_s), messages}
+
+      {"default_language", default_language}, {attrs, messages}
+      when default_language in ["elixir", "erlang"] ->
+        default_language = String.to_atom(default_language)
+        {Map.put(attrs, :default_language, default_language), messages}
 
       {"hub_id", hub_id}, {attrs, messages} ->
         if Livebook.Hubs.hub_exists?(hub_id) do
