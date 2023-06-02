@@ -115,7 +115,7 @@ defmodule LivebookWeb.AppSessionLive do
             <.menu_item :if={@data_view.multi_session}>
               <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
                 <.remix_icon icon="play-list-add-line" />
-                <span>App sessions</span>
+                <span>Sessions</span>
               </.link>
             </.menu_item>
             <.menu_item :if={@data_view.show_source}>
