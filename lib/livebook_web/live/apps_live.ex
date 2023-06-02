@@ -53,6 +53,9 @@ defmodule LivebookWeb.AppsLive do
         <div class="mb-2 text-gray-800 font-medium text-xl">
           <%= "/" <> app.slug %>
         </div>
+        <div class="mt-4 flex flex-col gap-3">
+          <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
+        </div>
         <div class="mt-4 mb-2 text-gray-600 font-medium text-sm">
           App info
         </div>

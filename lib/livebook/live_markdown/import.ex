@@ -21,7 +21,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
-    "Line #{line_number}: #{message}"
+    "line #{line_number} - #{Livebook.Utils.downcase_first(message)}"
   end
 
   # Does initial pre-processing of the AST, so that it conforms to the expected form.
@@ -46,7 +46,7 @@ defmodule Livebook.LiveMarkdown.Import do
       ast = Enum.map(ast, &downgrade_heading/1)
 
       message =
-        "Downgrading all headings, because #{primary_headings} instances of heading 1 were found"
+        "downgrading all headings, because #{primary_headings} instances of heading 1 were found"
 
       {ast, [message]}
     else
@@ -75,7 +75,7 @@ defmodule Livebook.LiveMarkdown.Import do
           {ast, []}
         else
           ast = comments ++ [heading] ++ leading ++ rest
-          message = "Moving heading 1 to the top of the notebook"
+          message = "moving heading 1 to the top of the notebook"
           {ast, [message]}
         end
     end

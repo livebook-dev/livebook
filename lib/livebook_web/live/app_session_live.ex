@@ -251,6 +251,14 @@ defmodule LivebookWeb.AppSessionLive do
     redirect_on_closed(socket)
   end
 
+  defp after_operation(socket, _prev_socket, {:app_shutdown, _client_id}) do
+    put_flash(
+      socket,
+      :info,
+      "A new version has been deployed, this session will close once everybody leaves"
+    )
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp redirect_on_closed(socket) do

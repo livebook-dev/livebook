@@ -86,6 +86,34 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   @doc """
+  Renders a message notice.
+
+  Similar to `flash/1`, but for permanent messages on the page.
+
+  ## Examples
+
+      <.message_box kind={:info} message="🦊 in a 📦" />
+
+  """
+
+  attr :message, :string, required: true
+  attr :kind, :atom, values: [:info, :success, :warning, :error]
+
+  def message_box(assigns) do
+    ~H"""
+    <div class={[
+      "shadow text-sm flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
+      @kind == :info && "border-blue-500",
+      @kind == :success && "border-blue-500",
+      @kind == :warning && "border-yellow-300",
+      @kind == :error && "border-red-500"
+    ]}>
+      <div class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= @message %></div>
+    </div>
+    """
+  end
+
+  @doc """
   Creates a live region with the given role.
 
   ## Examples

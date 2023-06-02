@@ -16,9 +16,16 @@ defmodule Livebook.Apps do
   If there is no app process under the corresponding slug, it is started.
   Otherwise the notebook is deployed as a new version into the existing
   app.
+
+  ## Options
+
+    * `:warnings` - a list of warnings to show for the new deployment
+
   """
-  @spec deploy(Livebook.Notebook.t()) :: {:ok, pid()} | {:error, term()}
-  def deploy(notebook) do
+  @spec deploy(Livebook.Notebook.t(), keyword()) :: {:ok, pid()} | {:error, term()}
+  def deploy(notebook, opts \\ []) do
+    opts = Keyword.validate!(opts, warnings: [])
+
     slug = notebook.app_settings.slug
     name = name(slug)
 
@@ -27,25 +34,25 @@ defmodule Livebook.Apps do
         :global.trans({{:app_registration, name}, node()}, fn ->
           case :global.whereis_name(name) do
             :undefined ->
-              with {:ok, pid} <- start_app(notebook) do
+              with {:ok, pid} <- start_app(notebook, opts[:warnings]) do
                 :yes = :global.register_name(name, pid)
                 {:ok, pid}
               end
 
             pid ->
-              App.deploy(pid, notebook)
+              App.deploy(pid, notebook, warnings: opts[:warnings])
               {:ok, pid}
           end
         end)
 
       pid ->
-        App.deploy(pid, notebook)
+        App.deploy(pid, notebook, warnings: opts[:warnings])
         {:ok, pid}
     end
   end
 
-  defp start_app(notebook) do
-    opts = [notebook: notebook]
+  defp start_app(notebook, warnings) do
+    opts = [notebook: notebook, warnings: warnings]
 
     case DynamicSupervisor.start_child(Livebook.AppSupervisor, {App, opts}) do
       {:ok, pid} ->
@@ -178,7 +185,8 @@ defmodule Livebook.Apps do
         end
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
-        deploy(notebook)
+        warnings = Enum.map(warnings, &("Import: " <> &1))
+        deploy(notebook, warnings: warnings)
       else
         Logger.warning("Skipping app deployment at #{path} due to invalid settings")
       end
