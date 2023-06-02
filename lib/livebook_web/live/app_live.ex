@@ -52,7 +52,7 @@ defmodule LivebookWeb.AppLive do
     <.modal id="sessions-modal" show width={:big} patch={~p"/"}>
       <div class="p-6 max-w-4xl flex flex-col space-y-3">
         <h3 class="text-2xl font-semibold text-gray-800">
-          App sessions
+          <%= @app.notebook_name %>
         </h3>
         <p class="text-gray-700">
           <%= if @app_settings.show_existing_sessions do %>
