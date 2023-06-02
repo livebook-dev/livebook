@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
         Cell settings
       </h3>
       <form phx-submit="save" phx-target={@myself}>
-        <div class="w-full flex-col space-y-6">
+        <div :if={@cell.language == :elixir} class="w-full flex-col space-y-6">
           <.switch_field
             name="enable_formatting"
             label="Format code when saving to file"

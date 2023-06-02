@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
+  import LivebookWeb.SessionHelpers
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -71,6 +73,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </:primary>
       <:secondary>
+        <div :if={@cell_view.language == :erlang} class="grayscale">
+          <.cell_icon cell_type={:code} language={:erlang} />
+        </div>
         <.amplify_output_button />
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.cell_link_button cell_id={@cell_view.id} />
@@ -89,9 +94,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           intellisense
         />
         <div class="absolute bottom-2 right-2">
-          <div class="flex text-xs text-gray-400">
-            <%= @cell_view.language |> String.capitalize() %>
-          </div>
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>

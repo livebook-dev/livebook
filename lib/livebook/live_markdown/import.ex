@@ -155,8 +155,9 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", language}], [source], %{}}], %{}} | ast],
          elems
        )
-       when language == "elixir" or language == "erlang" do
+       when language in ["elixir", "erlang"] do
     {outputs, ast} = take_outputs(ast, [])
+    language = String.to_atom(language)
     group_elements(ast, [{:cell, :code, language, source, outputs} | elems])
   end
 
@@ -227,7 +228,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook(
-         [{:cell, :code, "elixir", source, outputs}, {:cell, :smart, data} | elems],
+         [{:cell, :code, :elixir, source, outputs}, {:cell, :smart, data} | elems],
          cells,
          sections,
          messages,
@@ -382,6 +383,11 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {"autosave_interval_s", autosave_interval_s}, {attrs, messages} ->
         {Map.put(attrs, :autosave_interval_s, autosave_interval_s), messages}
+
+      {"default_language", default_language}, {attrs, messages}
+      when default_language in ["elixir", "erlang"] ->
+        default_language = String.to_atom(default_language)
+        {Map.put(attrs, :default_language, default_language), messages}
 
       {"hub_id", hub_id}, {attrs, messages} ->
         if Livebook.Hubs.hub_exists?(hub_id) do

@@ -114,7 +114,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Application.put_env(
       :elixir,
       :ansi_syntax_colors,
-      Livebook.Runtime.Evaluator.DefaultFormatter.syntax_colors()
+      Livebook.Runtime.Evaluator.Formatter.syntax_colors()
     )
 
     tmp_dir = make_tmp_dir()

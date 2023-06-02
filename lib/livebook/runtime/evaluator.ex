@@ -26,7 +26,6 @@ defmodule Livebook.Runtime.Evaluator do
 
   @type state :: %{
           evaluator_ref: reference(),
-          formatter: module(),
           io_proxy: pid(),
           io_proxy_monitor: reference(),
           send_to: pid(),
@@ -82,10 +81,6 @@ defmodule Livebook.Runtime.Evaluator do
     * `:runtime_broadcast_to` - the process to send runtime broadcast
       events to. Defaults to the value of `:send_to`
 
-    * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
-      behaviour, used for transforming evaluation result before sending
-      it to the client. Defaults to identity
-
     * `:ebin_path` - a directory to write modules bytecode into. When
       not specified, modules are not written to disk
 
@@ -137,8 +132,8 @@ defmodule Livebook.Runtime.Evaluator do
   of previous evaluations, in which case the corresponding context is
   used as the entry point for evaluation.
 
-  The evaluation result is transformed with the configured
-  formatter send to the configured client (see `start_link/1`).
+  The evaluation result is formatted into an output and sent to the
+  configured client (see `start_link/1`) together with metadata.
 
   See `Livebook.Runtime.evaluate_code/5` for the messages format
   and the list of available options.
@@ -150,7 +145,7 @@ defmodule Livebook.Runtime.Evaluator do
       as an argument
 
   """
-  @spec evaluate_code(t(), String.t(), ref(), list(ref()), keyword()) :: :ok
+  @spec evaluate_code(t(), :elixir | :erlang, ref(), list(ref()), keyword()) :: :ok
   def evaluate_code(evaluator, language, code, ref, parent_refs, opts \\ []) do
     cast(evaluator, {:evaluate_code, language, code, ref, parent_refs, opts})
   end
@@ -272,7 +267,6 @@ defmodule Livebook.Runtime.Evaluator do
     send_to = Keyword.fetch!(opts, :send_to)
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
-    formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
     ebin_path = Keyword.get(opts, :ebin_path)
     io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
 
@@ -309,7 +303,6 @@ defmodule Livebook.Runtime.Evaluator do
 
     state = %{
       evaluator_ref: evaluator_ref,
-      formatter: formatter,
       io_proxy: io_proxy,
       io_proxy_monitor: io_proxy_monitor,
       send_to: send_to,
@@ -474,15 +467,11 @@ defmodule Livebook.Runtime.Evaluator do
 
     state = put_context(state, ref, new_context)
 
-    output = state.formatter.format_result(result)
+    output = Evaluator.Formatter.format_result(result, language)
 
     metadata = %{
-      errored: elem(result, 0) == :error,
-      interrupted:
-        match?(
-          {:error, _kind, error, _stacktrace} when is_struct(error, Kino.InterruptError),
-          result
-        ),
+      errored: error_result?(result),
+      interrupted: interrupt_result?(result),
       evaluation_time_ms: evaluation_time_ms,
       memory_usage: memory(),
       code_markers: code_markers,
@@ -500,6 +489,15 @@ defmodule Livebook.Runtime.Evaluator do
 
     {:noreply, state}
   end
+
+  defp error_result?(result) when elem(result, 0) == :error, do: true
+  defp error_result?(_result), do: false
+
+  defp interrupt_result?({:error, _kind, error, _stacktrace})
+       when is_struct(error, Kino.InterruptError),
+       do: true
+
+  defp interrupt_result?(_result), do: false
 
   defp do_forget_evaluation(ref, state) do
     {context, state} = pop_context(state, ref)
@@ -614,7 +612,7 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
-  defp eval("elixir", code, binding, env) do
+  defp eval(:elixir, code, binding, env) do
     {{result, extra_diagnostics}, diagnostics} =
       with_diagnostics([log: true], fn ->
         try do
@@ -678,82 +676,70 @@ defmodule Livebook.Runtime.Evaluator do
     {result, code_markers}
   end
 
-  defp eval("erlang", code, binding, env) do
+  defp eval(:erlang, code, binding, env) do
     try do
       erl_binding =
-        binding
-        |> Enum.reduce(%{}, fn {name, value}, erl_binding ->
+        Enum.reduce(binding, %{}, fn {name, value}, erl_binding ->
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      with {:ok, tokens, _} <- :erl_scan.string(code |> String.to_charlist()),
+      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code)),
            {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
-        new_erl_binding =
+        # Simple heuristic to detect the used variables. We look at
+        # the tokens and assume all var tokens are used variables.
+        # This will not handle shadowing of variables in fun definitions
+        # and will only work well enough for expressions, not for modules.
+        used_vars =
+          for {:var, _anno, name} <- tokens,
+              do: {erlang_to_elixir_var(name), nil},
+              into: MapSet.new(),
+              uniq: true
+
+        # Note that for Elixir we evaluate with :prune_binding, here
+        # replicate the same behaviour for binding and env
+
+        binding =
           new_erl_binding
           |> Map.drop(Map.keys(erl_binding))
-          |> Map.new(fn {name, value} ->
+          |> Enum.map(fn {name, value} ->
             {erlang_to_elixir_var(name), value}
           end)
 
-        binding = Keyword.merge(binding, Map.to_list(new_erl_binding))
-
-        # Primitive heuristic to detect the used variables. This will not handle
-        # shadowing of variables in funs and will only work well enough for
-        # expressions, not for modules.
-        used_vars =
-          tokens
-          |> Enum.reduce(%{}, fn
-            {:var, _, name}, acc when not is_map_key(acc, name) ->
-              Map.put(acc, name, {erlang_to_elixir_var(name), nil})
-
-            _, acc ->
-              acc
-          end)
-          |> Map.values()
-          |> MapSet.new()
-
         env =
-          update_in(
-            env.versioned_vars,
-            fn versioned_vars ->
-              versioned_vars
-              |> Map.filter(fn {name, _} -> MapSet.member?(used_vars, name) end)
-              |> Map.merge(
-                new_erl_binding
-                |> Map.keys()
-                |> Enum.map(&{&1, nil})
-                |> Enum.with_index(Kernel.map_size(versioned_vars) + 1)
-                |> Map.new()
-              )
-            end
-          )
+          update_in(env.versioned_vars, fn versioned_vars ->
+            versioned_vars
+            |> Map.filter(fn {var, _} -> MapSet.member?(used_vars, var) end)
+            |> Map.merge(
+              binding
+              |> Enum.with_index(Kernel.map_size(versioned_vars) + 1)
+              |> Map.new(fn {{name, _value}, version} -> {{name, nil}, version} end)
+            )
+          end)
 
         {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
         {:error, err, location} ->
-          code_error = %{
+          code_marker = %{
             line: :erl_anno.line(location),
+            severity: :error,
             description: "Tokenizer #{err}"
           }
 
-          # TODO diagnostics
-          # {:error, :error, {:token, err}, [], code_error}
-          {{:error, :error, {:token, err}, []}, []}
+          {{:error, :error, {:token, err}, []}, filter_erlang_code_markers([code_marker])}
 
         # Parser error
         {:error, {location, _module, err}} ->
           err = :erlang.list_to_binary(err)
 
-          code_error = %{
+          code_marker = %{
             line: :erl_anno.line(location),
+            severity: :error,
             description: "Parser #{err}"
           }
 
-          # TODO diagnostics
-          # {:error, :error, err, [], code_error}
-          {{:error, :error, err, []}, []}
+          {{:error, :error, err, []}, filter_erlang_code_markers([code_marker])}
       end
     catch
       kind, error ->
@@ -776,16 +762,20 @@ defmodule Livebook.Runtime.Evaluator do
     |> :erlang.binary_to_atom()
   end
 
-    # TODO: remove once we require Elixir v1.15
-    if Code.ensure_loaded?(Code) and function_exported?(Code, :with_diagnostics, 2) do
-      defp with_diagnostics(opts, fun) do
-        Code.with_diagnostics(opts, fun)
-      end
-    else
-      defp with_diagnostics(_opts, fun) do
-        {fun.(), []}
-      end
+  defp filter_erlang_code_markers(code_markers) do
+    Enum.reject(code_markers, &(&1.line == 0))
+  end
+
+  # TODO: remove once we require Elixir v1.15
+  if Code.ensure_loaded?(Code) and function_exported?(Code, :with_diagnostics, 2) do
+    defp with_diagnostics(opts, fun) do
+      Code.with_diagnostics(opts, fun)
     end
+  else
+    defp with_diagnostics(_opts, fun) do
+      {fun.(), []}
+    end
+  end
 
   defp extra_diagnostic?(%SyntaxError{}), do: true
   defp extra_diagnostic?(%TokenMissingError{}), do: true

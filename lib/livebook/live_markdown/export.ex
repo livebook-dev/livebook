@@ -73,7 +73,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp notebook_metadata(notebook) do
-    keys = [:persist_outputs, :autosave_interval_s, :hub_id]
+    keys = [:persist_outputs, :autosave_interval_s, :default_language, :hub_id]
     metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
 
     app_settings_metadata = app_settings_metadata(notebook.app_settings)
@@ -155,7 +155,7 @@ defmodule Livebook.LiveMarkdown.Export do
     metadata = cell_metadata(cell)
 
     cell =
-      [delimiter, cell.language, "\n", code, "\n", delimiter]
+      [delimiter, Atom.to_string(cell.language), "\n", code, "\n", delimiter]
       |> prepend_metadata(metadata)
 
     if outputs == [] do
@@ -252,10 +252,10 @@ defmodule Livebook.LiveMarkdown.Export do
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
   defp encode_js_data(data), do: data |> ensure_order() |> Jason.encode()
 
-  defp get_code_cell_code(%{source: source, disable_formatting: true}),
-    do: source
+  defp get_code_cell_code(%{source: source, language: :elixir, disable_formatting: false}),
+    do: format_elixir_code(source)
 
-  defp get_code_cell_code(%{source: source}), do: format_code(source)
+  defp get_code_cell_code(%{source: source}), do: source
 
   defp render_metadata(metadata) do
     metadata_json = metadata |> ensure_order() |> Jason.encode!()
@@ -302,7 +302,7 @@ defmodule Livebook.LiveMarkdown.Export do
     end)
   end
 
-  defp format_code(code) do
+  defp format_elixir_code(code) do
     try do
       Code.format_string!(code)
     rescue

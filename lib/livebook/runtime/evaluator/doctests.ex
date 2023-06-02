@@ -261,7 +261,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       case blamed do
         %FunctionClauseError{} ->
           banner = Exception.format_banner(kind, reason, stacktrace)
-          inspect_opts = Livebook.Runtime.Evaluator.DefaultFormatter.inspect_opts()
+          inspect_opts = Livebook.Runtime.Evaluator.Formatter.inspect_opts()
           blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/1)
           colorize(:red, banner) <> blame
 

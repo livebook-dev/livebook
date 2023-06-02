@@ -83,6 +83,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     """,
                     chunks: [{0, 5}, {7, 5}],
                     kind: "multi_chunk"
+                },
+                %{
+                  Notebook.Cell.new(:code)
+                  | language: :erlang,
+                    source: """
+                    lists:seq(1, 10).\
+                    """
                 }
               ]
           }
@@ -136,6 +143,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     x = 1
 
     x * x
+    ```
+
+    ```erlang
+    lists:seq(1, 10).
     ```
     """
 
@@ -1112,6 +1123,24 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     expected_document = """
     <!-- livebook:{"autosave_interval_s":10} -->
+
+    # My Notebook
+    """
+
+    document = Export.notebook_to_livemd(notebook)
+
+    assert expected_document == document
+  end
+
+  test "persists :default_language when other than default" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        default_language: :erlang
+    }
+
+    expected_document = """
+    <!-- livebook:{"default_language":"erlang"} -->
 
     # My Notebook
     """

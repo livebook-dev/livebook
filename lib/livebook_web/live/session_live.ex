@@ -391,6 +391,7 @@ defmodule LivebookWeb.SessionLive do
               installing?={@data_view.installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               section_view={section_view}
+              default_language={@data_view.default_language}
             />
             <div style="height: 80vh"></div>
           </div>
@@ -935,7 +936,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_cell_below", params, socket) do
-    {type, attrs} = cell_type_and_attrs_from_params(params)
+    {type, attrs} = cell_type_and_attrs_from_params(params, socket)
 
     with {:ok, section, index} <-
            section_with_next_index(
@@ -1030,6 +1031,13 @@ defmodule LivebookWeb.SessionLive do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  def handle_event("set_default_language", %{"language" => language}, socket)
+      when language in ["elixir", "erlang"] do
+    language = String.to_atom(language)
+    Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
+    {:noreply, socket}
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
@@ -1883,12 +1891,12 @@ defmodule LivebookWeb.SessionLive do
     String.upcase(head) <> tail
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
+  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}, _socket), do: {:markdown, %{}}
 
-  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language}),
-    do: {:code, %{language: language}}
+  defp cell_type_and_attrs_from_params(%{"type" => "code"}, socket),
+    do: {:code, %{language: socket.private.data.notebook.default_language}}
 
-  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
+  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}, _socket) do
     source = """
     <!-- Learn more at https://mermaid-js.github.io/mermaid -->
 
@@ -1904,7 +1912,7 @@ defmodule LivebookWeb.SessionLive do
     {:markdown, %{source: source}}
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}) do
+  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}, _socket) do
     source = "![](#{url})"
 
     {:markdown, %{source: source}}
@@ -2131,6 +2139,7 @@ defmodule LivebookWeb.SessionLive do
       file: data.file,
       persist_outputs: data.notebook.persist_outputs,
       autosave_interval_s: data.notebook.autosave_interval_s,
+      default_language: data.notebook.default_language,
       dirty: data.dirty,
       runtime: data.runtime,
       smart_cell_definitions: data.smart_cell_definitions,

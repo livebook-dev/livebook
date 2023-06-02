@@ -56,7 +56,7 @@ defmodule Livebook.Notebook.Export.Elixir do
     |> Enum.map_intersperse("\n", &comment_out/1)
   end
 
-  defp render_cell(%Cell.Code{} = cell, section) do
+  defp render_cell(%Cell.Code{language: :elixir} = cell, section) do
     code = get_code_cell_code(cell)
 
     if section.parent_id do
@@ -67,6 +67,15 @@ defmodule Livebook.Notebook.Export.Elixir do
     else
       code
     end
+  end
+
+  defp render_cell(%Cell.Code{} = cell, _section) do
+    code = cell.source
+
+    code
+    |> IO.iodata_to_binary()
+    |> String.split("\n")
+    |> Enum.map_intersperse("\n", &comment_out/1)
   end
 
   defp render_cell(%Cell.Smart{} = cell, ctx) do

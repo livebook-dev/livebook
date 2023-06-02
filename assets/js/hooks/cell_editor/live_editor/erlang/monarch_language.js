@@ -26,6 +26,14 @@ const ErlangMonarchLanguage = {
     "-include",
     "-include_lib",
     "-export",
+    "-undef",
+    "-ifdef",
+    "-ifndef",
+    "-else",
+    "-endif",
+    "-if",
+    "-elif",
+    "-define",
   ],
 
   operators: [
@@ -94,9 +102,9 @@ const ErlangMonarchLanguage = {
 
       [/(\?[a-zA-Z_0-9]+)/, "constant"],
 
-      [/[A-Z_][a-z0-9_]*/, "variable.name"],
+      [/[A-Z_][a-z0-9_]*/, "identifier"],
       [
-        /[a-z_][\w\-\.']*/,
+        /[a-z_][\w\-']*/,
         {
           cases: {
             "@builtins": "predefined.identifier",
