@@ -14,11 +14,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         <.app_info_icon />
       </div>
       <%= if @session.mode == :app do %>
-        <div class="mt-5 flex flex-col space-y-6">
-          <span class="text-gray-700 text-sm">
-            This session is a running app. To deploy a modified version, you can fork it.
-          </span>
-          <div>
+        <div class="mt-5 flex flex-col">
+          <.message_box
+            kind={:info}
+            message="This session is a running app. To deploy a modified version, you can fork it."
+          />
+          <div class="mt-6">
             <button class="button-base button-blue" phx-click="fork_session">
               <.remix_icon icon="git-branch-line" />
               <span>Fork</span>

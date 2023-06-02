@@ -2040,9 +2040,15 @@ defmodule Livebook.Session do
     locator = {container_ref_for_section(section), cell.id}
     parent_locators = parent_locators_for_cell(state.data, cell)
 
+    language =
+      case cell do
+        %Cell.Code{} -> cell.language
+        _ -> :elixir
+      end
+
     Runtime.evaluate_code(
       state.data.runtime,
-      cell.language,
+      language,
       cell.source,
       locator,
       parent_locators,

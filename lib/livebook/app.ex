@@ -13,12 +13,22 @@ defmodule Livebook.App do
   # always taken from the most recently deployed notebook (e.g. access
   # type, automatic shutdown, deployment strategy).
 
-  defstruct [:slug, :pid, :version, :notebook_name, :public?, :multi_session, :sessions]
+  defstruct [
+    :slug,
+    :pid,
+    :version,
+    :warnings,
+    :notebook_name,
+    :public?,
+    :multi_session,
+    :sessions
+  ]
 
   @type t :: %{
           slug: slug(),
           pid: pid(),
           version: pos_integer(),
+          warnings: list(String.t()),
           notebook_name: String.t(),
           public?: boolean(),
           multi_session: boolean(),
@@ -46,12 +56,15 @@ defmodule Livebook.App do
 
     * `:notebook` (required) - the notebook for initial deployment
 
+    * `:warnings` - a list of warnings to show for the initial deployment
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
     notebook = Keyword.fetch!(opts, :notebook)
+    warnings = Keyword.get(opts, :warnings, [])
 
-    GenServer.start_link(__MODULE__, {notebook})
+    GenServer.start_link(__MODULE__, {notebook, warnings})
   end
 
   @doc """
@@ -100,9 +113,10 @@ defmodule Livebook.App do
   @doc """
   Deploys a new notebook into the app.
   """
-  @spec deploy(pid(), Livebook.Notebook.t()) :: :ok
-  def deploy(pid, notebook) do
-    GenServer.cast(pid, {:deploy, notebook})
+  @spec deploy(pid(), Livebook.Notebook.t(), keyword()) :: :ok
+  def deploy(pid, notebook, opts \\ []) do
+    warnings = Keyword.get(opts, :warnings, [])
+    GenServer.cast(pid, {:deploy, notebook, warnings})
   end
 
   @doc """
@@ -136,11 +150,12 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def init({notebook}) do
+  def init({notebook, warnings}) do
     {:ok,
      %{
        version: 1,
        notebook: notebook,
+       warnings: warnings,
        sessions: [],
        users: %{}
      }
@@ -176,11 +191,11 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def handle_cast({:deploy, notebook}, state) do
+  def handle_cast({:deploy, notebook, warnings}, state) do
     true = notebook.app_settings.slug == state.notebook.app_settings.slug
 
     {:noreply,
-     %{state | notebook: notebook, version: state.version + 1}
+     %{state | notebook: notebook, version: state.version + 1, warnings: warnings}
      |> start_eagerly()
      |> shutdown_old_versions()
      |> notify_update()}
@@ -221,6 +236,7 @@ defmodule Livebook.App do
       slug: state.notebook.app_settings.slug,
       pid: self(),
       version: state.version,
+      warnings: state.warnings,
       notebook_name: state.notebook.name,
       public?: state.notebook.app_settings.access_type == :public,
       multi_session: state.notebook.app_settings.multi_session,

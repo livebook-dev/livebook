@@ -241,7 +241,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              ]
            } = notebook
 
-    assert ["Downgrading all headings, because 2 instances of heading 1 were found"] == messages
+    assert ["downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
   test "preserves markdown modifiers in notebok/section names" do
@@ -355,7 +355,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              ]
            } = notebook
 
-    assert ["Moving heading 1 to the top of the notebook"] == messages
+    assert ["moving heading 1 to the top of the notebook"] == messages
   end
 
   test "includes parsing warnings in the returned message list" do
@@ -369,7 +369,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     {_notebook, messages} = Import.notebook_from_livemd(markdown)
 
-    assert ["Line 3: Closing unclosed backquotes ` at end of input"] == messages
+    assert ["line 3 - closing unclosed backquotes ` at end of input"] == messages
   end
 
   test "imports non-elixir code snippets as part of markdown cells" do

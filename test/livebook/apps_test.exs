@@ -72,5 +72,31 @@ defmodule Livebook.AppsTest do
 
       Livebook.App.close(app.pid)
     end
+
+    @tag :capture_log
+    @tag :tmp_dir
+    test "deploys with import warnings", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # App
+
+      ```elixir
+      """)
+
+      Livebook.Apps.subscribe()
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+
+      assert_receive {:app_created, %{slug: "app", warnings: warnings} = app}
+
+      assert warnings == [
+               "Import: line 5 - fenced Code Block opened with ``` not closed at end of input"
+             ]
+
+      Livebook.App.close(app.pid)
+    end
   end
 end
