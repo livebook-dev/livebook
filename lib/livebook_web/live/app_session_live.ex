@@ -112,6 +112,12 @@ defmodule LivebookWeb.AppSessionLive do
                 <span>Home</span>
               </.link>
             </.menu_item>
+            <.menu_item :if={@data_view.multi_session}>
+              <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
+                <.remix_icon icon="play-list-add-line" />
+                <span>App sessions</span>
+              </.link>
+            </.menu_item>
             <.menu_item :if={@data_view.show_source}>
               <.link patch={~p"/apps/#{@data_view.slug}/#{@session.id}/source"} role="menuitem">
                 <.remix_icon icon="code-line" />
@@ -288,7 +294,8 @@ defmodule LivebookWeb.AppSessionLive do
         ),
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
-      slug: data.notebook.app_settings.slug
+      slug: data.notebook.app_settings.slug,
+      multi_session: data.notebook.app_settings.multi_session
     }
   end
 
