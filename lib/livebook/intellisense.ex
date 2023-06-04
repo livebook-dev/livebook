@@ -440,7 +440,7 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
-      format_hexdocs_link(module),
+      format_docs_link(module),
       format_documentation(documentation, :all)
     ])
   end
@@ -458,7 +458,7 @@ defmodule Livebook.Intellisense do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_hexdocs_link(module, "#{name}/#{arity}"),
+        format_docs_link(module, name, arity),
         format_meta(:since, meta)
       ]),
       format_meta(:deprecated, meta),
@@ -506,15 +506,34 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_hexdocs_link(module, hash \\ "") do
-    hash = if hash == "", do: "", else: "#" <> hash
+  defp format_docs_link(module, function \\ nil, arity \\ nil) do
+    module_string = Atom.to_string(module)
+    first_char = String.at(module_string, 0)
+    is_elixir? = first_char == String.upcase(first_char)
+
+    if is_elixir? do
+      format_hexdocs_link(module, function, arity)
+    else
+      format_erlangdocs_link(module_string, function, arity)
+    end
+  end
+
+  defp format_hexdocs_link(module, function, arity) do
+    hash = if function, do: "#{function}/#{arity}", else: ""
 
     app = Application.get_application(module)
 
     if vsn = app && Application.spec(app, :vsn) do
-      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
+      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html##{hash}"
       "[View on Hexdocs](#{url})"
     end
+  end
+
+  defp format_erlangdocs_link(module_name, function, arity) do
+    hash = if function, do: "#{function}-#{arity}", else: ""
+
+    url = "https://www.erlang.org/doc/man/#{module_name}.html##{hash}"
+    "[View on Erlang Docs](#{url})"
   end
 
   defp format_signatures([], _module), do: nil
