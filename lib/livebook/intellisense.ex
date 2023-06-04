@@ -780,6 +780,10 @@ defmodule Livebook.Intellisense do
 
   defp group_type_list_items([], acc), do: Enum.reverse(acc)
 
+  defp group_type_list_items([{:li, [{:name, _type_name}], []} | items], acc) do
+    group_type_list_items(items, acc)
+  end
+
   defp group_type_list_items([{:li, [{:class, "type"}], content} | items], acc) do
     group_type_list_items(items, [{:li, [], [{:code, [], content}]} | acc])
   end
