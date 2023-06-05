@@ -54,7 +54,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
             Click to select a file or drag a local file here
           <% end %>
         </div>
-        <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
+        <.live_file_input upload={%{@uploads.file | accept: @accept}} class="hidden" />
       </label>
     </form>
     """
