@@ -509,20 +509,20 @@ defmodule Livebook.Intellisense do
   defp format_docs_link(module, function \\ nil, arity \\ nil) do
     app = Application.get_application(module)
     app_path = :code.lib_dir(app)
-    is_otp? = List.starts_with?(app_path, :code.lib_dir())
 
-    if is_otp? do
-      hash = if function, do: "##{function}-#{arity}", else: ""
+    cond do
+      List.starts_with?(app_path, :code.lib_dir()) ->
+        hash = if function, do: "##{function}-#{arity}", else: ""
+        url = "https://www.erlang.org/doc/man/#{Atom.to_string(module)}.html#{hash}"
+        "[View on Erlang Docs](#{url})"
 
-      url = "https://www.erlang.org/doc/man/#{Atom.to_string(module)}.html#{hash}"
-      "[View on Erlang Docs](#{url})"
-    else
-      hash = if function, do: "##{function}/#{arity}", else: ""
-
-      if vsn = app && Application.spec(app, :vsn) do
+      vsn = app && Application.spec(app, :vsn) ->
+        hash = if function, do: "##{function}/#{arity}", else: ""
         url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
         "[View on Hexdocs](#{url})"
-      end
+
+      true ->
+        nil
     end
   end
 
