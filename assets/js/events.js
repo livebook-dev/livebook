@@ -98,6 +98,8 @@ export function registerGlobalEventHandlers() {
     { capture: true }
   );
 
+  // TODO: remove on LiveView 0.19.1, see https://github.com/livebook-dev/livebook/pull/1957#issuecomment-1577624325
+  //
   // Anchors in Monaco-rendered Markdown have data-href and use click
   // handlers to open the link in a new tab, however LV also detects
   // the click and based on the anchor attributes assumes it opens in
