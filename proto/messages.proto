@@ -21,7 +21,6 @@ message SecretUpdated {
 
 message SecretDeleted {
   string name = 1;
-  string value = 2;
 }
 
 message UserConnected {
