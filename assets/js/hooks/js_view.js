@@ -40,8 +40,12 @@ import { initializeIframeSource } from "./js_view/iframe";
  *
  *   * `data-ref` - a unique identifier used as messages scope
  *
- *   * `data-assets-base-path` - the path to resolve all relative paths
- *     against in the iframe
+ *   * `data-assets-base-path` - the base path to fetch assets from
+ *     within the iframe (and resolve all relative paths against)
+ *
+ *   * `data-assets-cdn-url` - a URL to CDN location to fetch assets
+ *     from. Only used if specified and the entrypoint script can be
+ *     successfully accessed, also only when Livebook runs on https
  *
  *   * `data-js-path` - a relative path for the initial view-specific
  *     JS module
@@ -179,6 +183,7 @@ const JSView = {
     return {
       ref: getAttributeOrThrow(this.el, "data-ref"),
       assetsBasePath: getAttributeOrThrow(this.el, "data-assets-base-path"),
+      assetsCdnUrl: getAttributeOrDefault(this.el, "data-assets-cdn-url", null),
       jsPath: getAttributeOrThrow(this.el, "data-js-path"),
       sessionToken: getAttributeOrThrow(this.el, "data-session-token"),
       connectToken: getAttributeOrThrow(this.el, "data-connect-token"),
@@ -332,19 +337,44 @@ const JSView = {
     });
   },
 
+  getAssetsBaseUrl() {
+    const internalAssetsUrl = window.location.origin + this.props.assetsBasePath;
+
+    // Livebook may be running behind an authentication proxy, in which
+    // case the internal assets URL is not accessible from within the
+    // iframe (served from a different origin). To workaround this we
+    // prefer loading package assets from a CDN if available. We do this
+    // only if Livebook runs on https://, otherwise we don't expect any
+    // authentication proxy on top
+    if (window.location.protocol == "https:" && this.props.assetsCdnUrl) {
+      const mainUrl = this.props.assetsCdnUrl + this.props.jsPath;
+
+      // In case of private packages the URL may actually be inaccessible,
+      // so we check to make sure and fallback to the default URL
+      return fetch(mainUrl, { method: "HEAD" })
+        .then((response) => response.status === 200)
+        .catch((error) => false)
+        .then((isAccessible) =>
+          isAccessible ? this.props.assetsCdnUrl : internalAssetsUrl
+        );
+    } else {
+      return Promise.resolve(internalAssetsUrl);
+    }
+  },
+
   handleChildMessage(message, onReady) {
     if (message.type === "ready" && !this.childReady) {
-      const assetsBaseUrl = window.location.origin + this.props.assetsBasePath;
+      this.getAssetsBaseUrl().then((assetsBaseUrl) => {
+        this.postMessage({
+          type: "readyReply",
+          token: this.childToken,
+          baseUrl: assetsBaseUrl,
+          jsPath: this.props.jsPath,
+        });
 
-      this.postMessage({
-        type: "readyReply",
-        token: this.childToken,
-        baseUrl: assetsBaseUrl,
-        jsPath: this.props.jsPath,
+        this.childReady = true;
+        onReady();
       });
-
-      this.childReady = true;
-      onReady();
     } else {
       // Note: we use a random token to authorize child messages
       // and do our best to make this token unavailable for the

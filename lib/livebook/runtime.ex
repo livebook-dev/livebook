@@ -285,7 +285,8 @@ defprotocol Livebook.Runtime do
           assets: %{
             archive_path: String.t(),
             hash: String.t(),
-            js_path: String.t()
+            js_path: String.t(),
+            cdn_url: String.t() | nil
           }
         }
 
