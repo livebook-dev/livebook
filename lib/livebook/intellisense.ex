@@ -507,33 +507,23 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_docs_link(module, function \\ nil, arity \\ nil) do
-    module_string = Atom.to_string(module)
-    first_char = String.at(module_string, 0)
-    is_elixir? = first_char == String.upcase(first_char)
-
-    if is_elixir? do
-      format_hexdocs_link(module, function, arity)
-    else
-      format_erlangdocs_link(module_string, function, arity)
-    end
-  end
-
-  defp format_hexdocs_link(module, function, arity) do
-    hash = if function, do: "#{function}/#{arity}", else: ""
-
     app = Application.get_application(module)
+    app_path = :code.lib_dir(app)
+    is_otp? = List.starts_with?(app_path, :code.lib_dir())
 
-    if vsn = app && Application.spec(app, :vsn) do
-      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html##{hash}"
-      "[View on Hexdocs](#{url})"
+    if is_otp? do
+      hash = if function, do: "##{function}-#{arity}", else: ""
+
+      url = "https://www.erlang.org/doc/man/#{Atom.to_string(module)}.html#{hash}"
+      "[View on Erlang Docs](#{url})"
+    else
+      hash = if function, do: "##{function}/#{arity}", else: ""
+
+      if vsn = app && Application.spec(app, :vsn) do
+        url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
+        "[View on Hexdocs](#{url})"
+      end
     end
-  end
-
-  defp format_erlangdocs_link(module_name, function, arity) do
-    hash = if function, do: "#{function}-#{arity}", else: ""
-
-    url = "https://www.erlang.org/doc/man/#{module_name}.html##{hash}"
-    "[View on Erlang Docs](#{url})"
   end
 
   defp format_signatures([], _module), do: nil
