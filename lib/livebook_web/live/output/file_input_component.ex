@@ -18,7 +18,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
         |> allow_upload(:file,
           # The file input specifies the accepted formats, but in order
           # to handle unknown MIME types, we need to pass :any to
-          # allow_upload and add the input accept attribute ourselves
+          # allow_upload and override the accept attribute ourselves
           accept: :any,
           max_entries: 1,
           progress: &handle_progress/3,
@@ -54,10 +54,14 @@ defmodule LivebookWeb.Output.FileInputComponent do
             Click to select a file or drag a local file here
           <% end %>
         </div>
-        <.live_file_input upload={%{@uploads.file | accept: @accept}} class="hidden" />
+        <.live_file_input upload={put_accept(@uploads.file, @accept)} class="hidden" />
       </label>
     </form>
     """
+  end
+
+  defp put_accept(upload_config, accept) do
+    %{upload_config | accept: accept}
   end
 
   @impl true
