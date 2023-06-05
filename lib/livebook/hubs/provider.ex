@@ -4,10 +4,7 @@ defprotocol Livebook.Hubs.Provider do
   alias Livebook.Secrets.Secret
 
   @type capability :: :connect | :list_secrets | :create_secret
-
   @type capabilities :: list(capability())
-
-  @type changeset_errors :: %{required(:errors) => list({String.t(), {String.t(), list()}})}
 
   @typedoc """
   An provider-specific map stored as notebook stamp.
@@ -71,19 +68,19 @@ defprotocol Livebook.Hubs.Provider do
   @doc """
   Creates a secret of the given hub.
   """
-  @spec create_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  @spec create_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def create_secret(hub, secret)
 
   @doc """
   Updates a secret of the given hub.
   """
-  @spec update_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  @spec update_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def update_secret(hub, secret)
 
   @doc """
   Deletes a secret of the given hub.
   """
-  @spec delete_secret(t(), Secret.t()) :: :ok | {:error, changeset_errors()}
+  @spec delete_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
   def delete_secret(hub, secret)
 
   @doc """
