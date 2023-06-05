@@ -97,4 +97,22 @@ export function registerGlobalEventHandlers() {
     },
     { capture: true }
   );
+
+  // Anchors in Monaco-rendered Markdown have data-href and use click
+  // handlers to open the link in a new tab, however LV also detects
+  // the click and based on the anchor attributes assumes it opens in
+  // the same tab, hence it unloads all live views. To get around this
+  // we remove the href attribute, so LV doesn't treat it as navigation
+  window.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target.hasAttribute("data-href") &&
+        event.target.getAttribute("href") === ""
+      ) {
+        event.target.removeAttribute("href");
+      }
+    },
+    { capture: true }
+  );
 }
