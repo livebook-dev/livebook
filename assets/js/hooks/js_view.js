@@ -338,7 +338,8 @@ const JSView = {
   },
 
   getAssetsBaseUrl() {
-    const internalAssetsUrl = window.location.origin + this.props.assetsBasePath;
+    const internalAssetsUrl =
+      window.location.origin + this.props.assetsBasePath;
 
     // Livebook may be running behind an authentication proxy, in which
     // case the internal assets URL is not accessible from within the
