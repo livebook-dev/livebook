@@ -125,11 +125,13 @@ defmodule Livebook.Hubs do
     * `:hub_connected`
     * `:hub_disconnected`
     * `{:hub_connection_failed, reason}`
+    * `{:hub_server_error, reason}`
 
   Topic `hubs:secrets`:
 
     * `{:secret_created, %Secret{}}`
     * `{:secret_updated, %Secret{}}`
+    * `{:secret_deleted, %Secret{}}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
