@@ -720,73 +720,56 @@ defmodule Livebook.Runtime.Evaluator do
         {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
-        {:error, {begin_loc, module, description}, _end_loc} ->
-          formatted =
-            (&module.format_error/1).(description)
-            |> :erlang.list_to_binary()
-
-          code_marker = %{
-            line: :erl_anno.line(begin_loc),
-            severity: :error,
-            description: "Tokenizer error: #{formatted}"
-          }
-
-          error_cons =
-            case {module, description} do
-              {:erl_parse, [~c"syntax error before: ", []]} ->
-                &TokenMissingError.exception/1
-
-              _ ->
-                &SyntaxError.exception/1
-            end
-
-          error =
-            error_cons.(
-              file: env.file,
-              line: :erl_anno.line(begin_loc),
-              column:
-                case :erl_anno.column(begin_loc) do
-                  :undefined -> 1
-                  val -> val
-                end,
-              description: formatted,
-              snippet: make_snippet(code, begin_loc)
-            )
-
-          {{:error, :code_error, error, []}, filter_erlang_code_markers([code_marker])}
+        {:error, {location, module, description}, _end_loc} ->
+          process_erlang_error(env, code, location, module, description)
 
         # Parser error
         {:error, {location, module, description}} ->
-          description =
-            (&module.format_error/1).format_error(description)
-            |> :erlang.list_to_binary()
-
-          code_marker = %{
-            line: :erl_anno.line(location),
-            severity: :error,
-            description: "Parser error: #{description}"
-          }
-
-          error =
-            SyntaxError.exception(
-              file: env.file,
-              line: :erl_anno.line(location),
-              column:
-                case :erl_anno.column(location) do
-                  :undefined -> 1
-                  val -> val
-                end,
-              description: description,
-              snippet: make_snippet(code, location)
-            )
-
-          {{:error, :error, error, []}, filter_erlang_code_markers([code_marker])}
+          process_erlang_error(env, code, location, module, description)
       end
     catch
       kind, error ->
         stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
         {{:error, kind, error, stacktrace}, []}
     end
+  end
+
+  defp process_erlang_error(env, code, location, module, description) do
+    line = :erl_anno.line(location)
+
+    formatted =
+      module.format_error(description)
+      |> :erlang.list_to_binary()
+
+    code_marker = %{
+      line: line,
+      severity: :error,
+      description: "#{module}: #{formatted}"
+    }
+
+    error_cons =
+      case {module, description} do
+        {:erl_parse, [~c"syntax error before: ", []]} ->
+          &TokenMissingError.exception/1
+
+        _ ->
+          &SyntaxError.exception/1
+      end
+
+    error =
+      error_cons.(
+        file: env.file,
+        line: line,
+        column:
+          case :erl_anno.column(location) do
+            :undefined -> 1
+            val -> val
+          end,
+        description: formatted,
+        snippet: make_snippet(code, location)
+      )
+
+    {{:error, :error, error, []}, filter_erlang_code_markers([code_marker])}
   end
 
   defp make_snippet(code, location) do
