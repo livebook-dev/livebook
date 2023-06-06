@@ -683,7 +683,7 @@ defmodule Livebook.Runtime.Evaluator do
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code)),
+      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]),
            {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
         # Simple heuristic to detect the used variables. We look at
@@ -720,31 +720,82 @@ defmodule Livebook.Runtime.Evaluator do
         {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
-        {:error, err, location} ->
-          code_marker = %{
-            line: :erl_anno.line(location),
-            severity: :error,
-            description: "Tokenizer #{err}"
-          }
-
-          {{:error, :error, {:token, err}, []}, filter_erlang_code_markers([code_marker])}
+        {:error, {location, module, description}, _end_loc} ->
+          process_erlang_error(env, code, location, module, description)
 
         # Parser error
-        {:error, {location, _module, err}} ->
-          err = :erlang.list_to_binary(err)
-
-          code_marker = %{
-            line: :erl_anno.line(location),
-            severity: :error,
-            description: "Parser #{err}"
-          }
-
-          {{:error, :error, err, []}, filter_erlang_code_markers([code_marker])}
+        {:error, {location, module, description}} ->
+          process_erlang_error(env, code, location, module, description)
       end
     catch
       kind, error ->
         stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
         {{:error, kind, error, stacktrace}, []}
+    end
+  end
+
+  defp process_erlang_error(env, code, location, module, description) do
+    line = :erl_anno.line(location)
+
+    formatted =
+      module.format_error(description)
+      |> :erlang.list_to_binary()
+
+    code_marker = %{
+      line: line,
+      severity: :error,
+      description: "#{module}: #{formatted}"
+    }
+
+    error_cons =
+      case {module, description} do
+        {:erl_parse, [~c"syntax error before: ", []]} ->
+          &TokenMissingError.exception/1
+
+        _ ->
+          &SyntaxError.exception/1
+      end
+
+    error =
+      error_cons.(
+        file: env.file,
+        line: line,
+        column:
+          case :erl_anno.column(location) do
+            :undefined -> 1
+            val -> val
+          end,
+        description: formatted,
+        snippet: make_snippet(code, location)
+      )
+
+    {{:error, :error, error, []}, filter_erlang_code_markers([code_marker])}
+  end
+
+  defp make_snippet(code, location) do
+    start_line = 1
+    start_column = 1
+    line = :erl_anno.line(location)
+
+    case :erl_anno.column(location) do
+      :undefined ->
+        nil
+
+      column ->
+        lines = :string.split(code, "\n", :all)
+        snippet = :lists.nth(line - start_line + 1, lines)
+
+        offset =
+          if line == start_line do
+            column - start_column
+          else
+            column - 1
+          end
+
+        case :string.trim(code, :leading) do
+          [] -> nil
+          _ -> %{content: snippet, offset: offset}
+        end
     end
   end
 
