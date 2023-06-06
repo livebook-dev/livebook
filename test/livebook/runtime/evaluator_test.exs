@@ -1173,22 +1173,22 @@ defmodule Livebook.Runtime.EvaluatorTest do
       # Incomplete input
       Evaluator.evaluate_code(evaluator, :erlang, "X =", :code_1, [])
       assert_receive {:runtime_evaluation_response, :code_1, {:error, message, _}, metadata()}
-      assert String.starts_with?(message, "\e[31m** (TokenMissingError)")
+      assert "\e[31m** (TokenMissingError)" <> _ = message
 
       # Parser error
       Evaluator.evaluate_code(evaluator, :erlang, "X ==/== a.", :code_2, [])
       assert_receive {:runtime_evaluation_response, :code_2, {:error, message, _}, metadata()}
-      assert String.starts_with?(message, "\e[31m** (SyntaxError)")
+      assert "\e[31m** (SyntaxError)" <> _ = message
 
       # Tokenizer error
       Evaluator.evaluate_code(evaluator, :erlang, "$a$", :code_3, [])
       assert_receive {:runtime_evaluation_response, :code_3, {:error, message, _}, metadata()}
-      assert String.starts_with?(message, "\e[31m** (SyntaxError)")
+      assert "\e[31m** (SyntaxError)" <> _ = message
 
       # Erlang exception
       Evaluator.evaluate_code(evaluator, :erlang, "list_to_binary(1).", :code_4, [])
       assert_receive {:runtime_evaluation_response, :code_4, {:error, message, _}, metadata()}
-      assert String.starts_with?(message, "\e[31mexception error: bad argument")
+      assert "\e[31mexception error: bad argument" <> _ = message
     end
   end
 
