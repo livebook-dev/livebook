@@ -19,8 +19,8 @@ defmodule LivebookProto.Event do
     json_name: "secretDeleted",
     oneof: 0
 
-  field :user_synchronized, 4,
-    type: LivebookProto.UserSynchronized,
-    json_name: "userSynchronized",
+  field :user_connected, 4,
+    type: LivebookProto.UserConnected,
+    json_name: "userConnected",
     oneof: 0
 end

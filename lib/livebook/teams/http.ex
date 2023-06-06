@@ -31,16 +31,16 @@ defmodule Livebook.Teams.HTTP do
     get("/api/org-request/#{id}?device_code=#{device_code}")
   end
 
-  defp post(path, json, header \\ []) do
+  defp post(path, json, headers \\ []) do
     body = {"application/json", Jason.encode!(json)}
-    request(:post, path, body: body, header: header)
+    request(:post, path, body: body, headers: headers)
   end
 
-  defp get(path, params \\ %{}, header \\ []) do
+  defp get(path, params \\ %{}, headers \\ []) do
     query_string = URI.encode_query(params)
     path = if query_string != "", do: "#{path}?#{query_string}", else: path
 
-    request(:get, path, header: header)
+    request(:get, path, headers: headers)
   end
 
   defp request(method, path, opts) do

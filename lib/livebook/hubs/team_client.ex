@@ -58,14 +58,14 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def init(%Team{} = team) do
-    header = [
+    headers = [
       {"x-user", to_string(team.user_id)},
       {"x-org", to_string(team.org_id)},
       {"x-org-key", to_string(team.org_key_id)},
       {"x-session-token", team.session_token}
     ]
 
-    {:ok, _pid} = Connection.start_link(self(), header)
+    {:ok, _pid} = Connection.start_link(self(), headers)
     {:ok, %__MODULE__{hub: team}}
   end
 
