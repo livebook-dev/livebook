@@ -720,15 +720,23 @@ defmodule Livebook.Runtime.Evaluator do
         {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
-        {:error, {begin_loc, _module, description}, _end_loc} ->
+        {:error, {begin_loc, module, description}, _end_loc} ->
           code_marker = %{
             line: :erl_anno.line(begin_loc),
             severity: :error,
             description: "Tokenizer error: #{description}"
           }
 
+          error_cons =
+            case {module, description} do
+              {:erl_parse, [~c"syntax error before: ", []]} ->
+                &TokenMissingError.exception/1
+
+              _ ->
+                &SyntaxError.exception/1
+            end
           error =
-            SyntaxError.exception(
+            error_cons.(
               file: env.file,
               line: :erl_anno.line(begin_loc),
               column:
