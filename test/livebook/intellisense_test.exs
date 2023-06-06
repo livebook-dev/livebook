@@ -1391,7 +1391,7 @@ defmodule Livebook.IntellisenseTest do
       assert date_range =~ "Date.Range"
     end
 
-    test "returns link to hexdocs" do
+    test "returns link to online documentation" do
       context = eval(do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("Integer", 1, context)
@@ -1401,6 +1401,12 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details("Integer.to_string(10)", 15, context)
 
       assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html#to_string/2"
+
+      assert %{contents: [content]} = Intellisense.get_details(":code", 3, context)
+      assert content =~ ~r"https://www.erlang.org/doc/man/code.html"
+
+      assert %{contents: [content]} = Intellisense.get_details(":code.load_binary", 10, context)
+      assert content =~ ~r"https://www.erlang.org/doc/man/code.html#load_binary-3"
     end
   end
 
