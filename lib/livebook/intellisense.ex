@@ -508,12 +508,18 @@ defmodule Livebook.Intellisense do
 
   defp format_docs_link(module, function \\ nil, arity \\ nil) do
     app = Application.get_application(module)
-    module_name = Atom.to_string(module) |> String.split(".") |> List.last()
+
+    module_name =
+      case Atom.to_string(module) do
+        "Elixir." <> name -> name
+        name -> name
+      end
 
     is_otp? =
       case :code.which(app || module) do
         :preloaded -> true
-        :cover_compiled -> true # not sure when this is called
+        :cover_compiled -> true
+        :non_existing -> false
         path -> List.starts_with?(path, :code.lib_dir())
       end
 
