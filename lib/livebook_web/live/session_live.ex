@@ -2272,7 +2272,7 @@ defmodule LivebookWeb.SessionLive do
       editor:
         cell.editor &&
           %{
-            empty: cell.editor.souruce == "",
+            empty: cell.editor.source == "",
             language: cell.editor.language,
             placement: cell.editor.placement
           }
