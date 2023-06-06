@@ -31,6 +31,19 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     to_output(value)
   end
 
+  def format_result({:error, kind, error, stacktrace}, :erlang) do
+    if is_exception(error) do
+      format_result({:error, kind, error, stacktrace}, :elixir)
+    else
+      formatted =
+        :erl_error.format_exception(kind, error, stacktrace)
+        |> error_color
+        |> :erlang.list_to_binary()
+
+      {:error, formatted, error_type(error)}
+    end
+  end
+
   def format_result({:error, kind, error, stacktrace}, _language) do
     formatted = format_error(kind, error, stacktrace)
     {:error, formatted, error_type(error)}

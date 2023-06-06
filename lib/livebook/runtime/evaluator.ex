@@ -683,7 +683,7 @@ defmodule Livebook.Runtime.Evaluator do
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code)),
+      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]),
            {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
         # Simple heuristic to detect the used variables. We look at
@@ -720,26 +720,52 @@ defmodule Livebook.Runtime.Evaluator do
         {{:ok, result, binding, env}, []}
       else
         # Tokenizer error
-        {:error, err, location} ->
+        {:error, {begin_loc, _module, description}, _end_loc} ->
           code_marker = %{
-            line: :erl_anno.line(location),
+            line: :erl_anno.line(begin_loc),
             severity: :error,
-            description: "Tokenizer #{err}"
+            description: "Tokenizer error: #{description}"
           }
 
-          {{:error, :error, {:token, err}, []}, filter_erlang_code_markers([code_marker])}
+          error =
+            SyntaxError.exception(
+              file: env.file,
+              line: :erl_anno.line(begin_loc),
+              column:
+                case :erl_anno.column(begin_loc) do
+                  :undefined -> 1
+                  val -> val
+                end,
+              description: description,
+              snippet: %{content: code, offset: 0}
+            )
+
+          {{:error, :code_error, error, []}, filter_erlang_code_markers([code_marker])}
 
         # Parser error
-        {:error, {location, _module, err}} ->
-          err = :erlang.list_to_binary(err)
+        {:error, {location, _module, description}} ->
+          description = :erlang.list_to_binary(description)
 
           code_marker = %{
             line: :erl_anno.line(location),
             severity: :error,
-            description: "Parser #{err}"
+            description: "Parser error: #{description}"
           }
 
-          {{:error, :error, err, []}, filter_erlang_code_markers([code_marker])}
+          error =
+            SyntaxError.exception(
+              file: env.file,
+              line: :erl_anno.line(location),
+              column:
+                case :erl_anno.column(location) do
+                  :undefined -> 1
+                  val -> val
+                end,
+              description: description,
+              snippet: %{content: code, offset: 0}
+            )
+
+          {{:error, :error, error, []}, filter_erlang_code_markers([code_marker])}
       end
     catch
       kind, error ->
