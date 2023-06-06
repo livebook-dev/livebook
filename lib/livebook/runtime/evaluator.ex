@@ -735,6 +735,7 @@ defmodule Livebook.Runtime.Evaluator do
               _ ->
                 &SyntaxError.exception/1
             end
+
           error =
             error_cons.(
               file: env.file,
@@ -745,7 +746,7 @@ defmodule Livebook.Runtime.Evaluator do
                   val -> val
                 end,
               description: description,
-              snippet: %{content: code, offset: 0}
+              snippet: make_snippet(code, begin_loc)
             )
 
           {{:error, :code_error, error, []}, filter_erlang_code_markers([code_marker])}
@@ -770,7 +771,7 @@ defmodule Livebook.Runtime.Evaluator do
                   val -> val
                 end,
               description: description,
-              snippet: %{content: code, offset: 0}
+              snippet: make_snippet(code, location)
             )
 
           {{:error, :error, error, []}, filter_erlang_code_markers([code_marker])}
@@ -779,6 +780,33 @@ defmodule Livebook.Runtime.Evaluator do
       kind, error ->
         stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
         {{:error, kind, error, stacktrace}, []}
+    end
+  end
+
+  defp make_snippet(code, location) do
+    start_line = 1
+    start_column = 1
+    line = :erl_anno.line(location)
+
+    case :erl_anno.column(location) do
+      :undefined ->
+        nil
+
+      column ->
+        lines = :string.split(code, "\n", :all)
+        snippet = :lists.nth(line - start_line + 1, lines)
+
+        offset =
+          if line == start_line do
+            column - start_column
+          else
+            column - 1
+          end
+
+        case :string.trim(code, :leading) do
+          [] -> nil
+          _ -> %{content: snippet, offset: offset}
+        end
     end
   end
 
