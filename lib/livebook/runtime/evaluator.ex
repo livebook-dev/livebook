@@ -721,10 +721,14 @@ defmodule Livebook.Runtime.Evaluator do
       else
         # Tokenizer error
         {:error, {begin_loc, module, description}, _end_loc} ->
+          formatted =
+            (&module.format_error/1).(description)
+            |> :erlang.list_to_binary()
+
           code_marker = %{
             line: :erl_anno.line(begin_loc),
             severity: :error,
-            description: "Tokenizer error: #{description}"
+            description: "Tokenizer error: #{formatted}"
           }
 
           error_cons =
@@ -745,15 +749,17 @@ defmodule Livebook.Runtime.Evaluator do
                   :undefined -> 1
                   val -> val
                 end,
-              description: description,
+              description: formatted,
               snippet: make_snippet(code, begin_loc)
             )
 
           {{:error, :code_error, error, []}, filter_erlang_code_markers([code_marker])}
 
         # Parser error
-        {:error, {location, _module, description}} ->
-          description = :erlang.list_to_binary(description)
+        {:error, {location, module, description}} ->
+          description =
+            (&module.format_error/1).format_error(description)
+            |> :erlang.list_to_binary()
 
           code_marker = %{
             line: :erl_anno.line(location),
