@@ -21,6 +21,7 @@ defmodule Livebook.Intellisense do
   be extracted from binding.
   """
   @type context :: %{
+          language: String.t(),
           env: Macro.Env.t(),
           map_binding: (Code.binding() -> any())
         }

@@ -183,18 +183,18 @@ defmodule Livebook.Runtime.Evaluator do
   @doc """
   Returns an empty intellisense context.
   """
-  @spec intellisense_context() :: Livebook.Intellisense.intellisense_context()
-  def intellisense_context() do
+  @spec intellisense_context(String.t()) :: Livebook.Intellisense.intellisense_context()
+  def intellisense_context(language) do
     env = Code.env_for_eval([])
     map_binding = fn fun -> fun.([]) end
-    %{env: env, map_binding: map_binding}
+    %{env: env, map_binding: map_binding, language: language}
   end
 
   @doc """
   Builds intellisense context from the given evaluation.
   """
-  @spec intellisense_context(t(), list(ref())) :: Livebook.Intellisense.intellisense_context()
-  def intellisense_context(evaluator, parent_refs) do
+  @spec intellisense_context(String.t(), t(), list(ref())) :: Livebook.Intellisense.intellisense_context()
+  def intellisense_context(language, evaluator, parent_refs) do
     {:dictionary, dictionary} = Process.info(evaluator.pid, :dictionary)
 
     evaluator_info = find_in_dictionary(dictionary, @evaluator_info_key)
@@ -210,7 +210,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     map_binding = fn fun -> map_binding(evaluator, parent_refs, fun) end
 
-    %{env: env, map_binding: map_binding}
+    %{env: env, map_binding: map_binding, language: language}
   end
 
   defp find_in_dictionary(dictionary, key) do

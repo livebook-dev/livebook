@@ -130,12 +130,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @spec handle_intellisense(
           pid(),
           pid(),
+          String.t(),
           Runtime.intellisense_request(),
           Runtime.Runtime.parent_locators()
         ) :: reference()
-  def handle_intellisense(pid, send_to, request, parent_locators) do
+  def handle_intellisense(pid, send_to, language, request, parent_locators) do
     ref = make_ref()
-    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, parent_locators})
+    GenServer.cast(pid, {:handle_intellisense, send_to, language, ref, request, parent_locators})
     ref
   end
 
@@ -485,7 +486,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:handle_intellisense, send_to, ref, request, parent_locators}, state) do
+  def handle_cast(
+        {:handle_intellisense, send_to, ref, language, request, parent_locators},
+        state
+      ) do
     {container_ref, parent_evaluation_refs} =
       case parent_locators do
         [] ->
@@ -507,9 +511,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     intellisense_context =
       if evaluator == nil or elem(request, 0) in [:format] do
-        Evaluator.intellisense_context()
+        Evaluator.intellisense_context(language)
       else
-        Evaluator.intellisense_context(evaluator, parent_evaluation_refs)
+        Evaluator.intellisense_context(language, evaluator, parent_evaluation_refs)
       end
 
     Task.Supervisor.start_child(state.task_supervisor, fn ->

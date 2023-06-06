@@ -472,8 +472,9 @@ defprotocol Livebook.Runtime do
   The given `parent_locators` identifies a sequence of evaluations
   that may be used as the context when resolving the request (if relevant).
   """
-  @spec handle_intellisense(t(), pid(), intellisense_request(), parent_locators()) :: reference()
-  def handle_intellisense(runtime, send_to, request, parent_locators)
+  @spec handle_intellisense(t(), pid(), String.t(), intellisense_request(), parent_locators()) ::
+          reference()
+  def handle_intellisense(runtime, send_to, language, request, parent_locators)
 
   @doc """
   Reads file at the given absolute path within the runtime file system.

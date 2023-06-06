@@ -1318,7 +1318,15 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if Runtime.connected?(data.runtime) do
         parent_locators = Session.parent_locators_for_cell(data, cell)
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators)
+
+        ref =
+          Runtime.handle_intellisense(
+            data.runtime,
+            self(),
+            cell.language,
+            request,
+            parent_locators
+          )
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else

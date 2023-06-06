@@ -127,8 +127,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, request, parent_locators) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, parent_locators)
+  def handle_intellisense(runtime, send_to, language, request, parent_locators) do
+    RuntimeServer.handle_intellisense(
+      runtime.server_pid,
+      send_to,
+      language,
+      request,
+      parent_locators
+    )
   end
 
   def read_file(runtime, path) do
