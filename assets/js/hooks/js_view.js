@@ -337,32 +337,6 @@ const JSView = {
     });
   },
 
-  getAssetsBaseUrl() {
-    const internalAssetsUrl =
-      window.location.origin + this.props.assetsBasePath;
-
-    // Livebook may be running behind an authentication proxy, in which
-    // case the internal assets URL is not accessible from within the
-    // iframe (served from a different origin). To workaround this we
-    // prefer loading package assets from a CDN if available. We do this
-    // only if Livebook runs on https://, otherwise we don't expect any
-    // authentication proxy on top
-    if (window.location.protocol == "https:" && this.props.assetsCdnUrl) {
-      const mainUrl = this.props.assetsCdnUrl + this.props.jsPath;
-
-      // In case of private packages the URL may actually be inaccessible,
-      // so we check to make sure and fallback to the default URL
-      return fetch(mainUrl, { method: "HEAD" })
-        .then((response) => response.status === 200)
-        .catch((error) => false)
-        .then((isAccessible) =>
-          isAccessible ? this.props.assetsCdnUrl : internalAssetsUrl
-        );
-    } else {
-      return Promise.resolve(internalAssetsUrl);
-    }
-  },
-
   handleChildMessage(message, onReady) {
     if (message.type === "ready" && !this.childReady) {
       this.getAssetsBaseUrl().then((assetsBaseUrl) => {
@@ -415,6 +389,21 @@ const JSView = {
         });
       }
     }
+  },
+
+  getAssetsBaseUrl() {
+    // Livebook may be running behind an authentication proxy, in
+    // which case the internal assets URL is not accessible from
+    // within the iframe (served from a different origin). To
+    // workaround this, we fallback to a CDN for the assets if
+    // available for the given package.
+    return cachedPublicEndpointCheck().then((isPublicAccessible) => {
+      if (!isPublicAccessible && this.props.assetsCdnUrl) {
+        return this.props.assetsCdnUrl;
+      } else {
+        return window.location.origin + this.props.assetsBasePath;
+      }
+    });
   },
 
   postMessage(message) {
@@ -516,5 +505,21 @@ const JSView = {
     }
   },
 };
+
+/**
+ * Checks if Livebook public endpoint is accessible without auth cookies.
+ *
+ * Returns a promise that resolves to a boolean. The request is sent only
+ * once and the response is cached.
+ */
+function cachedPublicEndpointCheck() {
+  cachedPublicEndpointCheck.promise =
+    cachedPublicEndpointCheck.promise ||
+    fetch("/public/health")
+      .then((response) => response.status === 200)
+      .catch((error) => false);
+
+  return cachedPublicEndpointCheck.promise;
+}
 
 export default JSView;
