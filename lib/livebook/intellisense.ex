@@ -51,15 +51,15 @@ defmodule Livebook.Intellisense do
     get_signature_items(hint, context)
   end
 
-  def handle_request({:format, code}, _context) do
-    format_code(code)
+  def handle_request({:format, code}, context) do
+    format_code(context.language, code)
   end
 
   @doc """
   Formats Elixir code.
   """
-  @spec format_code(String.t()) :: Runtime.format_response()
-  def format_code(code) do
+  @spec format_code(String.t(), String.t()) :: Runtime.format_response()
+  def format_code("elixir", code) do
     try do
       formatted =
         code
@@ -71,6 +71,30 @@ defmodule Livebook.Intellisense do
       error ->
         code_marker = %{line: error.line, description: error.description, severity: :error}
         %{code: nil, code_markers: [code_marker]}
+    end
+  end
+
+  def format_code("erlang", code) do
+    error_to_marker = fn {_filename, anno, module, reason} ->
+      %{
+        line: :erl_anno.line(anno),
+        description: module.format_error(reason) |> :erlang.list_to_binary(),
+        severity: :error
+      }
+    end
+
+    case :erlfmt.format_string(code |> String.to_charlist(), []) do
+      {:ok, result, errors} ->
+        %{
+          code: result |> :erlang.list_to_binary(),
+          code_markers: errors |> Enum.map(error_to_marker)
+        }
+
+      {:skip, _} ->
+        %{code: nil, code_markers: []}
+
+      {:error, errors} ->
+        %{code: nil, code_markers: errors |> Enum.map(error_to_marker)}
     end
   end
 
