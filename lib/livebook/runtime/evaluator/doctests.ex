@@ -9,12 +9,36 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   Runs doctests in the given modules.
   """
   @spec run(list(module()), String.t()) :: :ok
-  def run(modules, code)
-
-  def run([], _code), do: :ok
-
   def run(modules, code) do
-    case define_test_module(modules) do
+    doctests_specs =
+      for module <- modules, doctests_spec = doctests_spec(module), do: doctests_spec
+
+    do_run(doctests_specs, code)
+  end
+
+  defp doctests_spec(module) do
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, doc_content, _, member_docs} ->
+        funs =
+          for {{:function, name, arity}, annotation, _signatures, _doc, _meta} <- member_docs,
+              do: %{name: name, arity: arity, generated: :erl_anno.generated(annotation)}
+
+        {generated_funs, regular_funs} = Enum.split_with(funs, & &1.generated)
+
+        if regular_funs != [] or is_map(doc_content) do
+          except = Enum.map(generated_funs, &{&1.name, &1.arity})
+          %{module: module, except: except}
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_run([], _code), do: :ok
+
+  defp do_run(doctests_specs, code) do
+    case define_test_module(doctests_specs) do
       {:ok, test_module} ->
         lines = String.split(code, ["\r\n", "\n"])
 
@@ -136,9 +160,10 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
   end
 
-  defp define_test_module(modules) do
+  defp define_test_module(doctests_specs) do
     id =
-      modules
+      doctests_specs
+      |> Enum.map(& &1.module)
       |> Enum.sort()
       |> Enum.map_join("-", fn module ->
         module
@@ -154,16 +179,8 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       defmodule name do
         use ExUnit.Case, register: false
 
-        for module <- modules do
-          {:docs_v1, _, _, _, _, _, member_docs} = Code.fetch_docs(module)
-
-          # Filter out generated functions
-          ignored_functions =
-            for {{:function, name, arity}, annotation, _signatures, _doc, _meta} <- member_docs,
-                :erl_anno.generated(annotation),
-                do: {name, arity}
-
-          doctest module, except: ignored_functions
+        for doctests_spec <- doctests_specs do
+          doctest doctests_spec.module, except: doctests_spec.except
         end
       end
 

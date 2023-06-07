@@ -143,21 +143,4 @@ defmodule Livebook.Intellisense.Docs do
   # loads elixir.beam, so we explicitly list it.
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(module), do: Code.ensure_loaded?(module)
-
-  @doc """
-  Checks if the module has any documentation.
-  """
-  @spec any_docs?(module()) :: boolean()
-  def any_docs?(module) do
-    case Code.fetch_docs(module) do
-      {:docs_v1, _, _, _, %{}, _, _} ->
-        true
-
-      {:docs_v1, _, _, _, _, _, docs} ->
-        Enum.any?(docs, &match?({_, _, _, %{}, _}, &1))
-
-      _ ->
-        false
-    end
-  end
 end

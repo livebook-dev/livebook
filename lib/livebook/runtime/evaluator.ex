@@ -460,9 +460,7 @@ defmodule Livebook.Runtime.Evaluator do
       end
 
     if ebin_path() do
-      new_context.env.context_modules
-      |> Enum.filter(&Livebook.Intellisense.Docs.any_docs?/1)
-      |> Livebook.Runtime.Evaluator.Doctests.run(code)
+      Livebook.Runtime.Evaluator.Doctests.run(new_context.env.context_modules, code)
     end
 
     state = put_context(state, ref, new_context)
