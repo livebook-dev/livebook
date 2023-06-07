@@ -652,7 +652,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
-      refute_receive {:runtime_doctest_report, :code_1, %{}}
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+      refute_received {:runtime_doctest_report, :code_1, %{}}
 
       # Here the generated doctest line matches another iex> prompt
       # in the module, but we expect the :erl_anno check to filter
@@ -684,7 +685,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
-      refute_receive {:runtime_doctest_report, :code_1, %{}}
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+      refute_received {:runtime_doctest_report, :code_1, %{}}
     end
   end
 
