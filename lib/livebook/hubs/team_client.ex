@@ -80,17 +80,17 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def handle_info(:connected, state) do
-    Broadcasts.hub_connected()
+    Broadcasts.hub_connected(state.hub.id)
     {:noreply, %{state | connected?: true, connection_error: nil}}
   end
 
   def handle_info({:connection_error, reason}, state) do
-    Broadcasts.hub_connection_failed(reason)
+    Broadcasts.hub_connection_failed(state.hub.id, reason)
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
   def handle_info({:server_error, reason}, state) do
-    Broadcasts.hub_server_error("#{state.hub.hub_name}: #{reason}")
+    Broadcasts.hub_server_error(state.hub.id, "#{state.hub.hub_name}: #{reason}")
     :ok = Livebook.Hubs.delete_hub(state.hub.id)
 
     {:noreply, %{state | connected?: false}}

@@ -25,10 +25,12 @@ defmodule Livebook.Hubs.TeamClientTest do
           session_token: token
         )
 
+      id = team.id
+
       refute TeamClient.connected?(team.id)
 
       TeamClient.start_link(team)
-      assert_receive :hub_connected
+      assert_receive {:hub_connected, ^id}
       assert TeamClient.connected?(team.id)
     end
 
@@ -41,9 +43,11 @@ defmodule Livebook.Hubs.TeamClientTest do
           session_token: token
         )
 
+      id = team.id
+
       TeamClient.start_link(team)
 
-      assert_receive {:hub_server_error, error}
+      assert_receive {:hub_server_error, ^id, error}
 
       assert error ==
                "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
