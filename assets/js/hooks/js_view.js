@@ -40,8 +40,12 @@ import { initializeIframeSource } from "./js_view/iframe";
  *
  *   * `data-ref` - a unique identifier used as messages scope
  *
- *   * `data-assets-base-path` - the path to resolve all relative paths
- *     against in the iframe
+ *   * `data-assets-base-path` - the base path to fetch assets from
+ *     within the iframe (and resolve all relative paths against)
+ *
+ *   * `data-assets-cdn-url` - a URL to CDN location to fetch assets
+ *     from. Only used if specified and the entrypoint script can be
+ *     successfully accessed, also only when Livebook runs on https
  *
  *   * `data-js-path` - a relative path for the initial view-specific
  *     JS module
@@ -179,6 +183,7 @@ const JSView = {
     return {
       ref: getAttributeOrThrow(this.el, "data-ref"),
       assetsBasePath: getAttributeOrThrow(this.el, "data-assets-base-path"),
+      assetsCdnUrl: getAttributeOrDefault(this.el, "data-assets-cdn-url", null),
       jsPath: getAttributeOrThrow(this.el, "data-js-path"),
       sessionToken: getAttributeOrThrow(this.el, "data-session-token"),
       connectToken: getAttributeOrThrow(this.el, "data-connect-token"),
@@ -334,17 +339,17 @@ const JSView = {
 
   handleChildMessage(message, onReady) {
     if (message.type === "ready" && !this.childReady) {
-      const assetsBaseUrl = window.location.origin + this.props.assetsBasePath;
+      this.getAssetsBaseUrl().then((assetsBaseUrl) => {
+        this.postMessage({
+          type: "readyReply",
+          token: this.childToken,
+          baseUrl: assetsBaseUrl,
+          jsPath: this.props.jsPath,
+        });
 
-      this.postMessage({
-        type: "readyReply",
-        token: this.childToken,
-        baseUrl: assetsBaseUrl,
-        jsPath: this.props.jsPath,
+        this.childReady = true;
+        onReady();
       });
-
-      this.childReady = true;
-      onReady();
     } else {
       // Note: we use a random token to authorize child messages
       // and do our best to make this token unavailable for the
@@ -384,6 +389,21 @@ const JSView = {
         });
       }
     }
+  },
+
+  getAssetsBaseUrl() {
+    // Livebook may be running behind an authentication proxy, in
+    // which case the internal assets URL is not accessible from
+    // within the iframe (served from a different origin). To
+    // workaround this, we fallback to a CDN for the assets if
+    // available for the given package.
+    return cachedPublicEndpointCheck().then((isPublicAccessible) => {
+      if (!isPublicAccessible && this.props.assetsCdnUrl) {
+        return this.props.assetsCdnUrl;
+      } else {
+        return window.location.origin + this.props.assetsBasePath;
+      }
+    });
   },
 
   postMessage(message) {
@@ -485,5 +505,21 @@ const JSView = {
     }
   },
 };
+
+/**
+ * Checks if Livebook public endpoint is accessible without auth cookies.
+ *
+ * Returns a promise that resolves to a boolean. The request is sent only
+ * once and the response is cached.
+ */
+function cachedPublicEndpointCheck() {
+  cachedPublicEndpointCheck.promise =
+    cachedPublicEndpointCheck.promise ||
+    fetch("/public/health")
+      .then((response) => response.status === 200)
+      .catch((error) => false);
+
+  return cachedPublicEndpointCheck.promise;
+}
 
 export default JSView;
