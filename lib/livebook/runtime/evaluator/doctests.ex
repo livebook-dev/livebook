@@ -16,10 +16,14 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   def run(modules, code) do
     case define_test_module(modules) do
       {:ok, test_module} ->
-        if test_module.tests != [] do
-          lines = String.split(code, ["\r\n", "\n"])
+        lines = String.split(code, ["\r\n", "\n"])
 
-          test_module.tests
+        # Ignore test cases that don't actually point to a doctest
+        # in the source code
+        tests = Enum.filter(test_module.tests, &doctest_at_line?(lines, &1.tags.doctest_line))
+
+        if tests != [] do
+          tests
           |> Enum.sort_by(& &1.tags.doctest_line)
           |> Enum.each(fn test ->
             report_doctest_running(test)
@@ -36,6 +40,16 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
 
     :ok
+  end
+
+  defp doctest_at_line?(lines, line_number) do
+    line = Enum.fetch!(lines, line_number - 1)
+
+    case String.trim_leading(line) do
+      "iex>" <> _ -> true
+      "iex(" <> _ -> true
+      _ -> false
+    end
   end
 
   defp report_doctest_running(test) do
@@ -141,7 +155,15 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
         use ExUnit.Case, register: false
 
         for module <- modules do
-          doctest module
+          {:docs_v1, _, _, _, _, _, member_docs} = Code.fetch_docs(module)
+
+          # Filter out generated functions
+          ignored_functions =
+            for {{:function, name, arity}, annotation, _signatures, _doc, _meta} <- member_docs,
+                :erl_anno.generated(annotation),
+                do: {name, arity}
+
+          doctest module, except: ignored_functions
         end
       end
 
