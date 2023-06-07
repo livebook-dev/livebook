@@ -133,23 +133,23 @@ defmodule LivebookWeb.SessionLive do
         <.button_item
           icon="booklet-fill"
           label="Sections (ss)"
-          button_attrs={[data_el_sections_list_toggle: true]}
+          button_attrs={["data-el-sections-list-toggle": true]}
         />
         <.button_item
           icon="group-fill"
           label="Connected users (su)"
-          button_attrs={[data_el_clients_list_toggle: true]}
+          button_attrs={["data-el-clients-list-toggle": true]}
         />
         <.button_item
           icon="lock-password-line"
           label="Secrets (se)"
-          button_attrs={[data_el_secrets_list_toggle: true]}
+          button_attrs={["data-el-secrets-list-toggle": true]}
         />
         <div class="relative">
           <.button_item
             icon="rocket-line"
             label="App settings (sa)"
-            button_attrs={[data_el_app_info_toggle: true]}
+            button_attrs={["data-el-app-info-toggle": true]}
           />
           <div
             data-el-app-indicator
@@ -162,14 +162,14 @@ defmodule LivebookWeb.SessionLive do
         <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
-          button_attrs={[data_el_runtime_info_toggle: true]}
+          button_attrs={["data-el-runtime-info-toggle": true]}
         />
         <.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
           path={~p"/sessions/#{@session.id}/bin"}
           active={@live_action == :bin}
-          link_attrs={[data_btn_show_bin: true]}
+          link_attrs={["data-btn-show-bin": true]}
         />
 
         <div class="grow"></div>
@@ -179,7 +179,7 @@ defmodule LivebookWeb.SessionLive do
           label="Keyboard shortcuts (?)"
           path={~p"/sessions/#{@session.id}/shortcuts"}
           active={@live_action == :shortcuts}
-          link_attrs={[data_btn_show_shortcuts: true]}
+          link_attrs={["data-btn-show-shortcuts": true]}
         />
 
         <span class="tooltip right distant" data-tooltip="User profile">
