@@ -67,12 +67,14 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp doctest_at_line?(lines, line_number) do
-    line = Enum.fetch!(lines, line_number - 1)
-
-    case String.trim_leading(line) do
-      "iex>" <> _ -> true
-      "iex(" <> _ -> true
-      _ -> false
+    if line = Enum.at(lines, line_number - 1) do
+      case String.trim_leading(line) do
+        "iex>" <> _ -> true
+        "iex(" <> _ -> true
+        _ -> false
+      end
+    else
+      false
     end
   end
 

@@ -639,6 +639,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
                 iex> 1
                 2
 
+                iex> 2
+                2
+
             """
             def foo, do: :ok
           end
