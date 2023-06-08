@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
       data-format={@format}
       data-fit={@fit}
     >
-      <input type="file" data-input class="hidden" name="value" accept="image/*" capture="user" />
+      <input type="file" data-input class="hidden" name="html_value" accept="image/*" capture="user" />
       <div class="flex justify-center" data-preview>
         <div class="flex justify-center text-gray-500">
           Drag an image file
