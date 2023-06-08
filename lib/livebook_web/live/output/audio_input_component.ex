@@ -45,7 +45,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
       data-sampling-rate={@sampling_rate}
       data-endianness={@endianness}
     >
-      <input type="file" data-input class="hidden" name="value" accept="audio/*" capture="user" />
+      <input type="file" data-input class="hidden" name="html_value" accept="audio/*" capture="user" />
       <audio controls data-preview></audio>
       <div class="flex items-center justify-center gap-4">
         <button

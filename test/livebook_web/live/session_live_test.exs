@@ -299,7 +299,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "10"})
+      |> render_change(%{"html_value" => "10"})
 
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
 
@@ -328,7 +328,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "line\r\nline"})
+      |> render_change(%{"html_value" => "line\r\nline"})
 
       assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
     end
@@ -366,7 +366,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "sherlock"})
+      |> render_change(%{"html_value" => "sherlock"})
 
       # The new value is on the page
       assert render(view) =~ "sherlock"
