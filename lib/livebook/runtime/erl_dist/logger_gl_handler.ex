@@ -15,4 +15,18 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLHandler do
   def async_io(device, output) when is_pid(device) do
     send(device, {:io_request, self(), make_ref(), {:put_chars, :unicode, output}})
   end
+
+  @doc false
+  def filter_code_server_logs(%{meta: meta} = event, _) do
+    # When checking if a miscapitalized module, such as Io, is loaded,
+    # :code_server logs an error message on a case insensitive file
+    # system "Error loading module 'Elixir.Io'". We want to ignore
+    # such logs
+
+    if Process.whereis(:code_server) == meta.pid do
+      :stop
+    else
+      event
+    end
+  end
 end
