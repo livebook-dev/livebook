@@ -18,7 +18,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       }>
         <div class="relative">
           <div class="absolute -left-1 top-0 bottom-0 flex items-center transform -translate-x-full">
-            <.menu id={"cell-#{@cell_id}-insert"} position={:bottom_left} distant>
+            <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
               <:toggle>
                 <button class="button-base button-small flex items-center pr-1">
                   <div
