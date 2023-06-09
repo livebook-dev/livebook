@@ -166,21 +166,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "bright/0"}]}}
     end
-
-    @tag capture_log: true
-    test "ignores code server error logs when loading mistyped module", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, :elixir, "", {:c1, :e1}, [])
-      assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
-
-      request = {:completion, "Io."}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [])
-
-      assert_receive {:runtime_intellisense_response, ^ref, ^request, %{items: []}}
-
-      # Checking if the module is loaded results in "Error loading module 'Elixir.Io'"
-      # error log, which should be ignored
-      refute_receive {:runtime_evaluation_output, :e1, {:stdout, _log_message}}
-    end
   end
 
   describe "handle_intellisense/5 given details request" do

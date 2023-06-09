@@ -18,9 +18,10 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLHandler do
 
   @doc false
   def filter_code_server_logs(%{meta: meta} = event, _) do
-    # When checking if a miscapitalized module, such as Io, is loaded,
-    # :code_server logs an error message on a case insensitive file
-    # system "Error loading module 'Elixir.Io'". We want to ignore
+    # During intellisense we check if certain modules are loaded. If
+    # the module name is miscapitalized, such as "Io", and we are on
+    # a case insensitive file system, then :code_serverlogs an error
+    # message: "Error loading module 'Elixir.Io'". We want to ignore
     # such logs
 
     if Process.whereis(:code_server) == meta.pid do
