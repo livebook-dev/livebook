@@ -5,6 +5,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   def notebook_to_livemd(notebook, opts \\ []) do
     include_outputs? = Keyword.get(opts, :include_outputs, notebook.persist_outputs)
+    include_stamp? = Keyword.get(opts, :include_stamp, true)
 
     js_ref_with_data = if include_outputs?, do: collect_js_output_data(notebook), else: %{}
 
@@ -15,9 +16,12 @@ defmodule Livebook.LiveMarkdown.Export do
     # Add trailing newline
     notebook_source = [iodata, "\n"]
 
-    notebook_footer = render_notebook_footer(notebook, notebook_source)
+    {notebook_footer, footer_warnings} =
+      render_notebook_footer(notebook, notebook_source, include_stamp?)
 
-    IO.iodata_to_binary([notebook_source, notebook_footer])
+    source = IO.iodata_to_binary([notebook_source, notebook_footer])
+
+    {source, footer_warnings}
   end
 
   defp collect_js_output_data(notebook) do
@@ -327,16 +331,29 @@ defmodule Livebook.LiveMarkdown.Export do
     |> Enum.map(fn {_modifiers, string} -> string end)
   end
 
-  defp render_notebook_footer(notebook, notebook_source) do
+  defp render_notebook_footer(_notebook, _notebook_source, _include_stamp? = false), do: {[], []}
+
+  defp render_notebook_footer(notebook, notebook_source, true) do
     metadata = notebook_stamp_metadata(notebook)
 
-    with {:ok, hub} <- Livebook.Hubs.fetch_hub(notebook.hub_id),
-         {:ok, stamp} <- Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
-      offset = IO.iodata_length(notebook_source)
-      json = %{"offset" => offset, "stamp" => stamp} |> ensure_order() |> Jason.encode!()
-      ["\n", "<!-- livebook:", json, " -->", "\n"]
-    else
-      _ -> []
+    case Livebook.Hubs.fetch_hub(notebook.hub_id) do
+      {:ok, hub} ->
+        case Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
+          {:ok, stamp} ->
+            offset = IO.iodata_length(notebook_source)
+            json = %{"offset" => offset, "stamp" => stamp} |> ensure_order() |> Jason.encode!()
+            footer = ["\n", "<!-- livebook:", json, " -->", "\n"]
+            {footer, []}
+
+          :skip ->
+            {[], []}
+
+          {:error, message} ->
+            {[], ["failed to stamp the notebook, #{message}"]}
+        end
+
+      :error ->
+        {[], []}
     end
   end
 

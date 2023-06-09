@@ -137,9 +137,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
 
-              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                Update Hub
-              </button>
+              <div>
+                <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                  Update Hub
+                </button>
+              </div>
             </.form>
           </div>
         </div>

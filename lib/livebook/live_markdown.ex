@@ -92,7 +92,7 @@ defmodule Livebook.LiveMarkdown do
       value of `:persist_outputs` notebook attribute.
 
   """
-  @spec notebook_to_livemd(Notebook.t(), keyword()) :: String.t()
+  @spec notebook_to_livemd(Notebook.t(), keyword()) :: {String.t(), list(String.t())}
   defdelegate notebook_to_livemd(notebook, opts \\ []), to: Livebook.LiveMarkdown.Export
 
   @doc """

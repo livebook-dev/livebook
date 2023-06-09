@@ -236,6 +236,7 @@ defmodule LivebookWeb.SessionLive do
           session_id={@session.id}
           file={@data_view.file}
           dirty={@data_view.dirty}
+          persistence_warnings={@data_view.persistence_warnings}
           autosave_interval_s={@data_view.autosave_interval_s}
           runtime={@data_view.runtime}
           global_status={@data_view.global_status}
@@ -2141,6 +2142,7 @@ defmodule LivebookWeb.SessionLive do
       autosave_interval_s: data.notebook.autosave_interval_s,
       default_language: data.notebook.default_language,
       dirty: data.dirty,
+      persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
       smart_cell_definitions: data.smart_cell_definitions,
       code_block_definitions: Livebook.Runtime.code_block_definitions(data.runtime),

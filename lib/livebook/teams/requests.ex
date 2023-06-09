@@ -1,7 +1,8 @@
-defmodule Livebook.Teams.HTTP do
+defmodule Livebook.Teams.Requests do
   @moduledoc false
 
   alias Livebook.Teams.Org
+  alias Livebook.Hubs.Team
   alias Livebook.Utils.HTTP
 
   @doc """
@@ -10,7 +11,7 @@ defmodule Livebook.Teams.HTTP do
   @spec create_org(Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_org(org) do
-    post("/api/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request", %{name: org.name, key_hash: Org.key_hash(org)})
   end
 
   @doc """
@@ -19,7 +20,7 @@ defmodule Livebook.Teams.HTTP do
   @spec join_org(Org.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def join_org(org) do
-    post("/api/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
+    post("/api/v1/org-request/join", %{name: org.name, key_hash: Org.key_hash(org)})
   end
 
   @doc """
@@ -28,7 +29,22 @@ defmodule Livebook.Teams.HTTP do
   @spec get_org_request_completion_data(pos_integer(), binary) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def get_org_request_completion_data(id, device_code) do
-    get("/api/org-request/#{id}?device_code=#{device_code}")
+    get("/api/v1/org-request/#{id}?device_code=#{device_code}")
+  end
+
+  @doc """
+  Send a request to Livebook Team API to sign the given payload.
+  """
+  @spec org_sign(Team.t(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def org_sign(team, payload) do
+    headers = auth_headers(team)
+    post("/api/v1/org/sign", %{payload: payload}, headers)
+  end
+
+  defp auth_headers(team) do
+    token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+    [{"authorization", "Bearer " <> token}]
   end
 
   defp post(path, json, headers \\ []) do

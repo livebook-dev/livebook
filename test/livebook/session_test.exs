@@ -553,7 +553,7 @@ defmodule Livebook.SessionTest do
 
       Session.save(session.pid)
 
-      assert_receive {:operation, {:mark_as_not_dirty, _}}
+      assert_receive {:operation, {:notebook_saved, _, []}}
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
 
@@ -573,7 +573,7 @@ defmodule Livebook.SessionTest do
 
       Session.save(session.pid)
 
-      assert_receive {:operation, {:mark_as_not_dirty, _}}
+      assert_receive {:operation, {:notebook_saved, _, []}}
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
   end
@@ -1154,7 +1154,7 @@ defmodule Livebook.SessionTest do
     Session.subscribe(session.id)
 
     Session.save(session.pid)
-    assert_receive {:operation, {:mark_as_not_dirty, _}}
+    assert_receive {:operation, {:notebook_saved, _, []}}
 
     assert [notebook_path] = Path.wildcard(notebook_glob)
     assert Path.basename(notebook_path) =~ "untitled_notebook"
@@ -1163,7 +1163,7 @@ defmodule Livebook.SessionTest do
     Session.set_notebook_name(session.pid, "Cat's guide to life")
 
     Session.save(session.pid)
-    assert_receive {:operation, {:mark_as_not_dirty, _}}
+    assert_receive {:operation, {:notebook_saved, _, []}}
 
     assert [notebook_path] = Path.wildcard(notebook_glob)
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"

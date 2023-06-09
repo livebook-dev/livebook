@@ -74,6 +74,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # previously create the org and associate user with org
       org = :erpc.call(node, Hub.Integration, :create_org, [[name: name]])
       :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
+      :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
       :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
 
       # select the new org option

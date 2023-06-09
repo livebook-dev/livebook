@@ -1413,9 +1413,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:save_finished, pid, result, file, default?}, %{save_task_pid: pid} = state) do
+  def handle_info(
+        {:save_finished, pid, result, warnings, file, default?},
+        %{save_task_pid: pid} = state
+      ) do
     state = %{state | save_task_pid: nil}
-    {:noreply, handle_save_finished(state, result, file, default?)}
+    {:noreply, handle_save_finished(state, result, warnings, file, default?)}
   end
 
   def handle_info({:runtime_memory_usage, runtime_memory}, state) do
@@ -2118,9 +2121,9 @@ defmodule Livebook.Session do
 
       {:ok, pid} =
         Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-          content = LiveMarkdown.notebook_to_livemd(notebook)
+          {content, warnings} = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
-          send(pid, {:save_finished, self(), result, file, default?})
+          send(pid, {:save_finished, self(), result, warnings, file, default?})
         end)
 
       %{state | save_task_pid: pid}
@@ -2135,9 +2138,9 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      content = LiveMarkdown.notebook_to_livemd(state.data.notebook)
+      {content, warnings} = LiveMarkdown.notebook_to_livemd(state.data.notebook)
       result = FileSystem.File.write(file, content)
-      handle_save_finished(state, result, file, default?)
+      handle_save_finished(state, result, warnings, file, default?)
     else
       state
     end
@@ -2146,7 +2149,7 @@ defmodule Livebook.Session do
   defp maybe_save_notebook_sync(state), do: state
 
   defp should_save_notebook?(state) do
-    state.data.dirty and state.save_task_pid == nil
+    (state.data.dirty or state.data.persistence_warnings != []) and state.save_task_pid == nil
   end
 
   defp notebook_autosave_file(state) do
@@ -2192,7 +2195,7 @@ defmodule Livebook.Session do
     end
   end
 
-  defp handle_save_finished(state, result, file, default?) do
+  defp handle_save_finished(state, result, warnings, file, default?) do
     state =
       if default? do
         if state.saved_default_file && state.saved_default_file != file do
@@ -2206,7 +2209,7 @@ defmodule Livebook.Session do
 
     case result do
       :ok ->
-        handle_operation(state, {:mark_as_not_dirty, @client_id})
+        handle_operation(state, {:notebook_saved, @client_id, warnings})
 
       {:error, message} ->
         broadcast_error(state.session_id, "failed to save notebook - #{message}")

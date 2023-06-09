@@ -1,8 +1,9 @@
 defmodule Livebook.Hubs.TeamClientTest do
   use Livebook.TeamsIntegrationCase, async: true
-  @moduletag :capture_log
 
   alias Livebook.Hubs.TeamClient
+
+  @moduletag :capture_log
 
   setup do
     Livebook.Hubs.subscribe([:connection])
@@ -13,6 +14,7 @@ defmodule Livebook.Hubs.TeamClientTest do
     test "successfully authenticates the web socket connection", %{user: user, node: node} do
       org = :erpc.call(node, Hub.Integration, :create_org, [])
       org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
       token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
 
       team =
@@ -22,6 +24,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           user_id: user.id,
           org_id: org.id,
           org_key_id: org_key.id,
+          org_public_key: org_key_pair.public_key,
           session_token: token
         )
 
