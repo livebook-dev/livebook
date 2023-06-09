@@ -2,6 +2,7 @@ defmodule Livebook.Teams.HTTP do
   @moduledoc false
 
   alias Livebook.Teams.Org
+  alias Livebook.Hubs.Team
   alias Livebook.Utils.HTTP
 
   @doc """
@@ -34,10 +35,16 @@ defmodule Livebook.Teams.HTTP do
   @doc """
   Send a request to Livebook Team API to sign the given payload.
   """
-  @spec org_sign(pos_integer(), String.t()) ::
+  @spec org_sign(Team.t(), String.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def org_sign(org_id, payload) do
-    post("/api/org/#{org_id}/sign", %{payload: payload})
+  def org_sign(team, payload) do
+    headers = auth_headers(team)
+    post("/api/org/sign", %{payload: payload}, headers)
+  end
+
+  defp auth_headers(team) do
+    token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+    [{"authorization", "Bearer " <> token}]
   end
 
   defp post(path, json, headers \\ []) do

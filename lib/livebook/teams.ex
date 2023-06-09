@@ -85,11 +85,11 @@ defmodule Livebook.Teams do
   @doc """
   Send a request to Livebook Teams API to get an org request.
   """
-  @spec org_sign(String.t(), String.t()) ::
+  @spec org_sign(Team.t(), String.t()) ::
           {:ok, String.t()}
           | {:transport_error, String.t()}
-  def org_sign(org_id, payload) do
-    case HTTP.org_sign(org_id, payload) do
+  def org_sign(team, payload) do
+    case HTTP.org_sign(team, payload) do
       {:ok, %{"signature" => signature}} -> {:ok, signature}
       any -> any
     end

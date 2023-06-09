@@ -123,7 +123,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
     token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, hub.teams_key)
 
-    case Livebook.Teams.org_sign(hub.org_id, token) do
+    case Livebook.Teams.org_sign(hub, token) do
       {:ok, token_signature} ->
         stamp = %{"version" => 1, "token" => token, "token_signature" => token_signature}
         {:ok, stamp}
