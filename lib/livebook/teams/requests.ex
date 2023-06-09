@@ -1,4 +1,4 @@
-defmodule Livebook.Teams.HTTP do
+defmodule Livebook.Teams.Requests do
   @moduledoc false
 
   alias Livebook.Teams.Org
