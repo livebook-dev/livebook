@@ -668,7 +668,8 @@ defmodule LivebookWeb.FileSelectComponent do
   defp create_notebook(_parent_dir, ""), do: {:error, :ignore}
 
   defp create_notebook(parent_dir, name) do
-    source = Livebook.Session.default_notebook() |> Livebook.LiveMarkdown.notebook_to_livemd()
+    {source, _warnings} =
+      Livebook.Session.default_notebook() |> Livebook.LiveMarkdown.notebook_to_livemd()
 
     new_file =
       parent_dir

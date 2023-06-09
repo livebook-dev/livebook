@@ -23,6 +23,7 @@ defmodule Livebook.Session.Data do
     :origin,
     :file,
     :dirty,
+    :persistence_warnings,
     :section_infos,
     :cell_infos,
     :input_values,
@@ -210,7 +211,7 @@ defmodule Livebook.Session.Data do
           | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
-          | {:mark_as_not_dirty, client_id()}
+          | {:notebook_saved, client_id(), persistence_warnings :: list(String.t())}
           | {:set_secret, client_id(), Secret.t()}
           | {:unset_secret, client_id(), String.t()}
           | {:set_notebook_hub, client_id(), String.t()}
@@ -284,6 +285,7 @@ defmodule Livebook.Session.Data do
       origin: opts[:origin],
       file: nil,
       dirty: true,
+      persistence_warnings: [],
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
       input_values: initial_input_values(notebook),
@@ -850,9 +852,10 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:mark_as_not_dirty, _client_id}) do
+  def apply_operation(data, {:notebook_saved, _client_id, persistence_warnings}) do
     data
     |> with_actions()
+    |> set!(persistence_warnings: persistence_warnings)
     |> set_dirty(false)
     |> wrap_ok()
   end

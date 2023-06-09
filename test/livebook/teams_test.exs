@@ -80,7 +80,12 @@ defmodule Livebook.TeamsTest do
       %{
         token: token,
         user_org: %{
-          org: %{id: id, name: name, keys: [%{id: org_key_id}]},
+          org: %{
+            id: id,
+            name: name,
+            keys: [%{id: org_key_id}],
+            key_pair: %{public_key: org_public_key}
+          },
           user: %{id: user_id}
         }
       } = org_request.user_org_session
@@ -91,6 +96,7 @@ defmodule Livebook.TeamsTest do
                   "id" => id,
                   "name" => name,
                   "org_key_id" => org_key_id,
+                  "org_public_key" => org_public_key,
                   "session_token" => token,
                   "user_id" => user_id
                 }}

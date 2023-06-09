@@ -13,7 +13,16 @@ defmodule LivebookWeb.AppSessionLive.SourceComponent do
         # the whole notebook in assigns
         notebook = Session.get_notebook(socket.assigns.session.pid)
 
-        Livebook.LiveMarkdown.notebook_to_livemd(notebook, include_outputs: false)
+        # We ignore the stamp, since it's not relevant for end-users,
+        # and this way we don't generate the stamp every time they
+        # look at the source
+        {source, _warnings} =
+          Livebook.LiveMarkdown.notebook_to_livemd(notebook,
+            include_outputs: false,
+            include_stamp: false
+          )
+
+        source
       end)
 
     {:ok, socket}

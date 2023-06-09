@@ -318,6 +318,7 @@ defmodule LivebookWeb.Hub.NewLive do
             org_id: response["id"],
             user_id: response["user_id"],
             org_key_id: response["org_key_id"],
+            org_public_key: response["org_public_key"],
             session_token: response["session_token"],
             teams_key: org.teams_key,
             hub_name: org.name,

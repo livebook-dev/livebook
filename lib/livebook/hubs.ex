@@ -248,7 +248,7 @@ defmodule Livebook.Hubs do
   Generates a notebook stamp.
   """
   @spec notebook_stamp(Provider.t(), iodata(), map()) ::
-          {:ok, Provider.notebook_stamp()} | :skip | :error
+          {:ok, Provider.notebook_stamp()} | :skip | {:error, String.t()}
   def notebook_stamp(hub, notebook_source, metadata) do
     Provider.notebook_stamp(hub, notebook_source, metadata)
   end

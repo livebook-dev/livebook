@@ -37,6 +37,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
+            persistence_warnings={@persistence_warnings}
             autosave_interval_s={@autosave_interval_s}
             session_id={@session_id}
           />
@@ -105,13 +106,29 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   defp persistence_indicator(%{dirty: false} = assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Notebook saved">
+    <span
+      class="tooltip left"
+      data-tooltip={
+        case @persistence_warnings do
+          [] ->
+            "Notebook saved"
+
+          warnings ->
+            "Notebook saved with warnings:\n" <> Enum.map_join(warnings, "\n", &("- " <> &1))
+        end
+      }
+    >
       <.link
         patch={~p"/sessions/#{@session_id}/settings/file"}
-        class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+        class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50 relative"
         aria-label="notebook saved, click to open file settings"
       >
         <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
+        <.remix_icon
+          :if={@persistence_warnings != []}
+          icon="error-warning-fill"
+          class="text-lg text-red-400 absolute -top-1.5 -right-2"
+        />
       </.link>
     </span>
     """

@@ -31,6 +31,15 @@ defmodule Livebook.Teams.HTTP do
     get("/api/org-request/#{id}?device_code=#{device_code}")
   end
 
+  @doc """
+  Send a request to Livebook Team API to join an org.
+  """
+  @spec org_sign(pos_integer(), String.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def org_sign(org_id, payload) do
+    post("/api/org/#{org_id}/sign", %{payload: payload})
+  end
+
   defp post(path, json, headers \\ []) do
     body = {"application/json", Jason.encode!(json)}
     request(:post, path, body: body, headers: headers)

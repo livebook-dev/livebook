@@ -83,6 +83,19 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Send a request to Livebook Teams API to get an org request.
+  """
+  @spec org_sign(String.t(), String.t()) ::
+          {:ok, String.t()}
+          | {:transport_error, String.t()}
+  def org_sign(org_id, payload) do
+    case HTTP.org_sign(org_id, payload) do
+      {:ok, %{"signature" => signature}} -> {:ok, signature}
+      any -> any
+    end
+  end
+
+  @doc """
   Creates a Hub.
 
   It notifies interested processes about hub metadatas data change.

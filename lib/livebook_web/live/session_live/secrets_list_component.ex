@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           </h3>
           <span class="text-sm text-gray-500">
             <%= if @hub_secrets == [] do %>
-              No secrets stored in Livebook so far
+              No secrets stored in hub so far
             <% else %>
               Toggle to share with this session
             <% end %>
