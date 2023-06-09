@@ -32,7 +32,7 @@ defmodule Livebook.Teams.HTTP do
   end
 
   @doc """
-  Send a request to Livebook Team API to join an org.
+  Send a request to Livebook Team API to sign the given payload.
   """
   @spec org_sign(pos_integer(), String.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
