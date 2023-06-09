@@ -349,7 +349,7 @@ defmodule Livebook.LiveMarkdown.Export do
             {[], []}
 
           {:error, message} ->
-            {[], ["failed to stamp the notebook - #{message}"]}
+            {[], ["failed to stamp the notebook, #{message}"]}
         end
 
       :error ->
