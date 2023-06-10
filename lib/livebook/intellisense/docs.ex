@@ -83,7 +83,7 @@ defmodule Livebook.Intellisense.Docs do
     type_specs =
       with true <- :type in kinds,
            {:ok, types} <- Code.Typespec.fetch_types(module) do
-        Enum.filter(types, fn {type_kind, _} -> :type == type_kind end)
+        Enum.filter(types, fn {type_kind, _} -> type_kind in [:type, :opaque] end)
         |> Enum.map(fn {_type_kind, {name, _defs, vars}} = type ->
           {{name, Enum.count(vars)}, type}
         end)

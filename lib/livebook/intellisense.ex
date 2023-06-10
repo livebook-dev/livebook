@@ -610,9 +610,21 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_type_spec({type_kind, type}, line_length) do
+  defp format_type_spec({type_kind, type}, line_length) when type_kind in [:type, :opaque] do
+    type_string = Code.Typespec.type_to_quoted(type) |> Macro.to_string()
+
+    type =
+      case type_kind do
+        :type ->
+          type_string
+
+        :opaque ->
+          [name_and_vars, _def] = String.split(type_string, " :: ")
+          name_and_vars
+      end
+
     type_spec_code =
-      ["@#{type_kind} ", Code.Typespec.type_to_quoted(type) |> Macro.to_string()]
+      ["@#{type_kind} ", type]
       |> IO.iodata_to_binary()
 
     try do
@@ -621,6 +633,8 @@ defmodule Livebook.Intellisense do
       _ -> type_spec_code
     end
   end
+
+  defp format_type_spec(_, _line_length), do: nil
 
   defp format_documentation(doc, variant)
 

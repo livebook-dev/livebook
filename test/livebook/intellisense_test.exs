@@ -1409,6 +1409,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{contents: [type]} = Intellisense.get_details(":code.load_error_rsn", 8, context)
       assert type =~ "@type load_error_rsn() ::"
+
+      # opaque types are listed without internal definition
+      assert %{contents: [type]} = Intellisense.get_details("MapSet.internal", 10, context)
+      assert type =~ "@opaque internal(value)\n"
     end
 
     test "returns link to online documentation" do
