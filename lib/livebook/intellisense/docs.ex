@@ -80,6 +80,18 @@ defmodule Livebook.Intellisense.Docs do
         _ -> %{}
       end
 
+    type_specs =
+      with true <- :type in kinds,
+           {:ok, types} <- Code.Typespec.fetch_types(module) do
+        Enum.filter(types, fn {type_kind, _} -> :type == type_kind end)
+        |> Enum.map(fn {_type_kind, {name, _defs, vars}} = type ->
+          {{name, Enum.count(vars)}, type}
+        end)
+        |> Map.new()
+      else
+        _ -> %{}
+      end
+
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, format, _, _, docs} ->
         for {{kind, name, base_arity}, _line, signatures, doc, meta} <- docs,
@@ -95,6 +107,7 @@ defmodule Livebook.Intellisense.Docs do
               documentation: documentation(doc, format),
               signatures: signatures,
               specs: Map.get(specs, {name, base_arity}, []),
+              type_spec: Map.get(type_specs, {name, base_arity}, nil),
               meta: meta
             }
 

@@ -458,7 +458,7 @@ defmodule Livebook.Intellisense do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_docs_link(module, name, arity),
+        format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
       format_meta(:deprecated, meta),
@@ -467,9 +467,20 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item(%{kind: :type, name: name, documentation: documentation}) do
+  defp format_details_item(%{
+         kind: :type,
+         module: module,
+         name: name,
+         arity: arity,
+         documentation: documentation,
+         type_spec: type_spec
+       }) do
     join_with_divider([
-      code(name),
+      format_type_signature(type_spec, module) |> code(),
+      join_with_middle_dot([
+        format_docs_link(module, {:type, name, arity})
+      ]),
+      format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
     ])
   end
@@ -506,7 +517,7 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_docs_link(module, function \\ nil, arity \\ nil) do
+  defp format_docs_link(module, function_or_type \\ nil) do
     app = Application.get_application(module)
 
     module_name =
@@ -524,12 +535,12 @@ defmodule Livebook.Intellisense do
 
     cond do
       is_otp? ->
-        hash = if function, do: "##{function}-#{arity}", else: ""
+        hash = docs_link_hash(:erlang, function_or_type)
         url = "https://www.erlang.org/doc/man/#{module_name}.html#{hash}"
         "[View on Erlang Docs](#{url})"
 
       vsn = app && Application.spec(app, :vsn) ->
-        hash = if function, do: "##{function}/#{arity}", else: ""
+        hash = docs_link_hash(:hexdocs, function_or_type)
         url = "https://hexdocs.pm/#{app}/#{vsn}/#{module_name}.html#{hash}"
         "[View on Hexdocs](#{url})"
 
@@ -537,6 +548,12 @@ defmodule Livebook.Intellisense do
         nil
     end
   end
+
+  defp docs_link_hash(:erlang, {:function, function, arity}), do: "##{function}-#{arity}"
+  defp docs_link_hash(:erlang, {:type, type, _arity}), do: "#type-#{type}"
+  defp docs_link_hash(:hexdocs, {:function, function, arity}), do: "##{function}/#{arity}"
+  defp docs_link_hash(:hexdocs, {:type, type, arity}), do: "#t:#{type}/#{arity}"
+  defp docs_link_hash(_target, nil), do: ""
 
   defp format_signatures([], _module), do: nil
 
@@ -549,6 +566,17 @@ defmodule Livebook.Intellisense do
     else
       signatures_string
     end
+  end
+
+  defp format_type_signature(nil, _module), do: nil
+
+  defp format_type_signature({_type_kind, {name, _defs, vars}}, module) do
+    vars_string =
+      vars
+      |> Enum.map(fn {:var, _line, var_atom} -> Atom.to_string(var_atom) end)
+      |> Enum.join(", ")
+
+    inspect(module) <> "." <> Atom.to_string(name) <> "(" <> vars_string <> ")"
   end
 
   defp format_meta(:deprecated, %{deprecated: deprecated}) do
@@ -579,6 +607,18 @@ defmodule Livebook.Intellisense do
       Code.format_string!(specs_code, line_length: line_length)
     rescue
       _ -> specs_code
+    end
+  end
+
+  defp format_type_spec({type_kind, type}, line_length) do
+    type_spec_code =
+      ["@#{type_kind} ", Code.Typespec.type_to_quoted(type) |> Macro.to_string()]
+      |> IO.iodata_to_binary()
+
+    try do
+      Code.format_string!(type_spec_code, line_length: line_length)
+    rescue
+      _ -> type_spec_code
     end
   end
 

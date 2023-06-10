@@ -710,11 +710,18 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =
-        Enum.find(doc_items, %{documentation: nil}, fn doc_item ->
+        Enum.find(doc_items, %{documentation: nil, type_spec: nil}, fn doc_item ->
           doc_item.name == name && doc_item.arity == arity
         end)
 
-      %{kind: :type, module: mod, name: name, arity: arity, documentation: doc_item.documentation}
+      %{
+        kind: :type,
+        module: mod,
+        name: name,
+        arity: arity,
+        documentation: doc_item.documentation,
+        type_spec: doc_item.type_spec
+      }
     end)
   end
 
