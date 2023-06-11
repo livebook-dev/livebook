@@ -570,13 +570,9 @@ defmodule Livebook.Intellisense do
 
   defp format_type_signature(nil, _module), do: nil
 
-  defp format_type_signature({_type_kind, {name, _defs, vars}}, module) do
-    vars_string =
-      vars
-      |> Enum.map(fn {:var, _line, var_atom} -> Atom.to_string(var_atom) end)
-      |> Enum.join(", ")
-
-    inspect(module) <> "." <> Atom.to_string(name) <> "(" <> vars_string <> ")"
+  defp format_type_signature({_type_kind, type}, module) do
+    {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
+    inspect(module) <> "." <> Macro.to_string(lhs)
   end
 
   defp format_meta(:deprecated, %{deprecated: deprecated}) do
@@ -611,20 +607,17 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_type_spec({type_kind, type}, line_length) when type_kind in [:type, :opaque] do
-    type_string = Code.Typespec.type_to_quoted(type) |> Macro.to_string()
+    ast = {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
 
-    type =
+    type_string =
       case type_kind do
-        :type ->
-          type_string
-
-        :opaque ->
-          [name_and_vars, _def] = String.split(type_string, " :: ")
-          name_and_vars
+        :type -> ast
+        :opaque -> lhs
       end
+      |> Macro.to_string()
 
     type_spec_code =
-      ["@#{type_kind} ", type]
+      ["@#{type_kind} ", type_string]
       |> IO.iodata_to_binary()
 
     try do
