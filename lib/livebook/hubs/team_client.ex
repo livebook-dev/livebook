@@ -35,6 +35,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached secrets.
+  """
+  @spec get_secrets(String.t()) :: list(Secret.t())
+  def get_secrets(id) do
+    GenServer.call(registry_name(id), :get_secrets)
+  end
+
+  @doc """
   Returns the latest error from connection.
   """
   @spec get_connection_error(String.t()) :: String.t() | nil
@@ -76,6 +84,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:connected?, _caller, state) do
     {:reply, state.connected?, state}
+  end
+
+  def handle_call(:get_secrets, _caller, state) do
+    {:reply, state.secrets, state}
   end
 
   @impl true
