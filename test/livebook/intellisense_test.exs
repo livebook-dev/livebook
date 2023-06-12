@@ -1391,6 +1391,30 @@ defmodule Livebook.IntellisenseTest do
       assert date_range =~ "Date.Range"
     end
 
+    test "returns module-prepended type signatures" do
+      context = eval(do: nil)
+
+      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context)
+      assert type =~ "Date.t()"
+
+      assert %{contents: [type]} = Intellisense.get_details(":code.load_error_rsn", 8, context)
+      assert type =~ ":code.load_error_rsn()"
+    end
+
+    test "includes type specs" do
+      context = eval(do: nil)
+
+      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context)
+      assert type =~ "@type t() :: %Date"
+
+      assert %{contents: [type]} = Intellisense.get_details(":code.load_error_rsn", 8, context)
+      assert type =~ "@type load_error_rsn() ::"
+
+      # opaque types are listed without internal definition
+      assert %{contents: [type]} = Intellisense.get_details("MapSet.internal", 10, context)
+      assert type =~ "@opaque internal(value)\n"
+    end
+
     test "returns link to online documentation" do
       context = eval(do: nil)
 
@@ -1401,6 +1425,14 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details("Integer.to_string(10)", 15, context)
 
       assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html#to_string/2"
+
+      # test elixir types
+      assert %{contents: [content]} = Intellisense.get_details("GenServer.on_start", 12, context)
+      assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/GenServer.html#t:on_start/0"
+
+      # test erlang types
+      assert %{contents: [content]} = Intellisense.get_details(":code.load_ret", 7, context)
+      assert content =~ ~r"https://www.erlang.org/doc/man/code.html#type-load_ret"
 
       # test erlang modules on hexdocs
       assert %{contents: [content]} = Intellisense.get_details(":telemetry.span", 13, context)

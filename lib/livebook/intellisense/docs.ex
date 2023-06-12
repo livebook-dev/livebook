@@ -12,6 +12,7 @@ defmodule Livebook.Intellisense.Docs do
           documentation: documentation(),
           signatures: list(signature()),
           specs: list(spec()),
+          type_spec: type_spec(),
           meta: meta()
         }
 
@@ -27,6 +28,13 @@ defmodule Livebook.Intellisense.Docs do
   A single spec annotation in the Erlang Abstract Format.
   """
   @type spec :: term()
+
+  @typedoc """
+  A tuple containing a single type annotation in the Erlang Abstract Format,
+  tagged by its kind.
+  """
+  @type type_spec() :: {type_kind(), term()}
+  @type type_kind() :: :type | :opaque
 
   @doc """
   Fetches documentation for the given module if available.
@@ -80,6 +88,17 @@ defmodule Livebook.Intellisense.Docs do
         _ -> %{}
       end
 
+    type_specs =
+      with true <- :type in kinds,
+           {:ok, types} <- Code.Typespec.fetch_types(module) do
+        for {type_kind, {name, _defs, vars}} = type <- types,
+            type_kind in [:type, :opaque],
+            into: Map.new(),
+            do: {{name, Enum.count(vars)}, type}
+      else
+        _ -> %{}
+      end
+
     case Code.fetch_docs(module) do
       {:docs_v1, _, _, format, _, _, docs} ->
         for {{kind, name, base_arity}, _line, signatures, doc, meta} <- docs,
@@ -95,6 +114,7 @@ defmodule Livebook.Intellisense.Docs do
               documentation: documentation(doc, format),
               signatures: signatures,
               specs: Map.get(specs, {name, base_arity}, []),
+              type_spec: Map.get(type_specs, {name, base_arity}, nil),
               meta: meta
             }
 
