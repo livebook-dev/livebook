@@ -584,11 +584,6 @@ defmodule Livebook.Intellisense do
 
   defp format_type_signature(nil, _module), do: nil
 
-  defp format_type_signature({_type_kind, type}, _module = nil) do
-    {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
-    Macro.to_string(lhs)
-  end
-
   defp format_type_signature({_type_kind, type}, module) do
     {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
     inspect(module) <> "." <> Macro.to_string(lhs)
