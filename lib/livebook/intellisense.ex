@@ -269,7 +269,11 @@ defmodule Livebook.Intellisense do
              format_documentation(documentation, :short),
              format_type_spec(type_spec, @line_length) |> code()
            ]),
-         insert_text: format_type_signature(type_spec, nil)
+         insert_text:
+           cond do
+             arity == 0 -> "#{Atom.to_string(name)}()"
+             true -> "#{Atom.to_string(name)}($0)"
+           end
        }
 
   defp format_completion_item(%{kind: :module_attribute, name: name, documentation: documentation}),

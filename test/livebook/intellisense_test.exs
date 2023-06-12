@@ -173,7 +173,7 @@ defmodule Livebook.IntellisenseTest do
                @opaque iterator(key, value)
                ```\
                """,
-               insert_text: "iterator(key, value)"
+               insert_text: "iterator($0)"
              } in items
     end
 
@@ -273,7 +273,7 @@ defmodule Livebook.IntellisenseTest do
                  @opaque internal(value)
                  ```\
                  """,
-                 insert_text: "internal(value)"
+                 insert_text: "internal($0)"
                }
              ] = Intellisense.get_completion_items("MapSet.intern", context)
     end
