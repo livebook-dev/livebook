@@ -12,6 +12,7 @@ defmodule Livebook.Intellisense.Docs do
           documentation: documentation(),
           signatures: list(signature()),
           specs: list(spec()),
+          type_spec: type_spec(),
           meta: meta()
         }
 
@@ -27,6 +28,13 @@ defmodule Livebook.Intellisense.Docs do
   A single spec annotation in the Erlang Abstract Format.
   """
   @type spec :: term()
+
+  @typedoc """
+  A tuple containing a single type annotation in the Erlang Abstract Format,
+  tagged by its kind.
+  """
+  @type type_spec() :: {type_kind(), term()}
+  @type type_kind() :: :type | :opaque
 
   @doc """
   Fetches documentation for the given module if available.
