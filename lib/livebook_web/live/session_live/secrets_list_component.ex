@@ -229,9 +229,14 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-      :ok = Hubs.delete_secret(hub, secret)
-      :ok = Session.unset_secret(session.pid, secret.name)
-      socket
+
+      with :ok <- Hubs.delete_secret(hub, secret),
+           :ok <- Session.unset_secret(session.pid, secret.name) do
+        socket
+      else
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
+      end
     end
 
     {:noreply,
