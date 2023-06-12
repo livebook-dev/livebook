@@ -3,6 +3,7 @@ defmodule Livebook.Teams do
 
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
+  alias Livebook.Secrets.Secret
   alias Livebook.Teams.{Requests, Org}
 
   import Ecto.Changeset,
@@ -97,6 +98,24 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Creates a Secret.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec create_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_secret(%Team{} = team, %Secret{} = secret) do
+    case HTTP.create_secret(team, secret) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
   Creates a Hub.
 
   It notifies interested processes about hub metadatas data change.
@@ -131,6 +150,10 @@ defmodule Livebook.Teams do
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
     add_errors(changeset, Org.__schema__(:fields), errors_map)
+  end
+
+  defp add_secret_errors(%Secret{} = secret, errors_map) do
+    add_errors(change(secret), Secret.__schema__(:fields), errors_map)
   end
 
   defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
