@@ -38,7 +38,7 @@ defmodule Livebook.JSInterop do
   end
 
   defp apply_to_code_units([{:delete, n} | ops], code_units) do
-    apply_to_code_units(ops, Enum.slice(code_units, n..-1))
+    apply_to_code_units(ops, Enum.slice(code_units, n..-1//1))
   end
 
   @doc """
