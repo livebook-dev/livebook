@@ -5,7 +5,8 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs.Team
   alias Livebook.Teams.{Requests, Org}
 
-  import Ecto.Changeset, only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
+  import Ecto.Changeset,
+    only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2, change: 1]
 
   @doc """
   Creates an Org.
@@ -129,9 +130,13 @@ defmodule Livebook.Teams do
   end
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
+    add_errors(changeset, Org.__schema__(:fields), errors_map)
+  end
+
+  defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
     for {key, errors} <- errors_map,
         field = String.to_atom(key),
-        field in Org.__schema__(:fields),
+        field in fields,
         error <- errors,
         reduce: changeset,
         do: (acc -> add_error(acc, field, error))
