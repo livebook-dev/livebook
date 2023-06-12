@@ -219,7 +219,9 @@ defmodule Livebook.Hubs do
   Creates a secret for given hub.
   """
   @spec create_secret(Provider.t(), Secret.t()) ::
-          :ok | {:error, list({atom(), list(String.t())})}
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
   def create_secret(hub, %Secret{} = secret) do
     true = capability?(hub, [:create_secret])
 
@@ -230,7 +232,9 @@ defmodule Livebook.Hubs do
   Updates a secret for given hub.
   """
   @spec update_secret(Provider.t(), Secret.t()) ::
-          :ok | {:error, list({atom(), list(String.t())})}
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
   def update_secret(hub, %Secret{readonly: false} = secret) do
     Provider.update_secret(hub, secret)
   end
@@ -238,8 +242,7 @@ defmodule Livebook.Hubs do
   @doc """
   Deletes a secret for given hub.
   """
-  @spec delete_secret(Provider.t(), Secret.t()) ::
-          :ok | {:error, list({atom(), list(String.t())})}
+  @spec delete_secret(Provider.t(), Secret.t()) :: :ok | {:transport_error, String.t()}
   def delete_secret(hub, %Secret{readonly: false} = secret) do
     Provider.delete_secret(hub, secret)
   end
