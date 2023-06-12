@@ -142,6 +142,41 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items(":erlang.open_por", context)
     end
 
+    @tag :erl_docs
+    test "Erlang type completion" do
+      context = eval(do: nil)
+
+      items = Intellisense.get_completion_items(":maps.iterator", context)
+
+      assert %{
+               label: "iterator/0",
+               kind: :type,
+               detail: ":maps.iterator()",
+               documentation: """
+               No documentation available
+
+               ```
+               @type iterator() :: iterator(term(), term())
+               ```\
+               """,
+               insert_text: "iterator()"
+             } in items
+
+      assert %{
+               label: "iterator/2",
+               kind: :type,
+               detail: ":maps.iterator(key, value)",
+               documentation: """
+               An iterator representing the associations in a map with keys of type `Key` and values of type `Value`.
+
+               ```
+               @opaque iterator(key, value)
+               ```\
+               """,
+               insert_text: "iterator($0)"
+             } in items
+    end
+
     test "Elixir proxy" do
       context = eval(do: nil)
 
@@ -214,28 +249,33 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "from/0",
                  kind: :type,
-                 detail: "typespec",
-                 documentation: "Tuple describing the client of a call request.",
-                 insert_text: "from"
+                 detail: "GenServer.from()",
+                 documentation: """
+                 Tuple describing the client of a call request.
+
+                 ```
+                 @type from() :: {pid(), tag :: term()}
+                 ```\
+                 """,
+                 insert_text: "from()"
                }
              ] = Intellisense.get_completion_items("GenServer.fr", context)
 
       assert [
                %{
-                 label: "name/0",
+                 label: "internal/1",
                  kind: :type,
-                 detail: "typespec",
-                 documentation: _name_doc,
-                 insert_text: "name"
-               },
-               %{
-                 label: "name_all/0",
-                 kind: :type,
-                 detail: "typespec",
-                 documentation: _name_all_doc,
-                 insert_text: "name_all"
+                 detail: "MapSet.internal(value)",
+                 documentation: """
+                 No documentation available
+
+                 ```
+                 @opaque internal(value)
+                 ```\
+                 """,
+                 insert_text: "internal($0)"
                }
-             ] = Intellisense.get_completion_items(":file.nam", context)
+             ] = Intellisense.get_completion_items("MapSet.intern", context)
     end
 
     test "Elixir module completion with self" do

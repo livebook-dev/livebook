@@ -254,16 +254,26 @@ defmodule Livebook.Intellisense do
 
   defp format_completion_item(%{
          kind: :type,
+         module: module,
          name: name,
          arity: arity,
-         documentation: documentation
+         documentation: documentation,
+         type_spec: type_spec
        }),
        do: %{
          label: "#{name}/#{arity}",
          kind: :type,
-         detail: "typespec",
-         documentation: format_documentation(documentation, :short),
-         insert_text: Atom.to_string(name)
+         detail: format_type_signature(type_spec, module),
+         documentation:
+           join_with_newlines([
+             format_documentation(documentation, :short),
+             format_type_spec(type_spec, @line_length) |> code()
+           ]),
+         insert_text:
+           cond do
+             arity == 0 -> "#{Atom.to_string(name)}()"
+             true -> "#{Atom.to_string(name)}($0)"
+           end
        }
 
   defp format_completion_item(%{kind: :module_attribute, name: name, documentation: documentation}),
