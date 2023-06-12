@@ -254,16 +254,22 @@ defmodule Livebook.Intellisense do
 
   defp format_completion_item(%{
          kind: :type,
+         module: module,
          name: name,
          arity: arity,
-         documentation: documentation
+         documentation: documentation,
+         type_spec: type_spec
        }),
        do: %{
          label: "#{name}/#{arity}",
          kind: :type,
-         detail: "typespec",
-         documentation: format_documentation(documentation, :short),
-         insert_text: Atom.to_string(name)
+         detail: format_type_signature(type_spec, module),
+         documentation:
+           join_with_newlines([
+             format_documentation(documentation, :short),
+             format_type_spec(type_spec, @line_length) |> code()
+           ]),
+         insert_text: format_type_signature(type_spec, nil)
        }
 
   defp format_completion_item(%{kind: :module_attribute, name: name, documentation: documentation}),
@@ -573,6 +579,11 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_type_signature(nil, _module), do: nil
+
+  defp format_type_signature({_type_kind, type}, _module = nil) do
+    {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
+    Macro.to_string(lhs)
+  end
 
   defp format_type_signature({_type_kind, type}, module) do
     {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
