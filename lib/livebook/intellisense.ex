@@ -533,12 +533,24 @@ defmodule Livebook.Intellisense do
 
     cond do
       is_otp? ->
-        hash = docs_link_hash(:erlang, function_or_type)
+        hash =
+          case function_or_type do
+            {:function, function, arity} -> "##{function}-#{arity}"
+            {:type, type, _arity} -> "#type-#{type}"
+            nil -> ""
+          end
+
         url = "https://www.erlang.org/doc/man/#{module_name}.html#{hash}"
         "[View on Erlang Docs](#{url})"
 
       vsn = app && Application.spec(app, :vsn) ->
-        hash = docs_link_hash(:hexdocs, function_or_type)
+        hash =
+          case function_or_type do
+            {:function, function, arity} -> "##{function}/#{arity}"
+            {:type, type, arity} -> "#t:#{type}/#{arity}"
+            nil -> ""
+          end
+
         url = "https://hexdocs.pm/#{app}/#{vsn}/#{module_name}.html#{hash}"
         "[View on Hexdocs](#{url})"
 
@@ -546,12 +558,6 @@ defmodule Livebook.Intellisense do
         nil
     end
   end
-
-  defp docs_link_hash(:erlang, {:function, function, arity}), do: "##{function}-#{arity}"
-  defp docs_link_hash(:erlang, {:type, type, _arity}), do: "#type-#{type}"
-  defp docs_link_hash(:hexdocs, {:function, function, arity}), do: "##{function}/#{arity}"
-  defp docs_link_hash(:hexdocs, {:type, type, arity}), do: "#t:#{type}/#{arity}"
-  defp docs_link_hash(_target, nil), do: ""
 
   defp format_signatures([], _module), do: nil
 
