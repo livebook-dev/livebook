@@ -477,9 +477,7 @@ defmodule Livebook.Intellisense do
        }) do
     join_with_divider([
       format_type_signature(type_spec, module) |> code(),
-      join_with_middle_dot([
-        format_docs_link(module, {:type, name, arity})
-      ]),
+      format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
     ])
@@ -616,9 +614,7 @@ defmodule Livebook.Intellisense do
       end
       |> Macro.to_string()
 
-    type_spec_code =
-      ["@#{type_kind} ", type_string]
-      |> IO.iodata_to_binary()
+    type_spec_code = "@#{type_kind} #{type_string}"
 
     try do
       Code.format_string!(type_spec_code, line_length: line_length)
