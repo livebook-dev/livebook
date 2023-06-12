@@ -64,6 +64,7 @@ end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   alias Livebook.Hubs.TeamClient
+  alias Livebook.Teams
 
   def load(team, fields) do
     %{
@@ -96,11 +97,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def disconnect(team), do: TeamClient.stop(team.id)
 
-  def capabilities(_team), do: ~w(connect)a
+  def capabilities(_team), do: ~w(connect list_secrets create_secret)a
 
-  def get_secrets(_team), do: []
+  def get_secrets(team), do: TeamClient.get_secrets(team.id)
 
-  def create_secret(_team, _secret), do: :ok
+  def create_secret(team, secret), do: Teams.create_secret(team, secret)
 
   def update_secret(_team, _secret), do: :ok
 
