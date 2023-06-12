@@ -237,7 +237,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     changeset =
       %Secret{}
       |> Secrets.change_secret(attrs)
-      |> Map.put(:action, :validate)
+      |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset)}
   end
