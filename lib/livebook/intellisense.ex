@@ -516,11 +516,12 @@ defmodule Livebook.Intellisense do
       end
 
     is_otp? =
-      case :code.which(app || module) do
-        :preloaded -> true
-        [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
-        _ -> false
-      end
+      app == :erts or
+        case :code.which(app || module) do
+          :preloaded -> true
+          [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
+          _ -> false
+        end
 
     cond do
       is_otp? ->
