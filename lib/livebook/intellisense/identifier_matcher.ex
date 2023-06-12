@@ -62,7 +62,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               module: module(),
               name: name(),
               arity: arity(),
-              documentation: Docs.documentation()
+              documentation: Docs.documentation(),
+              type_spec: Docs.type_spec()
             }
           | %{
               kind: :module_attribute,
