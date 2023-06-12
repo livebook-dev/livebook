@@ -83,7 +83,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Send a request to Livebook Teams API to get an org request.
+  Send a request to Livebook Teams API to sign a payload.
   """
   @spec org_sign(Team.t(), String.t()) ::
           {:ok, String.t()}
