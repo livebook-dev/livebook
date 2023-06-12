@@ -12,33 +12,33 @@ defmodule Livebook.Hubs.Broadcasts do
   @doc """
   Broadcasts under `#{@crud_topic}` topic when hubs changed.
   """
-  @spec hub_changed() :: broadcast()
-  def hub_changed do
-    broadcast(@crud_topic, :hub_changed)
+  @spec hub_changed(String.t()) :: broadcast()
+  def hub_changed(hub_id) do
+    broadcast(@crud_topic, {:hub_changed, hub_id})
   end
 
   @doc """
   Broadcasts under `#{@connection_topic}` topic when hub connected.
   """
-  @spec hub_connected() :: broadcast()
-  def hub_connected do
-    broadcast(@connection_topic, :hub_connected)
+  @spec hub_connected(String.t()) :: broadcast()
+  def hub_connected(hub_id) do
+    broadcast(@connection_topic, {:hub_connected, hub_id})
   end
 
   @doc """
   Broadcasts under `#{@connection_topic}` topic when hub is out-of-date.
   """
-  @spec hub_server_error(String.t()) :: broadcast()
-  def hub_server_error(reason) when is_binary(reason) do
-    broadcast(@connection_topic, {:hub_server_error, reason})
+  @spec hub_server_error(String.t(), String.t()) :: broadcast()
+  def hub_server_error(hub_id, reason) when is_binary(reason) do
+    broadcast(@connection_topic, {:hub_server_error, hub_id, reason})
   end
 
   @doc """
   Broadcasts under `#{@connection_topic}` topic when hub received a connection error.
   """
-  @spec hub_connection_failed(String.t()) :: broadcast()
-  def hub_connection_failed(reason) when is_binary(reason) do
-    broadcast(@connection_topic, {:hub_connection_failed, reason})
+  @spec hub_connection_failed(String.t(), String.t()) :: broadcast()
+  def hub_connection_failed(hub_id, reason) when is_binary(reason) do
+    broadcast(@connection_topic, {:hub_connection_failed, hub_id, reason})
   end
 
   @doc """

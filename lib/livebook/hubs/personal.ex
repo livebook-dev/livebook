@@ -143,15 +143,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def notebook_stamp(hub, notebook_source, metadata) do
-    # We use AES-GCM-128 to encrypt metadata and generate signature
-    # for both metadata and the notebook source. We make use of the
-    # implementation in MessageEncryptor, which conveniently returns
-    # a single token
-
-    {secret, sign_secret} = derive_keys(hub.secret_key)
-
-    payload = :erlang.term_to_binary(metadata)
-    token = Plug.Crypto.MessageEncryptor.encrypt(payload, notebook_source, secret, sign_secret)
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, hub.secret_key)
 
     stamp = %{"version" => 1, "token" => token}
 
@@ -161,27 +153,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   def verify_notebook_stamp(hub, notebook_source, stamp) do
     %{"version" => 1, "token" => token} = stamp
 
-    {secret, sign_secret} = derive_keys(hub.secret_key)
-
-    case Plug.Crypto.MessageEncryptor.decrypt(token, notebook_source, secret, sign_secret) do
-      {:ok, payload} ->
-        metadata = Plug.Crypto.non_executable_binary_to_term(payload)
-        {:ok, metadata}
-
-      :error ->
-        :error
-    end
-  end
-
-  defp derive_keys(secret_key) do
-    binary_key = Base.url_decode64!(secret_key, padding: false)
-
-    <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing",
-        length: 32,
-        cache: Plug.Crypto.Keys
-      )
-
-    {secret, sign_secret}
+    Livebook.Stamping.aead_decrypt(token, notebook_source, hub.secret_key)
   end
 end

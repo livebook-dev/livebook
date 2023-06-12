@@ -440,7 +440,7 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
-      format_hexdocs_link(module),
+      format_docs_link(module),
       format_documentation(documentation, :all)
     ])
   end
@@ -458,7 +458,7 @@ defmodule Livebook.Intellisense do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_hexdocs_link(module, "#{name}/#{arity}"),
+        format_docs_link(module, name, arity),
         format_meta(:since, meta)
       ]),
       format_meta(:deprecated, meta),
@@ -506,14 +506,35 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_hexdocs_link(module, hash \\ "") do
-    hash = if hash == "", do: "", else: "#" <> hash
-
+  defp format_docs_link(module, function \\ nil, arity \\ nil) do
     app = Application.get_application(module)
 
-    if vsn = app && Application.spec(app, :vsn) do
-      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
-      "[View on Hexdocs](#{url})"
+    module_name =
+      case Atom.to_string(module) do
+        "Elixir." <> name -> name
+        name -> name
+      end
+
+    is_otp? =
+      case :code.which(app || module) do
+        :preloaded -> true
+        [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
+        _ -> false
+      end
+
+    cond do
+      is_otp? ->
+        hash = if function, do: "##{function}-#{arity}", else: ""
+        url = "https://www.erlang.org/doc/man/#{module_name}.html#{hash}"
+        "[View on Erlang Docs](#{url})"
+
+      vsn = app && Application.spec(app, :vsn) ->
+        hash = if function, do: "##{function}/#{arity}", else: ""
+        url = "https://hexdocs.pm/#{app}/#{vsn}/#{module_name}.html#{hash}"
+        "[View on Hexdocs](#{url})"
+
+      true ->
+        nil
     end
   end
 
@@ -779,6 +800,10 @@ defmodule Livebook.Intellisense do
   end
 
   defp group_type_list_items([], acc), do: Enum.reverse(acc)
+
+  defp group_type_list_items([{:li, [{:name, _type_name}], []} | items], acc) do
+    group_type_list_items(items, acc)
+  end
 
   defp group_type_list_items([{:li, [{:class, "type"}], content} | items], acc) do
     group_type_list_items(items, [{:li, [], [{:code, [], content}]} | acc])

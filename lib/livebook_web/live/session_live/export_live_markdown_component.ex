@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
   end
 
   defp assign_source(%{assigns: assigns} = socket) do
-    source =
+    {source, _warnings} =
       Livebook.LiveMarkdown.notebook_to_livemd(assigns.notebook,
         include_outputs: assigns.include_outputs
       )

@@ -18,6 +18,7 @@ defmodule LivebookWeb.JSViewComponent do
       phx-update="ignore"
       data-ref={@js_view.ref}
       data-assets-base-path={~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/"}
+      data-assets-cdn-url={cdn_url(@js_view.assets[:cdn_url])}
       data-js-path={@js_view.assets.js_path}
       data-session-token={session_token(@session_id, @client_id)}
       data-connect-token={connect_token(@js_view.pid)}
@@ -28,6 +29,9 @@ defmodule LivebookWeb.JSViewComponent do
     </div>
     """
   end
+
+  defp cdn_url(nil), do: nil
+  defp cdn_url(url), do: url <> "/"
 
   defp session_token(session_id, client_id) do
     Phoenix.Token.sign(LivebookWeb.Endpoint, "session", %{

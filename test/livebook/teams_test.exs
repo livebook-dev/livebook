@@ -64,7 +64,7 @@ defmodule Livebook.TeamsTest do
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
       teams_key = Teams.Org.teams_key()
-      key_hash = :crypto.hash(:sha256, teams_key)
+      key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
       org_request = :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
@@ -80,7 +80,12 @@ defmodule Livebook.TeamsTest do
       %{
         token: token,
         user_org: %{
-          org: %{id: id, name: name, keys: [%{id: org_key_id}]},
+          org: %{
+            id: id,
+            name: name,
+            keys: [%{id: org_key_id}],
+            key_pair: %{public_key: org_public_key}
+          },
           user: %{id: user_id}
         }
       } = org_request.user_org_session
@@ -91,6 +96,7 @@ defmodule Livebook.TeamsTest do
                   "id" => id,
                   "name" => name,
                   "org_key_id" => org_key_id,
+                  "org_public_key" => org_public_key,
                   "session_token" => token,
                   "user_id" => user_id
                 }}
@@ -98,7 +104,7 @@ defmodule Livebook.TeamsTest do
 
     test "returns the org request awaiting confirmation", %{node: node} do
       teams_key = Teams.Org.teams_key()
-      key_hash = :crypto.hash(:sha256, teams_key)
+      key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
 
@@ -123,7 +129,7 @@ defmodule Livebook.TeamsTest do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
       teams_key = Teams.Org.teams_key()
-      key_hash = :crypto.hash(:sha256, teams_key)
+      key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
         :erpc.call(node, Hub.Integration, :create_org_request, [

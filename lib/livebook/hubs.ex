@@ -82,7 +82,7 @@ defmodule Livebook.Hubs do
     attributes = struct |> Map.from_struct() |> Map.to_list()
     :ok = Storage.insert(@namespace, struct.id, attributes)
     :ok = connect_hub(struct)
-    :ok = Broadcasts.hub_changed()
+    :ok = Broadcasts.hub_changed(struct.id)
 
     struct
   end
@@ -94,7 +94,7 @@ defmodule Livebook.Hubs do
   def delete_hub(id) do
     with {:ok, hub} <- fetch_hub(id) do
       true = Provider.type(hub) != "personal"
-      :ok = Broadcasts.hub_changed()
+      :ok = Broadcasts.hub_changed(hub.id)
       :ok = Storage.delete(@namespace, id)
       :ok = disconnect_hub(hub)
     end
@@ -118,14 +118,14 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:crud`:
 
-    * `:hub_changed`
+    * `{:hub_changed, hub_id}`
 
   Topic `hubs:connection`:
 
-    * `:hub_connected`
-    * `:hub_disconnected`
-    * `{:hub_connection_failed, reason}`
-    * `{:hub_server_error, reason}`
+    * `{:hub_connected, hub_id}`
+    * `{:hub_disconnected, hub_id}`
+    * `{:hub_connection_failed, hub_id, reason}`
+    * `{:hub_server_error, hub_id, reason}`
 
   Topic `hubs:secrets`:
 
@@ -248,7 +248,7 @@ defmodule Livebook.Hubs do
   Generates a notebook stamp.
   """
   @spec notebook_stamp(Provider.t(), iodata(), map()) ::
-          {:ok, Provider.notebook_stamp()} | :skip | :error
+          {:ok, Provider.notebook_stamp()} | :skip | {:error, String.t()}
   def notebook_stamp(hub, notebook_source, metadata) do
     Provider.notebook_stamp(hub, notebook_source, metadata)
   end

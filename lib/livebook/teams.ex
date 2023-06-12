@@ -3,7 +3,7 @@ defmodule Livebook.Teams do
 
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
-  alias Livebook.Teams.{HTTP, Org}
+  alias Livebook.Teams.{Requests, Org}
 
   import Ecto.Changeset, only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
 
@@ -18,7 +18,7 @@ defmodule Livebook.Teams do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_org(%Org{} = org, attrs) do
-    create_org_request(org, attrs, &HTTP.create_org/1)
+    create_org_request(org, attrs, &Requests.create_org/1)
   end
 
   @doc """
@@ -32,7 +32,7 @@ defmodule Livebook.Teams do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def join_org(%Org{} = org, attrs) do
-    create_org_request(org, attrs, &HTTP.join_org/1)
+    create_org_request(org, attrs, &Requests.join_org/1)
   end
 
   defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
@@ -74,10 +74,23 @@ defmodule Livebook.Teams do
           | {:error, :expired}
           | {:transport_error, String.t()}
   def get_org_request_completion_data(%Org{id: id}, device_code) do
-    case HTTP.get_org_request_completion_data(id, device_code) do
+    case Requests.get_org_request_completion_data(id, device_code) do
       {:ok, %{"status" => "awaiting_confirmation"}} -> {:ok, :awaiting_confirmation}
       {:ok, completion_data} -> {:ok, completion_data}
       {:error, %{"status" => "expired"}} -> {:error, :expired}
+      any -> any
+    end
+  end
+
+  @doc """
+  Send a request to Livebook Teams API to get an org request.
+  """
+  @spec org_sign(Team.t(), String.t()) ::
+          {:ok, String.t()}
+          | {:transport_error, String.t()}
+  def org_sign(team, payload) do
+    case Requests.org_sign(team, payload) do
+      {:ok, %{"signature" => signature}} -> {:ok, signature}
       any -> any
     end
   end

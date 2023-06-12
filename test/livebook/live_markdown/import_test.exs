@@ -743,17 +743,17 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   end
 
   test "imports notebook hub id when exists" do
-    Livebook.Factory.insert_hub(:team, id: "team-persisted-id")
+    %{id: hub_id} = Livebook.Factory.insert_hub(:team)
 
     markdown = """
-    <!-- livebook:{"hub_id":"team-persisted-id"} -->
+    <!-- livebook:{"hub_id":"#{hub_id}"} -->
 
     # My Notebook
     """
 
     {notebook, []} = Import.notebook_from_livemd(markdown)
 
-    assert %Notebook{name: "My Notebook", hub_id: "team-persisted-id"} = notebook
+    assert %Notebook{name: "My Notebook", hub_id: ^hub_id} = notebook
   end
 
   test "imports ignores hub id when does not exist" do
@@ -1081,6 +1081,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       #     hub_secret_names: ["DB_PASSWORD"]
       # }
       # |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+      # |> elem(0)
       # |> IO.puts()
 
       markdown = """

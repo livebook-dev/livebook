@@ -95,7 +95,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp input_output(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select data-el-input class="input w-60" name="value">
+    <select data-el-input class="input w-60" name="html_value">
       <option
         :for={{{key, label}, idx} <- Enum.with_index(@attrs.options)}
         value={idx}
@@ -110,7 +110,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input_output(%{attrs: %{type: :checkbox}} = assigns) do
     ~H"""
     <div class="mt-1">
-      <.switch_field data-el-input name="value" value={@value} />
+      <.switch_field data-el-input name="html_value" value={@value} />
     </div>
     """
   end
@@ -123,7 +123,7 @@ defmodule LivebookWeb.Output.InputComponent do
         type="range"
         data-el-input
         class="input-range"
-        name="value"
+        name="html_value"
         value={@value}
         phx-debounce="blur"
         phx-target={@myself}
@@ -144,7 +144,7 @@ defmodule LivebookWeb.Output.InputComponent do
       id={@id}
       data-el-input
       class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs[:monospace] && "font-mono"]}
-      name="value"
+      name="html_value"
       phx-hook="TextareaAutosize"
       phx-debounce="blur"
       phx-target={@myself}
@@ -160,7 +160,7 @@ defmodule LivebookWeb.Output.InputComponent do
         type="password"
         data-el-input
         class="input w-auto bg-gray-50"
-        name="value"
+        name="html_value"
         value={@value}
         phx-debounce="blur"
         phx-target={@myself}
@@ -178,7 +178,7 @@ defmodule LivebookWeb.Output.InputComponent do
       type={html_input_type(@attrs.type)}
       data-el-input
       class="input w-auto invalid:input--error"
-      name="value"
+      name="html_value"
       value={to_string(@value)}
       phx-debounce="blur"
       phx-target={@myself}
@@ -202,7 +202,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp html_input_type(:text), do: "text"
 
   @impl true
-  def handle_event("change", %{"value" => html_value}, socket) do
+  def handle_event("change", %{"html_value" => html_value}, socket) do
     case parse(html_value, socket.assigns.attrs) do
       {:ok, value} ->
         {:noreply, handle_change(socket, value)}
@@ -213,7 +213,7 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
-  def handle_event("submit", %{"value" => html_value}, socket) do
+  def handle_event("submit", %{"html_value" => html_value}, socket) do
     case parse(html_value, socket.assigns.attrs) do
       {:ok, value} ->
         socket = handle_change(socket, value)

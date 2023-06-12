@@ -1843,7 +1843,7 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:set_notebook_attributes, @cid, %{persist_outputs: true}},
-          {:mark_as_not_dirty, @cid}
+          {:notebook_saved, @cid, []}
         ])
 
       operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
@@ -2333,7 +2333,7 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:set_notebook_attributes, @cid, %{persist_outputs: true}},
-          {:mark_as_not_dirty, @cid}
+          {:notebook_saved, @cid, []}
         ])
 
       operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
@@ -3785,14 +3785,14 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :mark_as_not_dirty" do
+  describe "apply_operation/2 given :notebook_saved" do
     test "sets dirty flag to false" do
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"}
         ])
 
-      operation = {:mark_as_not_dirty, @cid}
+      operation = {:notebook_saved, @cid, []}
 
       assert {:ok, %{dirty: false}, []} = Data.apply_operation(data, operation)
     end

@@ -6,7 +6,7 @@ defmodule Livebook.MixProject do
   @description "Automate code & data workflows with interactive notebooks"
 
   @app_elixir_version "1.15.0-rc.2"
-  @app_rebar3_version "3.19.0"
+  @app_rebar3_version "3.22.0"
 
   def project do
     [
@@ -30,7 +30,16 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
+      extra_applications: [
+        :logger,
+        :runtime_tools,
+        :os_mon,
+        :inets,
+        :ssl,
+        :xmerl,
+        :crypto,
+        :public_key
+      ],
       env: Application.get_all_env(:livebook)
     ]
   end
@@ -86,8 +95,8 @@ defmodule Livebook.MixProject do
     [
       {:phoenix, "~> 1.7.0"},
       {:phoenix_html, "~> 3.0"},
-      {:phoenix_live_view, "~> 0.18.1"},
-      {:phoenix_live_dashboard, "~> 0.7.0"},
+      {:phoenix_live_view, "~> 0.19.0"},
+      {:phoenix_live_dashboard, "~> 0.8.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},

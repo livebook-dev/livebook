@@ -150,7 +150,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -189,7 +189,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     | Maine | ME     | Augusta |
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -226,7 +226,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ### Heading 3
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -271,7 +271,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -336,7 +336,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -372,7 +372,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -410,7 +410,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -461,7 +461,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     `````
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -504,7 +504,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     Cell 2
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -554,7 +554,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     Cell 1
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -593,7 +593,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
       assert expected_document == document
     end
@@ -635,7 +635,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -683,7 +683,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -719,7 +719,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -764,7 +764,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -816,7 +816,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -867,7 +867,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -922,7 +922,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```
       """
 
-      document = Export.notebook_to_livemd(notebook, include_outputs: true)
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
       assert expected_document == document
     end
@@ -971,7 +971,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook, include_outputs: true)
+    {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
     assert expected_document == document
   end
@@ -1025,7 +1025,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook, include_outputs: true)
+    {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
     assert expected_document == document
   end
@@ -1070,7 +1070,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -1109,7 +1109,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
     """
 
-    document = Export.notebook_to_livemd(notebook, include_outputs: false)
+    {document, []} = Export.notebook_to_livemd(notebook, include_outputs: false)
 
     assert expected_document == document
   end
@@ -1127,7 +1127,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     # My Notebook
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -1145,27 +1145,27 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     # My Notebook
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
 
   test "persists hub id when not default" do
-    Livebook.Factory.build(:team, id: "team-persisted-id")
+    %{id: hub_id} = Livebook.Factory.build(:team)
 
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
-        hub_id: "team-persisted-id"
+        hub_id: hub_id
     }
 
     expected_document = """
-    <!-- livebook:{"hub_id":"team-persisted-id"} -->
+    <!-- livebook:{"hub_id":"#{hub_id}"} -->
 
     # My Notebook
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
   end
@@ -1194,7 +1194,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       # My Notebook
       """
 
-      document = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
       assert expected_document == document
     end
@@ -1217,7 +1217,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       # My Notebook
       """
 
-      document = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
       assert expected_document == document
     end
@@ -1243,7 +1243,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ## Section 1
       """
 
-      document = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
       assert expected_document == document
     end
@@ -1282,9 +1282,45 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     <!-- livebook:{"offset":58,"stamp":(.*)} -->
     """
 
-    document = Export.notebook_to_livemd(notebook)
+    {document, []} = Export.notebook_to_livemd(notebook)
 
     assert document =~ expected_document
+  end
+
+  test "skips notebook stamp if :include_stamp is false" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: """
+                    IO.puts("hey")
+                    """
+                }
+              ]
+          }
+        ],
+        hub_secret_names: ["DB_PASSWORD"]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    IO.puts("hey")
+    ```
+    """
+
+    {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
+
+    assert expected_document == document
   end
 
   defp spawn_widget_with_data(ref, data) do
