@@ -53,7 +53,8 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   end
 
   defp signature_infos_for_members(mod, funs, active_argument) do
-    infos = Livebook.Intellisense.Docs.lookup_module_members(mod, funs, kind: [:function, :macro])
+    infos =
+      Livebook.Intellisense.Docs.lookup_module_members(mod, funs, kinds: [:function, :macro])
 
     for info <- infos,
         info.arity >= active_argument + 1 do
