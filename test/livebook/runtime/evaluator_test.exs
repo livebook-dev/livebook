@@ -170,7 +170,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                      def first([], default)
                      def first([head | _], _default)
 
-                 (elixir 1.15.0-rc.1) lib/list.ex:293: List.first/2
+                 (elixir 1.15.0-rc.2) lib/list.ex:293: List.first/2
                  file.ex:1: (file)
              """
     end

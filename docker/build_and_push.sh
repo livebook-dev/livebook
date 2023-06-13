@@ -5,7 +5,7 @@
 set -ex
 cd "$(dirname "$0")/.."
 
-elixir="1.15.0-rc.1"
+elixir="1.15.0-rc.2"
 erlang="25.3.2"
 ubuntu="focal-20230126"
 
