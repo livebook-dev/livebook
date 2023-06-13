@@ -1413,10 +1413,9 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [content]} = Intellisense.get_details(":code.load_binary", 10, context)
       assert content =~ ~r"https://www.erlang.org/doc/man/code.html#load_binary-3"
 
-      # TODO: uncomment on Elixir v1.15.0
-      # # test erlang modules
-      # assert %{contents: [content]} = Intellisense.get_details(":atomics.new", 11, context)
-      # assert content =~ ~r"https://www.erlang.org/doc/man/atomics.html#new-2"
+      # test erlang modules
+      assert %{contents: [content]} = Intellisense.get_details(":atomics.new", 11, context)
+      assert content =~ ~r"https://www.erlang.org/doc/man/atomics.html#new-2"
     end
   end
 
