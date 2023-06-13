@@ -9,17 +9,45 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   Runs doctests in the given modules.
   """
   @spec run(list(module()), String.t()) :: :ok
-  def run(modules, code)
-
-  def run([], _code), do: :ok
-
   def run(modules, code) do
-    case define_test_module(modules) do
-      {:ok, test_module} ->
-        if test_module.tests != [] do
-          lines = String.split(code, ["\r\n", "\n"])
+    doctests_specs =
+      for module <- modules, doctests_spec = doctests_spec(module), do: doctests_spec
 
-          test_module.tests
+    do_run(doctests_specs, code)
+  end
+
+  defp doctests_spec(module) do
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, doc_content, _, member_docs} ->
+        funs =
+          for {{:function, name, arity}, annotation, _signatures, _doc, _meta} <- member_docs,
+              do: %{name: name, arity: arity, generated: :erl_anno.generated(annotation)}
+
+        {generated_funs, regular_funs} = Enum.split_with(funs, & &1.generated)
+
+        if regular_funs != [] or is_map(doc_content) do
+          except = Enum.map(generated_funs, &{&1.name, &1.arity})
+          %{module: module, except: except}
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_run([], _code), do: :ok
+
+  defp do_run(doctests_specs, code) do
+    case define_test_module(doctests_specs) do
+      {:ok, test_module} ->
+        lines = String.split(code, ["\r\n", "\n"])
+
+        # Ignore test cases that don't actually point to a doctest
+        # in the source code
+        tests = Enum.filter(test_module.tests, &doctest_at_line?(lines, &1.tags.doctest_line))
+
+        if tests != [] do
+          tests
           |> Enum.sort_by(& &1.tags.doctest_line)
           |> Enum.each(fn test ->
             report_doctest_running(test)
@@ -36,6 +64,18 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
 
     :ok
+  end
+
+  defp doctest_at_line?(lines, line_number) do
+    if line = Enum.at(lines, line_number - 1) do
+      case String.trim_leading(line) do
+        "iex>" <> _ -> true
+        "iex(" <> _ -> true
+        _ -> false
+      end
+    else
+      false
+    end
   end
 
   defp report_doctest_running(test) do
@@ -122,9 +162,10 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
   end
 
-  defp define_test_module(modules) do
+  defp define_test_module(doctests_specs) do
     id =
-      modules
+      doctests_specs
+      |> Enum.map(& &1.module)
       |> Enum.sort()
       |> Enum.map_join("-", fn module ->
         module
@@ -140,8 +181,8 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       defmodule name do
         use ExUnit.Case, register: false
 
-        for module <- modules do
-          doctest module
+        for doctests_spec <- doctests_specs do
+          doctest doctests_spec.module, except: doctests_spec.except
         end
       end
 

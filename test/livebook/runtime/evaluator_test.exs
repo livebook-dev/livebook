@@ -154,7 +154,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, {:error, message, :other},
                       metadata()}
 
-      assert clean_message(message) == """
+      assert """
              ** (FunctionClauseError) no function clause matching in List.first/2
 
                  The following arguments were given to List.first/2:
@@ -170,9 +170,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                      def first([], default)
                      def first([head | _], _default)
 
-                 (elixir 1.15.0-rc.1) lib/list.ex:293: List.first/2
-                 file.ex:1: (file)
-             """
+             """ <> _ = clean_message(message)
     end
 
     test "returns additional metadata when there is a syntax error", %{evaluator: evaluator} do
@@ -629,6 +627,69 @@ defmodule Livebook.Runtime.EvaluatorTest do
                         line: 4,
                         status: :failed
                       }}
+    end
+
+    test "does not run generated doctests", %{evaluator: evaluator} do
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase do
+        defmacro __using__(_) do
+          quote do
+            @doc """
+
+                iex> 1
+                2
+
+                iex> 2
+                2
+
+            """
+            def foo, do: :ok
+          end
+        end
+      end
+
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsGenerated do
+        use Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+      refute_received {:runtime_doctest_report, :code_1, %{}}
+
+      # Here the generated doctest line matches another iex> prompt
+      # in the module, but we expect the :erl_anno check to filter
+      # it out
+
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase do
+        defmacro __using__(_) do
+          quote do
+            @doc """
+
+                iex> 1
+                2
+
+            """
+            def foo, do: :ok
+          end
+        end
+      end
+
+      defmodule Livebook.Runtime.EvaluatorTest.DoctestsGenerated do
+        use Livebook.Runtime.EvaluatorTest.DoctestsGeneratedBase
+        @string """
+            iex> 1
+            2
+        """
+      end
+      '''
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
+      refute_received {:runtime_doctest_report, :code_1, %{}}
     end
   end
 

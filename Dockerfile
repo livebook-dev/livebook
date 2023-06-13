@@ -1,5 +1,4 @@
-# TODO: update the image once available on hexpm/ builds
-ARG BASE_IMAGE=jonatanklosko/elixir:1.15.0-rc.1-erlang-25.3.2-debian-bullseye-20230522-slim
+ARG BASE_IMAGE=hexpm/elixir:1.15.0-rc.2-erlang-25.3.2-debian-bullseye-20230522-slim
 
 # Stage 1
 # Builds the Livebook release
