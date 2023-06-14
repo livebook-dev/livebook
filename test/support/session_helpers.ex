@@ -57,9 +57,7 @@ defmodule Livebook.SessionHelpers do
       end
 
     assert has_element?(view, selector)
-    secrets = Session.get_data(session_pid).secrets
-
-    assert secrets[secret.name] == secret
+    assert secret in Session.get_data(session_pid).hub_secrets
   end
 
   def hub_label(%Secret{hub_id: id}), do: hub_label(Hubs.fetch_hub!(id))
