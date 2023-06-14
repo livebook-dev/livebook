@@ -108,10 +108,20 @@ defmodule Livebook.Teams do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_secret(%Team{} = team, %Secret{} = secret) do
-    case HTTP.create_secret(team, secret) do
-      {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
-      any -> any
+    case Requests.create_secret(team, secret) do
+      {:ok, %{"id" => _}} ->
+        :ok
+
+      {:error, %{"errors" => errors_map}} ->
+        errors_map =
+          if errors = errors_map["org_key_id"],
+            do: Map.put_new(errors_map, "name", errors),
+            else: errors_map
+
+        {:error, add_secret_errors(secret, errors_map)}
+
+      any ->
+        any
     end
   end
 
