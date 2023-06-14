@@ -50,10 +50,13 @@ defmodule Livebook.Teams.Requests do
   @spec create_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_secret(team, secret) do
-    headers = auth_headers(team)
-    params = %{name: secret.name, value: secret.value, key_hash: Team.key_hash(team)}
+    {secret_key, sign_secret} = Livebook.Stamping.derive_keys(team.teams_key, "notebook secret")
+    secret_value = Plug.Crypto.MessageEncryptor.encrypt(secret.value, secret_key, sign_secret)
 
-    post("/api/secrets", params, headers)
+    headers = auth_headers(team)
+    params = %{name: secret.name, value: secret_value}
+
+    post("/api/v1/org/secrets", params, headers)
   end
 
   defp auth_headers(team) do
