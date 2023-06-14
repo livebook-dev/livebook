@@ -124,7 +124,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert secret in Livebook.Hubs.get_secrets(team)
 
       # checks the secret on the UI
-      assert_session_secret(view, session.pid, secret)
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
     end
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
@@ -249,7 +249,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # checks if the secret exists and is inside the session,
       # then executes the code cell again and checks if the
       # secret value is what we expected.
-      assert_session_secret(view, session.pid, secret)
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
@@ -336,7 +336,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # checks if the secret exists and is inside the session,
       # then executes the code cell again and checks if the
       # secret value is what we expected.
-      assert_session_secret(view, session.pid, secret)
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
