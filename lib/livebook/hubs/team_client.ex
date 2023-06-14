@@ -124,8 +124,19 @@ defmodule Livebook.Hubs.TeamClient do
     %{state | secrets: [secret | state.secrets]}
   end
 
-  defp build_secret(state, %{name: name, value: value}),
-    do: %Livebook.Secrets.Secret{name: name, value: value, hub_id: state.hub.id, readonly: false}
+  defp build_secret(state, %{name: name, value: value}) do
+    {secret_key, sign_secret} =
+      Livebook.Stamping.derive_keys(state.hub.teams_key, "notebook secret")
+
+    {:ok, decrypted_value} = Plug.Crypto.MessageEncryptor.decrypt(value, secret_key, sign_secret)
+
+    %Livebook.Secrets.Secret{
+      name: name,
+      value: decrypted_value,
+      hub_id: state.hub.id,
+      readonly: true
+    }
+  end
 
   defp handle_event(:secret_created, secret_created, state) do
     secret = build_secret(state, secret_created)
