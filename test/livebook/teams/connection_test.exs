@@ -11,26 +11,26 @@ defmodule Livebook.Teams.ConnectionTest do
       org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
       token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
 
-      header = [
+      headers = [
         {"x-user", to_string(user.id)},
         {"x-org", to_string(org.id)},
         {"x-org-key", to_string(org_key.id)},
         {"x-session-token", token}
       ]
 
-      assert {:ok, _conn} = Connection.start_link(self(), header)
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
     end
 
     test "rejects the websocket connection with invalid credentials", %{user: user} do
-      header = [
+      headers = [
         {"x-user", to_string(user.id)},
         {"x-org", to_string(user.id)},
         {"x-org-key", to_string(user.id)},
         {"x-session-token", "foo"}
       ]
 
-      assert {:ok, _conn} = Connection.start_link(self(), header)
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
 
       assert_receive {:server_error,
                       "Your session is out-of-date. Please re-join the organization."}
