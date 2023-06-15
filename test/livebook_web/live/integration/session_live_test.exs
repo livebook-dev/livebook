@@ -1,6 +1,7 @@
 defmodule LivebookWeb.Integration.SessionLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
+  import Livebook.SessionHelpers
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session}
@@ -17,20 +18,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, user: user, node: node, session: session} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 
@@ -46,5 +34,238 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
       assert Session.get_data(session.pid).notebook.hub_id == hub.id
     end
+  end
+
+  describe "secrets" do
+    test "creates a new secret", %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+      Session.subscribe(session.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # selects the notebook's hub with team hub id
+      view
+      |> element(~s/#select-hub-#{team.id}/)
+      |> render_click()
+
+      # clicks the button to add a new secret
+      view
+      |> with_target("#secrets_list")
+      |> element("#new-secret-button")
+      |> render_click(%{})
+
+      # redirects to secrets action to
+      # render the secret modal
+      assert_patch(view, ~p"/sessions/#{session.id}/secrets")
+
+      secret =
+        build(:secret,
+          name: "BIG_IMPORTANT_SECRET",
+          value: "123",
+          hub_id: team.id,
+          readonly: true
+        )
+
+      attrs = %{
+        secret: %{
+          name: secret.name,
+          value: secret.value,
+          hub_id: team.id
+        }
+      }
+
+      # fills and submits the secrets modal form
+      # to create a new secret on team hub
+      secrets_modal = with_target(view, "#secrets")
+      form = element(secrets_modal, ~s{form[phx-submit="save"]})
+
+      render_change(form, attrs)
+      render_submit(form, attrs)
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert secret in Livebook.Hubs.get_secrets(team)
+
+      # checks the secret on the UI
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
+    end
+
+    test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
+      team = create_team_hub(user, node)
+      Session.subscribe(session.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # creates a new secret
+      secret =
+        build(:secret,
+          name: "POSTGRES_PASSWORD",
+          value: "123456789",
+          hub_id: team.id,
+          readonly: true
+        )
+
+      assert Livebook.Teams.create_secret(team, secret) == :ok
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert secret in Livebook.Hubs.get_secrets(team)
+
+      # checks the secret on the UI
+      Session.set_secret(session.pid, secret)
+      assert_session_secret(view, session.pid, secret)
+    end
+
+    test "adding a missing secret using 'Add secret' button",
+         %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+
+      secret =
+        build(:secret,
+          name: "MYSQL_PASS",
+          value: "admin",
+          hub_id: team.id,
+          readonly: true
+        )
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      # enters the session to check if the button exists
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
+
+      # clicks the button and fills the form to create a new secret
+      # that prefilled the name with the received from exception.
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+      form_element = element(secrets_component, "form[phx-submit='save']")
+      assert has_element?(form_element)
+      attrs = %{value: secret.value, hub_id: team.id}
+      render_submit(form_element, %{secret: attrs})
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert secret in Livebook.Hubs.get_secrets(team)
+
+      # checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+
+    test "granting access for missing secret using 'Add secret' button",
+         %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+
+      secret =
+        build(:secret,
+          name: "PGPASS",
+          value: "admin",
+          hub_id: team.id,
+          readonly: true
+        )
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # subscribe and executes the code to trigger
+      # the `System.EnvError` exception and outputs the 'Add secret' button
+      Session.subscribe(session.id)
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      # enters the session to check if the button exists
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      expected_url = ~p"/sessions/#{session.id}/secrets?secret_name=#{secret.name}"
+      add_secret_button = element(view, "a[href='#{expected_url}']")
+      assert has_element?(add_secret_button)
+
+      # creates the secret
+      assert Livebook.Teams.create_secret(team, secret) == :ok
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+      assert secret in Livebook.Hubs.get_secrets(team)
+
+      # remove the secret from session
+      Session.unset_secret(session.pid, secret.name)
+
+      # clicks the button and checks if the 'Grant access' banner
+      # is being shown, so clicks it's button to set the app secret
+      # to the session, allowing the user to fetches the secret.
+      render_click(add_secret_button)
+      secrets_component = with_target(view, "#secrets-modal")
+
+      assert render(secrets_component) =~
+               "in #{hub_label(team)}. Allow this session to access it?"
+
+      grant_access_button = element(secrets_component, "button", "Grant access")
+      render_click(grant_access_button)
+
+      # checks if the secret exists and is inside the session,
+      # then executes the code cell again and checks if the
+      # secret value is what we expected.
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+    end
+  end
+
+  defp create_team_hub(user, node) do
+    teams_org = build(:org)
+    teams_key = teams_org.teams_key
+    key_hash = Livebook.Teams.Org.key_hash(teams_org)
+
+    org = erpc_call(node, :create_org, [])
+    org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
+    org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
+    token = erpc_call(node, :associate_user_with_org, [user, org])
+
+    insert_hub(:team,
+      id: "team-#{org.name}",
+      hub_name: org.name,
+      user_id: user.id,
+      org_id: org.id,
+      org_key_id: org_key.id,
+      org_public_key: org_key_pair.public_key,
+      session_token: token,
+      teams_key: teams_key
+    )
+  end
+
+  defp erpc_call(node, fun, args) do
+    :erpc.call(node, Hub.Integration, fun, args)
   end
 end

@@ -293,6 +293,8 @@ defmodule LivebookWeb.Hub.NewLive do
          |> assign_form(changeset)}
 
       {:error, changeset} ->
+        changeset = Map.replace!(changeset, :action, :validate)
+
         {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->
@@ -331,7 +333,10 @@ defmodule LivebookWeb.Hub.NewLive do
          |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
 
       {:error, :expired} ->
-        changeset = Teams.change_org(org, %{user_code: nil})
+        changeset =
+          org
+          |> Teams.change_org(%{user_code: nil})
+          |> Map.replace!(:action, :validate)
 
         {:noreply,
          socket

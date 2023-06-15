@@ -60,6 +60,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         </div>
 
         <.link
+          id="new-secret-button"
           patch={~p"/sessions/#{@session.id}/secrets"}
           class="inline-flex items-center justify-center p-8 py-1 mt-6 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
           role="button"
@@ -229,9 +230,14 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-      :ok = Hubs.delete_secret(hub, secret)
-      :ok = Session.unset_secret(session.pid, secret.name)
-      socket
+
+      with :ok <- Hubs.delete_secret(hub, secret),
+           :ok <- Session.unset_secret(session.pid, secret.name) do
+        socket
+      else
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
+      end
     end
 
     {:noreply,

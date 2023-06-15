@@ -41,10 +41,7 @@ defmodule Livebook.Stamping do
     binary_key = Base.url_decode64!(secret_key, padding: false)
 
     <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing",
-        length: 32,
-        cache: Plug.Crypto.Keys
-      )
+      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing", cache: Plug.Crypto.Keys)
 
     {secret, sign_secret}
   end

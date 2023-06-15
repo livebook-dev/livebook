@@ -3,9 +3,11 @@ defmodule Livebook.Teams do
 
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
+  alias Livebook.Secrets.Secret
   alias Livebook.Teams.{Requests, Org}
 
-  import Ecto.Changeset, only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
+  import Ecto.Changeset,
+    only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2, change: 1]
 
   @doc """
   Creates an Org.
@@ -83,7 +85,7 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Send a request to Livebook Teams API to get an org request.
+  Send a request to Livebook Teams API to sign a payload.
   """
   @spec org_sign(Team.t(), String.t()) ::
           {:ok, String.t()}
@@ -91,6 +93,24 @@ defmodule Livebook.Teams do
   def org_sign(team, payload) do
     case Requests.org_sign(team, payload) do
       {:ok, %{"signature" => signature}} -> {:ok, signature}
+      any -> any
+    end
+  end
+
+  @doc """
+  Creates a Secret.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec create_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_secret(%Team{} = team, %Secret{} = secret) do
+    case Requests.create_secret(team, secret) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors_map}} -> {:error, add_secret_errors(secret, errors_map)}
       any -> any
     end
   end
@@ -128,10 +148,47 @@ defmodule Livebook.Teams do
     end
   end
 
+  @doc """
+  Encrypts the given value with Teams key derived keys.
+  """
+  @spec encrypt_secret_value(String.t(), bitstring(), bitstring()) :: String.t()
+  def encrypt_secret_value(value, secret, sign_secret) do
+    Plug.Crypto.MessageEncryptor.encrypt(value, secret, sign_secret)
+  end
+
+  @doc """
+  Decrypts the given encrypted value with Teams key derived keys.
+  """
+  @spec decrypt_secret_value(String.t(), bitstring(), bitstring()) :: {:ok, String.t()} | :error
+  def decrypt_secret_value(encrypted_value, secret, sign_secret) do
+    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, sign_secret)
+  end
+
+  @doc """
+  Derives the secret and sign secret from given `teams_key`.
+  """
+  @spec derive_keys(String.t()) :: {bitstring(), bitstring()}
+  def derive_keys(teams_key) do
+    binary_key = Base.url_decode64!(teams_key, padding: false)
+
+    <<secret::16-bytes, sign_secret::16-bytes>> =
+      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
+
+    {secret, sign_secret}
+  end
+
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
+    add_errors(changeset, Org.__schema__(:fields), errors_map)
+  end
+
+  defp add_secret_errors(%Secret{} = secret, errors_map) do
+    add_errors(change(secret), Secret.__schema__(:fields), errors_map)
+  end
+
+  defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
     for {key, errors} <- errors_map,
         field = String.to_atom(key),
-        field in Org.__schema__(:fields),
+        field in fields,
         error <- errors,
         reduce: changeset,
         do: (acc -> add_error(acc, field, error))

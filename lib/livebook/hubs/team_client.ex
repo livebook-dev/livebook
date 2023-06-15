@@ -5,12 +5,13 @@ defmodule Livebook.Hubs.TeamClient do
 
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Hubs.Team
+  alias Livebook.Teams
   alias Livebook.Teams.Connection
 
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
 
-  defstruct [:hub, :connection_error, connected?: false, secrets: []]
+  defstruct [:hub, :connection_error, :derived_keys, connected?: false, secrets: []]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
@@ -32,6 +33,14 @@ defmodule Livebook.Hubs.TeamClient do
     end
 
     :ok
+  end
+
+  @doc """
+  Returns a list of cached secrets.
+  """
+  @spec get_secrets(String.t()) :: list(Secret.t())
+  def get_secrets(id) do
+    GenServer.call(registry_name(id), :get_secrets)
   end
 
   @doc """
@@ -65,8 +74,10 @@ defmodule Livebook.Hubs.TeamClient do
       {"x-session-token", team.session_token}
     ]
 
+    derived_keys = Teams.derive_keys(team.teams_key)
+
     {:ok, _pid} = Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{hub: team}}
+    {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
   end
 
   @impl true
@@ -76,6 +87,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:connected?, _caller, state) do
     {:reply, state.connected?, state}
+  end
+
+  def handle_call(:get_secrets, _caller, state) do
+    {:reply, state.secrets, state}
   end
 
   @impl true
@@ -96,9 +111,38 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, %{state | connected?: false}}
   end
 
+  def handle_info({:event, topic, data}, state) do
+    Logger.debug("Received event #{topic} with data: #{inspect(data)}")
+
+    {:noreply, handle_event(topic, data, state)}
+  end
+
   # Private
 
   defp registry_name(id) do
     {:via, Registry, {@registry, id}}
+  end
+
+  defp put_secret(state, secret) do
+    %{state | secrets: [secret | state.secrets]}
+  end
+
+  defp build_secret(state, %{name: name, value: value}) do
+    {secret_key, sign_secret} = state.derived_keys
+    {:ok, decrypted_value} = Teams.decrypt_secret_value(value, secret_key, sign_secret)
+
+    %Livebook.Secrets.Secret{
+      name: name,
+      value: decrypted_value,
+      hub_id: state.hub.id,
+      readonly: true
+    }
+  end
+
+  defp handle_event(:secret_created, secret_created, state) do
+    secret = build_secret(state, secret_created)
+    Broadcasts.secret_created(secret)
+
+    put_secret(state, secret)
   end
 end

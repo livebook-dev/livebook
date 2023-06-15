@@ -75,7 +75,15 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   def handle_event("save", %{"secret" => attrs}, socket) do
     with {:ok, secret} <- Secrets.update_secret(%Secret{}, attrs),
          :ok <- set_secret(socket, secret) do
-      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+      message =
+        if socket.assigns.secret_name,
+          do: "Secret updated successfully",
+          else: "Secret created successfully"
+
+      {:noreply,
+       socket
+       |> put_flash(:success, message)
+       |> push_redirect(to: socket.assigns.return_to)}
     else
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}

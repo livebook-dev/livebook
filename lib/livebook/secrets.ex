@@ -70,10 +70,6 @@ defmodule Livebook.Secrets do
     |> Ecto.Changeset.add_error(field, message)
   end
 
-  def add_secret_error(%Ecto.Changeset{} = changeset, field, message) do
-    Ecto.Changeset.add_error(changeset, field, message)
-  end
-
   @doc """
   Stores the given secret as is, without validation.
   """

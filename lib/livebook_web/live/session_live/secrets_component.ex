@@ -224,6 +224,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     else
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
+
+      {:transport_error, error} ->
+        {:noreply,
+         socket
+         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/secrets")
+         |> put_flash(:error, error)}
     end
   end
 
@@ -231,7 +237,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     changeset =
       %Secret{}
       |> Secrets.change_secret(attrs)
-      |> Map.put(:action, :validate)
+      |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset)}
   end

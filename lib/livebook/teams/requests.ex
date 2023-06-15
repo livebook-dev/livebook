@@ -1,8 +1,10 @@
 defmodule Livebook.Teams.Requests do
   @moduledoc false
 
-  alias Livebook.Teams.Org
   alias Livebook.Hubs.Team
+  alias Livebook.Secrets.Secret
+  alias Livebook.Teams
+  alias Livebook.Teams.Org
   alias Livebook.Utils.HTTP
 
   @doc """
@@ -40,6 +42,21 @@ defmodule Livebook.Teams.Requests do
   def org_sign(team, payload) do
     headers = auth_headers(team)
     post("/api/v1/org/sign", %{payload: payload}, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to create a secret.
+  """
+  @spec create_secret(Team.t(), Secret.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_secret(team, secret) do
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    secret_value = Teams.encrypt_secret_value(secret.value, secret_key, sign_secret)
+
+    headers = auth_headers(team)
+    params = %{name: secret.name, value: secret_value}
+
+    post("/api/v1/org/secrets", params, headers)
   end
 
   defp auth_headers(team) do

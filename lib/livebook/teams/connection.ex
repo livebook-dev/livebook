@@ -95,8 +95,13 @@ defmodule Livebook.Teams.Connection do
 
   defp handle_websocket_message(message, %__MODULE__{} = data) do
     case WebSocket.receive(data.http_conn, data.ref, data.websocket, message) do
-      {:ok, conn, websocket, _binaries} ->
+      {:ok, conn, websocket, binaries} ->
         data = %__MODULE__{data | http_conn: conn, websocket: websocket}
+
+        for binary <- binaries do
+          %{type: {topic, message}} = LivebookProto.Event.decode(binary)
+          send(data.listener, {:event, topic, message})
+        end
 
         {:keep_state, data}
 

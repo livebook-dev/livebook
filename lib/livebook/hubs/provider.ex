@@ -68,19 +68,25 @@ defprotocol Livebook.Hubs.Provider do
   @doc """
   Creates a secret of the given hub.
   """
-  @spec create_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  @spec create_secret(t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
   def create_secret(hub, secret)
 
   @doc """
   Updates a secret of the given hub.
   """
-  @spec update_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  @spec update_secret(t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
   def update_secret(hub, secret)
 
   @doc """
   Deletes a secret of the given hub.
   """
-  @spec delete_secret(t(), Secret.t()) :: :ok | {:error, Ecto.Changeset.t()}
+  @spec delete_secret(t(), Secret.t()) :: :ok | {:transport_error, String.t()}
   def delete_secret(hub, secret)
 
   @doc """

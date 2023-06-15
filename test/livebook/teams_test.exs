@@ -148,4 +148,47 @@ defmodule Livebook.TeamsTest do
                {:error, :expired}
     end
   end
+
+  describe "create_secret/2" do
+    test "creates a new secret", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "FOO", value: "BAR")
+
+      assert Teams.create_secret(hub, secret) == :ok
+
+      # Guarantee uniqueness
+      assert {:error, changeset} = Teams.create_secret(hub, secret)
+      assert "has already been taken" in errors_on(changeset).name
+    end
+
+    test "returns changeset errors when data is invalid", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "LB_FOO", value: "BAR")
+
+      assert {:error, changeset} = Teams.create_secret(hub, secret)
+      assert "cannot start with the LB_ prefix" in errors_on(changeset).name
+    end
+  end
 end

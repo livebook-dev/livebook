@@ -71,8 +71,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-      assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret created successfully"
+      %{"success" => "Secret created successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -114,8 +116,9 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-      assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret updated successfully"
+      %{"success" => "Secret updated successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
