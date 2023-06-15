@@ -12,7 +12,8 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
-      - run: |
+      - name: Read ./versions
+        run: |
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
@@ -66,7 +67,9 @@ jobs:
         run: git config --global core.autocrlf input
       - name: Checkout git repo
         uses: actions/checkout@v3
-      - run: |
+      - name: Read ./versions
+        shell: bash
+        run: |
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
@@ -106,7 +109,8 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
-      - run: |
+      - name: Read ./versions
+        run: |
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
