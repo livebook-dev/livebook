@@ -17,6 +17,7 @@ jobs:
           . versions
           echo "elixir=$elixir" >> $GITHUB_ENV
           echo "otp=$otp" >> $GITHUB_ENV
+          echo "debian=$debian" >> $GITHUB_ENV
       # --- START build assets
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
@@ -74,6 +75,8 @@ jobs:
           file: ./Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            BASE_IMAGE=hexpm/elixir:${{ env.elixir }}-erlang-${{ env.otp }}-debian-${{ env.debian }}
 
   render-compose-file:
     name: Render Docker Compose file
