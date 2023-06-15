@@ -109,19 +109,9 @@ defmodule Livebook.Teams do
           | {:transport_error, String.t()}
   def create_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.create_secret(team, secret) do
-      {:ok, %{"id" => _}} ->
-        :ok
-
-      {:error, %{"errors" => errors_map}} ->
-        errors_map =
-          if errors = errors_map["org_key_id"],
-            do: Map.put_new(errors_map, "name", errors),
-            else: errors_map
-
-        {:error, add_secret_errors(secret, errors_map)}
-
-      any ->
-        any
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors_map}} -> {:error, add_secret_errors(secret, errors_map)}
+      any -> any
     end
   end
 
@@ -156,6 +146,35 @@ defmodule Livebook.Teams do
     else
       {:error, add_error(changeset, :hub_name, "does not exists")}
     end
+  end
+
+  @doc """
+  Encrypts the given value with Teams key derived keys.
+  """
+  @spec encrypt_secret_value(String.t(), bitstring(), bitstring()) :: String.t()
+  def encrypt_secret_value(value, secret, sign_secret) do
+    Plug.Crypto.MessageEncryptor.encrypt(value, secret, sign_secret)
+  end
+
+  @doc """
+  Decrypts the given encrypted value with Teams key derived keys.
+  """
+  @spec decrypt_secret_value(String.t(), bitstring(), bitstring()) :: {:ok, String.t()} | :error
+  def decrypt_secret_value(encrypted_value, secret, sign_secret) do
+    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, sign_secret)
+  end
+
+  @doc """
+  Derives the secret and sign secret from given `teams_key`.
+  """
+  @spec derive_keys(String.t()) :: {bitstring(), bitstring()}
+  def derive_keys(teams_key) do
+    binary_key = Base.url_decode64!(teams_key, padding: false)
+
+    <<secret::16-bytes, sign_secret::16-bytes>> =
+      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
+
+    {secret, sign_secret}
   end
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do

@@ -14,7 +14,7 @@ defmodule Livebook.Stamping do
   """
   @spec aead_encrypt(term(), String.t(), String.t()) :: String.t()
   def aead_encrypt(payload, additional_data, secret_key) do
-    {secret, sign_secret} = derive_keys(secret_key, "notebook signing")
+    {secret, sign_secret} = derive_keys(secret_key)
 
     payload = :erlang.term_to_binary(payload)
     Plug.Crypto.MessageEncryptor.encrypt(payload, additional_data, secret, sign_secret)
@@ -25,7 +25,7 @@ defmodule Livebook.Stamping do
   """
   @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
   def aead_decrypt(encrypted, additional_data, secret_key) do
-    {secret, sign_secret} = derive_keys(secret_key, "notebook signing")
+    {secret, sign_secret} = derive_keys(secret_key)
 
     case Plug.Crypto.MessageEncryptor.decrypt(encrypted, additional_data, secret, sign_secret) do
       {:ok, payload} ->
@@ -37,15 +37,11 @@ defmodule Livebook.Stamping do
     end
   end
 
-  @doc """
-  Derives the secret and sign secret from given `secret_key`.
-  """
-  @spec derive_keys(String.t(), String.t()) :: {bitstring(), bitstring()}
-  def derive_keys(secret_key, topic) do
+  defp derive_keys(secret_key) do
     binary_key = Base.url_decode64!(secret_key, padding: false)
 
     <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, topic, cache: Plug.Crypto.Keys)
+      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook signing", cache: Plug.Crypto.Keys)
 
     {secret, sign_secret}
   end

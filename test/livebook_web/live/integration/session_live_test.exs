@@ -18,20 +18,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
   describe "hubs" do
     test "selects the notebook hub", %{conn: conn, user: user, node: node, session: session} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 
@@ -51,30 +38,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
   describe "secrets" do
     test "creates a new secret", %{conn: conn, user: user, node: node, session: session} do
-      teams_org = build(:org)
-      teams_key = teams_org.teams_key
-      key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-
-      org_key =
-        :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token,
-          teams_key: teams_key
-        )
-
+      team = create_team_hub(user, node)
       Session.subscribe(session.id)
 
       # loads the session page
@@ -128,30 +92,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
-      teams_org = build(:org)
-      teams_key = teams_org.teams_key
-      key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-
-      org_key =
-        :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token,
-          teams_key: teams_key
-        )
-
+      team = create_team_hub(user, node)
       Session.subscribe(session.id)
 
       # loads the session page
@@ -182,29 +123,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "adding a missing secret using 'Add secret' button",
          %{conn: conn, user: user, node: node, session: session} do
-      teams_org = build(:org)
-      teams_key = teams_org.teams_key
-      key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-
-      org_key =
-        :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token,
-          teams_key: teams_key
-        )
+      team = create_team_hub(user, node)
 
       secret =
         build(:secret,
@@ -260,29 +179,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "granting access for missing secret using 'Add secret' button",
          %{conn: conn, user: user, node: node, session: session} do
-      teams_org = build(:org)
-      teams_key = teams_org.teams_key
-      key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-
-      org_key =
-        :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        insert_hub(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token,
-          teams_key: teams_key
-        )
+      team = create_team_hub(user, node)
 
       secret =
         build(:secret,
@@ -344,5 +241,31 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
+  end
+
+  defp create_team_hub(user, node) do
+    teams_org = build(:org)
+    teams_key = teams_org.teams_key
+    key_hash = Livebook.Teams.Org.key_hash(teams_org)
+
+    org = erpc_call(node, :create_org, [])
+    org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
+    org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
+    token = erpc_call(node, :associate_user_with_org, [user, org])
+
+    insert_hub(:team,
+      id: "team-#{org.name}",
+      hub_name: org.name,
+      user_id: user.id,
+      org_id: org.id,
+      org_key_id: org_key.id,
+      org_public_key: org_key_pair.public_key,
+      session_token: token,
+      teams_key: teams_key
+    )
+  end
+
+  defp erpc_call(node, fun, args) do
+    :erpc.call(node, Hub.Integration, fun, args)
   end
 end

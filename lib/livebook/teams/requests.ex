@@ -3,8 +3,8 @@ defmodule Livebook.Teams.Requests do
 
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
+  alias Livebook.Teams
   alias Livebook.Teams.Org
-  alias Livebook.Hubs.Team
   alias Livebook.Utils.HTTP
 
   @doc """
@@ -50,8 +50,8 @@ defmodule Livebook.Teams.Requests do
   @spec create_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_secret(team, secret) do
-    {secret_key, sign_secret} = Livebook.Stamping.derive_keys(team.teams_key, "notebook secret")
-    secret_value = Plug.Crypto.MessageEncryptor.encrypt(secret.value, secret_key, sign_secret)
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    secret_value = Teams.encrypt_secret_value(secret.value, secret_key, sign_secret)
 
     headers = auth_headers(team)
     params = %{name: secret.name, value: secret_value}
