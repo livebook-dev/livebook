@@ -3,10 +3,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
 
-env:
-  otp: "25.3.2"
-  elixir: "1.15.0-rc.2"
-
 jobs:
   build-application:
     name: Build PR image
@@ -17,6 +13,10 @@ jobs:
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
+      - run: |
+          . versions
+          echo "elixir=$elixir" >> $GITHUB_ENV
+          echo "otp=$otp" >> $GITHUB_ENV
       # --- START build assets
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1

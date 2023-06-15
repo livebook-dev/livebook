@@ -5,9 +5,6 @@ defmodule Livebook.MixProject do
   @version "0.9.2"
   @description "Automate code & data workflows with interactive notebooks"
 
-  @app_elixir_version "1.15.0-rc.2"
-  @app_rebar3_version "3.22.0"
-
   def project do
     [
       app: :livebook,
@@ -164,12 +161,16 @@ defmodule Livebook.MixProject do
   @compile {:no_warn_undefined, Standalone}
 
   defp standalone_erlang_elixir(release) do
+    {_, bindings} = Code.eval_file("versions")
+    elixir_version = bindings[:elixir]
+    rebar3_version = bindings[:rebar3]
+
     Code.require_file("rel/app/standalone.exs")
 
     release
     |> Standalone.copy_otp()
-    |> Standalone.copy_elixir(@app_elixir_version)
+    |> Standalone.copy_elixir(elixir_version)
     |> Standalone.copy_hex()
-    |> Standalone.copy_rebar3(@app_rebar3_version)
+    |> Standalone.copy_rebar3(rebar3_version)
   end
 end
