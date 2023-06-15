@@ -15,6 +15,11 @@
 set -euo pipefail
 
 main() {
+  . versions
+  OTP_VERSION="${OTP_VERSION:-$otp}"
+  ELIXIR_VERSION="${ELIXIR_VERSION:-$elixir}"
+  OPENSSL_VERSION="${OPENSSL_VERSION:-$openssl}"
+
   bootstrap_otp
   download_elixir
   build_app
@@ -23,16 +28,16 @@ main() {
 bootstrap_otp() {
   dir=$PWD
   cd elixirkit/otp_bootstrap
-  . ./build_macos_universal.sh $OTP_VERSION "1.1.1s"
+  . ./build_macos_universal.sh "$OTP_VERSION" "$OPENSSL_VERSION"
   cd $dir
 }
 
 download_elixir() {
   dir=$PWD
-  elixir_dir=$PWD/_build/elixir-$ELIXIR_VERSION
+  elixir_dir=$PWD/_build/elixir-"$ELIXIR_VERSION"
 
   if [ ! -d $elixir_dir ]; then
-    otp_release=$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')
+    otp_release=`erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().'`
     elixir_zip=v${ELIXIR_VERSION}-otp-${otp_release}.zip
     url=https://builds.hex.pm/builds/elixir/$elixir_zip
     echo downloading $url
