@@ -6,10 +6,9 @@ set -ex
 cd "$(dirname "$0")/.."
 
 . versions
-ubuntu="focal-20230126"
 
 docker buildx build --push --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/livebook-dev/utils:elixir-cuda11.8 \
+  -t ghcr.io/livebook-dev/utils:elixir-$elixir-erlang-$otp-cuda11.8 \
   --build-arg ELIXIR_VERSION=$elixir \
   --build-arg ERLANG_VERSION=$otp \
   --build-arg UBUNTU_VERSION=$ubuntu \

@@ -66,6 +66,11 @@ jobs:
           # The output is set only if there was a commit, otherwise
           # we pass an empty ref and and the default is used
           ref: ${{ needs.assets.outputs.sha }}
+      - run: |
+          . versions
+          echo "elixir=$elixir" >> $GITHUB_ENV
+          echo "otp=$otp" >> $GITHUB_ENV
+          echo "debian=$debian" >> $GITHUB_ENV
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -93,6 +98,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            BASE_IMAGE=hexpm/elixir:${{ env.elixir }}-erlang-${{ env.otp }}-debian-${{ env.debian }}
 
   docker_extras:
     if: github.ref_type == 'tag'
@@ -101,6 +108,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: |
+          . versions
+          echo "elixir=$elixir" >> $GITHUB_ENV
+          echo "otp=$otp" >> $GITHUB_ENV
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -129,7 +140,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            BASE_IMAGE=ghcr.io/livebook-dev/utils:elixir-cuda11.8
+            BASE_IMAGE=ghcr.io/livebook-dev/utils:elixir-${{ env.elixir }}-erlang-${{ env.otp }}-cuda11.8
 
   create_draft_release:
     if: github.ref_type == 'tag'
