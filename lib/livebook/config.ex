@@ -3,7 +3,8 @@ defmodule Livebook.Config do
 
   alias Livebook.FileSystem
 
-  @type auth_mode() :: :token | :password | :cloudflare | :disabled
+  @type auth_mode() :: :token | :password | :disabled
+  @type zti() :: :cloudflare | nil
 
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
@@ -166,6 +167,14 @@ defmodule Livebook.Config do
   @spec shutdown_callback() :: {module(), atom(), list()} | nil
   def shutdown_callback() do
     Application.fetch_env!(:livebook, :shutdown_callback)
+  end
+
+  @doc """
+  Returns the zti provider.
+  """
+  @spec zti() :: zti()
+  def zti() do
+    Application.fetch_env!(:livebook, :zti)
   end
 
   @doc """
@@ -495,9 +504,16 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses cloudflare team name from env.
+  Parses zero trust identity (zti) from env.
   """
-  def cloudflare_team_name!(env) do
+  def zti!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses zero trust identity key from env.
+  """
+  def zti_key!(env) do
     System.get_env(env)
   end
 end

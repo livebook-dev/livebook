@@ -107,9 +107,6 @@ defmodule Livebook do
       password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
         config :livebook, authentication_mode: :password, password: password
 
-      cloudflare_team_name = Livebook.Config.cloudflare_team_name!("LIVEBOOK_CLOUDFLARE") ->
-        config :livebook, authentication_mode: :cloudflare, cloudflare: cloudflare_team_name
-
       Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
         config :livebook, token: Livebook.Utils.random_id()
 
@@ -196,6 +193,14 @@ defmodule Livebook do
 
     if allowed_uri_schemes = Livebook.Config.allowed_uri_schemes!("LIVEBOOK_ALLOW_URI_SCHEMES") do
       config :livebook, :allowed_uri_schemes, allowed_uri_schemes
+    end
+
+    if zti = Livebook.Config.zti!("LIVEBOOK_ZTI") do
+      config :livebook, :zti, zti
+    end
+
+    if zti_key = Livebook.Config.zti_key!("LIVEBOOK_ZTI_KEY") do
+      config :livebook, :zti_key, zti_key
     end
   end
 

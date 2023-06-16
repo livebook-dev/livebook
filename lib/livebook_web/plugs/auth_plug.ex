@@ -50,7 +50,7 @@ defmodule LivebookWeb.AuthPlug do
     true
   end
 
-  def authenticated?(session, port, mode) when mode in [:token, :password, :cloudflare] do
+  def authenticated?(session, port, mode) when mode in [:token, :password] do
     secret = session[key(port, mode)]
 
     is_binary(secret) and mode == Livebook.Config.auth_mode() and
@@ -75,20 +75,6 @@ defmodule LivebookWeb.AuthPlug do
     end
   end
 
-  defp authenticate(conn, :cloudflare) do
-    with [token] <- get_req_header(conn, "cf-access-jwt-assertion"),
-         {:ok, token} <- verify_token(token),
-         {:ok, iss} <- verify_iss(token) do
-      conn
-      |> store(:cloudflare, iss)
-      |> redirect(to: path_with_query(conn.request_path, conn.query_params))
-      |> halt()
-    else
-      _ ->
-        redirect_to_authenticate(conn)
-    end
-  end
-
   defp redirect_to_authenticate(conn) do
     conn
     |> then(fn
@@ -105,28 +91,4 @@ defmodule LivebookWeb.AuthPlug do
   defp key(port, mode), do: "#{port}:#{mode}"
   defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
   defp hash(value), do: :crypto.hash(:sha256, value)
-
-  defp verify_token(token) do
-    iss = Application.fetch_env!(:livebook, :cloudflare)
-
-    with {:ok, resp} <- Req.get("https://#{iss}.cloudflareaccess.com/cdn-cgi/access/certs"),
-         {:ok, keys} <- verify_keys(resp.body) do
-      Enum.find_value(keys, fn key ->
-        case JOSE.JWT.verify(key, token) do
-          {true, token, _s} -> {:ok, token}
-          {_, _t, _s} -> nil
-        end
-      end)
-    else
-      _ -> nil
-    end
-  end
-
-  defp verify_iss(%{fields: %{"iss" => "https://" <> domain}}) do
-    iss = String.split(domain, ".") |> hd()
-    if iss == Application.fetch_env!(:livebook, :cloudflare), do: {:ok, iss}
-  end
-
-  defp verify_keys(%{"keys" => keys}), do: {:ok, keys}
-  defp verify_keys(_), do: nil
 end

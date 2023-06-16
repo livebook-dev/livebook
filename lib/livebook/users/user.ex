@@ -32,10 +32,10 @@ defmodule Livebook.Users.User do
   Generates a new user.
   """
   @spec new() :: t()
-  def new(display_name \\ nil) do
+  def new() do
     %__MODULE__{
       id: Utils.random_id(),
-      name: display_name,
+      name: nil,
       hex_color: Livebook.EctoTypes.HexColor.random()
     }
   end

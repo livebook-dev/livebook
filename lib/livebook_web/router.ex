@@ -22,6 +22,7 @@ defmodule LivebookWeb.Router do
   end
 
   pipeline :auth do
+    plug LivebookWeb.ZTIPlug
     plug LivebookWeb.AuthPlug
     plug LivebookWeb.UserPlug
   end
