@@ -60,7 +60,7 @@ defmodule LivebookWeb.AppsLive do
           App info
         </div>
         <div class="border border-gray-200 rounded-lg flex justify-between p-4">
-          <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 w-full max-w-2xl">
+          <div class="flex flex-col md:flex-row flex-wrap gap-4 md:gap-8 w-full max-w-2xl">
             <div class="flex-1">
               <.labeled_text label="Name" one_line>
                 <%= app.notebook_name %>
