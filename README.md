@@ -242,8 +242,12 @@ The following environment variables can be used to configure Livebook on boot:
     standard schemes by default (such as http and https). Set it to a comma-separated
     list of schemes.
 
-  * LIVEBOOK_CLOUDFLARE - controls whether CloudFlare Zero Trust authentication is enabled.
-    Disabled by default. Set it to your CloudFlare team name to enable it.
+  * LIVEBOOK_ZTI - controls whether Zero Trust Identity is enabled.
+    Disabled by default. Set it to your provider and set the correspondent key to enable it.
+    Currently supported providers are Cloudflare and GoogleIap.
+
+  * LIVEBOOK_ZTI_KEY - the necessary key to validate the ZTI provider.
+    For CloudFlare is the team name (domain). For GoogleIap is the audience (aud).
 
 <!-- Environment variables -->
 
