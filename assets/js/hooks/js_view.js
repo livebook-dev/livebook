@@ -292,6 +292,9 @@ const JSView = {
       !!this.el.closest(`[data-js-focused]`)
     );
 
+    // Allow iframes to enter fullscreen mode
+    this.iframe.setAttribute("allowfullscreen", "");
+
     // Cleanup
 
     const remove = () => {
