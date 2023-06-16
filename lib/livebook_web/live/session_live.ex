@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -561,6 +561,21 @@ defmodule LivebookWeb.SessionLive do
         select_secret_ref={@select_secret_ref}
         select_secret_options={@select_secret_options}
         return_to={@self_path}
+      />
+    </.modal>
+
+    <.modal
+      :if={@live_action == :custom_view}
+      id="custom-view-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.CustomModeComponent}
+        id="custom"
+        return_to={@self_path}
+        session={@session}
       />
     </.modal>
     """
@@ -1732,8 +1747,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
-    {:ok, cell, _section} =
-      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
 
     socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
 
@@ -1764,8 +1778,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:restore_cell, client_id, cell_id}) do
-    {:ok, cell, _section} =
-      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
 
     socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
 

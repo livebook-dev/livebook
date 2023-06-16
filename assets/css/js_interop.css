@@ -328,3 +328,31 @@ solely client-side operations.
   [data-el-views-enabled] {
   @apply hidden;
 }
+
+
+
+/* Testing custom view */
+[data-el-session][data-js-view="custom"]
+  [data-el-section-headline]:not([data-js-focused]),
+[data-el-session][data-js-view="custom"]
+  [data-el-section-subheadline]:not([data-js-focused]),
+[data-el-session][data-js-view="custom"]
+  [data-el-cell]:not([data-js-focused]),
+[data-el-session][data-js-view="custom"]
+  [data-el-js-view-iframes]
+  iframe:not([data-js-focused]) {
+  @apply opacity-10;
+}
+
+[data-el-session][data-js-view="custom"] [data-el-sidebar],
+[data-el-session][data-js-view="custom"] [data-el-side-panel],
+[data-el-session][data-js-view="custom"] [data-el-toggle-sidebar] {
+  @apply hidden;
+}
+
+[data-el-session][data-js-view="custom"]
+  [data-el-view-toggle="custom"] {
+  @apply text-green-bright-400;
+}
+
+
