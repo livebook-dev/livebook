@@ -169,6 +169,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </:primary>
       <:secondary>
+        <.amplify_output_button />
         <.toggle_source_button />
         <.convert_smart_cell_button cell_id={@cell_view.id} />
         <.cell_link_button cell_id={@cell_view.id} />
