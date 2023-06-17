@@ -76,8 +76,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <div :if={@cell_view.language == :erlang} class="grayscale">
           <.cell_icon cell_type={:code} language={:erlang} />
         </div>
-        <.amplify_output_button />
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
+        <.amplify_output_button />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -171,6 +171,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <:secondary>
         <.toggle_source_button />
         <.convert_smart_cell_button cell_id={@cell_view.id} />
+        <.amplify_output_button />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
