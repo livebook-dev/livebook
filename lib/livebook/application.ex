@@ -41,16 +41,14 @@ defmodule Livebook.Application do
         # Start the registry for managing unique connections
         {Registry, keys: :unique, name: Livebook.HubsRegistry},
         # Start the supervisor dynamically managing connections
-        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
-        # Start the periodic zti keys check
-        Livebook.ZTIKeys
+        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
         iframe_server_specs() ++
         [
           # Start the Endpoint (http/https)
           # We skip the access url as we do our own logging below
           {LivebookWeb.Endpoint, log_access_url: false}
-        ] ++ app_specs()
+        ] ++ app_specs() ++ identity_provider()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -268,5 +266,13 @@ defmodule Livebook.Application do
     Livebook.Config.abort!(
       "Failed to start Livebook iframe server because port #{port} is already in use"
     )
+  end
+
+  # Draft
+  defp identity_provider() do
+    case Livebook.Config.identity_provider() do
+      {"cloudflare", _key} -> [Livebook.ZTA.Cloudflare]
+      _ -> []
+    end
   end
 end

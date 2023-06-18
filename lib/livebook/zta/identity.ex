@@ -1,5 +1,16 @@
 defmodule Livebook.ZTIIdentity do
-  def get("cloudflare", key) do
+  def get() do
+    # identity = Application.fetch_env!(:livebook, :zti)
+    # key = Application.fetch_env!(:livebook, :zti_key)
+    {identity, key} =
+      Application.fetch_env!(:livebook, :identity_provider)
+      |> String.split(":")
+      |> List.to_tuple()
+
+    identity(identity, key)
+  end
+
+  def identity("cloudflare", key) do
     %{
       key: "domain",
       iss: "https://#{key}.cloudflareaccess.com",
@@ -8,7 +19,7 @@ defmodule Livebook.ZTIIdentity do
     }
   end
 
-  def get("googleiap", _key) do
+  def identity("googleiap", _key) do
     %{
       key: "aud",
       iss: "https://cloud.google.com/iap",
@@ -16,4 +27,6 @@ defmodule Livebook.ZTIIdentity do
       assertion: "x-goog-iap-jwt-assertion"
     }
   end
+
+  def identity(_, _), do: nil
 end

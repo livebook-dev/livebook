@@ -37,8 +37,7 @@ config :livebook,
   update_instructions_url: nil,
   within_iframe: false,
   allowed_uri_schemes: [],
-  zti: nil,
-  zti_key: nil
+  identity_provider: "cookies"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -16,6 +16,7 @@ defmodule LivebookWeb.UserPlug do
   @behaviour Plug
 
   import Plug.Conn
+  import Phoenix.Controller
 
   alias Livebook.Users.User
 
@@ -28,6 +29,7 @@ defmodule LivebookWeb.UserPlug do
     |> ensure_current_user_id()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
+    |> identity_provider()
   end
 
   defp ensure_current_user_id(conn) do
@@ -64,5 +66,23 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) do
     user_data = conn.cookies["lb:user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
+  end
+
+  defp identity_provider(conn) do
+    valid =
+      case Livebook.Config.identity_provider() do
+        {"cookies"} -> true
+        {"cloudflare", _key} -> Livebook.ZTA.Cloudflare.authenticate(conn)
+      end
+
+    if valid do
+      conn
+    else
+      conn
+      |> put_status(:forbidden)
+      |> put_view(LivebookWeb.ErrorHTML)
+      |> render("403.html")
+      |> halt()
+    end
   end
 end

@@ -195,12 +195,8 @@ defmodule Livebook do
       config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
 
-    if zti = Livebook.Config.zti!("LIVEBOOK_ZTI") do
-      config :livebook, :zti, zti
-    end
-
-    if zti_key = Livebook.Config.zti_key!("LIVEBOOK_ZTI_KEY") do
-      config :livebook, :zti_key, zti_key
+    if identity_provider = Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") do
+      config :livebook, :identity_provider, identity_provider
     end
   end
 

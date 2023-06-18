@@ -11,9 +11,7 @@ defmodule Livebook.ZTIKeys do
   defstruct [:name, :req_options]
 
   def start_link(options) do
-    identity = Application.fetch_env!(:livebook, :zti)
-    key = Application.fetch_env!(:livebook, :zti_key)
-    identity = if identity, do: Livebook.ZTIIdentity.get(identity, key)
+    identity = Livebook.ZTIIdentity.get()
     url = if identity, do: identity.certs
 
     options =
