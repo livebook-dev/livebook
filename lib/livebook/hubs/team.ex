@@ -103,7 +103,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def create_secret(team, secret), do: Teams.create_secret(team, secret)
 
-  def update_secret(_team, _secret), do: :ok
+  def update_secret(team, secret), do: Teams.update_secret(team, secret)
 
   def delete_secret(_team, _secret), do: :ok
 

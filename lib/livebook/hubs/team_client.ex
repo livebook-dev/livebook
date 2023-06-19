@@ -124,7 +124,12 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp put_secret(state, secret) do
+    state = remove_secret(state, secret)
     %{state | secrets: [secret | state.secrets]}
+  end
+
+  defp remove_secret(state, secret) do
+    %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
   end
 
   defp build_secret(state, %{name: name, value: value}) do
@@ -142,6 +147,13 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:secret_created, secret_created, state) do
     secret = build_secret(state, secret_created)
     Broadcasts.secret_created(secret)
+
+    put_secret(state, secret)
+  end
+
+  defp handle_event(:secret_updated, secret_updated, state) do
+    secret = build_secret(state, secret_updated)
+    Broadcasts.secret_updated(secret)
 
     put_secret(state, secret)
   end
