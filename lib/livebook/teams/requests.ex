@@ -81,13 +81,16 @@ defmodule Livebook.Teams.Requests do
     url = endpoint <> path
 
     case HTTP.request(method, url, opts) do
-      {:ok, status, header, body} when status in 200..299 ->
-        if json?(header),
+      {:ok, 204, _headers, body} ->
+        {:ok, body}
+
+      {:ok, status, headers, body} when status in 200..299 ->
+        if json?(headers),
           do: {:ok, Jason.decode!(body)},
           else: {:error, body}
 
-      {:ok, status, header, body} when status in [410, 422] ->
-        if json?(header),
+      {:ok, status, headers, body} when status in [410, 422] ->
+        if json?(headers),
           do: {:error, Jason.decode!(body)},
           else: {:transport_error, body}
 
