@@ -505,8 +505,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       %{column: 4, details: _, end_line: 20, line: 19, status: :failed}}
     end
 
-    # TODO: Run this test on Elixir v1.15+
-    @tag :skip
     test "multiple assertions at once", %{evaluator: evaluator} do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.DoctestsMiddle do
