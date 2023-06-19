@@ -1,4 +1,4 @@
-defmodule Livebook.ZTA.Cloudflare do
+defmodule Livebook.ZTA.GoogleIAP do
   @moduledoc false
 
   use GenServer
@@ -72,15 +72,15 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(%{fields: %{"iss" => iss}}), do: if(iss == identity().iss, do: :ok)
 
   defp identity() do
-    {"cloudflare", key} = Livebook.Config.identity_provider()
+    {"googleiap", key} = Livebook.Config.identity_provider()
 
     %{
       key: key,
-      key_type: "domain",
-      iss: "https://#{key}.cloudflareaccess.com",
-      certs: "https://#{key}.cloudflareaccess.com/cdn-cgi/access/certs",
-      assertion: "cf-access-jwt-assertion",
-      email: "cf-access-authenticated-user-email"
+      key_type: "aud",
+      iss: "https://cloud.google.com/iap",
+      certs: "https://www.gstatic.com/iap/verify/public_key",
+      assertion: "x-goog-iap-jwt-assertion",
+      email: "x-goog-authenticated-user-email"
     }
   end
 end

@@ -29,7 +29,6 @@ defmodule LivebookWeb.UserPlug do
     |> ensure_current_user_id()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
-    |> identity_provider()
   end
 
   defp ensure_current_user_id(conn) do
@@ -45,13 +44,32 @@ defmodule LivebookWeb.UserPlug do
     if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
     else
-      user_data = user_data(User.new())
-      encoded = user_data |> Jason.encode!() |> Base.encode64()
+      ensure_user_data(conn, Livebook.Config.identity_provider())
+    end
+  end
 
-      # We disable HttpOnly, so that it can be accessed on the client
-      # and set expiration to 5 years
-      opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
-      put_resp_cookie(conn, "lb:user_data", encoded, opts)
+  defp ensure_user_data(conn, {"cookies"}) do
+    user_data = user_data(User.new())
+    put_user_data(conn, user_data)
+  end
+
+  defp ensure_user_data(conn, {provider, _key}) do
+    user =
+      case provider do
+        "cloudflare" -> Livebook.ZTA.Cloudflare.authenticate(conn)
+        "googleiap" -> Livebook.ZTA.GoogleIAP.authenticate(conn)
+        _ -> nil
+      end
+
+    if user do
+      user_data = user_data(User.new()) |> Map.put("name", user)
+      put_user_data(conn, user_data)
+    else
+      conn
+      |> put_status(:forbidden)
+      |> put_view(LivebookWeb.ErrorHTML)
+      |> render("403.html")
+      |> halt()
     end
   end
 
@@ -68,21 +86,12 @@ defmodule LivebookWeb.UserPlug do
     put_session(conn, :user_data, user_data)
   end
 
-  defp identity_provider(conn) do
-    valid =
-      case Livebook.Config.identity_provider() do
-        {"cookies"} -> true
-        {"cloudflare", _key} -> Livebook.ZTA.Cloudflare.authenticate(conn)
-      end
+  defp put_user_data(conn, user_data) do
+    encoded = user_data |> Jason.encode!() |> Base.encode64()
 
-    if valid do
-      conn
-    else
-      conn
-      |> put_status(:forbidden)
-      |> put_view(LivebookWeb.ErrorHTML)
-      |> render("403.html")
-      |> halt()
-    end
+    # We disable HttpOnly, so that it can be accessed on the client
+    # and set expiration to 5 years
+    opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
+    put_resp_cookie(conn, "lb:user_data", encoded, opts)
   end
 end

@@ -268,10 +268,10 @@ defmodule Livebook.Application do
     )
   end
 
-  # Draft
   defp identity_provider() do
     case Livebook.Config.identity_provider() do
-      {"cloudflare", _key} -> [Livebook.ZTA.Cloudflare]
+      {"cloudflare", _key} -> [{Livebook.ZTA.Cloudflare, name: MyLivebookZTA}]
+      {"googleiap", _key} -> [{Livebook.ZTA.GoogleIAP, name: MyLivebookZTA}]
       _ -> []
     end
   end
