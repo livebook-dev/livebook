@@ -16,7 +16,7 @@ defmodule LivebookWeb.LearnHelpers do
     >
       <div class="flex items-center justify-center p-6 border-b-2 border-gray-100 rounded-t-2xl h-[150px]">
         <img
-          src={img_src(@notebook_info.details.cover_url)}
+          src={learn_img_src(@notebook_info.details.cover)}
           class="max-h-full max-w-[75%]"
           alt={"#{@notebook_info.title} logo"}
         />
@@ -31,6 +31,10 @@ defmodule LivebookWeb.LearnHelpers do
     """
   end
 
-  defp img_src("data:" <> _ = url), do: url
-  defp img_src(url), do: url
+  @doc """
+  Resolves the given image source into a URL.
+  """
+  @spec learn_img_src(Livebook.Notebook.Learn.image_source()) :: String.t()
+  def learn_img_src({:url, url}), do: url
+  def learn_img_src({:static, filename}), do: ~p"/images/#{filename}"
 end

@@ -24,15 +24,17 @@ defmodule Livebook.Notebook.Learn do
 
   @type details :: %{
           description: String.t(),
-          cover_url: String.t()
+          cover: image_source()
         }
 
   @type group_info :: %{
           title: String.t(),
           description: String.t(),
-          cover_url: String.t(),
+          cover: image_source(),
           notebook_infos: list(notebook_info())
         }
+
+  @type image_source :: {:static, filename :: String.t()} | {:url, String.t()}
 
   images_dir = Path.expand("learn/images", __DIR__)
 
@@ -40,7 +42,7 @@ defmodule Livebook.Notebook.Learn do
     path: Path.join(__DIR__, "learn/intro_to_livebook.livemd"),
     details: %{
       description: "Get to know Livebook, see how it works, and learn its features.",
-      cover_url: "/images/logo.png"
+      cover_filename: "logo.png"
     }
   }
 
@@ -54,35 +56,35 @@ defmodule Livebook.Notebook.Learn do
       details: %{
         description:
           "A fast-paced introduction to Elixir by building distributed data-transfer portals.",
-        cover_url: "/images/elixir.png"
+        cover_filename: "elixir.png"
       }
     },
     %{
       path: Path.join(__DIR__, "learn/deploy_apps.livemd"),
       details: %{
         description: "Write and deploy a chat app with Kino control and frames.",
-        cover_url: "/images/learn-deploy.svg"
+        cover_filename: "learn-deploy.svg"
       }
     },
     %{
       path: Path.join(__DIR__, "learn/intro_to_explorer.livemd"),
       details: %{
         description: "Intuitive data visualizations and data pipelines on the fly.",
-        cover_url: "/images/explorer.png"
+        cover_filename: "explorer.png"
       }
     },
     %{
       path: Path.join(__DIR__, "learn/intro_to_vega_lite.livemd"),
       details: %{
         description: "Learn how to quickly create numerous plots for your data.",
-        cover_url: "/images/vega_lite.png"
+        cover_filename: "vega_lite.png"
       }
     },
     %{
       path: Path.join(__DIR__, "learn/intro_to_maplibre.livemd"),
       details: %{
         description: "Seamlessly plot maps using geospatial and tabular data.",
-        cover_url: "/images/maplibre.png"
+        cover_filename: "maplibre.png"
       }
     },
     %{
@@ -149,13 +151,19 @@ defmodule Livebook.Notebook.Learn do
               config_details[:description] ||
                 raise "missing required :description attribute in notebook details: #{inspect(config_details)}"
 
-            cover_url =
-              config_details[:cover_url] ||
-                (config_details[:cover_path] &&
-                   Livebook.Utils.read_as_data_url!(config_details.cover_path)) ||
-                raise "expected either :cover_path or :cover_url in notebooks details: #{inspect(config_details)}"
+            cover =
+              case config_details do
+                %{cover_filename: filename} ->
+                  {:static, filename}
 
-            %{description: description, cover_url: cover_url}
+                %{cover_path: path} ->
+                  {:url, Livebook.Utils.read_as_data_url!(path)}
+
+                _ ->
+                  raise "expected either :cover_path or :cover_filename in notebooks details: #{inspect(config_details)}"
+              end
+
+            %{description: description, cover: cover}
           end
       }
     end
@@ -199,7 +207,7 @@ defmodule Livebook.Notebook.Learn do
       title: "Deep dive into Kino",
       description:
         "Learn more about the Kino package, including the creation of custom UI components.",
-      cover_url: "/images/kino.png",
+      cover_filename: "kino.png",
       notebook_refs: [
         :kino_intro,
         :kino_vm_introspection,
@@ -220,7 +228,7 @@ defmodule Livebook.Notebook.Learn do
       %{
         title: config.title,
         description: config.description,
-        cover_url: config.cover_url,
+        cover: {:static, config.cover_filename},
         notebook_infos:
           for(
             ref <- config.notebook_refs,
