@@ -534,14 +534,12 @@ defmodule Livebook.Intellisense do
         name -> name
       end
 
-    # TODO: remove the first check on Elixir v1.15.0
     is_otp? =
-      app == :erts or
-        case :code.which(app || module) do
-          :preloaded -> true
-          [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
-          _ -> false
-        end
+      case :code.which(app || module) do
+        :preloaded -> true
+        [_ | _] = path -> List.starts_with?(path, :code.lib_dir())
+        _ -> false
+      end
 
     cond do
       is_otp? ->
