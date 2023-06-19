@@ -5,18 +5,11 @@ defmodule Livebook.Teams.ConnectionTest do
 
   alias Livebook.Teams.Connection
 
+  import Livebook.HubHelpers
+
   describe "connect" do
     test "successfully authenticates the websocket connection", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      headers = [
-        {"x-user", to_string(user.id)},
-        {"x-org", to_string(org.id)},
-        {"x-org-key", to_string(org_key.id)},
-        {"x-session-token", token}
-      ]
+      {_, headers} = build_team_headers(user, node)
 
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
@@ -44,29 +37,12 @@ defmodule Livebook.Teams.ConnectionTest do
 
   describe "handle events" do
     test "receives the secret_created event", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+      {hub, headers} = build_team_headers(user, node)
 
-      header = [
-        {"x-user", to_string(user.id)},
-        {"x-org", to_string(org.id)},
-        {"x-org-key", to_string(org_key.id)},
-        {"x-session-token", token}
-      ]
-
-      assert {:ok, _conn} = Connection.start_link(self(), header)
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
 
       # creates a new secret
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
       secret = build(:secret, name: "FOO", value: "BAR")
       assert Livebook.Teams.create_secret(hub, secret) == :ok
 
