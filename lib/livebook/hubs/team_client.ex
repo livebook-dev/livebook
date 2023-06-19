@@ -157,4 +157,11 @@ defmodule Livebook.Hubs.TeamClient do
 
     put_secret(state, secret)
   end
+
+  defp handle_event(:secret_deleted, secret_deleted, state) do
+    secret = Enum.find(state.secrets, &(&1.name == secret_deleted.name))
+    Broadcasts.secret_deleted(secret)
+
+    remove_secret(state, secret)
+  end
 end

@@ -134,6 +134,24 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Deletes a Secret.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec delete_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_secret(%Team{} = team, %Secret{} = secret) do
+    case Requests.delete_secret(team, secret) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
   Creates a Hub.
 
   It notifies interested processes about hub metadatas data change.

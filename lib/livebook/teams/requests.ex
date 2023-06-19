@@ -74,6 +74,18 @@ defmodule Livebook.Teams.Requests do
     put("/api/v1/org/secrets", params, headers)
   end
 
+  @doc """
+  Send a request to Livebook Team API to delete a secret.
+  """
+  @spec delete_secret(Team.t(), Secret.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_secret(team, secret) do
+    headers = auth_headers(team)
+    params = %{name: secret.name}
+
+    delete("/api/v1/org/secrets", params, headers)
+  end
+
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
     [{"authorization", "Bearer " <> token}]
@@ -87,6 +99,11 @@ defmodule Livebook.Teams.Requests do
   defp put(path, json, headers) do
     body = {"application/json", Jason.encode!(json)}
     request(:put, path, body: body, headers: headers)
+  end
+
+  defp delete(path, json, headers) do
+    body = {"application/json", Jason.encode!(json)}
+    request(:delete, path, body: body, headers: headers)
   end
 
   defp get(path, params \\ %{}, headers \\ []) do
