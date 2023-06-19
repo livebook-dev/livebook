@@ -507,6 +507,7 @@ defmodule Livebook.Config do
   """
   def identity_provider!(env) do
     zta = System.get_env(env) || "cookies"
+
     case zta do
       "googleiap:" <> rest ->
         {Livebook.ZTA.GoogleIAP, rest}

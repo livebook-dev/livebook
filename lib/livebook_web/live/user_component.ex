@@ -35,7 +35,12 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <.text_field field={f[:name]} label="Display name" spellcheck="false" />
+          <.text_field
+            field={f[:name]}
+            label="Display name"
+            spellcheck="false"
+            readonly={readonly?()}
+          />
           <.hex_color_field
             field={f[:hex_color]}
             label="Cursor color"
@@ -85,5 +90,9 @@ defmodule LivebookWeb.UserComponent do
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
     end
+  end
+
+  def readonly?() do
+    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
   end
 end
