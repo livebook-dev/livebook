@@ -506,20 +506,26 @@ defmodule Livebook.Config do
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    zta = System.get_env(env) || "cookies"
-
-    case zta do
+    case System.get_env(env) do
       "googleiap:" <> rest ->
         {Livebook.ZTA.GoogleIAP, rest}
 
       "cloudflare:" <> rest ->
         {Livebook.ZTA.Cloudflare, rest}
 
-      "cookies" ->
+      nil ->
         {LivebookWeb.Cookies, :unused}
 
       _ ->
         abort!("invalid configuration for identity provider")
     end
+  end
+
+  @doc """
+  Returns if the identity data is readonly.
+  """
+  @spec identity_readonly?() :: boolean()
+  def identity_readonly?() do
+    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
   end
 end

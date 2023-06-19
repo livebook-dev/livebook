@@ -39,7 +39,7 @@ defmodule LivebookWeb.UserComponent do
             field={f[:name]}
             label="Display name"
             spellcheck="false"
-            readonly={readonly?()}
+            disabled={Livebook.Config.identity_readonly?()}
           />
           <.hex_color_field
             field={f[:hex_color]}
@@ -90,9 +90,5 @@ defmodule LivebookWeb.UserComponent do
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
     end
-  end
-
-  def readonly?() do
-    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
   end
 end

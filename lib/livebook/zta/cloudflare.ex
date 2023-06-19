@@ -11,7 +11,7 @@ defmodule Livebook.ZTA.Cloudflare do
   defstruct [:name, :req_options, :identity]
 
   def start_link(opts) do
-    identity = identity(opts[:identity][:key])
+    identity = identity(opts[:key])
     options = [name: @name, req_options: [url: identity.certs], identity: identity]
     GenServer.start_link(__MODULE__, options, name: @name)
   end
