@@ -44,11 +44,12 @@ defmodule Livebook.Application do
         {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
         iframe_server_specs() ++
+        identity_provider() ++
         [
           # Start the Endpoint (http/https)
           # We skip the access url as we do our own logging below
           {LivebookWeb.Endpoint, log_access_url: false}
-        ] ++ app_specs() ++ identity_provider()
+        ] ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -269,10 +270,7 @@ defmodule Livebook.Application do
   end
 
   defp identity_provider() do
-    case Livebook.Config.identity_provider() do
-      {"cloudflare", _key} -> [{Livebook.ZTA.Cloudflare, name: MyLivebookZTA}]
-      {"googleiap", _key} -> [{Livebook.ZTA.GoogleIAP, name: MyLivebookZTA}]
-      _ -> []
-    end
+    {module, _} = Livebook.Config.identity_provider()
+    [{module, name: LivebookWeb.ZTA}]
   end
 end

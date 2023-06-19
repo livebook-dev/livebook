@@ -173,9 +173,19 @@ defmodule Livebook.Config do
   """
   @spec identity_provider() :: tuple()
   def identity_provider() do
-    Application.fetch_env!(:livebook, :identity_provider)
-    |> String.split(":")
-    |> List.to_tuple()
+    case Application.fetch_env!(:livebook, :identity_provider) do
+      "googleiap:" <> rest ->
+        {Livebook.ZTA.GoogleIAP, rest}
+
+      "cloudflare:" <> rest ->
+        {Livebook.ZTA.Cloudflare, rest}
+
+      "cookies" ->
+        {LivebookWeb.Cookies, :unused}
+
+      _ ->
+        abort!("invalid configuration for identity provider")
+    end
   end
 
   @doc """

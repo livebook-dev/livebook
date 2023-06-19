@@ -40,30 +40,19 @@ defmodule LivebookWeb.UserPlug do
     end
   end
 
+  defp ensure_user_data(%{req_cookies: %{"lb:user_data" => _}} = conn), do: conn
+
   defp ensure_user_data(conn) do
-    if Map.has_key?(conn.req_cookies, "lb:user_data") do
-      conn
-    else
-      ensure_user_data(conn, Livebook.Config.identity_provider())
-    end
-  end
+    {module, _} = Livebook.Config.identity_provider()
+    user_data = User.new() |> user_data() |> then(&module.authenticate(conn, &1))
 
-  defp ensure_user_data(conn, {"cookies"}) do
-    user_data = user_data(User.new())
-    put_user_data(conn, user_data)
-  end
+    if user_data do
+      encoded = user_data |> Jason.encode!() |> Base.encode64()
 
-  defp ensure_user_data(conn, {provider, _key}) do
-    user =
-      case provider do
-        "cloudflare" -> Livebook.ZTA.Cloudflare.authenticate(conn)
-        "googleiap" -> Livebook.ZTA.GoogleIAP.authenticate(conn)
-        _ -> nil
-      end
-
-    if user do
-      user_data = user_data(User.new()) |> Map.put("name", user)
-      put_user_data(conn, user_data)
+      # We disable HttpOnly, so that it can be accessed on the client
+      # and set expiration to 5 years
+      opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
+      put_resp_cookie(conn, "lb:user_data", encoded, opts)
     else
       conn
       |> put_status(:forbidden)
@@ -84,14 +73,5 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) do
     user_data = conn.cookies["lb:user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
-  end
-
-  defp put_user_data(conn, user_data) do
-    encoded = user_data |> Jason.encode!() |> Base.encode64()
-
-    # We disable HttpOnly, so that it can be accessed on the client
-    # and set expiration to 5 years
-    opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
-    put_resp_cookie(conn, "lb:user_data", encoded, opts)
   end
 end

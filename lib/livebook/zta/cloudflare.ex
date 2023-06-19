@@ -48,11 +48,11 @@ defmodule Livebook.ZTA.Cloudflare do
     end
   end
 
-  def authenticate(conn) do
+  def authenticate(conn, user_data) do
     with [token] <- get_req_header(conn, identity().assertion),
          {:ok, token} <- verify_token(token),
          :ok <- verify_iss(token) do
-      token.fields["email"]
+      Map.put(user_data, "name", token.fields["email"])
     else
       _ -> nil
     end
@@ -72,7 +72,7 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(%{fields: %{"iss" => iss}}), do: if(iss == identity().iss, do: :ok)
 
   defp identity() do
-    {"cloudflare", key} = Livebook.Config.identity_provider()
+    {_, key} = Livebook.Config.identity_provider()
 
     %{
       key: key,
