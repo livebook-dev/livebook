@@ -1,6 +1,9 @@
 defmodule LivebookWeb.Cookies do
-  def authenticate(_conn, user_data) do
-    user_data
+  # This module implements the ZTA contract specific to Livebook cookies
+  @moduledoc false
+
+  def authenticate(_conn) do
+    %{}
   end
 
   def child_spec(_opts) do

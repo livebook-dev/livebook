@@ -44,9 +44,10 @@ defmodule LivebookWeb.UserPlug do
 
   defp ensure_user_data(conn) do
     {module, _} = Livebook.Config.identity_provider()
-    user_data = User.new() |> user_data() |> then(&module.authenticate(conn, &1))
+    user = module.authenticate(conn)
 
-    if user_data do
+    if user do
+      user_data = user_data(User.new()) |> Map.merge(user)
       encoded = user_data |> Jason.encode!() |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client

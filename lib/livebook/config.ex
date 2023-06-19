@@ -173,19 +173,7 @@ defmodule Livebook.Config do
   """
   @spec identity_provider() :: tuple()
   def identity_provider() do
-    case Application.fetch_env!(:livebook, :identity_provider) do
-      "googleiap:" <> rest ->
-        {Livebook.ZTA.GoogleIAP, rest}
-
-      "cloudflare:" <> rest ->
-        {Livebook.ZTA.Cloudflare, rest}
-
-      "cookies" ->
-        {LivebookWeb.Cookies, :unused}
-
-      _ ->
-        abort!("invalid configuration for identity provider")
-    end
+    Application.fetch_env!(:livebook, :identity_provider)
   end
 
   @doc """
@@ -518,6 +506,19 @@ defmodule Livebook.Config do
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    System.get_env(env)
+    zta = System.get_env(env) || "cookies"
+    case zta do
+      "googleiap:" <> rest ->
+        {Livebook.ZTA.GoogleIAP, rest}
+
+      "cloudflare:" <> rest ->
+        {Livebook.ZTA.Cloudflare, rest}
+
+      "cookies" ->
+        {LivebookWeb.Cookies, :unused}
+
+      _ ->
+        abort!("invalid configuration for identity provider")
+    end
   end
 end

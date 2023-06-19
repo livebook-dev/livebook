@@ -8,10 +8,11 @@ defmodule Livebook.ZTA.GoogleIAP do
   @name __MODULE__
   @renew_afer 24 * 60 * 60 * 1000
 
-  defstruct [:name, :req_options]
+  defstruct [:name, :req_options, :identity]
 
-  def start_link(_opts) do
-    options = [name: @name, req_options: [url: identity().certs]]
+  def start_link(opts) do
+    identity = identity(opts[:identity][:key])
+    options = [name: @name, req_options: [url: identity.certs], identity: identity]
     GenServer.start_link(__MODULE__, options, name: @name)
   end
 
@@ -25,6 +26,12 @@ defmodule Livebook.ZTA.GoogleIAP do
   def handle_call(:get_keys, _from, state) do
     keys = get_from_ets(state.name) || request_and_store_in_ets(state)
     {:reply, keys, state}
+  end
+
+  def handle_call({:authenticate, conn}, _from, state) do
+    keys = get_from_ets(state.name) || request_and_store_in_ets(state)
+    user = authenticate(conn, state.identity, keys)
+    {:reply, user, state}
   end
 
   @impl true
@@ -48,19 +55,21 @@ defmodule Livebook.ZTA.GoogleIAP do
     end
   end
 
-  def authenticate(conn, user_data) do
-    with [token] <- get_req_header(conn, identity().assertion),
-         {:ok, token} <- verify_token(token),
-         :ok <- verify_iss(token) do
-      Map.put(user_data, "name", token.fields["email"])
+  def authenticate(conn) do
+    GenServer.call(@name, {:authenticate, conn})
+  end
+
+  defp authenticate(conn, identity, keys) do
+    with [token] <- get_req_header(conn, identity.assertion),
+         {:ok, token} <- verify_token(token, keys),
+         :ok <- verify_iss(token, identity.iss) do
+      %{"name" => token.fields["email"]}
     else
       _ -> nil
     end
   end
 
-  defp verify_token(token) do
-    keys = GenServer.call(@name, :get_keys)
-
+  defp verify_token(token, keys) do
     Enum.find_value(keys, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
@@ -69,11 +78,10 @@ defmodule Livebook.ZTA.GoogleIAP do
     end)
   end
 
-  defp verify_iss(%{fields: %{"iss" => iss}}), do: if(iss == identity().iss, do: :ok)
+  defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
+  defp verify_iss(_, _), do: nil
 
-  defp identity() do
-    {_, key} = Livebook.Config.identity_provider()
-
+  defp identity(key) do
     %{
       key: key,
       key_type: "aud",
