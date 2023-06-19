@@ -60,6 +60,7 @@ defmodule LivebookWeb.Hub.EditLive do
     <.live_component
       module={LivebookWeb.Hub.Edit.TeamComponent}
       hub={@hub}
+      live_action={@live_action}
       params={@params}
       id="team-form"
     />

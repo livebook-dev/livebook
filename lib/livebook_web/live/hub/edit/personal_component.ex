@@ -33,6 +33,23 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"} class="space-y-8 pb-8">
+      <.modal
+        :if={@live_action in [:new_secret, :edit_secret]}
+        id="secrets-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.SecretFormComponent}
+          id="secrets"
+          hub={@hub}
+          secret_name={@secret_name}
+          secret_value={@secret_value}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
+
       <div class="space-y-4">
         <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
@@ -84,9 +101,10 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             environment variables using the <code>LB_</code> prefix.
           </p>
 
-          <.secrets_list
+          <.live_component
+            module={LivebookWeb.Hub.SecretListComponent}
             id="hub-secrets-list"
-            new_secret_path={~p"/hub/#{@hub.id}/secrets/new"}
+            hub={@hub}
             secrets={@secrets}
             target={@myself}
           />
@@ -147,100 +165,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           </.form>
         </div>
       </div>
-
-      <.modal
-        :if={@live_action in [:new_secret, :edit_secret]}
-        id="secrets-modal"
-        show
-        width={:medium}
-        patch={~p"/hub/#{@hub.id}"}
-      >
-        <.live_component
-          module={LivebookWeb.Hub.SecretFormComponent}
-          id="secrets"
-          hub={@hub}
-          secret_name={@secret_name}
-          secret_value={@secret_value}
-          return_to={~p"/hub/#{@hub.id}"}
-        />
-      </.modal>
-    </div>
-    """
-  end
-
-  defp secrets_list(assigns) do
-    ~H"""
-    <div id={@id} class="flex flex-col space-y-4">
-      <div class="flex flex-col space-y-4">
-        <.no_entries :if={@secrets == []}>
-          No secrets in this Hub yet.
-        </.no_entries>
-        <div
-          :for={secret <- @secrets}
-          class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
-        >
-          <.secret_info secret={secret} target={@target} />
-        </div>
-      </div>
-      <div class="flex">
-        <.link patch={@new_secret_path} class="button-base button-blue" id="add-secret">
-          Add secret
-        </.link>
-      </div>
-    </div>
-    """
-  end
-
-  defp secret_info(assigns) do
-    ~H"""
-    <div class="grid grid-cols-1 md:grid-cols-2 w-full">
-      <div class="place-content-start">
-        <.labeled_text label="Name">
-          <%= @secret.name %>
-        </.labeled_text>
-      </div>
-
-      <div class="flex items-center place-content-end">
-        <.menu id={"hub-secret-#{@secret.name}-menu"}>
-          <:toggle>
-            <button class="icon-button" aria-label="open environment variable menu" type="button">
-              <.remix_icon icon="more-2-fill" class="text-xl" />
-            </button>
-          </:toggle>
-          <.menu_item>
-            <.link
-              id={"hub-secret-#{@secret.name}-edit"}
-              patch={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
-              type="button"
-              role="menuitem"
-            >
-              <.remix_icon icon="file-edit-line" />
-              <span>Edit</span>
-            </.link>
-          </.menu_item>
-          <.menu_item variant={:danger}>
-            <button
-              id={"hub-secret-#{@secret.name}-delete"}
-              type="button"
-              phx-click={
-                JS.push("delete_hub_secret",
-                  value: %{
-                    name: @secret.name,
-                    value: @secret.value,
-                    hub_id: @secret.hub_id
-                  },
-                  target: @target
-                )
-              }
-              phx-target={@target}
-              role="menuitem"
-            >
-              <.remix_icon icon="delete-bin-line" />
-              <span>Delete</span>
-            </button>
-          </.menu_item>
-        </.menu>
-      </div>
     </div>
     """
   end
@@ -273,7 +197,10 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     on_confirm = fn socket ->
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
       :ok = Livebook.Hubs.delete_secret(hub, secret)
+
       socket
+      |> put_flash(:success, "Secret deleted successfully")
+      |> push_navigate(to: ~p"/hub/#{hub.id}")
     end
 
     {:noreply,
