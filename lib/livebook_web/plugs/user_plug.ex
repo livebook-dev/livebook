@@ -46,7 +46,6 @@ defmodule LivebookWeb.UserPlug do
     identity_data = module.authenticate(LivebookWeb.ZTA, conn)
 
     if identity_data do
-      identity_data = User.new() |> user_data() |> Map.merge(identity_data)
       put_session(conn, :identity_data, identity_data)
     else
       conn
@@ -61,7 +60,8 @@ defmodule LivebookWeb.UserPlug do
     if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
     else
-      user_data = get_session(conn, :identity_data)
+      identity_data = get_session(conn, :identity_data)
+      user_data = User.new() |> user_data() |> Map.merge(identity_data)
       encoded = user_data |> Jason.encode!() |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client
