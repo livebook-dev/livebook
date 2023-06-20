@@ -142,6 +142,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
           <button
+            id="delete-hub"
             phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
             class="absolute right-0 button-base button-red"
           >
