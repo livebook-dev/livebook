@@ -15,7 +15,10 @@ if Mix.target() == :app do
 
     @impl true
     def handle_info({:event, "open", url}, state) do
-      open(url)
+      url
+      |> Livebook.Utils.expand_desktop_url()
+      |> Livebook.Utils.browser_open()
+
       {:noreply, state}
     end
 
@@ -23,26 +26,6 @@ if Mix.target() == :app do
     def handle_info({:DOWN, ref, :process, _, :shutdown}, state) when ref == state.ref do
       Livebook.Config.shutdown()
       {:noreply, state}
-    end
-
-    defp open("") do
-      open(LivebookWeb.Endpoint.access_url())
-    end
-
-    defp open("file://" <> path) do
-      path
-      |> Livebook.Utils.notebook_open_url()
-      |> open()
-    end
-
-    defp open("livebook://" <> rest) do
-      "https://#{rest}"
-      |> Livebook.Utils.notebook_import_url()
-      |> open()
-    end
-
-    defp open(url) do
-      Livebook.Utils.browser_open(url)
     end
   end
 end
