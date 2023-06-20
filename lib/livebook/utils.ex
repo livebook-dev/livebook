@@ -308,6 +308,25 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Expands URL received from the Desktop App for opening in the browser.
+  """
+  def expand_desktop_url("") do
+    LivebookWeb.Endpoint.access_url()
+  end
+
+  def expand_desktop_url("/settings") do
+    to_string(%{LivebookWeb.Endpoint.access_struct_url() | path: "/settings"})
+  end
+
+  def expand_desktop_url("file://" <> path) do
+    notebook_open_url(path)
+  end
+
+  def expand_desktop_url("livebook://" <> rest) do
+    notebook_import_url("https://#{rest}")
+  end
+
+  @doc """
   Opens the given `url` in the browser.
   """
   def browser_open(url) do
@@ -323,10 +342,15 @@ defmodule Livebook.Utils do
 
         {:unix, _} ->
           cond do
-            System.find_executable("xdg-open") -> {"xdg-open", [url]}
+            System.find_executable("xdg-open") ->
+              {"xdg-open", [url]}
+
             # When inside WSL
-            System.find_executable("cmd.exe") -> {"cmd.exe", win_cmd_args}
-            true -> nil
+            System.find_executable("cmd.exe") ->
+              {"cmd.exe", win_cmd_args}
+
+            true ->
+              nil
           end
       end
 
