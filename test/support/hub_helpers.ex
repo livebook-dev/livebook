@@ -45,13 +45,20 @@ defmodule Livebook.HubHelpers do
     )
   end
 
-  def assert_sidebar_hub(view, path, name, emoji \\ "🐈") do
-    hubs_html = view |> element("#hubs") |> render()
+  def assert_sidebar_hub(view, id, path, name, emoji \\ "🐈") do
+    hub = element(view, hub_element_id(id))
+    hub_html = render(hub)
 
-    assert hubs_html =~ emoji
-    assert hubs_html =~ path
-    assert hubs_html =~ name
+    assert hub_html =~ emoji
+    assert hub_html =~ path
+    assert hub_html =~ name
   end
+
+  def refute_sidebar_hub(view, id) do
+    refute has_element?(view, hub_element_id(id))
+  end
+
+  defp hub_element_id(id), do: "#hubs #hub-#{id}"
 
   defp erpc_call(node, fun, args) do
     :erpc.call(node, Hub.Integration, fun, args)
