@@ -21,13 +21,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
-      <.modal
-        :if={@show_key}
-        id="show-key-modal"
-        width={:medium}
-        show={true}
-        patch={~p"/hub/#{@hub.id}"}
-      >
+      <.modal id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
         <div class="p-6 flex flex-col space-y-5">
           <h3 class="text-2xl font-semibold text-gray-800">
             Teams Key
@@ -107,15 +101,26 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       </.modal>
 
       <div class="space-y-8">
-        <div class="flex relative">
+        <div class="flex justify-between">
           <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
-          <button
-            phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-            class="absolute right-0 button-base button-red"
-          >
-            Delete hub
-          </button>
+          <div class="flex justify-end gap-2">
+            <button
+              phx-click={JS.show(to: "#show-key-modal")}
+              phx-target={@myself}
+              class="button-base button-gray"
+            >
+              <span class="hidden sm:block">teams key</span>
+              <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
+            </button>
+            <button
+              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+              class="button-base button-red"
+            >
+              <span class="hidden sm:block">Delete hub</span>
+              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+            </button>
+          </div>
         </div>
 
         <div class="flex flex-col space-y-10">
