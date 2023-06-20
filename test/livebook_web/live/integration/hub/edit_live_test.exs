@@ -42,7 +42,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       id = hub.id
       assert_receive {:hub_changed, ^id}
 
-      assert_sidebar_hub(view, id, "/hub/#{hub.id}", hub.hub_name, attrs["hub_emoji"])
+      assert_sidebar_hub(view, id, hub.hub_name, attrs["hub_emoji"])
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 

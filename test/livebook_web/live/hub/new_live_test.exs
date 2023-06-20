@@ -60,7 +60,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       refute has_element?(view, "#show-key-modal")
 
       # checks if the hub is in the sidebar
-      assert_sidebar_hub(view, "/hub/team-#{name}", name)
+      assert_sidebar_hub(view, "team-#{name}", name)
     end
   end
 
@@ -121,7 +121,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       refute has_element?(view, "#show-key-modal")
 
       # checks if the hub is in the sidebar
-      assert_sidebar_hub(view, "/hub/team-#{name}", name)
+      assert_sidebar_hub(view, "team-#{name}", name)
     end
   end
 

@@ -45,12 +45,12 @@ defmodule Livebook.HubHelpers do
     )
   end
 
-  def assert_sidebar_hub(view, id, path, name, emoji \\ "🐈") do
+  def assert_sidebar_hub(view, id, name, emoji \\ "🐈") do
     hub = element(view, hub_element_id(id))
     hub_html = render(hub)
 
     assert hub_html =~ emoji
-    assert hub_html =~ path
+    assert hub_html =~ "/hub/#{id}" 
     assert hub_html =~ name
   end
 
