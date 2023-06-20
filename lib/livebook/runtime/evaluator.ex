@@ -829,12 +829,10 @@ defmodule Livebook.Runtime.Evaluator do
   defp extra_diagnostic?(%SyntaxError{}), do: true
   defp extra_diagnostic?(%TokenMissingError{}), do: true
 
-  defp extra_diagnostic?(%CompileError{
-         description: "cannot compile file (errors have been logged)"
-       }),
-       do: false
+  defp extra_diagnostic?(%CompileError{description: description}) do
+    not String.contains?(description, "(errors have been logged)")
+  end
 
-  defp extra_diagnostic?(%CompileError{}), do: true
   defp extra_diagnostic?(_error), do: false
 
   defp identifier_dependencies(context, tracer_info, prev_context) do
