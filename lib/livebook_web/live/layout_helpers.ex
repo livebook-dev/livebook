@@ -164,6 +164,7 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar_hub_link(assigns) do
     ~H"""
     <.link
+      id={"hub-#{@hub.id}"}
       navigate={@to}
       class={[
         "h-7 flex items-center hover:text-white border-l-4 hover:border-white",

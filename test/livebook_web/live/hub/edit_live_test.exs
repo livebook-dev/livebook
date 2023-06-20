@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
   describe "personal" do
     setup do
-      Livebook.Hubs.subscribe([:secrets])
+      Livebook.Hubs.subscribe([:crud, :secrets])
       {:ok, hub: Hubs.fetch_hub!(Hubs.Personal.id())}
     end
 
@@ -34,7 +34,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_sidebar_hub(view, "/hub/#{hub.id}", hub.hub_name, attrs["hub_emoji"])
+      id = hub.id
+      assert_receive {:hub_changed, ^id}
+
+      assert_sidebar_hub(view, id, "/hub/#{hub.id}", hub.hub_name, attrs["hub_emoji"])
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
