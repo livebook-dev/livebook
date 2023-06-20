@@ -1,7 +1,9 @@
 defmodule Livebook.HubHelpers do
   @moduledoc false
 
+  import ExUnit.Assertions
   import Livebook.Factory
+  import Phoenix.LiveViewTest
 
   def create_team_hub(user, node) do
     hub = build_team_hub(user, node)
@@ -41,6 +43,14 @@ defmodule Livebook.HubHelpers do
       session_token: token,
       teams_key: teams_key
     )
+  end
+
+  def assert_sidebar_hub(view, path, name, emoji \\ "🐈") do
+    hubs_html = view |> element("#hubs") |> render()
+
+    assert hubs_html =~ emoji
+    assert hubs_html =~ path
+    assert hubs_html =~ name
   end
 
   defp erpc_call(node, fun, args) do
