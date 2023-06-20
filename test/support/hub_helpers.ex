@@ -50,7 +50,7 @@ defmodule Livebook.HubHelpers do
     hub_html = render(hub)
 
     assert hub_html =~ emoji
-    assert hub_html =~ "/hub/#{id}" 
+    assert hub_html =~ "/hub/#{id}"
     assert hub_html =~ name
   end
 
