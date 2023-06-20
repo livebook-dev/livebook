@@ -20,7 +20,7 @@ defmodule Livebook.ZTA.Cloudflare do
     token = get_req_header(conn, @assertion)
     GenServer.call(name, {:authenticate, token})
   end
-  
+
   @impl true
   def init(options) do
     :ets.new(options[:name], [:public, :named_table])

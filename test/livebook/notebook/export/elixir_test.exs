@@ -135,32 +135,31 @@ defmodule Livebook.Notebook.Export.ElixirTest do
   end
 
   test "comments out non-elixir code cells" do
-    notebook =
-      %{
-        Notebook.new()
-        | name: "My Notebook",
-          sections: [
-            %{
-              Notebook.Section.new()
-              | name: "Section 1",
-                cells: [
-                  %{
-                    Notebook.Cell.new(:code)
-                    | source: """
-                      Enum.to_list(1..10)\
-                      """
-                  },
-                  %{
-                    Notebook.Cell.new(:code)
-                    | language: :erlang,
-                      source: """
-                      lists:seq(1, 10).\
-                      """
-                  }
-                ]
-            }
-          ]
-      }
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: """
+                    Enum.to_list(1..10)\
+                    """
+                },
+                %{
+                  Notebook.Cell.new(:code)
+                  | language: :erlang,
+                    source: """
+                    lists:seq(1, 10).\
+                    """
+                }
+              ]
+          }
+        ]
+    }
 
     expected_document = """
     # Run as: iex --dot-iex path/to/notebook.exs
