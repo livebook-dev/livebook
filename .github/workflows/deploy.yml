@@ -128,7 +128,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            BASE_IMAGE=livebook/utils:elixir-1.14.2-erlang-24.3.4.2-cuda11.8
+            BASE_IMAGE=ghcr.io/livebook-dev/utils:elixir-1.14.2-erlang-24.3.4.2-cuda11.8
 
   create_draft_release:
     if: github.ref_type == 'tag'
