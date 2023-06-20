@@ -16,11 +16,11 @@ defmodule Livebook.ZTA.Cloudflare do
     GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
 
-  def authenticate(process_name, conn) do
+  def authenticate(name, conn) do
     token = get_req_header(conn, @assertion)
-    GenServer.call(process_name, {:authenticate, token})
+    GenServer.call(name, {:authenticate, token})
   end
-
+  
   @impl true
   def init(options) do
     :ets.new(options[:name], [:public, :named_table])
@@ -64,7 +64,7 @@ defmodule Livebook.ZTA.Cloudflare do
     with [token] <- token,
          {:ok, token} <- verify_token(token, keys),
          :ok <- verify_iss(token, identity.iss) do
-      %{"name" => token.fields["email"]}
+      %{name: token.fields["email"]}
     else
       _ -> nil
     end
