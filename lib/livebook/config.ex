@@ -169,6 +169,22 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the identity provider.
+  """
+  @spec identity_provider() :: tuple()
+  def identity_provider() do
+    Application.fetch_env!(:livebook, :identity_provider)
+  end
+
+  @doc """
+  Returns if the identity data is readonly.
+  """
+  @spec identity_readonly?() :: boolean()
+  def identity_readonly?() do
+    not match?({LivebookWeb.Cookies, _}, Livebook.Config.identity_provider())
+  end
+
+  @doc """
   Returns whether the application is running inside an iframe.
   """
   @spec within_iframe?() :: boolean()
@@ -492,5 +508,24 @@ defmodule Livebook.Config do
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
+  end
+
+  @doc """
+  Parses zero trust identity provider from env.
+  """
+  def identity_provider!(env) do
+    case System.get_env(env) do
+      "googleiap:" <> rest ->
+        {Livebook.ZTA.GoogleIAP, rest}
+
+      "cloudflare:" <> rest ->
+        {Livebook.ZTA.Cloudflare, rest}
+
+      nil ->
+        nil
+
+      _ ->
+        abort!("invalid configuration for identity provider")
+    end
   end
 end

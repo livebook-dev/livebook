@@ -35,9 +35,11 @@ defmodule LivebookWeb.UserHook do
   defp build_current_user(session, socket) do
     %{"current_user_id" => current_user_id} = session
     user = %{User.new() | id: current_user_id}
+    identity_data = Map.new(session["identity_data"], fn {k, v} -> {Atom.to_string(k), v} end)
 
     connect_params = get_connect_params(socket) || %{}
     attrs = connect_params["user_data"] || session["user_data"] || %{}
+    attrs = Map.merge(attrs, identity_data)
 
     case Livebook.Users.update_user(user, attrs) do
       {:ok, user} -> user

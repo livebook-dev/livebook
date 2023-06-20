@@ -35,7 +35,12 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <.text_field field={f[:name]} label="Display name" spellcheck="false" />
+          <.text_field
+            field={f[:name]}
+            label="Display name"
+            spellcheck="false"
+            disabled={Livebook.Config.identity_readonly?()}
+          />
           <.hex_color_field
             field={f[:hex_color]}
             label="Cursor color"

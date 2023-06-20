@@ -1732,8 +1732,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
-    {:ok, cell, _section} =
-      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
 
     socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
 
@@ -1764,8 +1763,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:restore_cell, client_id, cell_id}) do
-    {:ok, cell, _section} =
-      Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
 
     socket = push_cell_editor_payloads(socket, socket.private.data, [cell])
 
