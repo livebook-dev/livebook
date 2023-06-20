@@ -181,7 +181,7 @@ defmodule Livebook.Config do
   """
   @spec identity_readonly?() :: boolean()
   def identity_readonly?() do
-    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
+    not match?({LivebookWeb.Cookies, _}, Livebook.Config.identity_provider())
   end
 
   @doc """
