@@ -14,6 +14,9 @@
 # See rel/app/macos/README.md for more information.
 set -euo pipefail
 
+ELIXIR_VERSION="1.14.2"
+OTP_VERSION="25.0.4"
+
 main() {
   bootstrap_otp
   download_elixir
