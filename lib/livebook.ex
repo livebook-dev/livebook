@@ -195,9 +195,10 @@ defmodule Livebook do
       config :livebook, :allowed_uri_schemes, allowed_uri_schemes
     end
 
-    if identity_provider = Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") do
-      config :livebook, :identity_provider, identity_provider
-    end
+    config :livebook,
+           :identity_provider,
+           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") ||
+             {LivebookWeb.Cookies, :unused}
   end
 
   @doc """

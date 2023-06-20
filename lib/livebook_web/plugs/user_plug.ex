@@ -44,7 +44,7 @@ defmodule LivebookWeb.UserPlug do
 
   defp ensure_user_data(conn) do
     {module, _} = Livebook.Config.identity_provider()
-    user = module.authenticate(conn)
+    user = module.authenticate(LivebookWeb.ZTA, conn)
 
     if user do
       user_data = user_data(User.new()) |> Map.merge(user)

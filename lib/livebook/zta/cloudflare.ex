@@ -5,15 +5,20 @@ defmodule Livebook.ZTA.Cloudflare do
   require Logger
   import Plug.Conn
 
-  @name __MODULE__
+  @assertion "cf-access-jwt-assertion"
   @renew_afer 24 * 60 * 60 * 1000
 
   defstruct [:name, :req_options, :identity]
 
   def start_link(opts) do
-    identity = identity(opts[:key])
-    options = [name: @name, req_options: [url: identity.certs], identity: identity]
-    GenServer.start_link(__MODULE__, options, name: @name)
+    identity = identity(opts[:identity][:key])
+    options = [req_options: [url: identity.certs], identity: identity]
+    GenServer.start_link(__MODULE__, options, name: opts[:name])
+  end
+
+  def authenticate(process_name, conn) do
+    token = get_req_header(conn, @assertion)
+    GenServer.call(process_name, {:authenticate, token})
   end
 
   @impl true
@@ -28,9 +33,9 @@ defmodule Livebook.ZTA.Cloudflare do
     {:reply, keys, state}
   end
 
-  def handle_call({:authenticate, conn}, _from, state) do
+  def handle_call({:authenticate, token}, _from, state) do
     keys = get_from_ets(state.name) || request_and_store_in_ets(state)
-    user = authenticate(conn, state.identity, keys)
+    user = authenticate(token, state.identity, keys)
     {:reply, user, state}
   end
 
@@ -55,12 +60,8 @@ defmodule Livebook.ZTA.Cloudflare do
     end
   end
 
-  def authenticate(conn) do
-    GenServer.call(@name, {:authenticate, conn})
-  end
-
-  defp authenticate(conn, identity, keys) do
-    with [token] <- get_req_header(conn, identity.assertion),
+  defp authenticate(token, identity, keys) do
+    with [token] <- token,
          {:ok, token} <- verify_token(token, keys),
          :ok <- verify_iss(token, identity.iss) do
       %{"name" => token.fields["email"]}

@@ -5,15 +5,14 @@ defmodule Livebook.ZTA.GoogleIAP do
   require Logger
   import Plug.Conn
 
-  @name __MODULE__
   @renew_afer 24 * 60 * 60 * 1000
 
   defstruct [:name, :req_options, :identity]
 
   def start_link(opts) do
-    identity = identity(opts[:key])
-    options = [name: @name, req_options: [url: identity.certs], identity: identity]
-    GenServer.start_link(__MODULE__, options, name: @name)
+    identity = identity(opts[:identity][:key])
+    options = [req_options: [url: identity.certs], identity: identity]
+    GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
 
   @impl true
@@ -56,7 +55,7 @@ defmodule Livebook.ZTA.GoogleIAP do
   end
 
   def authenticate(conn) do
-    GenServer.call(@name, {:authenticate, conn})
+    GenServer.call(LivebookWeb.ZTA, {:authenticate, conn})
   end
 
   defp authenticate(conn, identity, keys) do

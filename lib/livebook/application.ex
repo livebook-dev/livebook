@@ -271,6 +271,6 @@ defmodule Livebook.Application do
 
   defp identity_provider() do
     {module, key} = Livebook.Config.identity_provider()
-    [{module, name: LivebookWeb.ZTA, key: key}]
+    [{module, name: LivebookWeb.ZTA, identity: [key: key]}]
   end
 end

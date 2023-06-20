@@ -514,7 +514,7 @@ defmodule Livebook.Config do
         {Livebook.ZTA.Cloudflare, rest}
 
       nil ->
-        {LivebookWeb.Cookies, :unused}
+        nil
 
       _ ->
         abort!("invalid configuration for identity provider")
