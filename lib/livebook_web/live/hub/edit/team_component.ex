@@ -21,7 +21,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
-      <.modal id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
+      <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
         <div class="p-6 flex flex-col space-y-5">
           <h3 class="text-2xl font-semibold text-gray-800">
             Teams Key
