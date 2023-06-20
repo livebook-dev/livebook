@@ -177,6 +177,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns if the identity data is readonly.
+  """
+  @spec identity_readonly?() :: boolean()
+  def identity_readonly?() do
+    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
+  end
+
+  @doc """
   Returns whether the application is running inside an iframe.
   """
   @spec within_iframe?() :: boolean()
@@ -519,13 +527,5 @@ defmodule Livebook.Config do
       _ ->
         abort!("invalid configuration for identity provider")
     end
-  end
-
-  @doc """
-  Returns if the identity data is readonly.
-  """
-  @spec identity_readonly?() :: boolean()
-  def identity_readonly?() do
-    Livebook.Config.identity_provider() |> elem(0) != LivebookWeb.Cookies
   end
 end
