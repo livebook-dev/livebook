@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.9.3](https://github.com/livebook-dev/livebook/tree/v0.9.3) (2023-06-20)
+
+### Fixed
+
+- Do not browser open arbitrary URLs
+
 ## [v0.9.2](https://github.com/livebook-dev/livebook/tree/v0.9.2) (2023-04-14)
 
 ### Added
@@ -92,6 +98,12 @@ We migrated Docker images from Docker Hub to GitHub Container Registry (see [#17
 - Assertion errors in doctests ([#1752](https://github.com/livebook-dev/livebook/pull/1752))
 - Error when converting Smart cell with input to Code ([#1781](https://github.com/livebook-dev/livebook/pull/1781))
 - Improved iframe repositioning when moving sections ([#1796](https://github.com/livebook-dev/livebook/pull/1796))
+
+## [v0.8.2](https://github.com/livebook-dev/livebook/tree/v0.8.2) (2023-06-20)
+
+### Fixed
+
+- Do not browser open arbitrary URLs
 
 ## [v0.8.1](https://github.com/livebook-dev/livebook/tree/v0.8.1) (2023-01-18)
 
