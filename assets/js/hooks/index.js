@@ -19,6 +19,7 @@ import TextareaAutosize from "./textarea_autosize";
 import Timer from "./timer";
 import UserForm from "./user_form";
 import VirtualizedLines from "./virtualized_lines";
+import CustomViewSettings from "./custom_view";
 
 export default {
   AppAuth,
@@ -42,4 +43,5 @@ export default {
   Timer,
   UserForm,
   VirtualizedLines,
+  CustomViewSettings,
 };

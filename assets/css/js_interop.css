@@ -319,40 +319,82 @@ solely client-side operations.
   @apply text-green-bright-400;
 }
 
-[data-el-session]:is([data-js-view="code-zen"], [data-js-view="presentation"])
+[data-el-session]:is(
+    [data-js-view="code-zen"],
+    [data-js-view="presentation"],
+    [data-js-view="custom"]
+  )
   [data-el-views-disabled] {
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-view="code-zen"], [data-js-view="presentation"])
+[data-el-session]:not(
+    [data-js-view="code-zen"],
+    [data-js-view="presentation"],
+    [data-js-view="custom"]
+  )
   [data-el-views-enabled] {
   @apply hidden;
 }
 
+/* Custom view */
 
+/* outputs */
+[data-js-view="custom"]:not([data-js-output="true"]) [data-el-output] {
+  @apply hidden;
+}
 
-/* Testing custom view */
+/* section */
+[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
+  [data-el-section-headline],
+[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
+  [data-el-section-subheadline],
+[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
+  [data-el-section-subheadline-collapsed] {
+  @apply hidden;
+}
+
+/* markdown */
+[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
+  [data-el-cell][data-type="markdown"],
+[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
+  [data-el-actions],
+[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
+  [data-el-insert-buttons] {
+  @apply hidden;
+}
+
+/* results */
+[data-el-session][data-js-view="custom"]:not([data-js-results="true"])
+  [data-el-actions],
 [data-el-session][data-js-view="custom"]
+  :not([data-js-results="true"])
+  [data-el-insert-buttons] {
+  @apply hidden;
+}
+
+/* spotlight */
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
   [data-el-section-headline]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
   [data-el-section-subheadline]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
   [data-el-cell]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
   [data-el-js-view-iframes]
   iframe:not([data-js-focused]) {
   @apply opacity-10;
 }
 
-[data-el-session][data-js-view="custom"] [data-el-sidebar],
-[data-el-session][data-js-view="custom"] [data-el-side-panel],
-[data-el-session][data-js-view="custom"] [data-el-toggle-sidebar] {
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
+  [data-el-sidebar],
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
+  [data-el-side-panel],
+[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
+  [data-el-toggle-sidebar] {
   @apply hidden;
 }
 
-[data-el-session][data-js-view="custom"]
-  [data-el-view-toggle="custom"] {
+[data-el-session][data-js-view="custom"] [data-el-view-toggle="custom"] {
   @apply text-green-bright-400;
 }
-
-

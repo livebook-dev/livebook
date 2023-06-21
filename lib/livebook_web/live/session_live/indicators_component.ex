@@ -86,7 +86,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </button>
         </.menu_item>
         <.menu_item>
-        <.custom_view_button session_id={@session_id} ></.custom_view_button>
+          <button role="menuitem" data-el-view-toggle="custom">
+            <.link patch={~p"/sessions/#{@session_id}/custom-view"}>
+              <.remix_icon icon="settings-5-line" />
+              <span>Custom</span>
+            </.link>
+          </button>
         </.menu_item>
       </.menu>
     </div>
@@ -264,20 +269,6 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         ins
       </span>
     </span>
-    """
-  end
-
-  defp custom_view_button(assigns) do
-    ~H"""
-      <span class="tooltip top" data-tooltip="Custom mode">
-        <.link
-          patch={~p"/sessions/#{@session_id}/custom-view"}
-          data-btn-custom-view
-        >
-          <.remix_icon icon="settings-5-line" class="text-xl" />
-          <span>Custom</span>
-        </.link>
-      </span>
     """
   end
 end
