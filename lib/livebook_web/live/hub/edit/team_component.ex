@@ -33,6 +33,66 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
+      <div class="mb-8">
+        <div class="flex relative mb-8">
+          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+
+          <button
+            id="delete-hub"
+            phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+            class="absolute right-0 button-base button-red"
+          >
+            Delete hub
+          </button>
+        </div>
+
+        <div class="flex flex-col space-y-10">
+          <div class="flex flex-col space-y-2">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              General
+            </h2>
+
+            <.form
+              :let={f}
+              id={@id}
+              class="flex flex-col mt-4 space-y-4"
+              for={@form}
+              phx-submit="save"
+              phx-change="validate"
+              phx-target={@myself}
+            >
+              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+              </div>
+
+              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                Update Hub
+              </button>
+            </.form>
+          </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Secrets
+            </h2>
+
+            <p class="text-gray-700">
+              Secrets are a safe way to share credentials and tokens with notebooks.
+              They are often shared with Smart cells and can be read as
+              environment variables using the <code>LB_</code> prefix.
+            </p>
+
+            <.live_component
+              module={LivebookWeb.Hub.SecretListComponent}
+              id="hub-secrets-list"
+              hub={@hub}
+              secrets={@secrets}
+              target={@myself}
+            />
+          </div>
+        </div>
+      </div>
+
       <.modal
         :if={@show_key}
         id="show-key-modal"
@@ -134,66 +194,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           return_to={~p"/hub/#{@hub.id}"}
         />
       </.modal>
-
-      <div class="space-y-8">
-        <div class="flex relative">
-          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
-
-          <button
-            id="delete-hub"
-            phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-            class="absolute right-0 button-base button-red"
-          >
-            Delete hub
-          </button>
-        </div>
-
-        <div class="flex flex-col space-y-10">
-          <div class="flex flex-col space-y-2">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              General
-            </h2>
-
-            <.form
-              :let={f}
-              id={@id}
-              class="flex flex-col mt-4 space-y-4"
-              for={@form}
-              phx-submit="save"
-              phx-change="validate"
-              phx-target={@myself}
-            >
-              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
-              </div>
-
-              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                Update Hub
-              </button>
-            </.form>
-          </div>
-
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              Secrets
-            </h2>
-
-            <p class="text-gray-700">
-              Secrets are a safe way to share credentials and tokens with notebooks.
-              They are often shared with Smart cells and can be read as
-              environment variables using the <code>LB_</code> prefix.
-            </p>
-
-            <.live_component
-              module={LivebookWeb.Hub.SecretListComponent}
-              id="hub-secrets-list"
-              hub={@hub}
-              secrets={@secrets}
-              target={@myself}
-            />
-          </div>
-        </div>
-      </div>
     </div>
     """
   end
