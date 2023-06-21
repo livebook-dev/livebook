@@ -19,44 +19,14 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
         <div class="flex flex-col space-y-4 mt-6">
-          <div
+          <.session_secret
             :for={
               secret <- @secrets |> Session.Data.session_secrets(@hub.id) |> Enum.sort_by(& &1.name)
             }
-            class="flex flex-col text-gray-500 rounded-lg px-2 pt-1"
             id={"session-secret-#{secret.name}"}
-          >
-            <span
-              class="text-sm font-mono break-all flex-row cursor-pointer"
-              phx-click={
-                JS.toggle(to: "#session-secret-#{secret.name}-detail", display: "flex")
-                |> toggle_class("bg-gray-100", to: "#session-secret-#{secret.name}")
-              }
-            >
-              <%= secret.name %>
-            </span>
-            <div
-              class="flex flex-row justify-between items-center my-1 hidden"
-              id={"session-secret-#{secret.name}-detail"}
-            >
-              <span class="text-sm font-mono break-all flex-row">
-                <%= secret.value %>
-              </span>
-              <button
-                id={"session-secret-#{secret.name}-delete"}
-                type="button"
-                phx-click={
-                  JS.push("delete_session_secret",
-                    value: %{secret_name: secret.name},
-                    target: @myself
-                  )
-                }
-                class="hover:text-gray-900"
-              >
-                <.remix_icon icon="delete-bin-line" />
-              </button>
-            </div>
-          </div>
+            secret={secret}
+            myself={@myself}
+          />
         </div>
 
         <.link
@@ -83,7 +53,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         </div>
 
         <div class="flex flex-col space-y-4 mt-6">
-          <.secrets_item
+          <.hub_secret
             :for={secret <- Enum.sort_by(@hub_secrets, & &1.name)}
             id={"hub-#{secret.hub_id}-secret-#{secret.name}"}
             secret={secret}
@@ -97,7 +67,44 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
     """
   end
 
-  defp secrets_item(assigns) do
+  defp session_secret(assigns) do
+    ~H"""
+    <div id={@id} class="flex flex-col text-gray-500 rounded-lg px-2 pt-1">
+      <span
+        class="text-sm font-mono break-all flex-row cursor-pointer"
+        phx-click={
+          JS.toggle(to: "#session-secret-#{@secret.name}-detail", display: "flex")
+          |> toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
+        }
+      >
+        <%= @secret.name %>
+      </span>
+      <div
+        class="flex-row justify-between items-center my-1 hidden"
+        id={"session-secret-#{@secret.name}-detail"}
+      >
+        <span class="text-sm font-mono break-all flex-row">
+          <%= @secret.value %>
+        </span>
+        <button
+          id={"session-secret-#{@secret.name}-delete"}
+          type="button"
+          phx-click={
+            JS.push("delete_session_secret",
+              value: %{secret_name: @secret.name},
+              target: @myself
+            )
+          }
+          class="hover:text-gray-900"
+        >
+          <.remix_icon icon="delete-bin-line" />
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp hub_secret(assigns) do
     ~H"""
     <div id={@id} class="flex flex-col text-gray-500 rounded-lg px-2 pt-1">
       <div class="flex flex-col text-gray-800">
