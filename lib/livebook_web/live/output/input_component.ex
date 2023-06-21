@@ -171,11 +171,70 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
+  defp input_output(%{attrs: %{type: :datetime}} = assigns) do
+    ~H"""
+    <input
+      id={@id}
+      type="datetime-local"
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
+      phx-hook="UtcDateTimeInput"
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={@attrs.min && Calendar.strftime(@attrs.min, "%Y-%m-%dT%H:%M")}
+      max={@attrs.max && Calendar.strftime(@attrs.max, "%Y-%m-%dT%H:%M")}
+      step={@attrs.step}
+      autocomplete="off"
+    />
+    """
+  end
+
+  defp input_output(%{attrs: %{type: :time}} = assigns) do
+    ~H"""
+    <input
+      id={@id}
+      type="time"
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={@value}
+      phx-hook="UtcDateTimeInput"
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={@attrs.min}
+      max={@attrs.max}
+      step={@attrs.step}
+      autocomplete="off"
+    />
+    """
+  end
+
+  defp input_output(%{attrs: %{type: type}} = assigns)
+       when type in [:date, :week, :month] do
+    ~H"""
+    <input
+      type={html_input_type(type)}
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={@value}
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={@attrs.min}
+      max={@attrs.max}
+      step={@attrs.step}
+      autocomplete="off"
+    />
+    """
+  end
+
   defp input_output(%{attrs: %{type: type}} = assigns)
        when type in [:number, :color, :url, :text] do
     ~H"""
     <input
-      type={html_input_type(@attrs.type)}
+      type={html_input_type(type)}
       data-el-input
       class="input w-auto invalid:input--error"
       name="html_value"
@@ -196,6 +255,9 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
+  defp html_input_type(:date), do: "date"
+  defp html_input_type(:week), do: "week"
+  defp html_input_type(:month), do: "month"
   defp html_input_type(:number), do: "number"
   defp html_input_type(:color), do: "color"
   defp html_input_type(:url), do: "url"
@@ -278,7 +340,7 @@ defmodule LivebookWeb.Output.InputComponent do
     cond do
       html_value == "" -> {:ok, nil}
       Livebook.Utils.valid_url?(html_value) -> {:ok, html_value}
-      true -> {:error, "not a valid URL"}
+      true -> :error
     end
   end
 
@@ -302,6 +364,35 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp parse(html_value, %{type: :color}) do
+    {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :datetime}) do
+    case NaiveDateTime.from_iso8601(html_value) do
+      {:ok, datetime} -> {:ok, datetime}
+      {:error, _error} -> :error
+    end
+  end
+
+  defp parse(html_value, %{type: :time}) do
+    case Time.from_iso8601(html_value) do
+      {:ok, time} -> {:ok, time}
+      {:error, _error} -> :error
+    end
+  end
+
+  defp parse(html_value, %{type: :date}) do
+    case Date.from_iso8601(html_value) do
+      {:ok, date} -> {:ok, date}
+      {:error, _error} -> :error
+    end
+  end
+
+  defp parse(html_value, %{type: :week}) do
+    {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :month}) do
     {:ok, html_value}
   end
 

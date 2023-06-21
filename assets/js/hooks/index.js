@@ -3,6 +3,7 @@ import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
 import Dropzone from "./dropzone";
+import UtcDateTimeInput from "./utc_date_time_input";
 import EditorSettings from "./editor_settings";
 import EmojiPicker from "./emoji_picker";
 import FocusOnUpdate from "./focus_on_update";
@@ -25,6 +26,7 @@ export default {
   AudioInput,
   Cell,
   CellEditor,
+  UtcDateTimeInput,
   Dropzone,
   EditorSettings,
   EmojiPicker,
