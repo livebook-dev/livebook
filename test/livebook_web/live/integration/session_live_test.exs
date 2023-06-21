@@ -1,6 +1,7 @@
 defmodule LivebookWeb.Integration.SessionLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
+  import Livebook.HubHelpers
   import Livebook.SessionHelpers
   import Phoenix.LiveViewTest
 
@@ -241,31 +242,5 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
-  end
-
-  defp create_team_hub(user, node) do
-    teams_org = build(:org)
-    teams_key = teams_org.teams_key
-    key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-    org = erpc_call(node, :create_org, [])
-    org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
-    org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
-    token = erpc_call(node, :associate_user_with_org, [user, org])
-
-    insert_hub(:team,
-      id: "team-#{org.name}",
-      hub_name: org.name,
-      user_id: user.id,
-      org_id: org.id,
-      org_key_id: org_key.id,
-      org_public_key: org_key_pair.public_key,
-      session_token: token,
-      teams_key: teams_key
-    )
-  end
-
-  defp erpc_call(node, fun, args) do
-    :erpc.call(node, Hub.Integration, fun, args)
   end
 end

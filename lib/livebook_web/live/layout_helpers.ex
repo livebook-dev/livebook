@@ -164,6 +164,7 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar_hub_link(assigns) do
     ~H"""
     <.link
+      id={"hub-#{@hub.id}"}
       navigate={@to}
       class={[
         "h-7 flex items-center hover:text-white border-l-4 hover:border-white",
@@ -239,9 +240,10 @@ defmodule LivebookWeb.LayoutHelpers do
       "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
     if hub.connected? do
-      [navigate: to, class: class]
+      [id: "hub-#{hub.id}", navigate: to, class: class]
     else
       [
+        id: "hub-#{hub.id}",
         navigate: to,
         data_tooltip: Provider.connection_error(hub.provider),
         class: "tooltip right " <> class

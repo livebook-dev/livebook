@@ -3,6 +3,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   alias Livebook.Teams.Org
 
+  import Livebook.HubHelpers
   import Phoenix.LiveViewTest
 
   test "render hub selection cards", %{conn: conn} do
@@ -59,7 +60,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       refute has_element?(view, "#show-key-modal")
 
       # checks if the hub is in the sidebar
-      assert_hub(view, "/hub/team-#{name}", name)
+      assert_sidebar_hub(view, "team-#{name}", name)
     end
   end
 
@@ -120,17 +121,9 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       refute has_element?(view, "#show-key-modal")
 
       # checks if the hub is in the sidebar
-      assert_hub(view, "/hub/team-#{name}", name)
+      assert_sidebar_hub(view, "team-#{name}", name)
     end
   end
 
   defp check_completion_data_interval(), do: 2000
-
-  defp assert_hub(view, path, name, emoji \\ "🐈") do
-    hubs_html = view |> element("#hubs") |> render()
-
-    assert hubs_html =~ emoji
-    assert hubs_html =~ path
-    assert hubs_html =~ name
-  end
 end

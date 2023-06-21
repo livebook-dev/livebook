@@ -87,6 +87,12 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     else
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
+
+      {:transport_error, error} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, error)
+         |> push_patch(to: "/hub/#{socket.assigns.hub.id}/secrets/new")}
     end
   end
 
