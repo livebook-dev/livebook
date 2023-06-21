@@ -99,7 +99,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
 
   defp secrets_item(assigns) do
     ~H"""
-    <div class="flex flex-col text-gray-500 rounded-lg px-2 pt-1" id={@id}>
+    <div id={@id} class="flex flex-col text-gray-500 rounded-lg px-2 pt-1">
       <div class="flex flex-col text-gray-800">
         <div class="flex flex-col">
           <div class="flex justify-between items-center">
@@ -144,9 +144,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <.hidden_field field={f[:name]} value={@secret.name} />
             </.form>
           </div>
-          <div class="flex flex-row justify-between items-center my-1 hidden" id={"#{@id}-detail"}>
-            <span class="text-sm font-mono break-all flex-row">
-              <%= Session.Data.secret_used_value(@secret, @secrets) %>
+          <div class="flex-row justify-between items-center my-1 hidden" id={"#{@id}-detail"}>
+            <span class="text-sm font-mono font-bold break-all flex-row">
+              *****
             </span>
             <button
               :if={!@secret.readonly}
