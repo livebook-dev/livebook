@@ -44,6 +44,7 @@ defmodule Livebook.Application do
         {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
         iframe_server_specs() ++
+        identity_provider() ++
         [
           # Start the Endpoint (http/https)
           # We skip the access url as we do our own logging below
@@ -266,5 +267,10 @@ defmodule Livebook.Application do
     Livebook.Config.abort!(
       "Failed to start Livebook iframe server because port #{port} is already in use"
     )
+  end
+
+  defp identity_provider() do
+    {module, key} = Livebook.Config.identity_provider()
+    [{module, name: LivebookWeb.ZTA, identity: [key: key]}]
   end
 end

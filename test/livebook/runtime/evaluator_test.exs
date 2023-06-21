@@ -217,6 +217,32 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
     end
 
+    test "returns additional metadata when there is a module compilation error", %{
+      evaluator: evaluator
+    } do
+      code = """
+      defmodule Livebook.Runtime.EvaluatorTest.Invalid do
+        x
+      end
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex")
+
+      assert_receive {:runtime_evaluation_response, :code_1,
+                      {:error,
+                       "\e[31m** (CompileError) file.ex: cannot compile module Livebook.Runtime.EvaluatorTest.Invalid " <>
+                         "(errors have been logged)\e[0m" <> _, :other},
+                      %{
+                        code_markers: [
+                          %{
+                            line: 2,
+                            description: ~s/undefined variable "x"/,
+                            severity: :error
+                          }
+                        ]
+                      }}
+    end
+
     test "ignores code errors when they happen in the actual evaluation", %{evaluator: evaluator} do
       code = """
       Code.eval_string("x")
@@ -505,8 +531,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       %{column: 4, details: _, end_line: 20, line: 19, status: :failed}}
     end
 
-    # TODO: Run this test on Elixir v1.15+
-    @tag :skip
     test "multiple assertions at once", %{evaluator: evaluator} do
       code = ~S'''
       defmodule Livebook.Runtime.EvaluatorTest.DoctestsMiddle do

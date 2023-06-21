@@ -2,12 +2,9 @@ defmodule LivebookWeb.ErrorsTest do
   use LivebookWeb.ConnCase, async: true
 
   test "renders 404", %{conn: conn} do
-    response =
-      assert_error_sent :not_found, fn ->
-        get(conn, "/this/does/not/exist")
-      end
+    conn = get(conn, "/this/does/not/exist")
 
-    assert {404, _, body} = response
-    assert body =~ "No Numbats here!"
+    assert conn.status == 404
+    assert conn.resp_body =~ "No Numbats here!"
   end
 end

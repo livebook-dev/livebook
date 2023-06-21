@@ -33,7 +33,7 @@ const Cell = {
 
     // Setup action handlers
 
-    if (this.props.type === "code") {
+    if (["code", "smart"].includes(this.props.type)) {
       const amplifyButton = this.el.querySelector(
         `[data-el-amplify-outputs-button]`
       );

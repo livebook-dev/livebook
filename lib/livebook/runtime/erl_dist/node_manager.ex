@@ -98,6 +98,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     # TODO: remove logger backend once we require Elixir v1.15
     if Code.ensure_loaded?(Logger) and function_exported?(Logger, :add_handlers, 1) do
+      {:ok, _pid} = Livebook.Runtime.ErlDist.Sink.start_link()
+
       :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
         formatter: Logger.Formatter.new(),
         filters: [

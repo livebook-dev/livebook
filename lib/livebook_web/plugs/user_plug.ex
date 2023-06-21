@@ -16,6 +16,7 @@ defmodule LivebookWeb.UserPlug do
   @behaviour Plug
 
   import Plug.Conn
+  import Phoenix.Controller
 
   alias Livebook.Users.User
 
@@ -26,6 +27,7 @@ defmodule LivebookWeb.UserPlug do
   def call(conn, _opts) do
     conn
     |> ensure_current_user_id()
+    |> ensure_user_identity()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
   end
@@ -39,11 +41,27 @@ defmodule LivebookWeb.UserPlug do
     end
   end
 
+  defp ensure_user_identity(conn) do
+    {module, _} = Livebook.Config.identity_provider()
+    identity_data = module.authenticate(LivebookWeb.ZTA, conn)
+
+    if identity_data do
+      put_session(conn, :identity_data, identity_data)
+    else
+      conn
+      |> put_status(:forbidden)
+      |> put_view(LivebookWeb.ErrorHTML)
+      |> render("403.html")
+      |> halt()
+    end
+  end
+
   defp ensure_user_data(conn) do
     if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
     else
-      user_data = user_data(User.new())
+      identity_data = get_session(conn, :identity_data)
+      user_data = User.new() |> user_data() |> Map.merge(identity_data)
       encoded = user_data |> Jason.encode!() |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client

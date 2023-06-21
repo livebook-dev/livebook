@@ -13,7 +13,8 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLHandler do
   end
 
   def async_io(device, output) when is_pid(device) do
-    send(device, {:io_request, self(), make_ref(), {:put_chars, :unicode, output}})
+    reply_to = Livebook.Runtime.ErlDist.Sink.pid()
+    send(device, {:io_request, reply_to, make_ref(), {:put_chars, :unicode, output}})
   end
 
   @doc false
