@@ -1,9 +1,6 @@
 defmodule LivebookWeb.SessionLive.SecretsListComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs
-  alias Livebook.Secrets
-  alias Livebook.Secrets.Secret
   alias Livebook.Session
 
   @impl true
@@ -155,24 +152,14 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             <span class="text-sm font-mono font-bold break-all flex-row">
               *****
             </span>
-            <button
-              :if={!@secret.readonly}
-              id={"#{@id}-delete"}
-              type="button"
-              phx-click={
-                JS.push("delete_hub_secret",
-                  value: %{
-                    name: @secret.name,
-                    value: @secret.value,
-                    hub_id: @secret.hub_id
-                  },
-                  target: @myself
-                )
-              }
+            <.link
+              id="edit-secret-button"
+              navigate={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
               class="hover:text-gray-900"
+              role="button"
             >
-              <.remix_icon icon="delete-bin-line" />
-            </button>
+              <.remix_icon icon="pencil-line" />
+            </.link>
           </div>
         </div>
       </div>
@@ -227,30 +214,6 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
      confirm(socket, on_confirm,
        title: "Delete session secret - #{secret_name}",
        description: "Are you sure you want to delete this session secret?",
-       confirm_text: "Delete",
-       confirm_icon: "delete-bin-6-line"
-     )}
-  end
-
-  def handle_event("delete_hub_secret", attrs, socket) do
-    %{hub: hub, session: session} = socket.assigns
-
-    on_confirm = fn socket ->
-      {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-
-      with :ok <- Hubs.delete_secret(hub, secret),
-           :ok <- Session.unset_secret(session.pid, secret.name) do
-        socket
-      else
-        {:transport_error, reason} ->
-          put_flash(socket, :error, reason)
-      end
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Delete hub secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this hub secret?",
        confirm_text: "Delete",
        confirm_icon: "delete-bin-6-line"
      )}
