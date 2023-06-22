@@ -109,6 +109,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "updates existing secret", %{conn: conn, hub: hub} do
       secret = insert_secret(name: "TEAM_EDIT_SECRET", hub_id: hub.id, readonly: true)
+      assert_receive {:secret_created, ^secret}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -153,6 +154,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "deletes existing secret", %{conn: conn, hub: hub} do
       secret = insert_secret(name: "TEAM_DELETE_SECRET", hub_id: hub.id, readonly: true)
+      assert_receive {:secret_created, ^secret}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
