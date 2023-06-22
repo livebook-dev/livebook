@@ -472,7 +472,7 @@ const Session = {
     }
 
     // When clicking an insert button, keep focus.
-    // Insert mode is disabled to prevent Monaco re-focusing the previously 
+    // Insert mode is disabled to prevent Monaco re-focusing the previously
     // focused cell if it is outside the viewport and preventing the new cell
     // from being inserted on Safari.
     if (event.target.closest(`[data-el-insert-buttons] button`)) {
