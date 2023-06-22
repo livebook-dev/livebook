@@ -16,8 +16,6 @@ import monaco from "./cell_editor/live_editor/monaco";
 import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
-import CustomViewSettings from "./custom_view";
-
 /**
  * A hook managing the whole session.
  *
@@ -416,6 +414,8 @@ const Session = {
         this.toggleView("code-zen");
       } else if (keyBuffer.tryMatch(["v", "p"])) {
         this.toggleView("presentation");
+      } else if (keyBuffer.tryMatch(["v", "c"])) {
+        this.toggleView("custom");
       } else if (keyBuffer.tryMatch(["c"])) {
         !this.isViewCodeZen() && this.toggleCollapseSection();
       } else if (keyBuffer.tryMatch(["C"])) {
@@ -970,11 +970,14 @@ const Session = {
     if (this.view === view) {
       this.view = null;
       this.el.removeAttribute("data-js-view");
+      this.unsubscribeCustomViewFromSettings();
     } else {
       this.view = view;
       this.el.setAttribute("data-js-view", view);
       if (view == "custom") {
         this.customViewSelection();
+      } else {
+        this.unsubscribeCustomViewFromSettings();
       }
     }
 
@@ -995,22 +998,33 @@ const Session = {
   },
   customViewSelection() {
     settingsStore.getAndSubscribe((settings) => {
-      settings.custom_section
-        ? this.el.setAttribute("data-js-section", true)
-        : this.el.removeAttribute("data-js-section");
-      settings.custom_markdown
-        ? this.el.setAttribute("data-js-markdown", true)
-        : this.el.removeAttribute("data-js-markdown");
-      settings.custom_results
-        ? this.el.setAttribute("data-js-results", true)
-        : this.el.removeAttribute("data-js-results");
-      settings.custom_output
-        ? this.el.setAttribute("data-js-output", true)
-        : this.el.removeAttribute("data-js-output");
-      settings.custom_spotlight
-        ? this.el.setAttribute("data-js-spotlight", true)
-        : this.el.removeAttribute("data-js-spotlight");
+      this.el.toggleAttribute(
+        "data-js-hide-section",
+        !settings.custom_view_show_section
+      );
+      this.el.toggleAttribute(
+        "data-js-hide-markdown",
+        !settings.custom_view_show_markdown
+      );
+      this.el.toggleAttribute(
+        "data-js-hide-output",
+        !settings.custom_view_show_output
+      );
+      this.el.toggleAttribute(
+        "data-js-show-spotlight",
+        settings.custom_view_show_spotlight
+      );
+
+      return () => {
+        this.unsubscribeCustomViewFromSettings();
+      };
     });
+  },
+  unsubscribeCustomViewFromSettings() {
+    this.el.removeAttribute("data-js-hide-section");
+    this.el.removeAttribute("data-js-hide-markdown");
+    this.el.removeAttribute("data-js-hide-output");
+    this.el.removeAttribute("data-js-show-spotlight");
   },
 
   toggleCollapseSection() {

@@ -340,58 +340,37 @@ solely client-side operations.
 /* Custom view */
 
 /* outputs */
-[data-js-view="custom"]:not([data-js-output="true"]) [data-el-output] {
+[data-js-hide-output] [data-el-output] {
   @apply hidden;
 }
 
 /* section */
-[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
-  [data-el-section-headline],
-[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
-  [data-el-section-subheadline],
-[data-el-session][data-js-view="custom"]:not([data-js-section="true"])
-  [data-el-section-subheadline-collapsed] {
+[data-js-hide-section] [data-el-section-headline],
+[data-js-hide-section] [data-el-section-subheadline],
+[data-js-hide-section] [data-el-section-subheadline-collapsed] {
   @apply hidden;
 }
 
 /* markdown */
-[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
-  [data-el-cell][data-type="markdown"],
-[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
-  [data-el-actions],
-[data-el-session][data-js-view="custom"]:not([data-js-markdown="true"])
-  [data-el-insert-buttons] {
-  @apply hidden;
-}
-
-/* results */
-[data-el-session][data-js-view="custom"]:not([data-js-results="true"])
-  [data-el-actions],
-[data-el-session][data-js-view="custom"]
-  :not([data-js-results="true"])
-  [data-el-insert-buttons] {
+[data-js-hide-markdown] [data-el-cell][data-type="markdown"],
+[data-js-hide-markdown] [data-el-actions],
+[data-js-hide-markdown] [data-el-insert-buttons] {
   @apply hidden;
 }
 
 /* spotlight */
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-section-headline]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-section-subheadline]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-cell]:not([data-js-focused]),
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
+[data-js-show-spotlight] [data-el-section-headline]:not([data-js-focused]),
+[data-js-show-spotlight] [data-el-section-subheadline]:not([data-js-focused]),
+[data-js-show-spotlight] [data-el-cell]:not([data-js-focused]),
+[data-js-show-spotlight]
   [data-el-js-view-iframes]
   iframe:not([data-js-focused]) {
   @apply opacity-10;
 }
 
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-sidebar],
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-side-panel],
-[data-el-session][data-js-view="custom"]:is([data-js-spotlight="true"])
-  [data-el-toggle-sidebar] {
+[data-js-show-spotlight] [data-el-sidebar],
+[data-js-show-spotlight] [data-el-side-panel],
+[data-js-show-spotlight] [data-el-toggle-sidebar] {
   @apply hidden;
 }
 

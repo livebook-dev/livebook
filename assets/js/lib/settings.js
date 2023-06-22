@@ -18,11 +18,10 @@ const DEFAULT_SETTINGS = {
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
   editor_markdown_word_wrap: true,
-  custom_section: true,
-  custom_markdown: true,
-  custom_results: true,
-  custom_output: true,
-  custom_spotlight: false,
+  custom_view_show_section: true,
+  custom_view_show_markdown: true,
+  custom_view_show_output: true,
+  custom_view_show_spotlight: false,
 };
 
 /**

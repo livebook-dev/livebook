@@ -13,9 +13,6 @@ const CustomViewSettings = {
     const customMarkdownCheckbox = this.el.querySelector(
       `[name="custom_markdown"][value="true"]`
     );
-    const customResultsCheckbox = this.el.querySelector(
-      `[name="custom_results"][value="true"]`
-    );
     const customOutputCheckbox = this.el.querySelector(
       `[name="custom_output"][value="true"]`
     );
@@ -23,26 +20,24 @@ const CustomViewSettings = {
       `[name="custom_spotlight"][value="true"]`
     );
 
-    customSectionCheckbox.checked = settings.custom_section;
-    customMarkdownCheckbox.checked = settings.custom_markdown;
-    customResultsCheckbox.checked = settings.custom_results;
-    customOutputCheckbox.checked = settings.custom_output;
-    customSpotlightCheckbox.checked = settings.custom_spotlight;
+    customSectionCheckbox.checked = settings.custom_view_show_section;
+    customMarkdownCheckbox.checked = settings.custom_view_show_markdown;
+    customOutputCheckbox.checked = settings.custom_view_show_output;
+    customSpotlightCheckbox.checked = settings.custom_view_show_spotlight;
 
     customSectionCheckbox.addEventListener("change", (event) => {
-      settingsStore.update({ custom_section: event.target.checked });
+      settingsStore.update({ custom_view_show_section: event.target.checked });
     });
     customMarkdownCheckbox.addEventListener("change", (event) => {
-      settingsStore.update({ custom_markdown: event.target.checked });
-    });
-    customResultsCheckbox.addEventListener("change", (event) => {
-      settingsStore.update({ custom_results: event.target.checked });
+      settingsStore.update({ custom_view_show_markdown: event.target.checked });
     });
     customOutputCheckbox.addEventListener("change", (event) => {
-      settingsStore.update({ custom_output: event.target.checked });
+      settingsStore.update({ custom_view_show_output: event.target.checked });
     });
     customSpotlightCheckbox.addEventListener("change", (event) => {
-      settingsStore.update({ custom_spotlight: event.target.checked });
+      settingsStore.update({
+        custom_view_show_spotlight: event.target.checked,
+      });
     });
   },
 };

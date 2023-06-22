@@ -21,7 +21,6 @@ defmodule LivebookWeb.SessionLive.CustomModeComponent do
         >
           <.switch_field name="custom_section" label="Show sections" value={false} />
           <.switch_field name="custom_markdown" label="Show markdown" value={false} />
-          <.switch_field name="custom_results" label="Show results" value={false} />
           <.switch_field name="custom_output" label="Show outputs" value={false} />
           <.switch_field name="custom_spotlight" label="Spotlight focused" value={false} />
         </div>
