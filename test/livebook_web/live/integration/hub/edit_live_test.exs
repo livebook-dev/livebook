@@ -1,5 +1,5 @@
-defmodule LivebookWeb.Hub.EditLiveTest do
-  use LivebookWeb.ConnCase, async: true
+defmodule LivebookWeb.Integration.Hub.EditLiveTest do
+  use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
   import Livebook.HubHelpers
@@ -7,10 +7,15 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
   alias Livebook.Hubs
 
-  describe "personal" do
-    setup do
-      Livebook.Hubs.subscribe([:crud, :secrets])
-      {:ok, hub: Hubs.fetch_hub!(Hubs.Personal.id())}
+  describe "team" do
+    setup %{user: user, node: node} do
+      Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+      hub = create_team_hub(user, node)
+      id = hub.id
+
+      assert_receive {:hub_connected, ^id}
+
+      {:ok, hub: hub}
     end
 
     test "updates the hub", %{conn: conn, hub: hub} do
@@ -19,17 +24,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       attrs = %{"hub_emoji" => "🐈"}
 
       view
-      |> element("#personal-form")
-      |> render_change(%{"personal" => attrs})
+      |> element("#team-form")
+      |> render_change(%{"team" => attrs})
 
       refute view
-             |> element("#personal-form .invalid-feedback")
+             |> element("#team-form .invalid-feedback")
              |> has_element?()
 
       assert {:ok, view, _html} =
                view
-               |> element("#personal-form")
-               |> render_submit(%{"personal" => attrs})
+               |> element("#team-form")
+               |> render_submit(%{"team" => attrs})
                |> follow_redirect(conn)
 
       assert render(view) =~ "Hub updated successfully"
@@ -41,9 +46,28 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
-    test "creates secret", %{conn: conn, hub: hub} do
+    test "deletes the hub", %{conn: conn, hub: hub} do
+      id = hub.id
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      secret = build(:secret, name: "PERSONAL_ADD_SECRET")
+
+      view
+      |> element("#delete-hub", "Delete hub")
+      |> render_click()
+
+      render_confirm(view)
+
+      assert_receive {:hub_changed, ^id}
+      %{"success" => "Hub deleted successfully"} = assert_redirect(view, "/")
+
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      refute_sidebar_hub(view, id)
+      assert_raise Livebook.Storage.NotFoundError, fn -> Hubs.fetch_hub!(id) end
+    end
+
+    test "creates a secret", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      secret = build(:secret, name: "TEAM_ADD_SECRET", hub_id: hub.id, readonly: true)
 
       attrs = %{
         secret: %{
@@ -83,8 +107,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
 
-    test "updates secret", %{conn: conn, hub: hub} do
-      secret = insert_secret(name: "PERSONAL_EDIT_SECRET", value: "GetTheBonk")
+    test "updates existing secret", %{conn: conn, hub: hub} do
+      secret = insert_secret(name: "TEAM_EDIT_SECRET", hub_id: hub.id, readonly: true)
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -127,8 +151,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
 
-    test "deletes secret", %{conn: conn, hub: hub} do
-      secret = insert_secret(name: "PERSONAL_DELETE_SECRET", value: "GetTheBonk")
+    test "deletes existing secret", %{conn: conn, hub: hub} do
+      secret = insert_secret(name: "TEAM_DELETE_SECRET", hub_id: hub.id, readonly: true)
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
