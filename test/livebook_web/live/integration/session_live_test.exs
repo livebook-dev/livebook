@@ -1,9 +1,10 @@
 defmodule LivebookWeb.Integration.SessionLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
+  import Phoenix.LiveViewTest
   import Livebook.HubHelpers
   import Livebook.SessionHelpers
-  import Phoenix.LiveViewTest
+  import Livebook.TestHelpers
 
   alias Livebook.{Sessions, Session}
 
@@ -90,6 +91,138 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # checks the secret on the UI
       assert_session_secret(view, session.pid, secret, :hub_secrets)
+    end
+
+    test "redirects the user to update a secret",
+         %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Hubs.subscribe([:secrets, :connection])
+      team = create_team_hub(user, node)
+      id = team.id
+      assert_receive {:hub_connected, ^id}
+
+      Session.subscribe(session.id)
+
+      # creates a secret
+      secret_name = "BIG_IMPORTANT_SECRET_TO_BE_UPDATED"
+      secret_value = "123"
+
+      insert_secret(
+        name: secret_name,
+        value: secret_value,
+        hub_id: team.id,
+        readonly: true
+      )
+
+      assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # clicks the button to edit a secret
+      view
+      |> with_target("#secrets_list")
+      |> element("#hub-#{id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> render_click()
+
+      # redirects to hub page and loads the modal with
+      # the secret name and value filled
+      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+      {:ok, view, _} = live(conn, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+
+      assert render(view) =~ "Edit secret"
+
+      # fills and submits the secrets modal form
+      # to update the secret on team hub page
+      secret_new_value = "123456"
+      attrs = %{secret: %{name: secret_name, value: secret_new_value}}
+      form = element(view, "#secrets-form")
+
+      render_change(form, attrs)
+      render_submit(form, attrs)
+
+      # receives the team client event
+      assert_receive {:secret_updated, %{name: ^secret_name, value: ^secret_new_value}}
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+
+      # validates the secret
+      secrets = Livebook.Hubs.get_secrets(team)
+      hub_secret = Enum.find(secrets, &(&1.name == secret_name))
+
+      assert hub_secret.value == secret_new_value
+      refute hub_secret.value == secret_value
+    end
+
+    test "redirects the user to delete a secret",
+         %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Hubs.subscribe([:secrets, :connection])
+      team = create_team_hub(user, node)
+      id = team.id
+      assert_receive {:hub_connected, ^id}
+
+      Session.subscribe(session.id)
+
+      # creates a secret
+      secret_name = "BIG_IMPORTANT_SECRET_TO_BE_DELETED"
+      secret_value = "123"
+
+      insert_secret(
+        name: secret_name,
+        value: secret_value,
+        hub_id: team.id,
+        readonly: true
+      )
+
+      assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # clicks the button to edit a secret
+      view
+      |> with_target("#secrets_list")
+      |> element("#hub-#{id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> render_click()
+
+      # redirects to hub page and loads the modal with
+      # the secret name and value filled
+      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+      {:ok, view, _} = live(conn, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+
+      assert render(view) =~ "Edit secret"
+
+      # closes the modal 
+      view
+      |> with_target("#secrets-modal")
+      |> element("#secrets-modal-return")
+      |> render_click()
+
+      # redirects to hub page
+      assert_patch(view, ~p"/hub/#{id}")
+      {:ok, view, _} = live(conn, ~p"/hub/#{id}")
+
+      # deletes the secret
+      view
+      |> element("#hub-secret-#{secret_name}-delete", "Delete")
+      |> render_click()
+
+      render_confirm(view)
+
+      # receives the team client event
+      assert_receive {:secret_deleted, %{name: ^secret_name}}
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+
+      # validates if the secret still exists
+      assert Livebook.Hubs.get_secrets(team) == []
     end
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
