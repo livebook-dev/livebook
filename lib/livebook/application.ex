@@ -197,8 +197,7 @@ defmodule Livebook.Application do
         %Livebook.Secrets.Secret{
           name: name,
           value: value,
-          hub_id: nil,
-          readonly: true
+          hub_id: nil
         }
       end
 

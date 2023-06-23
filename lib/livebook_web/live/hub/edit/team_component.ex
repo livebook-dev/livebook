@@ -156,8 +156,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   phx-click={
                     JS.remove_attribute("type", to: "#teams-key-toggle input")
                     |> JS.set_attribute({"type", "text"}, to: "#teams-key-toggle input")
-                    |> JS.add_class("hidden", to: "#teams-key-toggle [data-show]")
-                    |> JS.remove_class("hidden", to: "#teams-key-toggle [data-hide]")
+                    |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
+                    |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
                   }
                 >
                   <.remix_icon icon="eye-line" class="text-xl" />
@@ -170,8 +170,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   phx-click={
                     JS.remove_attribute("type", to: "#teams-key-toggle input")
                     |> JS.set_attribute({"type", "password"}, to: "#teams-key-toggle input")
-                    |> JS.remove_class("hidden", to: "#teams-key-toggle [data-show]")
-                    |> JS.add_class("hidden", to: "#teams-key-toggle [data-hide]")
+                    |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
+                    |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
                   }
                 >
                   <.remix_icon icon="eye-off-line" class="text-xl" />

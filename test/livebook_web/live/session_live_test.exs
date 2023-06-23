@@ -1101,7 +1101,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "secrets" do
     setup do
-      {:ok, hub: build(:personal)}
+      {:ok, hub: Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())}
     end
 
     test "adds a secret from form", %{conn: conn, session: session} do
@@ -1299,6 +1299,57 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       assert_session_secret(view, session.pid, updated_hub_secret)
+    end
+
+    test "redirects the user to update or delete a secret",
+         %{conn: conn, session: session, hub: hub} do
+      Session.subscribe(session.id)
+
+      # creates a secret
+      secret_name = "SECRET_TO_BE_UPDATED_OR_DELETED"
+      secret_value = "123"
+      insert_secret(name: secret_name, value: secret_value)
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, hub.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # clicks the button to edit a secret
+      view
+      |> with_target("#secrets_list")
+      |> element("#hub-#{hub.id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> render_click()
+
+      # redirects to hub page and loads the modal with
+      # the secret name and value filled
+      assert_redirect(view, ~p"/hub/#{hub.id}/secrets/edit/#{secret_name}")
+      {:ok, view, _} = live(conn, ~p"/hub/#{hub.id}/secrets/edit/#{secret_name}")
+
+      assert render(view) =~ "Edit secret"
+
+      # fills and submits the secrets modal form
+      # to update the secret on team hub page
+      secret_new_value = "123456"
+      attrs = %{secret: %{name: secret_name, value: secret_new_value}}
+      form = element(view, "#secrets-form")
+
+      render_change(form, attrs)
+      render_submit(form, attrs)
+
+      # receives the operation event
+      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
+
+      # validates the secret
+      secrets = Livebook.Hubs.get_secrets(hub)
+      hub_secret = Enum.find(secrets, &(&1.name == secret_name))
+
+      assert hub_secret.value == secret_new_value
+      refute hub_secret.value == secret_value
     end
   end
 
