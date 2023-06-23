@@ -149,7 +149,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             </.form>
           </div>
           <div class="flex-row justify-between items-center my-1 hidden" id={"#{@id}-detail"}>
-            <span class="text-sm font-mono font-bold break-all flex-row">
+            <span class="text-sm font-mono break-all flex-row">
               *****
             </span>
             <.link
