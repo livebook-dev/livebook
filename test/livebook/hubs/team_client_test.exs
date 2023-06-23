@@ -3,6 +3,8 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   alias Livebook.Hubs.TeamClient
 
+  import Livebook.HubHelpers
+
   @moduletag :capture_log
 
   setup do
@@ -12,22 +14,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   describe "start_link/1" do
     test "successfully authenticates the web socket connection", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        build(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token
-        )
-
+      team = create_team_hub(user, node)
       id = team.id
 
       refute TeamClient.connected?(team.id)
@@ -61,30 +48,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   describe "handle events" do
     test "receives the secret_created event", %{user: user, node: node} do
-      teams_org = build(:org)
-      teams_key = teams_org.teams_key
-      key_hash = Livebook.Teams.Org.key_hash(teams_org)
-
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-
-      org_key =
-        :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        build(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token,
-          teams_key: teams_key
-        )
-
+      team = create_team_hub(user, node)
       id = team.id
 
       refute TeamClient.connected?(team.id)
@@ -92,14 +56,69 @@ defmodule Livebook.Hubs.TeamClientTest do
       TeamClient.start_link(team)
       assert_receive {:hub_connected, ^id}
 
-      secret = build(:secret, name: "FOO", value: "BAR")
+      secret = build(:secret, name: "SECRET_CREATED_FOO", value: "BAR")
       assert Livebook.Teams.create_secret(team, secret) == :ok
+
+      name = secret.name
+      value = secret.value
 
       # receives `{:event, :secret_created, secret_created}` event
       # with the value decrypted
-      assert_receive {:secret_created, secret_created}, 8000
-      assert secret_created.name == secret.name
-      assert secret_created.value == secret.value
+      assert_receive {:secret_created, %{name: ^name, value: ^value}}
+    end
+
+    test "receives the secret_updated event", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      id = team.id
+
+      refute TeamClient.connected?(team.id)
+
+      TeamClient.start_link(team)
+      assert_receive {:hub_connected, ^id}
+
+      secret = build(:secret, name: "SECRET_UPDATED_FOO", value: "BAR")
+      assert Livebook.Teams.create_secret(team, secret) == :ok
+
+      name = secret.name
+      value = secret.value
+
+      # receives `{:secret_created, secret_created}` event
+      assert_receive {:secret_created, %{name: ^name, value: ^value}}
+
+      # updates the secret
+      update_secret = Map.replace!(secret, :value, "BAZ")
+      assert Livebook.Teams.update_secret(team, update_secret) == :ok
+
+      new_value = update_secret.value
+
+      # receives `{:secret_updated, secret_updated}` event
+      # with the value decrypted
+      assert_receive {:secret_updated, %{name: ^name, value: ^new_value}}
+    end
+
+    test "receives the secret_deleted event", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      id = team.id
+
+      refute TeamClient.connected?(team.id)
+
+      TeamClient.start_link(team)
+      assert_receive {:hub_connected, ^id}
+
+      secret = build(:secret, name: "SECRET_DELETED_FOO", value: "BAR")
+      assert Livebook.Teams.create_secret(team, secret) == :ok
+
+      name = secret.name
+      value = secret.value
+
+      # receives `{:secret_created, secret_created}` event
+      assert_receive {:secret_created, %{name: ^name, value: ^value}}
+
+      # deletes the secret
+      assert Livebook.Teams.delete_secret(team, secret) == :ok
+
+      # receives `{:secret_deleted, secret_deleted}` event
+      assert_receive {:secret_deleted, %{name: ^name, value: ^value}}
     end
   end
 end

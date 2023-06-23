@@ -242,6 +242,12 @@ The following environment variables can be used to configure Livebook on boot:
     standard schemes by default (such as http and https). Set it to a comma-separated
     list of schemes.
 
+  * LIVEBOOK_IDENTITY_PROVIDER - controls whether Zero Trust Identity is enabled.
+    Set it to your provider and the correspondent key to enable it.
+    Currently supported providers are Cloudflare and GoogleIap.
+    The respective keys are the team name (domain) for CloudFlare and the audience (aud) for GoogleIAP.
+    E.g. `"cloudflare:<your-team-name>"`, `"googleiap:<your-audience>`
+
 <!-- Environment variables -->
 
 When running Livebook Desktop, Livebook will invoke on boot a file named

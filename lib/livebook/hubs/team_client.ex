@@ -124,7 +124,12 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp put_secret(state, secret) do
+    state = remove_secret(state, secret)
     %{state | secrets: [secret | state.secrets]}
+  end
+
+  defp remove_secret(state, secret) do
+    %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
   end
 
   defp build_secret(state, %{name: name, value: value}) do
@@ -144,5 +149,55 @@ defmodule Livebook.Hubs.TeamClient do
     Broadcasts.secret_created(secret)
 
     put_secret(state, secret)
+  end
+
+  defp handle_event(:secret_updated, secret_updated, state) do
+    secret = build_secret(state, secret_updated)
+    Broadcasts.secret_updated(secret)
+
+    put_secret(state, secret)
+  end
+
+  defp handle_event(:secret_deleted, secret_deleted, state) do
+    secret = Enum.find(state.secrets, &(&1.name == secret_deleted.name))
+    Broadcasts.secret_deleted(secret)
+
+    remove_secret(state, secret)
+  end
+
+  defp handle_event(:user_connected, user_connected, %{secrets: []} = state) do
+    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
+
+    %{state | secrets: secrets}
+  end
+
+  defp handle_event(:user_connected, user_connected, state) do
+    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
+
+    created_secrets =
+      Enum.reject(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
+      end)
+
+    deleted_secrets =
+      Enum.reject(state.secrets, fn secret ->
+        Enum.find(secrets, &(&1.name == secret.name))
+      end)
+
+    updated_secrets =
+      Enum.filter(secrets, fn secret ->
+        Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
+      end)
+
+    events_by_topic = [
+      secret_deleted: deleted_secrets,
+      secret_created: created_secrets,
+      secret_updated: updated_secrets
+    ]
+
+    for {topic, events} <- events_by_topic,
+        event <- events,
+        reduce: state,
+        do: (acc -> handle_event(topic, event, acc))
   end
 end

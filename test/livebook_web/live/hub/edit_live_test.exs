@@ -2,13 +2,14 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.Hubs
 
   describe "personal" do
     setup do
-      Livebook.Hubs.subscribe([:secrets])
+      Livebook.Hubs.subscribe([:crud, :secrets])
       {:ok, hub: Hubs.fetch_hub!(Hubs.Personal.id())}
     end
 
@@ -33,7 +34,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert_hub(view, %{hub | hub_emoji: attrs["hub_emoji"]})
+      id = hub.id
+      assert_receive {:hub_changed, ^id}
+
+      assert_sidebar_hub(view, id, hub.hub_name, attrs["hub_emoji"])
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
@@ -133,23 +137,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> element("#hub-secret-PERSONAL_DELETE_SECRET-delete", "Delete")
+      |> element("#hub-secret-#{secret.name}-delete", "Delete")
       |> render_click()
 
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-      assert render(view) =~ "Secret deleted successfully"
+      %{"success" => "Secret deleted successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
-  end
-
-  defp assert_hub(view, hub) do
-    hubs_html = view |> element("#hubs") |> render()
-
-    assert hubs_html =~ hub.hub_emoji
-    assert hubs_html =~ ~p"/hub/#{hub.id}"
-    assert hubs_html =~ hub.hub_name
   end
 end

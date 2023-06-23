@@ -10,10 +10,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     socket = assign(socket, assigns)
     changeset = Team.change_hub(assigns.hub)
     show_key? = assigns.params["show-key"] == "true"
+    secrets = Livebook.Hubs.get_secrets(assigns.hub)
+    secret_name = assigns.params["secret_name"]
+
+    secret_value =
+      if assigns.live_action == :edit_secret do
+        Enum.find_value(secrets, &(&1.name == secret_name && &1.value))
+      end
 
     {:ok,
      socket
-     |> assign(show_key: show_key?)
+     |> assign(
+       secrets: secrets,
+       show_key: show_key?,
+       secret_name: secret_name,
+       secret_value: secret_value
+     )
      |> assign_form(changeset)}
   end
 
@@ -21,6 +33,76 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
+      <div class="mb-8">
+        <div class="flex justify-between">
+          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+
+          <div class="flex justify-end gap-2">
+            <button
+              phx-click={show_modal("show-key-modal")}
+              phx-target={@myself}
+              class="button-base button-gray"
+            >
+              <span class="hidden sm:block">Teams key</span>
+              <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
+            </button>
+            <button
+              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+              class="button-base button-red"
+            >
+              <span class="hidden sm:block">Delete hub</span>
+              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-col space-y-10">
+          <div class="flex flex-col space-y-2">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              General
+            </h2>
+
+            <.form
+              :let={f}
+              id={@id}
+              class="flex flex-col mt-4 space-y-4"
+              for={@form}
+              phx-submit="save"
+              phx-change="validate"
+              phx-target={@myself}
+            >
+              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+              </div>
+
+              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                Update Hub
+              </button>
+            </.form>
+          </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Secrets
+            </h2>
+
+            <p class="text-gray-700">
+              Secrets are a safe way to share credentials and tokens with notebooks.
+              They are often shared with Smart cells and can be read as
+              environment variables using the <code>LB_</code> prefix.
+            </p>
+
+            <.live_component
+              module={LivebookWeb.Hub.SecretListComponent}
+              id="hub-secrets-list"
+              hub={@hub}
+              secrets={@secrets}
+              target={@myself}
+            />
+          </div>
+        </div>
+      </div>
+
       <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
         <div class="p-6 flex flex-col space-y-5">
           <h3 class="text-2xl font-semibold text-gray-800">
@@ -100,57 +182,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         </div>
       </.modal>
 
-      <div class="space-y-8">
-        <div class="flex justify-between">
-          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
-
-          <div class="flex justify-end gap-2">
-            <button
-              phx-click={show_modal("show-key-modal")}
-              phx-target={@myself}
-              class="button-base button-gray"
-            >
-              <span class="hidden sm:block">Teams key</span>
-              <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
-            </button>
-            <button
-              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-              class="button-base button-red"
-            >
-              <span class="hidden sm:block">Delete hub</span>
-              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
-            </button>
-          </div>
-        </div>
-
-        <div class="flex flex-col space-y-10">
-          <div class="flex flex-col space-y-2">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              General
-            </h2>
-
-            <.form
-              :let={f}
-              id={@id}
-              class="flex flex-col mt-4 space-y-4"
-              for={@form}
-              phx-submit="save"
-              phx-change="validate"
-              phx-target={@myself}
-            >
-              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
-              </div>
-
-              <div>
-                <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                  Update Hub
-                </button>
-              </div>
-            </.form>
-          </div>
-        </div>
-      </div>
+      <.modal
+        :if={@live_action in [:new_secret, :edit_secret]}
+        id="secrets-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.SecretFormComponent}
+          id="secrets"
+          hub={@hub}
+          secret_name={@secret_name}
+          secret_value={@secret_value}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
     </div>
     """
   end
@@ -176,6 +223,32 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
+  end
+
+  def handle_event("delete_hub_secret", attrs, socket) do
+    %{hub: hub} = socket.assigns
+
+    on_confirm = fn socket ->
+      {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
+
+      case Livebook.Hubs.delete_secret(hub, secret) do
+        :ok ->
+          socket
+          |> put_flash(:success, "Secret deleted successfully")
+          |> push_navigate(to: ~p"/hub/#{hub.id}")
+
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
+      end
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete hub secret - #{attrs["name"]}",
+       description: "Are you sure you want to delete this hub secret?",
+       confirm_text: "Delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
