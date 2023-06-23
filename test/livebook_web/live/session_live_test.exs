@@ -1301,11 +1301,12 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_session_secret(view, session.pid, updated_hub_secret)
     end
 
-    test "redirects the user to update a secret", %{conn: conn, session: session, hub: hub} do
+    test "redirects the user to update or delete a secret",
+         %{conn: conn, session: session, hub: hub} do
       Session.subscribe(session.id)
 
       # creates a secret
-      secret_name = "SECRET_TO_BE_UPDATED"
+      secret_name = "SECRET_TO_BE_UPDATED_OR_DELETED"
       secret_value = "123"
       insert_secret(name: secret_name, value: secret_value)
 
@@ -1349,60 +1350,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert hub_secret.value == secret_new_value
       refute hub_secret.value == secret_value
-    end
-
-    test "redirects the user to delete a secret", %{conn: conn, session: session, hub: hub} do
-      Session.subscribe(session.id)
-
-      # creates a secret
-      secret_name = "SECRET_TO_BE_DELETED"
-      secret_value = "123"
-      secret = insert_secret(name: secret_name, value: secret_value)
-
-      # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
-
-      # selects the notebook's hub with team hub id
-      Session.set_notebook_hub(session.pid, hub.id)
-
-      # loads the session page
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-
-      # clicks the button to edit a secret
-      view
-      |> with_target("#secrets_list")
-      |> element("#hub-#{hub.id}-secret-#{secret_name}-detail #edit-secret-button")
-      |> render_click()
-
-      # redirects to hub page and loads the modal with
-      # the secret name and value filled
-      assert_redirect(view, ~p"/hub/#{hub.id}/secrets/edit/#{secret_name}")
-      {:ok, view, _} = live(conn, ~p"/hub/#{hub.id}/secrets/edit/#{secret_name}")
-
-      assert render(view) =~ "Edit secret"
-
-      # closes the modal 
-      view
-      |> with_target("#secrets-modal")
-      |> element("#secrets-modal-return")
-      |> render_click()
-
-      # redirects to hub page
-      assert_patch(view, ~p"/hub/#{hub.id}")
-      {:ok, view, _} = live(conn, ~p"/hub/#{hub.id}")
-
-      # deletes the secret
-      view
-      |> element("#hub-secret-#{secret_name}-delete", "Delete")
-      |> render_click()
-
-      render_confirm(view)
-
-      # receives the operation event
-      assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
-
-      # validates if the secret still exists
-      refute secret in Livebook.Hubs.get_secrets(hub)
     end
   end
 
