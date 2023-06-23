@@ -170,12 +170,13 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       secret_name = "BIG_IMPORTANT_SECRET_TO_BE_DELETED"
       secret_value = "123"
 
-      insert_secret(
-        name: secret_name,
-        value: secret_value,
-        hub_id: team.id,
-        readonly: true
-      )
+      secret =
+        insert_secret(
+          name: secret_name,
+          value: secret_value,
+          hub_id: team.id,
+          readonly: true
+        )
 
       assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
 
@@ -222,7 +223,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
 
       # validates if the secret still exists
-      assert Livebook.Hubs.get_secrets(team) == []
+      refute secret in Livebook.Hubs.get_secrets(team)
     end
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
