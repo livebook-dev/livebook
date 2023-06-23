@@ -106,7 +106,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
           <div class="flex justify-end gap-2">
             <button
-              phx-click={JS.show(to: "#show-key-modal")}
+              phx-click={show_modal("show-key-modal")}
               phx-target={@myself}
               class="button-base button-gray"
             >
