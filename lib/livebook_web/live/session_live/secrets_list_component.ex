@@ -153,6 +153,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               *****
             </span>
             <.link
+              :if={!@secret.readonly}
               id="edit-secret-button"
               navigate={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
               class="hover:text-gray-900"
