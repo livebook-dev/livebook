@@ -4,7 +4,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.HubHelpers
   import Livebook.SessionHelpers
-  import Livebook.TestHelpers
 
   alias Livebook.{Sessions, Session}
 
