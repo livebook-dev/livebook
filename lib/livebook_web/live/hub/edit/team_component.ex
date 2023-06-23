@@ -110,7 +110,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               phx-target={@myself}
               class="button-base button-gray"
             >
-              <span class="hidden sm:block">teams key</span>
+              <span class="hidden sm:block">Teams key</span>
               <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
             </button>
             <button
