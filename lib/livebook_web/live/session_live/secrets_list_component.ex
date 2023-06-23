@@ -80,8 +80,8 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         class="flex-row justify-between items-center my-1 hidden"
         id={"session-secret-#{@secret.name}-detail"}
       >
-        <span class="text-sm font-mono break-all flex-row">
-          <%= @secret.value %>
+        <span class="text-sm font-mono break-all flex-row tooltip right" data-tooltip={@secret.value}>
+          *****
         </span>
         <button
           id={"session-secret-#{@secret.name}-delete"}
@@ -149,7 +149,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             </.form>
           </div>
           <div class="flex-row justify-between items-center my-1 hidden" id={"#{@id}-detail"}>
-            <span class="text-sm font-mono break-all flex-row">
+            <span
+              class="text-sm font-mono break-all flex-row tooltip right"
+              data-tooltip={@secret.value}
+            >
               *****
             </span>
             <.link
