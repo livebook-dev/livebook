@@ -75,11 +75,7 @@ defmodule Livebook.Secrets do
   """
   @spec set_secret(Secret.t()) :: Secret.t()
   def set_secret(secret) do
-    attributes =
-      secret
-      |> Map.from_struct()
-      |> Map.delete(:readonly)
-
+    attributes = Map.from_struct(secret)
     :ok = Storage.insert(@namespace, secret.name, Map.to_list(attributes))
 
     secret
@@ -101,8 +97,7 @@ defmodule Livebook.Secrets do
     %Secret{
       name: name,
       value: value,
-      hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id(),
-      readonly: false
+      hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id()
     }
   end
 

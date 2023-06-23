@@ -64,8 +64,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "BIG_IMPORTANT_SECRET",
           value: "123",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       attrs = %{
@@ -108,8 +107,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       insert_secret(
         name: secret_name,
         value: secret_value,
-        hub_id: team.id,
-        readonly: true
+        hub_id: team.id
       )
 
       assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
@@ -146,8 +144,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "POSTGRES_PASSWORD",
           value: "123456789",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       assert Livebook.Teams.create_secret(team, secret) == :ok
@@ -169,8 +166,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "MYSQL_PASS",
           value: "admin",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       # selects the notebook's hub with team hub id
@@ -225,8 +221,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "PGPASS",
           value: "admin",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       # selects the notebook's hub with team hub id

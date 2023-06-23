@@ -235,7 +235,7 @@ defmodule Livebook.Hubs do
           :ok
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
-  def update_secret(hub, %Secret{readonly: false} = secret) do
+  def update_secret(hub, %Secret{} = secret) do
     Provider.update_secret(hub, secret)
   end
 
@@ -243,7 +243,7 @@ defmodule Livebook.Hubs do
   Deletes a secret for given hub.
   """
   @spec delete_secret(Provider.t(), Secret.t()) :: :ok | {:transport_error, String.t()}
-  def delete_secret(hub, %Secret{readonly: false} = secret) do
+  def delete_secret(hub, %Secret{} = secret) do
     Provider.delete_secret(hub, secret)
   end
 

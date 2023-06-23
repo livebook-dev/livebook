@@ -6,15 +6,13 @@ defmodule Livebook.Secrets.Secret do
   @type t :: %__MODULE__{
           name: String.t() | nil,
           value: String.t() | nil,
-          hub_id: String.t() | nil,
-          readonly: boolean() | nil
+          hub_id: String.t() | nil
         }
 
   @primary_key {:name, :string, autogenerate: false}
   embedded_schema do
     field :value, :string
     field :hub_id, :string
-    field :readonly, :boolean, virtual: true, default: false
   end
 
   def changeset(secret, attrs \\ %{}) do

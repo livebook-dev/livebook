@@ -20,7 +20,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket =
       socket
       |> assign_new(:changeset, fn ->
-        attrs = %{name: secret_name, value: nil, hub_id: nil, readonly: false}
+        attrs = %{name: secret_name, value: nil, hub_id: nil}
         Secrets.change_secret(%Secret{}, attrs)
       end)
       |> assign_new(:grant_access_secret, fn ->

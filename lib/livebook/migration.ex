@@ -32,8 +32,7 @@ defmodule Livebook.Migration do
       secret = %Livebook.Secrets.Secret{
         name: name,
         value: value,
-        hub_id: Livebook.Hubs.Personal.id(),
-        readonly: false
+        hub_id: Livebook.Hubs.Personal.id()
       }
 
       Livebook.Secrets.set_secret(secret)
