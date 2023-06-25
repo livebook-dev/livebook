@@ -188,7 +188,9 @@ defmodule Livebook.Apps do
         warnings = Enum.map(warnings, &("Import: " <> &1))
         deploy(notebook, warnings: warnings)
       else
-        Logger.warning("Skipping app deployment at #{path} due to invalid settings")
+        Logger.warning(
+          "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
+        )
       end
     end
 
