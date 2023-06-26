@@ -51,8 +51,7 @@ defmodule Livebook.Factory do
     %Livebook.Secrets.Secret{
       name: "FOO",
       value: "123",
-      hub_id: Livebook.Hubs.Personal.id(),
-      readonly: false
+      hub_id: Livebook.Hubs.Personal.id()
     }
   end
 

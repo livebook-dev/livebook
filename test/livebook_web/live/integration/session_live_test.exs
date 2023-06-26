@@ -1,9 +1,9 @@
 defmodule LivebookWeb.Integration.SessionLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
+  import Phoenix.LiveViewTest
   import Livebook.HubHelpers
   import Livebook.SessionHelpers
-  import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session}
 
@@ -64,8 +64,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "BIG_IMPORTANT_SECRET",
           value: "123",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       attrs = %{
@@ -92,6 +91,44 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_session_secret(view, session.pid, secret, :hub_secrets)
     end
 
+    test "redirects the user to update or delete a secret",
+         %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Hubs.subscribe([:secrets, :connection])
+      team = create_team_hub(user, node)
+      id = team.id
+      assert_receive {:hub_connected, ^id}
+
+      Session.subscribe(session.id)
+
+      # creates a secret
+      secret_name = "BIG_IMPORTANT_SECRET_TO_BE_UPDATED_OR_DELETED"
+      secret_value = "123"
+
+      insert_secret(
+        name: secret_name,
+        value: secret_value,
+        hub_id: team.id
+      )
+
+      assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
+
+      # selects the notebook's hub with team hub id
+      Session.set_notebook_hub(session.pid, team.id)
+
+      # loads the session page
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # clicks the button to edit a secret
+      view
+      |> with_target("#secrets_list")
+      |> element("#hub-#{id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> render_click()
+
+      # redirects to hub page and loads the modal with
+      # the secret name and value filled
+      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+    end
+
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
       team = create_team_hub(user, node)
       Session.subscribe(session.id)
@@ -107,8 +144,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "POSTGRES_PASSWORD",
           value: "123456789",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       assert Livebook.Teams.create_secret(team, secret) == :ok
@@ -130,8 +166,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "MYSQL_PASS",
           value: "admin",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       # selects the notebook's hub with team hub id
@@ -186,8 +221,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         build(:secret,
           name: "PGPASS",
           value: "admin",
-          hub_id: team.id,
-          readonly: true
+          hub_id: team.id
         )
 
       # selects the notebook's hub with team hub id

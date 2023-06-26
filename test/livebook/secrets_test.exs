@@ -40,7 +40,6 @@ defmodule Livebook.SecretsTest do
       assert attrs.name == secret.name
       assert attrs.value == secret.value
       assert attrs.hub_id == secret.hub_id
-      refute secret.readonly
     end
 
     test "returns changeset error" do

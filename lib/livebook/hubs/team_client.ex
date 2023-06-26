@@ -139,8 +139,7 @@ defmodule Livebook.Hubs.TeamClient do
     %Livebook.Secrets.Secret{
       name: name,
       value: decrypted_value,
-      hub_id: state.hub.id,
-      readonly: true
+      hub_id: state.hub.id
     }
   end
 

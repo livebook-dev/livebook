@@ -245,7 +245,7 @@ defmodule LivebookWeb.LayoutHelpers do
       [
         id: "hub-#{hub.id}",
         navigate: to,
-        data_tooltip: Provider.connection_error(hub.provider),
+        "data-tooltip": Provider.connection_error(hub.provider),
         class: "tooltip right " <> class
       ]
     end
