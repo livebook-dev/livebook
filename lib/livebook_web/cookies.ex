@@ -3,7 +3,7 @@ defmodule LivebookWeb.Cookies do
   @moduledoc false
 
   def authenticate(_, _, _) do
-    %{}
+    %{id: Livebook.Utils.random_id()}
   end
 
   def child_spec(_opts) do

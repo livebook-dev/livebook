@@ -26,27 +26,19 @@ defmodule LivebookWeb.UserPlug do
   @impl true
   def call(conn, _opts) do
     conn
-    |> ensure_current_user_id()
     |> ensure_user_identity()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
   end
 
-  defp ensure_current_user_id(conn) do
-    if get_session(conn, :current_user_id) do
-      conn
-    else
-      user_id = Livebook.Utils.random_id()
-      put_session(conn, :current_user_id, user_id)
-    end
-  end
-
   defp ensure_user_identity(conn) do
     {module, _} = Livebook.Config.identity_provider()
-    identity_data = module.authenticate(LivebookWeb.ZTA, conn, fields: [:name, :email])
+    identity_data = module.authenticate(LivebookWeb.ZTA, conn, fields: [:id, :name, :email])
 
     if identity_data do
-      put_session(conn, :identity_data, identity_data)
+      conn
+      |> put_session(:current_user_id, identity_data.id)
+      |> put_session(:identity_data, identity_data)
     else
       conn
       |> put_status(:forbidden)
