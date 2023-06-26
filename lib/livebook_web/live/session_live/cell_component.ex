@@ -268,7 +268,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <%= render_slot(@primary) %>
       </div>
       <div
-        class="relative z-20 flex items-center justify-end space-x-2"
+        class="relative z-20 flex items-center justify-end md:space-x-2"
         role="toolbar"
         aria-label="cell actions"
         data-el-actions
