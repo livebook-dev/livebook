@@ -297,24 +297,6 @@ solely client-side operations.
 }
 
 [data-el-session][data-js-view="presentation"]
-  [data-el-section-headline]:not([data-js-focused]),
-[data-el-session][data-js-view="presentation"]
-  [data-el-section-subheadline]:not([data-js-focused]),
-[data-el-session][data-js-view="presentation"]
-  [data-el-cell]:not([data-js-focused]),
-[data-el-session][data-js-view="presentation"]
-  [data-el-js-view-iframes]
-  iframe:not([data-js-focused]) {
-  @apply opacity-10;
-}
-
-[data-el-session][data-js-view="presentation"] [data-el-sidebar],
-[data-el-session][data-js-view="presentation"] [data-el-side-panel],
-[data-el-session][data-js-view="presentation"] [data-el-toggle-sidebar] {
-  @apply hidden;
-}
-
-[data-el-session][data-js-view="presentation"]
   [data-el-view-toggle="presentation"] {
   @apply text-green-bright-400;
 }
@@ -349,6 +331,9 @@ solely client-side operations.
 [data-js-hide-section] [data-el-section-subheadline],
 [data-js-hide-section] [data-el-section-subheadline-collapsed] {
   @apply hidden;
+}
+[data-js-hide-section] [data-el-sections-container] {
+  @apply space-y-0 mt-0;
 }
 
 /* markdown */

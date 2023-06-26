@@ -85,14 +85,14 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span>Presentation</span>
           </button>
         </.menu_item>
-        <.menu_item>
-          <button role="menuitem" data-el-view-toggle="custom">
-            <.link patch={~p"/sessions/#{@session_id}/custom-view"}>
+        <.link patch={~p"/sessions/#{@session_id}/custom-view"}>
+          <.menu_item>
+            <button role="menuitem" data-el-view-toggle="custom">
               <.remix_icon icon="settings-5-line" />
               <span>Custom</span>
-            </.link>
-          </button>
-        </.menu_item>
+            </button>
+          </.menu_item>
+        </.link>
       </.menu>
     </div>
     """

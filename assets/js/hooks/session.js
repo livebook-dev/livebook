@@ -974,10 +974,14 @@ const Session = {
     } else {
       this.view = view;
       this.el.setAttribute("data-js-view", view);
-      if (view == "custom") {
+      if (view === "custom") {
         this.customViewSelection();
-      } else {
+      }
+      if (view !== "custom") {
         this.unsubscribeCustomViewFromSettings();
+      }
+      if (view === "presentation") {
+        this.el.toggleAttribute("data-js-show-spotlight", true);
       }
     }
 
