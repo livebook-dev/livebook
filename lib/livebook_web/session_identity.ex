@@ -1,4 +1,4 @@
-defmodule LivebookWeb.Cookies do
+defmodule LivebookWeb.SessionIdentity do
   # This module implements the ZTA contract specific to Livebook cookies
   @moduledoc false
 
