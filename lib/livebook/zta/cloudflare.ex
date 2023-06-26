@@ -16,9 +16,9 @@ defmodule Livebook.ZTA.Cloudflare do
     GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
 
-  def authenticate(name, conn) do
+  def authenticate(name, conn, fields: fields) do
     token = get_req_header(conn, @assertion)
-    GenServer.call(name, {:authenticate, token})
+    GenServer.call(name, {:authenticate, token, fields})
   end
 
   @impl true
@@ -33,9 +33,9 @@ defmodule Livebook.ZTA.Cloudflare do
     {:reply, keys, state}
   end
 
-  def handle_call({:authenticate, token}, _from, state) do
+  def handle_call({:authenticate, token, fields}, _from, state) do
     keys = get_from_ets(state.name) || request_and_store_in_ets(state)
-    user = authenticate(token, state.identity, keys)
+    user = authenticated_user(token, fields, state.identity, keys)
     {:reply, user, state}
   end
 
@@ -60,11 +60,12 @@ defmodule Livebook.ZTA.Cloudflare do
     end
   end
 
-  defp authenticate(token, identity, keys) do
-    with [token] <- token,
-         {:ok, token} <- verify_token(token, keys),
-         :ok <- verify_iss(token, identity.iss) do
-      %{name: token.fields["email"]}
+  defp authenticated_user(token, fields, identity, keys) do
+    with [encoded_token] <- token,
+         {:ok, token} <- verify_token(encoded_token, keys),
+         :ok <- verify_iss(token, identity.iss),
+         {:ok, user} <- get_user_identity(encoded_token, fields, identity.identity) do
+      Map.new(user, fn {k, v} -> {String.to_atom(k), to_string(v)} end)
     else
       _ -> nil
     end
@@ -82,6 +83,13 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
   defp verify_iss(_, _), do: nil
 
+  defp get_user_identity(token, fields, url) do
+    token = "CF_Authorization=#{token}"
+    fields = Enum.map(fields, &Atom.to_string/1)
+    user = Req.request!(url: url, headers: [{"cookie", token}]).body
+    if user, do: {:ok, Map.take(user, fields)}
+  end
+
   defp identity(key) do
     %{
       key: key,
@@ -89,7 +97,8 @@ defmodule Livebook.ZTA.Cloudflare do
       iss: "https://#{key}.cloudflareaccess.com",
       certs: "https://#{key}.cloudflareaccess.com/cdn-cgi/access/certs",
       assertion: "cf-access-jwt-assertion",
-      email: "cf-access-authenticated-user-email"
+      email: "cf-access-authenticated-user-email",
+      identity: "https://#{key}.cloudflareaccess.com/cdn-cgi/access/get-identity"
     }
   end
 end

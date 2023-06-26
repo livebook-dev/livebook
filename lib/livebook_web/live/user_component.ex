@@ -41,6 +41,12 @@ defmodule LivebookWeb.UserComponent do
             spellcheck="false"
             disabled={Livebook.Config.identity_readonly?()}
           />
+          <.text_field
+            field={f[:email]}
+            label="email"
+            spellcheck="false"
+            disabled={Livebook.Config.identity_readonly?()}
+          />
           <.hex_color_field
             field={f[:hex_color]}
             label="Cursor color"

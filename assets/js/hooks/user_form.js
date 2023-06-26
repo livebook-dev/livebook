@@ -11,8 +11,9 @@ const UserForm = {
   mounted() {
     this.el.addEventListener("submit", (event) => {
       const name = this.el.user_form_name.value;
+      const email = this.el.user_form_email.value;
       const hex_color = this.el.user_form_hex_color.value;
-      storeUserData({ name, hex_color });
+      storeUserData({ name, email, hex_color });
     });
   },
 };
