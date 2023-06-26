@@ -14,10 +14,10 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       data-el-insert-buttons
     >
       <div class={
-        "w-full absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
+        "w-full md:absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
       }>
         <div class="relative">
-          <div class="absolute -left-1 top-0 bottom-0 flex items-center transform -translate-x-full">
+          <div class="flex items-center md:absolute md:-left-1 md:top-0 md:bottom-0 md:transform md:-translate-x-full">
             <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
               <:toggle>
                 <button class="button-base button-small flex items-center pr-1">
