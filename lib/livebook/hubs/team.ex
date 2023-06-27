@@ -67,18 +67,14 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   alias Livebook.Teams
 
   def load(team, fields) do
-    %{
-      team
-      | id: fields.id,
-        session_token: fields.session_token,
-        teams_key: fields.teams_key,
-        org_public_key: fields.org_public_key,
-        org_id: fields.org_id,
-        user_id: fields.user_id,
-        org_key_id: fields.org_key_id,
-        hub_name: fields.hub_name,
-        hub_emoji: fields.hub_emoji
-    }
+    for {key, value} <- fields, reduce: team do
+      acc ->
+        if is_map_key(team, key) do
+          Map.replace!(acc, key, value)
+        else
+          acc
+        end
+    end
   end
 
   def to_metadata(team) do
