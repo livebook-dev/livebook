@@ -2,6 +2,7 @@ import AppAuth from "./app_auth";
 import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
+import DisableZoomOnInputFocus from "./disable_zoom_on_input_focus";
 import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
 import EmojiPicker from "./emoji_picker";
@@ -25,6 +26,7 @@ export default {
   AudioInput,
   Cell,
   CellEditor,
+  DisableZoomOnInputFocus,
   Dropzone,
   EditorSettings,
   EmojiPicker,

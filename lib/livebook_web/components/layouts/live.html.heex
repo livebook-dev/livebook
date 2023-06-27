@@ -1,4 +1,9 @@
-<main role="main" class="grow flex flex-col h-screen">
+<main
+  id="live-main"
+  role="main"
+  class="grow flex flex-col h-screen"
+  phx-hook="DisableZoomOnInputFocus"
+>
   <.flash_group flash={@flash} />
   <%= @inner_content %>
 </main>
