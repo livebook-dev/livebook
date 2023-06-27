@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.CustomModeComponent do
+defmodule LivebookWeb.SessionLive.CustomViewComponent do
   use LivebookWeb, :live_component
 
   @impl true
@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.CustomModeComponent do
     ~H"""
     <div class="p-6 flex flex-col space-y-5">
       <h4 class="text-2xl font-semibold text-gray-800">
-        Custom View
+        Custom view
       </h4>
       <div class="flex flex-col space-y-4">
         <h6 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">

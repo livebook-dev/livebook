@@ -85,7 +85,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span>Presentation</span>
           </button>
         </.menu_item>
-        <.link patch={~p"/sessions/#{@session_id}/custom-view"}>
+        <.link patch={~p"/sessions/#{@session_id}/settings/custom-view"}>
           <.menu_item>
             <button role="menuitem" data-el-view-toggle="custom">
               <.remix_icon icon="settings-5-line" />

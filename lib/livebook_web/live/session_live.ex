@@ -565,14 +565,14 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
-      :if={@live_action == :custom_view}
+      :if={@live_action == :custom_view_settings}
       id="custom-view-modal"
       show
       width={:medium}
       patch={@self_path}
     >
       <.live_component
-        module={LivebookWeb.SessionLive.CustomModeComponent}
+        module={LivebookWeb.SessionLive.CustomViewComponent}
         id="custom"
         return_to={@self_path}
         session={@session}

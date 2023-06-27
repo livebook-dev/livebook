@@ -301,21 +301,11 @@ solely client-side operations.
   @apply text-green-bright-400;
 }
 
-[data-el-session]:is(
-    [data-js-view="code-zen"],
-    [data-js-view="presentation"],
-    [data-js-view="custom"]
-  )
-  [data-el-views-disabled] {
+[data-el-session]:is([data-js-view]) [data-el-views-disabled] {
   @apply hidden;
 }
 
-[data-el-session]:not(
-    [data-js-view="code-zen"],
-    [data-js-view="presentation"],
-    [data-js-view="custom"]
-  )
-  [data-el-views-enabled] {
+[data-el-session]:not([data-js-view]) [data-el-views-enabled] {
   @apply hidden;
 }
 
