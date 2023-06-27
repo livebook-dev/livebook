@@ -95,6 +95,7 @@ class DetailsWidget {
       "editor-theme-aware-ansi"
     );
     detailsNode.style.fontSize = `${fontSize}px`;
+    detailsNode.style.lineHeight = `${lineHeight}px`;
 
     this._overlayWidget = {
       getId: () => `livebook.doctest.overlay.${line}`,

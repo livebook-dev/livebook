@@ -16,7 +16,11 @@ import { morphdomOptions } from "./dom";
 import { loadUserData } from "./lib/user";
 import { loadAppAuthToken } from "./lib/app";
 import { settingsStore } from "./lib/settings";
-import { registerTopbar, registerGlobalEventHandlers } from "./events";
+import {
+  registerTopbar,
+  registerGlobalEventHandlers,
+  disableZoomOnInputFocus,
+} from "./events";
 import { cookieOptions } from "./lib/utils";
 import {
   loadConfirmOptOutIds,
@@ -53,6 +57,8 @@ function connect() {
   registerGlobalEventHandlers();
 
   registerGlobalEventHandlersForConfirm();
+
+  disableZoomOnInputFocus();
 
   // Reflect global configuration in attributes to enable CSS rules
   settingsStore.getAndSubscribe((settings) => {

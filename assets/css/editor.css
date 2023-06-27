@@ -216,8 +216,8 @@ Also some spacing adjustments.
   @apply font-editor;
   white-space: pre;
   background-color: rgba(0, 0, 0, 0.05);
-  padding-top: 2px;
-  padding-bottom: 2px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   position: absolute;
   width: 100%;
   overflow-y: auto;

@@ -89,17 +89,13 @@ const Cell = {
       (event) => this.handleCellEvent(event)
     );
 
-    // Ensure the editor remains visible if the visual viewport changes.
-    // This occurs when a virtual keyboard opens.
-    window.visualViewport.addEventListener("resize", () => {
-      if (this.isFocused) {
-        scrollIntoView(document.activeElement, {
-          scrollMode: "if-needed",
-          behavior: "smooth",
-          block: "center",
-        });
-      }
-    });
+    // DOM events
+
+    this._handleViewportResize = this.handleViewportResize.bind(this);
+    window.visualViewport.addEventListener(
+      "resize",
+      this._handleViewportResize
+    );
   },
 
   disconnected() {
@@ -111,6 +107,11 @@ const Cell = {
     this.unsubscribeFromNavigationEvents();
     this.unsubscribeFromCellsEvents();
     this.unsubscribeFromCellEvents();
+
+    window.visualViewport.removeEventListener(
+      "resize",
+      this._handleViewportResize
+    );
   },
 
   updated() {
@@ -278,6 +279,12 @@ const Cell = {
     delete this.liveEditors[tag];
   },
 
+  handleViewportResize() {
+    if (this.isFocused) {
+      this.scrollActiveElementIntoView();
+    }
+  },
+
   currentEditor() {
     return this.liveEditors[this.currentEditorTag()];
   },
@@ -337,13 +344,7 @@ const Cell = {
         // sets new cursor position. To achieve this, we simply put this task
         // at the end of event loop, ensuring the editor mousedown handler is
         // executed first
-        setTimeout(() => {
-          scrollIntoView(document.activeElement, {
-            scrollMode: "if-needed",
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 0);
+        setTimeout(this.scrollActiveElementIntoView.bind(this), 0);
 
         this.broadcastSelection();
       }
@@ -418,6 +419,14 @@ const Cell = {
         selection: { tag, editorSelection },
       });
     }
+  },
+
+  scrollActiveElementIntoView() {
+    scrollIntoView(document.activeElement, {
+      scrollMode: "if-needed",
+      behavior: "smooth",
+      block: "center",
+    });
   },
 };
 
