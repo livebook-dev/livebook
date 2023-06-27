@@ -7,7 +7,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="flex flex-col relative"
+      class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
