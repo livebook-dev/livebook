@@ -88,6 +88,18 @@ const Cell = {
       `cells:${this.props.cellId}`,
       (event) => this.handleCellEvent(event)
     );
+
+    // Ensure the editor remains visible if the visual viewport changes.
+    // This occurs when a virtual keyboard opens.
+    window.visualViewport.addEventListener("resize", () => {
+      if (this.isFocused) {
+        scrollIntoView(document.activeElement, {
+          scrollMode: "if-needed",
+          behavior: "smooth",
+          block: "center",
+        })
+      }
+    });
   },
 
   disconnected() {
