@@ -473,7 +473,11 @@ const Session = {
       return;
     }
 
-    // When clicking an insert button, keep focus and insert mode as is
+    // When clicking an insert button, keep focus and insert mode as is.
+    // This is relevant for markdown cells, since we show the markdown
+    // preview in insert mode and exiting insert mode on mousedown would
+    // result in layout shift, so mouseup would happen outside the target
+    // button and the click would be ignored
     if (event.target.closest(`[data-el-insert-buttons] button`)) {
       return;
     }
