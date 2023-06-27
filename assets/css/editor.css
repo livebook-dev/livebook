@@ -172,6 +172,15 @@ Also some spacing adjustments.
 .doctest-status-decoration-failed {
   height: 100%;
   position: relative;
+  --decoration-size: 10px;
+}
+
+@media screen(md) {
+  .doctest-status-decoration-running,
+  .doctest-status-decoration-success,
+  .doctest-status-decoration-failed {
+    --decoration-size: 12px;
+  }
 }
 
 .doctest-status-decoration-running::after,
@@ -181,10 +190,10 @@ Also some spacing adjustments.
   border-radius: 2px;
   content: "";
   display: block;
-  height: 12px;
-  width: 12px;
+  height: var(--decoration-size);
+  width: var(--decoration-size);
   position: absolute;
-  top: 50%;
+  top: calc(50% - 1px);
   left: 50%;
   transform: translate(-50%, -50%);
 }

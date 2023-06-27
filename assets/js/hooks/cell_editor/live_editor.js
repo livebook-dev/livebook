@@ -310,6 +310,8 @@ class LiveEditor {
           : "off",
     });
 
+    this._setScreenDependantEditorOpts();
+
     this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
       id: "enable-word-wrapping",
@@ -333,6 +335,7 @@ class LiveEditor {
       entries.forEach((entry) => {
         // Ignore hidden container.
         if (this.container.offsetHeight > 0) {
+          this._setScreenDependantEditorOpts();
           this.editor.layout();
         }
       });
@@ -364,6 +367,25 @@ class LiveEditor {
 
     // Add the widgets that the editor was initialized with
     this._initializeWidgets();
+  }
+
+  /**
+   * Sets Monaco editor options that depend on the current screen's size.
+   */
+  _setScreenDependantEditorOpts() {
+    if (window.screen.width < 768) {
+      this.editor.updateOptions({
+        folding: false,
+        lineDecorationsWidth: "2.0ch",
+        lineNumbersMinChars: Math.floor(Math.log10(this.editor.getModel().getLineCount())) + 3,
+      });
+    } else {
+      this.editor.updateOptions({
+        folding: true,
+        lineDecorationsWidth: 10,
+        lineNumbersMinChars: 5,
+      });
+    }
   }
 
   /**
