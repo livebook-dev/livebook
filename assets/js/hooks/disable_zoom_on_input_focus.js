@@ -16,7 +16,7 @@ const DisableZoomOnInputFocus = {
       this.initialContent = this.viewportTag && this.viewportTag.content;
 
       if (this.viewportTag) {
-        this.viewportTag.content = this.initialContent + ', maximum-scale=1.0';
+        this.viewportTag.content = this.initialContent + ", maximum-scale=1.0";
       }
     }
   },
@@ -29,9 +29,10 @@ const DisableZoomOnInputFocus = {
 
   shouldActivate() {
     const isWebKit = /AppleWebKit/.test(navigator.userAgent);
-    const isTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isTouchScreen =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
     return isWebKit && isTouchScreen;
-  }
-}
+  },
+};
 
 export default DisableZoomOnInputFocus;

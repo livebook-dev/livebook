@@ -377,7 +377,8 @@ class LiveEditor {
       this.editor.updateOptions({
         folding: false,
         lineDecorationsWidth: "2.0ch",
-        lineNumbersMinChars: Math.floor(Math.log10(this.editor.getModel().getLineCount())) + 3,
+        lineNumbersMinChars:
+          Math.floor(Math.log10(this.editor.getModel().getLineCount())) + 3,
       });
     } else {
       this.editor.updateOptions({

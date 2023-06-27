@@ -97,7 +97,7 @@ const Cell = {
           scrollMode: "if-needed",
           behavior: "smooth",
           block: "center",
-        })
+        });
       }
     });
   },
