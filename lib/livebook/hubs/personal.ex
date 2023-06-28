@@ -105,6 +105,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
       name: personal.hub_name,
       provider: personal,
       emoji: personal.hub_emoji,
+      mode: :online,
       connected?: false
     }
   end

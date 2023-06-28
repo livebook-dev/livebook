@@ -57,6 +57,7 @@ defmodule Livebook.Application do
       {:ok, _} = result ->
         Livebook.Migration.migrate()
         load_lb_env_vars()
+        create_offline_hub()
         clear_env_vars()
         display_startup_info()
         Livebook.Hubs.connect_hubs()
@@ -189,7 +190,7 @@ defmodule Livebook.Application do
     end
   end
 
-  defp load_lb_env_vars do
+  defp load_lb_env_vars() do
     secrets =
       for {"LB_" <> name = var, value} <- System.get_env() do
         System.delete_env(var)
@@ -202,6 +203,22 @@ defmodule Livebook.Application do
       end
 
     Livebook.Secrets.set_startup_secrets(secrets)
+  end
+
+  def create_offline_hub() do
+    if hash = System.get_env("LIVEBOOK_OFFLINE_HUB") do
+      value = Base.url_decode64!(hash, padding: false)
+      [name, teams_key, public_key] = String.split(value, ":", trim: true)
+
+      Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
+        id: "team-#{name}",
+        hub_name: name,
+        hub_emoji: "💡",
+        teams_key: teams_key,
+        org_public_key: public_key,
+        online?: false
+      })
+    end
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true

@@ -12,6 +12,7 @@ defmodule Livebook.Hubs.Team do
           teams_key: String.t() | nil,
           org_public_key: String.t() | nil,
           session_token: String.t() | nil,
+          online?: boolean(),
           hub_name: String.t() | nil,
           hub_emoji: String.t() | nil
         }
@@ -23,6 +24,7 @@ defmodule Livebook.Hubs.Team do
     field :teams_key, :string
     field :org_public_key, :string
     field :session_token, :string
+    field :online?, :boolean, default: true
     field :hub_name, :string
     field :hub_emoji, :string
   end
@@ -83,13 +85,18 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
       name: team.hub_name,
       provider: team,
       emoji: team.hub_emoji,
+      mode: if(team.online?, do: :online, else: :offline),
       connected?: TeamClient.connected?(team.id)
     }
   end
 
   def type(_team), do: "team"
 
-  def connection_spec(team), do: {TeamClient, team}
+  def connection_spec(team) do
+    if team.online? do
+      {TeamClient, team}
+    end
+  end
 
   def disconnect(team), do: TeamClient.stop(team.id)
 

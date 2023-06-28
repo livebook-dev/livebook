@@ -20,7 +20,8 @@ defmodule Livebook.Hubs do
   def get_hubs do
     for fields <- Storage.all(@namespace) do
       to_struct(fields)
-    end
+    end ++
+      get_offline_hubs()
   end
 
   @doc """
@@ -271,5 +272,23 @@ defmodule Livebook.Hubs do
   @spec capability?(Provider.t(), list(atom())) :: boolean()
   def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
+  end
+
+  @offline_hub_key :livebook_offline_hubs
+
+  @doc """
+  Get the offline hubs list from persistent term.
+  """
+  @spec get_offline_hubs() :: list(Provider.t())
+  def get_offline_hubs() do
+    :persistent_term.get(@offline_hub_key, [])
+  end
+
+  @doc """
+  Sets a offline hub that will be kept only in memory.
+  """
+  @spec set_offline_hub(Provider.t()) :: :ok
+  def set_offline_hub(hub) do
+    :persistent_term.put(@offline_hub_key, [hub])
   end
 end

@@ -212,7 +212,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <small class="ml-5 font-medium text-gray-300 cursor-default">HUBS</small>
         </div>
 
-        <%= for hub <- @hubs do %>
+        <%= for hub <- @hubs, hub.mode == :online do %>
           <%= if Provider.connection_spec(hub.provider) do %>
             <.sidebar_hub_link_with_tooltip hub={hub} to={~p"/hub/#{hub.id}"} current={@current_page} />
           <% else %>
