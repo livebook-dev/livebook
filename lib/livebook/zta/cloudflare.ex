@@ -60,19 +60,19 @@ defmodule Livebook.ZTA.Cloudflare do
     Enum.find_value(keys, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
-        {_, _t, _s} -> nil
+        {_, _t, _s} -> :error
       end
     end)
   end
 
   defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
-  defp verify_iss(_, _), do: nil
+  defp verify_iss(_, _), do: :error
 
   defp get_user_identity(token, fields, url) do
     token = "CF_Authorization=#{token}"
     fields = Enum.map(fields, &Atom.to_string/1)
     resp = Req.request!(url: url, headers: [{"cookie", token}])
-    if resp.status == 200, do: {:ok, Map.take(resp.body, fields)}
+    if resp.status == 200, do: {:ok, Map.take(resp.body, fields)}, else: :error
   end
 
   defp identity(key) do
