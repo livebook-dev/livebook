@@ -36,7 +36,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-5">
+    <div class="p-6 w-full flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>

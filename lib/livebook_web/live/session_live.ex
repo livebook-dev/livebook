@@ -549,7 +549,7 @@ defmodule LivebookWeb.SessionLive do
       ) %>
     </.modal>
 
-    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:medium} patch={@self_path}>
+    <.modal :if={@live_action == :secrets} id="secrets-modal" show width={:large} patch={@self_path}>
       <.live_component
         module={LivebookWeb.SessionLive.SecretsComponent}
         id="secrets"
