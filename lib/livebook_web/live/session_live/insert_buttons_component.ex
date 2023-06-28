@@ -14,43 +14,39 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       data-el-insert-buttons
     >
       <div class={
-        "w-full absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
+        "w-full md:absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
       }>
-        <div class="relative">
-          <div class="absolute -left-1 top-0 bottom-0 flex items-center transform -translate-x-full">
-            <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
-              <:toggle>
-                <button class="button-base button-small flex items-center pr-1">
-                  <div
-                    class="pr-2"
-                    phx-click="insert_cell_below"
-                    phx-value-type="code"
-                    phx-value-section_id={@section_id}
-                    phx-value-cell_id={@cell_id}
-                    phx-value-language="elixir"
-                  >
-                    + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
-                  </div>
-                  <div class="pl-1 flex items-center border-l border-gray-200">
-                    <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
-                  </div>
-                </button>
-              </:toggle>
-              <.menu_item>
-                <button role="menuitem" phx-click="set_default_language" phx-value-language="elixir">
-                  <.cell_icon cell_type={:code} language={:elixir} />
-                  <span>Elixir</span>
-                </button>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="set_default_language" phx-value-language="erlang">
-                  <.cell_icon cell_type={:code} language={:erlang} />
-                  <span>Erlang</span>
-                </button>
-              </.menu_item>
-            </.menu>
-          </div>
-        </div>
+        <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
+          <:toggle>
+            <button class="button-base button-small flex items-center pr-1">
+              <div
+                class="pr-2"
+                phx-click="insert_cell_below"
+                phx-value-type="code"
+                phx-value-section_id={@section_id}
+                phx-value-cell_id={@cell_id}
+                phx-value-language="elixir"
+              >
+                + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
+              </div>
+              <div class="pl-1 flex items-center border-l border-gray-200">
+                <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
+              </div>
+            </button>
+          </:toggle>
+          <.menu_item>
+            <button role="menuitem" phx-click="set_default_language" phx-value-language="elixir">
+              <.cell_icon cell_type={:code} language={:elixir} />
+              <span>Elixir</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button role="menuitem" phx-click="set_default_language" phx-value-language="erlang">
+              <.cell_icon cell_type={:code} language={:erlang} />
+              <span>Erlang</span>
+            </button>
+          </.menu_item>
+        </.menu>
         <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
           <:toggle>
             <button class="button-base button-small">+ Block</button>
