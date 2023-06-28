@@ -146,7 +146,7 @@ defmodule Livebook.NotebookManager do
   end
 
   @impl true
-  def handle_cast({:add_recent_notebook, file, name}, state = prev_state) do
+  def handle_cast({:add_recent_notebook, file, name}, state) do
     recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
 
     recent_notebooks = [
@@ -160,12 +160,17 @@ defmodule Livebook.NotebookManager do
     # added we update the starred entry if any
     starred_notebooks = update_notebook_names(state.starred_notebooks, file, name)
 
-    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
+    new_state = %{
+      state
+      | recent_notebooks: recent_notebooks,
+        starred_notebooks: starred_notebooks
+    }
+
+    broadcast_changes(new_state, state)
+    {:noreply, new_state, {:continue, :dump_state}}
   end
 
-  def handle_cast({:add_starred_notebook, file, name}, state = prev_state) do
+  def handle_cast({:add_starred_notebook, file, name}, state) do
     if Enum.any?(state.starred_notebooks, &(&1.file == file)) do
       {:noreply, state}
     else
@@ -173,40 +178,52 @@ defmodule Livebook.NotebookManager do
         %{file: file, name: name, added_at: DateTime.utc_now()} | state.starred_notebooks
       ]
 
-      state = %{state | starred_notebooks: starred_notebooks}
-      broadcast_changes(state, prev_state)
-      {:noreply, state, {:continue, :dump_state}}
+      new_state = %{state | starred_notebooks: starred_notebooks}
+      broadcast_changes(new_state, state)
+      {:noreply, new_state, {:continue, :dump_state}}
     end
   end
 
-  def handle_cast({:remove_recent_notebook, file}, state = prev_state) do
+  def handle_cast({:remove_recent_notebook, file}, state) do
     recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
-    state = %{state | recent_notebooks: recent_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
+    new_state = %{state | recent_notebooks: recent_notebooks}
+    broadcast_changes(new_state, state)
+    {:noreply, new_state, {:continue, :dump_state}}
   end
 
-  def handle_cast({:remove_starred_notebook, file}, state = prev_state) do
+  def handle_cast({:remove_starred_notebook, file}, state) do
     starred_notebooks = Enum.reject(state.starred_notebooks, &(&1.file == file))
-    state = %{state | starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
+    new_state = %{state | starred_notebooks: starred_notebooks}
+    broadcast_changes(new_state, state)
+    {:noreply, new_state, {:continue, :dump_state}}
   end
 
-  def handle_cast({:remove_file_system, file_system_id}, state = prev_state) do
+  def handle_cast({:remove_file_system, file_system_id}, state) do
     recent_notebooks = remove_notebooks_on_file_system(state.recent_notebooks, file_system_id)
     starred_notebooks = remove_notebooks_on_file_system(state.starred_notebooks, file_system_id)
-    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
+
+    new_state = %{
+      state
+      | recent_notebooks: recent_notebooks,
+        starred_notebooks: starred_notebooks
+    }
+
+    broadcast_changes(new_state, state)
+    {:noreply, new_state, {:continue, :dump_state}}
   end
 
-  def handle_cast({:update_notebook_name, file, name}, state = prev_state) do
+  def handle_cast({:update_notebook_name, file, name}, state) do
     recent_notebooks = update_notebook_names(state.recent_notebooks, file, name)
     starred_notebooks = update_notebook_names(state.starred_notebooks, file, name)
-    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
+
+    new_state = %{
+      state
+      | recent_notebooks: recent_notebooks,
+        starred_notebooks: starred_notebooks
+    }
+
+    broadcast_changes(new_state, state)
+    {:noreply, new_state, {:continue, :dump_state}}
   end
 
   defp remove_notebooks_on_file_system(notebook_infos, file_system_id) do
@@ -220,20 +237,20 @@ defmodule Livebook.NotebookManager do
     end)
   end
 
-  defp broadcast_changes(state, prev_state) do
-    if state.recent_notebooks != prev_state.recent_notebooks do
+  defp broadcast_changes(new_state, state) do
+    if new_state.recent_notebooks != state.recent_notebooks do
       Phoenix.PubSub.broadcast(
         Livebook.PubSub,
         "notebook_manager:recent_notebooks",
-        {:recent_notebooks_updated, state.recent_notebooks}
+        {:recent_notebooks_updated, new_state.recent_notebooks}
       )
     end
 
-    if state.starred_notebooks != prev_state.starred_notebooks do
+    if new_state.starred_notebooks != state.starred_notebooks do
       Phoenix.PubSub.broadcast(
         Livebook.PubSub,
         "notebook_manager:starred_notebooks",
-        {:starred_notebooks_updated, state.starred_notebooks}
+        {:starred_notebooks_updated, new_state.starred_notebooks}
       )
     end
   end

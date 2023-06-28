@@ -331,7 +331,7 @@ defmodule Livebook.LiveMarkdown.Export do
     |> Enum.map(fn {_modifiers, string} -> string end)
   end
 
-  defp render_notebook_footer(_notebook, _notebook_source, _include_stamp? = false), do: {[], []}
+  defp render_notebook_footer(_notebook, _notebook_source, false = _include_stamp?), do: {[], []}
 
   defp render_notebook_footer(notebook, notebook_source, true) do
     metadata = notebook_stamp_metadata(notebook)
