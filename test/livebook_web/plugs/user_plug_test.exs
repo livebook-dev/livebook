@@ -13,17 +13,17 @@ defmodule LivebookWeb.UserPlugTest do
       |> fetch_cookies()
       |> call()
 
-    assert get_session(conn, :current_user_id) != nil
+    assert get_session(conn, :identity_data) |> Map.get(:id) != nil
   end
 
   test "keeps user id in the session if present" do
     conn =
       conn(:get, "/")
-      |> init_test_session(%{current_user_id: "valid_user_id"})
+      |> init_test_session(%{identity_data: %{id: "valid_user_id"}})
       |> fetch_cookies()
       |> call()
 
-    assert get_session(conn, :current_user_id) != nil
+    assert get_session(conn, :identity_data) |> Map.get(:id) != nil
   end
 
   test "given no user_data cookie, generates and stores new data" do
