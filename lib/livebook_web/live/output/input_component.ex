@@ -211,11 +211,10 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input_output(%{attrs: %{type: type}} = assigns)
-       when type in [:date, :week, :month] do
+  defp input_output(%{attrs: %{type: :date}} = assigns) do
     ~H"""
     <input
-      type={html_input_type(type)}
+      type="date"
       data-el-input
       class="input w-auto invalid:input--error"
       name="html_value"
@@ -230,11 +229,45 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
+  defp input_output(%{attrs: %{type: :week}} = assigns) do
+    ~H"""
+    <input
+      type="week"
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={week_to_string(@value)}
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={week_to_string(@attrs.min)}
+      max={week_to_string(@attrs.max)}
+      autocomplete="off"
+    />
+    """
+  end
+
+  defp input_output(%{attrs: %{type: :month}} = assigns) do
+    ~H"""
+    <input
+      type="month"
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={month_to_string(@value)}
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={week_to_string(@attrs.min)}
+      max={week_to_string(@attrs.max)}
+      autocomplete="off"
+    />
+    """
+  end
+
   defp input_output(%{attrs: %{type: type}} = assigns)
        when type in [:number, :color, :url, :text] do
     ~H"""
     <input
-      type={html_input_type(type)}
+      type={html_input_type(@attrs.type)}
       data-el-input
       class="input w-auto invalid:input--error"
       name="html_value"
@@ -255,13 +288,16 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp html_input_type(:date), do: "date"
-  defp html_input_type(:week), do: "week"
-  defp html_input_type(:month), do: "month"
   defp html_input_type(:number), do: "number"
   defp html_input_type(:color), do: "color"
   defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
+
+  defp month_to_string(nil), do: ""
+  defp month_to_string({y, m}), do: "#{y}-#{:io_lib.format("~2.10.0B", [m])}"
+
+  defp week_to_string(nil), do: ""
+  defp week_to_string({y, w}), do: "#{y}-W#{:io_lib.format("~2.10.0B", [w])}"
 
   @impl true
   def handle_event("change", %{"html_value" => html_value}, socket) do
@@ -389,11 +425,25 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp parse(html_value, %{type: :week}) do
-    {:ok, html_value}
+    try do
+      [year, week] = String.split(html_value, "-W")
+      {y, _} = Integer.parse(year)
+      {w, _} = Integer.parse(week)
+      {:ok, {y, w}}
+    rescue
+      _ -> :error
+    end
   end
 
   defp parse(html_value, %{type: :month}) do
-    {:ok, html_value}
+    try do
+      [year, month] = String.split(html_value, "-")
+      {y, _} = Integer.parse(year)
+      {m, _} = Integer.parse(month)
+      {:ok, {y, m}}
+    rescue
+      _ -> :error
+    end
   end
 
   defp report_event(socket, value) do
