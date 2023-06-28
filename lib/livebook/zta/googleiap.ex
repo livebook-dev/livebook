@@ -60,13 +60,13 @@ defmodule Livebook.ZTA.GoogleIAP do
     Enum.find_value(keys, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
-        {_, _t, _s} -> nil
+        {_, _t, _s} -> :error
       end
     end)
   end
 
   defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
-  defp verify_iss(_, _), do: nil
+  defp verify_iss(_, _), do: :error
 
   defp get_user_identity(%{fields: %{"gcip" => gcip}}, _, _) do
     user = %{name: gcip["name"], email: gcip["email"], id: gcip["sub"]}
@@ -78,7 +78,7 @@ defmodule Livebook.ZTA.GoogleIAP do
     {:ok, user}
   end
 
-  defp get_user_identity(_, _, _), do: nil
+  defp get_user_identity(_, _, _), do: :error
 
   defp identity(key) do
     %{
