@@ -266,7 +266,12 @@ defmodule Livebook.Session.Data do
         %{status: %{execution: :executing, lifecycle: :active}}
       end
 
-    hub = Hubs.fetch_hub!(notebook.hub_id)
+    hub =
+      case Hubs.fetch_offline_hub(notebook.hub_id) do
+        :error -> Hubs.fetch_hub!(notebook.hub_id)
+        {:ok, hub} -> hub
+      end
+
     hub_secrets = Hubs.get_secrets(hub)
 
     startup_secrets =
@@ -877,15 +882,19 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_notebook_hub, _client_id, id}) do
-    with {:ok, hub} <- Hubs.fetch_hub(id) do
+    result =
+      case Hubs.fetch_hub(id) do
+        {:ok, _} = result -> result
+        :error -> Hubs.fetch_offline_hub(id)
+      end
+
+    with {:ok, hub} <- result do
       data
       |> with_actions()
       |> set_notebook_hub(hub)
       |> update_notebook_hub_secret_names()
       |> set_dirty()
       |> wrap_ok()
-    else
-      _ -> :error
     end
   end
 

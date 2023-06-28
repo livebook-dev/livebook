@@ -291,4 +291,15 @@ defmodule Livebook.Hubs do
   def set_offline_hub(hub) do
     :persistent_term.put(@offline_hub_key, [hub])
   end
+
+  @doc """
+  Gets one hub from persistent term.
+  """
+  @spec fetch_offline_hub(String.t()) :: {:ok, Provider.t()} | :error
+  def fetch_offline_hub(id) do
+    case Enum.find(get_offline_hubs(), &(&1.id == id)) do
+      nil -> :error
+      hub -> {:ok, hub}
+    end
+  end
 end

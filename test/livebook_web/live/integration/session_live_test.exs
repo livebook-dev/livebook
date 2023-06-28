@@ -35,6 +35,48 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
       assert Session.get_data(session.pid).notebook.hub_id == hub.id
     end
+
+    test "selects a offline hub as notebook's hub",
+         %{conn: conn, user: user, node: node, session: session} do
+      # create a team hub to get it's public key
+      team = create_team_hub(user, node)
+      id = team.id
+
+      # now we need to build the team struct and persist as offline hub
+      Livebook.Hubs.set_offline_hub(
+        build(:team,
+          id: id,
+          hub_name: team.hub_name,
+          hub_emoji: "💡",
+          org_id: nil,
+          user_id: nil,
+          org_key_id: nil,
+          session_token: nil,
+          teams_key: team.teams_key,
+          org_public_key: team.org_public_key,
+          online?: false
+        )
+      )
+
+      # now we delete the team hub so we can insert the offline one
+      assert Livebook.Hubs.delete_hub(id) == :ok
+
+      # subscribe to session events and join the session
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      # checks if the current hub is the personal one 
+      assert Session.get_data(session.pid).notebook.hub_id == Livebook.Hubs.Personal.id()
+
+      # changes the notebook hub to the offline one
+      view
+      |> element(~s/#select-hub-#{id}/)
+      |> render_click()
+
+      # and checks if the notebook's hub is now the offline one
+      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
+      assert Session.get_data(session.pid).notebook.hub_id == id
+    end
   end
 
   describe "secrets" do
