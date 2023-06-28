@@ -47,6 +47,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
             </button>
             <button
+              id="delete-hub"
               phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
               class="button-base button-red"
             >
