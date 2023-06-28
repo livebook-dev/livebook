@@ -1322,7 +1322,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # clicks the button to edit a secret
       view
       |> with_target("#secrets_list")
-      |> element("#hub-#{hub.id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> element("#hub-#{hub.id}-secret-#{secret_name}-edit-button")
       |> render_click()
 
       # redirects to hub page and loads the modal with

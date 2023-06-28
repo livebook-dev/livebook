@@ -1821,9 +1821,13 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:smart_cell_started, _client_id, _cell_id, _delta, _chunks, _js_view, _editor}
+         {:smart_cell_started, _client_id, cell_id, _delta, _chunks, _js_view, _editor}
        ) do
-    prune_cell_sources(socket)
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+
+    socket
+    |> push_cell_editor_payloads(socket.private.data, [cell], [:secondary])
+    |> prune_cell_sources()
   end
 
   defp after_operation(socket, _prev_socket, {:erase_outputs, _client_id}) do
@@ -2060,9 +2064,10 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp push_cell_editor_payloads(socket, data, cells) do
+  defp push_cell_editor_payloads(socket, data, cells, tags \\ :all) do
     for cell <- cells,
         {tag, payload} <- cell_editor_init_payloads(cell, data.cell_infos[cell.id]),
+        tags == :all or tag in tags,
         reduce: socket do
       socket ->
         push_event(socket, "cell_editor_init:#{cell.id}:#{tag}", payload)
@@ -2106,7 +2111,7 @@ defmodule LivebookWeb.SessionLive do
           end
       }
     ] ++
-      if cell.editor do
+      if cell.editor && cell_info.status == :started do
         [
           secondary: %{
             source: cell.editor.source,
