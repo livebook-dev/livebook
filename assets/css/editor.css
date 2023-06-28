@@ -159,12 +159,6 @@ Also some spacing adjustments.
   transform: none;
 }
 
-/* === Monaco iPadShowKeyboard widget === */
-
-.monaco-editor.focused .iPadShowKeyboard {
-  display: none;
-}
-
 /* === Doctest status decoration === */
 
 .doctest-status-decoration-running,
@@ -193,7 +187,7 @@ Also some spacing adjustments.
   height: var(--decoration-size);
   width: var(--decoration-size);
   position: absolute;
-  top: calc(50% - 1px);
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }

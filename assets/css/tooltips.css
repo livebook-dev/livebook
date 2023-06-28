@@ -31,7 +31,7 @@ Example usage:
   content: attr(data-tooltip);
   white-space: pre;
   text-align: center;
-  display: none;
+  display: block;
   z-index: 100;
   background-color: #1c273c;
   color: #f0f5f9;
@@ -45,17 +45,11 @@ Example usage:
   transition-delay: 0s;
 }
 
-@media screen(md) {
-  .tooltip:before {
-    display: block;
-  }
-}
-
 /* Tooltip arrow */
 .tooltip:after {
   content: "";
   position: absolute;
-  display: none;
+  display: block;
   z-index: 100;
   /* For the arrow we use the triangle trick: https://css-tricks.com/snippets/css/css-triangle/ */
   border-width: var(--arrow-size);
@@ -65,12 +59,6 @@ Example usage:
   transition-property: visibility;
   transition-duration: 0s;
   transition-delay: 0s;
-}
-
-@media screen(md) {
-  .tooltip:after {
-    display: block;
-  }
 }
 
 .tooltip:hover:before {

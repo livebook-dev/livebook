@@ -70,7 +70,7 @@ import "monaco-editor/esm/vs/editor/contrib/readOnlyMessage/browser/contribution
 // import 'vs/base/browser/ui/codicons/codiconStyles';
 
 import "monaco-editor/esm/vs/editor/standalone/browser/accessibilityHelp/accessibilityHelp";
-import "monaco-editor/esm/vs/editor/standalone/browser/iPadShowKeyboard/iPadShowKeyboard";
+// import "monaco-editor/esm/vs/editor/standalone/browser/iPadShowKeyboard/iPadShowKeyboard";
 import "monaco-editor/esm/vs/editor/standalone/browser/inspectTokens/inspectTokens";
 import "monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneHelpQuickAccess";
 import "monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess";
