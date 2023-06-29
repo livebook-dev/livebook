@@ -1,3 +1,5 @@
+<!-- livebook:{"file_entries":[{"name":"portal-drop.jpeg","type":"attachment"},{"name":"portal-list.jpeg","type":"attachment"}]} -->
+
 # Distributed portals with Elixir
 
 ## Introduction
@@ -25,13 +27,13 @@ In order to teleport, the player uses the Portal gun to shoot doors
 onto flat planes, like a floor or a wall. Entering one of those doors
 teleports you to the other:
 
-![](images/portal-drop.jpeg)
+![](files/portal-drop.jpeg)
 
 Our version of the Portal game will use Elixir to shoot doors of
 different colors and transfer data between them! We will even learn how
 we can distribute doors across different machines in our network:
 
-![](images/portal-list.jpeg)
+![](files/portal-list.jpeg)
 
 Here is what we will learn:
 

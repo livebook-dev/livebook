@@ -216,6 +216,8 @@ defmodule Livebook.Session.Data do
           | {:unset_secret, client_id(), String.t()}
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
+          | {:add_file_entries, client_id(), list(Notebook.file_entry())}
+          | {:delete_file_entry, client_id(), String.t()}
           | {:set_app_settings, client_id(), AppSettings.t()}
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
@@ -896,6 +898,26 @@ defmodule Livebook.Session.Data do
     |> update_notebook_hub_secret_names()
     |> set_dirty()
     |> wrap_ok()
+  end
+
+  def apply_operation(data, {:add_file_entries, _client_id, file_entries}) do
+    data
+    |> with_actions()
+    |> add_file_entries(file_entries)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:delete_file_entry, _client_id, name}) do
+    with {:ok, file_entry} <- fetch_file_entry(data.notebook, name) do
+      data
+      |> with_actions()
+      |> delete_file_entry(file_entry)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
   end
 
   def apply_operation(data, {:set_app_settings, _client_id, settings}) do
@@ -1657,6 +1679,22 @@ defmodule Livebook.Session.Data do
     set!(data_actions, notebook: %{data.notebook | hub_secret_names: hub_secret_names})
   end
 
+  defp add_file_entries({data, _} = data_actions, file_entries) do
+    new_names = for entry <- file_entries, do: entry.name, into: MapSet.new()
+
+    kept_file_entries = Enum.reject(data.notebook.file_entries, &(&1.name in new_names))
+
+    data_actions
+    |> set!(notebook: %{data.notebook | file_entries: file_entries ++ kept_file_entries})
+  end
+
+  defp delete_file_entry({data, _} = data_actions, file_entry) do
+    file_entries = data.notebook.file_entries -- [file_entry]
+
+    data_actions
+    |> set!(notebook: %{data.notebook | file_entries: file_entries})
+  end
+
   defp set_section_name({data, _} = data_actions, section, name) do
     data_actions
     |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
@@ -1922,6 +1960,12 @@ defmodule Livebook.Session.Data do
   defp fetch_cell_bin_entry(data, cell_id) do
     Enum.find_value(data.bin_entries, :error, fn entry ->
       entry.cell.id == cell_id && {:ok, entry}
+    end)
+  end
+
+  defp fetch_file_entry(notebook, name) do
+    Enum.find_value(notebook.file_entries, :error, fn file_entry ->
+      file_entry.name == name && {:ok, file_entry}
     end)
   end
 

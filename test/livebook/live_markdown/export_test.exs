@@ -1249,78 +1249,106 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     end
   end
 
-  test "notebook stamp is appended at the end" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    IO.puts("hey")
-                    """
-                }
-              ]
-          }
-        ],
-        hub_secret_names: ["DB_PASSWORD"]
-    }
+  describe "notebook stamp" do
+    test "notebook stamp is appended at the end" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: """
+                      IO.puts("hey")
+                      """
+                  }
+                ]
+            }
+          ],
+          hub_secret_names: ["DB_PASSWORD"]
+      }
 
-    expected_document = ~R"""
-    # My Notebook
+      expected_document = ~R"""
+      # My Notebook
 
-    ## Section 1
+      ## Section 1
 
-    ```elixir
-    IO.puts\("hey"\)
-    ```
+      ```elixir
+      IO.puts\("hey"\)
+      ```
 
-    <!-- livebook:{"offset":58,"stamp":(.*)} -->
-    """
+      <!-- livebook:{"offset":58,"stamp":(.*)} -->
+      """
 
-    {document, []} = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
-    assert document =~ expected_document
+      assert document =~ expected_document
+    end
+
+    test "skips notebook stamp if :include_stamp is false" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: """
+                      IO.puts("hey")
+                      """
+                  }
+                ]
+            }
+          ],
+          hub_secret_names: ["DB_PASSWORD"]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
+
+      assert expected_document == document
+    end
   end
 
-  test "skips notebook stamp if :include_stamp is false" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    IO.puts("hey")
-                    """
-                }
-              ]
-          }
-        ],
-        hub_secret_names: ["DB_PASSWORD"]
-    }
+  describe "file entries" do
+    test "persists file entries" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), "/document.pdf")
 
-    expected_document = """
-    # My Notebook
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :attachment, name: "image.jpg"},
+            %{type: :url, name: "data.csv", url: "https://example.com/data.csv"},
+            %{type: :file, name: "document.pdf", file: file}
+          ]
+      }
 
-    ## Section 1
+      expected_document = """
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"/document.pdf"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
-    ```elixir
-    IO.puts("hey")
-    ```
-    """
+      # My Notebook
+      """
 
-    {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
-    assert expected_document == document
+      assert expected_document == document
+    end
   end
 
   defp spawn_widget_with_data(ref, data) do

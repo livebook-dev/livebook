@@ -12,7 +12,7 @@ defmodule Livebook.Settings do
   @typedoc """
   An id that is used for file system's manipulation, either insertion or removal.
   """
-  @type file_system_id :: Livebook.Utils.id()
+  @type file_system_id :: String.t()
 
   @doc """
   Returns the current autosave path.
@@ -55,7 +55,7 @@ defmodule Livebook.Settings do
   @spec file_systems() :: list(FileSystem.t())
   def file_systems() do
     restored_file_systems =
-      Storage.all(:filesystem)
+      Storage.all(:file_systems)
       |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
       |> Enum.map(&storage_to_fs/1)
 
@@ -73,7 +73,7 @@ defmodule Livebook.Settings do
       |> Map.to_list()
 
     attrs = [{:type, "s3"}, {:order, System.os_time()} | attributes]
-    :ok = Storage.insert(:filesystem, file_system.id, attrs)
+    :ok = Storage.insert(:file_systems, file_system.id, attrs)
   end
 
   @doc """
@@ -87,7 +87,7 @@ defmodule Livebook.Settings do
 
     Livebook.NotebookManager.remove_file_system(file_system_id)
 
-    Livebook.Storage.delete(:filesystem, file_system_id)
+    Livebook.Storage.delete(:file_systems, file_system_id)
   end
 
   defp storage_to_fs(%{type: "s3"} = config) do
@@ -234,7 +234,7 @@ defmodule Livebook.Settings do
   """
   @spec default_file_system() :: Filesystem.t()
   def default_file_system() do
-    case Livebook.Storage.fetch(:filesystem, default_file_system_id()) do
+    case Livebook.Storage.fetch(:file_systems, default_file_system_id()) do
       {:ok, file} -> storage_to_fs(file)
       :error -> Livebook.Config.local_file_system()
     end

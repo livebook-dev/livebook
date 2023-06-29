@@ -54,7 +54,7 @@ defmodule LivebookWeb.EnvVarComponent do
               class="button-base button-blue"
               type="submit"
               phx-disable-with="Adding..."
-              disable={not @changeset.valid?}
+              disabled={not @changeset.valid?}
             >
               Save
             </button>

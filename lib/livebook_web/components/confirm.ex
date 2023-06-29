@@ -2,6 +2,7 @@ defmodule LivebookWeb.Confirm do
   use Phoenix.Component
 
   import LivebookWeb.CoreComponents
+  import LivebookWeb.FormComponents
   import Phoenix.LiveView
 
   alias Phoenix.LiveView.JS
@@ -32,6 +33,21 @@ defmodule LivebookWeb.Confirm do
       checkbox. Once checked by the user, the confirmation with this
       id is never shown again. Optional
 
+    * `:options` - a list of togglable options to present alongside the
+      confirmation message. Each option must be a map:
+
+      ```
+      %{
+        name: String.t(),
+        label: String.t(),
+        default: boolean(),
+        disabled: boolean()
+      }
+      ```
+
+      The option values are passed to the `on_confirm` function as the
+      second argument
+
   """
   def confirm(socket, on_confirm, opts) do
     opts =
@@ -42,7 +58,8 @@ defmodule LivebookWeb.Confirm do
         confirm_text: "Yes",
         confirm_icon: nil,
         danger: true,
-        opt_out_id: nil
+        opt_out_id: nil,
+        options: []
       )
 
     send(self(), {:confirm, on_confirm, opts})
@@ -77,6 +94,20 @@ defmodule LivebookWeb.Confirm do
         <p class="mt-8 text-gray-700">
           <%= @description %>
         </p>
+        <div :if={@options != []} class="mt-8">
+          <h3 class="mb-2 text-lg font-semibold text-gray-800">
+            Options
+          </h3>
+          <div class="flex flex-col gap-2">
+            <.switch_field
+              :for={option <- @options}
+              name={"options[#{option.name}]"}
+              label={option.label}
+              value={option.default}
+              disabled={option.disabled}
+            />
+          </div>
+        </div>
         <label :if={@opt_out_id} class="mt-6 text-gray-700 flex items-center">
           <input class="checkbox mr-3" type="checkbox" name="opt_out_id" value={@opt_out_id} />
           <span class="text-sm">
@@ -128,7 +159,17 @@ defmodule LivebookWeb.Confirm do
         socket
       end
 
-    socket = socket.assigns.confirm_state.on_confirm.(socket)
+    options =
+      for {name, value} <- params["options"] || [], into: %{}, do: {name, value == "true"}
+
+    on_confirm = socket.assigns.confirm_state.on_confirm
+
+    socket =
+      cond do
+        is_function(on_confirm, 1) -> on_confirm.(socket)
+        is_function(on_confirm, 2) -> on_confirm.(socket, options)
+      end
+
     {:halt, socket}
   end
 

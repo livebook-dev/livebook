@@ -3,10 +3,34 @@ defmodule LivebookWeb.SessionController do
 
   alias Livebook.{Sessions, Session, FileSystem}
 
-  def show_image(conn, %{"id" => id, "image" => image}) do
+  def show_file(conn, %{"id" => id, "name" => name}) do
+    with {:ok, session} <- Sessions.fetch_session(id),
+         {:ok, file_entry} <- fetch_file_entry(session, name),
+         true <- file_entry.type == :attachment do
+      file = FileSystem.File.resolve(session.files_dir, file_entry.name)
+      serve_static(conn, file)
+    else
+      _ ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
+  defp fetch_file_entry(session, name) do
+    file_entries = Session.get_notebook_file_entries(session.pid)
+
+    Enum.find_value(file_entries, :error, fn file_entry ->
+      if file_entry.name == name do
+        {:ok, file_entry}
+      end
+    end)
+  end
+
+  # Legacy endpoint for resolving images/
+  def show_image(conn, %{"id" => id, "name" => name}) do
     case Sessions.fetch_session(id) do
       {:ok, session} ->
-        file = FileSystem.File.resolve(session.images_dir, image)
+        images_dir = FileSystem.File.resolve(session.files_dir, "../images/")
+        file = FileSystem.File.resolve(images_dir, name)
         serve_static(conn, file)
 
       :error ->

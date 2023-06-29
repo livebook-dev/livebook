@@ -642,6 +642,8 @@ defmodule LivebookWeb.FileSelectComponent do
     String.starts_with?(filename, ".")
   end
 
+  defp valid_extension?(_filename, :any), do: true
+
   defp valid_extension?(filename, extnames) do
     Path.extname(filename) in extnames
   end

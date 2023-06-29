@@ -317,7 +317,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    %{images_dir: images_dir} = session
+    %{files_dir: files_dir} = session
     data = Session.get_data(session.pid)
     notebook = Notebook.forked(data.notebook)
 
@@ -331,7 +331,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     {:noreply,
      create_session(socket,
        notebook: notebook,
-       copy_images_from: images_dir,
+       files_source: {:dir, files_dir},
        origin: origin
      )}
   end

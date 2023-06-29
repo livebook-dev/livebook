@@ -52,7 +52,7 @@ defmodule LivebookWeb.OpenLive do
 
         <div class="tabs">
           <.link patch={~p"/open/file"} class={["tab", @tab == "file" && "active"]}>
-            <.remix_icon icon="file-line" class="align-middle" />
+            <.remix_icon icon="file-3-line" class="align-middle" />
             <span class="font-medium">From file</span>
           </.link>
           <.link patch={~p"/open/url"} class={["tab", @tab == "url" && "active"]}>

@@ -25,7 +25,8 @@ defmodule Livebook.Notebook do
     :output_counter,
     :app_settings,
     :hub_id,
-    :hub_secret_names
+    :hub_secret_names,
+    :file_entries
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -44,8 +45,25 @@ defmodule Livebook.Notebook do
           output_counter: non_neg_integer(),
           app_settings: AppSettings.t(),
           hub_id: String.t(),
-          hub_secret_names: list(String.t())
+          hub_secret_names: list(String.t()),
+          file_entries: list(file_entry())
         }
+
+  @type file_entry ::
+          %{
+            name: String.t(),
+            type: :attachment
+          }
+          | %{
+              name: String.t(),
+              type: :file,
+              file: Livebook.FileSystem.File.t()
+            }
+          | %{
+              name: String.t(),
+              type: :url,
+              url: String.t()
+            }
 
   @version "1.0"
 
@@ -66,7 +84,8 @@ defmodule Livebook.Notebook do
       output_counter: 0,
       app_settings: AppSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
-      hub_secret_names: []
+      hub_secret_names: [],
+      file_entries: []
     }
     |> put_setup_cell(Cell.new(:code))
   end
@@ -811,5 +830,15 @@ defmodule Livebook.Notebook do
   # Remove everything else
   defp do_prune_outputs([_output | outputs], acc) do
     do_prune_outputs(outputs, acc)
+  end
+
+  @doc """
+  Validates a change is a valid file entry name.
+  """
+  @spec validate_file_entry_name(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  def validate_file_entry_name(changeset, field) do
+    Ecto.Changeset.validate_format(changeset, field, ~r/^[\w-.]+$/,
+      message: "should contain only alphanumeric characters, dash, underscore and dot"
+    )
   end
 end
