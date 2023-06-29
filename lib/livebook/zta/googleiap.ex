@@ -58,10 +58,10 @@ defmodule Livebook.ZTA.GoogleIAP do
   end
 
   defp verify_token(token, keys) do
-    Enum.find_value(keys, fn key ->
+    Enum.find_value(keys, :error, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
-        {_, _t, _s} -> :error
+        {_, _t, _s} -> nil
       end
     end)
   end
