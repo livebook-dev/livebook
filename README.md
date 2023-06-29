@@ -158,6 +158,11 @@ Livebook if said token is supplied as part of the URL.
 
 The following environment variables can be used to configure Livebook on boot:
 
+  * LIVEBOOK_ALLOW_URI_SCHEMES - sets additional allowed hyperlink schemes to the
+    Markdown content. Livebook sanitizes links in Markdown, allowing only a few
+    standard schemes by default (such as http and https). Set it to a comma-separated
+    list of schemes.
+
   * LIVEBOOK_APP_SERVICE_NAME - sets the application name used by the cloud
     provider to aid debugging.
 
@@ -196,6 +201,14 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
     default path used on file selection screens and others. Defaults to the
     user's operating system home.
+
+  * LIVEBOOK_IDENTITY_PROVIDER - controls whether Zero Trust Authentication
+    must be used as the identity provider. This is useful when deploying
+    Livebook inside a cloud platform, such as Cloudflare and Google.
+    Supported values are:
+
+      * "cloudflare:<your-team-name (domain)>"
+      * "googleiap:<your-audience (aud)>"
 
   * LIVEBOOK_IFRAME_PORT - sets the port that Livebook serves iframes at.
     This is relevant only when running Livebook without TLS. Defaults to 8081.
@@ -236,17 +249,6 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_WITHIN_IFRAME - controls if the application is running inside an
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
-
-  * LIVEBOOK_ALLOW_URI_SCHEMES - sets additional allowed hyperlink schemes to the
-    Markdown content. Livebook sanitizes links in Markdown, allowing only a few
-    standard schemes by default (such as http and https). Set it to a comma-separated
-    list of schemes.
-
-  * LIVEBOOK_IDENTITY_PROVIDER - controls whether Zero Trust Identity is enabled.
-    Set it to your provider and the correspondent key to enable it.
-    Currently supported providers are Cloudflare and GoogleIap.
-    The respective keys are the team name (domain) for CloudFlare and the audience (aud) for GoogleIAP.
-    E.g. `"cloudflare:<your-team-name>"`, `"googleiap:<your-audience>`
 
 <!-- Environment variables -->
 
