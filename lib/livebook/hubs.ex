@@ -273,14 +273,18 @@ defmodule Livebook.Hubs do
     capabilities -- Provider.capabilities(hub) == []
   end
 
-  @offline_hub_key :livebook_offline_hubs
+  @offline_hub_key :livebook_offline_hub
 
   @doc """
-  Get the offline hubs list from persistent term.
+  Get the offline hub from persistent term.
   """
-  @spec get_offline_hubs() :: list(Provider.t())
-  def get_offline_hubs() do
-    :persistent_term.get(@offline_hub_key, [])
+  @spec get_offline_hub(String.t()) :: Provider.t() | nil
+  def get_offline_hub(id) do
+    hub = :persistent_term.get(@offline_hub_key, nil)
+
+    if hub && hub.id == id do
+      hub
+    end
   end
 
   @doc """
@@ -288,17 +292,6 @@ defmodule Livebook.Hubs do
   """
   @spec set_offline_hub(Provider.t()) :: :ok
   def set_offline_hub(hub) do
-    :persistent_term.put(@offline_hub_key, [hub])
-  end
-
-  @doc """
-  Gets one hub from persistent term.
-  """
-  @spec fetch_offline_hub(String.t()) :: {:ok, Provider.t()} | :error
-  def fetch_offline_hub(id) do
-    case Enum.find(get_offline_hubs(), &(&1.id == id)) do
-      nil -> :error
-      hub -> {:ok, hub}
-    end
+    :persistent_term.put(@offline_hub_key, hub)
   end
 end

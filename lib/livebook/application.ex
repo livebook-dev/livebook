@@ -206,10 +206,11 @@ defmodule Livebook.Application do
   end
 
   def create_offline_hub() do
-    if hash = System.get_env("LIVEBOOK_OFFLINE_HUB") do
-      value = Base.url_decode64!(hash, padding: false)
-      [name, teams_key, public_key] = String.split(value, ":", trim: true)
+    name = System.get_env("LIVEBOOK_TEAMS_NAME")
+    teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
+    public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
 
+    if name && teams_key && public_key do
       Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
         id: "team-#{name}",
         hub_name: name,

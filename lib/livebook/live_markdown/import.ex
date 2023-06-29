@@ -1,4 +1,5 @@
 defmodule Livebook.LiveMarkdown.Import do
+  alias Livebook.Hubs
   alias Livebook.Notebook
   alias Livebook.LiveMarkdown.MarkdownHelpers
 
@@ -390,10 +391,10 @@ defmodule Livebook.LiveMarkdown.Import do
         {Map.put(attrs, :default_language, default_language), messages}
 
       {"hub_id", hub_id}, {attrs, messages} ->
-        if hub_exists?(hub_id) do
-          {Map.put(attrs, :hub_id, hub_id), messages}
-        else
-          {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
+        cond do
+          Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
+          Hubs.get_offline_hub(hub_id) -> {attrs, messages}
+          true -> {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
       {"app_settings", app_settings_metadata}, {attrs, messages} ->
@@ -524,7 +525,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
-    hub = fetch_hub!(notebook.hub_id)
+    hub = Hubs.get_offline_hub(notebook.hub_id) || Hubs.fetch_hub!(notebook.hub_id)
 
     with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
          {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
@@ -552,16 +553,5 @@ defmodule Livebook.LiveMarkdown.Import do
       _entry, notebook ->
         notebook
     end)
-  end
-
-  defp fetch_hub!(id) do
-    case Livebook.Hubs.fetch_offline_hub(id) do
-      :error -> Livebook.Hubs.fetch_hub!(id)
-      {:ok, hub} -> hub
-    end
-  end
-
-  defp hub_exists?(id) do
-    match?({:ok, _}, Livebook.Hubs.fetch_offline_hub(id)) or Livebook.Hubs.hub_exists?(id)
   end
 end
