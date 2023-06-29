@@ -33,7 +33,9 @@ defmodule LivebookWeb.UserPlug do
 
   defp ensure_user_identity(conn) do
     {module, _} = Livebook.Config.identity_provider()
-    identity_data = module.authenticate(LivebookWeb.ZTA, conn, fields: [:id, :name, :email])
+
+    {conn, identity_data} =
+      module.authenticate(LivebookWeb.ZTA, conn, fields: [:id, :name, :email])
 
     if identity_data do
       put_session(conn, :identity_data, identity_data)
@@ -41,7 +43,7 @@ defmodule LivebookWeb.UserPlug do
       conn
       |> put_status(:forbidden)
       |> put_view(LivebookWeb.ErrorHTML)
-      |> render("403.html")
+      |> render("403.html", %{status: 403})
       |> halt()
     end
   end

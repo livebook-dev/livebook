@@ -18,7 +18,8 @@ defmodule Livebook.ZTA.GoogleIAP do
 
   def authenticate(name, conn, fields: fields) do
     token = get_req_header(conn, @assertion)
-    GenServer.call(name, {:authenticate, token, fields})
+    user = GenServer.call(name, {:authenticate, token, fields})
+    if user, do: {put_session(conn, :current_user_id, user.id), user}, else: {conn, nil}
   end
 
   @impl true
