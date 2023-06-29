@@ -20,8 +20,7 @@ defmodule Livebook.Hubs do
   def get_hubs do
     for fields <- Storage.all(@namespace) do
       to_struct(fields)
-    end ++
-      get_offline_hubs()
+    end
   end
 
   @doc """

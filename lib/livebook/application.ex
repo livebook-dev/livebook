@@ -215,8 +215,7 @@ defmodule Livebook.Application do
         hub_name: name,
         hub_emoji: "💡",
         teams_key: teams_key,
-        org_public_key: public_key,
-        online?: false
+        org_public_key: public_key
       })
     end
   end

@@ -336,13 +336,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_notebook_footer(notebook, notebook_source, true) do
     metadata = notebook_stamp_metadata(notebook)
 
-    result =
-      case Livebook.Hubs.fetch_offline_hub(notebook.hub_id) do
-        {:ok, _} = result -> result
-        :error -> Livebook.Hubs.fetch_hub(notebook.hub_id)
-      end
-
-    case result do
+    case Livebook.Hubs.fetch_hub(notebook.hub_id) do
       {:ok, hub} ->
         case Livebook.Hubs.notebook_stamp(hub, notebook_source, metadata) do
           {:ok, stamp} ->
