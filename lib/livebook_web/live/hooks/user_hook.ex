@@ -4,9 +4,9 @@ defmodule LivebookWeb.UserHook do
 
   alias Livebook.Users.User
 
-  def on_mount(:default, _params, %{"current_user_id" => current_user_id} = session, socket) do
+  def on_mount(:default, _params, %{"identity_data" => identity_data} = session, socket) do
     if connected?(socket) do
-      Livebook.Users.subscribe(current_user_id)
+      Livebook.Users.subscribe(identity_data.id)
     end
 
     socket =
@@ -33,8 +33,7 @@ defmodule LivebookWeb.UserHook do
   # attributes if the socket is connected. Otherwise uses
   # `user_data` from session.
   defp build_current_user(session, socket) do
-    %{"current_user_id" => current_user_id} = session
-    user = %{User.new() | id: current_user_id}
+    user = User.new()
     identity_data = Map.new(session["identity_data"], fn {k, v} -> {Atom.to_string(k), v} end)
 
     connect_params = get_connect_params(socket) || %{}
