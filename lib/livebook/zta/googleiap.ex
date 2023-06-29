@@ -5,73 +5,60 @@ defmodule Livebook.ZTA.GoogleIAP do
   require Logger
   import Plug.Conn
 
-  @assertion "cf-access-jwt-assertion"
+  @assertion "x-goog-iap-jwt-assertion"
   @renew_afer 24 * 60 * 60 * 1000
 
-  defstruct [:name, :req_options, :identity]
+  defstruct [:name, :req_options, :identity, :keys]
 
   def start_link(opts) do
     identity = identity(opts[:identity][:key])
-    options = [req_options: [url: identity.certs], identity: identity]
+    options = [req_options: [url: identity.certs], identity: identity, keys: nil]
     GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
 
-  def authenticate(name, conn) do
+  def authenticate(name, conn, fields: fields) do
     token = get_req_header(conn, @assertion)
-    GenServer.call(name, {:authenticate, token})
+    user = GenServer.call(name, {:authenticate, token, fields})
+    {conn, user}
   end
 
   @impl true
   def init(options) do
-    :ets.new(options[:name], [:public, :named_table])
-    {:ok, struct!(__MODULE__, options)}
+    state = struct!(__MODULE__, options)
+    {:ok, %{state | keys: keys(state)}}
   end
 
   @impl true
-  def handle_call(:get_keys, _from, state) do
-    keys = get_from_ets(state.name) || request_and_store_in_ets(state)
-    {:reply, keys, state}
-  end
-
-  def handle_call({:authenticate, token}, _from, state) do
-    keys = get_from_ets(state.name) || request_and_store_in_ets(state)
-    user = authenticate(token, state.identity, keys)
+  def handle_call({:authenticate, token, fields}, _from, state) do
+    user = authenticated_user(token, fields, state.identity, state.keys)
     {:reply, user, state}
   end
 
   @impl true
-  def handle_info(:request, state) do
-    request_and_store_in_ets(state)
-    {:noreply, state}
+  def handle_info(:renew, state) do
+    {:noreply, %{state | keys: keys(state)}}
   end
 
-  defp request_and_store_in_ets(state) do
+  defp keys(state) do
     Logger.debug("[#{inspect(__MODULE__)}] requesting #{inspect(state.req_options)}")
     keys = Req.request!(state.req_options).body["keys"]
-    :ets.insert(state.name, keys: keys)
-    Process.send_after(self(), :request, @renew_afer)
+    Process.send_after(self(), :renew, @renew_afer)
     keys
   end
 
-  defp get_from_ets(name) do
-    case :ets.lookup(name, :keys) do
-      [keys: keys] -> keys
-      [] -> nil
-    end
-  end
-
-  defp authenticate(token, identity, keys) do
-    with [token] <- token,
-         {:ok, token} <- verify_token(token, keys),
-         :ok <- verify_iss(token, identity.iss) do
-      %{name: token.fields["email"]}
+  defp authenticated_user(token, fields, identity, keys) do
+    with [encoded_token] <- token,
+         {:ok, token} <- verify_token(encoded_token, keys),
+         :ok <- verify_iss(token, identity.iss),
+         {:ok, user} <- get_user_identity(token, fields, identity.user_identity) do
+      user
     else
       _ -> nil
     end
   end
 
   defp verify_token(token, keys) do
-    Enum.find_value(keys, fn key ->
+    Enum.find_value(keys, :error, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
         {_, _t, _s} -> nil
@@ -80,7 +67,19 @@ defmodule Livebook.ZTA.GoogleIAP do
   end
 
   defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
-  defp verify_iss(_, _), do: nil
+  defp verify_iss(_, _), do: :error
+
+  defp get_user_identity(%{fields: %{"gcip" => gcip}}, _, _) do
+    user = %{name: gcip["name"], email: gcip["email"], id: gcip["sub"]}
+    {:ok, user}
+  end
+
+  defp get_user_identity(%{fields: fields}, _, _url) do
+    user = %{name: fields["email"], email: fields["email"], id: fields["sub"]}
+    {:ok, user}
+  end
+
+  defp get_user_identity(_, _, _), do: :error
 
   defp identity(key) do
     %{
@@ -89,7 +88,8 @@ defmodule Livebook.ZTA.GoogleIAP do
       iss: "https://cloud.google.com/iap",
       certs: "https://www.gstatic.com/iap/verify/public_key",
       assertion: "x-goog-iap-jwt-assertion",
-      email: "x-goog-authenticated-user-email"
+      email: "x-goog-authenticated-user-email",
+      user_identity: "https://www.googleapis.com/plus/v1/people/me"
     }
   end
 end
