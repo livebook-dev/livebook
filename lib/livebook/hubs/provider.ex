@@ -100,7 +100,8 @@ defprotocol Livebook.Hubs.Provider do
 
   See `t:notebook_stamp/0` for more details.
   """
-  @spec notebook_stamp(t(), iodata(), map()) :: {:ok, notebook_stamp()} | :skip | :error
+  @spec notebook_stamp(t(), iodata(), map()) ::
+          {:ok, notebook_stamp()} | :skip | {:error, String.t()}
   def notebook_stamp(hub, notebook_source, metadata)
 
   @doc """
