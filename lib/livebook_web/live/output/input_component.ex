@@ -7,8 +7,32 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
-  def update(%{event: :change, value: value}, socket) do
+  def update(%{event: :change, value: value} = assigns, socket) do
     {:ok, handle_change(socket, value)}
+  end
+
+  def update(%{attrs: %{type: :datetime}} = assigns, socket) do
+    value = assigns.input_values[assigns.attrs.id]
+
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(value: value)
+      |> push_event("datetime_input_change:#{assigns.id}", %{datetime: value})
+
+    {:ok, socket}
+  end
+
+  def update(%{attrs: %{type: :time}} = assigns, socket) do
+    value = assigns.input_values[assigns.attrs.id]
+
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(value: value)
+      |> push_event("time_input_change:#{assigns.id}", %{time: value})
+
+    {:ok, socket}
   end
 
   def update(assigns, socket) do
@@ -77,6 +101,59 @@ defmodule LivebookWeb.Output.InputComponent do
         session_pid={@session_pid}
         client_id={@client_id}
         local={@local}
+      />
+    </div>
+    """
+  end
+
+  def render(%{attrs: %{type: :datetime}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.label>
+        <%= @attrs.label %>
+      </.label>
+      <input
+        id={@id}
+        type="datetime-local"
+        data-el-input
+        class="input w-auto invalid:input--error"
+        name="html_value"
+        date-utc-value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
+        phx-hook="UtcDateTimeInput"
+        phx-update="ignore"
+        phx-debounce="blur"
+        phx-target={@myself}
+        data-id={@id}
+        min={@attrs.min && Calendar.strftime(@attrs.min, "%Y-%m-%dT%H:%M")}
+        max={@attrs.max && Calendar.strftime(@attrs.max, "%Y-%m-%dT%H:%M")}
+        step={@attrs.step}
+        autocomplete="off"
+      />
+    </div>
+    """
+  end
+
+  def render(%{attrs: %{type: :time}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.label>
+        <%= @attrs.label %>
+      </.label>
+      <input
+        id={@id}
+        type="time"
+        data-el-input
+        class="input w-auto invalid:input--error"
+        name="html_value"
+        date-utc-value={@value}
+        phx-hook="UtcDateTimeInput"
+        phx-update="ignore"
+        phx-debounce="blur"
+        phx-target={@myself}
+        min={@attrs.min}
+        max={@attrs.max}
+        step={@attrs.step}
+        autocomplete="off"
       />
     </div>
     """
@@ -168,46 +245,6 @@ defmodule LivebookWeb.Output.InputComponent do
         autocomplete="off"
       />
     </.with_password_toggle>
-    """
-  end
-
-  defp input_output(%{attrs: %{type: :datetime}} = assigns) do
-    ~H"""
-    <input
-      id={@id}
-      type="datetime-local"
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
-      phx-hook="UtcDateTimeInput"
-      phx-debounce="blur"
-      phx-target={@myself}
-      min={@attrs.min && Calendar.strftime(@attrs.min, "%Y-%m-%dT%H:%M")}
-      max={@attrs.max && Calendar.strftime(@attrs.max, "%Y-%m-%dT%H:%M")}
-      step={@attrs.step}
-      autocomplete="off"
-    />
-    """
-  end
-
-  defp input_output(%{attrs: %{type: :time}} = assigns) do
-    ~H"""
-    <input
-      id={@id}
-      type="time"
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={@value}
-      phx-hook="UtcDateTimeInput"
-      phx-debounce="blur"
-      phx-target={@myself}
-      min={@attrs.min}
-      max={@attrs.max}
-      step={@attrs.step}
-      autocomplete="off"
-    />
     """
   end
 
@@ -405,14 +442,14 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :datetime}) do
     case NaiveDateTime.from_iso8601(html_value) do
-      {:ok, datetime} -> {:ok, datetime}
+      {:ok, datetime} -> {:ok, NaiveDateTime.truncate(datetime, :second)}
       {:error, _error} -> :error
     end
   end
 
   defp parse(html_value, %{type: :time}) do
     case Time.from_iso8601(html_value) do
-      {:ok, time} -> {:ok, time}
+      {:ok, time} -> {:ok, Time.truncate(time, :second)}
       {:error, _error} -> :error
     end
   end

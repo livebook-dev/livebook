@@ -3,7 +3,6 @@ import AudioInput from "./audio_input";
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
 import Dropzone from "./dropzone";
-import UtcDateTimeInput from "./utc_date_time_input";
 import EditorSettings from "./editor_settings";
 import EmojiPicker from "./emoji_picker";
 import FocusOnUpdate from "./focus_on_update";
@@ -19,6 +18,7 @@ import Session from "./session";
 import TextareaAutosize from "./textarea_autosize";
 import Timer from "./timer";
 import UserForm from "./user_form";
+import UtcDateTimeInput from "./utc_date_time_input";
 import VirtualizedLines from "./virtualized_lines";
 
 export default {
@@ -26,7 +26,6 @@ export default {
   AudioInput,
   Cell,
   CellEditor,
-  UtcDateTimeInput,
   Dropzone,
   EditorSettings,
   EmojiPicker,
@@ -43,5 +42,6 @@ export default {
   TextareaAutosize,
   Timer,
   UserForm,
+  UtcDateTimeInput,
   VirtualizedLines,
 };
