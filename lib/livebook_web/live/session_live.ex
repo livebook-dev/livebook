@@ -2169,9 +2169,7 @@ defmodule LivebookWeb.SessionLive do
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
-      hub:
-        Livebook.Hubs.get_offline_hub(data.notebook.hub_id) ||
-          Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
+      hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug
