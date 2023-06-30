@@ -41,8 +41,6 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_secrets(String.t()) :: list(Secret.t())
   def get_secrets(id) do
     GenServer.call(registry_name(id), :get_secrets)
-  catch
-    :exit, _ -> []
   end
 
   @doc """
