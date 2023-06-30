@@ -56,7 +56,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
           <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
           <.radio_field
             field={f[:copy]}
-            options={[{"false", "Create a link"}, {"true", "Copy to notebook files"}]}
+            options={[
+              {"false", "Store only URL location"},
+              {"true", "Download URL contents to the notebook files/ directory"}
+            ]}
           />
         </div>
         <div class="mt-6 flex space-x-3">

@@ -136,6 +136,11 @@ defmodule LivebookWeb.SessionLive do
           button_attrs={["data-el-clients-list-toggle": true]}
         />
         <.button_item
+          icon="folder-open-fill"
+          label="Files (sf)"
+          button_attrs={["data-el-files-list-toggle": true]}
+        />
+        <.button_item
           icon="lock-password-line"
           label="Secrets (se)"
           button_attrs={["data-el-secrets-list-toggle": true]}
@@ -154,11 +159,6 @@ defmodule LivebookWeb.SessionLive do
             ]}
           />
         </div>
-        <.button_item
-          icon="folder-open-fill"
-          label="Files (sf)"
-          button_attrs={["data-el-files-list-toggle": true]}
-        />
         <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
@@ -206,6 +206,14 @@ defmodule LivebookWeb.SessionLive do
         <div data-el-clients-list>
           <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
+        <div data-el-files-list>
+          <.live_component
+            module={LivebookWeb.SessionLive.FilesListComponent}
+            id="files-list"
+            session={@session}
+            file_entries={@data_view.file_entries}
+          />
+        </div>
         <div data-el-secrets-list>
           <.live_component
             module={LivebookWeb.SessionLive.SecretsListComponent}
@@ -224,14 +232,6 @@ defmodule LivebookWeb.SessionLive do
             settings={@data_view.app_settings}
             app={@app}
             deployed_app_slug={@data_view.deployed_app_slug}
-          />
-        </div>
-        <div data-el-files-list>
-          <.live_component
-            module={LivebookWeb.SessionLive.FilesListComponent}
-            id="files-list"
-            session={@session}
-            file_entries={@data_view.file_entries}
           />
         </div>
         <div data-el-runtime-info>

@@ -24,9 +24,12 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <h3 class="uppercase text-sm font-semibold text-gray-500">
-        Files
-      </h3>
+      <div class="flex justify-between items-center">
+        <h3 class="uppercase text-sm font-semibold text-gray-500">
+          Files
+        </h3>
+        <.files_info_icon />
+      </div>
       <div class="mt-5 flex flex-col gap-1">
         <div :for={{file_entry, idx} <- Enum.with_index(@file_entries)} class="flex justify-between">
           <div class="flex items-center text-gray-500">
@@ -79,8 +82,27 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
     """
   end
 
+  defp files_info_icon(assigns) do
+    ~H"""
+    <span
+      class="icon-button p-0 cursor-pointer tooltip bottom-left"
+      data-tooltip={
+        ~S'''
+        Here you can manage files used by
+        the notebook. Files are either links
+        to existing resources or hard copies
+        stored alongside the notebook in the
+        files/ directory and managed for you.
+        '''
+      }
+    >
+      <.remix_icon icon="question-line" class="text-xl leading-none" />
+    </span>
+    """
+  end
+
   defp file_entry_icon(:attachment), do: "file-3-line"
-  defp file_entry_icon(:file), do: "links-line"
+  defp file_entry_icon(:file), do: "share-forward-line"
   defp file_entry_icon(:url), do: "global-line"
 
   @impl true
