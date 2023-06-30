@@ -1123,7 +1123,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     test "restores hub secret names from notebook stamp using offline hub" do
       hub =
-        build(:team,
+        Livebook.Factory.build(:team,
           id: "team-org-number-2946",
           teams_key: "AleIxOFlwSiOS78WXtVU01ySmitjzy-5pAuCh4i1wZE",
           org_public_key:
@@ -1154,7 +1154,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     test "returns a warning when notebook stamp is invalid using offline hub" do
       hub =
-        build(:team,
+        Livebook.Factory.build(:team,
           id: "team-org-number-2946",
           teams_key: "AleIxOFlwSiOS78WXtVU01ySmitjzy-5pAuCh4i1wZE",
           org_public_key:
