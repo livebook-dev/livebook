@@ -10,9 +10,11 @@ defmodule Livebook.LiveMarkdown.Import do
     {ast, rewrite_messages} = rewrite_ast(ast)
     elements = group_elements(ast)
     {stamp_data, elements} = take_stamp_data(elements)
-    {notebook, build_messages} = build_notebook(elements)
+    {notebook, stamp_hub_id, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
-    {notebook, metadata_messages} = postprocess_stamp(notebook, markdown, stamp_data)
+
+    {notebook, metadata_messages} =
+      postprocess_stamp(notebook, markdown, stamp_data, stamp_hub_id)
 
     messages =
       earmark_messages ++
@@ -327,7 +329,7 @@ defmodule Livebook.LiveMarkdown.Import do
           ]
       end
 
-    {attrs, metadata_messages} = notebook_metadata_to_attrs(metadata)
+    {attrs, stamp_hub_id, metadata_messages} = notebook_metadata_to_attrs(metadata)
     messages = messages ++ metadata_messages
 
     # We identify a single leading cell as the setup cell, in any
@@ -350,7 +352,7 @@ defmodule Livebook.LiveMarkdown.Import do
       |> maybe_put_setup_cell(setup_cell)
       |> Map.merge(attrs)
 
-    {notebook, messages}
+    {notebook, stamp_hub_id, messages}
   end
 
   defp maybe_put_name(notebook, nil), do: notebook
@@ -378,36 +380,36 @@ defmodule Livebook.LiveMarkdown.Import do
   defp grab_leading_comments(elems), do: {[], elems}
 
   defp notebook_metadata_to_attrs(metadata) do
-    Enum.reduce(metadata, {%{}, []}, fn
-      {"persist_outputs", persist_outputs}, {attrs, messages} ->
-        {Map.put(attrs, :persist_outputs, persist_outputs), messages}
+    Enum.reduce(metadata, {%{}, Livebook.Hubs.Personal.id(), []}, fn
+      {"persist_outputs", persist_outputs}, {attrs, id, messages} ->
+        {Map.put(attrs, :persist_outputs, persist_outputs), id, messages}
 
-      {"autosave_interval_s", autosave_interval_s}, {attrs, messages} ->
-        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), messages}
+      {"autosave_interval_s", autosave_interval_s}, {attrs, id, messages} ->
+        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), id, messages}
 
-      {"default_language", default_language}, {attrs, messages}
+      {"default_language", default_language}, {attrs, id, messages}
       when default_language in ["elixir", "erlang"] ->
         default_language = String.to_atom(default_language)
-        {Map.put(attrs, :default_language, default_language), messages}
+        {Map.put(attrs, :default_language, default_language), id, messages}
 
-      {"hub_id", hub_id}, {attrs, messages} ->
+      {"hub_id", hub_id}, {attrs, id, messages} ->
         cond do
-          Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
-          Hubs.get_offline_hub(hub_id) -> {attrs, messages}
-          true -> {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
+          Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), hub_id, messages}
+          Hubs.get_offline_hub(hub_id) -> {attrs, hub_id, messages}
+          true -> {attrs, id, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
-      {"app_settings", app_settings_metadata}, {attrs, messages} ->
+      {"app_settings", app_settings_metadata}, {attrs, id, messages} ->
         app_settings =
           Map.merge(
             Notebook.AppSettings.new(),
             app_settings_metadata_to_attrs(app_settings_metadata)
           )
 
-        {Map.put(attrs, :app_settings, app_settings), messages}
+        {Map.put(attrs, :app_settings, app_settings), id, messages}
 
-      _entry, {attrs, messages} ->
-        {attrs, messages}
+      _entry, {attrs, id, messages} ->
+        {attrs, id, messages}
     end)
   end
 
@@ -522,10 +524,10 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
-  defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
+  defp postprocess_stamp(notebook, _notebook_source, nil, _), do: {notebook, []}
 
-  defp postprocess_stamp(notebook, notebook_source, stamp_data) do
-    hub = Hubs.get_offline_hub(notebook.hub_id) || Hubs.fetch_hub!(notebook.hub_id)
+  defp postprocess_stamp(notebook, notebook_source, stamp_data, stamp_hub_id) do
+    hub = Hubs.get_offline_hub(stamp_hub_id) || Hubs.fetch_hub!(stamp_hub_id)
 
     with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
          {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
