@@ -153,7 +153,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   defp app_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button cursor-pointer tooltip bottom-left"
+      class="icon-button p-0 cursor-pointer tooltip bottom-left"
       data-tooltip={
         ~S'''
         App deployment is a way to share your
