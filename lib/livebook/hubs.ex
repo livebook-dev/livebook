@@ -280,10 +280,9 @@ defmodule Livebook.Hubs do
   """
   @spec get_offline_hub(String.t()) :: Provider.t() | nil
   def get_offline_hub(id) do
-    hub = :persistent_term.get(@offline_hub_key, nil)
-
-    if hub && hub.id == id do
-      hub
+    case :persistent_term.get(@offline_hub_key, nil) do
+      %{id: ^id} = hub -> hub
+      _ -> nil
     end
   end
 
