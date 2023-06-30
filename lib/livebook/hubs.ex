@@ -276,7 +276,7 @@ defmodule Livebook.Hubs do
   @offline_hub_key :livebook_offline_hub
 
   @doc """
-  Get the offline hub from persistent term.
+  Get the offline hub.
   """
   @spec get_offline_hub(String.t()) :: Provider.t() | nil
   def get_offline_hub(id) do
