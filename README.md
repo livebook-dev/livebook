@@ -177,14 +177,15 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
     deployed from LIVEBOOK_APPS_PATH.
 
-  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is served on.
-    Useful when deploying behind a reverse proxy.
+  * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is
+    served on. Useful when deploying behind a reverse proxy.
 
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 
-  * LIVEBOOK_DATA_PATH - the directory to store Livebook configuration.
-    Defaults to "livebook" under the default user data directory.
+  * LIVEBOOK_DATA_PATH - the directory to store Livebook's internal
+    configuration. Defaults to "livebook" under the default user data
+    directory.
 
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
