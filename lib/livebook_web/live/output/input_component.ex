@@ -118,12 +118,10 @@ defmodule LivebookWeb.Output.InputComponent do
         data-el-input
         class="input w-auto invalid:input--error"
         name="html_value"
-        date-utc-value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
+        data-utc-value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
         phx-hook="UtcDateTimeInput"
-        phx-update="ignore"
         phx-debounce="blur"
         phx-target={@myself}
-        data-id={@id}
         min={@attrs.min && Calendar.strftime(@attrs.min, "%Y-%m-%dT%H:%M")}
         max={@attrs.max && Calendar.strftime(@attrs.max, "%Y-%m-%dT%H:%M")}
         step={@attrs.step}
