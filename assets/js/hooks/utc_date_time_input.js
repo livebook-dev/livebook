@@ -7,23 +7,7 @@ import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
 const UtcDateTimeInput = {
   mounted() {
     this.props = this.getProps();
-
-    this.handleEvent(
-      `datetime_input_change:${this.props.id}`,
-      ({ datetime: datetime }) => {
-        if (datetime) {
-          let localDate = this.datetime_utc_to_local(datetime);
-          this.el.setAttribute("value", localDate);
-        }
-      }
-    );
-
-    this.handleEvent(`time_input_change:${this.props.id}`, ({ time: time }) => {
-      if (time) {
-        let localTime = this.time_utc_to_local(time);
-        this.el.setAttribute("value", localTime);
-      }
-    });
+    this.updateValue();
 
     this.el.addEventListener("change", (event) => {
       switch (this.props.type) {
@@ -44,13 +28,24 @@ const UtcDateTimeInput = {
   },
   updated() {
     this.props = this.getProps();
+    this.updateValue();
   },
   getProps() {
     return {
-      id: getAttributeOrThrow(this.el, "id"),
       type: getAttributeOrThrow(this.el, "type"),
-      phxTarget: getAttributeOrThrow(this.el, "phx-target", parseInteger),
+      utcValue: getAttributeOrThrow(this.el, "data-utc-value"),
+      phxTarget: getAttributeOrThrow(this.el, "phx-target"),
     };
+  },
+  updateValue() {
+    switch (this.props.type) {
+      case "datetime-local":
+        this.el.value = this.datetime_utc_to_local(this.props.utcValue);
+        break;
+      case "time":
+        this.el.value = this.time_utc_to_local(this.props.utcValue);
+        break;
+    }
   },
   datetime_utc_to_local(datetime) {
     let localDate = new Date(datetime + "Z");

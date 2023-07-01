@@ -11,30 +11,6 @@ defmodule LivebookWeb.Output.InputComponent do
     {:ok, handle_change(socket, value)}
   end
 
-  def update(%{attrs: %{type: :datetime}} = assigns, socket) do
-    value = assigns.input_values[assigns.attrs.id]
-
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign(value: value)
-      |> push_event("datetime_input_change:#{assigns.id}", %{datetime: value})
-
-    {:ok, socket}
-  end
-
-  def update(%{attrs: %{type: :time}} = assigns, socket) do
-    value = assigns.input_values[assigns.attrs.id]
-
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign(value: value)
-      |> push_event("time_input_change:#{assigns.id}", %{time: value})
-
-    {:ok, socket}
-  end
-
   def update(assigns, socket) do
     value = assigns.input_values[assigns.attrs.id]
 
@@ -143,9 +119,8 @@ defmodule LivebookWeb.Output.InputComponent do
         data-el-input
         class="input w-auto invalid:input--error"
         name="html_value"
-        date-utc-value={@value}
+        data-utc-value={@value}
         phx-hook="UtcDateTimeInput"
-        phx-update="ignore"
         phx-debounce="blur"
         phx-target={@myself}
         min={@attrs.min}
@@ -295,7 +270,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp html_input_type(:text), do: "text"
 
   @impl true
-  def handle_event("change", %{"html_value" => html_value}, socket) do
+  def handle_event("change", %{"html_value" => html_value} = assigns, socket) do
     case parse(html_value, socket.assigns.attrs) do
       {:ok, value} ->
         {:noreply, handle_change(socket, value)}
