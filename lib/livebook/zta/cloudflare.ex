@@ -7,6 +7,7 @@ defmodule Livebook.ZTA.Cloudflare do
 
   @assertion "cf-access-jwt-assertion"
   @renew_afer 24 * 60 * 60 * 1000
+  @fields %{"user_uuid" => :id, "name" => :name, "email" => :email}
 
   defstruct [:name, :req_options, :identity, :keys]
 
@@ -46,12 +47,12 @@ defmodule Livebook.ZTA.Cloudflare do
     keys
   end
 
-  defp authenticated_user(token, fields, identity, keys) do
+  defp authenticated_user(token, _fields, identity, keys) do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss),
-         {:ok, user} <- get_user_identity(encoded_token, fields, identity.user_identity) do
-      Map.new(user, fn {k, v} -> {String.to_atom(k), to_string(v)} end)
+         {:ok, user} <- get_user_identity(encoded_token, identity.user_identity) do
+      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{})
     else
       _ -> nil
     end
@@ -69,11 +70,10 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
   defp verify_iss(_, _), do: :error
 
-  defp get_user_identity(token, fields, url) do
+  defp get_user_identity(token, url) do
     token = "CF_Authorization=#{token}"
-    fields = Enum.map(fields, &Atom.to_string/1)
     resp = Req.request!(url: url, headers: [{"cookie", token}])
-    if resp.status == 200, do: {:ok, Map.take(resp.body, fields)}, else: :error
+    if resp.status == 200, do: {:ok, resp.body}, else: :error
   end
 
   defp identity(key) do
