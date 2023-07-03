@@ -1884,7 +1884,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp insert_cell_below(socket, params) do
-    {type, attrs} = cell_type_and_attrs_from_params(params)
+    {type, attrs} = cell_type_and_attrs_from_params(params, socket)
 
     with {:ok, section, index} <-
            section_with_next_index(
@@ -1898,13 +1898,22 @@ defmodule LivebookWeb.SessionLive do
     socket
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
+  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}, _socket), do: {:markdown, %{}}
 
-  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language})
-       when language in ["elixir", "erlang"],
-       do: {:code, %{language: String.to_atom(language)}}
+  defp cell_type_and_attrs_from_params(%{"type" => "code"} = params, socket) do
+    language =
+      case params["language"] do
+        language when language in ["elixir", "erlang"] ->
+          String.to_atom(language)
 
-  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
+        _ ->
+          socket.private.data.notebook.default_language
+      end
+
+    {:code, %{language: language}}
+  end
+
+  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}, _socket) do
     source = """
     <!-- Learn more at https://mermaid-js.github.io/mermaid -->
 
@@ -1920,7 +1929,7 @@ defmodule LivebookWeb.SessionLive do
     {:markdown, %{source: source}}
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}) do
+  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}, _socket) do
     source = "![](#{url})"
 
     {:markdown, %{source: source}}
