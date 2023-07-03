@@ -58,7 +58,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
             field={f[:copy]}
             options={[
               {"false", "Store only URL location"},
-              {"true", "Download URL contents to the notebook files/ directory"}
+              {"true", "Download URL contents to the notebook files directory"}
             ]}
           />
         </div>

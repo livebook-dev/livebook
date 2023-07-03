@@ -84,7 +84,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
             field={f[:copy]}
             options={[
               {"false", "Store only file location"},
-              {"true", "Copy file contents to the notebook files/ directory"}
+              {"true", "Copy file contents to the notebook files directory"}
             ]}
           />
         </div>
