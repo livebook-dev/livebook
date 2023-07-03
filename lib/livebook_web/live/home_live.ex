@@ -142,44 +142,12 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </LayoutHelpers.layout>
 
-    <.modal
-      :if={@live_action == :close_session}
-      id="close-session-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.HomeLive.CloseSessionComponent}
-        id="close-session"
-        return_to={@self_path}
-        session={@session}
-      />
-    </.modal>
-
     <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.HomeLive.ImportComponent}
         id="import"
         tab={@tab}
         import_opts={@import_opts}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :edit_sessions}
-      id="edit-sessions-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.HomeLive.EditSessionsComponent}
-        id="edit-sessions"
-        action={@bulk_action}
-        return_to={@self_path}
-        sessions={@sessions}
-        selected_sessions={selected_sessions(@sessions, @selected_session_ids)}
       />
     </.modal>
     """
@@ -257,11 +225,6 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session: session)}
   end
 
-  def handle_params(%{"action" => action}, _url, socket)
-      when socket.assigns.live_action == :edit_sessions do
-    {:noreply, assign(socket, bulk_action: action)}
-  end
-
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
@@ -283,16 +246,6 @@ defmodule LivebookWeb.HomeLive do
        confirm_text: "Unstar",
        opt_out_id: "unstar-notebook"
      )}
-  end
-
-  def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
-    socket = assign(socket, selected_session_ids: params["session_ids"])
-    {:noreply, push_patch(socket, to: ~p"/home/sessions/edit_sessions/disconnect")}
-  end
-
-  def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
-    socket = assign(socket, selected_session_ids: params["session_ids"])
-    {:noreply, push_patch(socket, to: ~p"/home/sessions/edit_sessions/close_all")}
   end
 
   def handle_event("toggle_starred_expanded", %{}, socket) do
@@ -323,10 +276,6 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
-
-  defp selected_sessions(sessions, selected_session_ids) do
-    Enum.filter(sessions, &(&1.id in selected_session_ids))
-  end
 
   defp visible_starred_notebooks(notebooks, starred_expanded?)
   defp visible_starred_notebooks(notebooks, true), do: notebooks

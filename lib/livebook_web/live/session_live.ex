@@ -297,10 +297,10 @@ defmodule LivebookWeb.SessionLive do
                   </a>
                 </.menu_item>
                 <.menu_item variant={:danger}>
-                  <.link navigate={~p"/home/sessions/#{@session.id}/close"} role="menuitem">
+                  <button role="menuitem" phx-click="close_session">
                     <.remix_icon icon="close-circle-line" />
                     <span>Close</span>
-                  </.link>
+                  </button>
                 </.menu_item>
               </.menu>
             </div>
@@ -1338,6 +1338,10 @@ defmodule LivebookWeb.SessionLive do
     data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+  end
+
+  def handle_event("close_session", %{}, socket) do
+    {:noreply, confirm_close_session(socket, socket.assigns.session, redirect_to: ~p"/")}
   end
 
   def handle_event("star_notebook", %{}, socket) do

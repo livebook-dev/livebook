@@ -34,7 +34,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <form id="bulk-action-form" phx-submit="bulk_action">
+    <form id="bulk-action-form" phx-submit="bulk_action" phx-target={@myself}>
       <div class="mb-4 flex items-center md:items-end justify-between">
         <div class="flex flex-row">
           <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
@@ -189,10 +189,16 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </.menu_item>
           <.menu_item variant={:danger}>
-            <.link patch={~p"/home/sessions/#{session.id}/close"} role="menuitem">
+            <button
+              type="button"
+              role="menuitem"
+              phx-target={@myself}
+              phx-click="close_session"
+              phx-value-id={session.id}
+            >
               <.remix_icon icon="close-circle-line" />
               <span>Close</span>
-            </.link>
+            </button>
           </.menu_item>
         </.menu>
       </div>
@@ -315,6 +321,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     {:noreply, assign(socket, sessions: sessions, order_by: order_by)}
   end
 
+  def handle_event("close_session", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    {:noreply, confirm_close_session(socket, session)}
+  end
+
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     %{images_dir: images_dir} = session
@@ -340,6 +351,63 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Session.disconnect_runtime(session.pid)
     {:noreply, socket}
+  end
+
+  def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
+    selected_sessions = selected_sessions(socket.assigns.sessions, params["session_ids"])
+
+    on_confirm = fn socket ->
+      selected_sessions
+      |> Enum.reject(&(&1.memory_usage.runtime == nil))
+      |> Enum.map(& &1.pid)
+      |> Livebook.Session.disconnect_runtime()
+
+      exec_js(socket, toggle_edit(:off))
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Disconnect runtime",
+       description:
+         "Are you sure you want to disconnect #{pluralize(length(selected_sessions), "session", "sessions")}?",
+       confirm_text: "Disconnect runtime",
+       confirm_icon: "shut-down-line"
+     )}
+  end
+
+  def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
+    selected_sessions = selected_sessions(socket.assigns.sessions, params["session_ids"])
+
+    on_confirm = fn socket ->
+      selected_sessions |> Enum.map(& &1.pid) |> Livebook.Session.close()
+      exec_js(socket, toggle_edit(:off))
+    end
+
+    assigns = %{
+      session_count: length(selected_sessions),
+      non_persisted_count: Enum.count(selected_sessions, &(!&1.file))
+    }
+
+    description = ~H"""
+    Are you sure you want to close <%= pluralize(@session_count, "session", "sessions") %>?
+    <%= if @non_persisted_count > 0 do %>
+      <br />
+      <span class="font-medium">Important:</span>
+      <%= pluralize(
+        @non_persisted_count,
+        "notebook is not persisted and its content may be lost.",
+        "notebooks are not persisted and their content may be lost."
+      ) %>
+    <% end %>
+    """
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Close sessions",
+       description: description,
+       confirm_text: "Close sessions",
+       confirm_icon: "close-circle-line"
+     )}
   end
 
   def format_creation_date(created_at) do
@@ -396,5 +464,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
+  end
+
+  defp selected_sessions(sessions, selected_session_ids) do
+    Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
 end
