@@ -38,7 +38,10 @@ defmodule LivebookWeb.UserHook do
 
     connect_params = get_connect_params(socket) || %{}
     attrs = connect_params["user_data"] || session["user_data"] || %{}
-    attrs = Map.merge(attrs, identity_data)
+
+    attrs =
+      Map.merge(attrs, identity_data)
+      |> then(&if &1["email"] && !&1["name"], do: %{&1 | "name" => &1["email"]}, else: &1)
 
     case Livebook.Users.update_user(user, attrs) do
       {:ok, user} -> user
