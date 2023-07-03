@@ -17,6 +17,7 @@ defmodule Livebook.Users.User do
   @type t :: %__MODULE__{
           id: id(),
           name: String.t() | nil,
+          email: String.t() | nil,
           hex_color: hex_color()
         }
 
@@ -25,6 +26,7 @@ defmodule Livebook.Users.User do
 
   embedded_schema do
     field :name, :string
+    field :email, :string
     field :hex_color, Livebook.EctoTypes.HexColor
   end
 
@@ -36,13 +38,14 @@ defmodule Livebook.Users.User do
     %__MODULE__{
       id: Utils.random_id(),
       name: nil,
+      email: nil,
       hex_color: Livebook.EctoTypes.HexColor.random()
     }
   end
 
   def changeset(user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:id, :name, :hex_color])
+    |> cast(attrs, [:id, :name, :email, :hex_color])
     |> validate_required([:id, :name, :hex_color])
   end
 end

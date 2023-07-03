@@ -198,7 +198,7 @@ defmodule Livebook do
     config :livebook,
            :identity_provider,
            Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") ||
-             {LivebookWeb.Cookies, :unused}
+             {LivebookWeb.SessionIdentity, :unused}
   end
 
   @doc """

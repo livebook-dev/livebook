@@ -23,9 +23,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                 class="pr-2"
                 phx-click="insert_cell_below"
                 phx-value-type="code"
+                phx-value-language={@default_language}
                 phx-value-section_id={@section_id}
                 phx-value-cell_id={@cell_id}
-                phx-value-language="elixir"
               >
                 + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
               </div>
@@ -35,13 +35,27 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </button>
           </:toggle>
           <.menu_item>
-            <button role="menuitem" phx-click="set_default_language" phx-value-language="elixir">
+            <button
+              role="menuitem"
+              phx-click="set_default_language"
+              phx-value-type="code"
+              phx-value-language="elixir"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
               <.cell_icon cell_type={:code} language={:elixir} />
               <span>Elixir</span>
             </button>
           </.menu_item>
           <.menu_item>
-            <button role="menuitem" phx-click="set_default_language" phx-value-language="erlang">
+            <button
+              role="menuitem"
+              phx-click="set_default_language"
+              phx-value-type="code"
+              phx-value-language="erlang"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
               <.cell_icon cell_type={:code} language={:erlang} />
               <span>Erlang</span>
             </button>

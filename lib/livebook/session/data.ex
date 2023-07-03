@@ -886,8 +886,6 @@ defmodule Livebook.Session.Data do
       |> update_notebook_hub_secret_names()
       |> set_dirty()
       |> wrap_ok()
-    else
-      _ -> :error
     end
   end
 
