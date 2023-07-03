@@ -55,6 +55,7 @@ defmodule Livebook.Migration do
     # conveniently allows for easy check if there's anything to migrate.
     # This migration can be removed in the future (at the cost of discarding
     # very old file systems (which can be re-added).
+    # TODO: remove on Livebook v0.12
 
     case Livebook.Storage.all(:filesystem) do
       [] ->

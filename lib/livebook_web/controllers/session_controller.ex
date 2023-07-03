@@ -26,6 +26,7 @@ defmodule LivebookWeb.SessionController do
   end
 
   # Legacy endpoint for resolving images/
+  # TODO: remove on Livebook v0.12
   def show_image(conn, %{"id" => id, "name" => name}) do
     case Sessions.fetch_session(id) do
       {:ok, session} ->
