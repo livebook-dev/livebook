@@ -176,34 +176,29 @@ defmodule LivebookWeb.AppsLive do
   defp table(assigns) do
     ~H"""
     <div class="overflow-x-auto px-4 py-2">
-      <table class="w-full border-collapse">
-        <thead>
-          <tr>
-            <th
-              :for={col <- @col}
-              class={["text-gray-500 text-sm font-normal", align_to_class(col[:align])]}
-            >
-              <%= col[:label] %>
-            </th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={row <- @rows} class="whitespace-nowrap hover:bg-gray-50">
-            <td
-              :for={col <- @col}
-              class={["py-2 text-gray-800 text-sm font-semibold", align_to_class(col[:align])]}
-            >
-              <%= render_slot(col, row) %>
-            </td>
-            <td class="py-2">
-              <div class="flex flex-row items-center justify-end gap-2">
-                <%= render_slot(@actions, row) %>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="grid grid-cols-6 gap-4">
+        <div
+          :for={col <- @col}
+          class={["text-gray-500 text-sm font-normal", align_to_class(col[:align])]}
+        >
+          <%= col[:label] %>
+        </div>
+        <div class="text-gray-500 text-sm font-normal">Actions</div>
+      </div>
+
+      <div :for={row <- @rows} class="whitespace-nowrap hover:bg-gray-50">
+        <div class="grid grid-cols-6 gap-4">
+          <div
+            :for={col <- @col}
+            class={["py-2 text-gray-800 text-sm font-semibold", align_to_class(col[:align])]}
+          >
+            <%= render_slot(col, row) %>
+          </div>
+          <div class="py-2 flex flex-row items-center justify-end gap-2">
+            <%= render_slot(@actions, row) %>
+          </div>
+        </div>
+      </div>
     </div>
     """
   end
