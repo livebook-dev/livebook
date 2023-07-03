@@ -374,7 +374,7 @@ defmodule LivebookWeb.Output.InputComponent do
     if html_value do
       with {:ok, datetime} <- NaiveDateTime.from_iso8601(html_value),
            datetime <- truncate_datetime(datetime),
-           true <- datetime_in_range?(datetime, attrs.min, attrs.max) do
+           true <- in_range?(datetime, attrs.min, attrs.max) do
         {:ok, datetime}
       else
         _ -> :error
@@ -388,7 +388,7 @@ defmodule LivebookWeb.Output.InputComponent do
     if html_value do
       with {:ok, time} <- Time.from_iso8601(html_value),
            time <- truncate_time(time),
-           true <- time_in_range?(time, attrs.min, attrs.max) do
+           true <- in_range?(time, attrs.min, attrs.max) do
         {:ok, time}
       else
         _ -> :error
@@ -398,13 +398,15 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
-  defp parse(html_value, %{type: :date}) do
+  defp parse(html_value, %{type: :date} = attrs) do
     if html_value == "" do
       {:ok, nil}
     else
-      case Date.from_iso8601(html_value) do
-        {:ok, date} -> {:ok, date}
-        {:error, _error} -> :error
+      with {:ok, date} <- Date.from_iso8601(html_value),
+           true <- in_range?(date, attrs.min, attrs.max) do
+        {:ok, date}
+      else
+        _ -> :error
       end
     end
   end
@@ -421,14 +423,10 @@ defmodule LivebookWeb.Output.InputComponent do
     |> Map.replace!(:second, 0)
   end
 
-  defp datetime_in_range?(%NaiveDateTime{} = datetime, min, max) do
-    (min == nil or NaiveDateTime.compare(datetime, min) != :lt) and
-      (max == nil or NaiveDateTime.compare(datetime, max) != :gt)
-  end
-
-  defp time_in_range?(%Time{} = datetime, min, max) do
-    (min == nil or Time.compare(datetime, min) != :lt) and
-      (max == nil or Time.compare(datetime, max) != :gt)
+  defp in_range?(%struct{} = datetime, min, max)
+       when struct in [NaiveDateTime, Time, Date] do
+    (min == nil or struct.compare(datetime, min) != :lt) and
+      (max == nil or struct.compare(datetime, max) != :gt)
   end
 
   defp report_event(socket, value) do
