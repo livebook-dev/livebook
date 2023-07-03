@@ -94,10 +94,6 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
   end
 
   @impl true
-  def handle_event("yo", %{}, socket) do
-    {:noreply, socket}
-  end
-
   def handle_event("validate", %{"data" => data} = params, socket) do
     upload_entries = socket.assigns.uploads.image.entries
 
