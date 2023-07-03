@@ -79,8 +79,19 @@ export function registerGlobalEventHandlers() {
     const closeAll = document.querySelector(
       "#edit-sessions [name='close_all']"
     );
-    disconnect.disabled = !anySessionSelected;
-    closeAll.disabled = !anySessionSelected;
+    disconnect.parentElement.classList.toggle(
+      "pointer-events-none",
+      !anySessionSelected
+    );
+    disconnect.parentElement.classList.toggle(
+      "opacity-50",
+      !anySessionSelected
+    );
+    closeAll.parentElement.classList.toggle(
+      "pointer-events-none",
+      !anySessionSelected
+    );
+    closeAll.parentElement.classList.toggle("opacity-50", !anySessionSelected);
   });
 
   window.addEventListener("contextmenu", (event) => {
