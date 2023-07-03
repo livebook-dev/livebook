@@ -189,10 +189,16 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </.menu_item>
           <.menu_item variant={:danger}>
-            <.link patch={~p"/home/sessions/#{session.id}/close"} role="menuitem">
+            <button
+              type="button"
+              role="menuitem"
+              phx-target={@myself}
+              phx-click="close_session"
+              phx-value-id={session.id}
+            >
               <.remix_icon icon="close-circle-line" />
               <span>Close</span>
-            </.link>
+            </button>
           </.menu_item>
         </.menu>
       </div>
@@ -313,6 +319,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def handle_event("set_order", %{"order_by" => order_by}, socket) do
     sessions = sort_sessions(socket.assigns.sessions, order_by)
     {:noreply, assign(socket, sessions: sessions, order_by: order_by)}
+  end
+
+  def handle_event("close_session", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    {:noreply, confirm_close_session(socket, session)}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do

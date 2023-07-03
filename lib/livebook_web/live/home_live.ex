@@ -142,21 +142,6 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </LayoutHelpers.layout>
 
-    <.modal
-      :if={@live_action == :close_session}
-      id="close-session-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.HomeLive.CloseSessionComponent}
-        id="close-session"
-        return_to={@self_path}
-        session={@session}
-      />
-    </.modal>
-
     <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
       <.live_component
         module={LivebookWeb.HomeLive.ImportComponent}
