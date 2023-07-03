@@ -52,7 +52,9 @@ defmodule Livebook.Migration do
     # We changed S3 file system ids, such that they are deterministic
     # for the same bucket, rather than random. We take this opportunity
     # to rename the scope from :filesystem to :file_systems, which
-    # conveniently allows for easy check if there's anything to migrate
+    # conveniently allows for easy check if there's anything to migrate.
+    # This migration can be removed in the future (at the cost of discarding
+    # very old file systems (which can be re-added).
 
     case Livebook.Storage.all(:filesystem) do
       [] ->
