@@ -110,7 +110,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input_output(%{attrs: %{type: :checkbox}} = assigns) do
     ~H"""
     <div class="mt-1">
-      <.switch_field data-el-input name="html_value" value={@value} />
+      <.switch_field data-el-input name="html_value" value={@value} id={@id} />
     </div>
     """
   end
