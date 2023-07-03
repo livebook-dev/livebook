@@ -18,7 +18,8 @@ import Session from "./session";
 import TextareaAutosize from "./textarea_autosize";
 import Timer from "./timer";
 import UserForm from "./user_form";
-import UtcDateTimeInput from "./utc_date_time_input";
+import UtcDateTimeInput from "./utc_datetime_input";
+import UtcTimeInput from "./utc_time_input";
 import VirtualizedLines from "./virtualized_lines";
 
 export default {
@@ -43,5 +44,6 @@ export default {
   Timer,
   UserForm,
   UtcDateTimeInput,
+  UtcTimeInput,
   VirtualizedLines,
 };

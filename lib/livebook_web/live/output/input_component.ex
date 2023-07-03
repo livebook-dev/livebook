@@ -7,7 +7,7 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
-  def update(%{event: :change, value: value} = assigns, socket) do
+  def update(%{event: :change, value: value}, socket) do
     {:ok, handle_change(socket, value)}
   end
 
@@ -82,10 +82,10 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  def render(%{attrs: %{type: :datetime}} = assigns) do
+  def render(%{attrs: %{type: :utc_datetime}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label>
+      <.label help="Choose the time in your local time zone">
         <%= @attrs.label %>
       </.label>
       <input
@@ -94,23 +94,22 @@ defmodule LivebookWeb.Output.InputComponent do
         data-el-input
         class="input w-auto invalid:input--error"
         name="html_value"
-        data-utc-value={@value && Calendar.strftime(@value, "%Y-%m-%dT%H:%M")}
-        phx-hook="UtcDateTimeInput"
-        phx-debounce="blur"
-        phx-target={@myself}
-        min={@attrs.min && Calendar.strftime(@attrs.min, "%Y-%m-%dT%H:%M")}
-        max={@attrs.max && Calendar.strftime(@attrs.max, "%Y-%m-%dT%H:%M")}
         step="60"
         autocomplete="off"
+        phx-hook="UtcDateTimeInput"
+        data-utc-value={@value && NaiveDateTime.to_iso8601(@value)}
+        data-utc-min={@attrs.min && NaiveDateTime.to_iso8601(@attrs.min)}
+        data-utc-max={@attrs.max && NaiveDateTime.to_iso8601(@attrs.max)}
+        data-phx-target={@myself}
       />
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :time}} = assigns) do
+  def render(%{attrs: %{type: :utc_time}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label>
+      <.label help="Choose the time in your local time zone">
         <%= @attrs.label %>
       </.label>
       <input
@@ -119,14 +118,13 @@ defmodule LivebookWeb.Output.InputComponent do
         data-el-input
         class="input w-auto invalid:input--error"
         name="html_value"
-        data-utc-value={@value}
-        phx-hook="UtcDateTimeInput"
-        phx-debounce="blur"
-        phx-target={@myself}
-        min={@attrs.min}
-        max={@attrs.max}
         step="60"
         autocomplete="off"
+        phx-hook="UtcTimeInput"
+        data-utc-value={@value && Time.to_iso8601(@value)}
+        data-utc-min={@attrs.min && Time.to_iso8601(@attrs.min)}
+        data-utc-max={@attrs.max && Time.to_iso8601(@attrs.max)}
+        data-phx-target={@myself}
       />
     </div>
     """
@@ -233,7 +231,6 @@ defmodule LivebookWeb.Output.InputComponent do
       phx-target={@myself}
       min={@attrs.min}
       max={@attrs.max}
-      step={@attrs.step}
       autocomplete="off"
     />
     """
@@ -373,25 +370,65 @@ defmodule LivebookWeb.Output.InputComponent do
     {:ok, html_value}
   end
 
-  defp parse(html_value, %{type: :datetime}) do
-    case NaiveDateTime.from_iso8601(html_value) do
-      {:ok, datetime} -> {:ok, NaiveDateTime.truncate(datetime, :second)}
-      {:error, _error} -> :error
+  defp parse(html_value, %{type: :utc_datetime} = attrs) do
+    if html_value do
+      with {:ok, datetime} <- NaiveDateTime.from_iso8601(html_value),
+           datetime <- truncate_datetime(datetime),
+           true <- datetime_in_range?(datetime, attrs.min, attrs.max) do
+        {:ok, datetime}
+      else
+        _ -> :error
+      end
+    else
+      {:ok, nil}
     end
   end
 
-  defp parse(html_value, %{type: :time}) do
-    case Time.from_iso8601(html_value) do
-      {:ok, time} -> {:ok, Time.truncate(time, :second)}
-      {:error, _error} -> :error
+  defp parse(html_value, %{type: :utc_time} = attrs) do
+    if html_value do
+      with {:ok, time} <- Time.from_iso8601(html_value),
+           time <- truncate_time(time),
+           true <- time_in_range?(time, attrs.min, attrs.max) do
+        {:ok, time}
+      else
+        _ -> :error
+      end
+    else
+      {:ok, nil}
     end
   end
 
   defp parse(html_value, %{type: :date}) do
-    case Date.from_iso8601(html_value) do
-      {:ok, date} -> {:ok, date}
-      {:error, _error} -> :error
+    if html_value == "" do
+      {:ok, nil}
+    else
+      case Date.from_iso8601(html_value) do
+        {:ok, date} -> {:ok, date}
+        {:error, _error} -> :error
+      end
     end
+  end
+
+  defp truncate_datetime(datetime) do
+    datetime
+    |> NaiveDateTime.truncate(:second)
+    |> Map.replace!(:second, 0)
+  end
+
+  defp truncate_time(time) do
+    time
+    |> Time.truncate(:second)
+    |> Map.replace!(:second, 0)
+  end
+
+  defp datetime_in_range?(%NaiveDateTime{} = datetime, min, max) do
+    (min == nil or NaiveDateTime.compare(datetime, min) != :lt) and
+      (max == nil or NaiveDateTime.compare(datetime, max) != :gt)
+  end
+
+  defp time_in_range?(%Time{} = datetime, min, max) do
+    (min == nil or Time.compare(datetime, min) != :lt) and
+      (max == nil or Time.compare(datetime, max) != :gt)
   end
 
   defp report_event(socket, value) do
