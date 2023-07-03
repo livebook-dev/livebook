@@ -34,7 +34,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <form id="bulk-action-form" phx-submit="bulk_action">
+    <form id="bulk-action-form" phx-submit="bulk_action" phx-target={@myself}>
       <div class="mb-4 flex items-center md:items-end justify-between">
         <div class="flex flex-row">
           <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
@@ -353,6 +353,63 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     {:noreply, socket}
   end
 
+  def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
+    selected_sessions = selected_sessions(socket.assigns.sessions, params["session_ids"])
+
+    on_confirm = fn socket ->
+      selected_sessions
+      |> Enum.reject(&(&1.memory_usage.runtime == nil))
+      |> Enum.map(& &1.pid)
+      |> Livebook.Session.disconnect_runtime()
+
+      exec_js(socket, toggle_edit(:off))
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Disconnect runtime",
+       description:
+         "Are you sure you want to disconnect #{pluralize(length(selected_sessions), "session", "sessions")}?",
+       confirm_text: "Disconnect runtime",
+       confirm_icon: "shut-down-line"
+     )}
+  end
+
+  def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
+    selected_sessions = selected_sessions(socket.assigns.sessions, params["session_ids"])
+
+    on_confirm = fn socket ->
+      selected_sessions |> Enum.map(& &1.pid) |> Livebook.Session.close()
+      exec_js(socket, toggle_edit(:off))
+    end
+
+    assigns = %{
+      session_count: length(selected_sessions),
+      non_persisted_count: Enum.count(selected_sessions, &(!&1.file))
+    }
+
+    description = ~H"""
+    Are you sure you want to close <%= pluralize(@session_count, "session", "sessions") %>?
+    <%= if @non_persisted_count > 0 do %>
+      <br />
+      <span class="font-medium">Important:</span>
+      <%= pluralize(
+        @non_persisted_count,
+        "notebook is not persisted and its content may be lost.",
+        "notebooks are not persisted and their content may be lost."
+      ) %>
+    <% end %>
+    """
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Close sessions",
+       description: description,
+       confirm_text: "Close sessions",
+       confirm_icon: "close-circle-line"
+     )}
+  end
+
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
@@ -407,5 +464,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
+  end
+
+  defp selected_sessions(sessions, selected_session_ids) do
+    Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
 end

@@ -61,6 +61,14 @@ export function registerGlobalEventHandlers() {
     }
   });
 
+  window.addEventListener("phx:lb:exec_js", (event) => {
+    const selector = event.detail.to || "body";
+
+    document.querySelectorAll(selector).forEach((element) => {
+      window.liveSocket.execJS(element, event.detail.js);
+    });
+  });
+
   window.addEventListener("lb:session_list:on_selection_change", () => {
     const anySessionSelected = !!document.querySelector(
       "[name='session_ids[]']:checked"
