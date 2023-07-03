@@ -937,18 +937,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_cell_below", params, socket) do
-    {type, attrs} = cell_type_and_attrs_from_params(params, socket)
-
-    with {:ok, section, index} <-
-           section_with_next_index(
-             socket.private.data.notebook,
-             params["section_id"],
-             params["cell_id"]
-           ) do
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, type, attrs)
-    end
-
-    {:noreply, socket}
+    {:noreply, insert_cell_below(socket, params)}
   end
 
   def handle_event("insert_code_block_below", params, socket) do
@@ -1034,11 +1023,11 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("set_default_language", %{"language" => language}, socket)
+  def handle_event("set_default_language", %{"language" => language} = params, socket)
       when language in ["elixir", "erlang"] do
     language = String.to_atom(language)
     Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
-    {:noreply, socket}
+    {:noreply, insert_cell_below(socket, params)}
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
@@ -1497,7 +1486,7 @@ defmodule LivebookWeb.SessionLive do
       "url" => url
     }
 
-    handle_event("insert_cell_below", params, socket)
+    {:noreply, insert_cell_below(socket, params)}
   end
 
   def handle_info({:push_patch, to}, socket) do
@@ -1894,12 +1883,28 @@ defmodule LivebookWeb.SessionLive do
     String.upcase(head) <> tail
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}, _socket), do: {:markdown, %{}}
+  defp insert_cell_below(socket, params) do
+    {type, attrs} = cell_type_and_attrs_from_params(params)
 
-  defp cell_type_and_attrs_from_params(%{"type" => "code"}, socket),
-    do: {:code, %{language: socket.private.data.notebook.default_language}}
+    with {:ok, section, index} <-
+           section_with_next_index(
+             socket.private.data.notebook,
+             params["section_id"],
+             params["cell_id"]
+           ) do
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, type, attrs)
+    end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}, _socket) do
+    socket
+  end
+
+  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
+
+  defp cell_type_and_attrs_from_params(%{"type" => "code", "language" => language})
+       when language in ["elixir", "erlang"],
+       do: {:code, %{language: String.to_atom(language)}}
+
+  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
     source = """
     <!-- Learn more at https://mermaid-js.github.io/mermaid -->
 
@@ -1915,7 +1920,7 @@ defmodule LivebookWeb.SessionLive do
     {:markdown, %{source: source}}
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}, _socket) do
+  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}) do
     source = "![](#{url})"
 
     {:markdown, %{source: source}}
