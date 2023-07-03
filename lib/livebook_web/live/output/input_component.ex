@@ -267,7 +267,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp html_input_type(:text), do: "text"
 
   @impl true
-  def handle_event("change", %{"html_value" => html_value} = assigns, socket) do
+  def handle_event("change", %{"html_value" => html_value}, socket) do
     case parse(html_value, socket.assigns.attrs) do
       {:ok, value} ->
         {:noreply, handle_change(socket, value)}
