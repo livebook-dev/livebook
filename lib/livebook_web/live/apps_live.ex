@@ -15,9 +15,7 @@ defmodule LivebookWeb.AppsLive do
 
     apps = Livebook.Apps.list_apps()
 
-    show_content = apps |> Enum.map(fn app -> {app.slug, false} end) |> Map.new()
-
-    {:ok, assign(socket, apps: apps, show_content: show_content, page_title: "Apps - Livebook")}
+    {:ok, assign(socket, apps: apps, page_title: "Apps - Livebook")}
   end
 
   @impl true
@@ -31,7 +29,7 @@ defmodule LivebookWeb.AppsLive do
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <LayoutHelpers.title text="Apps" />
         <div class="mt-10">
-          <.app_list apps={@apps} show_content={@show_content} />
+          <.app_list apps={@apps} />
         </div>
       </div>
     </LayoutHelpers.layout>
@@ -53,17 +51,18 @@ defmodule LivebookWeb.AppsLive do
     <div class="flex flex-col space-y-4">
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
         <a
-          phx-click={JS.push("toggle_content", value: %{slug: app.slug})}
+          phx-click={
+            JS.toggle(to: "[data-app-slug=#{app.slug}] .content")
+            |> JS.toggle(to: "[data-app-slug=#{app.slug}] .icon-up")
+            |> JS.toggle(to: "[data-app-slug=#{app.slug}] .icon-down")
+          }
           class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl hover:cursor-pointer"
         >
           <%= "/" <> app.slug %>
-          <%= if Map.get(@show_content, app.slug) do %>
-            <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400" />
-          <% else %>
-            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400" />
-          <% end %>
+          <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400  icon-up" />
+          <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 hidden icon-down" />
         </a>
-        <%= if Map.get(@show_content, app.slug) do %>
+        <div class="content">
           <div class="mt-4 flex flex-col gap-3">
             <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
           </div>
@@ -192,7 +191,7 @@ defmodule LivebookWeb.AppsLive do
               <% end %>
             </div>
           </div>
-        <% end %>
+        </div>
       </div>
     </div>
     """
@@ -260,13 +259,6 @@ defmodule LivebookWeb.AppsLive do
     app_session = find_app_session(socket.assigns.apps, slug, session_id)
     Livebook.Session.app_deactivate(app_session.pid)
     {:noreply, socket}
-  end
-
-  def handle_event("toggle_content", %{"slug" => slug}, socket) do
-    show_content =
-      Map.update(socket.assigns.show_content, slug, false, fn show -> not show end)
-
-    {:noreply, assign(socket, :show_content, show_content)}
   end
 
   defp find_app_session(apps, slug, session_id) do
