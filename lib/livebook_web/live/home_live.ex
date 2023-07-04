@@ -48,10 +48,10 @@ defmodule LivebookWeb.HomeLive do
           <.link navigate={~p"/open/file"} class="button-base button-outlined-gray whitespace-nowrap">
             Open
           </.link>
-          <button class="button-base button-blue" phx-click="new">
+          <.link class="button-base button-blue" patch={~p"/new"}>
             <.remix_icon icon="add-line" class="align-middle mr-1" />
             <span>New notebook</span>
-          </button>
+          </.link>
         </div>
       </:topbar_action>
 
@@ -68,10 +68,10 @@ defmodule LivebookWeb.HomeLive do
             >
               Open
             </.link>
-            <button class="button-base button-blue" phx-click="new">
+            <.link class="button-base button-blue" patch={~p"/new"}>
               <.remix_icon icon="add-line" class="align-middle mr-1" />
               <span>New notebook</span>
-            </button>
+            </.link>
           </div>
         </div>
 
@@ -225,13 +225,13 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session: session)}
   end
 
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_event("new", %{}, socket) do
+  def handle_params(%{}, _url, socket) when socket.assigns.live_action == :public_new_notebook do
     {:noreply, create_session(socket)}
   end
 
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
   def handle_event("unstar_notebook", %{"idx" => idx}, socket) do
     on_confirm = fn socket ->
       %{file: file} = Enum.fetch!(socket.assigns.starred_notebooks, idx)

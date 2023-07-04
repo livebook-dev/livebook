@@ -101,6 +101,7 @@ defmodule LivebookWeb.Router do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
+      live "/new", HomeLive, :public_new_notebook
       live "/import", OpenLive, :public_import
       live "/open", OpenLive, :public_open
     end

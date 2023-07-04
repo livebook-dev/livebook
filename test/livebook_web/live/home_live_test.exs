@@ -18,10 +18,19 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s/[role="navigation"] button/, "New notebook")
+             |> element(~s/[role="navigation"] a/, "New notebook")
              |> render_click()
 
     assert to =~ "/sessions/"
+
+    close_session_by_path(to)
+  end
+
+  test "public new endpoint creates an empty session", %{conn: conn} do
+    assert {:error, {:live_redirect, %{to: to}}} = result = live(conn, ~p"/new")
+    {:ok, view, _} = follow_redirect(result, conn)
+
+    assert render(view) =~ "Untitled notebook"
 
     close_session_by_path(to)
   end
