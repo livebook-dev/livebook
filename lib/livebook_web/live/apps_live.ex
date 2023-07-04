@@ -16,7 +16,9 @@ defmodule LivebookWeb.AppsLive do
 
     apps = Livebook.Apps.list_apps()
 
-    {:ok, assign(socket, apps: apps, page_title: "Apps - Livebook")}
+    show_content = apps |> Enum.map(fn app -> {app.slug, false} end) |> Map.new()
+
+    {:ok, assign(socket, apps: apps, show_content: show_content, page_title: "Apps - Livebook")}
   end
 
   @impl true
@@ -30,7 +32,7 @@ defmodule LivebookWeb.AppsLive do
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <LayoutHelpers.title text="Apps" />
         <div class="mt-10">
-          <.app_list apps={@apps} />
+          <.app_list apps={@apps} show_content={@show_content} />
         </div>
       </div>
     </LayoutHelpers.layout>
@@ -49,139 +51,149 @@ defmodule LivebookWeb.AppsLive do
 
   defp app_list(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-16">
+    <div class="flex flex-col space-y-4">
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
-        <div class="break-all mb-2 text-gray-800 font-medium text-xl">
+        <a
+          phx-click={JS.push("toggle_content", value: %{slug: app.slug})}
+          class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl"
+        >
           <%= "/" <> app.slug %>
-        </div>
-        <div class="mt-4 flex flex-col gap-3">
-          <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
-        </div>
-        <div class="flex-col">
-          <div class="p-4 border-x border-t border-gray-200 rounded-t-lg ">
-            <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
-              App Info
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-apps gap-4 mt-3">
-              <div class="break-words">
-                <.labeled_text label="Name" one_line>
-                  <%= app.notebook_name %>
-                </.labeled_text>
-              </div>
-              <div class="break-all">
-                <.labeled_text label="URL" one_line>
-                  <a href={~p"/apps/#{app.slug}"}>
-                    <%= ~p"/apps/#{app.slug}" %>
-                  </a>
-                </.labeled_text>
-              </div>
-              <div>
-                <.labeled_text label="Latest version" one_line>
-                  v<%= app.version %>
-                </.labeled_text>
-              </div>
-              <div>
-                <.labeled_text label="Session type" one_line>
-                  <%= if(app.multi_session, do: "Multi", else: "Single") %>
-                </.labeled_text>
-              </div>
-              <div class="flex flex-col md:flex-row md:items-center justify-start lg:justify-end">
-                <span class="tooltip top" data-tooltip="Terminate">
-                  <button
-                    class="icon-button text-right"
-                    aria-label="terminate app"
-                    phx-click={JS.push("terminate_app", value: %{slug: app.slug})}
-                  >
-                    <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                  </button>
-                </span>
-              </div>
-            </div>
+          <%= if Map.get(@show_content, app.slug) do %>
+            <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400" />
+          <% else %>
+            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400" />
+          <% end %>
+        </a>
+        <%= if Map.get(@show_content, app.slug) do %>
+          <div class="mt-4 flex flex-col gap-3">
+            <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
           </div>
-          <div class="border border-gray-200 rounded-b-lg overflow-auto tiny-scrollbar whitespace-none">
-            <%= if Enum.any?(app.sessions) do %>
-              <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider px-4 pt-4 pb-3">
-                Runing Sessions
+          <div class="flex-col mb-8">
+            <div class="p-4 border-x border-t border-gray-200 rounded-t-lg ">
+              <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
+                App Info
               </div>
-              <.grid rows={app.sessions}>
-                <:col :let={app_session} label="Status">
-                  <a
-                    aria-label="debug app"
-                    href={app_session.app_status == :error && ~p"/sessions/#{app_session.id}"}
-                    target="_blank"
-                  >
-                    <.app_status status={app_session.app_status} />
-                  </a>
-                </:col>
-                <:col :let={app_session} label="Uptime">
-                  <%= format_datetime_relatively(app_session.created_at) %>
-                </:col>
-                <:col :let={app_session} label="Version">
-                  v<%= app_session.version %>
-                </:col>
-                <:col :let={app_session} label="Clients">
-                  <%= app_session.client_count %>
-                </:col>
-                <:actions :let={app_session}>
-                  <span class="tooltip left" data-tooltip="Open">
-                    <a
-                      class={[
-                        "icon-button",
-                        app_session.app_status.lifecycle != :active && "disabled"
-                      ]}
-                      aria-label="open app"
-                      href={~p"/apps/#{app.slug}/#{app_session.id}"}
-                    >
-                      <.remix_icon icon="link" class="text-lg" />
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-apps gap-4 mt-3">
+                <div class="break-words">
+                  <.labeled_text label="Name" one_line>
+                    <%= app.notebook_name %>
+                  </.labeled_text>
+                </div>
+                <div class="break-all">
+                  <.labeled_text label="URL" one_line>
+                    <a href={~p"/apps/#{app.slug}"}>
+                      <%= ~p"/apps/#{app.slug}" %>
                     </a>
+                  </.labeled_text>
+                </div>
+                <div>
+                  <.labeled_text label="Latest version" one_line>
+                    v<%= app.version %>
+                  </.labeled_text>
+                </div>
+                <div>
+                  <.labeled_text label="Session type" one_line>
+                    <%= if(app.multi_session, do: "Multi", else: "Single") %>
+                  </.labeled_text>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center justify-start lg:justify-end">
+                  <span class="tooltip top" data-tooltip="Terminate">
+                    <button
+                      class="icon-button text-right"
+                      aria-label="terminate app"
+                      phx-click={JS.push("terminate_app", value: %{slug: app.slug})}
+                    >
+                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                    </button>
                   </span>
-                  <span class="tooltip left" data-tooltip="Debug">
+                </div>
+              </div>
+            </div>
+            <div class="border border-gray-200 rounded-b-lg overflow-auto tiny-scrollbar whitespace-none">
+              <%= if Enum.any?(app.sessions) do %>
+                <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider px-4 pt-4 pb-3">
+                  Runing Sessions
+                </div>
+                <.grid rows={app.sessions}>
+                  <:col :let={app_session} label="Status">
                     <a
-                      class="icon-button"
                       aria-label="debug app"
-                      href={~p"/sessions/#{app_session.id}"}
+                      href={app_session.app_status == :error && ~p"/sessions/#{app_session.id}"}
+                      target="_blank"
                     >
-                      <.remix_icon icon="terminal-line" class="text-lg" />
+                      <.app_status status={app_session.app_status} />
                     </a>
-                  </span>
-                  <%= if app_session.app_status.lifecycle == :active do %>
-                    <span class="tooltip left" data-tooltip="Deactivate">
-                      <button
-                        class="icon-button"
-                        aria-label="deactivate app session"
-                        phx-click={
-                          JS.push("deactivate_app_session",
-                            value: %{slug: app.slug, session_id: app_session.id}
-                          )
-                        }
+                  </:col>
+                  <:col :let={app_session} label="Uptime">
+                    <%= format_datetime_relatively(app_session.created_at) %>
+                  </:col>
+                  <:col :let={app_session} label="Version">
+                    v<%= app_session.version %>
+                  </:col>
+                  <:col :let={app_session} label="Clients">
+                    <%= app_session.client_count %>
+                  </:col>
+                  <:actions :let={app_session}>
+                    <span class="tooltip left" data-tooltip="Open">
+                      <a
+                        class={[
+                          "icon-button",
+                          app_session.app_status.lifecycle != :active && "disabled"
+                        ]}
+                        aria-label="open app"
+                        href={~p"/apps/#{app.slug}/#{app_session.id}"}
                       >
-                        <.remix_icon icon="stop-circle-line" class="text-lg text-brand-pink" />
-                      </button>
+                        <.remix_icon icon="link" class="text-lg" />
+                      </a>
                     </span>
-                  <% else %>
-                    <span class="tooltip left" data-tooltip="Terminate">
-                      <button
+                    <span class="tooltip left" data-tooltip="Debug">
+                      <a
                         class="icon-button"
-                        aria-label="terminate app session"
-                        phx-click={
-                          JS.push("terminate_app_session",
-                            value: %{slug: app.slug, session_id: app_session.id}
-                          )
-                        }
+                        aria-label="debug app"
+                        href={~p"/sessions/#{app_session.id}"}
                       >
-                        <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                      </button>
+                        <.remix_icon icon="terminal-line" class="text-lg" />
+                      </a>
                     </span>
-                  <% end %>
-                </:actions>
-              </.grid>
-            <% else %>
-              <div class="p-4 uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
-                NO RUNNING SESSIONS
-              </div>
-            <% end %>
+                    <%= if app_session.app_status.lifecycle == :active do %>
+                      <span class="tooltip left" data-tooltip="Deactivate">
+                        <button
+                          class="icon-button"
+                          aria-label="deactivate app session"
+                          phx-click={
+                            JS.push("deactivate_app_session",
+                              value: %{slug: app.slug, session_id: app_session.id}
+                            )
+                          }
+                        >
+                          <.remix_icon icon="stop-circle-line" class="text-lg text-brand-pink" />
+                        </button>
+                      </span>
+                    <% else %>
+                      <span class="tooltip left" data-tooltip="Terminate">
+                        <button
+                          class="icon-button"
+                          aria-label="terminate app session"
+                          phx-click={
+                            JS.push("terminate_app_session",
+                              value: %{slug: app.slug, session_id: app_session.id}
+                            )
+                          }
+                        >
+                          <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                        </button>
+                      </span>
+                    <% end %>
+                  </:actions>
+                </.grid>
+              <% else %>
+                <div class="p-4 uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
+                  NO RUNNING SESSIONS
+                </div>
+              <% end %>
+            </div>
           </div>
-        </div>
+        <% end %>
       </div>
     </div>
     """
@@ -249,6 +261,13 @@ defmodule LivebookWeb.AppsLive do
     app_session = find_app_session(socket.assigns.apps, slug, session_id)
     Livebook.Session.app_deactivate(app_session.pid)
     {:noreply, socket}
+  end
+
+  def handle_event("toggle_content", %{"slug" => slug}, socket) do
+    show_content =
+      Map.update(socket.assigns.show_content, slug, false, fn show -> not show end)
+
+    {:noreply, assign(socket, :show_content, show_content)}
   end
 
   defp find_app_session(apps, slug, session_id) do
