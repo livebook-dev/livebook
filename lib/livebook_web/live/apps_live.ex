@@ -100,6 +100,9 @@ defmodule LivebookWeb.AppsLive do
           </div>
           <div class="border border-gray-200 rounded-b-lg overflow-auto tiny-scrollbar whitespace-none">
             <%= if Enum.any?(app.sessions) do %>
+              <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider px-4 pt-4 pb-3">
+                Runing Sessions
+              </div>
               <.grid rows={app.sessions}>
                 <:col :let={app_session} label="Status">
                   <a
@@ -187,7 +190,7 @@ defmodule LivebookWeb.AppsLive do
   defp grid(assigns) do
     ~H"""
     <div class="min-w-[650px]">
-      <div class="px-2 py-2">
+      <div class="px-2 pb-2">
         <div class="grid grid-cols-apps-m md:grid-cols-apps gap-4 px-2">
           <div
             :for={col <- @col}
