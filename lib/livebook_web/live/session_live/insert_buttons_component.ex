@@ -23,7 +23,6 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                 class="pr-2"
                 phx-click="insert_cell_below"
                 phx-value-type="code"
-                phx-value-language={@default_language}
                 phx-value-section_id={@section_id}
                 phx-value-cell_id={@cell_id}
               >

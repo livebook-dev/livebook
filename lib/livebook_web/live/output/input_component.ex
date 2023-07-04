@@ -82,6 +82,54 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
+  def render(%{attrs: %{type: :utc_datetime}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.label help="Choose the time in your local time zone">
+        <%= @attrs.label %>
+      </.label>
+      <input
+        id={@id}
+        type="datetime-local"
+        data-el-input
+        class="input w-auto invalid:input--error"
+        name="html_value"
+        step="60"
+        autocomplete="off"
+        phx-hook="UtcDateTimeInput"
+        data-utc-value={@value && NaiveDateTime.to_iso8601(@value)}
+        data-utc-min={@attrs.min && NaiveDateTime.to_iso8601(@attrs.min)}
+        data-utc-max={@attrs.max && NaiveDateTime.to_iso8601(@attrs.max)}
+        data-phx-target={@myself}
+      />
+    </div>
+    """
+  end
+
+  def render(%{attrs: %{type: :utc_time}} = assigns) do
+    ~H"""
+    <div id={"#{@id}-form-#{@counter}"}>
+      <.label help="Choose the time in your local time zone">
+        <%= @attrs.label %>
+      </.label>
+      <input
+        id={@id}
+        type="time"
+        data-el-input
+        class="input w-auto invalid:input--error"
+        name="html_value"
+        step="60"
+        autocomplete="off"
+        phx-hook="UtcTimeInput"
+        data-utc-value={@value && Time.to_iso8601(@value)}
+        data-utc-min={@attrs.min && Time.to_iso8601(@attrs.min)}
+        data-utc-max={@attrs.max && Time.to_iso8601(@attrs.max)}
+        data-phx-target={@myself}
+      />
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
@@ -168,6 +216,23 @@ defmodule LivebookWeb.Output.InputComponent do
         autocomplete="off"
       />
     </.with_password_toggle>
+    """
+  end
+
+  defp input_output(%{attrs: %{type: :date}} = assigns) do
+    ~H"""
+    <input
+      type="date"
+      data-el-input
+      class="input w-auto invalid:input--error"
+      name="html_value"
+      value={@value}
+      phx-debounce="blur"
+      phx-target={@myself}
+      min={@attrs.min}
+      max={@attrs.max}
+      autocomplete="off"
+    />
     """
   end
 
@@ -278,7 +343,7 @@ defmodule LivebookWeb.Output.InputComponent do
     cond do
       html_value == "" -> {:ok, nil}
       Livebook.Utils.valid_url?(html_value) -> {:ok, html_value}
-      true -> {:error, "not a valid URL"}
+      true -> :error
     end
   end
 
@@ -303,6 +368,65 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :utc_datetime} = attrs) do
+    if html_value do
+      with {:ok, datetime} <- NaiveDateTime.from_iso8601(html_value),
+           datetime <- truncate_datetime(datetime),
+           true <- in_range?(datetime, attrs.min, attrs.max) do
+        {:ok, datetime}
+      else
+        _ -> :error
+      end
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp parse(html_value, %{type: :utc_time} = attrs) do
+    if html_value do
+      with {:ok, time} <- Time.from_iso8601(html_value),
+           time <- truncate_time(time),
+           true <- in_range?(time, attrs.min, attrs.max) do
+        {:ok, time}
+      else
+        _ -> :error
+      end
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp parse(html_value, %{type: :date} = attrs) do
+    if html_value == "" do
+      {:ok, nil}
+    else
+      with {:ok, date} <- Date.from_iso8601(html_value),
+           true <- in_range?(date, attrs.min, attrs.max) do
+        {:ok, date}
+      else
+        _ -> :error
+      end
+    end
+  end
+
+  defp truncate_datetime(datetime) do
+    datetime
+    |> NaiveDateTime.truncate(:second)
+    |> Map.replace!(:second, 0)
+  end
+
+  defp truncate_time(time) do
+    time
+    |> Time.truncate(:second)
+    |> Map.replace!(:second, 0)
+  end
+
+  defp in_range?(%struct{} = datetime, min, max)
+       when struct in [NaiveDateTime, Time, Date] do
+    (min == nil or struct.compare(datetime, min) != :lt) and
+      (max == nil or struct.compare(datetime, max) != :gt)
   end
 
   defp report_event(socket, value) do

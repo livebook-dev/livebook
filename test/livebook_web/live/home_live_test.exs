@@ -3,6 +3,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
+  import Livebook.TestHelpers
 
   alias Livebook.{Sessions, Session}
 
@@ -17,10 +18,19 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s/[role="navigation"] button/, "New notebook")
+             |> element(~s/[role="navigation"] a/, "New notebook")
              |> render_click()
 
     assert to =~ "/sessions/"
+
+    close_session_by_path(to)
+  end
+
+  test "public new endpoint creates an empty session", %{conn: conn} do
+    assert {:error, {:live_redirect, %{to: to}}} = result = live(conn, ~p"/new")
+    {:ok, view, _} = follow_redirect(result, conn)
+
+    assert render(view) =~ "Untitled notebook"
 
     close_session_by_path(to)
   end
@@ -96,12 +106,10 @@ defmodule LivebookWeb.HomeLiveTest do
       assert render(view) =~ session.id
 
       view
-      |> element(~s{[data-test-session-id="#{session.id}"] a}, "Close")
+      |> element(~s{[data-test-session-id="#{session.id}"] button}, "Close")
       |> render_click()
 
-      view
-      |> element(~s{button[role=button]}, "Close session")
-      |> render_click()
+      render_confirm(view)
 
       refute render(view) =~ session.id
     end
@@ -126,9 +134,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert render(view) =~ "Are you sure you want to close 3 sessions?"
 
-      view
-      |> element(~s{button[role="button"]}, "Close sessions")
-      |> render_click()
+      render_confirm(view)
 
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id

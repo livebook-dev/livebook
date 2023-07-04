@@ -1,5 +1,18 @@
 defmodule Livebook.ZTA.GoogleIAP do
-  @moduledoc false
+  @doc """
+  To integrate your Google Identity-Aware Proxy (IAP) authentication with Livebook,
+  set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `googleiap:<your-jwt-audience>`
+
+  For more information about Google IAP,
+  see: https://cloud.google.com/iap/docs/concepts-overview
+
+  Only access with Google accounts is supported
+  See: https://cloud.google.com/iap/docs/authenticate-users-google-accounts
+
+  For more details about how to find your JWT audience,
+  see: https://cloud.google.com/iap/docs/signed-headers-howto
+  and look for "Signed Header JWT Audience"
+  """
 
   use GenServer
   require Logger
@@ -50,9 +63,8 @@ defmodule Livebook.ZTA.GoogleIAP do
   defp authenticated_user(token, _fields, identity, keys) do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
-         :ok <- verify_iss(token, identity.iss),
-         {:ok, user} <- get_user_identity(token) do
-      for({k, v} <- user, new_k = @fields[k], do: {new_k, v}, into: %{})
+         :ok <- verify_iss(token, identity.iss, identity.key) do
+      for({k, v} <- token.fields, new_k = @fields[k], do: {new_k, v}, into: %{})
     else
       _ -> nil
     end
@@ -67,19 +79,15 @@ defmodule Livebook.ZTA.GoogleIAP do
     end)
   end
 
-  defp verify_iss(%{fields: %{"iss" => iss}}, iss), do: :ok
-  defp verify_iss(_, _), do: :error
-
-  defp get_user_identity(%{fields: %{"gcip" => gcip}}), do: {:ok, gcip}
-  defp get_user_identity(%{fields: fields}), do: {:ok, fields}
-  defp get_user_identity(_), do: :error
+  defp verify_iss(%{fields: %{"iss" => iss, "aud" => key}}, iss, key), do: :ok
+  defp verify_iss(_, _, _), do: :error
 
   defp identity(key) do
     %{
       key: key,
       key_type: "aud",
       iss: "https://cloud.google.com/iap",
-      certs: "https://www.gstatic.com/iap/verify/public_key",
+      certs: "https://www.gstatic.com/iap/verify/public_key-jwk",
       assertion: "x-goog-iap-jwt-assertion",
       email: "x-goog-authenticated-user-email",
       user_identity: "https://www.googleapis.com/plus/v1/people/me"

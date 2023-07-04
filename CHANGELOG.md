@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - More intellisense details for types ([#1974](https://github.com/livebook-dev/livebook/pull/1974) and [#1975](https://github.com/livebook-dev/livebook/pull/1975))
 - Support for Zero Trust authentication ([#1938](https://github.com/livebook-dev/livebook/pull/1938))
 - Improved the session page on mobile ([#2013](https://github.com/livebook-dev/livebook/pull/2013))
+- Support for datetime, time and date inputs ([#2002](https://github.com/livebook-dev/livebook/pull/2002))
 
 ### Changed
 

@@ -604,4 +604,19 @@ defmodule LivebookWeb.CoreComponents do
       |> JS.add_class(name, to: "#{to}:not(.#{name})")
     end)
   end
+
+  @doc """
+  Pushes and executes the given `%Phoenix.LiveView.JS{}` on the client.
+
+  ## Options
+
+    * `:to` - selector for elements to execute against. Defaults to
+      document body
+
+  """
+  def exec_js(socket, js, opts \\ []) do
+    opts = Keyword.validate!(opts, [:to])
+
+    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
+  end
 end
