@@ -102,10 +102,6 @@ module.exports = {
         },
         "brand-pink": "#e44c75",
       },
-      gridTemplateColumns: {
-        'apps': 'minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)',
-        'apps-m': 'minmax(0, 0.5fr) minmax(0, 0.75fr) minmax(0, 0.5fr) minmax(0, 0.5fr) minmax(0, 0.5fr)',
-      }
     },
   },
   plugins: [

@@ -67,14 +67,14 @@ defmodule LivebookWeb.AppsLive do
               <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
                 App Info
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-apps gap-4 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4 mt-3">
                 <div class="break-words">
-                  <.labeled_text label="Name" one_line>
+                  <.labeled_text label="Name">
                     <%= app.notebook_name %>
                   </.labeled_text>
                 </div>
                 <div class="break-all">
-                  <.labeled_text label="URL" one_line>
+                  <.labeled_text label="URL">
                     <a href={~p"/apps/#{app.slug}"}>
                       <%= ~p"/apps/#{app.slug}" %>
                     </a>
@@ -197,7 +197,7 @@ defmodule LivebookWeb.AppsLive do
     ~H"""
     <div class="min-w-[650px]">
       <div class="px-2 pb-2">
-        <div class="grid grid-cols-apps-m md:grid-cols-apps gap-4 px-2">
+        <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4 px-2">
           <div
             :for={col <- @col}
             class={["text-gray-500 text-sm font-normal", align_to_class(col[:align])]}
@@ -206,7 +206,7 @@ defmodule LivebookWeb.AppsLive do
           </div>
         </div>
         <div :for={row <- @rows} class="whitespace-nowrap px-2 hover:bg-gray-50 hover:rounded-md">
-          <div class="grid grid-cols-apps-m md:grid-cols-apps gap-4">
+          <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
             <div
               :for={col <- @col}
               class={["py-2 text-gray-800 text-sm font-semibold", align_to_class(col[:align])]}
