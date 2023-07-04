@@ -160,7 +160,7 @@ defmodule LivebookWeb.AppsLive do
                             )
                           }
                         >
-                          <.remix_icon icon="stop-circle-line" class="text-lg text-brand-pink" />
+                          <.remix_icon icon="stop-circle-line" class="text-lg" />
                         </button>
                       </span>
                     <% else %>
