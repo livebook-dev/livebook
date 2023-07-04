@@ -157,7 +157,7 @@ defmodule LivebookCLI.Server do
 
   defp open_from_args(base_url, ["@new"]) do
     base_url
-    |> set_path("/learn/notebooks/new")
+    |> set_path("/new")
     |> Livebook.Utils.browser_open()
   end
 

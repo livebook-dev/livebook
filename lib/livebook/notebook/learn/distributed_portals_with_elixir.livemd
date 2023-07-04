@@ -692,7 +692,7 @@ Now we have everything we need to connect across notebooks.
 
 ### Notebook connections
 
-In order to connect across notebooks, open up [a new empty notebook](/learn/notebooks/new)
+In order to connect across notebooks, open up [a new empty notebook](/new)
 in a separate tab, copy and paste the code below to this new notebook,
 and execute it:
 
