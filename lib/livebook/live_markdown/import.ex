@@ -568,7 +568,27 @@ defmodule Livebook.LiveMarkdown.Import do
         end
       end)
 
-    {%{notebook | sections: sections}, Enum.reverse(warnings)}
+    notebook = %{notebook | sections: sections}
+
+    legacy_images? =
+      notebook
+      |> Notebook.cells_with_section()
+      |> Enum.any?(fn {cell, _section} ->
+        # A heuristic to detect legacy image source
+        is_struct(cell, Notebook.Cell.Markdown) and String.contains?(cell.source, "](images/")
+      end)
+
+    image_warnings =
+      if legacy_images? do
+        [
+          "found Markdown images pointing to the images/ directory." <>
+            " Using this directory has been deprecated, please use notebook files instead"
+        ]
+      else
+        []
+      end
+
+    {notebook, Enum.reverse(warnings) ++ image_warnings}
   end
 
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}

@@ -887,6 +887,24 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                output_counter: 2
              } = notebook
     end
+
+    test "warns if the imported notebook includes images pointing to images/ directory" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ![](images/cat.jpeg)
+
+      ![](images/dog.jpeg)
+      """
+
+      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+
+      assert [
+               "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
+             ] == messages
+    end
   end
 
   test "import notebook with invalid parent section produces a warning" do
