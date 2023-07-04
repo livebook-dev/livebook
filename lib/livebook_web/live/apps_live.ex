@@ -182,7 +182,7 @@ defmodule LivebookWeb.AppsLive do
                 </.grid>
               <% else %>
                 <div class="p-4 uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
-                  NO RUNNING SESSIONS
+                  No running sessions
                 </div>
               <% end %>
             </div>
