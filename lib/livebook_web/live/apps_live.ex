@@ -55,7 +55,7 @@ defmodule LivebookWeb.AppsLive do
           class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl hover:cursor-pointer"
         >
           <%= "/" <> app.slug %>
-          <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400  toggle" />
+          <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400 toggle" />
           <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 hidden toggle" />
         </a>
         <div class="toggle">
