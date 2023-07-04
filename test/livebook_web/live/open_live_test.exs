@@ -153,7 +153,7 @@ defmodule LivebookWeb.OpenLiveTest do
       {path, flash} = assert_redirect(view, 5000)
 
       assert flash["warning"] =~
-               "We found problems while importing the file and tried to autofix them:\n- downgrading all headings, because 3 instances of heading 1 were found"
+               "We found problems while importing the file:\n- downgrading all headings, because 3 instances of heading 1 were found"
 
       close_session_by_path(path)
     end

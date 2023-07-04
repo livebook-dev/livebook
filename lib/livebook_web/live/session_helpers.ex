@@ -65,9 +65,7 @@ defmodule LivebookWeb.SessionHelpers do
       |> Enum.intersperse("\n")
 
     flash =
-      IO.iodata_to_binary([
-        "We found problems while importing the file and tried to autofix them:\n" | list
-      ])
+      IO.iodata_to_binary(["We found problems while importing the file:\n" | list])
 
     put_flash(socket, :warning, flash)
   end
