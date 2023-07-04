@@ -91,7 +91,7 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:frame, outputs, _info}, %{
+  defp render_output({:frame, outputs, info}, %{
          id: id,
          session_id: session_id,
          session_pid: session_pid,
@@ -102,6 +102,7 @@ defmodule LivebookWeb.Output do
     live_component(Output.FrameComponent,
       id: id,
       outputs: outputs,
+      placeholder: Map.get(info, :placeholder, true),
       session_id: session_id,
       session_pid: session_pid,
       input_values: input_values,
