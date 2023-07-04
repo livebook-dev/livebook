@@ -75,7 +75,7 @@ defmodule LivebookWeb.Output.FrameComponent do
     ~H"""
     <div id={"frame-output-#{@id}"}>
       <%= if @output_count == 0 do %>
-        <div class="text-gray-300 p-4 rounded-lg border border-gray-200">
+        <div :if={@placeholder} class="text-gray-300 p-4 rounded-lg border border-gray-200">
           Nothing here...
         </div>
       <% else %>
