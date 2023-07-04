@@ -106,7 +106,7 @@ defmodule LivebookWeb.AppsLive do
             <div class="border border-gray-200 rounded-b-lg overflow-auto tiny-scrollbar whitespace-none">
               <%= if Enum.any?(app.sessions) do %>
                 <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider px-4 pt-4 pb-3">
-                  Runing Sessions
+                  Running sessions
                 </div>
                 <.grid rows={app.sessions}>
                   <:col :let={app_session} label="Status">
