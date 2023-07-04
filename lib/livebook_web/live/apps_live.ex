@@ -1,5 +1,4 @@
 defmodule LivebookWeb.AppsLive do
-  alias Mix.Tasks.Hex.Info
   use LivebookWeb, :live_view
 
   import LivebookWeb.AppHelpers
@@ -55,7 +54,7 @@ defmodule LivebookWeb.AppsLive do
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
         <a
           phx-click={JS.push("toggle_content", value: %{slug: app.slug})}
-          class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl"
+          class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl hover:cursor-pointer"
         >
           <%= "/" <> app.slug %>
           <%= if Map.get(@show_content, app.slug) do %>
