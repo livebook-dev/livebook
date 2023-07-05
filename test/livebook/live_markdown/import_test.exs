@@ -1,6 +1,8 @@
 defmodule Livebook.LiveMarkdown.ImportTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.LiveMarkdown.Import
   alias Livebook.Notebook
   alias Livebook.Notebook.Cell
@@ -1233,7 +1235,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "file entries" do
     test "imports file entries" do
       markdown = """
-      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"/document.pdf"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
       # My Notebook
       """
@@ -1248,7 +1250,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
                      file_system: %Livebook.FileSystem.Local{},
-                     path: "/document.pdf"
+                     path: p("/document.pdf")
                    }
                  },
                  %{type: :url, name: "data.csv", url: "https://example.com/data.csv"}
