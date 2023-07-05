@@ -1726,7 +1726,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-files-list] menu button/, "Copy to files")
       |> render_click()
 
-      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+      assert_receive {:operation,
+                      {:add_file_entries, _client_id, [%{type: :attachment, name: "image.jpg"}]}}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
