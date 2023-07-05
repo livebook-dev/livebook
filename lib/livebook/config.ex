@@ -5,6 +5,20 @@ defmodule Livebook.Config do
 
   @type auth_mode() :: :token | :password | :disabled
 
+  identity_providers = %{
+    session: LivebookWeb.SessionIdentity,
+    google_iap: Livebook.ZTA.GoogleIAP,
+    cloudflare: Livebook.ZTA.Cloudflare
+  }
+
+  @identity_provider_type_to_module Map.new(identity_providers, fn {key, value} ->
+                                      {Atom.to_string(key), value}
+                                    end)
+
+  @identity_provider_module_to_type Map.new(identity_providers, fn {key, value} ->
+                                      {value, key}
+                                    end)
+
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
   """
@@ -189,11 +203,8 @@ defmodule Livebook.Config do
   """
   @spec identity_source() :: atom()
   def identity_source() do
-    case identity_provider() do
-      {Livebook.ZTA.GoogleIAP, _} -> :google_iap
-      {Livebook.ZTA.Cloudflare, _} -> :cloudflare
-      {LivebookWeb.SessionIdentity, _} -> :session
-    end
+    {module, _} = identity_provider()
+    @identity_provider_module_to_type[module]
   end
 
   @doc """
@@ -526,18 +537,20 @@ defmodule Livebook.Config do
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    case System.get_env(env) do
-      "googleiap:" <> rest ->
-        {Livebook.ZTA.GoogleIAP, rest}
+    if provider = System.get_env(env) do
+      identity_provider!(env, provider)
+    end
+  end
 
-      "cloudflare:" <> rest ->
-        {Livebook.ZTA.Cloudflare, rest}
-
-      nil ->
-        nil
-
-      _ ->
-        abort!("invalid configuration for identity provider")
+  @doc """
+  Parses and validates zero trust identity provider within context.
+  """
+  def identity_provider!(context, provider) do
+    with [type, key] <- String.split(provider, ":", parts: 2),
+         {:ok, module} <- Map.fetch(@identity_provider_type_to_module, type) do
+      {module, key}
+    else
+      _ -> abort!("invalid configuration for identity provider")
     end
   end
 end
