@@ -1358,7 +1358,7 @@ defmodule Livebook.SessionTest do
 
       assert app_info == %{
                type: :multi_session,
-               creator: %{
+               started_by: %{
                  source: :session,
                  id: "1234",
                  name: "Jake Peralta",
