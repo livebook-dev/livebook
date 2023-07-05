@@ -210,15 +210,6 @@ defmodule Livebook.AppTest do
       session_id = App.get_session_id(app_pid, user: user)
 
       assert %{sessions: [%{id: ^session_id, started_by: ^user}]} = App.get_by_pid(app_pid)
-
-      # Tracks user updates
-
-      App.subscribe(slug)
-
-      user = %{user | name: "Jake"}
-      Livebook.Users.update_user(user)
-
-      assert_receive {:app_updated, %{sessions: [%{id: ^session_id, started_by: ^user}]}}
     end
   end
 

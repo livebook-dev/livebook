@@ -550,7 +550,7 @@ defmodule Livebook.Config do
          {:ok, module} <- Map.fetch(@identity_provider_type_to_module, type) do
       {module, key}
     else
-      _ -> abort!("invalid configuration for identity provider")
+      _ -> abort!("invalid configuration for identity provider given in #{context}")
     end
   end
 end
