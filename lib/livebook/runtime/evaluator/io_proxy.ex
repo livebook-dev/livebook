@@ -317,6 +317,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {state.file, state}
   end
 
+  defp io_request(:livebook_get_app_info, state) do
+    result = request_app_info(state)
+    {result, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
@@ -377,6 +382,21 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
       {:runtime_file_lookup_reply, :error} ->
         Process.demonitor(ref, [:flush])
         {:error, :not_found}
+
+      {:DOWN, ^ref, :process, _object, _reason} ->
+        {:error, :terminated}
+    end
+  end
+
+  defp request_app_info(state) do
+    send(state.send_to, {:runtime_app_info_request, self()})
+
+    ref = Process.monitor(state.send_to)
+
+    receive do
+      {:runtime_app_info_reply, app_info} ->
+        Process.demonitor(ref, [:flush])
+        {:ok, app_info}
 
       {:DOWN, ^ref, :process, _object, _reason} ->
         {:error, :terminated}

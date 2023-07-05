@@ -1,7 +1,7 @@
 defmodule Livebook.ZTA.GoogleIAP do
   @doc """
   To integrate your Google Identity-Aware Proxy (IAP) authentication with Livebook,
-  set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `googleiap:<your-jwt-audience>`
+  set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `google_iap:<your-jwt-audience>`
 
   For more information about Google IAP,
   see: https://cloud.google.com/iap/docs/concepts-overview

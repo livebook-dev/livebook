@@ -26,7 +26,8 @@ defmodule Livebook.Notebook do
     :app_settings,
     :hub_id,
     :hub_secret_names,
-    :file_entries
+    :file_entries,
+    :teams_enabled
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -46,7 +47,8 @@ defmodule Livebook.Notebook do
           app_settings: AppSettings.t(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
-          file_entries: list(file_entry())
+          file_entries: list(file_entry()),
+          teams_enabled: boolean()
         }
 
   @type file_entry ::
@@ -85,7 +87,8 @@ defmodule Livebook.Notebook do
       app_settings: AppSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
-      file_entries: []
+      file_entries: [],
+      teams_enabled: false
     }
     |> put_setup_cell(Cell.new(:code))
   end
