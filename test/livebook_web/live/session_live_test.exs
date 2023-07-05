@@ -1524,6 +1524,8 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "adding :attachment file entry from file",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      Session.subscribe(session.id)
+
       path = Path.join(tmp_dir, "image.jpg")
       File.write!(path, "content")
 
@@ -1542,6 +1544,8 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{#add-file-entry-form})
       |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "true"}})
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -1579,6 +1583,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "adding :attachment file entry from url", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
       bypass = Bypass.open()
       file_url = "http://localhost:#{bypass.port}/image.jpg"
 
@@ -1602,6 +1608,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_submit(%{
         "data" => %{"name" => "image.jpg", "copy" => "true", "url" => file_url}
       })
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
@@ -1703,6 +1711,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
     @tag :tmp_dir
     test "transferring file entry", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      Session.subscribe(session.id)
+
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
       :ok = FileSystem.File.write(image_file, "content")
@@ -1716,10 +1726,12 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-files-list] menu button/, "Copy to files")
       |> render_click()
 
-      assert {:ok, true} = FileSystem.File.exists?(image_file)
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
 
       assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
                Session.get_data(session.pid)
+
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
 
       assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "content"}

@@ -1,6 +1,8 @@
 defmodule Livebook.LiveMarkdown.ExportTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.LiveMarkdown.Export
   alias Livebook.Notebook
 
@@ -1327,7 +1329,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
   describe "file entries" do
     test "persists file entries" do
-      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), "/document.pdf")
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
 
       notebook = %{
         Notebook.new()
@@ -1340,7 +1342,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       }
 
       expected_document = """
-      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"/document.pdf"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
       # My Notebook
       """
