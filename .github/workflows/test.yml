@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "v*.*"
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -59,7 +60,7 @@ jobs:
         run: npm test --prefix assets
   windows:
     runs-on: windows-latest
-    if: github.ref_name == 'main'
+    if: github.event_name == 'push'
     env:
       MIX_ENV: test
     steps:
@@ -105,7 +106,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    if: github.ref_name == 'main'
+    if: github.event_name == 'push'
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
