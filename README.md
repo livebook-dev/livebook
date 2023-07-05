@@ -240,6 +240,15 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_SHUTDOWN_ENABLED - controls if a shutdown button should be shown
     in the homepage. Set it to "true" to enable it.
 
+  * LIVEBOOK_TEAMS_KEY - sets the secret Livebook Teams key for creating an offline hub.
+    Must be set aside of LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_OFFLINE_KEY.
+
+  * LIVEBOOK_TEAMS_NAME - sets the Livebook Teams name for creating an offline hub.
+    Must be set aside of LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY.
+
+  * LIVEBOOK_TEAMS_OFFLINE_KEY - sets the Livebook Teams public key for creating an offline hub.
+    Must be set aside of LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_KEY.
+
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to
     disable it.
