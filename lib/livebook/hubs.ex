@@ -276,11 +276,19 @@ defmodule Livebook.Hubs do
   @offline_hub_key :livebook_offline_hub
 
   @doc """
-  Get the offline hub.
+  Gets the offline hub.
+  """
+  @spec get_offline_hub() :: Provider.t() | nil
+  def get_offline_hub() do
+    :persistent_term.get(@offline_hub_key, nil)
+  end
+
+  @doc """
+  Gets the offline hub if the given id matches.
   """
   @spec get_offline_hub(String.t()) :: Provider.t() | nil
   def get_offline_hub(id) do
-    case :persistent_term.get(@offline_hub_key, nil) do
+    case get_offline_hub() do
       %{id: ^id} = hub -> hub
       _ -> nil
     end
