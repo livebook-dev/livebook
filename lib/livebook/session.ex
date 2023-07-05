@@ -151,6 +151,10 @@ defmodule Livebook.Session do
     * `:auto_shutdown_ms` - the inactivity period (no clients) after which
       the session should close automatically
 
+    * `:started_by` - the user that started the session. This is relevant
+      for app sessions using the Teams hub, in which case this information
+      is accessible from runtime
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -746,7 +750,8 @@ defmodule Livebook.Session do
         deployed_app_monitor_ref: nil,
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
-        auto_shutdown_timer_ref: nil
+        auto_shutdown_timer_ref: nil,
+        started_by: opts[:started_by]
       }
 
       {:ok, state}
@@ -1389,6 +1394,11 @@ defmodule Livebook.Session do
       send(reply_to, {:runtime_file_lookup_reply, :error})
     end
 
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_app_info_request, reply_to}, state) do
+    send(reply_to, {:runtime_app_info_reply, app_info_for_runtime(state)})
     {:noreply, state}
   end
 
@@ -2266,6 +2276,30 @@ defmodule Livebook.Session do
   defp before_close(state) do
     maybe_save_notebook_sync(state)
     broadcast_message(state.session_id, :session_closed)
+  end
+
+  defp app_info_for_runtime(state) do
+    case state.data do
+      %{mode: :app, notebook: %{app_settings: %{multi_session: true}}} ->
+        info = %{type: :multi_session}
+
+        if user = state.started_by do
+          creator =
+            user
+            |> Map.take([:id, :name, :email])
+            |> Map.put(:source, Livebook.Config.identity_source())
+
+          Map.put(info, :creator, creator)
+        else
+          info
+        end
+
+      %{mode: :app, notebook: %{app_settings: %{multi_session: false}}} ->
+        %{type: :single_session}
+
+      _ ->
+        %{type: :none}
+    end
   end
 
   defp app_report_client_count_change(state) when state.data.mode == :app do

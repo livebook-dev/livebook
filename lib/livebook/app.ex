@@ -274,11 +274,14 @@ defmodule Livebook.App do
   end
 
   defp start_app_session(state, user \\ nil) do
+    user = if(state.notebook.teams_enabled, do: user)
+
     opts = [
       notebook: state.notebook,
       mode: :app,
       app_pid: self(),
-      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms
+      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms,
+      started_by: user
     ]
 
     case Livebook.Sessions.create_session(opts) do

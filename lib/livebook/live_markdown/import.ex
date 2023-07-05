@@ -527,16 +527,28 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, _notebook_source, nil, _), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data, stamp_hub_id) do
-    hub = Hubs.get_offline_hub(stamp_hub_id) || Hubs.fetch_hub!(stamp_hub_id)
+    {hub, offline?} =
+      cond do
+        hub = Hubs.get_offline_hub(stamp_hub_id) -> {hub, true}
+        hub = Hubs.fetch_hub!(stamp_hub_id) -> {hub, false}
+      end
 
-    with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
-         {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
-         {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
-      notebook = apply_stamp_metadata(notebook, metadata)
-      {notebook, []}
-    else
-      _ -> {notebook, ["failed to verify notebook stamp"]}
-    end
+    {valid_stamp?, notebook, messages} =
+      with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
+           {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
+           {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
+        notebook = apply_stamp_metadata(notebook, metadata)
+        {true, notebook, []}
+      else
+        _ -> {false, notebook, ["failed to verify notebook stamp"]}
+      end
+
+    # We enable teams features for offline hub only if the stamp
+    # is valid, which ensures it is an existing Teams hub
+    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (not offline? or valid_stamp?)
+
+    notebook = %{notebook | teams_enabled: teams_enabled}
+    {notebook, messages}
   end
 
   defp safe_binary_slice(binary, start, size)

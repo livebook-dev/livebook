@@ -185,6 +185,18 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns identity source as a friendly atom.
+  """
+  @spec identity_source() :: atom()
+  def identity_source() do
+    case identity_provider() do
+      {Livebook.ZTA.GoogleIAP, _} -> :google_iap
+      {Livebook.ZTA.Cloudflare, _} -> :cloudflare
+      {LivebookWeb.SessionIdentity, _} -> :session
+    end
+  end
+
+  @doc """
   Returns whether the application is running inside an iframe.
   """
   @spec within_iframe?() :: boolean()
