@@ -887,6 +887,24 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                output_counter: 2
              } = notebook
     end
+
+    test "warns if the imported notebook includes images pointing to images/ directory" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ![](images/cat.jpeg)
+
+      ![](images/dog.jpeg)
+      """
+
+      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+
+      assert [
+               "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
+             ] == messages
+    end
   end
 
   test "import notebook with invalid parent section produces a warning" do
@@ -1209,6 +1227,47 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, [_]} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: ^hub_id, teams_enabled: true} = notebook
+    end
+  end
+
+  describe "file entries" do
+    test "imports file entries" do
+      markdown = """
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"/document.pdf"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
+
+      # My Notebook
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               file_entries: [
+                 %{type: :attachment, name: "image.jpg"},
+                 %{
+                   type: :file,
+                   name: "document.pdf",
+                   file: %Livebook.FileSystem.File{
+                     file_system: %Livebook.FileSystem.Local{},
+                     path: "/document.pdf"
+                   }
+                 },
+                 %{type: :url, name: "data.csv", url: "https://example.com/data.csv"}
+               ]
+             } = notebook
+    end
+
+    test "skips file entries from unknown file system" do
+      markdown = """
+      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"s3-nonexistent","path":"/document.pdf"},"name":"document.pdf","type":"file"}]} -->
+
+      # My Notebook
+      """
+
+      {notebook, messages} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{file_entries: []} = notebook
+
+      assert messages == ["skipping file document.pdf, since it points to an unknown file system"]
     end
   end
 end

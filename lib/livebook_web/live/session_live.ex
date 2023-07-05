@@ -80,12 +80,7 @@ defmodule LivebookWeb.SessionLive do
          )
          |> assign_private(data: data)
          |> prune_outputs()
-         |> prune_cell_sources()
-         |> allow_upload(:cell_image,
-           accept: ~w(.jpg .jpeg .png .gif .svg),
-           max_entries: 1,
-           max_file_size: 5_000_000
-         )}
+         |> prune_cell_sources()}
 
       :error ->
         {:ok, redirect(socket, to: ~p"/")}
@@ -139,6 +134,11 @@ defmodule LivebookWeb.SessionLive do
           icon="group-fill"
           label="Connected users (su)"
           button_attrs={["data-el-clients-list-toggle": true]}
+        />
+        <.button_item
+          icon="folder-open-fill"
+          label="Files (sf)"
+          button_attrs={["data-el-files-list-toggle": true]}
         />
         <.button_item
           icon="lock-password-line"
@@ -205,6 +205,14 @@ defmodule LivebookWeb.SessionLive do
         </div>
         <div data-el-clients-list>
           <.clients_list data_view={@data_view} client_id={@client_id} />
+        </div>
+        <div data-el-files-list>
+          <.live_component
+            module={LivebookWeb.SessionLive.FilesListComponent}
+            id="files-list"
+            session={@session}
+            file_entries={@data_view.file_entries}
+          />
         </div>
         <div data-el-secrets-list>
           <.live_component
@@ -450,6 +458,16 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :add_file_entry}
+      id="add-file-entry-modal"
+      show
+      width={:big}
+      patch={@self_path}
+    >
+      <.add_file_entry_content session={@session} file_entries={@data_view.file_entries} tab={@tab} />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -480,36 +498,18 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
-      :if={@live_action == :cell_upload}
-      id="cell-upload-modal"
+      :if={@live_action == :insert_image}
+      id="insert-image-modal"
       show
       width={:medium}
       patch={@self_path}
     >
       <.live_component
-        module={LivebookWeb.SessionLive.CellUploadComponent}
-        id="cell-upload"
+        module={LivebookWeb.SessionLive.InsertImageComponent}
+        id="insert-image"
         session={@session}
         return_to={@self_path}
-        uploads={@uploads}
-        cell_upload_metadata={@cell_upload_metadata}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action == :delete_section}
-      id="delete-section-modal"
-      show
-      width={:medium}
-      patch={@self_path}
-    >
-      <.live_component
-        module={LivebookWeb.SessionLive.DeleteSectionComponent}
-        id="delete-section"
-        session={@session}
-        return_to={@self_path}
-        section={@section}
-        is_first={@section.id == @first_section_id}
+        insert_image_metadata={@insert_image_metadata}
       />
     </.modal>
 
@@ -824,6 +824,61 @@ defmodule LivebookWeb.SessionLive do
 
   defp section_status(assigns), do: ~H""
 
+  defp add_file_entry_content(assigns) do
+    ~H"""
+    <div class="p-6 max-w-4xl flex flex-col space-y-4">
+      <h3 class="text-2xl font-semibold text-gray-800">
+        Add file
+      </h3>
+      <div class="flex flex-col space-y-4">
+        <div class="tabs">
+          <.link
+            patch={~p"/sessions/#{@session.id}/add-file/file"}
+            class={["tab", @tab == "file" && "active"]}
+          >
+            <.remix_icon icon="file-3-line" class="align-middle" />
+            <span class="font-medium">From file</span>
+          </.link>
+          <.link
+            patch={~p"/sessions/#{@session.id}/add-file/url"}
+            class={["tab", @tab == "url" && "active"]}
+          >
+            <.remix_icon icon="download-cloud-2-line" class="align-middle" />
+            <span class="font-medium">From URL</span>
+          </.link>
+          <.link
+            patch={~p"/sessions/#{@session.id}/add-file/unlisted"}
+            class={["tab", @tab == "unlisted" && "active"]}
+          >
+            <.remix_icon icon="folder-shared-line" class="align-middle" />
+            <span class="font-medium">From unlisted</span>
+          </.link>
+          <div class="grow tab"></div>
+        </div>
+        <.live_component
+          :if={@tab == "file"}
+          module={LivebookWeb.SessionLive.AddFileEntryFileComponent}
+          id="add-file-entry-from-file"
+          session={@session}
+        />
+        <.live_component
+          :if={@tab == "url"}
+          module={LivebookWeb.SessionLive.AddFileEntryUrlComponent}
+          id="add-file-entry-from-url"
+          session={@session}
+        />
+        <.live_component
+          :if={@tab == "unlisted"}
+          module={LivebookWeb.SessionLive.AddFileEntryUnlistedComponent}
+          id="add-file-entry-from-unlisted"
+          session={@session}
+          file_entries={@file_entries}
+        />
+      </div>
+    </div>
+    """
+  end
+
   defp settings_component_for(%Cell.Code{}),
     do: LivebookWeb.SessionLive.CodeCellSettingsComponent
 
@@ -844,21 +899,14 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"section_id" => section_id, "cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action == :cell_upload do
+      when socket.assigns.live_action == :insert_image do
     cell_id =
       case cell_id do
         "" -> nil
         id -> id
       end
 
-    {:noreply, assign(socket, cell_upload_metadata: %{section_id: section_id, cell_id: cell_id})}
-  end
-
-  def handle_params(%{"section_id" => section_id}, _url, socket)
-      when socket.assigns.live_action == :delete_section do
-    {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
-    first_section_id = hd(socket.private.data.notebook.sections).id
-    {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
+    {:noreply, assign(socket, insert_image_metadata: %{section_id: section_id, cell_id: cell_id})}
   end
 
   def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
@@ -874,7 +922,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"tab" => tab}, _url, socket)
-      when socket.assigns.live_action == :export do
+      when socket.assigns.live_action in [:export, :add_file_entry] do
     {:noreply, assign(socket, tab: tab)}
   end
 
@@ -1105,8 +1153,33 @@ defmodule LivebookWeb.SessionLive do
           socket
 
         {:ok, section} ->
-          push_patch(socket,
-            to: ~p"/sessions/#{socket.assigns.session.id}/delete-section/#{section.id}"
+          section_id = section.id
+          first_section? = hd(socket.private.data.notebook.sections).id == section.id
+
+          on_confirm = fn socket, %{"delete_cells" => delete_cells} ->
+            Livebook.Session.delete_section(socket.assigns.session.pid, section_id, delete_cells)
+            socket
+          end
+
+          assigns = %{section_name: section.name}
+
+          description = ~H"""
+          Are you sure you want to delete this section - <span class="font-semibold">“<%= @section_name %>”</span>?
+          """
+
+          confirm(socket, on_confirm,
+            title: "Delete section",
+            description: description,
+            confirm_text: "Delete",
+            confirm_icon: "delete-bin-6-line",
+            options: [
+              %{
+                name: "delete_cells",
+                label: "Delete all cells in this section",
+                default: first_section?,
+                disabled: first_section?
+              }
+            ]
           )
 
         :error ->
@@ -1333,11 +1406,11 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
-    %{pid: pid, images_dir: images_dir} = socket.assigns.session
+    %{pid: pid, files_dir: files_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
     data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
-    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+    {:noreply, create_session(socket, notebook: notebook, files_source: {:dir, files_dir})}
   end
 
   def handle_event("close_session", %{}, socket) do
@@ -1405,8 +1478,17 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
+    socket = put_flash(socket, :error, message)
 
-    {:noreply, put_flash(socket, :error, message)}
+    # If there is an immediate patch, we apply it to keep the flash
+    socket =
+      receive do
+        {:push_patch, to} -> push_patch(socket, to: to)
+      after
+        0 -> socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_info({:hydrate_bin_entries, hydrated_entries}, socket) do
@@ -1482,7 +1564,7 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_info({:cell_upload_complete, metadata, url}, socket) do
+  def handle_info({:insert_image_complete, metadata, url}, socket) do
     params = %{
       "type" => "image",
       "section_id" => metadata.section_id,
@@ -1495,6 +1577,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:push_patch, to}, socket) do
     {:noreply, push_patch(socket, to: to)}
+  end
+
+  def handle_info({:put_flash, kind, message}, socket) do
+    {:noreply, put_flash(socket, kind, message)}
   end
 
   def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
@@ -2189,6 +2275,7 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
+      file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug
     }
@@ -2371,7 +2458,7 @@ defmodule LivebookWeb.SessionLive do
             data_to_view(data)
         end
 
-      {:doctest_report, _client_id, _cell_id, _doctest_report} ->
+      {:add_cell_doctest_report, _client_id, _cell_id, _doctest_report} ->
         data_view
 
       _ ->

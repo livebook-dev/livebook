@@ -165,6 +165,20 @@ defmodule Livebook.Utils do
     uri.scheme != nil and uri.host not in [nil, ""]
   end
 
+  @doc """
+  Validates a change is a valid URL.
+  """
+  @spec validate_url(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  def validate_url(changeset, field) do
+    Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
+      if valid_url?(url) do
+        []
+      else
+        [{:url, "must be a valid URL"}]
+      end
+    end)
+  end
+
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 

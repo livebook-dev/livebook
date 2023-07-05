@@ -65,9 +65,7 @@ defmodule LivebookWeb.SessionHelpers do
       |> Enum.intersperse("\n")
 
     flash =
-      IO.iodata_to_binary([
-        "We found problems while importing the file and tried to autofix them:\n" | list
-      ])
+      IO.iodata_to_binary(["We found problems while importing the file:\n" | list])
 
     put_flash(socket, :warning, flash)
   end
@@ -108,13 +106,13 @@ defmodule LivebookWeb.SessionHelpers do
     case import_notebook(file) do
       {:ok, {notebook, messages}} ->
         notebook = Livebook.Notebook.forked(notebook)
-        images_dir = Session.images_dir_for_notebook(file)
+        files_dir = Session.files_dir_for_notebook(file)
 
         socket
         |> put_import_warnings(messages)
         |> create_session(
           notebook: notebook,
-          copy_images_from: images_dir,
+          files_source: {:dir, files_dir},
           origin: {:file, file}
         )
 

@@ -3,6 +3,70 @@ defmodule LivebookWeb.SessionControllerTest do
 
   alias Livebook.{Sessions, Session, Notebook, FileSystem}
 
+  describe "show_file" do
+    test "returns not found when the given session does not exist", %{conn: conn} do
+      id = Livebook.Utils.random_node_aware_id()
+      conn = get(conn, ~p"/sessions/#{id}/files/image.jpg")
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+    end
+
+    test "returns the file when it does exist", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+      :ok = FileSystem.File.resolve(session.files_dir, "test.jpg") |> FileSystem.File.write("")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "test.jpg"}])
+
+      conn = get(conn, ~p"/sessions/#{session.id}/files/test.jpg")
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") == ["image/jpeg"]
+
+      Session.close(session.pid)
+    end
+
+    test "returns not found when file entry with this name does not exist", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+      :ok = FileSystem.File.resolve(session.files_dir, "test.jpg") |> FileSystem.File.write("")
+
+      conn = get(conn, ~p"/sessions/#{session.id}/files/test.jpg")
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+
+      Session.close(session.pid)
+    end
+
+    test "returns not found when the given file does not exist", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "test.jpg"}])
+
+      conn = get(conn, ~p"/sessions/#{session.id}/files/test.jpg")
+
+      assert conn.status == 404
+      assert conn.resp_body == "No such file or directory"
+
+      Session.close(session.pid)
+    end
+
+    test "returns not found when file entry with this name is not an attachment", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+      :ok = FileSystem.File.resolve(session.files_dir, "test.jpg") |> FileSystem.File.write("")
+
+      Session.add_file_entries(session.pid, [
+        %{type: :url, name: "test.jpg", url: "https://example.com"}
+      ])
+
+      conn = get(conn, ~p"/sessions/#{session.id}/files/test.jpg")
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+
+      Session.close(session.pid)
+    end
+  end
+
+  # Legacy endpoint for resolving images/
   describe "show_image" do
     test "returns not found when the given session does not exist", %{conn: conn} do
       id = Livebook.Utils.random_node_aware_id()
@@ -25,7 +89,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
     test "returns the image when it does exist", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
-      %{images_dir: images_dir} = session
+      images_dir = FileSystem.File.resolve(session.files_dir, "../images/")
       :ok = FileSystem.File.resolve(images_dir, "test.jpg") |> FileSystem.File.write("")
 
       conn = get(conn, ~p"/sessions/#{session.id}/images/test.jpg")

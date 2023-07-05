@@ -240,6 +240,77 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session.pid)
     end
 
+    test "inserting an image", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} =
+        live(
+          conn,
+          ~p"/sessions/#{session.id}/insert-image?section_id=#{section_id}&cell_id=#{cell_id}"
+        )
+
+      view
+      |> file_input(~s/#insert-image-modal form/, :image, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      view
+      |> element(~s/#insert-image-modal form/)
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "deleting section with no cells requires no confirmation",
+         %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s{[data-section-id="#{section_id}"] [data-el-section-headline] [aria-label="delete section"]}
+      )
+      |> render_click()
+
+      assert %{notebook: %{sections: []}} = Session.get_data(session.pid)
+    end
+
+    test "deleting section with cells requires confirmation", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s{[data-section-id="#{section_id}"] [data-el-section-headline] [aria-label="delete section"]}
+      )
+      |> render_click()
+
+      render_confirm(view)
+
+      assert %{notebook: %{sections: []}} = Session.get_data(session.pid)
+    end
+
     test "deleting the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
@@ -1446,6 +1517,212 @@ defmodule LivebookWeb.SessionLiveTest do
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
 
       assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
+    end
+  end
+
+  describe "file management" do
+    @tag :tmp_dir
+    test "adding :attachment file entry from file",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "image.jpg")
+      File.write!(path, "content")
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
+
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me", "copy" => "true"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "true"}})
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    @tag :tmp_dir
+    test "adding :file file entry from file", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "image.jpg")
+      File.write!(path, "content")
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "false"}})
+
+      assert %{
+               notebook: %{
+                 file_entries: [
+                   %{
+                     type: :file,
+                     name: "image.jpg",
+                     file: %FileSystem.File{file_system: %FileSystem.Local{}, path: ^path}
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "adding :attachment file entry from url", %{conn: conn, session: session} do
+      bypass = Bypass.open()
+      file_url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/url")
+
+      # Validations
+      page =
+        view
+        |> element(~s{#add-file-entry-form})
+        |> render_change(%{"data" => %{"name" => "na me", "copy" => "true", "url" => "invalid"}})
+
+      page =~ "should contain only alphanumeric characters, dash, underscore and dot"
+      page =~ "must be a valid url"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{
+        "data" => %{"name" => "image.jpg", "copy" => "true", "url" => file_url}
+      })
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "adding :url file entry from url", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/url")
+
+      url = "https://example.com/image.jpg"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{
+        "data" => %{"name" => "image.jpg", "copy" => "false", "url" => url}
+      })
+
+      assert %{notebook: %{file_entries: [%{type: :url, name: "image.jpg", url: ^url}]}} =
+               Session.get_data(session.pid)
+    end
+
+    test "adding :attachment file entry from unlisted files", %{conn: conn, session: session} do
+      for name <- ["file1.txt", "file2.txt", "file3.txt"] do
+        file = FileSystem.File.resolve(session.files_dir, name)
+        :ok = FileSystem.File.write(file, "content")
+      end
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/unlisted")
+
+      page = render(view)
+
+      assert page =~ "file1.txt"
+      assert page =~ "file2.txt"
+      assert page =~ "file3.txt"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"selected_indices" => ["0", "2"]})
+
+      assert %{
+               notebook: %{
+                 file_entries: [
+                   %{type: :attachment, name: "file1.txt"},
+                   %{type: :attachment, name: "file3.txt"}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "deleting :attachment file entry and removing the file from the file system",
+         %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Delete")
+      |> render_click()
+
+      render_confirm(view, delete_from_file_system: true)
+
+      assert {:ok, false} = FileSystem.File.exists?(image_file)
+
+      assert %{notebook: %{file_entries: []}} = Session.get_data(session.pid)
+
+      refute view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+    end
+
+    test "deleting :attachment file entry and keeping the file in the file system",
+         %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Delete")
+      |> render_click()
+
+      render_confirm(view, delete_from_file_system: false)
+
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
+
+      assert %{notebook: %{file_entries: []}} = Session.get_data(session.pid)
+
+      refute view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+    end
+
+    @tag :tmp_dir
+    test "transferring file entry", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Copy to files")
+      |> render_click()
+
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
     end
   end
 

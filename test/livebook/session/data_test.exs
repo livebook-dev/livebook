@@ -3835,6 +3835,61 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :add_file_entries" do
+    test "adds file entries to the notebook" do
+      data = Data.new()
+
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :url, name: "data.csv", url: "https://example.com/data.csv"}
+
+      operation = {:add_file_entries, @cid, [file_entry1, file_entry2]}
+
+      assert {:ok, %{notebook: %{file_entries: [^file_entry1, ^file_entry2]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "replaces existing file entries with the same names" do
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :url, name: "data.csv", url: "https://example.com/data.csv"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry1, file_entry2]}
+        ])
+
+      file_entry3 = %{type: :attachment, name: "data.csv"}
+      file_entry4 = %{type: :attachment, name: "document.pdf"}
+
+      operation = {:add_file_entries, @cid, [file_entry3, file_entry4]}
+
+      assert {:ok, %{notebook: %{file_entries: [^file_entry3, ^file_entry4, ^file_entry1]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :delete_file_entry" do
+    test "returns an error if no file entry with the given name exists" do
+      data = Data.new()
+      operation = {:delete_file_entry, @cid, "image.jpg"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "removes file entry from the notebook" do
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :url, name: "data.csv", url: "https://example.com/data.csv"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry1, file_entry2]}
+        ])
+
+      operation = {:delete_file_entry, @cid, "image.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [^file_entry2]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_app_settings" do
     test "updates notebook app settings" do
       data = Data.new()

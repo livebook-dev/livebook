@@ -3,7 +3,7 @@ defmodule LivebookWeb.OpenLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session}
+  alias Livebook.{Sessions, Session, FileSystem}
 
   describe "file selection" do
     test "updates the list of files as the input changes", %{conn: conn} do
@@ -153,7 +153,45 @@ defmodule LivebookWeb.OpenLiveTest do
       {path, flash} = assert_redirect(view, 5000)
 
       assert flash["warning"] =~
-               "We found problems while importing the file and tried to autofix them:\n- downgrading all headings, because 3 instances of heading 1 were found"
+               "We found problems while importing the file:\n- downgrading all headings, because 3 instances of heading 1 were found"
+
+      close_session_by_path(path)
+    end
+
+    test "allows importing notebook from url and downloads its files", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, """
+        <!-- livebook:{"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+
+        # My notebook
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "GET", "/files/image.jpg", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "content")
+      end)
+
+      notebook_url = "http://localhost:#{bypass.port}/notebook.livemd"
+
+      {:ok, view, _} = live(conn, ~p"/open/url")
+
+      view
+      |> element("form", "Import")
+      |> render_submit(%{data: %{url: notebook_url}})
+
+      {path, _flash} = assert_redirect(view, 5000)
+
+      "/sessions/" <> session_id = path
+      {:ok, session} = Sessions.fetch_session(session_id)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
 
       close_session_by_path(path)
     end

@@ -51,10 +51,15 @@ defmodule Livebook.TestHelpers do
   Confirms the action guarded by `LivebookWeb.Confirm/3` and
   returns the rendered result.
   """
-  def render_confirm(view) do
+  def render_confirm(view, options \\ %{}) do
+    options =
+      for {option, value} <- options,
+          into: %{},
+          do: {Atom.to_string(option), Atom.to_string(value)}
+
     view
     |> element(~s/[data-el-confirm-form]/)
-    |> render_submit()
+    |> render_submit(%{"options" => options})
   end
 
   @doc """

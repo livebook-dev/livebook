@@ -121,6 +121,10 @@ const Session = {
       this.toggleAppInfo()
     );
 
+    this.getElement("files-list-toggle").addEventListener("click", (event) =>
+      this.toggleFilesList()
+    );
+
     this.getElement("notebook").addEventListener("scroll", (event) =>
       this.updateSectionListHighlight()
     );
@@ -368,6 +372,8 @@ const Session = {
         this.toggleAppInfo();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
+      } else if (keyBuffer.tryMatch(["s", "f"])) {
+        this.toggleFilesList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
         this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "b"])) {
@@ -717,6 +723,10 @@ const Session = {
 
   toggleAppInfo() {
     this.toggleSidePanelContent("app-info");
+  },
+
+  toggleFilesList() {
+    this.toggleSidePanelContent("files-list");
   },
 
   toggleRuntimeInfo() {

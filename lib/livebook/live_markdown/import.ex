@@ -381,35 +381,58 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp notebook_metadata_to_attrs(metadata) do
     Enum.reduce(metadata, {%{}, Livebook.Hubs.Personal.id(), []}, fn
-      {"persist_outputs", persist_outputs}, {attrs, id, messages} ->
-        {Map.put(attrs, :persist_outputs, persist_outputs), id, messages}
+      {"persist_outputs", persist_outputs}, {attrs, stamp_hub_id, messages} ->
+        {Map.put(attrs, :persist_outputs, persist_outputs), stamp_hub_id, messages}
 
-      {"autosave_interval_s", autosave_interval_s}, {attrs, id, messages} ->
-        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), id, messages}
+      {"autosave_interval_s", autosave_interval_s}, {attrs, stamp_hub_id, messages} ->
+        {Map.put(attrs, :autosave_interval_s, autosave_interval_s), stamp_hub_id, messages}
 
-      {"default_language", default_language}, {attrs, id, messages}
+      {"default_language", default_language}, {attrs, stamp_hub_id, messages}
       when default_language in ["elixir", "erlang"] ->
         default_language = String.to_atom(default_language)
-        {Map.put(attrs, :default_language, default_language), id, messages}
+        {Map.put(attrs, :default_language, default_language), stamp_hub_id, messages}
 
-      {"hub_id", hub_id}, {attrs, id, messages} ->
+      {"hub_id", hub_id}, {attrs, stamp_hub_id, messages} ->
         cond do
           Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), hub_id, messages}
           Hubs.get_offline_hub(hub_id) -> {attrs, hub_id, messages}
-          true -> {attrs, id, messages ++ ["ignoring notebook Hub with unknown id"]}
+          true -> {attrs, stamp_hub_id, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
-      {"app_settings", app_settings_metadata}, {attrs, id, messages} ->
+      {"app_settings", app_settings_metadata}, {attrs, stamp_hub_id, messages} ->
         app_settings =
           Map.merge(
             Notebook.AppSettings.new(),
             app_settings_metadata_to_attrs(app_settings_metadata)
           )
 
-        {Map.put(attrs, :app_settings, app_settings), id, messages}
+        {Map.put(attrs, :app_settings, app_settings), stamp_hub_id, messages}
 
-      _entry, {attrs, id, messages} ->
-        {attrs, id, messages}
+      {"file_entries", file_entry_metadatas}, {attrs, stamp_hub_id, messages}
+      when is_list(file_entry_metadatas) ->
+        file_system_by_id =
+          if Enum.any?(file_entry_metadatas, &(&1["type"] == "file")) do
+            for file_system <- Livebook.Settings.file_systems(),
+                do: {file_system.id, file_system},
+                into: %{}
+          else
+            %{}
+          end
+
+        {file_entries, file_entry_messages} =
+          for file_entry_metadata <- file_entry_metadatas, reduce: {[], []} do
+            {file_entries, warnings} ->
+              case file_entry_metadata_to_attrs(file_entry_metadata, file_system_by_id) do
+                {:ok, file_entry} -> {[file_entry | file_entries], warnings}
+                {:error, message} -> {file_entries, [message | warnings]}
+              end
+          end
+
+        {Map.put(attrs, :file_entries, file_entries), stamp_hub_id,
+         messages ++ file_entry_messages}
+
+      _entry, {attrs, stamp_hub_id, messages} ->
+        {attrs, stamp_hub_id, messages}
     end)
   end
 
@@ -442,6 +465,33 @@ defmodule Livebook.LiveMarkdown.Import do
       _entry, attrs ->
         attrs
     end)
+  end
+
+  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}, _file_system_by_id) do
+    {:ok, %{type: :attachment, name: name}}
+  end
+
+  defp file_entry_metadata_to_attrs(
+         %{
+           "type" => "file",
+           "name" => name,
+           "file" => %{"file_system_id" => file_system_id, "path" => path}
+         },
+         file_system_by_id
+       ) do
+    if file_system = file_system_by_id[file_system_id] do
+      file = Livebook.FileSystem.File.new(file_system, path)
+      {:ok, %{type: :file, name: name, file: file}}
+    else
+      {:error, "skipping file #{name}, since it points to an unknown file system"}
+    end
+  end
+
+  defp file_entry_metadata_to_attrs(
+         %{"type" => "url", "name" => name, "url" => url},
+         _file_system_by_id
+       ) do
+    {:ok, %{type: :url, name: name, url: url}}
   end
 
   defp section_metadata_to_attrs(metadata) do
@@ -518,7 +568,27 @@ defmodule Livebook.LiveMarkdown.Import do
         end
       end)
 
-    {%{notebook | sections: sections}, Enum.reverse(warnings)}
+    notebook = %{notebook | sections: sections}
+
+    legacy_images? =
+      notebook
+      |> Notebook.cells_with_section()
+      |> Enum.any?(fn {cell, _section} ->
+        # A heuristic to detect legacy image source
+        is_struct(cell, Notebook.Cell.Markdown) and String.contains?(cell.source, "](images/")
+      end)
+
+    image_warnings =
+      if legacy_images? do
+        [
+          "found Markdown images pointing to the images/ directory." <>
+            " Using this directory has been deprecated, please use notebook files instead"
+        ]
+      else
+        []
+      end
+
+    {notebook, Enum.reverse(warnings) ++ image_warnings}
   end
 
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}

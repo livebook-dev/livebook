@@ -105,7 +105,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           <.menu_item>
             <.link
               patch={
-                ~p"/sessions/#{@session_id}/cell-upload?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
+                ~p"/sessions/#{@session_id}/insert-image?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
               }
               aria-label="insert image"
               role="menuitem"

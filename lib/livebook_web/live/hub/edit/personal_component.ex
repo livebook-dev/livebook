@@ -65,7 +65,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                     class="button-base button-blue"
                     type="submit"
                     phx-disable-with="Updating..."
-                    disable={not @changeset.valid?}
+                    disabled={not @changeset.valid?}
                   >
                     Save
                   </button>
@@ -140,7 +140,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                     class="button-base button-blue"
                     type="submit"
                     phx-disable-with="Updating..."
-                    disable={not @stamp_changeset.valid?}
+                    disabled={not @stamp_changeset.valid?}
                   >
                     Save
                   </button>

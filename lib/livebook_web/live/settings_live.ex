@@ -248,7 +248,7 @@ defmodule LivebookWeb.SettingsLive do
     ~H"""
     <div class="flex">
       <input class="input mr-2" readonly value={@state.file.path} />
-      <button class="button-base button-gray button-small" phx-click="open_autosave_path_select">
+      <button class="button-base button-gray" phx-click="open_autosave_path_select">
         Change
       </button>
     </div>

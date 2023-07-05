@@ -16,11 +16,11 @@ defmodule Livebook.Notebook.Learn do
           slug: String.t(),
           livemd: String.t(),
           title: String.t(),
-          images: images(),
+          files: files(),
           details: details() | nil
         }
 
-  @type images :: %{String.t() => binary()}
+  @type files :: %{String.t() => binary()}
 
   @type details :: %{
           description: String.t(),
@@ -36,7 +36,7 @@ defmodule Livebook.Notebook.Learn do
 
   @type image_source :: {:static, filename :: String.t()} | {:url, String.t()}
 
-  images_dir = Path.expand("learn/images", __DIR__)
+  files_dir = Path.expand("learn/files", __DIR__)
 
   welcome_config = %{
     path: Path.join(__DIR__, "learn/intro_to_livebook.livemd"),
@@ -49,9 +49,9 @@ defmodule Livebook.Notebook.Learn do
   other_configs = [
     %{
       path: Path.join(__DIR__, "learn/distributed_portals_with_elixir.livemd"),
-      image_paths: [
-        Path.join(images_dir, "portal-drop.jpeg"),
-        Path.join(images_dir, "portal-list.jpeg")
+      file_paths: [
+        Path.join(files_dir, "portal-drop.jpeg"),
+        Path.join(files_dir, "portal-list.jpeg")
       ],
       details: %{
         description:
@@ -127,9 +127,9 @@ defmodule Livebook.Notebook.Learn do
         raise "found warnings while importing #{path}:\n\n" <> Enum.join(items, "\n")
       end
 
-      images =
+      files =
         config
-        |> Map.get(:image_paths, [])
+        |> Map.get(:file_paths, [])
         |> Map.new(fn image_path ->
           image_name = Path.basename(image_path)
           content = File.read!(image_path)
@@ -144,7 +144,7 @@ defmodule Livebook.Notebook.Learn do
         slug: slug,
         livemd: markdown,
         title: notebook.name,
-        images: images,
+        files: files,
         details:
           if config_details = config[:details] do
             description =
@@ -186,9 +186,9 @@ defmodule Livebook.Notebook.Learn do
   @doc """
   Finds learn notebook by slug and returns the parsed data structure.
 
-  Returns the notebook along with the images it uses as preloaded binaries.
+  Returns the notebook along with the files it uses as preloaded binaries.
   """
-  @spec notebook_by_slug!(String.t()) :: {Livebook.Notebook.t(), images()}
+  @spec notebook_by_slug!(String.t()) :: {Livebook.Notebook.t(), files()}
   def notebook_by_slug!(slug) do
     notebook_infos()
     |> Enum.find(&(&1.slug == slug))
@@ -198,7 +198,7 @@ defmodule Livebook.Notebook.Learn do
 
       notebook_info ->
         {notebook, []} = Livebook.LiveMarkdown.notebook_from_livemd(notebook_info.livemd)
-        {notebook, notebook_info.images}
+        {notebook, notebook_info.files}
     end
   end
 

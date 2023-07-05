@@ -231,7 +231,10 @@ defmodule LivebookWeb.FormComponents do
   attr :help, :string, default: nil
 
   attr :checked_value, :string, default: "true"
-  attr :unchecked_value, :string, default: "false"
+
+  attr :unchecked_value, :any,
+    default: "false",
+    doc: "when set to `nil`, unchecked value is not sent"
 
   attr :rest, :global
 
@@ -241,7 +244,7 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
       <label class="flex items-center gap-2 cursor-pointer">
-        <input type="hidden" value={@unchecked_value} name={@name} />
+        <input :if={@unchecked_value} type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
           class="checkbox shrink-0"

@@ -30,8 +30,11 @@ defmodule Livebook.FileSystem.S3 do
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
+    hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
+    id = "s3-#{hash}"
+
     %__MODULE__{
-      id: Livebook.Utils.random_short_id(),
+      id: id,
       bucket_url: bucket_url,
       region: region,
       access_key_id: access_key_id,
@@ -52,23 +55,22 @@ defmodule Livebook.FileSystem.S3 do
   def from_config(config) do
     case config do
       %{
-        id: id,
         bucket_url: bucket_url,
         access_key_id: access_key_id,
         secret_access_key: secret_access_key
       } ->
         file_system = new(bucket_url, access_key_id, secret_access_key, region: config[:region])
-        {:ok, %{file_system | id: id}}
+        {:ok, file_system}
 
       _config ->
         {:error,
-         "S3 file system config is expected to have keys: :id, :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
+         "S3 file system config is expected to have keys: :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
     end
   end
 
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
-    Map.take(s3, [:id, :bucket_url, :region, :access_key_id, :secret_access_key])
+    Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 end
 

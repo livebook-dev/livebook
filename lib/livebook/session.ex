@@ -53,7 +53,7 @@ defmodule Livebook.Session do
     :notebook_name,
     :file,
     :mode,
-    :images_dir,
+    :files_dir,
     :created_at,
     :memory_usage
   ]
@@ -80,7 +80,7 @@ defmodule Livebook.Session do
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           mode: Data.session_mode(),
-          images_dir: FileSystem.File.t(),
+          files_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
           memory_usage: memory_usage()
         }
@@ -93,7 +93,7 @@ defmodule Livebook.Session do
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           autosave_path: String.t(),
-          save_task_pid: pid() | nil,
+          save_task_ref: reference() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage(),
           worker_pid: pid(),
@@ -131,10 +131,16 @@ defmodule Livebook.Session do
 
     * `:file` - the file to which the notebook should be saved
 
-    * `:copy_images_from` - a directory file to copy notebook images from
+    * `:files_source` - a location to fetch notebook files from, either of:
 
-    * `:images` - a map from image name to its binary content, an alternative
-      to `:copy_images_from` when the images are in memory
+        * `{:dir, dir}` - a directory file
+
+        * `{:url, url} - a base url to the files directory (with `/` suffix)
+
+        * `{:inline, contents_map}` - a map with file names pointing to their
+          binary contents
+
+      Defaults to `nil`, in which case no files are copied
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
       Defaults to `Livebook.Settings.autosave_path/0`
@@ -200,6 +206,14 @@ defmodule Livebook.Session do
   @spec get_notebook(pid()) :: Notebook.t()
   def get_notebook(pid) do
     GenServer.call(pid, :get_notebook, @timeout)
+  end
+
+  @doc """
+  Returns the current notebook file entries.
+  """
+  @spec get_notebook_file_entries(pid()) :: list(Notebook.file_entry())
+  def get_notebook_file_entries(pid) do
+    GenServer.call(pid, :get_notebook_file_entries, @timeout)
   end
 
   @doc """
@@ -558,11 +572,30 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a hub selection to the server.
+  Sends a hub selection request to the server.
   """
   @spec set_notebook_hub(pid(), String.t()) :: :ok
   def set_notebook_hub(pid, id) do
     GenServer.cast(pid, {:set_notebook_hub, self(), id})
+  end
+
+  @doc """
+  Sends a file entries addition request to the server.
+
+  Note that if file entries with any of the given names already exist
+  they are replaced.
+  """
+  @spec add_file_entries(pid(), list(Notebook.file_entry())) :: :ok
+  def add_file_entries(pid, file_entries) do
+    GenServer.cast(pid, {:add_file_entries, self(), file_entries})
+  end
+
+  @doc """
+  Sends a file entry deletion request to the server.
+  """
+  @spec delete_file_entry(pid(), String.t()) :: :ok
+  def delete_file_entry(pid, name) do
+    GenServer.cast(pid, {:delete_file_entry, self(), name})
   end
 
   @doc """
@@ -699,13 +732,8 @@ defmodule Livebook.Session do
 
     with {:ok, state} <- init_state(id, worker_pid, opts),
          :ok <-
-           if(copy_images_from = opts[:copy_images_from],
-             do: copy_images(state, copy_images_from),
-             else: :ok
-           ),
-         :ok <-
-           if(images = opts[:images],
-             do: dump_images(state, images),
+           if(files_source = opts[:files_source],
+             do: initialize_files_from(state, files_source),
              else: :ok
            ) do
       state = schedule_autosave(state)
@@ -726,6 +754,7 @@ defmodule Livebook.Session do
       end
     else
       {:error, error} ->
+        cleanup_tmp_dir(id)
         {:stop, error}
     end
   end
@@ -740,7 +769,7 @@ defmodule Livebook.Session do
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
-        save_task_pid: nil,
+        save_task_ref: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
         worker_pid: worker_pid,
@@ -886,6 +915,10 @@ defmodule Livebook.Session do
 
   def handle_call(:get_notebook, _from, state) do
     {:reply, state.data.notebook, state}
+  end
+
+  def handle_call(:get_notebook_file_entries, _from, state) do
+    {:reply, state.data.notebook.file_entries, state}
   end
 
   def handle_call(:save_sync, _from, state) do
@@ -1260,6 +1293,18 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:add_file_entries, client_pid, file_entries}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:add_file_entries, client_id, file_entries}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:delete_file_entry, client_pid, name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:delete_file_entry, client_id, name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, state)
       when ref == state.runtime_monitor_ref do
@@ -1273,6 +1318,10 @@ defmodule Livebook.Session do
      |> handle_operation(
        {:set_runtime, @client_id, Livebook.Runtime.duplicate(state.data.runtime)}
      )}
+  end
+
+  def handle_info({:DOWN, ref, :process, _, _}, state) when ref == state.save_task_ref do
+    {:noreply, %{state | save_task_ref: nil}}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state)
@@ -1423,11 +1472,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info(
-        {:save_finished, pid, result, warnings, file, default?},
-        %{save_task_pid: pid} = state
-      ) do
-    state = %{state | save_task_pid: nil}
+  def handle_info({ref, {:save_finished, result, warnings, file, default?}}, state)
+      when ref == state.save_task_ref do
+    state = %{state | save_task_ref: nil}
     {:noreply, handle_save_finished(state, result, warnings, file, default?)}
   end
 
@@ -1574,29 +1621,35 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       mode: state.data.mode,
-      images_dir: images_dir_from_state(state),
+      files_dir: files_dir_from_state(state),
       created_at: state.created_at,
       memory_usage: state.memory_usage
     }
   end
 
-  defp images_dir_from_state(%{data: %{file: nil}, session_id: id}) do
-    tmp_dir = session_tmp_dir(id)
-    FileSystem.File.resolve(tmp_dir, "images/")
+  defp files_dir_from_state(state) do
+    state
+    |> notebook_dir()
+    |> FileSystem.File.resolve("files/")
   end
 
-  defp images_dir_from_state(%{data: %{file: file}}) do
-    images_dir_for_notebook(file)
+  defp notebook_dir(state) do
+    if file = state.data.file || default_notebook_file(state) do
+      FileSystem.File.containing_dir(file)
+    else
+      tmp_dir = session_tmp_dir(state.session_id)
+      FileSystem.File.resolve(tmp_dir, "notebook/")
+    end
   end
 
   @doc """
-  Returns images directory corresponding to the given notebook file.
+  Returns files directory corresponding to the given notebook file.
   """
-  @spec images_dir_for_notebook(FileSystem.File.t()) :: FileSystem.File.t()
-  def images_dir_for_notebook(file) do
+  @spec files_dir_for_notebook(FileSystem.File.t()) :: FileSystem.File.t()
+  def files_dir_for_notebook(file) do
     file
     |> FileSystem.File.containing_dir()
-    |> FileSystem.File.resolve("images/")
+    |> FileSystem.File.resolve("files/")
   end
 
   defp session_tmp_dir(session_id) do
@@ -1651,52 +1704,112 @@ defmodule Livebook.Session do
     Path.join(tmp_dir, "livebook")
   end
 
-  defp copy_images(state, source) do
-    images_dir = images_dir_from_state(state)
+  defp initialize_files_from(state, {:inline, contents_map}) do
+    write_attachment_file_entries(state, fn destination_file, file_entry ->
+      case Map.fetch(contents_map, file_entry.name) do
+        {:ok, content} -> FileSystem.File.write(destination_file, content)
+        :error -> :ok
+      end
+    end)
+  end
 
+  defp initialize_files_from(state, {:url, url}) do
+    write_attachment_file_entries(state, fn destination_file, file_entry ->
+      source_url =
+        url
+        |> Livebook.Utils.expand_url(file_entry.name)
+        |> Livebook.Notebook.ContentLoader.rewrite_url()
+
+      case fetch_content(source_url) do
+        {:ok, content} -> FileSystem.File.write(destination_file, content)
+        {:error, _message, 404} -> :ok
+        {:error, message, _status} -> {:error, message}
+      end
+    end)
+  end
+
+  defp initialize_files_from(state, {:dir, dir}) do
+    copy_files(state, dir)
+  end
+
+  defp copy_files(state, source) do
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
-        FileSystem.File.copy(source, images_dir)
+        write_attachment_file_entries(state, fn destination_file, file_entry ->
+          source_file = FileSystem.File.resolve(source, file_entry.name)
+
+          case FileSystem.File.copy(source_file, destination_file) do
+            :ok ->
+              :ok
+
+            {:error, message} ->
+              # If the files does not exist, we treat it as copy success
+              case FileSystem.File.exists?(source_file) do
+                {:ok, false} -> :ok
+                _ -> {:error, file_entry.name, message}
+              end
+          end
+        end)
       else
         :ok
       end
     end
   end
 
-  defp move_images(state, source) do
-    images_dir = images_dir_from_state(state)
+  defp write_attachment_file_entries(state, write_fun) do
+    files_dir = files_dir_from_state(state)
+
+    state.data.notebook.file_entries
+    |> Enum.filter(&(&1.type == :attachment))
+    |> Task.async_stream(
+      fn file_entry ->
+        destination_file = FileSystem.File.resolve(files_dir, file_entry.name)
+
+        case write_fun.(destination_file, file_entry) do
+          :ok -> :ok
+          {:error, message} -> {:error, file_entry.name, message}
+        end
+      end,
+      max_concurrency: 20
+    )
+    |> Enum.reject(&(&1 == {:ok, :ok}))
+    |> case do
+      [] ->
+        :ok
+
+      errors ->
+        enumeration =
+          Enum.map_join(errors, ", ", fn {:ok, {:error, name, message}} ->
+            "#{name} (#{message})"
+          end)
+
+        {:error, "failed to copy files: " <> enumeration}
+    end
+  end
+
+  defp move_files(state, source) do
+    files_dir = files_dir_from_state(state)
 
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
-        with {:ok, destination_exists?} <- FileSystem.File.exists?(images_dir) do
+        with {:ok, destination_exists?} <- FileSystem.File.exists?(files_dir) do
           if destination_exists? do
             # If the directory exists, we use copy to place
-            # the images there
-            with :ok <- FileSystem.File.copy(source, images_dir) do
+            # the files there
+            with :ok <- FileSystem.File.copy(source, files_dir) do
               FileSystem.File.remove(source)
             end
           else
             # If the directory doesn't exist, we can just change
             # the directory name, which is more efficient if
             # available in the given file system
-            FileSystem.File.rename(source, images_dir)
+            FileSystem.File.rename(source, files_dir)
           end
         end
       else
         :ok
       end
     end
-  end
-
-  defp dump_images(state, images) do
-    images_dir = images_dir_from_state(state)
-
-    Enum.reduce(images, :ok, fn {filename, content}, result ->
-      with :ok <- result do
-        file = FileSystem.File.resolve(images_dir, filename)
-        FileSystem.File.write(file, content)
-      end
-    end)
   end
 
   defp own_runtime(runtime, state) do
@@ -1778,19 +1891,16 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, prev_state, {:set_file, _client_id, _file}) do
-    prev_images_dir = images_dir_from_state(prev_state)
+    prev_files_dir = files_dir_from_state(prev_state)
 
     if prev_state.data.file do
-      copy_images(state, prev_images_dir)
+      copy_files(state, prev_files_dir)
     else
-      move_images(state, prev_images_dir)
+      move_files(state, prev_files_dir)
     end
     |> case do
-      :ok ->
-        :ok
-
-      {:error, message} ->
-        broadcast_error(state.session_id, "failed to copy images - #{message}")
+      :ok -> :ok
+      {:error, message} -> broadcast_error(state.session_id, message)
     end
 
     if file = state.data.file do
@@ -2126,17 +2236,16 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      pid = self()
       notebook = state.data.notebook
 
-      {:ok, pid} =
-        Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      %{ref: ref} =
+        Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
           {content, warnings} = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
-          send(pid, {:save_finished, self(), result, warnings, file, default?})
+          {:save_finished, result, warnings, file, default?}
         end)
 
-      %{state | save_task_pid: pid}
+      %{state | save_task_ref: ref}
     else
       state
     end
@@ -2159,7 +2268,7 @@ defmodule Livebook.Session do
   defp maybe_save_notebook_sync(state), do: state
 
   defp should_save_notebook?(state) do
-    (state.data.dirty or state.data.persistence_warnings != []) and state.save_task_pid == nil
+    (state.data.dirty or state.data.persistence_warnings != []) and state.save_task_ref == nil
   end
 
   defp notebook_autosave_file(state) do
@@ -2184,13 +2293,7 @@ defmodule Livebook.Session do
     # which are random already
     random_str = String.slice(state.session_id, -4..-1)
 
-    [date_str, time_str, _] =
-      state.created_at
-      |> DateTime.to_iso8601()
-      |> String.replace(["-", ":"], "_")
-      |> String.split(["T", "."])
-
-    "#{date_str}/#{time_str}_#{title_str}_#{random_str}.livemd"
+    Calendar.strftime(state.created_at, "%Y_%m_%d/%H_%M") <> "_#{random_str}/#{title_str}.livemd"
   end
 
   defp notebook_name_to_file_name(notebook_name) do
@@ -2206,19 +2309,14 @@ defmodule Livebook.Session do
   end
 
   defp handle_save_finished(state, result, warnings, file, default?) do
-    state =
-      if default? do
+    case result do
+      :ok ->
         if state.saved_default_file && state.saved_default_file != file do
           FileSystem.File.remove(state.saved_default_file)
         end
 
-        %{state | saved_default_file: file}
-      else
-        state
-      end
+        state = %{state | saved_default_file: if(default?, do: file, else: nil)}
 
-    case result do
-      :ok ->
         handle_operation(state, {:notebook_saved, @client_id, warnings})
 
       {:error, message} ->
@@ -2399,4 +2497,51 @@ defmodule Livebook.Session do
 
   defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
+
+  @doc """
+  Converts the given file entry to attachment one.
+
+  The file is fetched into the notebook files directory.
+  """
+  @spec to_attachment_file_entry(t(), Notebook.file_entry()) :: {:ok, Notebook.file_entry()}
+  def to_attachment_file_entry(session, file_entry)
+
+  def to_attachment_file_entry(session, %{type: :file} = file_entry) do
+    destination = FileSystem.File.resolve(session.files_dir, file_entry.name)
+
+    with :ok <- FileSystem.File.copy(file_entry.file, destination) do
+      {:ok, %{name: file_entry.name, type: :attachment}}
+    end
+  end
+
+  def to_attachment_file_entry(session, %{type: :url} = file_entry) do
+    destination = FileSystem.File.resolve(session.files_dir, file_entry.name)
+
+    case fetch_content(file_entry.url) do
+      {:ok, content} ->
+        with :ok <- FileSystem.File.write(destination, content) do
+          {:ok, %{name: file_entry.name, type: :attachment}}
+        end
+
+      {:error, message, _status} ->
+        {:error, message}
+    end
+  end
+
+  def to_attachment_file_entry(_session, %{type: :attachment} = file_entry) do
+    {:ok, file_entry}
+  end
+
+  defp fetch_content(url) do
+    case Livebook.Utils.HTTP.request(:get, url) do
+      {:ok, 200, _headers, body} ->
+        {:ok, body}
+
+      {:ok, status, _headers, _body} ->
+        {:error, "failed to download file from the given URL", status}
+
+      _ ->
+        {:error, "failed to download file from the given URL", nil}
+    end
+  end
 end

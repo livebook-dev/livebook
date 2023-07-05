@@ -66,12 +66,13 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
 
   defp do_import(socket, url) do
     origin = Notebook.ContentLoader.url_to_location(url)
+    files_url = Livebook.Utils.expand_url(url, "files/")
 
     origin
     |> Notebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
-        send(self(), {:import_source, content, [origin: origin]})
+        send(self(), {:import_source, content, [origin: origin, files_source: {:url, files_url}]})
         socket
 
       {:error, message} ->

@@ -68,20 +68,20 @@ defmodule LivebookWeb.OpenLive.UploadComponent do
     """
   end
 
-  @impl Phoenix.LiveComponent
+  @impl true
   def handle_event("clear-file", _params, socket) do
     {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)
     {:noreply, assign(socket, error: false)}
   end
 
-  @impl Phoenix.LiveComponent
+  @impl true
   def handle_event("validate", _params, socket) do
     has_error? = Enum.any?(socket.assigns.uploads.notebook.entries, &(not &1.valid?))
 
     {:noreply, assign(socket, error: has_error?)}
   end
 
-  @impl Phoenix.LiveComponent
+  @impl true
   def handle_event("save", _params, socket) do
     consume_uploaded_entries(socket, :notebook, fn %{path: path}, _entry ->
       content = File.read!(path)

@@ -10,6 +10,7 @@ defmodule Livebook.Migration do
     insert_personal_hub()
     move_app_secrets_to_personal_hub()
     add_personal_hub_secret_key()
+    update_file_systems_to_deterministic_ids()
   end
 
   defp delete_local_host_hub() do
@@ -44,6 +45,46 @@ defmodule Livebook.Migration do
     with :error <- Livebook.Storage.fetch_key(:hubs, Livebook.Hubs.Personal.id(), :secret_key) do
       secret_key = Livebook.Hubs.Personal.generate_secret_key()
       Livebook.Storage.insert(:hubs, Livebook.Hubs.Personal.id(), secret_key: secret_key)
+    end
+  end
+
+  defp update_file_systems_to_deterministic_ids() do
+    # We changed S3 file system ids, such that they are deterministic
+    # for the same bucket, rather than random. We take this opportunity
+    # to rename the scope from :filesystem to :file_systems, which
+    # conveniently allows for easy check if there's anything to migrate.
+    # This migration can be removed in the future (at the cost of discarding
+    # very old file systems (which can be re-added).
+    # TODO: remove on Livebook v0.12
+
+    case Livebook.Storage.all(:filesystem) do
+      [] ->
+        :ok
+
+      configs ->
+        id_mapping =
+          for config <- configs, into: %{} do
+            old_id = config.id
+            # At this point S3 is the only file system we store
+            {:ok, file_system} = Livebook.FileSystem.S3.from_config(config)
+            Livebook.Settings.save_file_system(file_system)
+            Livebook.Storage.delete(:filesystem, old_id)
+            {old_id, file_system.id}
+          end
+
+        # Remap default file system id
+
+        default_file_system_id = Livebook.Settings.default_file_system_id()
+
+        if new_id = id_mapping[default_file_system_id] do
+          Livebook.Settings.set_default_file_system(new_id)
+        end
+
+        # Livebook.NotebookManager is started before the migration runs,
+        # and it discards S3 files, since it can't find the file system.
+        # However, in this case it's fine; for recent notebooks it does
+        # not matter really and there are likely not many starred S3
+        # notebooks at this point (and the user can easily star again)
     end
   end
 end
