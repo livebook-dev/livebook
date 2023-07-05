@@ -52,14 +52,20 @@ defmodule Livebook.Stamping do
   @spec rsa_verify?(String.t(), String.t(), String.t()) :: boolean()
   def rsa_verify?(signature, payload, public_key) do
     der_key = Base.url_decode64!(public_key, padding: false)
-    raw_key = :public_key.der_decode(:RSAPublicKey, der_key)
 
-    case Base.url_decode64(signature, padding: false) do
-      {:ok, raw_signature} ->
-        :public_key.verify(payload, :sha256, raw_signature, raw_key)
+    with {:ok, raw_key} <- safe_der_decode(der_key),
+         {:ok, raw_signature} <- Base.url_decode64(signature, padding: false) do
+      :public_key.verify(payload, :sha256, raw_signature, raw_key)
+    else
+      _ -> false
+    end
+  end
 
-      :error ->
-        false
+  defp safe_der_decode(der_key) do
+    try do
+      {:ok, :public_key.der_decode(:RSAPublicKey, der_key)}
+    rescue
+      _ -> :error
     end
   end
 end

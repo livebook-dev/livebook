@@ -1149,7 +1149,11 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       {notebook, []} = Import.notebook_from_livemd(markdown)
 
-      assert %Notebook{hub_id: "personal-hub", hub_secret_names: ["DB_PASSWORD"]} = notebook
+      assert %Notebook{
+               hub_id: "personal-hub",
+               hub_secret_names: ["DB_PASSWORD"],
+               teams_enabled: true
+             } = notebook
     end
 
     test "returns a warning when notebook stamp is invalid using offline hub" do
@@ -1178,8 +1182,33 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
       """
 
-      assert {%Notebook{hub_secret_names: []}, ["failed to verify notebook stamp"]} =
-               Import.notebook_from_livemd(markdown)
+      assert {%Notebook{
+                hub_id: "personal-hub",
+                hub_secret_names: [],
+                teams_enabled: false
+              }, ["failed to verify notebook stamp"]} = Import.notebook_from_livemd(markdown)
+    end
+
+    test "sets :teams_enabled to true when the teams hub exist regardless the stamp" do
+      %{id: hub_id} = Livebook.Factory.insert_hub(:team)
+
+      markdown = """
+      <!-- livebook:{"hub_id":"#{hub_id}"} -->
+
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
+      """
+
+      {notebook, [_]} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_id: ^hub_id, teams_enabled: true} = notebook
     end
   end
 end

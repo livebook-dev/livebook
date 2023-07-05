@@ -1637,7 +1637,11 @@ defmodule Livebook.Session.Data do
   defp set_notebook_hub({data, _} = data_actions, hub) do
     data_actions
     |> set!(
-      notebook: %{data.notebook | hub_id: hub.id},
+      notebook: %{
+        data.notebook
+        | hub_id: hub.id,
+          teams_enabled: is_struct(hub, Livebook.Hubs.Team)
+      },
       hub_secrets: Hubs.get_secrets(hub)
     )
   end

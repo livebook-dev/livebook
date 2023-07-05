@@ -25,7 +25,8 @@ defmodule Livebook.Notebook do
     :output_counter,
     :app_settings,
     :hub_id,
-    :hub_secret_names
+    :hub_secret_names,
+    :teams_enabled
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -44,7 +45,8 @@ defmodule Livebook.Notebook do
           output_counter: non_neg_integer(),
           app_settings: AppSettings.t(),
           hub_id: String.t(),
-          hub_secret_names: list(String.t())
+          hub_secret_names: list(String.t()),
+          teams_enabled: boolean()
         }
 
   @version "1.0"
@@ -66,7 +68,8 @@ defmodule Livebook.Notebook do
       output_counter: 0,
       app_settings: AppSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
-      hub_secret_names: []
+      hub_secret_names: [],
+      teams_enabled: false
     }
     |> put_setup_cell(Cell.new(:code))
   end

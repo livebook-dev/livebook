@@ -209,7 +209,7 @@ The following environment variables can be used to configure Livebook on boot:
     Supported values are:
 
       * "cloudflare:<your-team-name (domain)>"
-      * "googleiap:<your-audience (aud)>"
+      * "google_iap:<your-audience (aud)>"
 
   * LIVEBOOK_IFRAME_PORT - sets the port that Livebook serves iframes at.
     This is relevant only when running Livebook without TLS. Defaults to 8081.
