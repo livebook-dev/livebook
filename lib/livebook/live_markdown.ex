@@ -101,6 +101,11 @@ defmodule Livebook.LiveMarkdown do
   Returns the notebook structure and a list of informative messages/warnings
   related to the imported input.
   """
-  @spec notebook_from_livemd(String.t()) :: {Notebook.t(), list(String.t())}
+  @spec notebook_from_livemd(String.t()) ::
+          {Notebook.t(),
+           %{
+             required(:warnings) => list(String.t()),
+             required(:verified_hub_id) => String.t() | nil
+           }}
   defdelegate notebook_from_livemd(markdown), to: Livebook.LiveMarkdown.Import
 end
