@@ -193,7 +193,7 @@ defmodule Livebook.Apps do
           %{id: ^verified_hub_id} ->
             deploy(notebook, warnings: warnings)
 
-          %{id: _, name: hub_name} ->
+          %{id: _, hub_name: hub_name} ->
             Logger.warning(
               "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{hub_name}"
             )
