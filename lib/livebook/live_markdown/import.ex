@@ -618,7 +618,9 @@ defmodule Livebook.LiveMarkdown.Import do
     teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (not offline? or valid_stamp?)
 
     notebook = %{notebook | teams_enabled: teams_enabled}
-    {notebook, hub.id, messages}
+    verified_hub_id = if(valid_stamp?, do: hub.id)
+
+    {notebook, verified_hub_id, messages}
   end
 
   defp safe_binary_slice(binary, start, size)

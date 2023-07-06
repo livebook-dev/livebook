@@ -190,9 +190,16 @@ defmodule Livebook.Apps do
         warnings = Enum.map(warnings, &("Import: " <> &1))
 
         case Livebook.Hubs.get_offline_hub() do
-          %{id: ^verified_hub_id} -> deploy(notebook, warnings: warnings)
-          %{id: _} -> :ok
-          nil -> deploy(notebook, warnings: warnings)
+          %{id: ^verified_hub_id} ->
+            deploy(notebook, warnings: warnings)
+
+          %{id: _, name: hub_name} ->
+            Logger.warning(
+              "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{hub_name}"
+            )
+
+          nil ->
+            deploy(notebook, warnings: warnings)
         end
       else
         Logger.warning(
