@@ -902,7 +902,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ![](images/dog.jpeg)
       """
 
-      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+      {_notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
