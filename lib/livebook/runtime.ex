@@ -315,10 +315,10 @@ defprotocol Livebook.Runtime do
 
   The runtime may ask for the file by sending a request:
 
-    * `{:runtime_file_lookup, reply_to, file_ref}`
+    * `{:runtime_file_path_request, reply_to, file_ref}`
 
   to which the runtime owner is supposed to reply with
-  `{:runtime_file_lookup_reply, reply}` where `reply` is either
+  `{:runtime_file_path_reply, reply}` where `reply` is either
   `{:ok, path}` or `:error` if no matching file can be found. Note
   that `path` should be accessible within the runtime and can be
   obtained using `transfer_file/4`.
@@ -409,7 +409,7 @@ defprotocol Livebook.Runtime do
   Outputs may include input fields. The evaluation may then request
   the current value of a previously rendered input by sending
 
-    * `{:runtime_evaluation_input, evaluation_ref, reply_to, input_id}`
+    * `{:runtime_evaluation_input_request, evaluation_ref, reply_to, input_id}`
 
   to the  runtime owner who is supposed to reply with
   `{:runtime_evaluation_input_reply, reply}` where `reply` is either

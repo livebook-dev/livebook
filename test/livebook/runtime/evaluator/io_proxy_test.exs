@@ -151,7 +151,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
   defp reply_to_input_request(ref, input_id, reply, times) do
     receive do
-      {:runtime_evaluation_input, ^ref, reply_to, ^input_id} ->
+      {:runtime_evaluation_input_request, ^ref, reply_to, ^input_id} ->
         send(reply_to, {:runtime_evaluation_input_reply, reply})
         reply_to_input_request(ref, input_id, reply, times - 1)
     end

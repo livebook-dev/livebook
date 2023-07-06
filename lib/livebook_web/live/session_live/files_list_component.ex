@@ -54,6 +54,20 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
                 <span>Copy to files</span>
               </button>
             </.menu_item>
+            <.menu_item disabled={not Livebook.Session.file_entry_cacheable?(@session, file_entry)}>
+              <button
+                role="menuitem"
+                phx-click={
+                  JS.push("clear_file_entry_cache",
+                    value: %{name: file_entry.name},
+                    target: @myself
+                  )
+                }
+              >
+                <.remix_icon icon="eraser-line" />
+                <span>Clear cache</span>
+              </button>
+            </.menu_item>
             <.menu_item variant={:danger}>
               <button
                 role="menuitem"
@@ -166,6 +180,12 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       send_update(pid, __MODULE__, id: id, transfer_file_entry_result: file_entry_result)
     end)
 
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_file_entry_cache", %{"name" => name}, socket) do
+    file_entry = Enum.find(socket.assigns.file_entries, &(&1.name == name))
+    Livebook.Session.clear_file_entry_cache(socket.assigns.session.id, file_entry.name)
     {:noreply, socket}
   end
 end
