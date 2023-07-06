@@ -1248,7 +1248,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [
@@ -1273,7 +1273,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, messages} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{file_entries: []} = notebook
 
