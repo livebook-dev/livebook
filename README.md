@@ -174,6 +174,9 @@ The following environment variables can be used to configure Livebook on boot:
     Password-protected notebooks will receive a random password,
     unless LIVEBOOK_APPS_PATH_PASSWORD is set.
 
+  * LIVEBOOK_APPS_PATH_HUB_ID - the Hub id to use for all apps
+    deployed from LIVEBOOK_APPS_PATH.
+
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
     deployed from LIVEBOOK_APPS_PATH.
 

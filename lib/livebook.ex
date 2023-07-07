@@ -160,6 +160,10 @@ defmodule Livebook do
       config :livebook, :apps_path, apps_path
     end
 
+    if apps_path_hub_id = System.get_env("LIVEBOOK_APPS_PATH_HUB_ID") do
+      config :livebook, :apps_path_hub_id, apps_path_hub_id
+    end
+
     if apps_path_password = Livebook.Config.password!("LIVEBOOK_APPS_PATH_PASSWORD") do
       config :livebook, :apps_path_password, apps_path_password
     end

@@ -115,6 +115,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the hub configured for all apps deployed from `apps_path`.
+  """
+  @spec apps_path_hub_id() :: String.t() | nil
+  def apps_path_hub_id() do
+    Application.get_env(:livebook, :apps_path_hub_id)
+  end
+
+  @doc """
   Returns the configured port for the Livebook endpoint.
 
   Note that the value may be `0`.
