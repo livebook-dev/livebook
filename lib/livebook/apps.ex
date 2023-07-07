@@ -215,21 +215,11 @@ defmodule Livebook.Apps do
   end
 
   defp deploy_app(nil, _, notebook, warnings, _), do: deploy(notebook, warnings: warnings)
+  defp deploy_app(id, id, notebook, warnings, _), do: deploy(notebook, warnings: warnings)
 
-  defp deploy_app(id, verified_hub_id, notebook, warnings, path) do
-    case Livebook.Hubs.get_offline_hub(id) do
-      %{id: ^verified_hub_id} ->
-        deploy(notebook, warnings: warnings)
-
-      %{id: _, hub_name: hub_name} ->
-        Logger.warning(
-          "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{hub_name}"
-        )
-
-      nil ->
-        Logger.warning(
-          "Skipping app deployment at #{path}. The Livebook does not have the hub #{id}"
-        )
-    end
+  defp deploy_app(id, _, _, _, path) do
+    Logger.warning(
+      "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{id}"
+    )
   end
 end
