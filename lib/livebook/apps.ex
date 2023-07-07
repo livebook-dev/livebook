@@ -190,7 +190,18 @@ defmodule Livebook.Apps do
         warnings = Enum.map(warnings, &("Import: " <> &1))
         apps_path_hub_id = Livebook.Config.apps_path_hub_id()
 
-        deploy_app(apps_path_hub_id, verified_hub_id, notebook, warnings, path)
+        cond do
+          is_nil(apps_path_hub_id) ->
+            deploy(notebook, warnings: warnings)
+
+          apps_path_hub_id == verified_hub_id ->
+            deploy(notebook, warnings: warnings)
+
+          :else ->
+            Logger.warning(
+              "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
+            )
+        end
       else
         Logger.warning(
           "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
@@ -212,14 +223,5 @@ defmodule Livebook.Apps do
     else
       false
     end
-  end
-
-  defp deploy_app(nil, _, notebook, warnings, _), do: deploy(notebook, warnings: warnings)
-  defp deploy_app(id, id, notebook, warnings, _), do: deploy(notebook, warnings: warnings)
-
-  defp deploy_app(id, _, _, _, path) do
-    Logger.warning(
-      "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{id}"
-    )
   end
 end
