@@ -488,8 +488,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{file_ref: file_ref, client_name: "data.txt"} = value
 
-      send(session.pid, {:runtime_file_lookup, self(), file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      send(session.pid, {:runtime_file_path_request, self(), file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, path}}
       assert File.read!(path) == "content"
     end
   end

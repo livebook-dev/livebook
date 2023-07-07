@@ -42,8 +42,8 @@ defprotocol Livebook.FileSystem do
 
     * `:local` - if the resource is local to its node
 
-    * `:global` - if the resource is external and available
-      accessible from any node
+    * `:global` - if the resource is external and accessible
+      from any node
 
   """
   @spec type(t()) :: :local | :global

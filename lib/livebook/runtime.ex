@@ -6,6 +6,35 @@ defprotocol Livebook.Runtime do
   # Usually a runtime involves a set of processes responsible for
   # evaluation, which could be running on a different node, however
   # the protocol does not require that.
+  #
+  # ## Files
+  #
+  # The runtime can request access to notebook files by sending a
+  # request:
+  #
+  #   * `{:runtime_file_entry_path_request, reply_to, name}`
+  #
+  # to which the runtime owner is supposed to reply with
+  # `{:runtime_file_entry_path_reply, reply}` where `reply` is either
+  # `{:ok, path}` or `{:error, message}` if accessing the file rails.
+  # Note that `path` should be accessible within the runtime and can
+  # be obtained using `transfer_file/4`.
+  #
+  # Similarly the runtime can request details about the file source:
+  #
+  #   * `{:runtime_file_entry_spec_request, reply_to, name}`
+  #
+  # Instead of a path, the owner replies with a details map.
+  #
+  # ## Apps
+  #
+  # The runtime may be used to run Livebook apps and can request app
+  # information by sending a request:
+  #
+  #   * `{:runtime_app_info_request, reply_to}`
+  #
+  # The owner replies with `{:runtime_app_info_reply, info}`, where
+  # info is a details map.
 
   @typedoc """
   An arbitrary term identifying an evaluation container.
@@ -315,10 +344,10 @@ defprotocol Livebook.Runtime do
 
   The runtime may ask for the file by sending a request:
 
-    * `{:runtime_file_lookup, reply_to, file_ref}`
+    * `{:runtime_file_path_request, reply_to, file_ref}`
 
   to which the runtime owner is supposed to reply with
-  `{:runtime_file_lookup_reply, reply}` where `reply` is either
+  `{:runtime_file_path_reply, reply}` where `reply` is either
   `{:ok, path}` or `:error` if no matching file can be found. Note
   that `path` should be accessible within the runtime and can be
   obtained using `transfer_file/4`.
@@ -409,7 +438,7 @@ defprotocol Livebook.Runtime do
   Outputs may include input fields. The evaluation may then request
   the current value of a previously rendered input by sending
 
-    * `{:runtime_evaluation_input, evaluation_ref, reply_to, input_id}`
+    * `{:runtime_evaluation_input_request, evaluation_ref, reply_to, input_id}`
 
   to the  runtime owner who is supposed to reply with
   `{:runtime_evaluation_input_reply, reply}` where `reply` is either

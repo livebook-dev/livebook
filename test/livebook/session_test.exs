@@ -483,9 +483,9 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, file)
 
       %{files_dir: files_dir} = Session.get_by_pid(session.pid)
-      image_file = FileSystem.File.resolve(files_dir, "test.jpg")
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
       :ok = FileSystem.File.write(image_file, "")
-      Session.add_file_entries(session.pid, [%{type: :attachment, name: "test.jpg"}])
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
 
       unused_image_file = FileSystem.File.resolve(files_dir, "unused.jpg")
       :ok = FileSystem.File.write(unused_image_file, "")
@@ -501,7 +501,7 @@ defmodule Livebook.SessionTest do
       %{files_dir: new_files_dir} = Session.get_by_pid(session.pid)
 
       assert {:ok, true} =
-               FileSystem.File.exists?(FileSystem.File.resolve(new_files_dir, "test.jpg"))
+               FileSystem.File.exists?(FileSystem.File.resolve(new_files_dir, "image.jpg"))
 
       assert {:ok, false} =
                FileSystem.File.exists?(FileSystem.File.resolve(new_files_dir, "unused.jpg"))
@@ -514,9 +514,9 @@ defmodule Livebook.SessionTest do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       %{files_dir: files_dir} = session
 
-      image_file = FileSystem.File.resolve(files_dir, "test.jpg")
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
       :ok = FileSystem.File.write(image_file, "")
-      Session.add_file_entries(session.pid, [%{type: :attachment, name: "test.jpg"}])
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
 
       file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session.pid, file)
@@ -525,7 +525,7 @@ defmodule Livebook.SessionTest do
       wait_for_session_update(session.pid)
 
       assert {:ok, true} =
-               FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "files/test.jpg"))
+               FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "files/image.jpg"))
 
       assert {:ok, false} = FileSystem.File.exists?(files_dir)
     end
@@ -599,15 +599,15 @@ defmodule Livebook.SessionTest do
 
       runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), old_file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, old_path}}
+      send(session.pid, {:runtime_file_path_request, self(), old_file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, old_path}}
 
       source_path = Path.join(tmp_dir, "new.txt")
       File.write!(source_path, "content")
       {:ok, new_file_ref} = Session.register_file(session.pid, source_path, "key")
 
-      send(session.pid, {:runtime_file_lookup, self(), new_file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, new_path}}
+      send(session.pid, {:runtime_file_path_request, self(), new_file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, new_path}}
 
       {:file, file_id} = old_file_ref
       assert_receive {:runtime_trace, :revoke_file, [^file_id]}
@@ -633,8 +633,8 @@ defmodule Livebook.SessionTest do
 
       runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      send(session.pid, {:runtime_file_path_request, self(), file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, path}}
 
       send(client_pid, :stop)
 
@@ -674,8 +674,8 @@ defmodule Livebook.SessionTest do
 
       runtime = connected_noop_runtime(self())
       Session.set_runtime(session.pid, runtime)
-      send(session.pid, {:runtime_file_lookup, self(), file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      send(session.pid, {:runtime_file_path_request, self(), file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, path}}
 
       Session.erase_outputs(session.pid)
 
@@ -1517,6 +1517,233 @@ defmodule Livebook.SessionTest do
 
       assert Session.to_attachment_file_entry(session, file_entry) ==
                {:error, "failed to download file from the given URL"}
+    end
+  end
+
+  describe "accessing file entry" do
+    test "replies with error when file entry does not exist" do
+      session = start_session()
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply,
+                      {:error, ~s/no file named "image.jpg" exists in the notebook/}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_spec_reply,
+                      {:error, ~s/no file named "image.jpg" exists in the notebook/}}
+    end
+
+    test "when nonexistent :attachment replies with error" do
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:error, "no file exists at path " <> _}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:error, "no file exists at path " <> _}}
+    end
+
+    test "when local :attachment replies with the direct path" do
+      session = start_session()
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      path = image_file.path
+      assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :local, path: ^path}}}
+    end
+
+    @tag :tmp_dir
+    test "when local :file replies with the direct path", %{tmp_dir: tmp_dir} do
+      session = start_session()
+
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      path = image_file.path
+      assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :local, path: ^path}}}
+    end
+
+    test "when remote :file replies with the cached path" do
+      bypass = Bypass.open()
+      bucket_url = "http://localhost:#{bypass.port}/mybucket"
+      s3_fs = FileSystem.S3.new(bucket_url, "key", "secret")
+
+      Bypass.expect_once(bypass, "GET", "/mybucket/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      image_file = FileSystem.File.new(s3_fs, "/image.jpg")
+      Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+      assert File.read(path) == {:ok, "content"}
+
+      # Subsequent requests use the cached file
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_spec_reply,
+                      {:ok,
+                       %{
+                         type: :s3,
+                         bucket_url: ^bucket_url,
+                         region: "auto",
+                         access_key_id: "key",
+                         secret_access_key: "secret",
+                         key: "image.jpg"
+                       }}}
+    end
+
+    test "when :url replies with the cached path" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+      assert File.read(path) == {:ok, "content"}
+
+      # Subsequent requests use the cached file
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :url, url: ^url}}}
+    end
+
+    test "removing file entry removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.delete_file_entry(session.pid, "image.jpg")
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(path)
+    end
+
+    test "replacing file entry removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(path)
+    end
+
+    test "clear_file_entry_cache/2 removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+      assert File.read(path) == {:ok, "content"}
+
+      Session.clear_file_entry_cache(session.id, "image.jpg")
+
+      refute File.exists?(path)
+
+      # Next access downloads the file again
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "new content")
+      end)
+
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+      assert File.read(path) == {:ok, "new content"}
     end
   end
 

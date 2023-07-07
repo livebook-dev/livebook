@@ -599,13 +599,40 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Removes cache file for the given entry file if one exists.
+  """
+  @spec clear_file_entry_cache(id(), String.t()) :: :ok
+  def clear_file_entry_cache(session_id, name) do
+    cache_file = file_entry_cache_file(session_id, name)
+    FileSystem.File.remove(cache_file)
+    :ok
+  end
+
+  @doc """
+  Checks whether caching applies to the given file entry.
+  """
+  @spec file_entry_cacheable?(t(), Notebook.file_entry()) :: boolean()
+  def file_entry_cacheable?(session, file_entry) do
+    case file_entry do
+      %{type: :attachment} ->
+        not FileSystem.File.local?(session.files_dir)
+
+      %{type: :file, file: file} ->
+        not FileSystem.File.local?(file)
+
+      %{type: :url} ->
+        true
+    end
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
 
-  Note that notebooks are automatically persisted every @autosave_interval
-  milliseconds.
+  Note that notebooks are automatically persisted periodically as
+  specified by the notebook settings.
   """
   @spec save(pid()) :: :ok
   def save(pid) do
@@ -1415,7 +1442,7 @@ defmodule Livebook.Session do
      |> notify_update()}
   end
 
-  def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
+  def handle_info({:runtime_evaluation_input_request, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
@@ -1430,17 +1457,55 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_file_lookup, reply_to, file_ref}, state) do
+  def handle_info({:runtime_file_path_request, reply_to, file_ref}, state) do
     path = registered_file_path(state.session_id, file_ref)
 
     if File.exists?(path) do
       {:file, file_id} = file_ref
 
       Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
-        send(reply_to, {:runtime_file_lookup_reply, {:ok, path}})
+        send(reply_to, {:runtime_file_path_reply, {:ok, path}})
       end)
     else
-      send(reply_to, {:runtime_file_lookup_reply, :error})
+      send(reply_to, {:runtime_file_path_reply, :error})
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_entry_path_request, reply_to, name}, state) do
+    file_entry_path(state, name, fn
+      {:ok, path} ->
+        file_id = file_entry_file_id(name)
+
+        Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+          send(reply_to, {:runtime_file_entry_path_reply, {:ok, path}})
+        end)
+
+      {:error, message} ->
+        send(reply_to, {:runtime_file_entry_path_reply, {:error, message}})
+    end)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_entry_spec_request, reply_to, name}, state) do
+    case file_entry_spec(state, name) do
+      # In case of files we call transfer to ensure the file is local
+      # to the runtime
+      {:ok, %{type: :local, path: path}} ->
+        file_id = file_entry_file_id(name)
+
+        Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+          spec = %{type: :local, path: path}
+          send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+        end)
+
+      {:ok, spec} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+
+      {:error, message} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:error, message}})
     end
 
     {:noreply, state}
@@ -2016,6 +2081,22 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
+  defp after_operation(state, prev_state, {:add_file_entries, _client_id, _file_entries}) do
+    replaced_names =
+      Enum.map(
+        prev_state.data.notebook.file_entries -- state.data.notebook.file_entries,
+        & &1.name
+      )
+
+    cleanup_file_entries(state, replaced_names)
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:delete_file_entry, _client_id, name}) do
+    cleanup_file_entries(state, [name])
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
@@ -2369,6 +2450,138 @@ defmodule Livebook.Session do
     end
 
     %{state | registered_files: Map.new(other_files)}
+  end
+
+  defp file_entry_path(state, name, callback) do
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
+
+    case file_entry do
+      %{type: :attachment, name: name} ->
+        files_dir = files_dir_from_state(state)
+        file = FileSystem.File.resolve(files_dir, name)
+        file_entry_path_from_file(state, name, file, callback)
+
+      %{type: :file, name: name, file: file} ->
+        file_entry_path_from_file(state, name, file, callback)
+
+      %{type: :url, name: name, url: url} ->
+        file_entry_path_from_url(state, name, url, callback)
+
+      nil ->
+        callback.({:error, "no file named #{inspect(name)} exists in the notebook"})
+    end
+  end
+
+  defp file_entry_path_from_file(state, name, file, callback) do
+    if FileSystem.File.local?(file) do
+      if FileSystem.File.exists?(file) == {:ok, true} do
+        callback.({:ok, file.path})
+      else
+        callback.({:error, "no file exists at path #{inspect(file.path)}"})
+      end
+    else
+      fetcher = fn cache_file ->
+        FileSystem.File.copy(file, cache_file)
+      end
+
+      cached_file_entry_path(state, name, fetcher, callback)
+    end
+  end
+
+  defp file_entry_path_from_url(state, name, url, callback) do
+    fetcher = fn cache_file ->
+      case fetch_content(url) do
+        {:ok, content} -> FileSystem.File.write(cache_file, content)
+        {:error, message, _} -> {:error, message}
+      end
+    end
+
+    cached_file_entry_path(state, name, fetcher, callback)
+  end
+
+  defp cached_file_entry_path(state, name, fetcher, callback) do
+    cache_file = file_entry_cache_file(state.session_id, name)
+
+    if FileSystem.File.exists?(cache_file) == {:ok, true} do
+      callback.({:ok, cache_file.path})
+    else
+      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+        case fetcher.(cache_file) do
+          :ok -> callback.({:ok, cache_file.path})
+          {:error, message} -> callback.({:error, message})
+        end
+      end)
+    end
+  end
+
+  defp file_entry_cache_file(session_id, name) do
+    tmp_dir = session_tmp_dir(session_id)
+    FileSystem.File.resolve(tmp_dir, "files_cache/#{name}")
+  end
+
+  defp file_entry_spec(state, name) do
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
+
+    case file_entry do
+      %{type: :attachment, name: name} ->
+        files_dir = files_dir_from_state(state)
+        file = FileSystem.File.resolve(files_dir, name)
+        file_entry_spec_from_file(file)
+
+      %{type: :file, file: file} ->
+        file_entry_spec_from_file(file)
+
+      %{type: :url, url: url} ->
+        file_entry_spec_from_url(url)
+
+      nil ->
+        {:error, "no file named #{inspect(name)} exists in the notebook"}
+    end
+  end
+
+  defp file_entry_spec_from_file(file) do
+    if FileSystem.File.local?(file) do
+      if FileSystem.File.exists?(file) == {:ok, true} do
+        {:ok, %{type: :local, path: file.path}}
+      else
+        {:error, "no file exists at path #{inspect(file.path)}"}
+      end
+    else
+      spec =
+        case file.file_system do
+          %FileSystem.S3{} = file_system ->
+            "/" <> key = file.path
+
+            %{
+              type: :s3,
+              bucket_url: file_system.bucket_url,
+              region: file_system.region,
+              access_key_id: file_system.access_key_id,
+              secret_access_key: file_system.secret_access_key,
+              key: key
+            }
+        end
+
+      {:ok, spec}
+    end
+  end
+
+  defp file_entry_spec_from_url(url) do
+    {:ok, %{type: :url, url: url}}
+  end
+
+  defp file_entry_file_id(name), do: "notebook-file-entry-#{name}"
+
+  defp cleanup_file_entries(state, names) do
+    for name <- names do
+      cache_file = file_entry_cache_file(state.session_id, name)
+      FileSystem.File.remove(cache_file)
+
+      if Runtime.connected?(state.data.runtime) do
+        file_id = file_entry_file_id(name)
+        Runtime.revoke_file(state.data.runtime, file_id)
+      end
+    end
   end
 
   defp before_close(state) do
