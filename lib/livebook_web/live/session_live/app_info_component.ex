@@ -144,6 +144,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </div>
             </div>
           </div>
+        <% else %>
+          <ul id="dashboard_blocks" class="list-disc list-inside space-y-2">
+            <li class="grid-stack-item" :for={output_view <- Enum.reverse(@output_views)}>
+              <div class="grid-stack-item-content"><%= output_view.cell_id %></div>
+            </li>
+          </ul>
         <% end %>
       <% end %>
     </div>

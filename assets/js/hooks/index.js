@@ -6,6 +6,7 @@ import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
 import EmojiPicker from "./emoji_picker";
 import FocusOnUpdate from "./focus_on_update";
+import Gridstack from "./gridstack";
 import Headline from "./headline";
 import Highlight from "./highlight";
 import ImageInput from "./image_input";
@@ -31,6 +32,7 @@ export default {
   EditorSettings,
   EmojiPicker,
   FocusOnUpdate,
+  Gridstack,
   Headline,
   Highlight,
   ImageInput,

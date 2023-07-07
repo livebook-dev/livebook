@@ -121,7 +121,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <button
             class="button-base button-blue"
             type="button"
-            phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
+            phx-click={JS.patch(~p"/sessions/#{@session.id}")}
             disabled={not @changeset.valid?}
           >
             <.remix_icon icon="rocket-line" class="align-middle mr-1" />
@@ -135,8 +135,8 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     </div>
     """
   end
-
   @impl true
+
   def handle_event("validate", %{"_target" => ["reset"]}, socket) do
     settings = AppSettings.new()
     Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)

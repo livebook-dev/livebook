@@ -231,11 +231,19 @@ defmodule LivebookWeb.SessionLive do
             session={@session}
             settings={@data_view.app_settings}
             app={@app}
+            output_views={@data_view.output_views}  
             deployed_app_slug={@data_view.deployed_app_slug}
           />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} />
+        </div>
+      </div>
+      <div id="dashboard_container" class="grow overflow-y-auto relative" data-el-app-dashboard phx-update="ignore">
+        <div id="dashboard" class="grid-stack" phx-hook="Gridstack">
+          <div class="grid-stack-item">
+            <div class="grid-stack-item-content">Item 1</div>
+          </div>
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
@@ -2244,6 +2252,15 @@ defmodule LivebookWeb.SessionLive do
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
     %{
+      output_views:
+        for(
+          {cell_id, output} <- visible_outputs(data.notebook),
+          do: %{
+            output: output,
+            input_values: input_values_for_output(output, data),
+            cell_id: cell_id
+          }
+        ),
       file: data.file,
       persist_outputs: data.notebook.persist_outputs,
       autosave_interval_s: data.notebook.autosave_interval_s,
@@ -2536,4 +2553,57 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
   defp app_status_color(%{execution: :error}), do: "bg-red-400"
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
+
+  defp input_values_for_output(output, data) do
+    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+    Map.take(data.input_values, input_ids)
+  end
+
+  defp visible_outputs(notebook) do
+    for section <- Enum.reverse(notebook.sections),
+        cell <- Enum.reverse(section.cells),
+        Cell.evaluable?(cell),
+        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
+        do: {cell.id, output}
+  end
+
+  defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
+
+  defp rich_outputs(outputs) do
+    for output <- outputs, output = filter_output(output), do: output
+  end
+
+  defp filter_output({idx, output})
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       do: {idx, output}
+
+  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+    outputs_with_labels =
+      for {output, label} <- Enum.zip(outputs, metadata.labels),
+          output = filter_output(output),
+          do: {output, label}
+
+    {outputs, labels} = Enum.unzip(outputs_with_labels)
+
+    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+  end
+
+  defp filter_output({idx, {:grid, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+
+    if outputs != [] do
+      {idx, {:grid, outputs, metadata}}
+    end
+  end
+
+  defp filter_output({idx, {:frame, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+    {idx, {:frame, outputs, metadata}}
+  end
+
+  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+    do: {idx, output}
+
+  defp filter_output(_output), do: nil
 end

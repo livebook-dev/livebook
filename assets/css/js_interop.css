@@ -270,6 +270,16 @@ solely client-side operations.
 }
 
 [data-el-session][data-js-side-panel-content="app-info"]
+  [data-el-notebook] {
+    @apply hidden;
+  }
+
+[data-el-session]:not([data-js-side-panel-content="app-info"])
+  [data-el-app-dashboard] {
+    @apply hidden;
+  }
+
+[data-el-session][data-js-side-panel-content="app-info"]
   [data-el-app-indicator] {
   @apply border-gray-700;
 }
