@@ -325,10 +325,6 @@ Machine Learning and Neural Network models hosted by:
 
 <a href="https://huggingface.co/" target=_blank><img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" width="320" /></a>
 
-Our CI server and desktop app for macOS are powered by:
-
-<a href="https://www.macstadium.com" target="_blank"><img src="https://user-images.githubusercontent.com/9582/151619816-b7794798-8261-46c8-bb88-d12108e3ff12.png" width="320" /></a>
-
 ## License
 
 Copyright (C) 2021 Dashbit
