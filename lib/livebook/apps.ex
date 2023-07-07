@@ -190,17 +190,12 @@ defmodule Livebook.Apps do
         warnings = Enum.map(warnings, &("Import: " <> &1))
         apps_path_hub_id = Livebook.Config.apps_path_hub_id()
 
-        cond do
-          is_nil(apps_path_hub_id) ->
-            deploy(notebook, warnings: warnings)
-
-          apps_path_hub_id == verified_hub_id ->
-            deploy(notebook, warnings: warnings)
-
-          :else ->
-            Logger.warning(
-              "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
-            )
+        if apps_path_hub_id == nil or apps_path_hub_id == verified_hub_id do
+          deploy(notebook, warnings: warnings)
+        else
+          Logger.warning(
+            "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
+          )
         end
       else
         Logger.warning(
