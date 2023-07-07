@@ -42,9 +42,9 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
       <div :for={entry <- @uploads.image.entries} class="flex flex-col space-y-1">
         <div class="flex justify-between text-gray-700">
           <span><%= entry.client_name %></span>
-          <span><%= entry.progress %>%</span>
+          <span :if={entry.preflighted?}><%= entry.progress %>%</span>
         </div>
-        <div class="w-full h-2 rounded-lg bg-blue-200">
+        <div :if={entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
           <div
             class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
             style={"width: #{entry.progress}%"}
