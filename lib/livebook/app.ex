@@ -58,13 +58,17 @@ defmodule Livebook.App do
 
     * `:warnings` - a list of warnings to show for the initial deployment
 
+    * `:files_source` - a location to fetch notebook files from, see
+      `Livebook.Session.start_link/1` for more details
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
     notebook = Keyword.fetch!(opts, :notebook)
     warnings = Keyword.get(opts, :warnings, [])
+    files_source = Keyword.get(opts, :files_source)
 
-    GenServer.start_link(__MODULE__, {notebook, warnings})
+    GenServer.start_link(__MODULE__, {notebook, warnings, files_source})
   end
 
   @doc """
@@ -116,7 +120,8 @@ defmodule Livebook.App do
   @spec deploy(pid(), Livebook.Notebook.t(), keyword()) :: :ok
   def deploy(pid, notebook, opts \\ []) do
     warnings = Keyword.get(opts, :warnings, [])
-    GenServer.cast(pid, {:deploy, notebook, warnings})
+    files_source = Keyword.get(opts, :files_source)
+    GenServer.cast(pid, {:deploy, notebook, warnings, files_source})
   end
 
   @doc """
@@ -150,11 +155,12 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def init({notebook, warnings}) do
+  def init({notebook, warnings, files_source}) do
     {:ok,
      %{
        version: 1,
        notebook: notebook,
+       files_source: files_source,
        warnings: warnings,
        sessions: [],
        users: %{}
@@ -191,11 +197,17 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def handle_cast({:deploy, notebook, warnings}, state) do
+  def handle_cast({:deploy, notebook, warnings, files_source}, state) do
     true = notebook.app_settings.slug == state.notebook.app_settings.slug
 
     {:noreply,
-     %{state | notebook: notebook, version: state.version + 1, warnings: warnings}
+     %{
+       state
+       | notebook: notebook,
+         version: state.version + 1,
+         warnings: warnings,
+         files_source: files_source
+     }
      |> start_eagerly()
      |> shutdown_old_versions()
      |> notify_update()}
@@ -265,6 +277,7 @@ defmodule Livebook.App do
 
     opts = [
       notebook: state.notebook,
+      files_source: state.files_source,
       mode: :app,
       app_pid: self(),
       auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms,

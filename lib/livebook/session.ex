@@ -1288,7 +1288,8 @@ defmodule Livebook.Session do
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
     if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook)
+      files_dir = files_dir_from_state(state)
+      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook, files_source: {:dir, files_dir})
 
       if ref = state.deployed_app_monitor_ref do
         Process.demonitor(ref, [:flush])
