@@ -107,7 +107,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the password configured for all apps deployed rom `app_path`.
+  Returns the password configured for all apps deployed from `apps_path`.
   """
   @spec apps_path_password() :: String.t() | nil
   def apps_path_password() do
