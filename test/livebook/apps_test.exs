@@ -99,5 +99,34 @@ defmodule Livebook.AppsTest do
 
       Livebook.App.close(app.pid)
     end
+
+    @tag :tmp_dir
+    test "deploys notebook with attachment files", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+      files_path = Path.join(tmp_dir, "files")
+      File.mkdir_p!(files_path)
+      image_path = Path.join(files_path, "image.jpg")
+      File.write!(image_path, "content")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+
+      # App
+      """)
+
+      Livebook.Apps.subscribe()
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+
+      assert_receive {:app_created, %{slug: "app"} = app}
+
+      session_id = Livebook.App.get_session_id(app.pid)
+      {:ok, session} = Livebook.Sessions.fetch_session(session_id)
+
+      assert Livebook.FileSystem.File.resolve(session.files_dir, "image.jpg")
+             |> Livebook.FileSystem.File.read() == {:ok, "content"}
+
+      Livebook.App.close(app.pid)
+    end
   end
 end

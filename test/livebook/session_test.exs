@@ -1277,6 +1277,34 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation, {:set_deployed_app_slug, _client_id, nil}}
     end
+
+    test "deploys notebook with attachment files" do
+      session = start_session()
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      Session.subscribe(session.id)
+
+      slug = Utils.random_short_id()
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      Apps.subscribe()
+
+      Session.deploy_app(session.pid)
+      assert_receive {:app_created, %{slug: ^slug, pid: app_pid}}
+
+      session_id = App.get_session_id(app_pid)
+      {:ok, session} = Livebook.Sessions.fetch_session(session_id)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg")
+             |> FileSystem.File.read() == {:ok, "content"}
+
+      App.close(app_pid)
+    end
   end
 
   describe "apps" do
