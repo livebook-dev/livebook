@@ -94,6 +94,16 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
+  def render(%{data_view: %{output_type: :layout}} = assigns) when assigns.app_authenticated? do
+    ~H"""
+    <div><%= inspect(@data_view.output_layout) %></div>
+    <button class="flex items-center text-gray-900" phx-click="load_grid">Load Layout</button>
+    <div class="grow overflow-y-auto">
+      <div id="app_dashboard" class="grid-stack" phx-hook="Gridstack" />
+    </div>
+    """
+  end
+
   def render(assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
@@ -202,6 +212,12 @@ defmodule LivebookWeb.AppSessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("load_grid", _params, socket) do
+    IO.inspect(socket.assigns.data_view.output_layout)
+    socket = push_event(socket, "load_grid", socket.assigns.data_view.output_layout)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -300,6 +316,8 @@ defmodule LivebookWeb.AppSessionLive do
             cell_id: cell_id
           }
         ),
+      output_layout: data.notebook.app_settings.output_layout,
+      output_type: data.notebook.app_settings.output_type,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -321,6 +339,7 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :layout), do: outputs
   defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
 
   defp rich_outputs(outputs) do
