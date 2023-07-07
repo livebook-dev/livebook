@@ -1489,6 +1489,28 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_file_entry_spec_request, reply_to, name}, state) do
+    case file_entry_spec(state, name) do
+      # In case of files we call transfer to ensure the file is local
+      # to the runtime
+      {:ok, %{type: :local, path: path}} ->
+        file_id = file_entry_file_id(name)
+
+        Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+          spec = %{type: :local, path: path}
+          send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+        end)
+
+      {:ok, spec} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+
+      {:error, message} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:error, message}})
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info({:runtime_app_info_request, reply_to}, state) do
     send(reply_to, {:runtime_app_info_reply, app_info_for_runtime(state)})
     {:noreply, state}
@@ -2495,6 +2517,57 @@ defmodule Livebook.Session do
   defp file_entry_cache_file(session_id, name) do
     tmp_dir = session_tmp_dir(session_id)
     FileSystem.File.resolve(tmp_dir, "files_cache/#{name}")
+  end
+
+  defp file_entry_spec(state, name) do
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
+
+    case file_entry do
+      %{type: :attachment, name: name} ->
+        files_dir = files_dir_from_state(state)
+        file = FileSystem.File.resolve(files_dir, name)
+        file_entry_spec_from_file(file)
+
+      %{type: :file, file: file} ->
+        file_entry_spec_from_file(file)
+
+      %{type: :url, url: url} ->
+        file_entry_spec_from_url(url)
+
+      nil ->
+        {:error, "no file named #{inspect(name)} exists in the notebook"}
+    end
+  end
+
+  defp file_entry_spec_from_file(file) do
+    if FileSystem.File.local?(file) do
+      if FileSystem.File.exists?(file) == {:ok, true} do
+        {:ok, %{type: :local, path: file.path}}
+      else
+        {:error, "no file exists at path #{inspect(file.path)}"}
+      end
+    else
+      spec =
+        case file.file_system do
+          %FileSystem.S3{} = file_system ->
+            "/" <> key = file.path
+
+            %{
+              type: :s3,
+              bucket_url: file_system.bucket_url,
+              region: file_system.region,
+              access_key_id: file_system.access_key_id,
+              secret_access_key: file_system.secret_access_key,
+              key: key
+            }
+        end
+
+      {:ok, spec}
+    end
+  end
+
+  defp file_entry_spec_from_url(url) do
+    {:ok, %{type: :url, url: url}}
   end
 
   defp file_entry_file_id(name), do: "notebook-file-entry-#{name}"

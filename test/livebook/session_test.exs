@@ -1520,7 +1520,7 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "accessing file entry path" do
+  describe "accessing file entry" do
     test "replies with error when file entry does not exist" do
       session = start_session()
 
@@ -1529,6 +1529,12 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply,
+                      {:error, ~s/no file named "image.jpg" exists in the notebook/}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_spec_reply,
                       {:error, ~s/no file named "image.jpg" exists in the notebook/}}
     end
 
@@ -1542,6 +1548,10 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
 
       assert_receive {:runtime_file_entry_path_reply, {:error, "no file exists at path " <> _}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:error, "no file exists at path " <> _}}
     end
 
     test "when local :attachment replies with the direct path" do
@@ -1558,6 +1568,10 @@ defmodule Livebook.SessionTest do
 
       path = image_file.path
       assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :local, path: ^path}}}
     end
 
     @tag :tmp_dir
@@ -1575,11 +1589,16 @@ defmodule Livebook.SessionTest do
 
       path = image_file.path
       assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :local, path: ^path}}}
     end
 
     test "when remote :file replies with the cached path" do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      bucket_url = "http://localhost:#{bypass.port}/mybucket"
+      s3_fs = FileSystem.S3.new(bucket_url, "key", "secret")
 
       Bypass.expect_once(bypass, "GET", "/mybucket/image.jpg", fn conn ->
         Plug.Conn.resp(conn, 200, "content")
@@ -1600,6 +1619,20 @@ defmodule Livebook.SessionTest do
       # Subsequent requests use the cached file
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
       assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_spec_reply,
+                      {:ok,
+                       %{
+                         type: :s3,
+                         bucket_url: ^bucket_url,
+                         region: "auto",
+                         access_key_id: "key",
+                         secret_access_key: "secret",
+                         key: "image.jpg"
+                       }}}
     end
 
     test "when :url replies with the cached path" do
@@ -1624,6 +1657,10 @@ defmodule Livebook.SessionTest do
       # Subsequent requests use the cached file
       send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
       assert_receive {:runtime_file_entry_path_reply, {:ok, ^path}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "image.jpg"})
+      assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :url, url: ^url}}}
     end
 
     test "removing file entry removes the cached file" do

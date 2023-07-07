@@ -139,7 +139,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   end
 
   describe "evaluation file requests" do
-    test "returns the before_evaluationd file", %{io: io} do
+    test "returns the before_evaluation file", %{io: io} do
       IOProxy.before_evaluation(io, :ref1, "cell1")
       assert livebook_get_evaluation_file(io) == "cell1"
     end

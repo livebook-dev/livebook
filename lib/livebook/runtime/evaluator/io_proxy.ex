@@ -287,6 +287,19 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {input_cache[cache_id], %{state | input_cache: input_cache}}
   end
 
+  defp io_request({:livebook_get_file_entry_spec, name}, state) do
+    # Same as above as for caching
+
+    cache_id = {:file_entry_spec, name}
+
+    input_cache =
+      Map.put_new_lazy(state.input_cache, cache_id, fn ->
+        request_file_entry_spec(name, state)
+      end)
+
+    {input_cache[cache_id], %{state | input_cache: input_cache}}
+  end
+
   # Token is a unique, reevaluation-safe opaque identifier
   defp io_request(:livebook_generate_token, state) do
     token = {state.ref, state.token_count}
@@ -381,9 +394,16 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     end
   end
 
-  defp request_file_entry_path(file_id, state) do
-    request = {:runtime_file_entry_path_request, self(), file_id}
+  defp request_file_entry_path(name, state) do
+    request = {:runtime_file_entry_path_request, self(), name}
     reply_tag = :runtime_file_entry_path_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp request_file_entry_spec(name, state) do
+    request = {:runtime_file_entry_spec_request, self(), name}
+    reply_tag = :runtime_file_entry_spec_reply
 
     with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
   end
