@@ -13,14 +13,14 @@ defmodule Livebook.LiveMarkdown.Import do
     {notebook, stamp_hub_id, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
-    {notebook, metadata_messages} =
+    {notebook, verified_hub_id, metadata_messages} =
       postprocess_stamp(notebook, markdown, stamp_data, stamp_hub_id)
 
     messages =
       earmark_messages ++
         rewrite_messages ++ build_messages ++ postprocess_messages ++ metadata_messages
 
-    {notebook, messages}
+    {notebook, %{warnings: messages, verified_hub_id: verified_hub_id}}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -594,7 +594,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
-  defp postprocess_stamp(notebook, _notebook_source, nil, _), do: {notebook, []}
+  defp postprocess_stamp(notebook, _notebook_source, nil, _), do: {notebook, nil, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data, stamp_hub_id) do
     {hub, offline?} =
@@ -618,7 +618,9 @@ defmodule Livebook.LiveMarkdown.Import do
     teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (not offline? or valid_stamp?)
 
     notebook = %{notebook | teams_enabled: teams_enabled}
-    {notebook, messages}
+    verified_hub_id = if(valid_stamp?, do: hub.id)
+
+    {notebook, verified_hub_id, messages}
   end
 
   defp safe_binary_slice(binary, start, size)
