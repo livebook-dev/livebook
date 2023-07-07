@@ -276,7 +276,7 @@ defmodule Livebook.Hubs do
   @offline_hub_key :livebook_offline_hub
 
   @doc """
-  Get the offline hub.
+  Gets the offline hub if the given id matches.
   """
   @spec get_offline_hub(String.t()) :: Provider.t() | nil
   def get_offline_hub(id) do

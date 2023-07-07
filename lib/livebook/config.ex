@@ -107,11 +107,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the password configured for all apps deployed rom `app_path`.
+  Returns the password configured for all apps deployed from `apps_path`.
   """
   @spec apps_path_password() :: String.t() | nil
   def apps_path_password() do
     Application.get_env(:livebook, :apps_path_password)
+  end
+
+  @doc """
+  Returns the hub configured for all apps deployed from `apps_path`.
+  """
+  @spec apps_path_hub_id() :: String.t() | nil
+  def apps_path_hub_id() do
+    Application.get_env(:livebook, :apps_path_hub_id)
   end
 
   @doc """

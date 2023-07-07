@@ -5,6 +5,14 @@ defmodule Livebook.HubHelpers do
   import Livebook.Factory
   import Phoenix.LiveViewTest
 
+  @offline_hub %Livebook.Hubs.Team{
+    id: "team-org-number-3079",
+    teams_key: "A9TarFeAzmX3sDwSPm5JP5qbLPnNpLpzmjVZUCHXwmI",
+    org_public_key:
+      "MIIBCgKCAQEA5v_qciaRGOZd5kgCQbhQDgFCnTnIKI5xzN4m4rVtLXMPH7RTA-K6C-e4wy2gn8zulXgSYX4vXDACSjFAG4PlFhXTPgb-v3rFLwbBrUHdaTMTyxRdK52NyNoDpYklQ7FaEU9vr3Z_-cpAQjdADOV1k45GmFe3bo4gImIfUSDYp1rRiEsYcIBt0Wc0S-vQHKSlmfcCexe254_UkvWjLW7KO790bem-PSWcBI_713oRr2mQoxXeeGKd5dSyFsIr5SZXVRWcRK3soQimCXB0ddBSXZ7d2Md3P9Ylo7TcYdBGHlwVIsrmB-P70KPHPYuAVgS9QsIiiMGXPwYVW77xNRTlcwIDAQAB",
+    hub_name: "org-number-3079"
+  }
+
   def create_team_hub(user, node) do
     hub = build_team_hub(user, node)
     Livebook.Hubs.save_hub(hub)
@@ -57,6 +65,12 @@ defmodule Livebook.HubHelpers do
   def refute_sidebar_hub(view, id) do
     refute has_element?(view, hub_element_id(id))
   end
+
+  def set_offline_hub() do
+    Livebook.Hubs.set_offline_hub(@offline_hub)
+  end
+
+  def offline_hub(), do: @offline_hub
 
   defp hub_element_id(id), do: "#hubs #hub-#{id}"
 

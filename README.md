@@ -91,7 +91,7 @@ with [Nerves](https://www.nerves-project.org/).
 ### Direct installation with Elixir
 
 You can run Livebook on your own machine using just Elixir. You will need
-[Elixir v1.14.2](https://elixir-lang.org/install.html) or later.
+[Elixir v1.15.2](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
@@ -101,6 +101,8 @@ be installed as follows:
 ```shell
 sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl erlang-xmerl erlang-dev erlang-parsetools
 ```
+
+**Note:** Livebook is not meant to be used as a Mix/Hex dependency.
 
 #### Escript
 
@@ -130,9 +132,9 @@ install the escript directly from GitHub like this:
 mix escript.install github livebook-dev/livebook
 ```
 
-#### Mix
+#### From source
 
-You can run latest Livebook directly with Mix.
+You can run latest Livebook directly from source.
 
 ```shell
 git clone https://github.com/livebook-dev/livebook.git
@@ -173,6 +175,9 @@ The following environment variables can be used to configure Livebook on boot:
     are deployed on Livebook startup with the persisted settings.
     Password-protected notebooks will receive a random password,
     unless LIVEBOOK_APPS_PATH_PASSWORD is set.
+
+  * LIVEBOOK_APPS_PATH_HUB_ID - the Hub id to use for all apps
+    deployed from LIVEBOOK_APPS_PATH.
 
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
     deployed from LIVEBOOK_APPS_PATH.
@@ -239,6 +244,15 @@ The following environment variables can be used to configure Livebook on boot:
 
   * LIVEBOOK_SHUTDOWN_ENABLED - controls if a shutdown button should be shown
     in the homepage. Set it to "true" to enable it.
+
+  * LIVEBOOK_TEAMS_KEY - sets the secret Livebook Teams key for creating an offline hub.
+    Must be set together with LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_OFFLINE_KEY.
+
+  * LIVEBOOK_TEAMS_NAME - sets the Livebook Teams name for creating an offline hub.
+    Must be set together with LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY.
+
+  * LIVEBOOK_TEAMS_OFFLINE_KEY - sets the Livebook Teams public key for creating an offline hub.
+    Must be set together with LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_KEY.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to

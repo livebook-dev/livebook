@@ -174,7 +174,9 @@ defmodule Livebook.Apps do
 
     for path <- paths do
       markdown = File.read!(path)
-      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+
+      {notebook, %{warnings: warnings, verified_hub_id: verified_hub_id}} =
+        Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
       if warnings != [] do
         items = Enum.map(warnings, &("- " <> &1))
@@ -193,9 +195,17 @@ defmodule Livebook.Apps do
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
         warnings = Enum.map(warnings, &("Import: " <> &1))
-        notebook_file = Livebook.FileSystem.File.local(path)
-        files_dir = Livebook.Session.files_dir_for_notebook(notebook_file)
-        deploy(notebook, warnings: warnings, files_source: {:dir, files_dir})
+        apps_path_hub_id = Livebook.Config.apps_path_hub_id()
+
+        if apps_path_hub_id == nil or apps_path_hub_id == verified_hub_id do
+          notebook_file = Livebook.FileSystem.File.local(path)
+          files_dir = Livebook.Session.files_dir_for_notebook(notebook_file)
+          deploy(notebook, warnings: warnings, files_source: {:dir, files_dir})
+        else
+          Logger.warning(
+            "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
+          )
+        end
       else
         Logger.warning(
           "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
