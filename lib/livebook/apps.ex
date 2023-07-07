@@ -188,19 +188,9 @@ defmodule Livebook.Apps do
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
         warnings = Enum.map(warnings, &("Import: " <> &1))
+        apps_path_hub_id = Livebook.Config.apps_path_hub_id()
 
-        case Livebook.Hubs.get_offline_hub() do
-          %{id: ^verified_hub_id} ->
-            deploy(notebook, warnings: warnings)
-
-          %{id: _, hub_name: hub_name} ->
-            Logger.warning(
-              "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{hub_name}"
-            )
-
-          nil ->
-            deploy(notebook, warnings: warnings)
-        end
+        deploy_app(apps_path_hub_id, verified_hub_id, notebook, warnings, path)
       else
         Logger.warning(
           "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
@@ -221,6 +211,25 @@ defmodule Livebook.Apps do
       Path.wildcard(pattern) == []
     else
       false
+    end
+  end
+
+  defp deploy_app(nil, _, notebook, warnings, _), do: deploy(notebook, warnings: warnings)
+
+  defp deploy_app(id, verified_hub_id, notebook, warnings, path) do
+    case Livebook.Hubs.get_offline_hub(id) do
+      %{id: ^verified_hub_id} ->
+        deploy(notebook, warnings: warnings)
+
+      %{id: _, hub_name: hub_name} ->
+        Logger.warning(
+          "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{hub_name}"
+        )
+
+      nil ->
+        Logger.warning(
+          "Skipping app deployment at #{path}. The Livebook does not have the hub #{id}"
+        )
     end
   end
 end

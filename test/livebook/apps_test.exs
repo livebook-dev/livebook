@@ -2,6 +2,7 @@ defmodule Livebook.AppsTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
+  import Livebook.HubHelpers
 
   describe "deploy_apps_in_dir/1" do
     @tag :tmp_dir
@@ -42,29 +43,18 @@ defmodule Livebook.AppsTest do
     @tag :capture_log
     @tag :tmp_dir
     test "deploys apps with offline hub stamp", %{tmp_dir: tmp_dir} do
-      hub =
-        Livebook.Factory.build(:team,
-          id: "team-org-number-2946",
-          teams_key: "AleIxOFlwSiOS78WXtVU01ySmitjzy-5pAuCh4i1wZE",
-          org_public_key:
-            "MIIBCgKCAQEA2uRttEa6UvtiAUhv-MhPZvvlrCNeeL5n6oP4pliqoMBD7vsi4EvwnrqjCCicwHeT4y8Pu1kmzTelDAHEyO8alllBtfnZnQkPOqo1Y6c6qBHhcioc2FrNvdAydMiByhyn_aqNbFNeMMgy9ogHerAQ6XPrGSaXEvIcWn3myz-zxYdeEDW5G5W95o7Q0x7lokdVBUwXbazH0JVu_-1FUr7aOSjjuNHX6rXMRA3wr4n2SuhGOvihrX5IYRb733pae2aTOfJZGD_83eUPHTu_cPoUflcvIPtnVlGTxBgSX9Ayl1X3uDOnJsk2pxawFF6GxBMUKjMGyGDTg_lL45cgsWovXQIDAQAB",
-          hub_name: "org-number-2946"
-        )
-
-      Livebook.Hubs.set_offline_hub(hub)
-
       app1_path = Path.join(tmp_dir, "app1.livemd")
       app2_path = Path.join(tmp_dir, "app2.livemd")
       app3_path = Path.join(tmp_dir, "app3.livemd")
 
       File.write!(app1_path, """
-      <!-- livebook:{"app_settings":{"slug":"app1"}} -->
+      <!-- livebook:{"app_settings":{"slug":"offline_hub_app1"}} -->
 
       # App 1
       """)
 
       File.write!(app2_path, """
-      <!-- livebook:{"app_settings":{"slug":"app2"},"hub_id":"team-org-number-2946"} -->
+      <!-- livebook:{"app_settings":{"slug":"offline_hub_app2"},"hub_id":"team-org-number-3079"} -->
 
       # App 2
 
@@ -74,13 +64,13 @@ defmodule Livebook.AppsTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":111,"stamp":{"token":"QTEyOEdDTQ.yw3drh2WcwU8K6jS9Wp0HPupyX3qoc8iBmUXrMVKvSPnIOGEYMmu160e89E.xyzsr7PxSBrA8Elt.N3KyvcuTrFyMYpSl8WB1Sctv-1YjSjv_DCZoOVje_zXPYpm4iV_Ss5tVUSA7IWE.lV7grc6HYOYJrf0YYScPwQ","token_signature":"KSd-EhXw2CrmS9m4aZnPhTgWzlNdQNJ0wvYmuNvi8Pxaqb-prKO0FN_BTcPHtk4ZDHJaIFac-8dyefkCHpIElAc_N7vExgO9_7wSOJ8Hagip7DOxOBfqcR6iC17ejiw-2wWFJu0p6deaXpm2RWkWJU--wiU1cAHoKoJGqIsMMxNmgAkT44Pok0ni5BtnTfZjq_c2iPTYfP-8uU2WFIDmzEeOL-He5iWNUlixnf5Aj1YSVNldi6vTtR70xBRvlUxPCkWbt1x6XjanspY15j43PgVTo0EPM4kGCkS2HcWBZB_XscxZ4-V-WdpQ0pkv1goPdfDGDcAbjP7z8oum9_ZKNA","version":1}} -->
+      <!-- livebook:{"offset":148,"stamp":{"token":"QTEyOEdDTQ.M486X5ISDg_wVwvndrMYJKIkfXa5qAwggh5LzkV41wVOY8SNQvfA4EFx4Tk.RrcteIrzJVrqQdhH.mtmu5KFj.bibmp2rxZoniYX1xY8dTvw","token_signature":"28ucTCoDXxahOIMg7SvdYIoLpGIUSahEa7mchH0jKncKeZH8-w-vOaL1F1uj_94lqQJFkmHWv988__1bPmYCorw7F1wAvAaprt3o2vSitWWmBszuF5JaimkFqOFcK3mc4NHuswQKuBjSL0W_yR-viiwlx6zPNsTpftVKjRI2Cri1PsMeZgahfdR2gy1OEgavzU6J6YWsNQHIMWgt5gwT6fIua1zaV7K8-TA6-6NRgcfG-pSJqRIm-3-vnbH5lkXRCgXCo_S9zWa6Jrcl5AbLObSr5DUueiwac1RobH7jNghCm1F-o1cUk9W-BJRZ7igVMwaYqLaOnKO8ya9CrkIiMg","version":1}} -->
       """)
 
       File.write!(app3_path, """
-      <!-- livebook:{"app_settings":{"slug":"app3"}} -->
+      <!-- livebook:{"app_settings":{"slug":"offline_hub_app3"}} -->
 
-      # App 2
+      # App 3
 
       ## Section 1
 
@@ -92,15 +82,20 @@ defmodule Livebook.AppsTest do
       """)
 
       Livebook.Apps.subscribe()
-      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
-      Livebook.Hubs.set_offline_hub(nil)
 
-      refute_receive {:app_created, %{slug: "app1"}}
-      assert_receive {:app_created, %{pid: pid, slug: "app2"}}
-      refute_receive {:app_created, %{slug: "app3"}}
+      Application.put_env(:livebook, :apps_path_hub_id, offline_hub().id, persistent: true)
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+      Application.delete_env(:livebook, :apps_path_hub_id, persistent: true)
+
+      refute_receive {:app_created, %{slug: "offline_hub_app1"}}
+      assert_receive {:app_created, %{pid: pid, slug: "offline_hub_app2"}}
+      refute_receive {:app_created, %{slug: "offline_hub_app3"}}
 
       assert_receive {:app_updated,
-                      %{slug: "app2", sessions: [%{app_status: %{execution: :executed}}]}}
+                      %{
+                        slug: "offline_hub_app2",
+                        sessions: [%{app_status: %{execution: :executed}}]
+                      }}
 
       Livebook.App.close(pid)
     end
