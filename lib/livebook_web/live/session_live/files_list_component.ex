@@ -120,72 +120,82 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
 
   @impl true
   def handle_event("delete_file_entry", %{"name" => name}, socket) do
-    file_entry = Enum.find(socket.assigns.file_entries, &(&1.name == name))
-    session = socket.assigns.session
+    if file_entry = find_file_entry(socket, name) do
+      session = socket.assigns.session
 
-    on_confirm = fn socket, options ->
-      Livebook.Session.delete_file_entry(session.pid, file_entry.name)
+      on_confirm = fn socket, options ->
+        Livebook.Session.delete_file_entry(session.pid, file_entry.name)
 
-      if Map.get(options, "delete_from_file_system", false) do
-        file = FileSystem.File.resolve(session.files_dir, file_entry.name)
+        if Map.get(options, "delete_from_file_system", false) do
+          file = FileSystem.File.resolve(session.files_dir, file_entry.name)
 
-        case FileSystem.File.remove(file) do
-          :ok ->
-            socket
+          case FileSystem.File.remove(file) do
+            :ok ->
+              socket
 
-          {:error, error} ->
-            put_flash(socket, :error, "Failed to remove #{file.path}, reason: #{error}")
+            {:error, error} ->
+              put_flash(socket, :error, "Failed to remove #{file.path}, reason: #{error}")
+          end
+        else
+          socket
         end
-      else
-        socket
       end
+
+      assigns = %{name: file_entry.name}
+
+      description = ~H"""
+      Are you sure you want to delete this file - <span class="font-semibold">“<%= @name %>”</span>?
+      """
+
+      {:noreply,
+       confirm(socket, on_confirm,
+         title: "Delete file",
+         description: description,
+         confirm_text: "Delete",
+         confirm_icon: "delete-bin-6-line",
+         options:
+           if file_entry.type == :attachment do
+             [
+               %{
+                 name: "delete_from_file_system",
+                 label: "Delete the corresponding file from the file system",
+                 default: true,
+                 disabled: false
+               }
+             ]
+           else
+             []
+           end
+       )}
+    else
+      {:noreply, socket}
     end
-
-    assigns = %{name: file_entry.name}
-
-    description = ~H"""
-    Are you sure you want to delete this file - <span class="font-semibold">“<%= @name %>”</span>?
-    """
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Delete file",
-       description: description,
-       confirm_text: "Delete",
-       confirm_icon: "delete-bin-6-line",
-       options:
-         if file_entry.type == :attachment do
-           [
-             %{
-               name: "delete_from_file_system",
-               label: "Delete the corresponding file from the file system",
-               default: true,
-               disabled: false
-             }
-           ]
-         else
-           []
-         end
-     )}
   end
 
   def handle_event("transfer_file_entry", %{"name" => name}, socket) do
-    file_entry = Enum.find(socket.assigns.file_entries, &(&1.name == name))
-    pid = self()
-    id = socket.assigns.id
-    session = socket.assigns.session
+    if file_entry = find_file_entry(socket, name) do
+      pid = self()
+      id = socket.assigns.id
+      session = socket.assigns.session
 
-    Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
-      file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
-      send_update(pid, __MODULE__, id: id, transfer_file_entry_result: file_entry_result)
-    end)
+      Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
+        file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
+        send_update(pid, __MODULE__, id: id, transfer_file_entry_result: file_entry_result)
+      end)
+    end
 
     {:noreply, socket}
   end
 
   def handle_event("clear_file_entry_cache", %{"name" => name}, socket) do
-    file_entry = Enum.find(socket.assigns.file_entries, &(&1.name == name))
-    Livebook.Session.clear_file_entry_cache(socket.assigns.session.id, file_entry.name)
+    if file_entry = find_file_entry(socket, name) do
+      Livebook.Session.clear_file_entry_cache(socket.assigns.session.id, file_entry.name)
+    end
+
     {:noreply, socket}
+  end
+
+  defp find_file_entry(socket, name) do
+    Enum.find(socket.assigns.file_entries, &(&1.name == name))
   end
 end
