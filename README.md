@@ -91,7 +91,7 @@ with [Nerves](https://www.nerves-project.org/).
 ### Direct installation with Elixir
 
 You can run Livebook on your own machine using just Elixir. You will need
-[Elixir v1.14.2](https://elixir-lang.org/install.html) or later.
+[Elixir v1.15.2](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
@@ -101,6 +101,8 @@ be installed as follows:
 ```shell
 sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl erlang-xmerl erlang-dev erlang-parsetools
 ```
+
+**Note:** Livebook is not meant to be used as a Mix/Hex dependency.
 
 #### Escript
 
@@ -130,9 +132,9 @@ install the escript directly from GitHub like this:
 mix escript.install github livebook-dev/livebook
 ```
 
-#### Mix
+#### From source
 
-You can run latest Livebook directly with Mix.
+You can run latest Livebook directly from source.
 
 ```shell
 git clone https://github.com/livebook-dev/livebook.git
