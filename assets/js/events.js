@@ -6,17 +6,11 @@ export function registerTopbar() {
     shadowColor: "rgba(0, 0, 0, .3)",
   });
 
-  let topBarScheduled = null;
-
   window.addEventListener("phx:page-loading-start", () => {
-    if (!topBarScheduled) {
-      topBarScheduled = setTimeout(() => topbar.show(), 500);
-    }
+    topbar.show(500);
   });
 
   window.addEventListener("phx:page-loading-stop", () => {
-    clearTimeout(topBarScheduled);
-    topBarScheduled = null;
     topbar.hide();
   });
 }
