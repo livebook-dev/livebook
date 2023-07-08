@@ -231,7 +231,7 @@ defmodule LivebookWeb.SessionLive do
             session={@session}
             settings={@data_view.app_settings}
             app={@app}
-            output_blocks={@data_view.output_blocks}  
+            output_blocks={@data_view.output_blocks}
             deployed_app_slug={@data_view.deployed_app_slug}
           />
         </div>
@@ -239,12 +239,19 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} />
         </div>
       </div>
-      <div id="dashboard_container" class="grow overflow-y-auto relative" data-el-app-dashboard phx-update="ignore">
-        <div id="dashboard" class="grid-stack" phx-hook="Gridstack">
-          <div class="grid-stack-item">
-            <div class="grid-stack-item-content">Item 1</div>
-          </div>
-        </div>
+      <div
+        id="dashboard_container"
+        class="grow overflow-y-auto relative"
+        data-el-app-dashboard
+      >
+        <.live_component
+          module={LivebookWeb.GridstackComponent}
+          id="dashboard"
+          columns={12}
+          grid_components={[
+            %{id: "test", x_pos: 4, y_pos: 1, width: 2, height: 1, content: "HELLO"}
+    ]}
+        />
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
@@ -1483,7 +1490,11 @@ defmodule LivebookWeb.SessionLive do
     # TODO: tidy up
     socket = put_in(socket.private.data.notebook.app_settings.output_layout, data)
 
-    Session.set_app_settings(socket.assigns.session.pid, socket.private.data.notebook.app_settings)
+    Session.set_app_settings(
+      socket.assigns.session.pid,
+      socket.private.data.notebook.app_settings
+    )
+
     {:noreply, socket}
   end
 
@@ -2557,8 +2568,10 @@ defmodule LivebookWeb.SessionLive do
   defp output_blocks(notebook) do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
-        output_id <- Enum.map(cell.outputs, &(elem(&1, 0))),
-        Cell.evaluable?(cell),
-        do: "#{cell.id}_#{output_id}"
+        output_id <- Enum.map(cell.outputs, &elem(&1, 0)),
+        Cell.evaluable?(cell) do
+      %{id: output_id, x_pos: 0, y_pos: output_id, width: 1, height: 1, content: "#{cell.id}_#{output_id}"}
+    end
+    |> Enum.reverse()
   end
 end

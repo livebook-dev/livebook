@@ -145,11 +145,15 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
           </div>
         <% else %>
-          <ul id="dashboard_blocks" class="list-disc list-inside space-y-2">
-            <li class="grid-stack-item" :for={output_block <- Enum.reverse(@output_blocks)}>
-              <div class="grid-stack-item-content"><%= output_block %></div>
-            </li>
-          </ul>
+        <div class="max-h-screen">
+          <.live_component
+            module={LivebookWeb.GridstackComponent}
+            id="output_blocks"
+            columns={1}
+            grid_components={@output_blocks}
+            
+          />
+        </div>
         <% end %>
       <% end %>
     </div>

@@ -135,6 +135,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     </div>
     """
   end
+
   @impl true
 
   def handle_event("validate", %{"_target" => ["reset"]}, socket) do
