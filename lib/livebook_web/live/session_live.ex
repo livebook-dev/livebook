@@ -232,6 +232,7 @@ defmodule LivebookWeb.SessionLive do
             settings={@data_view.app_settings}
             app={@app}
             deployed_app_slug={@data_view.deployed_app_slug}
+            any_session_secrets?={@data_view.any_session_secrets?}
           />
         </div>
         <div data-el-runtime-info>
@@ -2275,6 +2276,8 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
+      any_session_secrets?:
+        Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug

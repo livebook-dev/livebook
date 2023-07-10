@@ -1821,5 +1821,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Livebook.App.close(app.pid)
     end
+
+    test "shows a warning when any session secrets are defined", %{conn: conn, session: session} do
+      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      Session.set_secret(session.pid, secret)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert render(view) =~
+               "You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
+    end
   end
 end
