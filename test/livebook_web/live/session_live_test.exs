@@ -1829,7 +1829,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert render(view) =~
-               "You defined session secrets, but those are not available to the deployed app."
+               "You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
     end
   end
 end
