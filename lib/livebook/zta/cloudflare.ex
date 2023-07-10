@@ -71,7 +71,7 @@ defmodule Livebook.ZTA.Cloudflare do
     Enum.find_value(keys, :error, fn key ->
       case JOSE.JWT.verify(key, token) do
         {true, token, _s} -> {:ok, token}
-        {_, _t, _s} -> nil
+        _ -> nil
       end
     end)
   end
