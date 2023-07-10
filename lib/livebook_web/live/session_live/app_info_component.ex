@@ -27,21 +27,28 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           </div>
         </div>
       <% else %>
-        <div class="mt-5 flex space-x-2">
-          <button
-            class="button-base button-blue"
-            phx-click="deploy_app"
-            disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
-          >
-            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
-            <span>Deploy</span>
-          </button>
-          <.link
-            patch={~p"/sessions/#{@session.id}/settings/app"}
-            class="button-base button-outlined-gray bg-transparent"
-          >
-            Configure
-          </.link>
+        <div class="mt-5 flex flex-col gap-6">
+          <.message_box
+            :if={@any_session_secrets?}
+            kind={:warning}
+            message="You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
+          />
+          <div class="flex space-x-2">
+            <button
+              class="button-base button-blue"
+              phx-click="deploy_app"
+              disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
+            >
+              <.remix_icon icon="rocket-line" class="align-middle mr-1" />
+              <span>Deploy</span>
+            </button>
+            <.link
+              patch={~p"/sessions/#{@session.id}/settings/app"}
+              class="button-base button-outlined-gray bg-transparent"
+            >
+              Configure
+            </.link>
+          </div>
         </div>
         <%= if @app do %>
           <h3 class="mt-10 uppercase text-sm font-semibold text-gray-500">

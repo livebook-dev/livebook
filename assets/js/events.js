@@ -49,7 +49,9 @@ export function registerGlobalEventHandlers() {
 
   window.addEventListener("lb:clipcopy", (event) => {
     if ("clipboard" in navigator) {
-      if (event.target.tagName === "INPUT") {
+      if (event.detail.content) {
+        navigator.clipboard.writeText(event.detail.content);
+      } else if (event.target.tagName === "INPUT") {
         navigator.clipboard.writeText(event.target.value);
       } else {
         navigator.clipboard.writeText(event.target.textContent);
