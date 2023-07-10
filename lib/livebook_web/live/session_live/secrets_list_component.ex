@@ -77,12 +77,22 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         <%= @secret.name %>
       </span>
       <div
-        class="flex-row justify-between items-center my-1 hidden"
+        class="flex justify-between items-center my-1 hidden"
         id={"session-secret-#{@secret.name}-detail"}
       >
-        <span class="text-sm font-mono break-all flex-row tooltip right" data-tooltip={@secret.value}>
-          *****
-        </span>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-mono break-all">
+            *****
+          </span>
+          <button
+            id={"session-secret-#{@secret.name}-delete"}
+            type="button"
+            phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
+            class="icon-button"
+          >
+            <.remix_icon icon="clipboard-line" />
+          </button>
+        </div>
         <button
           id={"session-secret-#{@secret.name}-delete"}
           type="button"
@@ -92,7 +102,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               target: @myself
             )
           }
-          class="hover:text-gray-900"
+          class="icon-button"
         >
           <.remix_icon icon="delete-bin-line" />
         </button>
@@ -149,16 +159,23 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             </.form>
           </div>
           <div class="flex-row justify-between items-center my-1 hidden" id={"#{@id}-detail"}>
-            <span
-              class="text-sm font-mono break-all flex-row tooltip right"
-              data-tooltip={@secret.value}
-            >
-              *****
-            </span>
+            <div class="flex items-center gap-1">
+              <span class="text-sm font-mono break-all">
+                *****
+              </span>
+              <button
+                id={"session-secret-#{@secret.name}-delete"}
+                type="button"
+                phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
+                class="icon-button"
+              >
+                <.remix_icon icon="clipboard-line" />
+              </button>
+            </div>
             <.link
               id={"#{@id}-edit-button"}
               navigate={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
-              class="hover:text-gray-900"
+              class="icon-button"
               role="button"
             >
               <.remix_icon icon="pencil-line" />
