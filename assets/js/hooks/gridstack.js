@@ -32,22 +32,17 @@ const Gridstack = {
     });
 
     this.grid.on("change", function(event, items) {
-      console.log(items);
-      let new_items = items.reduce((acc, item) => {
-        acc[item.id] = {
-          x_pos: item.x,
-          y_pos: item.y,
-          width: item.w,
-          height: item.h
-        };
-        return acc;
-      }, {});
+      const new_items = items.map(function({ id, x, y, w, h }) {
+        return { id: id, x: x, y: y, w: w, h: h };
+      });
+      console.log("items_changed", new_items);
       self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
       self.repositionIframe();
     });
 
     this.grid.on("drag", function(event, item) {
-      self.repositionIframe();
+      // TODO update iframe position when dragging
+      //self.repositionIframe();
     });
 
     this.handleEvent("save_layout", function() {
@@ -59,7 +54,7 @@ const Gridstack = {
   },
   updated() {
     this.props = this.getProps();
-    console.log("Gridstack updated");
+    console.log("Gridstack updated", this.grid);
   },
   getProps() {
     return {

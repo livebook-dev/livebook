@@ -2553,13 +2553,12 @@ defmodule LivebookWeb.SessionLive do
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
         output <- filter_outputs(cell.outputs, :dashboard) do
-      dbg()
       %{
         id: cell.id,
-        x_pos: 0,
-        y_pos: 1,
-        width: 3,
-        height: 1
+        x: 0,
+        y: 1,
+        w: 3,
+        h: 1
       }
     end
     |> Enum.reverse()
