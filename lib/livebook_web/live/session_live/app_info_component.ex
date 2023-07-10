@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <.message_box
             :if={@any_session_secrets?}
             kind={:warning}
-            message="You defined session secrets, but those are not available to the deployed app."
+            message="You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
           />
           <div class="flex space-x-2">
             <button
