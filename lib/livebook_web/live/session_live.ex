@@ -249,11 +249,13 @@ defmodule LivebookWeb.SessionLive do
           runtime={@data_view.runtime}
           global_status={@data_view.global_status}
         />
-        <div data-el-app-dashboard>
+        <div class="w-screen h-screen" data-el-app-dashboard>
           <.live_component
             module={LivebookWeb.GridstackComponent}
             id="app-dashboard"
             output_blocks={@data_view.output_blocks}
+            session={@session}
+            app_settings={@data_view.app_settings}
           />
         </div>
         <div
@@ -1479,30 +1481,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("saved_grid_layout", data, socket) do
-    # TODO: tidy up
-    socket = put_in(socket.private.data.notebook.app_settings.output_layout, data)
-
-    Session.set_app_settings(
-      socket.assigns.session.pid,
-      socket.private.data.notebook.app_settings
-    )
-
-    {:noreply, socket}
-  end
-
-  def handle_event("items_changed", params, socket) do
-    IO.inspect(params, label: "params")
-
-    params =
-      for {key, %{"x_pos" => x_pos, "y_pos" => y_pos, "width" => width, "height" => height}} <-
-            params,
-          into: %{} do
-        {key, %{x_pos: x_pos, y_pos: y_pos, width: width, height: height}}
-      end
-    {:noreply, socket}
-  end
-
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -2575,8 +2553,9 @@ defmodule LivebookWeb.SessionLive do
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
         output <- filter_outputs(cell.outputs, :dashboard) do
+      dbg()
       %{
-        id: elem(output, 0),
+        id: cell.id,
         x_pos: 0,
         y_pos: 1,
         width: 3,

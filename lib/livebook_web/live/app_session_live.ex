@@ -32,6 +32,7 @@ defmodule LivebookWeb.AppSessionLive do
         end
 
       data_view = data_to_view(data)
+      IO.inspect(data_view.output_layout)
 
       {:ok,
        socket
@@ -43,7 +44,7 @@ defmodule LivebookWeb.AppSessionLive do
          data_view: data_view
        )
        |> assign_private(data: data)
-       |> push_event("load_grid", data_view.output_layout)
+       |> push_event("load_layout", %{layout: data_view.output_layout})
       }
     else
       {:ok,
@@ -100,8 +101,22 @@ defmodule LivebookWeb.AppSessionLive do
 
   def render(%{data_view: %{output_type: :dashboard}} = assigns) when assigns.app_authenticated? do
     ~H"""
-    <div class="grow overflow-y-auto">
-      <div id="app_dashboard" class="grid-stack" phx-hook="GridstackStatic" />
+    <div class="h-full w-full" data-el-notebook>
+      <div class="h-full w-full" data-el-notebook-content>
+        <div id="app_dashboard" class="grid-stack" phx-hook="GridstackStatic" />
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <div :for={output_view <- Enum.reverse(@data_view.output_views)} id={output_view.cell_id}>
+          <LivebookWeb.Output.outputs
+            outputs={[output_view.output]}
+            dom_id_map={%{}}
+            session_id={@session.id}
+            session_pid={@session.pid}
+            client_id={@client_id}
+            cell_id={output_view.cell_id}
+            input_values={output_view.input_values}
+          />
+        </div>
+      </div>
     </div>
     """
   end
@@ -301,6 +316,7 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp data_to_view(data) do
+    IO.inspect(data, label: "DATA")
     %{
       notebook_name: data.notebook.name,
       output_views:

@@ -8,12 +8,13 @@ import { GridStack } from "gridstack";
  */
 const Gridstack = {
   mounted() {
+    this.props = this.getProps();
     console.log("Gridstack mounted");
     const self = this;
 
     this.visible = false;
 
-    this.options = {
+    const options = {
       //acceptWidgets: true,
       //removeable: true,
       styleInHead: true,
@@ -23,7 +24,7 @@ const Gridstack = {
       cellHeight: "4rem",
     };
 
-    this.grid = GridStack.init(this.options, this.el);
+    this.grid = GridStack.init(options, this.el);
 
     document.querySelector("[data-el-app-info-toggle]").addEventListener("click", function(event) {
       self.visible = !self.visible;
@@ -31,6 +32,7 @@ const Gridstack = {
     });
 
     this.grid.on("change", function(event, items) {
+      console.log(items);
       let new_items = items.reduce((acc, item) => {
         acc[item.id] = {
           x_pos: item.x,
@@ -40,35 +42,37 @@ const Gridstack = {
         };
         return acc;
       }, {});
-      self.pushEvent("items_changed", new_items);
-      globalPubSub.broadcast("js_views", { type: "reposition" });
+      self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
+      self.repositionIframe();
     });
 
-    this.handleEvent(
-      `load_grid`,
-      ({ layout: layout }) => {
-        if (layout) {
-          console.log(layout);
-          self.loadLayout(layout);
-        }
-      }
-    );
+    this.grid.on("drag", function(event, item) {
+      self.repositionIframe();
+    });
 
     this.handleEvent("save_layout", function() {
-      self.saveLayout();
+      const layout = self.grid.save(false, false);
+      console.log("Layout saved");
+      console.log(layout);
+      self.pushEventTo(self.props.phxTarget, "new_app_layout", { layout: layout });
     });
   },
   updated() {
+    this.props = this.getProps();
     console.log("Gridstack updated");
+  },
+  getProps() {
+    return {
+      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
+    };
   },
   toggleMountOutputs() {
     if (this.visible) {
-      const outputs = document.querySelectorAll("[data-el-output]");
-      console.log(outputs);
+      const outputs = document.querySelectorAll("[data-el-outputs-container]");
       for (let output of outputs) {
         // safe origin location for unmounting
         output._origin || (output._origin = output.parentNode);
-        const output_id = Number(output.id.split("-")[2]);
+        const output_id = output.id.split("-")[1];
         const item_content = this.el.querySelector(`[gs-id="${output_id}"] .grid-stack-item-content`);
         if (item_content) {
           item_content.prepend(output);
@@ -83,16 +87,10 @@ const Gridstack = {
         }
       }
     }
+    this.repositionIframe();
+  },
+  repositionIframe() {
     globalPubSub.broadcast("js_views", { type: "reposition" });
-  },
-  saveLayout() {
-    const layout = this.grid.save();
-    console.log("Layout saved");
-    console.log(layout);
-    this.pushEvent("saved_grid_layout", { layout: layout });
-  },
-  loadLayout(layout) {
-    this.grid.load(layout);
   }
 };
 
