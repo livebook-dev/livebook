@@ -3,7 +3,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino = %{
     name: "kino",
-    dependency: %{dep: {:kino, "~> 0.9.3"}, config: []}
+    dependency: %{dep: {:kino, "~> 0.10.0"}, config: []}
   }
 
   kino_vega_lite = %{
