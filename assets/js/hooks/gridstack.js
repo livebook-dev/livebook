@@ -1,4 +1,5 @@
 import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import { globalPubSub } from "../lib/pub_sub";
 import "gridstack/dist/gridstack.min.css";
 import { GridStack } from "gridstack";
 
@@ -7,16 +8,27 @@ import { GridStack } from "gridstack";
  */
 const Gridstack = {
   mounted() {
+    console.log("Gridstack mounted");
     const self = this;
-    this.props = this.getProps();
 
-    console.log(this.props);
-    const options = {
-      acceptWidgets: true,
+    this.visible = false;
+
+    this.options = {
+      //acceptWidgets: true,
+      //removeable: true,
       styleInHead: true,
       float: true,
+      resizable: { handles: "all" },
+      margin: 0,
+      cellHeight: "4rem",
     };
-    this.grid = GridStack.init(options, this.el);
+
+    this.grid = GridStack.init(this.options, this.el);
+
+    document.querySelector("[data-el-app-info-toggle]").addEventListener("click", function(event) {
+      self.visible = !self.visible;
+      self.toggleMountOutputs();
+    });
 
     this.grid.on("change", function(event, items) {
       let new_items = items.reduce((acc, item) => {
@@ -28,7 +40,8 @@ const Gridstack = {
         };
         return acc;
       }, {});
-      self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
+      self.pushEvent("items_changed", new_items);
+      globalPubSub.broadcast("js_views", { type: "reposition" });
     });
 
     this.handleEvent(
@@ -40,14 +53,37 @@ const Gridstack = {
         }
       }
     );
+
+    this.handleEvent("save_layout", function() {
+      self.saveLayout();
+    });
   },
   updated() {
-    this.props = this.getProps();
+    console.log("Gridstack updated");
   },
-  getProps() {
-    return {
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-    };
+  toggleMountOutputs() {
+    if (this.visible) {
+      const outputs = document.querySelectorAll("[data-el-output]");
+      console.log(outputs);
+      for (let output of outputs) {
+        // safe origin location for unmounting
+        output._origin || (output._origin = output.parentNode);
+        const output_id = Number(output.id.split("-")[2]);
+        const item_content = this.el.querySelector(`[gs-id="${output_id}"] .grid-stack-item-content`);
+        if (item_content) {
+          item_content.prepend(output);
+        }
+      }
+    } else {
+      const output_containers = this.el.querySelectorAll(`.grid-stack-item .grid-stack-item-content`);
+      for (let container of output_containers) {
+        const output = container.firstChild;
+        if (output) {
+          output._origin && output._origin.prepend(output);
+        }
+      }
+    }
+    globalPubSub.broadcast("js_views", { type: "reposition" });
   },
   saveLayout() {
     const layout = this.grid.save();

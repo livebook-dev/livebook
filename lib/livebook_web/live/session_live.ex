@@ -231,27 +231,12 @@ defmodule LivebookWeb.SessionLive do
             session={@session}
             settings={@data_view.app_settings}
             app={@app}
-            output_blocks={@data_view.output_blocks}
             deployed_app_slug={@data_view.deployed_app_slug}
           />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} />
         </div>
-      </div>
-      <div
-        id="dashboard_container"
-        class="grow overflow-y-auto relative"
-        data-el-app-dashboard
-      >
-        <.live_component
-          module={LivebookWeb.GridstackComponent}
-          id="dashboard"
-          columns={12}
-          grid_components={[
-            %{id: "test", x_pos: 4, y_pos: 1, width: 2, height: 1, content: "HELLO"}
-    ]}
-        />
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
@@ -264,6 +249,13 @@ defmodule LivebookWeb.SessionLive do
           runtime={@data_view.runtime}
           global_status={@data_view.global_status}
         />
+        <div data-el-app-dashboard>
+          <.live_component
+            module={LivebookWeb.GridstackComponent}
+            id="app-dashboard"
+            output_blocks={@data_view.output_blocks}
+          />
+        </div>
         <div
           class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
           data-el-notebook-content
@@ -1350,6 +1342,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("deploy_app", %{}, socket) do
+    socket = push_event(socket, "save_layout", %{})
     on_confirm = fn socket ->
       Livebook.Session.deploy_app(socket.assigns.session.pid)
       socket
@@ -1495,6 +1488,18 @@ defmodule LivebookWeb.SessionLive do
       socket.private.data.notebook.app_settings
     )
 
+    {:noreply, socket}
+  end
+
+  def handle_event("items_changed", params, socket) do
+    IO.inspect(params, label: "params")
+
+    params =
+      for {key, %{"x_pos" => x_pos, "y_pos" => y_pos, "width" => width, "height" => height}} <-
+            params,
+          into: %{} do
+        {key, %{x_pos: x_pos, y_pos: y_pos, width: width, height: height}}
+      end
     {:noreply, socket}
   end
 
@@ -2271,7 +2276,6 @@ defmodule LivebookWeb.SessionLive do
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
     %{
-      output_blocks: output_blocks(data.notebook),
       file: data.file,
       persist_outputs: data.notebook.persist_outputs,
       autosave_interval_s: data.notebook.autosave_interval_s,
@@ -2303,6 +2307,7 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
+      output_blocks: output_blocks(data.notebook),
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug
@@ -2568,9 +2573,15 @@ defmodule LivebookWeb.SessionLive do
   defp output_blocks(notebook) do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
-        output_id <- Enum.map(cell.outputs, &elem(&1, 0)),
-        Cell.evaluable?(cell) do
-      %{id: output_id, x_pos: 0, y_pos: output_id, width: 1, height: 1, content: "#{cell.id}_#{output_id}"}
+        Cell.evaluable?(cell),
+        output <- filter_outputs(cell.outputs, :dashboard) do
+      %{
+        id: elem(output, 0),
+        x_pos: 0,
+        y_pos: 1,
+        width: 3,
+        height: 1
+      }
     end
     |> Enum.reverse()
   end

@@ -144,16 +144,6 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               </div>
             </div>
           </div>
-        <% else %>
-        <div class="max-h-screen">
-          <.live_component
-            module={LivebookWeb.GridstackComponent}
-            id="output_blocks"
-            columns={1}
-            grid_components={@output_blocks}
-            
-          />
-        </div>
         <% end %>
       <% end %>
     </div>

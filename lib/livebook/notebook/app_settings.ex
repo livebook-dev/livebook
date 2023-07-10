@@ -19,7 +19,7 @@ defmodule Livebook.Notebook.AppSettings do
         }
 
   @type access_type :: :public | :protected
-  @type output_type :: :all | :rich | :layout
+  @type output_type :: :all | :rich | :dashboard
 
   @primary_key false
   embedded_schema do
@@ -31,7 +31,7 @@ defmodule Livebook.Notebook.AppSettings do
     field :access_type, Ecto.Enum, values: [:public, :protected]
     field :password, :string
     field :show_source, :boolean
-    field :output_type, Ecto.Enum, values: [:all, :rich, :layout]
+    field :output_type, Ecto.Enum, values: [:all, :rich, :dashboard]
     field :output_layout, :map
   end
 

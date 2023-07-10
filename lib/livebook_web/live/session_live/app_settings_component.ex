@@ -80,7 +80,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <.checkbox_field
             field={f[:output_type]}
             label="Only render rich outputs"
-            checked_value="layout"
+            checked_value="dashboard"
             unchecked_value="all"
             help={
               ~S'''

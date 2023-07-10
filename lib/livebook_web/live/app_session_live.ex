@@ -31,6 +31,8 @@ defmodule LivebookWeb.AppSessionLive do
           {data, nil}
         end
 
+      data_view = data_to_view(data)
+
       {:ok,
        socket
        |> assign(
@@ -38,9 +40,11 @@ defmodule LivebookWeb.AppSessionLive do
          session: session,
          page_title: get_page_title(data.notebook.name),
          client_id: client_id,
-         data_view: data_to_view(data)
+         data_view: data_view
        )
-       |> assign_private(data: data)}
+       |> assign_private(data: data)
+       |> push_event("load_grid", data_view.output_layout)
+      }
     else
       {:ok,
        assign(socket,
@@ -94,12 +98,10 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
-  def render(%{data_view: %{output_type: :layout}} = assigns) when assigns.app_authenticated? do
+  def render(%{data_view: %{output_type: :dashboard}} = assigns) when assigns.app_authenticated? do
     ~H"""
-    <div><%= inspect(@data_view.output_layout) %></div>
-    <button class="flex items-center text-gray-900" phx-click="load_grid">Load Layout</button>
     <div class="grow overflow-y-auto">
-      <div id="app_dashboard" class="grid-stack" phx-hook="Gridstack" />
+      <div id="app_dashboard" class="grid-stack" phx-hook="GridstackStatic" />
     </div>
     """
   end
@@ -209,12 +211,6 @@ defmodule LivebookWeb.AppSessionLive do
       Session.queue_full_evaluation(socket.assigns.session.pid, [cell_id])
     end
 
-    {:noreply, socket}
-  end
-
-  def handle_event("load_grid", _params, socket) do
-    IO.inspect(socket.assigns.data_view.output_layout)
-    socket = push_event(socket, "load_grid", socket.assigns.data_view.output_layout)
     {:noreply, socket}
   end
 
@@ -337,47 +333,6 @@ defmodule LivebookWeb.AppSessionLive do
         output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
         do: {cell.id, output}
   end
-
-  defp filter_outputs(outputs, :all), do: outputs
-  defp filter_outputs(outputs, :layout), do: outputs
-  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
-
-  defp rich_outputs(outputs) do
-    for output <- outputs, output = filter_output(output), do: output
-  end
-
-  defp filter_output({idx, output})
-       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
-       do: {idx, output}
-
-  defp filter_output({idx, {:tabs, outputs, metadata}}) do
-    outputs_with_labels =
-      for {output, label} <- Enum.zip(outputs, metadata.labels),
-          output = filter_output(output),
-          do: {output, label}
-
-    {outputs, labels} = Enum.unzip(outputs_with_labels)
-
-    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
-  end
-
-  defp filter_output({idx, {:grid, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-
-    if outputs != [] do
-      {idx, {:grid, outputs, metadata}}
-    end
-  end
-
-  defp filter_output({idx, {:frame, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-    {idx, {:frame, outputs, metadata}}
-  end
-
-  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
-    do: {idx, output}
-
-  defp filter_output(_output), do: nil
 
   defp show_app_status?(%{execution: :executed, lifecycle: :active}), do: false
   defp show_app_status?(_status), do: true

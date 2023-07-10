@@ -308,6 +308,9 @@ const JSView = {
   repositionIframe() {
     const { iframe, iframePlaceholder } = this;
     const notebookEl = document.querySelector(`[data-el-notebook]`);
+    console.log(notebookEl, "NOTEOBOK");
+    console.log(iframePlaceholder, "Placeholder");
+    console.log(iframe, "Iframe");
 
     if (isElementHidden(iframePlaceholder)) {
       // When the placeholder is hidden, we hide the iframe as well
