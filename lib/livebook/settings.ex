@@ -256,13 +256,17 @@ defmodule Livebook.Settings do
   """
   @spec default_file_system_home() :: FileSystem.File.t()
   def default_file_system_home() do
-    FileSystem.File.new(default_file_system(), get_default_dir())
+    if file = get_default_dir() do
+      file
+    else
+      FileSystem.File.new(default_file_system())
+    end
   end
 
   @doc """
   Sets default directory.
   """
-  @spec set_default_dir(String.t()) :: :ok
+  @spec set_default_dir(FileSystem.File.t()) :: :ok
   def set_default_dir(file) do
     Storage.insert(:settings, "global", default_dir: file)
   end
@@ -270,10 +274,10 @@ defmodule Livebook.Settings do
   @doc """
   Gets default directory.
   """
-  @spec get_default_dir() :: String.t() | nil
+  @spec get_default_dir() :: FileSystem.File.t() | nil
   def get_default_dir() do
     case Storage.fetch_key(:settings, "global", :default_dir) do
-      {:ok, path} -> path
+      {:ok, file} -> file
       :error -> nil
     end
   end
