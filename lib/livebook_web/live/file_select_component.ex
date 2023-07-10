@@ -128,8 +128,8 @@ defmodule LivebookWeb.FileSelectComponent do
               phx-target={@myself}
               phx-value-path={@file.path}
             >
-              <.remix_icon icon="folder-settings-line" />
-              <span>Set default directory</span>
+              <.remix_icon icon="home-6-line" />
+              <span>Use as default directory</span>
             </button>
           </.menu_item>
         </.menu>
