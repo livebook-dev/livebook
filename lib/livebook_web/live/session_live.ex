@@ -417,7 +417,6 @@ defmodule LivebookWeb.SessionLive do
             id: "canvas",
             session: %{
               "session" => @session,
-              "runtime" => @data_view.runtime,
               "client_id" => @client_id,
               "canvas_settings" => @data_view.canvas_settings
             }

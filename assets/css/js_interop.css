@@ -299,7 +299,8 @@ solely client-side operations.
 /* === Views === */
 
 [data-el-session]:not([data-js-view="canvas"]) [data-el-canvas],
-[data-el-session]:not([data-js-view="canvas"]) [data-el-move-output-to-canvas-button] {
+[data-el-session]:not([data-js-view="canvas"]) [data-el-move-output-to-canvas-button],
+[data-el-session]:not([data-js-view="canvas"]) [data-el-canvas-popout-link] {
   @apply hidden;
 }
 

@@ -33,6 +33,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
+          <.canvas_popout session_id={@session_id} />
           <.view_indicator />
           <.persistence_indicator
             file={@file}
@@ -50,6 +51,21 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         </div>
       </div>
     </div>
+    """
+  end
+
+  defp canvas_popout(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Open Canvas in a seperate window" data-el-canvas-popout-link>
+      <.link
+        href={~p"/sessions/#{@session_id}/canvas"}
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="choose a file to save the notebook"
+        target="_blank"
+      >
+        <.remix_icon icon="external-link-line" class="text-xl text-gray-400" />
+      </.link>
+    </span>
     """
   end
 

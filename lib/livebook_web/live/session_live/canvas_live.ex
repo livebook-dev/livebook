@@ -1,12 +1,13 @@
 defmodule LivebookWeb.SessionLive.CanvasLive do
   use LivebookWeb, :live_view
 
+  alias Livebook.{Session, Sessions}
+
   @impl true
   def mount(
         _params,
         %{
           "session" => session,
-          "runtime" => runtime,
           "client_id" => client_id,
           "canvas_settings" => canvas_settings
         },
@@ -16,7 +17,6 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
       socket
       |> assign(
         session: session,
-        runtime: runtime,
         client_id: client_id,
         canvas_settings: canvas_settings
       )
@@ -26,6 +26,22 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
     end
 
     {:ok, socket}
+  end
+
+  def mount(%{"id" => session_id}, _session, socket) do
+    {:ok, session} = Sessions.fetch_session(session_id)
+    {data, client_id} =
+      Session.register_client(session.pid, self(), socket.assigns.current_user)
+    socket =
+      socket
+      |> assign(
+        session: session,
+        client_id: client_id,
+        canvas_settings: data.notebook.canvas_settings
+      )
+    
+    {:ok, socket}
+
   end
 
   @impl true
