@@ -62,6 +62,17 @@ defmodule LivebookWeb.SessionLive do
         session = Session.get_by_pid(session_pid)
         platform = platform_from_socket(socket)
 
+        socket =
+          if data.mode == :app do
+            put_flash(
+              socket,
+              :info,
+              "This session is a deployed app. Any changes will be reflected live."
+            )
+          else
+            socket
+          end
+
         {:ok,
          socket
          |> assign(

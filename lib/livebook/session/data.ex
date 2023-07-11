@@ -154,7 +154,7 @@ defmodule Livebook.Session.Data do
           # Note that technically the first state is :initial, but we always
           # expect app to start evaluating right away, so distinguishing that
           # state from :executing would not bring any value
-          execution: :executing | :executed | :error,
+          execution: :executing | :executed | :error | :interrupted,
           lifecycle: :active | :shutting_down | :deactivated
         }
 

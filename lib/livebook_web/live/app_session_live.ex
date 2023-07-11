@@ -139,22 +139,30 @@ defmodule LivebookWeb.AppSessionLive do
           </h1>
         </div>
         <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
+          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
+            <LivebookWeb.Output.outputs
+              outputs={[output_view.output]}
+              dom_id_map={%{}}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              cell_id={output_view.cell_id}
+              input_values={output_view.input_values}
+            />
+          </div>
           <%= if @data_view.app_status.execution == :error do %>
-            <div class="error-box flex items-center gap-2">
-              <.remix_icon icon="error-warning-line" class="text-xl" />
-              <span>Something went wrong</span>
-            </div>
-          <% else %>
-            <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
-              <LivebookWeb.Output.outputs
-                outputs={[output_view.output]}
-                dom_id_map={%{}}
-                session_id={@session.id}
-                session_pid={@session.pid}
-                client_id={@client_id}
-                cell_id={output_view.cell_id}
-                input_values={output_view.input_values}
-              />
+            <div class="error-box flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <.remix_icon icon="error-warning-line" class="text-xl" />
+                <span>Something went wrong</span>
+              </div>
+              <.link
+                :if={@livebook_authenticated?}
+                navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
+              >
+                <span>Debug</span>
+                <.remix_icon icon="arrow-right-line" />
+              </.link>
             </div>
           <% end %>
         </div>
@@ -303,8 +311,17 @@ defmodule LivebookWeb.AppSessionLive do
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
-      multi_session: data.notebook.app_settings.multi_session
+      multi_session: data.notebook.app_settings.multi_session,
+      errored_cell_id: errored_cell_id(data)
     }
+  end
+
+  defp errored_cell_id(data) do
+    data.notebook
+    |> Notebook.evaluable_cells_with_section()
+    |> Enum.find_value(fn {cell, _section} ->
+      data.cell_infos[cell.id].eval.errored && cell.id
+    end)
   end
 
   defp input_values_for_output(output, data) do
