@@ -57,7 +57,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
             <.hidden_field field={f[:hub_id]} value={@hub.id} />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                <.remix_icon icon={@button.icon} class="align-middle" />
+                <.remix_icon icon={@button.icon} class="align-middle mr-1" />
                 <span class="font-normal"><%= @button.label %></span>
               </button>
               <.link patch={@return_to} class="button-base button-outlined-gray">
