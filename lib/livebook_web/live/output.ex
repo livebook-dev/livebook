@@ -83,7 +83,12 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:js, js_info}, %{id: id, session_id: session_id, client_id: client_id, output_location: output_location}) do
+  defp render_output({:js, js_info}, %{
+         id: id,
+         session_id: session_id,
+         client_id: client_id,
+         output_location: output_location
+       }) do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
       js_view: js_info.js_view,

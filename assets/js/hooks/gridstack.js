@@ -25,7 +25,7 @@ const Gridstack = {
 
     this.grid = GridStack.init(options, this.el);
 
-    this.grid.on("change", function(event, items) {
+    this.grid.on("change", function (event, items) {
       console.log(items);
       let new_items = items.reduce((acc, item) => {
         acc[item.id] = {
@@ -40,7 +40,7 @@ const Gridstack = {
       self.repositionIframe();
     });
 
-    this.grid.on("drag", function(event, item) {
+    this.grid.on("drag", function (event, item) {
       // TODO update iframe position when dragging
       //self.repositionIframe();
     });

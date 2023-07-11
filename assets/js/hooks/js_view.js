@@ -328,7 +328,9 @@ const JSView = {
   },
 
   loadIframe() {
-    const iframesEl = document.querySelector(`[data-el-js-view-iframes]#js-view-iframes-${this.props.outputLocation}`);
+    const iframesEl = document.querySelector(
+      `[data-el-js-view-iframes]#js-view-iframes-${this.props.outputLocation}`
+    );
     initializeIframeSource(
       this.iframe,
       this.props.iframePort,
