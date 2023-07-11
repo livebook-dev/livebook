@@ -151,9 +151,18 @@ defmodule LivebookWeb.AppSessionLive do
             />
           </div>
           <%= if @data_view.app_status.execution == :error do %>
-            <div class="error-box flex items-center gap-2">
-              <.remix_icon icon="error-warning-line" class="text-xl" />
-              <span>Something went wrong</span>
+            <div class="error-box flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <.remix_icon icon="error-warning-line" class="text-xl" />
+                <span>Something went wrong</span>
+              </div>
+              <.link
+                :if={@livebook_authenticated?}
+                navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
+              >
+                <span>Debug</span>
+                <.remix_icon icon="arrow-right-line" />
+              </.link>
             </div>
           <% end %>
         </div>
@@ -302,8 +311,17 @@ defmodule LivebookWeb.AppSessionLive do
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
-      multi_session: data.notebook.app_settings.multi_session
+      multi_session: data.notebook.app_settings.multi_session,
+      errored_cell_id: errored_cell_id(data)
     }
+  end
+
+  defp errored_cell_id(data) do
+    data.notebook
+    |> Notebook.evaluable_cells_with_section()
+    |> Enum.find_value(fn {cell, _section} ->
+      data.cell_infos[cell.id].eval.errored && cell.id
+    end)
   end
 
   defp input_values_for_output(output, data) do
