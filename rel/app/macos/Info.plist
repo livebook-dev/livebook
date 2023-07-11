@@ -8,6 +8,8 @@
   <string>dev.livebook.Livebook</string>
   <key>CFBundleVersion</key>
   <string>$(app_version)</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(app_version)</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>CFBundleExecutable</key>
