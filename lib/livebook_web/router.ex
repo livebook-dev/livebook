@@ -113,6 +113,7 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :user]
 
       live "/apps/:slug", AppLive, :page
+      live "/apps/:slug/new", AppLive, :new_session
       live "/apps/:slug/authenticate", AppAuthLive, :page
 
       live "/apps/:slug/:id", AppSessionLive, :page

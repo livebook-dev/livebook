@@ -62,10 +62,10 @@ defmodule LivebookWeb.AppLive do
           <% end %>
         </p>
         <div class="flex justify-end">
-          <button class="button-base button-outlined-blue" phx-click="new_session">
+          <.link class="button-base button-outlined-blue" patch={~p"/apps/#{@app.slug}/new"}>
             <.remix_icon icon="add-line" class="align-middle mr-1" />
             <span>New session</span>
-          </button>
+          </.link>
         </div>
         <div :if={@app_settings.show_existing_sessions} class="w-full flex flex-col space-y-4">
           <.link
@@ -94,12 +94,14 @@ defmodule LivebookWeb.AppLive do
   def render(assigns), do: auth_placeholder(assigns)
 
   @impl true
-  def handle_event("new_session", %{}, socket) do
+  def handle_params(_params, _url, socket) when socket.assigns.live_action == :new_session do
     session_id =
       Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
 
     {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/#{session_id}")}
   end
+
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
   def handle_info({:app_updated, app}, socket) do
