@@ -250,7 +250,7 @@ defmodule LivebookWeb.OpenLive do
     end
   end
 
-  defp file_from_params(_params), do: Livebook.Settings.default_file_system_home()
+  defp file_from_params(_params), do: Livebook.Settings.default_dir()
 
   defp import_source(socket, source, session_opts) do
     {notebook, %{warnings: messages}} = Livebook.LiveMarkdown.notebook_from_livemd(source)

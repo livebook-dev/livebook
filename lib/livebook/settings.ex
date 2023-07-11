@@ -252,14 +252,6 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns the home directory in the default file system.
-  """
-  @spec default_file_system_home() :: FileSystem.File.t()
-  def default_file_system_home() do
-    get_default_dir()
-  end
-
-  @doc """
   Sets default directory.
   """
   @spec set_default_dir(FileSystem.File.t()) :: :ok
@@ -272,8 +264,8 @@ defmodule Livebook.Settings do
   @doc """
   Gets default directory.
   """
-  @spec get_default_dir() :: FileSystem.File.t()
-  def get_default_dir() do
+  @spec default_dir() :: FileSystem.File.t()
+  def default_dir() do
     with {:ok, %{file_system_id: file_system_id, path: path}} <-
            Storage.fetch_key(:settings, "global", :default_dir),
          file_system when file_system != nil <-
