@@ -241,7 +241,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex w-full h-screen">
         <div class="flex-1 overflow-y-auto relative" data-el-notebook>
-          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-notebook"></div>
           <LivebookWeb.SessionLive.IndicatorsComponent.render
             session_id={@session.id}
             file={@data_view.file}

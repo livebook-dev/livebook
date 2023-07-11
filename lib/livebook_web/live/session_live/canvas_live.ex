@@ -32,6 +32,7 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
   def render(assigns) do
     ~H"""
     <div id="gridstack-container">
+      <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-canvas"></div>
       <div id="canvas-grid" class="grid-stack" gs-column="12" phx-hook="Gridstack">
         <div
           :for={{cell_id, item} <- @canvas_settings.items}
@@ -56,6 +57,7 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
                 session_pid={@session.pid}
                 client_id={@client_id}
                 cell_id={cell_id}
+                output_location={:canvas}
                 input_values={%{}}
               />
             </div>
