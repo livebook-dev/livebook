@@ -25,13 +25,6 @@ const Gridstack = {
 
     this.grid = GridStack.init(options, this.el);
 
-    document
-      .querySelector("[data-el-app-info-toggle]")
-      .addEventListener("click", function(event) {
-        self.visible = !self.visible;
-        self.toggleMountOutputs();
-      });
-
     this.grid.on("change", function(event, items) {
       console.log(items);
       let new_items = items.reduce((acc, item) => {
@@ -54,33 +47,6 @@ const Gridstack = {
   },
   updated() {
     console.log("Gridstack updated", this.grid);
-  },
-  toggleMountOutputs() {
-    if (this.visible) {
-      const outputs = document.querySelectorAll("[data-el-outputs-container]");
-      for (let output of outputs) {
-        // safe origin location for unmounting
-        output._origin || (output._origin = output.parentNode);
-        const output_id = output.id.split("-")[1];
-        const item_content = this.el.querySelector(
-          `[gs-id="${output_id}"] .grid-stack-item-content`
-        );
-        if (item_content) {
-          item_content.prepend(output);
-        }
-      }
-    } else {
-      const output_containers = this.el.querySelectorAll(
-        `.grid-stack-item .grid-stack-item-content`
-      );
-      for (let container of output_containers) {
-        const output = container.firstChild;
-        if (output) {
-          output._origin && output._origin.appendChild(output);
-        }
-      }
-    }
-    this.repositionIframe();
   },
   repositionIframe() {
     globalPubSub.broadcast("js_views", { type: "reposition" });
