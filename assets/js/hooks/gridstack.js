@@ -26,30 +26,31 @@ const Gridstack = {
 
     this.grid = GridStack.init(options, this.el);
 
-    document.querySelector("[data-el-app-info-toggle]").addEventListener("click", function(event) {
-      self.visible = !self.visible;
-      self.toggleMountOutputs();
-    });
-
-    this.grid.on("change", function(event, items) {
-      const new_items = items.map(function({ id, x, y, w, h }) {
-        return { id: id, x: x, y: y, w: w, h: h };
+    document
+      .querySelector("[data-el-app-info-toggle]")
+      .addEventListener("click", function (event) {
+        self.visible = !self.visible;
+        self.toggleMountOutputs();
       });
-      console.log("items_changed", new_items);
+
+    this.grid.on("change", function (event, items) {
+      console.log(items);
+      let new_items = items.reduce((acc, item) => {
+        acc[item.id] = {
+          x: item.x,
+          y: item.y,
+          w: item.w,
+          h: item.h,
+        };
+        return acc;
+      }, {});
       self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
       self.repositionIframe();
     });
 
-    this.grid.on("drag", function(event, item) {
+    this.grid.on("drag", function (event, item) {
       // TODO update iframe position when dragging
       //self.repositionIframe();
-    });
-
-    this.handleEvent("save_layout", function() {
-      const layout = self.grid.save(false, false);
-      console.log("Layout saved");
-      console.log(layout);
-      self.pushEventTo(self.props.phxTarget, "new_app_layout", { layout: layout });
     });
   },
   updated() {
@@ -68,17 +69,21 @@ const Gridstack = {
         // safe origin location for unmounting
         output._origin || (output._origin = output.parentNode);
         const output_id = output.id.split("-")[1];
-        const item_content = this.el.querySelector(`[gs-id="${output_id}"] .grid-stack-item-content`);
+        const item_content = this.el.querySelector(
+          `[gs-id="${output_id}"] .grid-stack-item-content`
+        );
         if (item_content) {
           item_content.prepend(output);
         }
       }
     } else {
-      const output_containers = this.el.querySelectorAll(`.grid-stack-item .grid-stack-item-content`);
+      const output_containers = this.el.querySelectorAll(
+        `.grid-stack-item .grid-stack-item-content`
+      );
       for (let container of output_containers) {
         const output = container.firstChild;
         if (output) {
-          output._origin && output._origin.prepend(output);
+          output._origin && output._origin.appendChild(output);
         }
       }
     }
@@ -86,7 +91,7 @@ const Gridstack = {
   },
   repositionIframe() {
     globalPubSub.broadcast("js_views", { type: "reposition" });
-  }
+  },
 };
 
 export default Gridstack;

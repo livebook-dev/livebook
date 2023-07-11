@@ -32,7 +32,6 @@ defmodule LivebookWeb.AppSessionLive do
         end
 
       data_view = data_to_view(data)
-      IO.inspect(data_view.output_layout)
 
       {:ok,
        socket
@@ -44,8 +43,7 @@ defmodule LivebookWeb.AppSessionLive do
          data_view: data_view
        )
        |> assign_private(data: data)
-       |> push_event("load_layout", %{layout: data_view.output_layout})
-      }
+       |> push_event("load_layout", %{layout: data_view.output_layout})}
     else
       {:ok,
        assign(socket,
@@ -99,7 +97,8 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
-  def render(%{data_view: %{output_type: :dashboard}} = assigns) when assigns.app_authenticated? do
+  def render(%{data_view: %{output_type: :dashboard}} = assigns)
+      when assigns.app_authenticated? do
     ~H"""
     <div class="h-full w-full" data-el-notebook>
       <div class="h-full w-full" data-el-notebook-content>
@@ -316,7 +315,6 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp data_to_view(data) do
-    IO.inspect(data, label: "DATA")
     %{
       notebook_name: data.notebook.name,
       output_views:

@@ -67,6 +67,20 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               '''
             }
           />
+          <.select_field
+            field={f[:output_type]}
+            label="Output type"
+            options={[
+              {"All", :all},
+              {"Rich", :rich},
+              {"Dashboard", :dashboard}
+            ]}
+            help={
+              ~S'''
+              TODO
+              '''
+            }
+          />
           <.checkbox_field
             field={f[:show_source]}
             label="Show source"
@@ -74,19 +88,6 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               ~S'''
               When enabled, it makes notebook source
               accessible in the app menu.
-              '''
-            }
-          />
-          <.checkbox_field
-            field={f[:output_type]}
-            label="Only render rich outputs"
-            checked_value="dashboard"
-            unchecked_value="all"
-            help={
-              ~S'''
-              When enabled, hides simple outputs
-              and only shows rich elements, such
-              as inputs, frames, tables, etc.
               '''
             }
           />
@@ -124,8 +125,8 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             phx-click={JS.patch(~p"/sessions/#{@session.id}")}
             disabled={not @changeset.valid?}
           >
-            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
-            <span>Deploy</span>
+            <.remix_icon icon="save-line" class="align-middle mr-1" />
+            <span>Save</span>
           </button>
           <button class="button-base button-outlined-gray" type="reset" name="reset">
             Reset
@@ -137,7 +138,6 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   end
 
   @impl true
-
   def handle_event("validate", %{"_target" => ["reset"]}, socket) do
     settings = AppSettings.new()
     Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)

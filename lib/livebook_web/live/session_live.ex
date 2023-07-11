@@ -1344,7 +1344,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("deploy_app", %{}, socket) do
-    socket = push_event(socket, "save_layout", %{})
     on_confirm = fn socket ->
       Livebook.Session.deploy_app(socket.assigns.session.pid)
       socket
@@ -2552,15 +2551,9 @@ defmodule LivebookWeb.SessionLive do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs, :dashboard) do
-      %{
-        id: cell.id,
-        x: 0,
-        y: 1,
-        w: 3,
-        h: 1
-      }
+        output <- filter_outputs(cell.outputs, :dashboard),
+        into: %{} do
+      {cell.id, %{"w" => 3, "h" => 6}}
     end
-    |> Enum.reverse()
   end
 end
