@@ -67,7 +67,7 @@ defmodule LivebookWeb.SessionLive do
             put_flash(
               socket,
               :info,
-              "This session is a running app. Any changes will be reflected live."
+              "This session is a deployed app. Any changes will be reflected live."
             )
           else
             socket
