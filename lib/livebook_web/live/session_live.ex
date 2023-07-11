@@ -76,7 +76,8 @@ defmodule LivebookWeb.SessionLive do
            select_secret_ref: nil,
            select_secret_options: nil,
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
-           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
+           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files(),
+           canvas_pid: nil
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -1613,6 +1614,10 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, :app, app)}
   end
 
+  def handle_info({:canvas_pid, pid}, socket) do
+    {:noreply, assign(socket, canvas_pid: pid)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path, requested_url) do
@@ -1954,6 +1959,16 @@ defmodule LivebookWeb.SessionLive do
 
       assign(socket, app: app)
     end
+  end
+
+  defp after_operation(
+         %{assigns: %{canvas_pid: pid}} = socket,
+         _prev_socket,
+         {:move_output_to_canvas, _client_id, _cell_id}
+       )
+       when not is_nil(pid) do
+    send(pid, {:new_data, socket.private.data.notebook.canvas_settings})
+    socket
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket

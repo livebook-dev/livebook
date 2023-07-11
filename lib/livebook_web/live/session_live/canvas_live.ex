@@ -21,13 +21,17 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
         canvas_settings: canvas_settings
       )
 
+    if connected?(socket) do
+      send(socket.parent_pid, {:canvas_pid, self()})
+    end
+
     {:ok, socket}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="gridstack-container" phx-update="ignore">
+    <div id="gridstack-container">
       <div id="canvas-grid" class="grid-stack" gs-column="12" phx-hook="Gridstack">
         <div
           :for={{cell_id, item} <- @canvas_settings.items}
@@ -67,5 +71,10 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
     # Session.update_canvas_layout(socket.assigns.session.pid, app_settings)
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:new_data, canvas_settings}, socket) do
+    {:noreply, assign(socket, canvas_settings: canvas_settings)}
   end
 end
