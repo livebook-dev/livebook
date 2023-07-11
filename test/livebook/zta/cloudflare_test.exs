@@ -33,13 +33,20 @@ defmodule Livebook.Zta.CloudflareTest do
 
     fields = [:id, :name, :email]
 
+    expected_user = %{
+      "user_uuid" => "1234567890",
+      "name" => "Tuka Peralta",
+      "email" => "tuka@peralta.com"
+    }
+
     {:ok,
      bypass: bypass,
      key: key,
      token: token,
      options: options,
      fields: fields,
-     user_identity: user_identity}
+     user_identity: user_identity,
+     expected_user: expected_user}
   end
 
   test "returns the user when it's valid", setup do
@@ -49,16 +56,10 @@ defmodule Livebook.Zta.CloudflareTest do
       |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
     end)
 
-    expected_user = %{
-      "user_uuid" => "1234567890",
-      "name" => "Tuka Peralta",
-      "email" => "tuka@peralta.com"
-    }
-
     Bypass.expect(setup.user_identity, fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(expected_user))
+      |> Plug.Conn.send_resp(200, Jason.encode!(setup.expected_user))
     end)
 
     {:ok, pid} = GenServer.start(Cloudflare, setup.options)
@@ -75,13 +76,58 @@ defmodule Livebook.Zta.CloudflareTest do
       |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
     end)
 
-    Bypass.expect(setup.user_identity, fn conn ->
+    Bypass.expect_once(setup.user_identity, fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
       |> Plug.Conn.send_resp(403, "")
     end)
 
     {:ok, pid} = GenServer.start(Cloudflare, setup.options)
+
     assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+  end
+
+  test "returns nil when the identity is invalid", setup do
+    identity = %{
+      iss: "invalid",
+      key: "livebookweb",
+      user_identity: "http://localhost:#{setup.user_identity.port}"
+    }
+
+    options = Keyword.put(setup.options, :identity, identity)
+
+    Bypass.expect_once(setup.bypass, fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
+    end)
+
+    {:ok, pid} = GenServer.start(Cloudflare, options)
+
+    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+  end
+
+  test "returns nil when the key is invalid", setup do
+    Bypass.expect_once(setup.bypass, fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
+    end)
+
+    {:ok, pid} = GenServer.start(Cloudflare, setup.options)
+
+    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+  end
+
+  test "returns nil when the token is invalid", setup do
+    Bypass.expect_once(setup.bypass, fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
+    end)
+
+    {:ok, pid} = GenServer.start(Cloudflare, setup.options)
+
+    assert GenServer.call(pid, {:authenticate, ["invalid"], fields: setup.fields}) == nil
   end
 end
