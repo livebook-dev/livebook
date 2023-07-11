@@ -139,22 +139,21 @@ defmodule LivebookWeb.AppSessionLive do
           </h1>
         </div>
         <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
+          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
+            <LivebookWeb.Output.outputs
+              outputs={[output_view.output]}
+              dom_id_map={%{}}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              cell_id={output_view.cell_id}
+              input_values={output_view.input_values}
+            />
+          </div>
           <%= if @data_view.app_status.execution == :error do %>
             <div class="error-box flex items-center gap-2">
               <.remix_icon icon="error-warning-line" class="text-xl" />
               <span>Something went wrong</span>
-            </div>
-          <% else %>
-            <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
-              <LivebookWeb.Output.outputs
-                outputs={[output_view.output]}
-                dom_id_map={%{}}
-                session_id={@session.id}
-                session_pid={@session.pid}
-                client_id={@client_id}
-                cell_id={output_view.cell_id}
-                input_values={output_view.input_values}
-              />
             </div>
           <% end %>
         </div>
