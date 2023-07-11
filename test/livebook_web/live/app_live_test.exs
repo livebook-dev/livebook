@@ -90,7 +90,7 @@ defmodule LivebookWeb.AppLiveTest do
 
       {:error, {:live_redirect, %{to: to}}} =
         view
-        |> element("button", "New session")
+        |> element("a", "New session")
         |> render_click()
 
       assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
