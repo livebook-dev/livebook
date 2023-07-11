@@ -122,11 +122,11 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <button
             class="button-base button-blue"
             type="button"
-            phx-click={JS.patch(~p"/sessions/#{@session.id}")}
+            phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
             disabled={not @changeset.valid?}
           >
-            <.remix_icon icon="save-line" class="align-middle mr-1" />
-            <span>Save</span>
+            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
+            <span>Deploy</span>
           </button>
           <button class="button-base button-outlined-gray" type="reset" name="reset">
             Reset

@@ -19,7 +19,6 @@ const GridstackStatic = {
 
     this.handleEvent("load_layout", function ({ layout }) {
       if (layout) {
-        console.log("layout", layout);
         self.grid.load(layout);
         self.mountOutputs();
       }
@@ -31,8 +30,6 @@ const GridstackStatic = {
       const item_content = this.el.querySelector(
         `[gs-id="${output.parentNode.id}"] .grid-stack-item-content`
       );
-      console.log("output", output);
-      console.log("content", item_content);
       if (item_content) {
         item_content.prepend(output);
       }

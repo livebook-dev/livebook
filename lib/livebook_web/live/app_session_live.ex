@@ -43,7 +43,9 @@ defmodule LivebookWeb.AppSessionLive do
          data_view: data_view
        )
        |> assign_private(data: data)
-       |> push_event("load_layout", %{layout: data_view.output_layout})}
+       |> push_event("load_layout", %{
+         layout: get_dashboard_layout(data_view.canvas_settings.items)
+       })}
     else
       {:ok,
        assign(socket,
@@ -99,11 +101,18 @@ defmodule LivebookWeb.AppSessionLive do
 
   def render(%{data_view: %{output_type: :dashboard}} = assigns)
       when assigns.app_authenticated? do
+    assigns =
+      Map.put(
+        assigns,
+        :dashboard_layout,
+        get_dashboard_layout(assigns.data_view.canvas_settings.items)
+      )
+
     ~H"""
     <div class="h-full w-full" data-el-notebook>
       <div class="h-full w-full" data-el-notebook-content>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-canvas"></div>
         <div id="app_dashboard" class="grid-stack" phx-hook="GridstackStatic" />
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div :for={output_view <- Enum.reverse(@data_view.output_views)} id={output_view.cell_id}>
           <LivebookWeb.Output.outputs
             outputs={[output_view.output]}
@@ -112,6 +121,7 @@ defmodule LivebookWeb.AppSessionLive do
             session_pid={@session.pid}
             client_id={@client_id}
             cell_id={output_view.cell_id}
+            output_location={:canvas}
             input_values={output_view.input_values}
           />
         </div>
@@ -158,7 +168,7 @@ defmodule LivebookWeb.AppSessionLive do
             </.menu_item>
           </.menu>
         </div>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-notebook"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
             <%= @data_view.notebook_name %>
@@ -179,6 +189,7 @@ defmodule LivebookWeb.AppSessionLive do
                 session_pid={@session.pid}
                 client_id={@client_id}
                 cell_id={output_view.cell_id}
+                output_location={:notebook}
                 input_values={output_view.input_values}
               />
             </div>
@@ -326,8 +337,8 @@ defmodule LivebookWeb.AppSessionLive do
             cell_id: cell_id
           }
         ),
-      output_layout: data.notebook.app_settings.output_layout,
       output_type: data.notebook.app_settings.output_type,
+      canvas_settings: data.notebook.canvas_settings,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -344,8 +355,58 @@ defmodule LivebookWeb.AppSessionLive do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
+        output <-
+          filter_outputs(cell.outputs, cell.output_location, notebook.app_settings.output_type),
         do: {cell.id, output}
+  end
+
+  defp filter_outputs(outputs, _, :all), do: outputs
+  defp filter_outputs(outputs, _, :rich), do: rich_outputs(outputs)
+  defp filter_outputs(outputs, :canvas, :dashboard), do: outputs
+  defp filter_outputs(_, _, :dashboard), do: []
+
+  defp rich_outputs(outputs) do
+    for output <- outputs, output = filter_output(output), do: output
+  end
+
+  defp filter_output({idx, output})
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       do: {idx, output}
+
+  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+    outputs_with_labels =
+      for {output, label} <- Enum.zip(outputs, metadata.labels),
+          output = filter_output(output),
+          do: {output, label}
+
+    {outputs, labels} = Enum.unzip(outputs_with_labels)
+
+    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+  end
+
+  defp filter_output({idx, {:grid, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+
+    if outputs != [] do
+      {idx, {:grid, outputs, metadata}}
+    end
+  end
+
+  defp filter_output({idx, {:frame, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+    {idx, {:frame, outputs, metadata}}
+  end
+
+  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+    do: {idx, output}
+
+  defp filter_output(_output), do: nil
+
+  defp get_dashboard_layout(dashboard_items) do
+    for {id, rest} <- dashboard_items do
+      rest = %{"x" => rest[:x], "y" => rest[:y], "w" => rest[:w], "h" => rest[:h]}
+      Map.put(rest, "id", id)
+    end
   end
 
   defp show_app_status?(%{execution: :executed, lifecycle: :active}), do: false

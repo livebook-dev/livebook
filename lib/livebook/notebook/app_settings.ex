@@ -14,8 +14,7 @@ defmodule Livebook.Notebook.AppSettings do
           access_type: access_type(),
           password: String.t() | nil,
           show_source: boolean(),
-          output_type: output_type(),
-          output_layout: map()
+          output_type: output_type()
         }
 
   @type access_type :: :public | :protected
@@ -32,7 +31,6 @@ defmodule Livebook.Notebook.AppSettings do
     field :password, :string
     field :show_source, :boolean
     field :output_type, Ecto.Enum, values: [:all, :rich, :dashboard]
-    field :output_layout, :map
   end
 
   @doc """
@@ -49,8 +47,7 @@ defmodule Livebook.Notebook.AppSettings do
       access_type: :protected,
       password: generate_password(),
       show_source: false,
-      output_type: :all,
-      output_layout: %{}
+      output_type: :all
     }
   end
 

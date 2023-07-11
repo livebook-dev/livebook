@@ -2311,7 +2311,6 @@ defmodule LivebookWeb.SessionLive do
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
       hub_secrets: data.hub_secrets,
-      output_blocks: output_blocks(data.notebook),
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
@@ -2575,14 +2574,4 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
   defp app_status_color(%{execution: :error}), do: "bg-red-400"
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
-
-  defp output_blocks(notebook) do
-    for section <- Enum.reverse(notebook.sections),
-        cell <- Enum.reverse(section.cells),
-        Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs, :dashboard),
-        into: %{} do
-      {cell.id, %{"w" => 3, "h" => 6}}
-    end
-  end
 end

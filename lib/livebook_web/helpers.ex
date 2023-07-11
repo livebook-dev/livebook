@@ -82,48 +82,4 @@ defmodule LivebookWeb.Helpers do
   def format_datetime_relatively(date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
   end
-
-  @doc """
-  """
-  @spec filter_outputs(list(any()), atom()) :: list(any())
-  def filter_outputs(outputs, :all), do: outputs
-  def filter_outputs(outputs, :rich), do: rich_outputs(outputs)
-  def filter_outputs(outputs, :dashboard), do: rich_outputs(outputs)
-
-  defp rich_outputs(outputs) do
-    for output <- outputs, output = filter_output(output), do: output
-  end
-
-  defp filter_output({idx, output})
-       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
-       do: {idx, output}
-
-  defp filter_output({idx, {:tabs, outputs, metadata}}) do
-    outputs_with_labels =
-      for {output, label} <- Enum.zip(outputs, metadata.labels),
-          output = filter_output(output),
-          do: {output, label}
-
-    {outputs, labels} = Enum.unzip(outputs_with_labels)
-
-    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
-  end
-
-  defp filter_output({idx, {:grid, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-
-    if outputs != [] do
-      {idx, {:grid, outputs, metadata}}
-    end
-  end
-
-  defp filter_output({idx, {:frame, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-    {idx, {:frame, outputs, metadata}}
-  end
-
-  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
-    do: {idx, output}
-
-  defp filter_output(_output), do: nil
 end
