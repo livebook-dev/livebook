@@ -28,61 +28,43 @@ defmodule Livebook.Zta.GoogleIapTest do
 
     fields = [:id, :name, :email]
 
-    {:ok, bypass: bypass, key: key, token: token, options: options, fields: fields}
-  end
-
-  test "returns the user when it's valid", setup do
-    Bypass.expect(setup.bypass, fn conn ->
+    Bypass.expect(bypass, fn conn ->
       conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
+      |> put_resp_content_type("application/json")
+      |> send_resp(200, Jason.encode!(%{keys: [key]}))
     end)
 
-    {:ok, pid} = GenServer.start(GoogleIAP, setup.options)
+    {:ok, pid} = GenServer.start_link(GoogleIAP, options)
 
-    user = GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields})
+    {:ok, bypass: bypass, key: key, token: token, options: options, fields: fields, pid: pid}
+  end
 
+  test "returns the user when it's valid", %{pid: pid, token: token, fields: fields} do
+    user = GenServer.call(pid, {:authenticate, [token], fields: fields})
     assert %{id: "1234567890", email: "tuka@peralta.com"} = user
   end
 
   test "returns nil when the identity is invalid", setup do
-    options = Keyword.put(setup.options, :identity, %{iss: "invalid", key: "livebookweb"})
-
-    Bypass.expect(setup.bypass, fn conn ->
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    {:ok, pid} = GenServer.start(GoogleIAP, options)
-
+    options = Keyword.put(setup.options, :identity, %{iss: "invalid_iss", key: "livebookweb"})
+    {:ok, pid} = GenServer.start_link(GoogleIAP, options)
     assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
   end
 
-  test "returns nil when the token is invalid", setup do
-    token = "invalid"
-
-    Bypass.expect(setup.bypass, fn conn ->
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    {:ok, pid} = GenServer.start(GoogleIAP, setup.options)
-
-    assert GenServer.call(pid, {:authenticate, [token], fields: setup.fields}) == nil
+  test "returns nil when the token is invalid", %{pid: pid, fields: fields} do
+    assert GenServer.call(pid, {:authenticate, ["invalid_token"], fields: fields}) == nil
+    assert GenServer.call(pid, {:authenticate, "invalid_token", fields: fields}) == nil
+    assert GenServer.call(pid, {:authenticate, [], fields: fields}) == nil
+    assert GenServer.call(pid, {:authenticate, nil, fields: fields}) == nil
   end
 
   test "returns nil when the key is invalid", setup do
-    key = "invalid"
-
-    Bypass.expect(setup.bypass, fn conn ->
+    Bypass.expect_once(setup.bypass, fn conn ->
       conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{keys: [key]}))
+      |> put_resp_content_type("application/json")
+      |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
     end)
 
-    {:ok, pid} = GenServer.start(GoogleIAP, setup.options)
+    {:ok, pid} = GenServer.start_link(GoogleIAP, setup.options)
 
     assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
   end
