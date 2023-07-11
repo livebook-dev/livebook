@@ -3,7 +3,7 @@ defmodule Livebook.Notebook.Cell.Smart do
 
   # A cell with Elixir code that is edited through a dedicated UI.
 
-  defstruct [:id, :source, :chunks, :outputs, :kind, :attrs, :js_view, :editor]
+  defstruct [:id, :source, :chunks, :outputs, :output_location, :kind, :attrs, :js_view, :editor]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -13,6 +13,7 @@ defmodule Livebook.Notebook.Cell.Smart do
           source: String.t() | :__pruned__,
           chunks: Livebook.Runtime.chunks() | nil,
           outputs: list(Cell.indexed_output()),
+          output_location: :notebook | :canvas,
           kind: String.t() | nil,
           attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,
@@ -31,6 +32,7 @@ defmodule Livebook.Notebook.Cell.Smart do
       source: "",
       chunks: nil,
       outputs: [],
+      output_location: :notebook,
       kind: nil,
       attrs: %{},
       js_view: nil,

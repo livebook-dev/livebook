@@ -82,6 +82,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
+        <.move_output_to_canvas_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -98,6 +99,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
       <.evaluation_outputs
+        :if={@output_location == :notebook}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -176,6 +178,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
+        <.move_output_to_canvas_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -473,6 +476,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </.link>
       </span>
     <% end %>
+    """
+  end
+
+  defp move_output_to_canvas_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Output to Canvas" data-el-move-output-to-canvas-button>
+      <button
+        class="icon-button"
+        aria-label="move output"
+        phx-click={JS.push("move_output_to_canvas", value: %{cell_id: @cell_id})}
+      >
+        <.remix_icon icon="logout-box-r-line" class="text-xl" />
+      </button>
+    </span>
     """
   end
 

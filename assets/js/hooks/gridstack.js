@@ -8,7 +8,6 @@ import { GridStack } from "gridstack";
  */
 const Gridstack = {
   mounted() {
-    this.props = this.getProps();
     console.log("Gridstack mounted");
     const self = this;
 
@@ -28,12 +27,12 @@ const Gridstack = {
 
     document
       .querySelector("[data-el-app-info-toggle]")
-      .addEventListener("click", function (event) {
+      .addEventListener("click", function(event) {
         self.visible = !self.visible;
         self.toggleMountOutputs();
       });
 
-    this.grid.on("change", function (event, items) {
+    this.grid.on("change", function(event, items) {
       console.log(items);
       let new_items = items.reduce((acc, item) => {
         acc[item.id] = {
@@ -44,23 +43,17 @@ const Gridstack = {
         };
         return acc;
       }, {});
-      self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
+      self.pushEvent("items_changed", new_items);
       self.repositionIframe();
     });
 
-    this.grid.on("drag", function (event, item) {
+    this.grid.on("drag", function(event, item) {
       // TODO update iframe position when dragging
       //self.repositionIframe();
     });
   },
   updated() {
-    this.props = this.getProps();
     console.log("Gridstack updated", this.grid);
-  },
-  getProps() {
-    return {
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-    };
   },
   toggleMountOutputs() {
     if (this.visible) {

@@ -74,6 +74,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </button>
         </:toggle>
         <.menu_item>
+          <button role="menuitem" data-el-view-toggle="canvas">
+            <.remix_icon icon="dashboard-line" />
+            <span>Canvas</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
           <button role="menuitem" data-el-view-toggle="code-zen">
             <.remix_icon icon="code-line" />
             <span>Code zen</span>

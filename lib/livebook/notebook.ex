@@ -24,13 +24,14 @@ defmodule Livebook.Notebook do
     :default_language,
     :output_counter,
     :app_settings,
+    :canvas_settings,
     :hub_id,
     :hub_secret_names,
     :file_entries,
     :teams_enabled
   ]
 
-  alias Livebook.Notebook.{Section, Cell, AppSettings}
+  alias Livebook.Notebook.{Section, Cell, AppSettings, CanvasSettings}
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
@@ -45,6 +46,7 @@ defmodule Livebook.Notebook do
           default_language: :elixir | :erlang,
           output_counter: non_neg_integer(),
           app_settings: AppSettings.t(),
+          canvas_settings: CanvasSettings.t(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
@@ -85,6 +87,7 @@ defmodule Livebook.Notebook do
       default_language: :elixir,
       output_counter: 0,
       app_settings: AppSettings.new(),
+      canvas_settings: CanvasSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
       file_entries: [],
@@ -99,6 +102,28 @@ defmodule Livebook.Notebook do
   @spec put_setup_cell(t(), Cell.Code.t()) :: t()
   def put_setup_cell(notebook, %Cell.Code{} = cell) do
     put_in(notebook.setup_section.cells, [%{cell | id: Cell.setup_cell_id()}])
+  end
+
+  @doc """
+  TODO
+  """
+  @spec move_output_to_canvas(t(), Cell.t(), Section.t()) :: t()
+  def move_output_to_canvas(notebook, cell, section) do
+    notebook
+    |> update_in(
+      [
+        Access.key(:sections),
+        access_by_id(section.id),
+        Access.key(:cells),
+        access_by_id(cell.id)
+      ],
+      fn cell ->
+        %{cell | output_location: :canvas}
+      end
+    )
+    |> update_in([Access.key(:canvas_settings), Access.key(:items)], fn items ->
+      Map.put(items, cell.id, %{outputs: cell.outputs, w: 4, h: 2})
+    end)
   end
 
   @doc """

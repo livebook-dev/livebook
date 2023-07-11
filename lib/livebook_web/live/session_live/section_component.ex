@@ -183,6 +183,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               installing?={@installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={cell_view}
+              output_location={cell_view.eval.output_location}
             />
             <.live_component
               module={LivebookWeb.SessionLive.InsertButtonsComponent}

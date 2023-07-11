@@ -171,6 +171,7 @@ defmodule Livebook.Session.Data do
 
   @type operation ::
           {:set_notebook_attributes, client_id(), map()}
+          | {:move_output_to_canvas, client_id(), Cell.id()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
@@ -367,6 +368,19 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_notebook_attributes(attrs)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:move_output_to_canvas, _client_id, cell_id}) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         false <- Cell.setup?(cell) do
+      data
+      |> with_actions()
+      |> move_output_to_canvas(cell, section)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -965,6 +979,11 @@ defmodule Livebook.Session.Data do
   defp set_notebook_attributes({data, _} = data_actions, attrs) do
     data_actions
     |> set!(notebook: Map.merge(data.notebook, attrs))
+  end
+
+  defp move_output_to_canvas({data, _} = data_actions, cell, section) do
+    data_actions
+    |> set!(notebook: Notebook.move_output_to_canvas(data.notebook, cell, section))
   end
 
   defp insert_section({data, _} = data_actions, index, section) do
