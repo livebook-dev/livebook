@@ -327,11 +327,72 @@ happen inside a module, which is compiled.
 If a notebook is performing slower than expected, consider moving
 the bulk of the execution to inside modules.
 
+## Erlang integration
+
+Livebook also allows developers to write Erlang code. To do so,
+click on the submenu option on the right side of the "Elixir" cell
+button and choose Erlang.
+
+Your Erlang code will run alongside your Elixir cells. This means
+you can leverage all of dependency management and smart cells features
+outlined in the previous sections. In particular, integration between
+Erlang and Elixir will happen as follows:
+
+  * Variables in Elixir are available in Erlang cells in camel-case
+    fashion. `x` in Elixir becomes `X` in Erlang. `foo_bar` becomes
+    `FooBar`;
+
+  * Variables in Erlang are available in Elixir cells in underscored
+    fashion. `X` in Erlang becomes `x` in Elixir. `FooBar` becomes
+    `Foo_bar`;
+
+For example, to print all of the cats defined at the top of the notebook,
+but in Erlang:
+
+```erlang
+[io:format("~ts", [Cat]) || Cat <- Cats].
+```
+
+We are just beginning the Erlang integration and contributions to
+enrich the support are welcome.
+
+## Running tests
+
+There are two main ways of running tests inside Livebook.
+
 <!-- livebook:{"break_markdown":true} -->
 
-### Running tests
+### Doctests
 
-It is also possible to run tests directly from your notebooks.
+Doctests allows developers to provide and test examples directly
+from their documentation. Doctests are defined with the `iex>`
+prompts under the `@moduledoc` and `@doc` attributes of your
+modules. Let's see an example:
+
+```elixir
+defmodule MyModule do
+  @moduledoc """
+  This is an example of doctests:
+
+      iex> 2 + 2
+      5
+
+      iex> 6 + 7
+      13
+  """
+end
+```
+
+Livebook automatically detect doctests for any defined modules
+and automatically executes them when you evaluate the cell.
+Doctests which fail are marked in red in the gutter and show
+the failure information right below them. Otherwise they are tagged
+in green. For more information on doctests and their limitations,
+see [`ExUnit.Doctest`](https://hexdocs.pm/ex_unit/ExUnit.DocTest.html).
+
+### ExUnit integration
+
+It is also possible to `ExUnit` suites directly from your notebooks.
 The key is to disable `ExUnit`'s autorun feature and then explicitly
 run the test suite after all test cases have been defined:
 
@@ -349,8 +410,8 @@ end
 ExUnit.run()
 ```
 
-This helps you follow best practices and ensure the code you write
-behaves as expected!
+This is perfect for testing more complex logic that does not fit under
+doctests.
 
 ## Next steps
 
