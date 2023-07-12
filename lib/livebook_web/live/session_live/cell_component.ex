@@ -9,6 +9,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div
       class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
+      data-el-js-cell-output-location-canvas={@cell_view.eval.output_location == :canvas}
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
       data-cell-id={@cell_view.id}
