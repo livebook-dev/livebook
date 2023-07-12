@@ -1,4 +1,4 @@
-defmodule Livebook.Zta.CloudflareTest do
+defmodule Livebook.ZTA.CloudflareTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
