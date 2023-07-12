@@ -28,12 +28,8 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.remix_icon icon="menu-unfold-line" />
         </button>
       </div>
-      <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]">
-        <div
-          class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
-          data-el-notebook-indicators
-        >
-          <.canvas_popout session_id={@session_id} />
+      <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]" data-el-notebook-indicators>
+        <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2">
           <.view_indicator />
           <.persistence_indicator
             file={@file}
@@ -50,25 +46,56 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.insert_mode_indicator />
         </div>
       </div>
+      <div class="sm:fixed top-[0.4rem] right-[1.5rem]">
+        <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2">
+          <.canvas_close_button />
+          <.canvas_popout_button />
+          <.canvas_popin_button />
+        </div>
+      </div>
     </div>
     """
   end
 
-  defp canvas_popout(assigns) do
+  defp canvas_close_button(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Exit Canvas Mode" data-el-canvas-close-button>
+      <button
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="end canvas mode"
+      >
+        <.remix_icon icon="close-fill" class="text-xl text-gray-400" />
+      </button>
+    </span>
+    """
+  end
+
+  defp canvas_popout_button(assigns) do
     ~H"""
     <span
       class="tooltip left"
       data-tooltip="Open Canvas in a seperate window"
-      data-el-canvas-popout-link
+      data-el-canvas-popout-button
     >
-      <.link
-        href={~p"/sessions/#{@session_id}/canvas"}
+      <button
         class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="choose a file to save the notebook"
-        target="_blank"
+        aria-label="open canvas in a seperate window"
       >
         <.remix_icon icon="external-link-line" class="text-xl text-gray-400" />
-      </.link>
+      </button>
+    </span>
+    """
+  end
+
+  defp canvas_popin_button(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip="Pop-In the Canvas" data-el-canvas-popin-button>
+      <button
+        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        aria-label="pop-in the canvas"
+      >
+        <.remix_icon icon="corner-left-down-fill" class="text-xl text-gray-400" />
+      </button>
     </span>
     """
   end

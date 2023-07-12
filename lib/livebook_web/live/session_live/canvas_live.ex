@@ -18,7 +18,8 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
       |> assign(
         session: session,
         client_id: client_id,
-        canvas_settings: canvas_settings
+        canvas_settings: canvas_settings,
+        extern_window: false
       )
 
     if connected?(socket) do
@@ -39,7 +40,8 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
       |> assign(
         session: session,
         client_id: client_id,
-        canvas_settings: data.notebook.canvas_settings
+        canvas_settings: data.notebook.canvas_settings,
+        extern_window: true
       )
 
     {:ok, socket}
@@ -50,7 +52,13 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
     ~H"""
     <div id="gridstack-container">
       <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-canvas"></div>
-      <div id="canvas-grid" class="grid-stack" gs-column="12" phx-hook="Gridstack">
+      <div
+        id="canvas-grid"
+        class="grid-stack"
+        gs-column="12"
+        phx-hook="Gridstack"
+        data-el-js-extern-window={@extern_window}
+      >
         <div
           :for={{cell_id, item} <- @canvas_settings.items}
           class="grid-stack-item rounded border-2 border-red-500"

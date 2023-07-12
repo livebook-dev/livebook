@@ -74,6 +74,7 @@ const Session = {
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
     this.followedClientId = null;
+    this.canvasWindow = null;
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -131,6 +132,18 @@ const Session = {
 
     this.getElement("notebook-indicators").addEventListener("click", (event) =>
       this.handleCellIndicatorsClick(event)
+    );
+
+    this.getElement("canvas-close-button").addEventListener("click", (event) =>
+      this.handleCanvasCloseClick()
+    );
+
+    this.getElement("canvas-popout-button").addEventListener("click", (event) =>
+      this.handleCanvasPopoutClick()
+    );
+
+    this.getElement("canvas-popin-button").addEventListener("click", (event) =>
+      this.handleCanvasPopinClick()
     );
 
     this.getElement("views").addEventListener("click", (event) => {
@@ -647,6 +660,31 @@ const Session = {
       const cellId = button.getAttribute("data-target");
       this.setFocusedEl(cellId);
     }
+  },
+
+  handleCanvasCloseClick() {
+    this.canvasWindow && this.canvasWindow.close();
+    this.el.removeAttribute("data-js-view");
+  },
+
+  handleCanvasPopoutClick() {
+    const self = this;
+    this.canvasWindow = window.open(
+      window.location.pathname + "/canvas",
+      "_blank",
+      "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
+    );
+    window.addEventListener("message", function (event) {
+      if (event.data === "closing") {
+        self.el.setAttribute("data-js-view", "canvas");
+      }
+    });
+    this.el.setAttribute("data-js-view", "canvas-popped-out");
+  },
+
+  handleCanvasPopinClick() {
+    this.canvasWindow.close();
+    this.el.setAttribute("data-js-view", "canvas");
   },
 
   /**

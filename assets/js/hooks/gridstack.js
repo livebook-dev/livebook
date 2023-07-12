@@ -1,4 +1,3 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
 import { globalPubSub } from "../lib/pub_sub";
 import "gridstack/dist/gridstack.min.css";
 import { GridStack } from "gridstack";
@@ -8,10 +7,16 @@ import { GridStack } from "gridstack";
  */
 const Gridstack = {
   mounted() {
+    this.props = this.getProps();
     console.log("Gridstack mounted");
     const self = this;
-
     this.visible = false;
+
+    if (this.props.externWindow) {
+      window.addEventListener("beforeunload", function (event) {
+        window.opener.postMessage("closing", "*");
+      });
+    }
 
     const options = {
       //acceptWidgets: true,
@@ -46,7 +51,13 @@ const Gridstack = {
     });
   },
   updated() {
+    this.props = this.getProps();
     console.log("Gridstack updated", this.grid);
+  },
+  getProps() {
+    return {
+      externWindow: this.el.hasAttribute("data-el-js-extern-window"),
+    };
   },
   repositionIframe() {
     globalPubSub.broadcast("js_views", { type: "reposition" });
