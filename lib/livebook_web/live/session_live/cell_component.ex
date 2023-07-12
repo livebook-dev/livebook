@@ -614,7 +614,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div
       :if={@doctest_summary.failures_count > 0}
-      class="flex flex-col pt-2 font-medium"
+      class="pt-2"
       id={"doctest-summary-#{@cell_id}"}
     >
       <div class="error-box">
@@ -628,7 +628,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     doctests_pl = pluralize(total, "doctest", "doctests")
     failures_pl = if failed == 1, do: "failure has", else: "failures have"
 
-    "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)."
+    "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)"
   end
 
   defp evaluation_outputs(assigns) do
