@@ -94,11 +94,9 @@ defmodule Livebook.Migration do
 
     with {:ok, default_file_system_id} <-
            Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
-      default_file_system =
-        Enum.find(Livebook.Settings.file_systems(), &(&1.id == default_file_system_id))
-
-      if file_system = default_file_system do
-        default_dir = Livebook.FileSystem.File.new(file_system)
+      with {:ok, default_file_system} <-
+             Livebook.Settings.fetch_file_system(default_file_system_id) do
+        default_dir = Livebook.FileSystem.File.new(default_file_system)
         Livebook.Settings.set_default_dir(default_dir)
       end
 

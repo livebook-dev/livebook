@@ -9,11 +9,6 @@ defmodule Livebook.Settings do
   alias Livebook.Storage
   alias Livebook.Settings.EnvVar
 
-  @typedoc """
-  An id that is used for file system's manipulation, either insertion or removal.
-  """
-  @type file_system_id :: String.t()
-
   @doc """
   Returns the current autosave path.
   """
@@ -63,6 +58,22 @@ defmodule Livebook.Settings do
   end
 
   @doc """
+  Finds a file system by id.
+  """
+  @spec fetch_file_system(FileSystem.id()) :: {:ok, FileSystem.t()}
+  def fetch_file_system(file_system_id) do
+    local_file_system = Livebook.Config.local_file_system()
+
+    if file_system_id == local_file_system.id do
+      {:ok, local_file_system}
+    else
+      with {:ok, config} <- Storage.fetch(:file_systems, file_system_id) do
+        {:ok, storage_to_fs(config)}
+      end
+    end
+  end
+
+  @doc """
   Saves a new file system to the configured ones.
   """
   @spec save_file_system(FileSystem.t()) :: :ok
@@ -79,7 +90,7 @@ defmodule Livebook.Settings do
   @doc """
   Removes the given file system from the configured ones.
   """
-  @spec remove_file_system(file_system_id()) :: :ok
+  @spec remove_file_system(FileSystem.id()) :: :ok
   def remove_file_system(file_system_id) do
     if default_dir().file_system.id == file_system_id do
       Storage.delete_key(:settings, "global", :default_dir)
@@ -238,8 +249,7 @@ defmodule Livebook.Settings do
   def default_dir() do
     with {:ok, %{file_system_id: file_system_id, path: path}} <-
            Storage.fetch_key(:settings, "global", :default_dir),
-         file_system when file_system != nil <-
-           Enum.find(file_systems(), &(&1.id == file_system_id)) do
+         {:ok, file_system} <- fetch_file_system(file_system_id) do
       FileSystem.File.new(file_system, path)
     else
       _ -> FileSystem.File.new(Livebook.Config.local_file_system())

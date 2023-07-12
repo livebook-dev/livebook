@@ -5,6 +5,13 @@ defprotocol Livebook.FileSystem do
   # that can be plugged into Livebook.
 
   @typedoc """
+  An identifier uniquely identifying the given file system.
+
+  Every file system struct is expected have an `:id` field.
+  """
+  @type id :: String.t()
+
+  @typedoc """
   A path uniquely idenfies file in the file system.
 
   Path has most of the semantics of regular file paths,
