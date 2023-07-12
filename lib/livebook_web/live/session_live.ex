@@ -2406,6 +2406,7 @@ defmodule LivebookWeb.SessionLive do
   defp eval_info_to_view(cell, eval_info, data) do
     %{
       outputs: cell.outputs,
+      doctest_summary: doctest_summary(eval_info.doctest_reports),
       validity: eval_info.validity,
       status: eval_info.status,
       errored: eval_info.errored,
@@ -2417,6 +2418,16 @@ defmodule LivebookWeb.SessionLive do
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
     }
+  end
+
+  defp doctest_summary(doctests) do
+    {doctests_count, failures_count} =
+      Enum.reduce(doctests, {0, 0}, fn
+        {_line, %{status: status}}, {total, failed} ->
+          {total + 1, if(status == :failed, do: failed + 1, else: failed)}
+      end)
+
+    %{doctests_count: doctests_count, failures_count: failures_count}
   end
 
   defp input_values_for_cell(cell, data) do
