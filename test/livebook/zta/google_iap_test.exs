@@ -43,7 +43,7 @@ defmodule Livebook.Zta.GoogleIapTest do
   end
 
   test "returns the user when it's valid", %{options: options, conn: conn} do
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
     {_conn, user} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
     assert %{id: "1234567890", email: "tuka@peralta.com"} = user
   end
@@ -51,26 +51,30 @@ defmodule Livebook.Zta.GoogleIapTest do
   test "returns nil when the iss is invalid", %{options: options, conn: conn} do
     invalid_identity = Map.replace(options[:custom_identity], :iss, "invalid_iss")
     options = Keyword.put(options, :custom_identity, invalid_identity)
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
+
     assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
   test "returns nil when the aud is invalid", %{options: options, conn: conn} do
     invalid_identity = Map.replace(options[:custom_identity], :key, "invalid_aud")
     options = Keyword.put(options, :custom_identity, invalid_identity)
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
+
     assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
   test "returns nil when the token is invalid", %{options: options} do
     conn = conn(:get, "/") |> put_req_header("x-goog-iap-jwt-assertion", "invalid_token")
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
+
     assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
   test "returns nil when the assertion is invalid", %{options: options, token: token} do
     conn = conn(:get, "/") |> put_req_header("invalid_assertion", token)
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
+
     assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
@@ -81,7 +85,8 @@ defmodule Livebook.Zta.GoogleIapTest do
       |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
     end)
 
-    _pid = start_supervised!({GoogleIAP, options})
+    start_supervised!({GoogleIAP, options})
+
     assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 end

@@ -58,8 +58,9 @@ defmodule Livebook.Zta.CloudflareTest do
       |> send_resp(200, Jason.encode!(expected_user))
     end)
 
-    _pid = start_supervised!({Cloudflare, context.options})
+    start_supervised!({Cloudflare, context.options})
     {_conn, user} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
+
     assert %{id: "1234567890", email: "tuka@peralta.com", name: "Tuka Peralta"} = user
   end
 
@@ -70,37 +71,42 @@ defmodule Livebook.Zta.CloudflareTest do
       |> send_resp(403, "")
     end)
 
-    _pid = start_supervised!({Cloudflare, context.options})
+    start_supervised!({Cloudflare, context.options})
+
     assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
   end
 
   test "returns nil when the iss is invalid", %{options: options, conn: conn} do
     invalid_identity = Map.replace(options[:custom_identity], :iss, "invalid_iss")
     options = Keyword.put(options, :custom_identity, invalid_identity)
-    _pid = start_supervised!({Cloudflare, options})
+    start_supervised!({Cloudflare, options})
+
     assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
   test "returns nil when the token is invalid", %{options: options} do
     conn = conn(:get, "/") |> put_req_header("cf-access-jwt-assertion", "invalid_token")
-    _pid = start_supervised!({Cloudflare, options})
+    start_supervised!({Cloudflare, options})
+
     assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
   test "returns nil when the assertion is invalid", %{options: options, token: token} do
     conn = conn(:get, "/") |> put_req_header("invalid_assertion", token)
-    _pid = start_supervised!({Cloudflare, options})
+    start_supervised!({Cloudflare, options})
+
     assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
-  test "returns nil when the key is invalid", context do
-    Bypass.expect_once(context.bypass, fn conn ->
+  test "returns nil when the key is invalid", %{bypass: bypass, options: options, conn: conn} do
+    Bypass.expect_once(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
       |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
     end)
 
-    _pid = start_supervised!({Cloudflare, context.options})
-    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
+    start_supervised!({Cloudflare, options})
+
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 end
