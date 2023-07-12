@@ -76,6 +76,8 @@ const Session = {
     this.followedClientId = null;
     this.canvasWindow = null;
 
+    this.handleCanvasWindowClosed = this.handleCanvasWindowClosed.bind(this);
+
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
     this.updateSectionListHighlight();
@@ -683,27 +685,22 @@ const Session = {
   },
 
   handleCanvasCloseClick() {
-    this.canvasWindow && this.canvasWindow.close();
+    this.closeCanvasWindow();
     this.el.removeAttribute("data-js-view");
   },
 
   handleCanvasPopoutClick() {
-    const self = this;
     this.canvasWindow = window.open(
       window.location.pathname + "/canvas",
       "_blank",
       "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
-    window.addEventListener("message", function (event) {
-      if (event.data === "closing") {
-        self.el.setAttribute("data-js-view", "canvas");
-      }
-    });
+    window.addEventListener("message", this.handleCanvasWindowClosed);
     this.el.setAttribute("data-js-view", "canvas-popped-out");
   },
 
   handleCanvasPopinClick() {
-    this.canvasWindow && this.canvasWindow.close();
+    this.closeCanvasWindow();
     this.el.setAttribute("data-js-view", "canvas");
   },
 
@@ -1062,7 +1059,7 @@ const Session = {
   },
 
   handleViewTrunOffClick() {
-    this.canvasWindow && this.canvasWindow.close();
+    this.closeCanvasWindow();
     this.el.removeAttribute("data-js-view");
   },
 
@@ -1405,6 +1402,15 @@ const Session = {
 
   isViewPresentation() {
     return this.view === "presentation";
+  },
+  closeCanvasWindow() {
+    window.removeEventListener("message", this.handleCanvasWindowClosed);
+    this.canvasWindow && this.canvasWindow.close();
+  },
+  handleCanvasWindowClosed(event) {
+    if (event.data === "closing") {
+      this.el.setAttribute("data-js-view", "canvas");
+    }
   },
 };
 
