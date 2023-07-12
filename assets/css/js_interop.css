@@ -288,6 +288,16 @@ solely client-side operations.
 
 /* === Views === */
 
+[data-el-session]:not([data-js-view]) [data-el-view-turn-off-button] {
+  @apply hidden;
+}
+
+[data-el-session][data-js-view] [data-el-view-toggle="canvas"],
+[data-el-session][data-js-view] [data-el-view-toggle="code-zen"],
+[data-el-session][data-js-view] [data-el-view-toggle="presentation"] {
+  @apply pointer-events-none;
+}
+
 [data-el-session]:not([data-js-view="canvas"]) [data-el-canvas],
 [data-el-cell][data-el-js-cell-output-location-canvas]
   [data-el-move-output-to-canvas-button],
@@ -305,8 +315,17 @@ solely client-side operations.
   @apply fixed bottom-[0.4rem] right-1/2;
 }
 
-[data-el-session][data-js-view^="canvas"] [data-el-view-toggle="canvas"] {
+[data-el-session][data-js-view^="canvas"] [data-el-view-toggle="canvas"],
+[data-el-session][data-js-view^="canvas"]
+  [data-el-view-canvas-poppedout-button] {
   @apply text-green-bright-400;
+}
+
+[data-el-session]:not([data-js-view="canvas-popped-out"])
+  [data-el-view-canvas-poppedout-button],
+[data-el-session][data-js-view="canvas-popped-out"]
+  [data-el-view-toggle="canvas"] {
+  @apply hidden;
 }
 
 [data-el-session][data-js-view="code-zen"] [data-el-section-headline],

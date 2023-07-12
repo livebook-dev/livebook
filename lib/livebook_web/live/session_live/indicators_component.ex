@@ -117,6 +117,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </button>
         </.menu_item>
         <.menu_item>
+          <button role="menuitem" data-el-view-canvas-poppedout-button>
+            <.remix_icon icon="dashboard-line" />
+            <span>Canvas (popped-out)</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
           <button role="menuitem" data-el-view-toggle="code-zen">
             <.remix_icon icon="code-line" />
             <span>Code zen</span>
@@ -126,6 +132,16 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <button role="menuitem" data-el-view-toggle="presentation">
             <.remix_icon icon="slideshow-2-line" />
             <span>Presentation</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button
+            class="border-t-2 border-gray-200 py-2 px-4"
+            role="menuitem"
+            data-el-view-turn-off-button
+          >
+            <.remix_icon icon="close-fill" />
+            <span>Turn off</span>
           </button>
         </.menu_item>
       </.menu>

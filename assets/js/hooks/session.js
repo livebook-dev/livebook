@@ -156,6 +156,20 @@ const Session = {
       this.handleViewsClick(event);
     });
 
+    this.getElement("view-turn-off-button").addEventListener(
+      "click",
+      (event) => {
+        this.handleViewTrunOffClick();
+      }
+    );
+
+    this.getElement("view-canvas-poppedout-button").addEventListener(
+      "click",
+      (event) => {
+        this.handleCanvasPopinClick();
+      }
+    );
+
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
       (event) => this.toggleCollapseAllSections()
@@ -689,7 +703,7 @@ const Session = {
   },
 
   handleCanvasPopinClick() {
-    this.canvasWindow.close();
+    this.canvasWindow && this.canvasWindow.close();
     this.el.setAttribute("data-js-view", "canvas");
   },
 
@@ -1045,6 +1059,11 @@ const Session = {
         this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
       }
     }
+  },
+
+  handleViewTrunOffClick() {
+    this.canvasWindow && this.canvasWindow.close();
+    this.el.removeAttribute("data-js-view");
   },
 
   toggleCollapseSection() {
