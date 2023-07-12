@@ -46,57 +46,47 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <.insert_mode_indicator />
         </div>
       </div>
-      <div class="sm:fixed top-[0.4rem] right-[1.5rem]">
+      <div class="sm:fixed top-[1rem] right-[1.5rem]">
         <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2">
-          <.canvas_close_button />
-          <.canvas_popout_button />
-          <.canvas_popin_button />
+          <.canvas_indicator />
         </div>
       </div>
     </div>
     """
   end
 
-  defp canvas_close_button(assigns) do
+  defp canvas_indicator(assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Exit Canvas Mode" data-el-canvas-close-button>
-      <button
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="end canvas mode"
-      >
-        <.remix_icon icon="close-fill" class="text-xl text-gray-400" />
-      </button>
-    </span>
-    """
-  end
-
-  defp canvas_popout_button(assigns) do
-    ~H"""
-    <span
-      class="tooltip left"
-      data-tooltip="Open Canvas in a seperate window"
-      data-el-canvas-popout-button
-    >
-      <button
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="open canvas in a seperate window"
-      >
-        <.remix_icon icon="external-link-line" class="text-xl text-gray-400" />
-      </button>
-    </span>
-    """
-  end
-
-  defp canvas_popin_button(assigns) do
-    ~H"""
-    <span class="tooltip left" data-tooltip="Pop-In the Canvas" data-el-canvas-popin-button>
-      <button
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="pop-in the canvas"
-      >
-        <.remix_icon icon="corner-left-down-fill" class="text-xl text-gray-400" />
-      </button>
-    </span>
+    <div class="tooltip left" data-tooltip="Canvas Options" data-el-canvas-menu>
+      <.menu id="canvas-menu" position={:bottom_right}>
+        <:toggle>
+          <button
+            class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+            aria-label="canvas options"
+          >
+            <.remix_icon icon="more-2-fill" class="text-xl text-gray-400" />
+          </button>
+        </:toggle>
+        <.menu_item>
+          <button role="menuitem" data-el-canvas-popout-button>
+            <.remix_icon icon="external-link-line" />
+            <span>Pop-Out</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-canvas-popin-button>
+            <.remix_icon icon="corner-left-down-fill" />
+            <span>Pop-In</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-canvas-close-button>
+            <.remix_icon icon="close-fill" />
+            <span>Close</span>
+          </button>
+        </.menu_item>
+      </.menu>
+    </div>
     """
   end
 
