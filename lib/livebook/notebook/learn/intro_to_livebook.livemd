@@ -390,6 +390,8 @@ the failure information right below them. Otherwise they are tagged
 in green. For more information on doctests and their limitations,
 see [`ExUnit.Doctest`](https://hexdocs.pm/ex_unit/ExUnit.DocTest.html).
 
+<!-- livebook:{"break_markdown":true} -->
+
 ### ExUnit integration
 
 It is also possible to `ExUnit` suites directly from your notebooks.
