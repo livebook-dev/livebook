@@ -358,7 +358,7 @@ defmodule LivebookWeb.SessionLiveTest do
         id: "input1",
         type: :number,
         label: "Name",
-        default: "hey",
+        default: 1,
         destination: test
       }
 
@@ -372,7 +372,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"html_value" => "10"})
 
-      assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: 10}}} = Session.get_data(session.pid)
 
       assert_receive {:event, :input_ref, %{value: 10, type: :change}}
     end
@@ -401,7 +401,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"html_value" => "line\r\nline"})
 
-      assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: "line\nline"}}} = Session.get_data(session.pid)
     end
 
     test "form input changes are reflected only in local LV data",
@@ -442,7 +442,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # The new value is on the page
       assert render(view) =~ "sherlock"
       # but it's not reflected in the synchronized session data
-      assert %{input_values: %{"input1" => "initial"}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: "initial"}}} = Session.get_data(session.pid)
 
       view
       |> element(~s/[data-el-outputs-container] button/, "Send")
@@ -484,7 +484,7 @@ defmodule LivebookWeb.SessionLiveTest do
       ])
       |> render_upload("data.txt")
 
-      assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: value}}} = Session.get_data(session.pid)
 
       assert %{file_ref: file_ref, client_name: "data.txt"} = value
 
@@ -597,6 +597,39 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
+    end
+
+    test "shows change indicator on bound inputs",
+         %{conn: conn, session: session, test: test} do
+      section_id = insert_section(session.pid)
+
+      Process.register(self(), test)
+
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :number,
+        label: "Name",
+        default: 1,
+        destination: test
+      }
+
+      Session.subscribe(session.id)
+
+      insert_cell_with_output(session.pid, section_id, {:input, input})
+
+      code = source_for_input_read(input.id)
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      refute render(view) =~ "This input has changed since it&#39;s been processed."
+
+      Session.set_input_value(session.pid, input.id, 10)
+
+      assert render(view) =~ "This input has changed since it&#39;s been processed."
     end
   end
 

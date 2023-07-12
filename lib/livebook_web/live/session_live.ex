@@ -2255,6 +2255,8 @@ defmodule LivebookWeb.SessionLive do
   # irrelevant changes to data don't change `@data_view`, so LV doesn't
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
     %{
       file: data.file,
       persist_outputs: data.notebook.persist_outputs,
@@ -2281,8 +2283,11 @@ defmodule LivebookWeb.SessionLive do
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_id, user} -> user.name end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
-      setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
-      section_views: section_views(data.notebook.sections, data),
+      setup_cell_view: %{
+        cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
+        | type: :setup
+      },
+      section_views: section_views(data.notebook.sections, data, changed_input_ids),
       bin_entries: data.bin_entries,
       secrets: data.secrets,
       hub: Livebook.Hubs.fetch_hub!(data.notebook.hub_id),
@@ -2334,7 +2339,7 @@ defmodule LivebookWeb.SessionLive do
     cells_status(cells, data)
   end
 
-  defp section_views(sections, data) do
+  defp section_views(sections, data, changed_input_ids) do
     sections
     |> Enum.map(& &1.name)
     |> names_to_html_ids()
@@ -2350,7 +2355,7 @@ defmodule LivebookWeb.SessionLive do
           for parent <- Notebook.valid_parents_for(data.notebook, section.id) do
             %{id: parent.id, name: parent.name}
           end,
-        cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
+        cell_views: Enum.map(section.cells, &cell_to_view(&1, data, changed_input_ids))
       }
     end)
   end
@@ -2362,7 +2367,7 @@ defmodule LivebookWeb.SessionLive do
     %{id: section.id, name: section.name}
   end
 
-  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
+  defp cell_to_view(%Cell.Markdown{} = cell, _data, _changed_input_ids) do
     %{
       id: cell.id,
       type: :markdown,
@@ -2370,7 +2375,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp cell_to_view(%Cell.Code{} = cell, data) do
+  defp cell_to_view(%Cell.Code{} = cell, data, changed_input_ids) do
     info = data.cell_infos[cell.id]
 
     %{
@@ -2378,19 +2383,19 @@ defmodule LivebookWeb.SessionLive do
       type: :code,
       language: cell.language,
       empty: cell.source == "",
-      eval: eval_info_to_view(cell, info.eval, data),
+      eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
       reevaluate_automatically: cell.reevaluate_automatically
     }
   end
 
-  defp cell_to_view(%Cell.Smart{} = cell, data) do
+  defp cell_to_view(%Cell.Smart{} = cell, data, changed_input_ids) do
     info = data.cell_infos[cell.id]
 
     %{
       id: cell.id,
       type: :smart,
       empty: cell.source == "",
-      eval: eval_info_to_view(cell, info.eval, data),
+      eval: eval_info_to_view(cell, info.eval, data, changed_input_ids),
       status: info.status,
       js_view: cell.js_view,
       editor:
@@ -2403,7 +2408,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp eval_info_to_view(cell, eval_info, data) do
+  defp eval_info_to_view(cell, eval_info, data, changed_input_ids) do
     %{
       outputs: cell.outputs,
       doctest_summary: doctest_summary(eval_info.doctest_reports),
@@ -2416,7 +2421,7 @@ defmodule LivebookWeb.SessionLive do
       evaluation_digest: encode_digest(eval_info.evaluation_digest),
       outputs_batch_number: eval_info.outputs_batch_number,
       # Pass input values relevant to the given cell
-      input_values: input_values_for_cell(cell, data)
+      input_views: input_views_for_cell(cell, data, changed_input_ids)
     }
   end
 
@@ -2430,13 +2435,17 @@ defmodule LivebookWeb.SessionLive do
     %{doctests_count: doctests_count, failures_count: failures_count}
   end
 
-  defp input_values_for_cell(cell, data) do
+  defp input_views_for_cell(cell, data, changed_input_ids) do
     input_ids =
       for output <- cell.outputs,
           attrs <- Cell.find_inputs_in_output(output),
           do: attrs.id
 
-    Map.take(data.input_values, input_ids)
+    data.input_infos
+    |> Map.take(input_ids)
+    |> Map.new(fn {input_id, %{value: value}} ->
+      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
+    end)
   end
 
   def app_status(%{sessions: [app_session | _]}), do: app_session.app_status

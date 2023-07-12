@@ -11,7 +11,7 @@ defmodule LivebookWeb.Output do
   attr :outputs, :list, required: true
   attr :session_id, :string, required: true
   attr :session_pid, :any, required: true
-  attr :input_values, :map, required: true
+  attr :input_views, :map, required: true
   attr :dom_id_map, :map, required: true
   attr :client_id, :string, required: true
   attr :cell_id, :string, required: true
@@ -29,7 +29,7 @@ defmodule LivebookWeb.Output do
         id: "output-#{idx}",
         session_id: @session_id,
         session_pid: @session_pid,
-        input_values: @input_values,
+        input_views: @input_views,
         client_id: @client_id,
         cell_id: @cell_id
       }) %>
@@ -95,7 +95,7 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
@@ -105,7 +105,7 @@ defmodule LivebookWeb.Output do
       placeholder: Map.get(info, :placeholder, true),
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     )
@@ -115,7 +115,7 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
@@ -138,7 +138,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     }
@@ -177,7 +177,7 @@ defmodule LivebookWeb.Output do
             dom_id_map={%{}}
             session_id={@session_id}
             session_pid={@session_pid}
-            input_values={@input_values}
+            input_views={@input_views}
             client_id={@client_id}
             cell_id={@cell_id}
           />
@@ -191,7 +191,7 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
@@ -205,7 +205,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     }
@@ -224,7 +224,7 @@ defmodule LivebookWeb.Output do
             dom_id_map={%{}}
             session_id={@session_id}
             session_pid={@session_pid}
-            input_values={@input_values}
+            input_views={@input_views}
             client_id={@client_id}
             cell_id={@cell_id}
           />
@@ -236,14 +236,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:input, attrs}, %{
          id: id,
-         input_values: input_values,
+         input_views: input_views,
          session_pid: session_pid,
          client_id: client_id
        }) do
     live_component(Output.InputComponent,
       id: id,
       attrs: attrs,
-      input_values: input_values,
+      input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
     )
@@ -251,14 +251,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:control, attrs}, %{
          id: id,
-         input_values: input_values,
+         input_views: input_views,
          session_pid: session_pid,
          client_id: client_id
        }) do
     live_component(Output.ControlComponent,
       id: id,
       attrs: attrs,
-      input_values: input_values,
+      input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
     )

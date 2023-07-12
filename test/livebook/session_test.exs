@@ -239,7 +239,7 @@ defmodule Livebook.SessionTest do
 
       Session.convert_smart_cell(session.pid, smart_cell.id)
 
-      assert %{input_values: %{"input1" => "hey"}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: "hey"}}} = Session.get_data(session.pid)
     end
   end
 

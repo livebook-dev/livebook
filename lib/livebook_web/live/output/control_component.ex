@@ -54,7 +54,7 @@ defmodule LivebookWeb.Output.ControlComponent do
         module={LivebookWeb.Output.ControlFormComponent}
         id={@id}
         attrs={@attrs}
-        input_values={@input_values}
+        input_views={@input_views}
         session_pid={@session_pid}
         client_id={@client_id}
       />
