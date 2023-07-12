@@ -1,5 +1,5 @@
 defmodule Livebook.ZTA.CloudflareTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   use Plug.Test
 
   alias Livebook.ZTA.Cloudflare
