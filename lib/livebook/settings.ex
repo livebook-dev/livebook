@@ -81,8 +81,8 @@ defmodule Livebook.Settings do
   """
   @spec remove_file_system(file_system_id()) :: :ok
   def remove_file_system(file_system_id) do
-    if default_file_system_id() == file_system_id do
-      Storage.delete_key(:settings, "global", :default_file_system_id)
+    if default_dir().file_system.id == file_system_id do
+      Storage.delete_key(:settings, "global", :default_dir)
     end
 
     Livebook.NotebookManager.remove_file_system(file_system_id)
@@ -219,36 +219,6 @@ defmodule Livebook.Settings do
   # Broadcasts given message under the `"settings"` topic.
   defp broadcast_env_vars_change(message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
-  end
-
-  @doc """
-  Sets default file system.
-  """
-  @spec set_default_file_system(file_system_id()) :: :ok
-  def set_default_file_system(file_system_id) do
-    Storage.insert(:settings, "global", default_file_system_id: file_system_id)
-  end
-
-  @doc """
-  Returns the default file system.
-  """
-  @spec default_file_system() :: Filesystem.t()
-  def default_file_system() do
-    case Storage.fetch(:file_systems, default_file_system_id()) do
-      {:ok, file} -> storage_to_fs(file)
-      :error -> Livebook.Config.local_file_system()
-    end
-  end
-
-  @doc """
-  Returns the default file system id.
-  """
-  @spec default_file_system_id() :: file_system_id()
-  def default_file_system_id() do
-    case Storage.fetch_key(:settings, "global", :default_file_system_id) do
-      {:ok, default_file_system_id} -> default_file_system_id
-      :error -> "local"
-    end
   end
 
   @doc """

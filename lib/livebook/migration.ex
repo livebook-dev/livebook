@@ -74,11 +74,10 @@ defmodule Livebook.Migration do
           end
 
         # Remap default file system id
-
-        default_file_system_id = Livebook.Settings.default_file_system_id()
-
-        if new_id = id_mapping[default_file_system_id] do
-          Livebook.Settings.set_default_file_system(new_id)
+        with {:ok, default_file_system_id} <-
+               Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id),
+             {:ok, new_id} <- Map.fetch(id_mapping, default_file_system_id) do
+          Livebook.Storage.insert(:settings, "global", default_file_system_id: new_id)
         end
 
         # Livebook.NotebookManager is started before the migration runs,
