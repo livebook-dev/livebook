@@ -93,6 +93,12 @@ const Session = {
     document.addEventListener("focus", this._handleDocumentFocus, true);
     document.addEventListener("click", this._handleDocumentClick);
 
+    document.addEventListener("canvas:show", (event) => {
+      if (this.el.getAttribute("data-js-view") != "canvas-popped-out") {
+        this.el.setAttribute("data-js-view", "canvas");
+      }
+    });
+
     this.getElement("sections-list").addEventListener("click", (event) => {
       this.handleSectionsListClick(event);
       this.handleCellIndicatorsClick(event);
@@ -674,7 +680,7 @@ const Session = {
       "_blank",
       "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
-    window.addEventListener("message", function (event) {
+    window.addEventListener("message", function(event) {
       if (event.data === "closing") {
         self.el.setAttribute("data-js-view", "canvas");
       }

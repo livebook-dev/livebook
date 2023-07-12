@@ -127,6 +127,28 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  TODO
+  """
+  @spec move_output_to_notebook(t(), Cell.t(), Section.t()) :: t()
+  def move_output_to_notebook(notebook, cell, section) do
+    notebook
+    |> update_in(
+      [
+        Access.key(:sections),
+        access_by_id(section.id),
+        Access.key(:cells),
+        access_by_id(cell.id)
+      ],
+      fn cell ->
+        %{cell | output_location: :notebook}
+      end
+    )
+    |> update_in([Access.key(:canvas_settings), Access.key(:items)], fn items ->
+      Map.delete(items, cell.id)
+    end)
+  end
+
+  @doc """
   Returns the default value of `persist_outputs`.
   """
   @spec default_persist_outputs() :: boolean()

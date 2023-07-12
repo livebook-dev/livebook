@@ -1100,6 +1100,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("move_output_to_notebook", %{"cell_id" => cell_id}, socket) do
+    Session.move_output_to_notebook(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
+  end
+
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
     on_confirm = fn socket ->
       Session.delete_cell(socket.assigns.session.pid, cell_id)
