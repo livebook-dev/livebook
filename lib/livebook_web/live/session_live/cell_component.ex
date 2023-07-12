@@ -613,7 +613,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp doctest_summary(assigns) do
     ~H"""
     <div :if={@doctest_summary.failures_count > 0} class="pt-2" id={"doctest-summary-#{@cell_id}"}>
-      <div class="error-box">
+      <div class="error-box py-3">
         <%= doctest_summary_message(@doctest_summary) %>
       </div>
     </div>
