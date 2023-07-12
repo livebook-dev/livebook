@@ -4,9 +4,11 @@ defmodule Livebook.Zta.CloudflareTest do
 
   alias Livebook.ZTA.Cloudflare
 
+  @fields [:id, :name, :email]
+
   setup do
     bypass = Bypass.open()
-    user_identity = Bypass.open(port: 1234)
+    user_identity = Bypass.open()
 
     key = %{
       "kty" => "RSA",
@@ -22,114 +24,83 @@ defmodule Livebook.Zta.CloudflareTest do
       "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0dWthQHBlcmFsdGEuY29tIiwiaWF0IjoxNTE2MjM5MDIyLCJpc3MiOiJsaXZlYm9vayIsImF1ZCI6ImxpdmVib29rd2ViIn0.ZP5LIrkfMHq2p8g3SMgC7RBt7899GeHkP9rzYKM3RvjDCBeYoxpeioLW2sXMT74QyJPxB4JUujRU3shSPIWNAxkjJVaBGwVTqsO_PR34DSx82q45qSkUnkSVXLl-2KgN4BoUUK7dmocP6yzhNQ3XGf6669n5UG69eMZdh9PApZ7GuyRUQ80ubpvakWaIpd9PIaORkptqDWVbyOIk3Z79AMUub0MSG1FpzYByAQoLswob24l2xVo95-aQrdatqLk1sJ43AZ6HLoMxkZkWobYYRMH5w65MkQckJ9NzI3Rk-VOUlg9ePo8OPRnvcGY-OozHXrjdzn2-j03xuP6x1J3Y7Q"
 
     options = [
-      req_options: [url: "http://localhost:#{bypass.port}"],
-      identity: %{
+      name: LivebookWeb.ZTA,
+      custom_identity: %{
         iss: "livebook",
         key: "livebookweb",
+        certs: "http://localhost:#{bypass.port}",
         user_identity: "http://localhost:#{user_identity.port}"
-      },
-      keys: nil
+      }
     ]
 
-    fields = [:id, :name, :email]
+    Bypass.expect(bypass, fn conn ->
+      conn
+      |> put_resp_content_type("application/json")
+      |> send_resp(200, Jason.encode!(%{keys: [key]}))
+    end)
+
+    conn = conn(:get, "/") |> put_req_header("cf-access-jwt-assertion", token)
 
     {:ok,
-     bypass: bypass,
-     key: key,
-     token: token,
-     options: options,
-     fields: fields,
-     user_identity: user_identity}
+     bypass: bypass, token: token, options: options, user_identity: user_identity, conn: conn}
   end
 
-  test "returns the user when it's valid", setup do
+  test "returns the user_identity when the user is valid", context do
     expected_user = %{
       "user_uuid" => "1234567890",
       "name" => "Tuka Peralta",
       "email" => "tuka@peralta.com"
     }
 
-    Bypass.expect_once(setup.bypass, fn conn ->
-      conn
-      |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    Bypass.expect_once(setup.user_identity, fn conn ->
+    Bypass.expect_once(context.user_identity, fn conn ->
       conn
       |> put_resp_content_type("application/json")
       |> send_resp(200, Jason.encode!(expected_user))
     end)
 
-    {:ok, pid} = GenServer.start_link(Cloudflare, setup.options)
-
-    user = GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields})
-
+    _pid = start_supervised!({Cloudflare, context.options})
+    {_conn, user} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
     assert %{id: "1234567890", email: "tuka@peralta.com", name: "Tuka Peralta"} = user
   end
 
-  test "returns nil when the user_identity fails", setup do
-    Bypass.expect_once(setup.bypass, fn conn ->
-      conn
-      |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    Bypass.expect_once(setup.user_identity, fn conn ->
+  test "returns nil when the user_identity fails", context do
+    Bypass.expect_once(context.user_identity, fn conn ->
       conn
       |> put_resp_content_type("application/json")
       |> send_resp(403, "")
     end)
 
-    {:ok, pid} = GenServer.start_link(Cloudflare, setup.options)
-
-    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+    _pid = start_supervised!({Cloudflare, context.options})
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
   end
 
-  test "returns nil when the identity is invalid", setup do
-    identity = %{
-      iss: "invalid",
-      key: "livebookweb",
-      user_identity: "http://localhost:#{setup.user_identity.port}"
-    }
-
-    options = Keyword.put(setup.options, :identity, identity)
-
-    Bypass.expect_once(setup.bypass, fn conn ->
-      conn
-      |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    {:ok, pid} = GenServer.start_link(Cloudflare, options)
-
-    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+  test "returns nil when the iss is invalid", %{options: options, conn: conn} do
+    invalid_identity = Map.replace(options[:custom_identity], :iss, "invalid_iss")
+    options = Keyword.put(options, :custom_identity, invalid_identity)
+    _pid = start_supervised!({Cloudflare, options})
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
-  test "returns nil when the key is invalid", setup do
-    Bypass.expect_once(setup.bypass, fn conn ->
+  test "returns nil when the token is invalid", %{options: options} do
+    conn = conn(:get, "/") |> put_req_header("cf-access-jwt-assertion", "invalid_token")
+    _pid = start_supervised!({Cloudflare, options})
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+  end
+
+  test "returns nil when the assertion is invalid", %{options: options, token: token} do
+    conn = conn(:get, "/") |> put_req_header("invalid_assertion", token)
+    _pid = start_supervised!({Cloudflare, options})
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+  end
+
+  test "returns nil when the key is invalid", context do
+    Bypass.expect_once(context.bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
       |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
     end)
 
-    {:ok, pid} = GenServer.start_link(Cloudflare, setup.options)
-
-    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
-  end
-
-  test "returns nil when the token is invalid", setup do
-    Bypass.expect_once(setup.bypass, fn conn ->
-      conn
-      |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(%{keys: [setup.key]}))
-    end)
-
-    {:ok, pid} = GenServer.start_link(Cloudflare, setup.options)
-
-    assert GenServer.call(pid, {:authenticate, ["invalid_token"], fields: setup.fields}) == nil
-    assert GenServer.call(pid, {:authenticate, "invalid_token", fields: setup.fields}) == nil
-    assert GenServer.call(pid, {:authenticate, [], fields: setup.fields}) == nil
-    assert GenServer.call(pid, {:authenticate, nil, fields: setup.fields}) == nil
+    _pid = start_supervised!({Cloudflare, context.options})
+    assert {_conn, nil} = Cloudflare.authenticate(LivebookWeb.ZTA, context.conn, fields: @fields)
   end
 end

@@ -4,6 +4,8 @@ defmodule Livebook.Zta.GoogleIapTest do
 
   alias Livebook.ZTA.GoogleIAP
 
+  @fields [:id, :name, :email]
+
   setup do
     bypass = Bypass.open()
 
@@ -21,12 +23,13 @@ defmodule Livebook.Zta.GoogleIapTest do
       "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0dWthQHBlcmFsdGEuY29tIiwiaWF0IjoxNTE2MjM5MDIyLCJpc3MiOiJsaXZlYm9vayIsImF1ZCI6ImxpdmVib29rd2ViIn0.ZP5LIrkfMHq2p8g3SMgC7RBt7899GeHkP9rzYKM3RvjDCBeYoxpeioLW2sXMT74QyJPxB4JUujRU3shSPIWNAxkjJVaBGwVTqsO_PR34DSx82q45qSkUnkSVXLl-2KgN4BoUUK7dmocP6yzhNQ3XGf6669n5UG69eMZdh9PApZ7GuyRUQ80ubpvakWaIpd9PIaORkptqDWVbyOIk3Z79AMUub0MSG1FpzYByAQoLswob24l2xVo95-aQrdatqLk1sJ43AZ6HLoMxkZkWobYYRMH5w65MkQckJ9NzI3Rk-VOUlg9ePo8OPRnvcGY-OozHXrjdzn2-j03xuP6x1J3Y7Q"
 
     options = [
-      req_options: [url: "http://localhost:#{bypass.port}"],
-      identity: %{iss: "livebook", key: "livebookweb"},
-      keys: nil
+      name: LivebookWeb.ZTA,
+      custom_identity: %{
+        iss: "livebook",
+        key: "livebookweb",
+        certs: "http://localhost:#{bypass.port}"
+      }
     ]
-
-    fields = [:id, :name, :email]
 
     Bypass.expect(bypass, fn conn ->
       conn
@@ -34,38 +37,51 @@ defmodule Livebook.Zta.GoogleIapTest do
       |> send_resp(200, Jason.encode!(%{keys: [key]}))
     end)
 
-    {:ok, pid} = GenServer.start_link(GoogleIAP, options)
+    conn = conn(:get, "/") |> put_req_header("x-goog-iap-jwt-assertion", token)
 
-    {:ok, bypass: bypass, key: key, token: token, options: options, fields: fields, pid: pid}
+    {:ok, bypass: bypass, token: token, options: options, conn: conn}
   end
 
-  test "returns the user when it's valid", %{pid: pid, token: token, fields: fields} do
-    user = GenServer.call(pid, {:authenticate, [token], fields: fields})
+  test "returns the user when it's valid", %{options: options, conn: conn} do
+    _pid = start_supervised!({GoogleIAP, options})
+    {_conn, user} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
     assert %{id: "1234567890", email: "tuka@peralta.com"} = user
   end
 
-  test "returns nil when the identity is invalid", setup do
-    options = Keyword.put(setup.options, :identity, %{iss: "invalid_iss", key: "livebookweb"})
-    {:ok, pid} = GenServer.start_link(GoogleIAP, options)
-    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+  test "returns nil when the iss is invalid", %{options: options, conn: conn} do
+    invalid_identity = Map.replace(options[:custom_identity], :iss, "invalid_iss")
+    options = Keyword.put(options, :custom_identity, invalid_identity)
+    _pid = start_supervised!({GoogleIAP, options})
+    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
-  test "returns nil when the token is invalid", %{pid: pid, fields: fields} do
-    assert GenServer.call(pid, {:authenticate, ["invalid_token"], fields: fields}) == nil
-    assert GenServer.call(pid, {:authenticate, "invalid_token", fields: fields}) == nil
-    assert GenServer.call(pid, {:authenticate, [], fields: fields}) == nil
-    assert GenServer.call(pid, {:authenticate, nil, fields: fields}) == nil
+  test "returns nil when the aud is invalid", %{options: options, conn: conn} do
+    invalid_identity = Map.replace(options[:custom_identity], :key, "invalid_aud")
+    options = Keyword.put(options, :custom_identity, invalid_identity)
+    _pid = start_supervised!({GoogleIAP, options})
+    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 
-  test "returns nil when the key is invalid", setup do
-    Bypass.expect_once(setup.bypass, fn conn ->
+  test "returns nil when the token is invalid", %{options: options} do
+    conn = conn(:get, "/") |> put_req_header("x-goog-iap-jwt-assertion", "invalid_token")
+    _pid = start_supervised!({GoogleIAP, options})
+    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+  end
+
+  test "returns nil when the assertion is invalid", %{options: options, token: token} do
+    conn = conn(:get, "/") |> put_req_header("invalid_assertion", token)
+    _pid = start_supervised!({GoogleIAP, options})
+    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+  end
+
+  test "returns nil when the key is invalid", %{bypass: bypass, options: options, conn: conn} do
+    Bypass.expect_once(bypass, fn conn ->
       conn
       |> put_resp_content_type("application/json")
       |> send_resp(200, Jason.encode!(%{keys: ["invalid_key"]}))
     end)
 
-    {:ok, pid} = GenServer.start_link(GoogleIAP, setup.options)
-
-    assert GenServer.call(pid, {:authenticate, [setup.token], fields: setup.fields}) == nil
+    _pid = start_supervised!({GoogleIAP, options})
+    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
   end
 end

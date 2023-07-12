@@ -25,7 +25,7 @@ defmodule Livebook.ZTA.GoogleIAP do
   defstruct [:name, :req_options, :identity, :keys]
 
   def start_link(opts) do
-    identity = identity(opts[:identity][:key])
+    identity = opts[:custom_identity] || identity(opts[:identity][:key])
     options = [req_options: [url: identity.certs], identity: identity, keys: nil]
     GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
