@@ -5,6 +5,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
   alias Livebook.ZTA.GoogleIAP
 
   @fields [:id, :name, :email]
+  @name Context.Test.GoogleIAP
 
   setup do
     bypass = Bypass.open()
@@ -23,7 +24,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
       "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0dWthQHBlcmFsdGEuY29tIiwiaWF0IjoxNTE2MjM5MDIyLCJpc3MiOiJsaXZlYm9vayIsImF1ZCI6ImxpdmVib29rd2ViIn0.ZP5LIrkfMHq2p8g3SMgC7RBt7899GeHkP9rzYKM3RvjDCBeYoxpeioLW2sXMT74QyJPxB4JUujRU3shSPIWNAxkjJVaBGwVTqsO_PR34DSx82q45qSkUnkSVXLl-2KgN4BoUUK7dmocP6yzhNQ3XGf6669n5UG69eMZdh9PApZ7GuyRUQ80ubpvakWaIpd9PIaORkptqDWVbyOIk3Z79AMUub0MSG1FpzYByAQoLswob24l2xVo95-aQrdatqLk1sJ43AZ6HLoMxkZkWobYYRMH5w65MkQckJ9NzI3Rk-VOUlg9ePo8OPRnvcGY-OozHXrjdzn2-j03xuP6x1J3Y7Q"
 
     options = [
-      name: LivebookWeb.ZTA,
+      name: @name,
       custom_identity: %{
         iss: "livebook",
         key: "livebookweb",
@@ -44,7 +45,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
 
   test "returns the user when it's valid", %{options: options, conn: conn} do
     start_supervised!({GoogleIAP, options})
-    {_conn, user} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    {_conn, user} = GoogleIAP.authenticate(@name, conn, fields: @fields)
     assert %{id: "1234567890", email: "tuka@peralta.com"} = user
   end
 
@@ -53,7 +54,7 @@ defmodule Livebook.ZTA.GoogleIAPTest do
     options = Keyword.put(options, :custom_identity, invalid_identity)
     start_supervised!({GoogleIAP, options})
 
-    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    assert {_conn, nil} = GoogleIAP.authenticate(@name, conn, fields: @fields)
   end
 
   test "returns nil when the aud is invalid", %{options: options, conn: conn} do
@@ -61,21 +62,21 @@ defmodule Livebook.ZTA.GoogleIAPTest do
     options = Keyword.put(options, :custom_identity, invalid_identity)
     start_supervised!({GoogleIAP, options})
 
-    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    assert {_conn, nil} = GoogleIAP.authenticate(@name, conn, fields: @fields)
   end
 
   test "returns nil when the token is invalid", %{options: options} do
     conn = conn(:get, "/") |> put_req_header("x-goog-iap-jwt-assertion", "invalid_token")
     start_supervised!({GoogleIAP, options})
 
-    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    assert {_conn, nil} = GoogleIAP.authenticate(@name, conn, fields: @fields)
   end
 
   test "returns nil when the assertion is invalid", %{options: options, token: token} do
     conn = conn(:get, "/") |> put_req_header("invalid_assertion", token)
     start_supervised!({GoogleIAP, options})
 
-    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    assert {_conn, nil} = GoogleIAP.authenticate(@name, conn, fields: @fields)
   end
 
   test "returns nil when the key is invalid", %{bypass: bypass, options: options, conn: conn} do
@@ -87,6 +88,6 @@ defmodule Livebook.ZTA.GoogleIAPTest do
 
     start_supervised!({GoogleIAP, options})
 
-    assert {_conn, nil} = GoogleIAP.authenticate(LivebookWeb.ZTA, conn, fields: @fields)
+    assert {_conn, nil} = GoogleIAP.authenticate(@name, conn, fields: @fields)
   end
 end
