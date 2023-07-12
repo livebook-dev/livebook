@@ -15,10 +15,7 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
           <div class="flex items-center space-x-12">
             <.file_system_info file_system={file_system} />
           </div>
-          <.file_system_actions
-            file_system_id={file_system.id}
-            default_file_system_id={@default_file_system_id}
-          />
+          <.file_system_actions file_system_id={file_system.id} />
         </div>
       </div>
       <div class="flex">
@@ -46,33 +43,12 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
   defp file_system_actions(assigns) do
     ~H"""
     <div class="flex items-center space-x-2">
-      <span
-        :if={@default_file_system_id == @file_system_id}
-        class="inline-flex items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 bg-gray-100 text-gray-800"
-      >
-        Default
-      </span>
-      <.menu
-        :if={@default_file_system_id != @file_system_id or @file_system_id != "local"}
-        id={"file-system-#{@file_system_id}-menu"}
-      >
+      <.menu :if={@file_system_id != "local"} id={"file-system-#{@file_system_id}-menu"}>
         <:toggle>
           <button class="icon-button" aria-label="open file system menu" type="button">
             <.remix_icon icon="more-2-fill" class="text-xl" />
           </button>
         </:toggle>
-        <.menu_item>
-          <button
-            :if={@default_file_system_id != @file_system_id}
-            type="button"
-            role="menuitem"
-            phx-click="make_default_file_system"
-            phx-value-id={@file_system_id}
-          >
-            <.remix_icon icon="star-line" />
-            <span>Make default</span>
-          </button>
-        </.menu_item>
         <.menu_item variant={:danger}>
           <button
             :if={@file_system_id != "local"}

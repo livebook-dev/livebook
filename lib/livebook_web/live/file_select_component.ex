@@ -121,6 +121,12 @@ defmodule LivebookWeb.FileSelectComponent do
               <span>New notebook</span>
             </button>
           </.menu_item>
+          <.menu_item>
+            <button role="menuitem" phx-click="set_default_directory" phx-target={@myself}>
+              <.remix_icon icon="home-6-line" />
+              <span>Use as default directory</span>
+            </button>
+          </.menu_item>
         </.menu>
         <div :if={@inner_block}>
           <%= render_slot(@inner_block) %>
@@ -558,6 +564,12 @@ defmodule LivebookWeb.FileSelectComponent do
   def handle_event("clear-file", %{}, socket) do
     {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)
     {:noreply, assign(socket, error: false)}
+  end
+
+  def handle_event("set_default_directory", _params, socket) do
+    {dir, _prefix} = dir_and_prefix(socket.assigns.file)
+    Livebook.Settings.set_default_dir(dir)
+    {:noreply, socket}
   end
 
   defp update_file_infos(%{assigns: assigns} = socket, force_reload?) do

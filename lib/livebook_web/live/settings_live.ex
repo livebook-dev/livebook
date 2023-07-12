@@ -21,8 +21,7 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
-       page_title: "Settings - Livebook",
-       default_file_system_id: Livebook.Settings.default_file_system_id()
+       page_title: "Settings - Livebook"
      )}
   end
 
@@ -110,10 +109,7 @@ defmodule LivebookWeb.SettingsLive do
               is visible only to the current machine, but alternative file systems
               are available, such as S3-based storages.
             </p>
-            <LivebookWeb.SettingsLive.FileSystemsComponent.render
-              file_systems={@file_systems}
-              default_file_system_id={@default_file_system_id}
-            />
+            <LivebookWeb.SettingsLive.FileSystemsComponent.render file_systems={@file_systems} />
           </div>
           <!-- Environment variables configuration -->
           <div class="flex flex-col space-y-4">
@@ -307,13 +303,8 @@ defmodule LivebookWeb.SettingsLive do
   def handle_event("detach_file_system", %{"id" => file_system_id}, socket) do
     on_confirm = fn socket ->
       Livebook.Settings.remove_file_system(file_system_id)
-
       file_systems = Livebook.Settings.file_systems()
-
-      assign(socket,
-        file_systems: file_systems,
-        default_file_system_id: Livebook.Settings.default_file_system_id()
-      )
+      assign(socket, file_systems: file_systems)
     end
 
     {:noreply,
@@ -324,11 +315,6 @@ defmodule LivebookWeb.SettingsLive do
        confirm_text: "Detach",
        confirm_icon: "close-circle-line"
      )}
-  end
-
-  def handle_event("make_default_file_system", %{"id" => file_system_id}, socket) do
-    Livebook.Settings.set_default_file_system(file_system_id)
-    {:noreply, assign(socket, default_file_system_id: file_system_id)}
   end
 
   def handle_event("save", %{"update_check_enabled" => enabled}, socket) do

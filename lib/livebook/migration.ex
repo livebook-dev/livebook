@@ -11,6 +11,7 @@ defmodule Livebook.Migration do
     move_app_secrets_to_personal_hub()
     add_personal_hub_secret_key()
     update_file_systems_to_deterministic_ids()
+    move_default_file_system_id_to_default_dir()
   end
 
   defp delete_local_host_hub() do
@@ -73,11 +74,10 @@ defmodule Livebook.Migration do
           end
 
         # Remap default file system id
-
-        default_file_system_id = Livebook.Settings.default_file_system_id()
-
-        if new_id = id_mapping[default_file_system_id] do
-          Livebook.Settings.set_default_file_system(new_id)
+        with {:ok, default_file_system_id} <-
+               Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id),
+             {:ok, new_id} <- Map.fetch(id_mapping, default_file_system_id) do
+          Livebook.Storage.insert(:settings, "global", default_file_system_id: new_id)
         end
 
         # Livebook.NotebookManager is started before the migration runs,
@@ -85,6 +85,22 @@ defmodule Livebook.Migration do
         # However, in this case it's fine; for recent notebooks it does
         # not matter really and there are likely not many starred S3
         # notebooks at this point (and the user can easily star again)
+    end
+  end
+
+  defp move_default_file_system_id_to_default_dir() do
+    # Convert default_file_system_id to default_dir
+    # TODO: remove on Livebook v0.12
+
+    with {:ok, default_file_system_id} <-
+           Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
+      with {:ok, default_file_system} <-
+             Livebook.Settings.fetch_file_system(default_file_system_id) do
+        default_dir = Livebook.FileSystem.File.new(default_file_system)
+        Livebook.Settings.set_default_dir(default_dir)
+      end
+
+      Livebook.Storage.delete_key(:settings, "global", :default_file_system_id)
     end
   end
 end
