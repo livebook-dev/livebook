@@ -53,7 +53,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
             report_doctest_running(test)
             test = run_test(test)
             report_doctest_result(test, lines)
-            test
           end)
         end
 

@@ -97,6 +97,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
+      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
       <.evaluation_outputs
         cell_view={@cell_view}
         session_id={@session_id}
@@ -608,6 +609,23 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp rounded_class(:both), do: "rounded-lg"
   defp rounded_class(:top), do: "rounded-t-lg"
   defp rounded_class(:bottom), do: "rounded-b-lg"
+
+  defp doctest_summary(assigns) do
+    ~H"""
+    <div :if={@doctest_summary.failures_count > 0} class="pt-2" id={"doctest-summary-#{@cell_id}"}>
+      <div class="error-box">
+        <%= doctest_summary_message(@doctest_summary) %>
+      </div>
+    </div>
+    """
+  end
+
+  defp doctest_summary_message(%{doctests_count: total, failures_count: failed}) do
+    doctests_pl = pluralize(total, "doctest", "doctests")
+    failures_pl = if failed == 1, do: "failure has", else: "failures have"
+
+    "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)"
+  end
 
   defp evaluation_outputs(assigns) do
     ~H"""
