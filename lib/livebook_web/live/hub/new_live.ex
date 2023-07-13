@@ -47,7 +47,7 @@ defmodule LivebookWeb.Hub.NewLive do
           </p>
         </div>
         <p class="text-gray-700">
-          It will allow you to share notebooks and deploy Livebook apps within your organization.
+          It will allow you to share notebooks, manage secrets, and deploy Livebook apps within your organization.
         </p>
         <p class="text-gray-700">
           The product is still in development. We want to get feedback from beta users and understand
