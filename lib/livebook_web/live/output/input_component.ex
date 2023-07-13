@@ -269,9 +269,9 @@ defmodule LivebookWeb.Output.InputComponent do
         <span
           :if={@changed}
           class="cursor-pointer tooltip top"
-          data-tooltip="This input has changed since it's been processed."
+          data-tooltip="This input has changed since it was last processed."
         >
-          <.remix_icon icon="error-warning-line" />
+          <.remix_icon icon="error-warning-line text-gray-500" />
         </span>
       </div>
     </.label>

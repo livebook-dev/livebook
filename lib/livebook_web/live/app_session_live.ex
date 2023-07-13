@@ -187,7 +187,12 @@ defmodule LivebookWeb.AppSessionLive do
         <span
           :if={@data_view.app_status.execution != :executing and @data_view.any_stale?}
           class="tooltip left"
-          data-tooltip="Process changes"
+          data-tooltip={
+            ~S'''
+            Some inputs have changed since they were last processed.
+            Click this button to reprocess with latest values.
+            '''
+          }
         >
           <button phx-click="queue_full_evaluation" class="icon-button">
             <.remix_icon icon="play-circle-fill" class="text-3xl" />

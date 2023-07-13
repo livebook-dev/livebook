@@ -625,11 +625,11 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
-      refute render(view) =~ "This input has changed since it&#39;s been processed."
+      refute render(view) =~ "This input has changed since it was last processed."
 
       Session.set_input_value(session.pid, input.id, 10)
 
-      assert render(view) =~ "This input has changed since it&#39;s been processed."
+      assert render(view) =~ "This input has changed since it was last processed."
     end
   end
 
