@@ -19,8 +19,7 @@ WORKDIR /app
 # information.
 #
 # [1]: https://github.com/erlang/otp/pull/6340
-ENV ERL_FLAGS="+JPperf true"
-# TODO: use "+JMsingle true" on OTP 26
+ENV ERL_FLAGS="+JMsingle true"
 
 # Install hex and rebar
 RUN mix local.hex --force && \
