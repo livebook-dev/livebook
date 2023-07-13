@@ -24,10 +24,8 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        case Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) do
-          nil -> raise NotFoundError, secret: secret_name
-          value -> value
-        end
+        Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
+          raise(NotFoundError, secret: secret_name)
       end
 
     {:ok,
@@ -209,11 +207,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-
-      case Livebook.Hubs.delete_secret(hub, secret) do
-        :ok -> :ok
-        _ -> raise NotFoundError, secret: secret.name
-      end
+      _ = Livebook.Hubs.delete_secret(hub, secret)
 
       socket
       |> put_flash(:success, "Secret deleted successfully")
