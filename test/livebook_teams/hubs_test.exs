@@ -1,7 +1,5 @@
 defmodule Livebook.HubsTest do
-  # This module cannot run async because it craetes
-  # hubs without an associated backend.
-  use Livebook.DataCase
+  use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.Hubs
   @sample_hub "team-foo-bar-baz"
