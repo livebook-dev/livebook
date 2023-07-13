@@ -208,7 +208,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "renders sidebar section", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
-      assert html =~ "Add Teams Hub"
+      assert html =~ "Add Teams"
     end
 
     test "renders sidebar persisted hubs", %{conn: conn} do
