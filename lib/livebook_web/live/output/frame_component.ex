@@ -85,7 +85,7 @@ defmodule LivebookWeb.Output.FrameComponent do
             dom_id_map={@persistent_id_map}
             session_id={@session_id}
             session_pid={@session_pid}
-            input_values={@input_values}
+            input_views={@input_views}
             client_id={@client_id}
             cell_id={@cell_id}
           />

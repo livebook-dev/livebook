@@ -12,12 +12,12 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def update(assigns, socket) do
-    value = assigns.input_values[assigns.attrs.id]
+    %{value: value, changed: changed} = assigns.input_views[assigns.attrs.id]
 
     socket =
       socket
       |> assign(assigns)
-      |> assign(value: value)
+      |> assign(value: value, changed: changed)
 
     {:ok, socket}
   end
@@ -26,9 +26,7 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :image}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label>
-        <%= @attrs.label %>
-      </.label>
+      <.input_label label={@attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
@@ -46,9 +44,7 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :audio}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label>
-        <%= @attrs.label %>
-      </.label>
+      <.input_label label={@attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
         id={"#{@id}-input"}
@@ -64,9 +60,7 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :file}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label>
-        <%= @attrs.label %>
-      </.label>
+      <.input_label label={@attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.FileInputComponent}
         id={"#{@id}-input"}
@@ -85,9 +79,11 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :utc_datetime}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label help="Choose the time in your local time zone">
-        <%= @attrs.label %>
-      </.label>
+      <.input_label
+        label={@attrs.label}
+        changed={@changed}
+        help="Choose the time in your local time zone"
+      />
       <input
         id={@id}
         type="datetime-local"
@@ -109,9 +105,11 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(%{attrs: %{type: :utc_time}} = assigns) do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.label help="Choose the time in your local time zone">
-        <%= @attrs.label %>
-      </.label>
+      <.input_label
+        label={@attrs.label}
+        changed={@changed}
+        help="Choose the time in your local time zone"
+      />
       <input
         id={@id}
         type="time"
@@ -133,9 +131,7 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
-      <.label>
-        <%= @attrs.label %>
-      </.label>
+      <.input_label label={@attrs.label} changed={@changed} />
       <.input_output id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
     </form>
     """
@@ -258,6 +254,27 @@ defmodule LivebookWeb.Output.InputComponent do
     <div class="text-red-600">
       Unknown input type <%= @attrs.type %>
     </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :changed, :boolean, required: true
+  attr :help, :string, default: nil
+
+  defp input_label(assigns) do
+    ~H"""
+    <.label help={@help}>
+      <div class="flex items-center justify-between gap-1">
+        <span><%= @label %></span>
+        <span
+          :if={@changed}
+          class="cursor-pointer tooltip top"
+          data-tooltip="This input has changed since it was last processed."
+        >
+          <.remix_icon icon="error-warning-line text-gray-500" />
+        </span>
+      </div>
+    </.label>
     """
   end
 

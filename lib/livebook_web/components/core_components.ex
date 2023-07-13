@@ -500,28 +500,36 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <span class="relative flex h-3 w-3">
       <span
-        :if={animated_circle_class(@variant)}
+        :if={animated_status_circle_class(@variant)}
         class={[
-          animated_circle_class(@variant),
+          animated_status_circle_class(@variant),
           "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
         ]}
       >
       </span>
-      <span class={[circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}></span>
+      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}>
+      </span>
     </span>
     """
   end
 
-  defp circle_class(:success), do: "bg-green-bright-400"
-  defp circle_class(:warning), do: "bg-yellow-bright-200"
-  defp circle_class(:error), do: "bg-red-400"
-  defp circle_class(:inactive), do: "bg-gray-500"
-  defp circle_class(:waiting), do: "bg-gray-400"
-  defp circle_class(:progressing), do: "bg-blue-500"
+  @doc """
+  Returns background class based on the given variant.
 
-  defp animated_circle_class(:waiting), do: "bg-gray-300"
-  defp animated_circle_class(:progressing), do: "bg-blue-400"
-  defp animated_circle_class(_other), do: nil
+  See `status_indicator/1` for available variants.
+  """
+  def status_circle_class(variant)
+
+  def status_circle_class(:success), do: "bg-green-bright-400"
+  def status_circle_class(:warning), do: "bg-yellow-bright-200"
+  def status_circle_class(:error), do: "bg-red-400"
+  def status_circle_class(:inactive), do: "bg-gray-500"
+  def status_circle_class(:waiting), do: "bg-gray-400"
+  def status_circle_class(:progressing), do: "bg-blue-500"
+
+  defp animated_status_circle_class(:waiting), do: "bg-gray-300"
+  defp animated_status_circle_class(:progressing), do: "bg-blue-400"
+  defp animated_status_circle_class(_other), do: nil
 
   @doc """
   Renders an informative box as a placeholder for a list.

@@ -14,7 +14,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
 
     data =
       Map.new(assigns.attrs.fields, fn {field, input_attrs} ->
-        {field, assigns.input_values[input_attrs.id]}
+        {field, assigns.input_views[input_attrs.id].value}
       end)
 
     if data != prev_data do
@@ -41,7 +41,7 @@ defmodule LivebookWeb.Output.ControlFormComponent do
         module={LivebookWeb.Output.InputComponent}
         id={"#{@id}-#{input_attrs.id}"}
         attrs={input_attrs}
-        input_values={@input_values}
+        input_views={@input_views}
         session_pid={@session_pid}
         client_id={@client_id}
         local={true}

@@ -2182,8 +2182,8 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:clean_up_input_values, input_values}) do
-    for {_input_id, value} <- input_values do
+  defp handle_action(state, {:clean_up_input_values, input_infos}) do
+    for {_input_id, %{value: value}} <- input_infos do
       case value do
         value when is_file_input_value(value) ->
           schedule_file_deletion(state, value.file_ref)

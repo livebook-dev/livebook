@@ -147,29 +147,58 @@ defmodule LivebookWeb.AppSessionLive do
               session_pid={@session.pid}
               client_id={@client_id}
               cell_id={output_view.cell_id}
-              input_values={output_view.input_values}
+              input_views={output_view.input_views}
             />
           </div>
           <%= if @data_view.app_status.execution == :error do %>
-            <div class="error-box flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <.remix_icon icon="error-warning-line" class="text-xl" />
-                <span>Something went wrong</span>
+            <div class={[
+              "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
+              "text-red-400 border-red-400"
+            ]}>
+              <div>
+                Something went wrong
               </div>
-              <.link
-                :if={@livebook_authenticated?}
-                navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
-              >
-                <span>Debug</span>
-                <.remix_icon icon="arrow-right-line" />
-              </.link>
+              <div class="flex items-center gap-6">
+                <span class="tooltip top" data-tooltip="Debug">
+                  <.link
+                    :if={@livebook_authenticated?}
+                    navigate={~p"/sessions/#{@session.id}" <> "#cell-#{@data_view.errored_cell_id}"}
+                  >
+                    <.remix_icon icon="terminal-line" />
+                  </.link>
+                </span>
+                <button
+                  class={[
+                    "button-base bg-transparent",
+                    "border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
+                  ]}
+                  phx-click="queue_errored_cells_evaluation"
+                >
+                  <.remix_icon icon="play-circle-fill" class="align-middle mr-1" />
+                  <span>Retry</span>
+                </button>
+              </div>
             </div>
           <% end %>
         </div>
         <div style="height: 80vh"></div>
       </div>
-      <div :if={show_app_status?(@data_view.app_status)} class="fixed right-6 bottom-4">
-        <.app_status status={@data_view.app_status} />
+      <div class="fixed right-3 bottom-4 flex flex-col gap-2 items-center text-gray-600 w-10">
+        <span
+          :if={@data_view.app_status.execution != :executing and @data_view.any_stale?}
+          class="tooltip left"
+          data-tooltip={
+            ~S'''
+            Some inputs have changed since they were last processed.
+            Click this button to reprocess with latest values.
+            '''
+          }
+        >
+          <button phx-click="queue_full_evaluation" class="icon-button">
+            <.remix_icon icon="play-circle-fill" class="text-3xl" />
+          </button>
+        </span>
+        <.app_status_circle status={@data_view.app_status} />
       </div>
     </div>
 
@@ -191,6 +220,64 @@ defmodule LivebookWeb.AppSessionLive do
 
   def render(assigns), do: auth_placeholder(assigns)
 
+  attr :status, :map, required: true
+
+  defp app_status_circle(%{status: %{lifecycle: :shutting_down}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Shutting down" variant={:inactive} icon="stop-line" />
+    """
+  end
+
+  defp app_status_circle(%{status: %{lifecycle: :deactivated}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Deactivated" variant={:inactive} icon="stop-line" />
+    """
+  end
+
+  defp app_status_circle(%{status: %{execution: :executing}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Executing" variant={:progressing} icon="loader-3-line" spinning />
+    """
+  end
+
+  defp app_status_circle(%{status: %{execution: :executed}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Executed" variant={:success} icon="check-line" />
+    """
+  end
+
+  defp app_status_circle(%{status: %{execution: :error}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Error" variant={:error} icon="close-line" />
+    """
+  end
+
+  defp app_status_circle(%{status: %{execution: :interrupted}} = assigns) do
+    ~H"""
+    <.app_status_indicator text="Interrupted" variant={:waiting} icon="pause-line" />
+    """
+  end
+
+  attr :text, :string, required: true
+  attr :variant, :atom, required: true
+  attr :icon, :string, required: true
+  attr :spinning, :boolean, default: false
+
+  defp app_status_indicator(assigns) do
+    ~H"""
+    <span class="tooltip left" data-tooltip={@text}>
+      <span class={[
+        status_circle_class(@variant),
+        "opacity-75",
+        "w-6 h-6 rounded-full flex items-center justify-center",
+        @spinning && "animate-spin"
+      ]}>
+        <.remix_icon icon={@icon} class="text-white font-bold" />
+      </span>
+    </span>
+    """
+  end
+
   defp get_page_title(notebook_name) do
     "Livebook - #{notebook_name}"
   end
@@ -207,6 +294,22 @@ defmodule LivebookWeb.AppSessionLive do
       Session.queue_full_evaluation(socket.assigns.session.pid, [cell_id])
     end
 
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_errored_cells_evaluation", %{}, socket) do
+    data = socket.private.data
+
+    errored_cell_ids =
+      for {cell_id, %{eval: eval_info}} <- data.cell_infos, eval_info.errored, do: cell_id
+
+    Session.queue_full_evaluation(socket.assigns.session.pid, errored_cell_ids)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_full_evaluation", %{}, socket) do
+    Session.queue_full_evaluation(socket.assigns.session.pid, [])
     {:noreply, socket}
   end
 
@@ -297,6 +400,8 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp data_to_view(data) do
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
     %{
       notebook_name: data.notebook.name,
       output_views:
@@ -304,7 +409,7 @@ defmodule LivebookWeb.AppSessionLive do
           {cell_id, output} <- visible_outputs(data.notebook),
           do: %{
             output: output,
-            input_values: input_values_for_output(output, data),
+            input_views: input_views_for_output(output, data, changed_input_ids),
             cell_id: cell_id
           }
         ),
@@ -312,7 +417,8 @@ defmodule LivebookWeb.AppSessionLive do
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
       multi_session: data.notebook.app_settings.multi_session,
-      errored_cell_id: errored_cell_id(data)
+      errored_cell_id: errored_cell_id(data),
+      any_stale?: any_stale?(data)
     }
   end
 
@@ -324,9 +430,18 @@ defmodule LivebookWeb.AppSessionLive do
     end)
   end
 
-  defp input_values_for_output(output, data) do
+  defp any_stale?(data) do
+    Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
+  end
+
+  defp input_views_for_output(output, data, changed_input_ids) do
     input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
-    Map.take(data.input_values, input_ids)
+
+    data.input_infos
+    |> Map.take(input_ids)
+    |> Map.new(fn {input_id, %{value: value}} ->
+      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
+    end)
   end
 
   defp visible_outputs(notebook) do
@@ -376,7 +491,4 @@ defmodule LivebookWeb.AppSessionLive do
     do: {idx, output}
 
   defp filter_output(_output), do: nil
-
-  defp show_app_status?(%{execution: :executed, lifecycle: :active}), do: false
-  defp show_app_status?(_status), do: true
 end

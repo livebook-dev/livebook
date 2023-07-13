@@ -879,8 +879,30 @@ defmodule Livebook.Session.DataTest do
 
       empty_map = %{}
 
-      assert {:ok, %{input_values: ^empty_map}, actions} = Data.apply_operation(data, operation)
-      assert {:clean_up_input_values, %{"i1" => "value"}} in actions
+      assert {:ok, %{input_infos: ^empty_map}, actions} = Data.apply_operation(data, operation)
+
+      assert {:clean_up_input_values, %{"i1" => %{value: "value", hash: :erlang.phash2("value")}}} in actions
+    end
+
+    test "marks cells bound to the deleted input as stale" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}})
+        ])
+
+      operation = {:delete_cell, @cid, "c1"}
+
+      assert {:ok, %{cell_infos: %{"c2" => %{eval: %{validity: :stale}}}}, _actions} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -1869,7 +1891,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{
                   "c1" => %{
-                    eval: %{data: %{input_values: %{"i1" => "hey"}}}
+                    eval: %{data: %{input_infos: %{"i1" => %{value: "hey"}}}}
                   }
                 }
               }, _} = Data.apply_operation(data, operation)
@@ -2355,7 +2377,8 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
 
-      assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "hey"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "stores default values for new nested inputs" do
@@ -2373,7 +2396,8 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:add_cell_evaluation_response, @cid, "c1", output, eval_meta()}
 
-      assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "hey"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "keeps input values for inputs that existed" do
@@ -2394,7 +2418,8 @@ defmodule Livebook.Session.DataTest do
       # Output the same input again
       operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
 
-      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "value"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "garbage collects input values that are no longer used" do
@@ -2417,7 +2442,8 @@ defmodule Livebook.Session.DataTest do
 
       empty_map = %{}
 
-      assert {:ok, %{input_values: ^empty_map}, [{:clean_up_input_values, %{"i1" => "value"}}]} =
+      assert {:ok, %{input_infos: ^empty_map},
+              [{:clean_up_input_values, %{"i1" => %{value: "value"}}}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -2441,7 +2467,8 @@ defmodule Livebook.Session.DataTest do
       # This time w don't output the input
       operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, eval_meta()}
 
-      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "value"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "does not garbage collect inputs if another evaluation is ongoing" do
@@ -2468,7 +2495,8 @@ defmodule Livebook.Session.DataTest do
       # This time w don't output the input
       operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, 10}, eval_meta()}
 
-      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "value"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "evaluating code cell before smart cell changes its parents" do
@@ -2588,12 +2616,12 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:bind_input, @cid, "c2", "i1"}
 
-      bound_to_input_ids = MapSet.new(["i1"])
+      bound_to_inputs = %{"i1" => :erlang.phash2("hey")}
 
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{eval: %{new_bound_to_input_ids: ^bound_to_input_ids}}
+                  "c2" => %{eval: %{new_bound_to_inputs: ^bound_to_inputs}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -3649,7 +3677,8 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
 
-      assert {:ok, %{input_values: %{"i1" => "stuff"}}, _} = Data.apply_operation(data, operation)
+      assert {:ok, %{input_infos: %{"i1" => %{value: "stuff"}}}, _} =
+               Data.apply_operation(data, operation)
     end
 
     test "given input value change, marks evaluated bound cells and their dependents as stale" do
@@ -4108,7 +4137,7 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "changes status to :executing on automatic reevaluation" do
+    test "does not automatically reevaluate" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 
       data =
@@ -4116,6 +4145,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, @cid, 0, "s1"},
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
           {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
@@ -4125,7 +4155,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
 
-      assert {:ok, %{app_data: %{status: %{execution: :executing}}}, _actions} =
+      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, _actions} =
                Data.apply_operation(data, operation)
     end
   end
@@ -4317,6 +4347,81 @@ defmodule Livebook.Session.DataTest do
         ])
 
       assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1", "c2", "c4"]
+    end
+  end
+
+  describe "changed_input_ids/1" do
+    test "returns empty set when there are no inputs" do
+      assert Data.changed_input_ids(Data.new()) == MapSet.new()
+    end
+
+    test "returns inputs which value changed since they have been bound to some cell" do
+      input1 = %{id: "i1", type: :text, label: "Text", default: "hey"}
+      input2 = %{id: "i2", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:insert_cell, @cid, "s1", 4, :code, "c4", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1", "c2"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input1}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", {:input, input2}, eval_meta()},
+          evaluate_cells_operations(["c3", "c4"], %{
+            bind_inputs: %{"c3" => ["i1"], "c4" => ["i2"]}
+          }),
+          {:set_input_value, @cid, "i1", "new value"}
+        ])
+
+      assert Data.changed_input_ids(data) == MapSet.new(["i1"])
+    end
+
+    test "includes an input where one cell is bound with the old value and one with latest" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2", "c3"], %{
+            bind_inputs: %{"c2" => ["i1"], "c3" => ["i1"]}
+          }),
+          {:set_input_value, @cid, "i1", "new value"},
+          # Reevaluate only cell 2, cell 3 is still stale
+          evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}})
+        ])
+
+      assert Data.changed_input_ids(data) == MapSet.new(["i1"])
+    end
+
+    test "does not return removed inputs" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]},
+          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}}),
+          {:set_input_value, @cid, "i1", "new value"},
+          {:delete_cell, @cid, "c1"}
+        ])
+
+      assert Data.changed_input_ids(data) == MapSet.new([])
     end
   end
 
