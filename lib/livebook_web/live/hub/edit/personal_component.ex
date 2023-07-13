@@ -5,6 +5,16 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   alias Livebook.Hubs.Personal
   alias LivebookWeb.LayoutHelpers
 
+  defmodule NotFoundError do
+    @moduledoc false
+
+    defexception [:secret, plug_status: 404]
+
+    def message(%{secret: secret}) do
+      "could not find secret matching \"#{secret}\""
+    end
+  end
+
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -14,9 +24,8 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        secrets
-        |> Enum.find(&(&1.name == secret_name))
-        |> Map.get(:value)
+        Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
+          raise(NotFoundError, secret: secret_name)
       end
 
     {:ok,
@@ -198,7 +207,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-      :ok = Livebook.Hubs.delete_secret(hub, secret)
+      _ = Livebook.Hubs.delete_secret(hub, secret)
 
       socket
       |> put_flash(:success, "Secret deleted successfully")
