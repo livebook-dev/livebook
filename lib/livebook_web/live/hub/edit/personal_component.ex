@@ -7,12 +7,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
   defmodule NotFoundError do
     @moduledoc false
-
-    defexception [:secret, plug_status: 404]
-
-    def message(%{secret: secret}) do
-      "could not find secret matching \"#{secret}\""
-    end
+    defexception [:message, plug_status: 404]
   end
 
   @impl true
@@ -25,7 +20,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     secret_value =
       if assigns.live_action == :edit_secret do
         Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
-          raise(NotFoundError, secret: secret_name)
+          raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
     {:ok,
