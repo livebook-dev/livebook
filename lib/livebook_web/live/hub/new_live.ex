@@ -61,7 +61,7 @@ defmodule LivebookWeb.Hub.NewLive do
           >
             Learn more about Livebook Teams
           </a>
-          and get free early access.
+          and join the beta program.
         </p>
         <p class="text-gray-700">
           - The Livebook crew
