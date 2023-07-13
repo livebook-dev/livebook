@@ -209,7 +209,11 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-      :ok = Livebook.Hubs.delete_secret(hub, secret)
+
+      case Livebook.Hubs.delete_secret(hub, secret) do
+        :ok -> :ok
+        _ -> raise NotFoundError, secret: secret.name
+      end
 
       socket
       |> put_flash(:success, "Secret deleted successfully")
