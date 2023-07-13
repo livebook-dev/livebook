@@ -628,6 +628,7 @@ defmodule LivebookWeb.SessionLiveTest do
       refute render(view) =~ "This input has changed since it was last processed."
 
       Session.set_input_value(session.pid, input.id, 10)
+      wait_for_session_update(session.pid)
 
       assert render(view) =~ "This input has changed since it was last processed."
     end
