@@ -105,14 +105,23 @@ defmodule Livebook.StorageTest do
 
   describe "persistence" do
     defp read_table_and_lookup(entity) do
-      :ok = Storage.sync()
+      Process.sleep(1)
 
       {:ok, tab} =
-        Storage.config_file_path()
-        |> String.to_charlist()
-        |> :ets.file2tab()
+        with {:error, _} <- read_table() do
+          # :ets.tab2file is asynchronous and may occasionally take
+          # longer, so we retry once
+          Process.sleep(100)
+          read_table()
+        end
 
       :ets.lookup(tab, {:persistence, entity})
+    end
+
+    defp read_table() do
+      Storage.config_file_path()
+      |> String.to_charlist()
+      |> :ets.file2tab()
     end
 
     test "insert triggers saving to file" do

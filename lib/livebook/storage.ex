@@ -152,14 +152,6 @@ defmodule Livebook.Storage do
     Path.join([Livebook.Config.data_path(), "livebook_config.ets"])
   end
 
-  @doc """
-  Synchronously awaits for all prior changes to be processed.
-  """
-  @spec sync() :: :ok
-  def sync() do
-    GenServer.call(__MODULE__, :sync)
-  end
-
   @impl true
   def init(_opts) do
     # Make sure that this process does not terminate abruptly
@@ -170,11 +162,6 @@ defmodule Livebook.Storage do
     :persistent_term.put(__MODULE__, table)
 
     {:ok, %{table: table}}
-  end
-
-  @impl true
-  def handle_call(:sync, _from, state) do
-    {:reply, :ok, state}
   end
 
   @impl true
@@ -194,13 +181,11 @@ defmodule Livebook.Storage do
     {:reply, :ok, state, {:continue, :save_to_file}}
   end
 
-  @impl true
   def handle_call({:delete, namespace, entity_id}, _from, %{table: table} = state) do
     :ets.delete(table, {namespace, entity_id})
     {:reply, :ok, state, {:continue, :save_to_file}}
   end
 
-  @impl true
   def handle_call({:delete_key, namespace, entity_id, key}, _from, %{table: table} = state) do
     delete_keys(table, namespace, entity_id, [key])
     {:reply, :ok, state, {:continue, :save_to_file}}
