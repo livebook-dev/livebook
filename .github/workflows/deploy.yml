@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - "v*.*"
     tags:
       - "v*.*.*"
 env:
@@ -56,6 +57,7 @@ jobs:
           commit_message: Update assets
           file_pattern: static
   docker:
+    if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
     # The assets job may push new commit, so we wait for it
     needs: [assets]
     runs-on: ubuntu-latest
