@@ -227,8 +227,8 @@ defmodule Livebook.FileSystem.File do
   end
 
   defp copy_regular_file(source, destination) do
-    with {:ok, content} <- read(source) do
-      write(destination, content)
+    with {:ok, _} <- read_stream_into(source, destination) do
+      :ok
     end
   end
 
@@ -290,4 +290,45 @@ defmodule Livebook.FileSystem.File do
       end
     end)
   end
+
+  @doc """
+  Similar to `read/2`, but streams file contents into `collectable`
+  chunk by chunk.
+  """
+  @spec read_stream_into(t(), Collectable.t()) ::
+          {:ok, Collectable.t()} | {:error, FileSystem.error()}
+  def read_stream_into(file, collectable) do
+    FileSystem.read_stream_into(file.file_system, file.path, collectable)
+  end
+end
+
+defimpl Collectable, for: Livebook.FileSystem.File do
+  def into(%Livebook.FileSystem.File{file_system: file_system, path: path} = file) do
+    state = file_system |> Livebook.FileSystem.write_stream_init(path, []) |> unwrap!()
+
+    collector = fn
+      state, {:cont, chunk} when is_binary(chunk) ->
+        file_system
+        |> Livebook.FileSystem.write_stream_chunk(state, chunk)
+        |> unwrap!()
+
+      state, :done ->
+        file_system
+        |> Livebook.FileSystem.write_stream_finish(state)
+        |> unwrap!()
+
+        file
+
+      state, :halt ->
+        file_system
+        |> Livebook.FileSystem.write_stream_halt(state)
+        |> unwrap!()
+    end
+
+    {state, collector}
+  end
+
+  defp unwrap!(:ok), do: :ok
+  defp unwrap!({:ok, result}), do: result
+  defp unwrap!({:error, error}), do: raise(error)
 end

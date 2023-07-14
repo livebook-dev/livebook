@@ -516,4 +516,96 @@ defmodule Livebook.FileSystem.LocalTest do
                )
     end
   end
+
+  describe "FileSystem chunked write" do
+    @tag :tmp_dir
+    test "writes chunks to file", %{tmp_dir: tmp_dir} do
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "file.txt")
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, [])
+
+      chunk = String.duplicate("a", 2048)
+
+      state =
+        for _ <- 1..10, reduce: state do
+          state ->
+            assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk)
+            state
+        end
+
+      assert :ok = FileSystem.write_stream_finish(file_system, state)
+
+      assert File.read!(file_path) == String.duplicate(chunk, 10)
+    end
+
+    @tag :tmp_dir
+    test "creates nonexistent directories", %{tmp_dir: tmp_dir} do
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "dir/nested/file.txt")
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, [])
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "a")
+      assert :ok = FileSystem.write_stream_finish(file_system, state)
+
+      assert File.read!(file_path) == "a"
+    end
+
+    @tag :tmp_dir
+    test "overrides existing files on finish", %{tmp_dir: tmp_dir} do
+      create_tree!(tmp_dir,
+        "file.txt": "content"
+      )
+
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "file.txt")
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, [])
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "new content")
+      assert :ok = FileSystem.write_stream_finish(file_system, state)
+
+      assert File.read!(file_path) == "new content"
+    end
+
+    @tag :tmp_dir
+    test "does not overrides existing files when halted", %{tmp_dir: tmp_dir} do
+      create_tree!(tmp_dir,
+        "file.txt": "content"
+      )
+
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "file.txt")
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, [])
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "new content")
+      assert :ok = FileSystem.write_stream_halt(file_system, state)
+
+      assert File.read!(file_path) == "content"
+    end
+  end
+
+  describe "FileSystem.read_stream_into/2" do
+    @tag :tmp_dir
+    test "returns an error when a nonexistent file is given", %{tmp_dir: tmp_dir} do
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "nonexistent.txt")
+
+      assert {:error, "no such file or directory"} =
+               FileSystem.read_stream_into(file_system, file_path, <<>>)
+    end
+
+    @tag :tmp_dir
+    test "collects file contents", %{tmp_dir: tmp_dir} do
+      create_tree!(tmp_dir,
+        dir: [
+          "file.txt": "content"
+        ]
+      )
+
+      file_system = Local.new()
+      file_path = Path.join(tmp_dir, "dir/file.txt")
+
+      assert {:ok, "content"} = FileSystem.read_stream_into(file_system, file_path, <<>>)
+    end
+  end
 end

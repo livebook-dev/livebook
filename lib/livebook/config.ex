@@ -99,6 +99,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns path to Livebook temporary dir.
+  """
+  @spec tmp_path() :: String.t()
+  def tmp_path() do
+    tmp_dir = System.tmp_dir!() |> Path.expand()
+    Path.join(tmp_dir, "livebook")
+  end
+
+  @doc """
   Returns the apps path.
   """
   @spec apps_path() :: String.t() | nil

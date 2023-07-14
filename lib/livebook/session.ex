@@ -1719,7 +1719,7 @@ defmodule Livebook.Session do
   end
 
   defp session_tmp_dir(session_id) do
-    livebook_tmp_path()
+    Livebook.Config.tmp_path()
     |> Path.join("sessions/#{session_id}")
     |> FileSystem.Utils.ensure_dir_path()
     |> FileSystem.File.local()
@@ -1735,7 +1735,7 @@ defmodule Livebook.Session do
   """
   @spec local_assets_path(String.t()) :: String.t()
   def local_assets_path(hash) do
-    Path.join([livebook_tmp_path(), "assets", encode_path_component(hash)])
+    Path.join([Livebook.Config.tmp_path(), "assets", encode_path_component(hash)])
   end
 
   @doc """
@@ -1765,11 +1765,6 @@ defmodule Livebook.Session do
     String.replace(component, [".", "/", "\\", ":"], "_")
   end
 
-  defp livebook_tmp_path() do
-    tmp_dir = System.tmp_dir!() |> Path.expand()
-    Path.join(tmp_dir, "livebook")
-  end
-
   defp initialize_files_from(state, {:inline, contents_map}) do
     write_attachment_file_entries(state, fn destination_file, file_entry ->
       case Map.fetch(contents_map, file_entry.name) do
@@ -1786,8 +1781,8 @@ defmodule Livebook.Session do
         |> Livebook.Utils.expand_url(file_entry.name)
         |> Livebook.Notebook.ContentLoader.rewrite_url()
 
-      case fetch_content(source_url) do
-        {:ok, content} -> FileSystem.File.write(destination_file, content)
+      case download_content(source_url, destination_file) do
+        :ok -> :ok
         {:error, _message, 404} -> :ok
         {:error, message, _status} -> {:error, message}
       end
@@ -2491,8 +2486,8 @@ defmodule Livebook.Session do
 
   defp file_entry_path_from_url(state, name, url, callback) do
     fetcher = fn cache_file ->
-      case fetch_content(url) do
-        {:ok, content} -> FileSystem.File.write(cache_file, content)
+      case download_content(url, cache_file) do
+        :ok -> :ok
         {:error, message, _} -> {:error, message}
       end
     end
@@ -2731,11 +2726,9 @@ defmodule Livebook.Session do
   def to_attachment_file_entry(session, %{type: :url} = file_entry) do
     destination = FileSystem.File.resolve(session.files_dir, file_entry.name)
 
-    case fetch_content(file_entry.url) do
-      {:ok, content} ->
-        with :ok <- FileSystem.File.write(destination, content) do
-          {:ok, %{name: file_entry.name, type: :attachment}}
-        end
+    case download_content(file_entry.url, destination) do
+      :ok ->
+        {:ok, %{name: file_entry.name, type: :attachment}}
 
       {:error, message, _status} ->
         {:error, message}
@@ -2746,16 +2739,18 @@ defmodule Livebook.Session do
     {:ok, file_entry}
   end
 
-  defp fetch_content(url) do
-    case Livebook.Utils.HTTP.request(:get, url) do
-      {:ok, 200, _headers, body} ->
-        {:ok, body}
+  defp download_content(url, file) do
+    case Livebook.Utils.HTTP.download(url, file) do
+      {:ok, _file} ->
+        :ok
 
-      {:ok, status, _headers, _body} ->
-        {:error, "failed to download file from the given URL", status}
+      # {:ok, status, _headers, _body} ->
+      #   {:error, "failed to download file from the given URL", status}
 
-      _ ->
-        {:error, "failed to download file from the given URL", nil}
+      # _ ->
+      #   {:error, "failed to download file from the given URL", nil}
+      {:error, message, status} ->
+        {:error, "download failed, " <> message, status}
     end
   end
 end
