@@ -2744,11 +2744,6 @@ defmodule Livebook.Session do
       {:ok, _file} ->
         :ok
 
-      # {:ok, status, _headers, _body} ->
-      #   {:error, "failed to download file from the given URL", status}
-
-      # _ ->
-      #   {:error, "failed to download file from the given URL", nil}
       {:error, message, status} ->
         {:error, "download failed, " <> message, status}
     end
