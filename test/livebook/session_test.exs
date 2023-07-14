@@ -1537,14 +1537,14 @@ defmodule Livebook.SessionTest do
       url = "http://localhost:#{bypass.port}/files/image.jpg"
 
       Bypass.expect_once(bypass, "GET", "/files/image.jpg", fn conn ->
-        Plug.Conn.resp(conn, 404, "not fount")
+        Plug.Conn.resp(conn, 404, "not found")
       end)
 
       session = start_session()
       file_entry = %{type: :url, name: "image.jpg", url: url}
 
       assert Session.to_attachment_file_entry(session, file_entry) ==
-               {:error, "failed to download file from the given URL"}
+               {:error, "download failed, got HTTP status: 404"}
     end
   end
 

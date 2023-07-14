@@ -40,6 +40,8 @@ end
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   alias Livebook.FileSystem
 
+  @stream_chunk_size_in_bytes 16384
+
   def resource_identifier(file_system) do
     {:local_file_system, node(file_system.origin_pid)}
   end
@@ -239,6 +241,61 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
       :ok
     else
       {:error, "this local file system belongs to a different host"}
+    end
+  end
+
+  def write_stream_init(_file_system, path, _opts) do
+    FileSystem.Utils.assert_regular_path!(path)
+
+    downloads_dir = Path.join(Livebook.Config.tmp_path(), "downloads")
+    download_path = Path.join(downloads_dir, Livebook.Utils.random_id())
+
+    with :ok <- File.mkdir_p(downloads_dir),
+         {:ok, device} <- File.open(download_path, [:write]) do
+      {:ok, %{path: path, download_path: download_path, device: device}}
+    else
+      {:error, error} -> FileSystem.Utils.posix_error(error)
+    end
+  end
+
+  def write_stream_chunk(_file_system, state, chunk) when is_binary(chunk) do
+    case IO.binwrite(state.device, chunk) do
+      :ok -> {:ok, state}
+      {:error, error} -> FileSystem.Utils.posix_error(error)
+    end
+  end
+
+  def write_stream_finish(_file_system, state) do
+    File.close(state.device)
+
+    with :ok <- File.mkdir_p(Path.dirname(state.path)),
+         :ok <- File.rename(state.download_path, state.path) do
+      :ok
+    else
+      {:error, error} ->
+        File.rm(state.download_path)
+        FileSystem.Utils.posix_error(error)
+    end
+  end
+
+  def write_stream_halt(_file_system, state) do
+    File.close(state.device)
+    File.rm(state.download_path)
+    :ok
+  end
+
+  def read_stream_into(_file_system, path, collectable) do
+    FileSystem.Utils.assert_regular_path!(path)
+
+    try do
+      result =
+        path
+        |> File.stream!([], @stream_chunk_size_in_bytes)
+        |> Enum.into(collectable)
+
+      {:ok, result}
+    rescue
+      error in File.Error -> FileSystem.Utils.posix_error(error.reason)
     end
   end
 end

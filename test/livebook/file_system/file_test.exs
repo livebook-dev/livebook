@@ -268,7 +268,7 @@ defmodule Livebook.FileSystem.FileTest do
 
   describe "copy/2" do
     @tag :tmp_dir
-    test "supports regular files from different file systems via explicit read and write",
+    test "supports regular files from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
       s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
@@ -281,6 +281,7 @@ defmodule Livebook.FileSystem.FileTest do
       src_file = FileSystem.File.new(local_fs, Path.join(tmp_dir, "src_file.txt"))
       dest_file = FileSystem.File.new(s3_fs, "/dest_file.txt")
 
+      # Note: the content is small, so write is a single request
       Bypass.expect_once(bypass, "PUT", "/mybucket/dest_file.txt", fn conn ->
         assert {:ok, "content", conn} = Plug.Conn.read_body(conn)
 
@@ -291,7 +292,7 @@ defmodule Livebook.FileSystem.FileTest do
     end
 
     @tag :tmp_dir
-    test "supports directories from different file systems via explicit read and write",
+    test "supports directories from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
       s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
@@ -309,6 +310,7 @@ defmodule Livebook.FileSystem.FileTest do
       src_dir = FileSystem.File.new(local_fs, Path.join(tmp_dir, "src_dir") <> "/")
       dest_dir = FileSystem.File.new(s3_fs, "/dest_dir/")
 
+      # Note: the content is small, so write is a single request
       Bypass.expect_once(bypass, "PUT", "/mybucket/dest_dir/nested/file.txt", fn conn ->
         assert {:ok, "content", conn} = Plug.Conn.read_body(conn)
         Plug.Conn.resp(conn, 200, "")
@@ -440,6 +442,36 @@ defmodule Livebook.FileSystem.FileTest do
       dir = FileSystem.File.local(p("/dir/"))
 
       assert %{path: p("/dir/.txt")} = FileSystem.File.ensure_extension(dir, ".txt")
+    end
+  end
+
+  describe "Collectable into" do
+    @tag :tmp_dir
+    test "uses chunked write to file", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "dir/file.txt")
+      file = FileSystem.File.local(path)
+
+      chunk = String.duplicate("a", 2048)
+
+      chunk |> List.duplicate(10) |> Enum.into(file)
+
+      assert FileSystem.File.read(file) == {:ok, String.duplicate(chunk, 10)}
+    end
+  end
+
+  describe "read_stream_into/2" do
+    @tag :tmp_dir
+    test "collects file contents", %{tmp_dir: tmp_dir} do
+      create_tree!(tmp_dir,
+        dir: [
+          "file.txt": "content"
+        ]
+      )
+
+      path = Path.join(tmp_dir, "dir/file.txt")
+      file = FileSystem.File.local(path)
+
+      assert {:ok, "content"} = FileSystem.File.read_stream_into(file, <<>>)
     end
   end
 end

@@ -723,6 +723,278 @@ defmodule Livebook.FileSystem.S3Test do
     end
   end
 
+  describe "FileSystem chunked write" do
+    test "accumulates small chunks and sends a single request if the content is small",
+         %{bypass: bypass} do
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert {:ok, "ab", conn} = Plug.Conn.read_body(conn)
+
+        Plug.Conn.resp(conn, 200, "")
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "a")
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, "b")
+      assert :ok = FileSystem.write_stream_finish(file_system, state)
+    end
+
+    test "creates a multi-part upload for contents over 50MB", %{bypass: bypass} do
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      chunk_3kb = String.duplicate("a", 3_000)
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+
+      Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploads" => ""} = conn.params
+
+        # AWS does not return Content-Type for this request, so we emulate that
+        Plug.Conn.resp(conn, 200, """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <InitiateMultipartUploadResult>
+          <UploadId>1</UploadId>
+        </InitiateMultipartUploadResult>
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1", "partNumber" => "1"} = conn.params
+        assert {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert byte_size(body) == 5_000
+
+        conn
+        |> Plug.Conn.put_resp_header("ETag", "value1")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_3kb)
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_3kb)
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1", "partNumber" => "2"} = conn.params
+        assert {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert byte_size(body) == 5_000
+
+        conn
+        |> Plug.Conn.put_resp_header("ETag", "value2")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_3kb)
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_3kb)
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1", "partNumber" => "3"} = conn.params
+        assert {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert byte_size(body) == 2_000
+
+        conn
+        |> Plug.Conn.put_resp_header("ETag", "value3")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      expected_body =
+        """
+        <CompleteMultipartUpload>
+          <Part>
+            <ETag>value1</ETag>
+            <PartNumber>1</PartNumber>
+          </Part>
+          <Part>
+            <ETag>value2</ETag>
+            <PartNumber>2</PartNumber>
+          </Part>
+          <Part>
+            <ETag>value3</ETag>
+            <PartNumber>3</PartNumber>
+          </Part>
+        </CompleteMultipartUpload>
+        """
+        |> String.replace(~r/\s/, "")
+
+      Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
+        assert {:ok, ^expected_body, conn} = Plug.Conn.read_body(conn)
+
+        conn
+        |> Plug.Conn.put_resp_content_type("application/xml")
+        |> Plug.Conn.resp(200, """
+        <CompleteMultipartUploadResult>
+        </CompleteMultipartUploadResult>
+        """)
+      end)
+
+      assert :ok = FileSystem.write_stream_finish(file_system, state)
+    end
+
+    test "aborts the multi-part upload when halted", %{bypass: bypass} do
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      chunk_5kb = String.duplicate("a", 5_000)
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+
+      Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploads" => ""} = conn.params
+
+        # AWS does not return Content-Type for this request, so we emulate that
+        Plug.Conn.resp(conn, 200, """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <InitiateMultipartUploadResult>
+          <UploadId>1</UploadId>
+        </InitiateMultipartUploadResult>
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1", "partNumber" => "1"} = conn.params
+        assert {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert byte_size(body) == 5_000
+
+        conn
+        |> Plug.Conn.put_resp_header("ETag", "value1")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_5kb)
+
+      Bypass.expect_once(bypass, "DELETE", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1"} = conn.params
+        Plug.Conn.resp(conn, 204, "")
+      end)
+
+      assert :ok = FileSystem.write_stream_halt(file_system, state)
+    end
+
+    test "aborts the multi-part upload when finish fails", %{bypass: bypass} do
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      chunk_5kb = String.duplicate("a", 5_000)
+
+      assert {:ok, state} = FileSystem.write_stream_init(file_system, file_path, part_size: 5_000)
+
+      Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploads" => ""} = conn.params
+
+        # AWS does not return Content-Type for this request, so we emulate that
+        Plug.Conn.resp(conn, 200, """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <InitiateMultipartUploadResult>
+          <UploadId>1</UploadId>
+        </InitiateMultipartUploadResult>
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1", "partNumber" => "1"} = conn.params
+        assert {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert byte_size(body) == 5_000
+
+        conn
+        |> Plug.Conn.put_resp_header("ETag", "value1")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      assert {:ok, state} = FileSystem.write_stream_chunk(file_system, state, chunk_5kb)
+
+      expected_body =
+        """
+        <CompleteMultipartUpload>
+          <Part>
+            <ETag>value1</ETag>
+            <PartNumber>1</PartNumber>
+          </Part>
+        </CompleteMultipartUpload>
+        """
+        |> String.replace(~r/\s/, "")
+
+      Bypass.expect_once(bypass, "POST", "/mybucket/dir/file.txt", fn conn ->
+        assert {:ok, ^expected_body, conn} = Plug.Conn.read_body(conn)
+
+        conn
+        |> Plug.Conn.put_resp_content_type("application/xml")
+        |> Plug.Conn.resp(500, """
+        <Error>
+          <Message>Error message</Message>
+        </Error>
+        """)
+      end)
+
+      Bypass.expect_once(bypass, "DELETE", "/mybucket/dir/file.txt", fn conn ->
+        assert %{"uploadId" => "1"} = conn.params
+        Plug.Conn.resp(conn, 204, "")
+      end)
+
+      assert {:error, "error message"} = FileSystem.write_stream_finish(file_system, state)
+    end
+  end
+
+  describe "FileSystem.read_stream_into/2" do
+    test "returns an error when a nonexistent key is given", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/mybucket/nonexistent.txt", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/xml")
+        |> Plug.Conn.resp(404, """
+        <Error>
+          <Message>The specified key does not exist.</Message>
+        </Error>
+        """)
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/nonexistent.txt"
+
+      assert {:error, "no such file or directory"} =
+               FileSystem.read_stream_into(file_system, file_path, <<>>)
+    end
+
+    test "collects regular response", %{bypass: bypass} do
+      content = """
+      <MyData>
+        <Info>this should not be parsed</Info>
+      </MyData>
+      """
+
+      Bypass.expect_once(bypass, "GET", "/mybucket/dir/file.txt", fn conn ->
+        # When reading the content should be returned as binary,
+        # regardless the content type
+        conn
+        |> Plug.Conn.put_resp_content_type("application/xml")
+        |> Plug.Conn.resp(200, content)
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      assert {:ok, ^content} = FileSystem.read_stream_into(file_system, file_path, <<>>)
+    end
+
+    test "collects chunked response", %{bypass: bypass} do
+      chunk = String.duplicate("a", 2048)
+
+      Bypass.expect_once(bypass, "GET", "/mybucket/dir/file.txt", fn conn ->
+        conn = Plug.Conn.send_chunked(conn, 200)
+
+        for _ <- 1..10, reduce: conn do
+          conn ->
+            {:ok, conn} = Plug.Conn.chunk(conn, chunk)
+            conn
+        end
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      assert {:ok, content} = FileSystem.read_stream_into(file_system, file_path, <<>>)
+      assert content == String.duplicate(chunk, 10)
+    end
+  end
+
   # Helpers
 
   defp bucket_url(port), do: "http://localhost:#{port}/mybucket"
