@@ -195,7 +195,7 @@ defmodule Livebook.Utils.HTTP do
   defp total_size(headers) do
     case List.keyfind(headers, ~c"content-length", 0) do
       {_, content_length} ->
-        content_length |> List.to_string() |> String.to_integer()
+        List.to_integer(content_length)
 
       _ ->
         nil
