@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
   editor_markdown_word_wrap: true,
+  editor_auto_format_on_eval: false,
 };
 
 /**

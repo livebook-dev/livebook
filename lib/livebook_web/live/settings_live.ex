@@ -168,6 +168,11 @@ defmodule LivebookWeb.SettingsLive do
                 label="Wrap words in Markdown"
                 value={false}
               />
+              <.switch_field
+                name="editor_auto_format_on_eval"
+                label="Format focused Elixir cell on evaluation"
+                value={false}
+              />
             </div>
           </div>
         </div>
