@@ -4,7 +4,13 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
+  def mount(
+        _params,
+        %{"session_pid" => session_pid, "current_runtime" => current_runtime},
+        socket
+      ) do
+    session = Session.get_by_pid(session_pid)
+
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Attached) do
       raise "runtime module not allowed"
     end

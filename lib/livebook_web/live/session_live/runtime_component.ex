@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         <div>
           <%= live_render(@socket, live_view_for_type(@type),
             id: "runtime-config-#{@type}",
-            session: %{"session" => @session, "current_runtime" => @runtime}
+            session: %{"session_pid" => @session.pid, "current_runtime" => @runtime}
           ) %>
         </div>
       </div>
