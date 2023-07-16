@@ -4,6 +4,7 @@ import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 import { isEvaluable } from "../lib/notebook";
+import { settingsStore } from "../lib/settings";
 
 /**
  * A hook managing a single cell.
@@ -383,6 +384,13 @@ const Cell = {
         type: "sync",
         callback: dispatch,
       });
+    } else if (
+      this.props.type === "code" &&
+      settingsStore.get().editor_auto_format_on_eval
+    ) {
+      this.currentEditor()
+        .asyncIntellisenseFormat()
+        .finally(() => dispatch());
     } else {
       dispatch();
     }

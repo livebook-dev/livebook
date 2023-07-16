@@ -266,6 +266,10 @@ class LiveEditor {
     monaco.editor.setModelMarkers(this.editor.getModel(), owner, editorMarkers);
   }
 
+  asyncIntellisenseFormat() {
+    return this.editor.getAction("editor.action.formatDocument").run();
+  }
+
   _mountEditor() {
     const settings = settingsStore.get();
 

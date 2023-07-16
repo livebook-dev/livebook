@@ -774,9 +774,7 @@ const Session = {
 
   queueFocusedCellEvaluation() {
     if (this.focusedId && this.isCell(this.focusedId)) {
-      this.dispatchQueueEvaluation(() => {
-        this.pushEvent("queue_cell_evaluation", { cell_id: this.focusedId });
-      });
+      this.queueCellEvaluation(this.focusedId, false);
     }
   },
 
