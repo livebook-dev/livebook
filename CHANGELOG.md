@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Moved app settings to a modal and added explanations for all options ([#1914](https://github.com/livebook-dev/livebook/pull/1914))
 - Disabled double-click entering edit mode on Markdown cells ([#1937](https://github.com/livebook-dev/livebook/pull/1937))
-- Livebook Desktop and Docker images are now built with Erlang/OTP 26 and Elixir 1.5.2 (those are now the minimum versions required for connecting to remote nodes when using these Livebook distributions)
+- Livebook Desktop and Docker images are now built with Erlang/OTP 26 and Elixir 1.15.2 (those are now the minimum versions required for connecting to remote nodes when using these Livebook distributions)
 
 ### Fixed
 
