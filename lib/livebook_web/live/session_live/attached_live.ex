@@ -32,8 +32,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
-        Thanks to this approach you can work with
-        an arbitrary Elixir runtime.
+        The node must run Erlang/OTP <%= :erlang.system_info(:otp_release) %> and Elixir <%= System.version() %> (or later).
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
