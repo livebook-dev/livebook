@@ -31,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Moved app settings to a modal and added explanations for all options ([#1914](https://github.com/livebook-dev/livebook/pull/1914))
 - Disabled double-click entering edit mode on Markdown cells ([#1937](https://github.com/livebook-dev/livebook/pull/1937))
+- Connecting an "Attached node" runtime now requires that the remote node use the same or later Elixir and OTP version as Livebook when running Livebook Desktop or using Docker
+  - For instance, this means that Livebook Desktop v0.10.0 can only start attached nodes running Elixir 1.15.2+ and Erlang/OTP 26+
+  - Livebook CLI installed with earlier versions of Elixir and Erlang/OTP can still connect to remote nodes running those versions or later
 
 ### Fixed
 
