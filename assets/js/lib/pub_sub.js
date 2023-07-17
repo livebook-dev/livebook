@@ -1,9 +1,10 @@
 /**
- * A basic pub-sub implementation for client-side communication.
+ * A basic pub-sub implementation for client-side communication using the Broadcast Channel API.
  */
 export default class PubSub {
   constructor() {
     this.subscribersByTopic = {};
+    this.channelsByTopic = {};
   }
 
   /**
@@ -18,6 +19,18 @@ export default class PubSub {
   subscribe(topic, callback) {
     if (!Array.isArray(this.subscribersByTopic[topic])) {
       this.subscribersByTopic[topic] = [];
+    }
+
+    if (!this.channelsByTopic[topic]) {
+      this.channelsByTopic[topic] = new BroadcastChannel(topic);
+
+      this.channelsByTopic[topic].addEventListener("message", (event) => {
+        if (Array.isArray(this.subscribersByTopic[topic])) {
+          this.subscribersByTopic[topic].forEach((callback) => {
+            callback(event.data);
+          });
+        }
+      });
     }
 
     this.subscribersByTopic[topic].push(callback);
@@ -39,6 +52,11 @@ export default class PubSub {
     if (idx !== -1) {
       this.subscribersByTopic[topic].splice(idx, 1);
     }
+
+    if (this.subscribersByTopic[topic].length === 0) {
+      this.channelsByTopic[topic].close();
+      delete this.channelsByTopic[topic];
+    }
   }
 
   /**
@@ -46,6 +64,12 @@ export default class PubSub {
    * and passes `payload` as the argument.
    */
   broadcast(topic, payload) {
+    if (!this.channelsByTopic[topic]) {
+      this.channelsByTopic[topic] = new BroadcastChannel(topic);
+    }
+
+    this.channelsByTopic[topic].postMessage(payload);
+
     if (Array.isArray(this.subscribersByTopic[topic])) {
       this.subscribersByTopic[topic].forEach((callback) => {
         callback(payload);
