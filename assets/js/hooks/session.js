@@ -154,10 +154,10 @@ const Session = {
       this.handleViewsClick(event);
     });
 
-    this.getElement("view-turn-off-button").addEventListener(
+    this.getElement("view-deactivate-button").addEventListener(
       "click",
       (event) => {
-        this.handleViewTrunOffClick();
+        this.handleViewDeactivateClick();
       }
     );
 
@@ -448,9 +448,9 @@ const Session = {
       } else if (keyBuffer.tryMatch(["M"])) {
         !this.isViewCodeZen() && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["v", "z"])) {
-        this.toggleView("code-zen");
+        this.activateView("code-zen");
       } else if (keyBuffer.tryMatch(["v", "p"])) {
-        this.toggleView("presentation");
+        this.activateView("presentation");
       } else if (keyBuffer.tryMatch(["c"])) {
         !this.isViewCodeZen() && this.toggleCollapseSection();
       } else if (keyBuffer.tryMatch(["C"])) {
@@ -1025,18 +1025,13 @@ const Session = {
 
     if (button) {
       const view = button.getAttribute("data-el-view-toggle");
-      this.toggleView(view);
+      this.activateView(view);
     }
   },
 
-  toggleView(view) {
-    if (this.view === view) {
-      this.view = null;
-      this.el.removeAttribute("data-js-view");
-    } else {
-      this.view = view;
-      this.el.setAttribute("data-js-view", view);
-    }
+  activateView(view) {
+    this.view = view;
+    this.el.setAttribute("data-js-view", view);
 
     // If nothing is focused, use the first cell in the viewport
     const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
@@ -1054,8 +1049,9 @@ const Session = {
     }
   },
 
-  handleViewTrunOffClick() {
+  handleViewDeactivateClick() {
     this.closeCanvasWindow();
+    this.view = null;
     this.el.removeAttribute("data-js-view");
   },
 

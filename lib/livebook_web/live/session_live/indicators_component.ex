@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <button
             class="border-t-2 border-gray-200 py-2 px-4"
             role="menuitem"
-            data-el-view-turn-off-button
+            data-el-view-deactivate-button
           >
             <.remix_icon icon="close-fill" />
             <span>Turn off</span>

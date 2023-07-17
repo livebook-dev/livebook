@@ -288,7 +288,7 @@ solely client-side operations.
 
 /* === Views === */
 
-[data-el-session]:not([data-js-view]) [data-el-view-turn-off-button] {
+[data-el-session]:not([data-js-view]) [data-el-view-deactivate-button] {
   @apply hidden;
 }
 
