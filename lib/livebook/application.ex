@@ -225,13 +225,33 @@ defmodule Livebook.Application do
             "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
           )
 
-      Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
+      hub = %Livebook.Hubs.Team{
         id: "team-#{name}",
         hub_name: name,
         hub_emoji: "💡",
         teams_key: teams_key,
         org_public_key: public_key
-      })
+      }
+
+      Livebook.Hubs.set_offline_hub(hub)
+      connect_offline_hub(hub)
+    end
+  end
+
+  defp connect_offline_hub(hub) do
+    if encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS") do
+      child_spec = %{id: hub.id, start: {Livebook.Hubs.TeamClient, :start_link, [hub, true]}}
+      {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
+
+      with {:ok, pid} <- DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec),
+           {:ok, json} <-
+             Livebook.Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret),
+           {:ok, secrets} <- Jason.decode(json) do
+        for {name, value} <- secrets do
+          secret_created = LivebookProto.SecretCreated.new(name: name, value: value)
+          send(pid, {:event, :secret_created, secret_created})
+        end
+      end
     end
   end
 
