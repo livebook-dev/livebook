@@ -383,7 +383,11 @@ defmodule Livebook.LiveMarkdown.Export do
     # to make sure the entries are not tampered with. We also want to
     # store the information about file entries already in quarantine
     if Enum.any?(notebook.file_entries, &(&1.type == :file)) do
-      Map.put(metadata, :quarantine_file_entry_names, notebook.quarantine_file_entry_names)
+      Map.put(
+        metadata,
+        :quarantine_file_entry_names,
+        MapSet.to_list(notebook.quarantine_file_entry_names)
+      )
     else
       metadata
     end

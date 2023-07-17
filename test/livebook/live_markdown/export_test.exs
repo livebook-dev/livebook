@@ -1367,7 +1367,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       {document, []} = Export.notebook_to_livemd(notebook)
 
-      assert stamp_metadata(notebook, document) == %{quarantine_file_entry_names: MapSet.new()}
+      assert stamp_metadata(notebook, document) == %{quarantine_file_entry_names: []}
 
       # Subset allowed
 
@@ -1384,7 +1384,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       {document, []} = Export.notebook_to_livemd(notebook)
 
       assert stamp_metadata(notebook, document) == %{
-               quarantine_file_entry_names: MapSet.new(["document1.pdf"])
+               quarantine_file_entry_names: ["document1.pdf"]
              }
     end
   end
