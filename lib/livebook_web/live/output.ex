@@ -295,6 +295,37 @@ defmodule LivebookWeb.Output do
     """
   end
 
+  defp render_output({:error, formatted, {:file_entry_forbidden, file_entry_name}}, %{
+         session_id: session_id
+       }) do
+    assigns = %{
+      message: formatted,
+      file_entry_name: file_entry_name,
+      session_id: session_id
+    }
+
+    ~H"""
+    <div class="-m-4 space-x-4 py-4">
+      <div
+        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
+        style="color: var(--ansi-color-red);"
+      >
+        <div class="flex space-x-2 font-editor">
+          <.remix_icon icon="close-circle-line" />
+          <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
+        </div>
+        <button
+          class="button-base button-gray"
+          phx-click={JS.push("review_file_entry_access", value: %{name: @file_entry_name})}
+        >
+          Review access
+        </button>
+      </div>
+      <%= render_formatted_error_message(@message) %>
+    </div>
+    """
+  end
+
   defp render_output({:error, _formatted, {:interrupt, variant, message}}, %{cell_id: cell_id}) do
     assigns = %{variant: variant, message: message, cell_id: cell_id}
 

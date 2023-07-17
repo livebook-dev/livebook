@@ -1566,6 +1566,31 @@ defmodule Livebook.SessionTest do
                       {:error, ~s/no file named "image.jpg" exists in the notebook/}}
     end
 
+    test "replies with error when file entry is in quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      notebook = %{
+        Livebook.Notebook.new()
+        | file_entries: [
+            %{type: :file, name: "document.pdf", file: file}
+          ],
+          quarantine_file_entry_names: MapSet.new(["document.pdf"])
+      }
+
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "document.pdf"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:error, :forbidden}}
+
+      # Spec request
+      send(session.pid, {:runtime_file_entry_spec_request, self(), "document.pdf"})
+
+      assert_receive {:runtime_file_entry_spec_reply, {:error, :forbidden}}
+    end
+
     test "when nonexistent :attachment replies with error" do
       session = start_session()
 

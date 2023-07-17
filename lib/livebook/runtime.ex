@@ -16,9 +16,9 @@ defprotocol Livebook.Runtime do
   #
   # to which the runtime owner is supposed to reply with
   # `{:runtime_file_entry_path_reply, reply}` where `reply` is either
-  # `{:ok, path}` or `{:error, message}` if accessing the file rails.
-  # Note that `path` should be accessible within the runtime and can
-  # be obtained using `transfer_file/4`.
+  # `{:ok, path}` or `{:error, message | :forbidden}` if accessing the
+  # file fails. Note that `path` should be accessible within the runtime
+  # and can be obtained using `transfer_file/4`.
   #
   # Similarly the runtime can request details about the file source:
   #

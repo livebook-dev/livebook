@@ -222,6 +222,7 @@ defmodule Livebook.Session.Data do
           | {:sync_hub_secrets, client_id()}
           | {:add_file_entries, client_id(), list(Notebook.file_entry())}
           | {:delete_file_entry, client_id(), String.t()}
+          | {:allow_file_entry, client_id(), String.t()}
           | {:set_app_settings, client_id(), AppSettings.t()}
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
@@ -906,6 +907,7 @@ defmodule Livebook.Session.Data do
   def apply_operation(data, {:add_file_entries, _client_id, file_entries}) do
     data
     |> with_actions()
+    |> unquarantine_file_entries(file_entries)
     |> add_file_entries(file_entries)
     |> set_dirty()
     |> wrap_ok()
@@ -915,7 +917,20 @@ defmodule Livebook.Session.Data do
     with {:ok, file_entry} <- fetch_file_entry(data.notebook, name) do
       data
       |> with_actions()
+      |> unquarantine_file_entries([file_entry])
       |> delete_file_entry(file_entry)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:allow_file_entry, _client_id, name}) do
+    with {:ok, file_entry} <- fetch_file_entry(data.notebook, name) do
+      data
+      |> with_actions()
+      |> unquarantine_file_entries([file_entry])
       |> set_dirty()
       |> wrap_ok()
     else
@@ -1702,6 +1717,16 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: %{data.notebook | file_entries: file_entries})
+  end
+
+  defp unquarantine_file_entries({data, _} = data_actions, file_entries) do
+    names = for entry <- file_entries, do: entry.name, into: MapSet.new()
+
+    data_actions
+    |> set!(
+      notebook:
+        Map.update!(data.notebook, :quarantine_file_entry_names, &MapSet.difference(&1, names))
+    )
   end
 
   defp set_section_name({data, _} = data_actions, section, name) do

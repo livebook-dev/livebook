@@ -599,6 +599,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a file entry unquarantine request to the server.
+  """
+  @spec allow_file_entry(pid(), String.t()) :: :ok
+  def allow_file_entry(pid, name) do
+    GenServer.cast(pid, {:allow_file_entry, self(), name})
+  end
+
+  @doc """
   Removes cache file for the given entry file if one exists.
   """
   @spec clear_file_entry_cache(id(), String.t()) :: :ok
@@ -1330,6 +1338,12 @@ defmodule Livebook.Session do
   def handle_cast({:delete_file_entry, client_pid, name}, state) do
     client_id = client_id(state, client_pid)
     operation = {:delete_file_entry, client_id, name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:allow_file_entry, client_pid, name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:allow_file_entry, client_id, name}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -2449,22 +2463,35 @@ defmodule Livebook.Session do
   end
 
   defp file_entry_path(state, name, callback) do
-    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
-
-    case file_entry do
-      %{type: :attachment, name: name} ->
+    case fetch_file_entry(state, name) do
+      {:ok, %{type: :attachment, name: name}} ->
         files_dir = files_dir_from_state(state)
         file = FileSystem.File.resolve(files_dir, name)
         file_entry_path_from_file(state, name, file, callback)
 
-      %{type: :file, name: name, file: file} ->
+      {:ok, %{type: :file, name: name, file: file}} ->
         file_entry_path_from_file(state, name, file, callback)
 
-      %{type: :url, name: name, url: url} ->
+      {:ok, %{type: :url, name: name, url: url}} ->
         file_entry_path_from_url(state, name, url, callback)
 
-      nil ->
-        callback.({:error, "no file named #{inspect(name)} exists in the notebook"})
+      {:error, message} ->
+        callback.({:error, message})
+    end
+  end
+
+  defp fetch_file_entry(state, name) do
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
+
+    cond do
+      file_entry == nil ->
+        {:error, "no file named #{inspect(name)} exists in the notebook"}
+
+      name in state.data.notebook.quarantine_file_entry_names ->
+        {:error, :forbidden}
+
+      true ->
+        {:ok, file_entry}
     end
   end
 
@@ -2516,22 +2543,20 @@ defmodule Livebook.Session do
   end
 
   defp file_entry_spec(state, name) do
-    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
-
-    case file_entry do
-      %{type: :attachment, name: name} ->
+    case fetch_file_entry(state, name) do
+      {:ok, %{type: :attachment, name: name}} ->
         files_dir = files_dir_from_state(state)
         file = FileSystem.File.resolve(files_dir, name)
         file_entry_spec_from_file(file)
 
-      %{type: :file, file: file} ->
+      {:ok, %{type: :file, file: file}} ->
         file_entry_spec_from_file(file)
 
-      %{type: :url, url: url} ->
+      {:ok, %{type: :url, url: url}} ->
         file_entry_spec_from_url(url)
 
-      nil ->
-        {:error, "no file named #{inspect(name)} exists in the notebook"}
+      {:error, message} ->
+        {:error, message}
     end
   end
 

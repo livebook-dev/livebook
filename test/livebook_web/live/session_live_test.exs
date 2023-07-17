@@ -1771,6 +1771,38 @@ defmodule LivebookWeb.SessionLiveTest do
       assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "content"}
     end
+
+    test "allowing access to file entry in quarantine", %{conn: conn} do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      notebook = %{
+        Livebook.Notebook.new()
+        | file_entries: [
+            %{type: :file, name: "document.pdf", file: file}
+          ],
+          quarantine_file_entry_names: MapSet.new(["document.pdf"])
+      }
+
+      {:ok, session} = Sessions.create_session(notebook: notebook)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view
+             |> element(~s/[data-el-files-list]/)
+             |> render() =~ "Click to review access"
+
+      view
+      |> element(~s/[data-el-files-list] button/, "document.pdf")
+      |> render_click()
+
+      render_confirm(view)
+
+      refute view
+             |> element(~s/[data-el-files-list]/)
+             |> render() =~ "Click to review access"
+
+      Session.close(session.pid)
+    end
   end
 
   describe "apps" do

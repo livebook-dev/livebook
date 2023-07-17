@@ -31,11 +31,25 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         <.files_info_icon />
       </div>
       <div class="mt-5 flex flex-col gap-1">
-        <div :for={{file_entry, idx} <- Enum.with_index(@file_entries)} class="flex justify-between">
-          <div class="flex items-center text-gray-500">
-            <.remix_icon icon={file_entry_icon(file_entry.type)} class="text-lg align-middle mr-2" />
-            <span><%= file_entry.name %></span>
-          </div>
+        <div
+          :for={{file_entry, idx} <- Enum.with_index(@file_entries)}
+          class="flex items-center justify-between"
+        >
+          <%= if file_entry.name in @quarantine_file_entry_names do %>
+            <button
+              class="flex items-center text-yellow-bright-500 cursor-pointer tooltip top"
+              data-tooltip="Click to review access"
+              phx-click={JS.push("review_file_entry_access", value: %{name: file_entry.name})}
+            >
+              <.remix_icon icon="alert-line" class="text-lg align-middle mr-2" />
+              <span class="break-all"><%= file_entry.name %></span>
+            </button>
+          <% else %>
+            <div class="flex items-center text-gray-500">
+              <.remix_icon icon={file_entry_icon(file_entry.type)} class="text-lg align-middle mr-2" />
+              <span class="break-all"><%= file_entry.name %></span>
+            </div>
+          <% end %>
           <.menu id={"file-entry-#{idx}-menu"} position={:bottom_right}>
             <:toggle>
               <button class="icon-button" aria-label="menu">
@@ -51,7 +65,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
                 }
               >
                 <.remix_icon icon="file-transfer-line" />
-                <span>Copy to files</span>
+                <span>Copy to files directory</span>
               </button>
             </.menu_item>
             <.menu_item disabled={not Livebook.Session.file_entry_cacheable?(@session, file_entry)}>

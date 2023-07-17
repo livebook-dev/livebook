@@ -27,6 +27,7 @@ defmodule Livebook.Notebook do
     :hub_id,
     :hub_secret_names,
     :file_entries,
+    :quarantine_file_entry_names,
     :teams_enabled
   ]
 
@@ -48,6 +49,7 @@ defmodule Livebook.Notebook do
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
+          quarantine_file_entry_names: MapSet.new(String.t()),
           teams_enabled: boolean()
         }
 
@@ -88,6 +90,7 @@ defmodule Livebook.Notebook do
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
       file_entries: [],
+      quarantine_file_entry_names: MapSet.new(),
       teams_enabled: false
     }
     |> put_setup_cell(Cell.new(:code))
