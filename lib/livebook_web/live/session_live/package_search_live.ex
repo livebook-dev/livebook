@@ -4,12 +4,12 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
   @impl true
   def mount(
         _params,
-        %{"session" => session, "runtime" => runtime, "return_to" => return_to},
+        %{"session_pid" => session_pid, "runtime" => runtime, "return_to" => return_to},
         socket
       ) do
     socket =
       assign(socket,
-        session: session,
+        session: Livebook.Session.get_by_pid(session_pid),
         runtime: runtime,
         return_to: return_to,
         search: "",

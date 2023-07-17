@@ -554,7 +554,7 @@ defmodule LivebookWeb.SessionLive do
       <%= live_render(@socket, LivebookWeb.SessionLive.PackageSearchLive,
         id: "package-search",
         session: %{
-          "session" => @session,
+          "session_pid" => @session.pid,
           "runtime" => @data_view.runtime,
           "return_to" => @self_path
         }
