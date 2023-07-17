@@ -13,9 +13,16 @@ const Gridstack = {
     this.visible = false;
 
     if (this.props.externWindow) {
-      window.addEventListener("beforeunload", function (event) {
-        window.opener.postMessage("closing", "*");
-      });
+      this.handleBeforeUnloadEvent = this.handleBeforeUnloadEvent.bind(this);
+      window.addEventListener("beforeunload", this.handleBeforeUnloadEvent);
+      this.getElement("canvas-close-button").addEventListener(
+        "click",
+        (event) => this.handleCanvasCloseClick()
+      );
+      this.getElement("canvas-popin-button").addEventListener(
+        "click",
+        (event) => this.handleCanvasPopinClick()
+      );
     }
 
     const options = {
@@ -61,6 +68,25 @@ const Gridstack = {
   },
   repositionIframe() {
     globalPubSub.broadcast("js_views", { type: "reposition" });
+  },
+  handleBeforeUnloadEvent(event) {
+    this.sendToParent("popin");
+  },
+  handleCanvasCloseClick() {
+    window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
+    this.sendToParent("close");
+    window.close();
+  },
+  handleCanvasPopinClick() {
+    window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
+    this.sendToParent("popin");
+    window.close();
+  },
+  getElement(name) {
+    return document.querySelector(`[data-el-${name}]`);
+  },
+  sendToParent(message) {
+    window.opener.postMessage(message, window.location.origin);
   },
 };
 

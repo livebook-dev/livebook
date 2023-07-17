@@ -369,12 +369,20 @@ solely client-side operations.
   @apply text-green-bright-400;
 }
 
-[data-el-session]:is([data-js-view="code-zen"], [data-js-view="presentation"])
+[data-el-session]:is(
+    [data-js-view^="canvas"],
+    [data-js-view="code-zen"],
+    [data-js-view="presentation"]
+  )
   [data-el-views-disabled] {
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-view="code-zen"], [data-js-view="presentation"])
+[data-el-session]:not(
+    [data-js-view=^="canvas"],
+    [data-js-view="code-zen"],
+    [data-js-view="presentation"]
+  )
   [data-el-views-enabled] {
   @apply hidden;
 }

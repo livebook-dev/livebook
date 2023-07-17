@@ -52,6 +52,7 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
     ~H"""
     <div id="gridstack-container">
       <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-canvas"></div>
+      <.canvas_settings_button extern_window={@extern_window} />
       <div
         id="canvas-grid"
         class="grid-stack"
@@ -88,6 +89,43 @@ defmodule LivebookWeb.SessionLive.CanvasLive do
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp canvas_settings_button(assigns) do
+    ~H"""
+    <div class="fixed top-[1rem] right-[1.5rem]">
+      <div class="tooltip left" data-tooltip="Canvas Options" data-el-canvas-menu>
+        <.menu id="canvas-menu" position={:bottom_right}>
+          <:toggle>
+            <button
+              class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+              aria-label="canvas options"
+            >
+              <.remix_icon icon="more-2-fill" class="text-xl text-gray-400" />
+            </button>
+          </:toggle>
+          <.menu_item :if={not @extern_window}>
+            <button role="menuitem" data-el-canvas-popout-button>
+              <.remix_icon icon="external-link-line" />
+              <span>Pop-Out</span>
+            </button>
+          </.menu_item>
+          <.menu_item :if={@extern_window}>
+            <button role="menuitem" data-el-canvas-popin-button>
+              <.remix_icon icon="corner-left-down-fill" />
+              <span>Pop-In</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button role="menuitem" data-el-canvas-close-button>
+              <.remix_icon icon="close-fill" />
+              <span>Close</span>
+            </button>
+          </.menu_item>
+        </.menu>
       </div>
     </div>
     """

@@ -76,7 +76,7 @@ const Session = {
     this.followedClientId = null;
     this.canvasWindow = null;
 
-    this.handleCanvasWindowClosed = this.handleCanvasWindowClosed.bind(this);
+    this.handleCanvasWindowMessage = this.handleCanvasWindowMessage.bind(this);
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -150,10 +150,6 @@ const Session = {
       this.handleCanvasPopoutClick()
     );
 
-    this.getElement("canvas-popin-button").addEventListener("click", (event) =>
-      this.handleCanvasPopinClick()
-    );
-
     this.getElement("views").addEventListener("click", (event) => {
       this.handleViewsClick(event);
     });
@@ -168,7 +164,7 @@ const Session = {
     this.getElement("view-canvas-poppedout-button").addEventListener(
       "click",
       (event) => {
-        this.handleCanvasPopinClick();
+        this.handleViewCanvasPoppedoutClick();
       }
     );
 
@@ -693,13 +689,13 @@ const Session = {
     this.canvasWindow = window.open(
       window.location.pathname + "/canvas",
       "_blank",
-      "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
+      "toolbar=no, location=no, directories=no, titlebar=no, toolbar=0, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
-    window.addEventListener("message", this.handleCanvasWindowClosed);
+    window.addEventListener("message", this.handleCanvasWindowMessage);
     this.el.setAttribute("data-js-view", "canvas-popped-out");
   },
 
-  handleCanvasPopinClick() {
+  handleViewCanvasPoppedoutClick() {
     this.closeCanvasWindow();
     this.el.setAttribute("data-js-view", "canvas");
   },
@@ -1404,12 +1400,20 @@ const Session = {
     return this.view === "presentation";
   },
   closeCanvasWindow() {
-    window.removeEventListener("message", this.handleCanvasWindowClosed);
+    window.removeEventListener("message", this.handleCanvasWindowMessage);
     this.canvasWindow && this.canvasWindow.close();
   },
-  handleCanvasWindowClosed(event) {
-    if (event.data === "closing") {
-      this.el.setAttribute("data-js-view", "canvas");
+  handleCanvasWindowMessage(event) {
+    if (event.origin != window.location.origin) return;
+    switch (event.data) {
+      case "popin":
+        this.el.setAttribute("data-js-view", "canvas");
+        break;
+      case "close":
+        this.el.removeAttribute("data-js-view");
+        break;
+      default:
+        console.log("Got unkown message: ", event);
     }
   },
 };
