@@ -15,20 +15,15 @@ const Gridstack = {
     if (this.props.externWindow) {
       this.handleBeforeUnloadEvent = this.handleBeforeUnloadEvent.bind(this);
       window.addEventListener("beforeunload", this.handleBeforeUnloadEvent);
+      this.getElement("canvas-close-button").addEventListener(
+        "click",
+        (event) => this.handleCanvasCloseClick()
+      );
       this.getElement("canvas-popin-button").addEventListener(
         "click",
         (event) => this.handleCanvasPopinClick()
       );
-    } else {
-      this.getElement("canvas-popout-button").addEventListener(
-        "click",
-        (event) => this.handleCanvasPopoutClick()
-      );
     }
-
-    this.getElement("canvas-close-button").addEventListener("click", (event) =>
-      this.handleCanvasCloseClick()
-    );
 
     const options = {
       //acceptWidgets: true,
@@ -75,22 +70,23 @@ const Gridstack = {
     globalPubSub.broadcast("js_views", { type: "reposition" });
   },
   handleBeforeUnloadEvent(event) {
-    globalPubSub.broadcast("session", { type: "canvas_popin_clicked" });
+    this.sendToParent("popin");
   },
   handleCanvasCloseClick() {
     window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
-    globalPubSub.broadcast("session", { type: "canvas_close_clicked" });
+    this.sendToParent("close");
+    window.close();
   },
   handleCanvasPopinClick() {
     window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
-    globalPubSub.broadcast("session", { type: "canvas_popin_clicked" });
+    this.sendToParent("popin");
     window.close();
-  },
-  handleCanvasPopoutClick() {
-    globalPubSub.broadcast("session", { type: "canvas_popout_clicked" });
   },
   getElement(name) {
     return document.querySelector(`[data-el-${name}]`);
+  },
+  sendToParent(message) {
+    window.opener.postMessage(message, window.location.origin);
   },
 };
 

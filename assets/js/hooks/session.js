@@ -76,6 +76,8 @@ const Session = {
     this.followedClientId = null;
     this.canvasWindow = null;
 
+    this.handleCanvasWindowMessage = this.handleCanvasWindowMessage.bind(this);
+
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
     this.updateSectionListHighlight();
@@ -138,6 +140,14 @@ const Session = {
 
     this.getElement("notebook-indicators").addEventListener("click", (event) =>
       this.handleCellIndicatorsClick(event)
+    );
+
+    this.getElement("canvas-close-button").addEventListener("click", (event) =>
+      this.handleCanvasCloseClick()
+    );
+
+    this.getElement("canvas-popout-button").addEventListener("click", (event) =>
+      this.handleCanvasPopoutClick()
     );
 
     this.getElement("views").addEventListener("click", (event) => {
@@ -681,11 +691,8 @@ const Session = {
       "_blank",
       "toolbar=no, location=no, directories=no, titlebar=no, toolbar=0, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
+    window.addEventListener("message", this.handleCanvasWindowMessage);
     this.el.setAttribute("data-js-view", "canvas-popped-out");
-  },
-
-  handleCanvasPopinClick() {
-    this.el.setAttribute("data-js-view", "canvas");
   },
 
   handleViewCanvasPoppedoutClick() {
@@ -1203,24 +1210,11 @@ const Session = {
   // Session event handlers
 
   handleSessionEvent(event) {
-    switch (event.type) {
-      case "cursor_selection_changed":
-        this.sendLocationReport({
-          focusableId: event.focusableId,
-          selection: event.selection,
-        });
-        break;
-      case "canvas_popout_clicked":
-        this.handleCanvasPopoutClick();
-        break;
-      case "canvas_popin_clicked":
-        this.handleCanvasPopinClick();
-        break;
-      case "canvas_close_clicked":
-        this.handleCanvasCloseClick();
-        break;
-      default:
-        console.log("Unknown event type: ", event.type);
+    if (event.type === "cursor_selection_changed") {
+      this.sendLocationReport({
+        focusableId: event.focusableId,
+        selection: event.selection,
+      });
     }
   },
 
@@ -1402,7 +1396,21 @@ const Session = {
     return this.view === "presentation";
   },
   closeCanvasWindow() {
+    window.removeEventListener("message", this.handleCanvasWindowMessage);
     this.canvasWindow && this.canvasWindow.close();
+  },
+  handleCanvasWindowMessage(event) {
+    if (event.origin != window.location.origin) return;
+    switch (event.data) {
+      case "popin":
+        this.el.setAttribute("data-js-view", "canvas");
+        break;
+      case "close":
+        this.el.removeAttribute("data-js-view");
+        break;
+      default:
+        console.log("Got unkown message: ", event);
+    }
   },
 };
 
