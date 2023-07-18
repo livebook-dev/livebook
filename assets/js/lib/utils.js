@@ -243,24 +243,3 @@ export function cookieOptions() {
     return ";SameSite=Lax";
   }
 }
-
-export function pushQueueEvaluationEvent(obj, event) {
-  switch (event.type) {
-    case "queue_cell_evaluation":
-      obj.pushEvent("queue_cell_evaluation", {
-        cell_id: event.cell_id,
-        disable_dependencies_cache: event.disable_dependencies_cache || false,
-      });
-      break;
-    case "queue_full_evaluation":
-      obj.pushEvent("queue_full_evaluation", {
-        forced_cell_ids: event.forced_cell_ids,
-      });
-      break;
-    case "queue_section_evaluation":
-      obj.pushEvent("queue_section_evaluation", {
-        section_id: event.section_id,
-      });
-      break;
-  }
-}
