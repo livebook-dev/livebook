@@ -269,7 +269,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     File.close(state.device)
 
     with :ok <- File.mkdir_p(Path.dirname(state.path)),
-         :ok <- File.rename(state.download_path, state.path) do
+         :ok <- rename_or_move(state.download_path, state.path) do
       :ok
     else
       {:error, error} ->
