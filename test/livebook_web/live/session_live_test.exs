@@ -1667,6 +1667,42 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session.pid)
     end
 
+    test "adding :attachment file entry from upload", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/upload")
+
+      view
+      |> file_input(~s{#add-file-entry-form}, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
     test "adding :attachment file entry from unlisted files", %{conn: conn, session: session} do
       for name <- ["file1.txt", "file2.txt", "file3.txt"] do
         file = FileSystem.File.resolve(session.files_dir, name)

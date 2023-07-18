@@ -558,4 +558,84 @@ defmodule LivebookWeb.FormComponents do
     </div>
     """
   end
+
+  @doc """
+  Renders a drag-and-drop area for the given upload.
+
+  Once a file is selected, renders the entry.
+
+  ## Examples
+
+      <.file_drop_input
+        upload={@uploads.file}
+        label="File"
+        on_clear={JS.push("clear_file", target: @myself)}
+      />
+
+  """
+  attr :upload, Phoenix.LiveView.UploadConfig, required: true
+  attr :label, :string, required: true
+  attr :on_clear, Phoenix.LiveView.JS, required: true
+
+  def file_drop_input(%{upload: %{entries: []}} = assigns) do
+    ~H"""
+    <div>
+      <.live_file_input upload={@upload} class="hidden" />
+      <label
+        class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48 cursor-pointer"
+        phx-hook="Dropzone"
+        id={"#{@upload.ref}-dropzone"}
+        for={@upload.ref}
+        phx-drop-target={@upload.ref}
+      >
+        <span name="placeholder" class="font-medium text-gray-400">
+          Click to select a file or drag a local file here
+        </span>
+      </label>
+    </div>
+    """
+  end
+
+  def file_drop_input(assigns) do
+    ~H"""
+    <div>
+      <.live_file_input upload={@upload} class="hidden" />
+      <.label><%= @label %></.label>
+      <div :for={entry <- @upload.entries} class="flex flex-col gap-1">
+        <div class="flex flex-col gap-0.5">
+          <div class="flex items-center justify-between text-gray-700">
+            <span><%= entry.client_name %></span>
+            <button
+              type="button"
+              class="ml-1 text-gray-500 hover:text-gray-900"
+              phx-click={@on_clear}
+              tabindex="-1"
+            >
+              <.remix_icon icon="close-line" />
+            </button>
+            <span class="flex-grow"></span>
+            <span :if={entry.preflighted?} class="text-sm font-medium">
+              <%= entry.progress %>%
+            </span>
+          </div>
+          <div :if={entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
+            <div
+              class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
+              style={"width: #{entry.progress}%"}
+            >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Checks if the given upload makes the form disabled.
+  """
+  @spec upload_disabled?(Phoenix.LiveView.UploadConfig.t()) :: boolean()
+  def upload_disabled?(upload) do
+    upload.entries == [] or upload.errors != [] or Enum.any?(upload.entries, & &1.preflighted?)
+  end
 end
