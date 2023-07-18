@@ -8,6 +8,7 @@ import {
   isElementVisibleInViewport,
   randomId,
   randomToken,
+  pushQueueEvaluationEvent,
 } from "../lib/utils";
 import { globalPubSub } from "../lib/pub_sub";
 import {
@@ -473,7 +474,7 @@ const JSView = {
 
   handleServerPong() {
     const callback = this.pongCallbackQueue.shift();
-    callback();
+    pushQueueEvaluationEvent(this, callback);
   },
 
   handleJSViewEvent(event) {

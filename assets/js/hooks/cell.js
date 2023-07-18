@@ -1,7 +1,11 @@
 import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
 import Markdown from "../lib/markdown";
 import { globalPubSub } from "../lib/pub_sub";
-import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
+import {
+  md5Base64,
+  pushQueueEvaluationEvent,
+  smoothlyScrollToElement,
+} from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 import { isEvaluable } from "../lib/notebook";
 
@@ -165,7 +169,7 @@ const Cell = {
 
   handleCellEvent(event) {
     if (event.type === "dispatch_queue_evaluation") {
-      this.handleDispatchQueueEvaluation(event.dispatch);
+      this.handleDispatchQueueEvaluation(event.event);
     }
   },
 
@@ -376,15 +380,15 @@ const Cell = {
     }
   },
 
-  handleDispatchQueueEvaluation(dispatch) {
+  handleDispatchQueueEvaluation(event) {
     if (this.props.type === "smart" && this.props.smartCellJSViewRef) {
       // Ensure the smart cell UI is reflected on the server, before the evaluation
       globalPubSub.broadcast(`js_views:${this.props.smartCellJSViewRef}`, {
         type: "sync",
-        callback: dispatch,
+        callback: event,
       });
     } else {
-      dispatch();
+      pushQueueEvaluationEvent(this, event);
     }
   },
 

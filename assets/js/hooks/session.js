@@ -8,6 +8,7 @@ import {
   cancelEvent,
   isElementInViewport,
   isElementHidden,
+  pushQueueEvaluationEvent,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
@@ -808,18 +809,18 @@ const Session = {
   },
 
   queueCellEvaluation(cellId, disableDependenciesCache) {
-    this.dispatchQueueEvaluation(() => {
-      this.pushEvent("queue_cell_evaluation", {
-        cell_id: cellId,
-        disable_dependencies_cache: disableDependenciesCache,
-      });
+    this.dispatchQueueEvaluation({
+      type: "queue_cell_evaluation",
+      cell_id: cellId,
+      disable_dependencies_cache: disableDependenciesCache,
     });
   },
 
   queueFocusedCellEvaluation() {
     if (this.focusedId && this.isCell(this.focusedId)) {
-      this.dispatchQueueEvaluation(() => {
-        this.pushEvent("queue_cell_evaluation", { cell_id: this.focusedId });
+      this.dispatchQueueEvaluation({
+        type: "queue_cell_evaluation",
+        cell_id: this.focusedId,
       });
     }
   },
@@ -830,10 +831,9 @@ const Session = {
         ? [this.focusedId]
         : [];
 
-    this.dispatchQueueEvaluation(() => {
-      this.pushEvent("queue_full_evaluation", {
-        forced_cell_ids: forcedCellIds,
-      });
+    this.dispatchQueueEvaluation({
+      type: "queue_full_evaluation",
+      forced_cell_ids: forcedCellIds,
     });
   },
 
@@ -842,26 +842,25 @@ const Session = {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
 
       if (sectionId) {
-        this.dispatchQueueEvaluation(() => {
-          this.pushEvent("queue_section_evaluation", {
-            section_id: sectionId,
-          });
+        this.dispatchQueueEvaluation({
+          type: "queue_section_evaluation",
+          section_id: sectionId,
         });
       }
     }
   },
 
-  dispatchQueueEvaluation(dispatch) {
+  dispatchQueueEvaluation(event) {
     if (isEvaluable(this.focusedCellType())) {
       // If an evaluable cell is focused, we forward the evaluation
       // request to that cell, so it can synchronize itself before
       // sending the request to the server
       globalPubSub.broadcast(`cells:${this.focusedId}`, {
         type: "dispatch_queue_evaluation",
-        dispatch,
+        event: event,
       });
     } else {
-      dispatch();
+      pushQueueEvaluationEvent(this, event);
     }
   },
 
