@@ -81,9 +81,11 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
     {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("clear_file", _params, socket) do
-    {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)
-    {:noreply, assign(socket, error_message: nil)}
+  def handle_event("clear_file", %{"ref" => ref}, socket) do
+    {:noreply,
+     socket
+     |> cancel_upload(:file, ref)
+     |> assign(error_message: nil)}
   end
 
   def handle_event("add", %{"data" => data}, socket) do

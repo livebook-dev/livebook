@@ -609,6 +609,7 @@ defmodule LivebookWeb.FormComponents do
               type="button"
               class="ml-1 text-gray-500 hover:text-gray-900"
               phx-click={@on_clear}
+              phx-value-ref={entry.ref}
               tabindex="-1"
             >
               <.remix_icon icon="close-line" />

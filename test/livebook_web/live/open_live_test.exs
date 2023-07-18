@@ -200,7 +200,7 @@ defmodule LivebookWeb.OpenLiveTest do
       {:ok, view, _} = live(conn, ~p"/open/upload")
 
       view
-      |> file_input("#upload-file-form", :notebook, [
+      |> file_input("#upload-file-form", :file, [
         %{
           last_modified: 1_594_171_879_000,
           name: "notebook.livemd",
