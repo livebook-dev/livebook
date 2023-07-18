@@ -1,11 +1,28 @@
 defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
   use LivebookWeb, :live_component
 
+  import Ecto.Changeset
+
   alias Livebook.FileSystem
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, data: empty_data(), error_message: nil)}
+    {:ok, assign(socket, changeset: changeset(), error_message: nil)}
+  end
+
+  defp changeset(attrs \\ %{}) do
+    data = %{bucket_url: nil, region: nil, access_key_id: nil, secret_access_key: nil}
+
+    types = %{
+      bucket_url: :string,
+      region: :string,
+      access_key_id: :string,
+      secret_access_key: :string
+    }
+
+    cast({data, types}, attrs, [:bucket_url, :region, :access_key_id, :secret_access_key])
+    |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
+    |> Livebook.Utils.validate_url(:bucket_url)
   end
 
   @impl true
@@ -25,7 +42,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
       </div>
       <.form
         :let={f}
-        for={@data}
+        for={@changeset}
         as={:data}
         phx-target={@myself}
         phx-submit="add"
@@ -43,7 +60,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
           <.password_field field={f[:access_key_id]} label="Access Key ID" />
           <.password_field field={f[:secret_access_key]} label="Access Key ID" />
           <div class="flex space-x-2">
-            <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
+            <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
               Add
             </button>
             <.link patch={@return_to} class="button-base button-outlined-gray">
@@ -58,38 +75,39 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
 
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, :data, data)}
+    changeset = data |> changeset() |> Map.replace!(:action, :validate)
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
   def handle_event("add", %{"data" => data}, socket) do
-    file_system = data_to_file_system(data)
-    default_dir = FileSystem.File.new(file_system)
+    data
+    |> changeset()
+    |> apply_action(:insert)
+    |> case do
+      {:ok, data} ->
+        file_system =
+          FileSystem.S3.new(data.bucket_url, data.access_key_id, data.secret_access_key,
+            region: data.region
+          )
 
-    case FileSystem.File.list(default_dir) do
-      {:ok, _} ->
-        Livebook.Settings.save_file_system(file_system)
-        send(self(), {:file_systems_updated, Livebook.Settings.file_systems()})
-        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+        default_dir = FileSystem.File.new(file_system)
 
-      {:error, message} ->
-        {:noreply, assign(socket, error_message: "Connection test failed: " <> message)}
+        case FileSystem.File.list(default_dir) do
+          {:ok, _} ->
+            Livebook.Settings.save_file_system(file_system)
+            send(self(), {:file_systems_updated, Livebook.Settings.file_systems()})
+            {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+
+          {:error, message} ->
+            {:noreply,
+             assign(socket,
+               changeset: changeset(data),
+               error_message: "Connection test failed: " <> message
+             )}
+        end
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
     end
-  end
-
-  defp empty_data() do
-    %{"bucket_url" => "", "region" => "", "access_key_id" => "", "secret_access_key" => ""}
-  end
-
-  defp data_valid?(data) do
-    Livebook.Utils.valid_url?(data["bucket_url"]) and data["access_key_id"] != "" and
-      data["secret_access_key"] != ""
-  end
-
-  defp data_to_file_system(data) do
-    region = if(data["region"] != "", do: data["region"])
-
-    FileSystem.S3.new(data["bucket_url"], data["access_key_id"], data["secret_access_key"],
-      region: region
-    )
   end
 end

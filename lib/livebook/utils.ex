@@ -174,7 +174,7 @@ defmodule Livebook.Utils do
       if valid_url?(url) do
         []
       else
-        [{:url, "must be a valid URL"}]
+        [{field, "must be a valid URL"}]
       end
     end)
   end
@@ -257,13 +257,16 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.expand_url("https://example.com/lib/file.ex?token=supersecret", "../root.ex")
       "https://example.com/root.ex?token=supersecret"
 
+      iex> Livebook.Utils.expand_url("https://example.com", "./root.ex")
+      "https://example.com/root.ex"
+
   """
   @spec expand_url(String.t(), String.t()) :: String.t()
   def expand_url(url, relative_path) do
     url
     |> URI.parse()
     |> Map.update!(:path, fn path ->
-      Livebook.FileSystem.Utils.resolve_unix_like_path(path, relative_path)
+      Livebook.FileSystem.Utils.resolve_unix_like_path(path || "/", relative_path)
     end)
     |> URI.to_string()
   end

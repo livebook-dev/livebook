@@ -1,9 +1,19 @@
 defmodule LivebookWeb.OpenLive.SourceComponent do
   use LivebookWeb, :live_component
 
+  import Ecto.Changeset
+
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, source: "")}
+    {:ok, assign(socket, changeset: changeset())}
+  end
+
+  defp changeset(attrs \\ %{}) do
+    data = %{source: nil}
+    types = %{source: :string}
+
+    cast({data, types}, attrs, [:source])
+    |> validate_required([:source])
   end
 
   @impl true
@@ -16,7 +26,7 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
       </p>
       <.form
         :let={f}
-        for={%{"source" => @source}}
+        for={@changeset}
         as={:data}
         id="import-source"
         phx-submit="import"
@@ -25,7 +35,6 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
         autocomplete="off"
       >
         <.textarea_field
-          type="textarea"
           field={f[:source]}
           label="Notebook source"
           resizable={false}
@@ -34,7 +43,7 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
           spellcheck="false"
           rows="5"
         />
-        <button class="mt-5 button-base button-blue" type="submit" disabled={@source == ""}>
+        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
           Import
         </button>
       </.form>
@@ -43,13 +52,22 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"data" => %{"source" => source}}, socket) do
-    {:noreply, assign(socket, source: source)}
+  def handle_event("validate", %{"data" => data}, socket) do
+    changeset = data |> changeset() |> Map.replace!(:action, :validate)
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("import", %{"data" => %{"source" => source}}, socket) do
-    send(self(), {:import_source, source, []})
+  def handle_event("import", %{"data" => data}, socket) do
+    data
+    |> changeset()
+    |> apply_action(:insert)
+    |> case do
+      {:ok, data} ->
+        send(self(), {:import_source, data.source, []})
+        {:noreply, socket}
 
-    {:noreply, socket}
+      {:error, changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
+    end
   end
 end
