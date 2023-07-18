@@ -1251,5 +1251,106 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       assert messages == ["skipping file document.pdf, since it points to an unknown file system"]
     end
+
+    test "imports :file file entries with quarantine when no stamp is given" do
+      markdown = """
+      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"}]} -->
+
+      # My Notebook
+      """
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               file_entries: [
+                 %{
+                   type: :file,
+                   name: "document.pdf",
+                   file: %Livebook.FileSystem.File{
+                     file_system: %Livebook.FileSystem.Local{},
+                     path: p("/document.pdf")
+                   }
+                 }
+               ]
+             } = notebook
+
+      assert notebook.quarantine_file_entry_names == MapSet.new(["document.pdf"])
+    end
+
+    test "imports :file file entries with quarantine when the stamp is invalid" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      # We generate the Live Markdown programmatically, because the
+      # absolute path is a part of the stamp and it is different on
+      # Windows
+      {markdown, []} =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            file_entries: [%{type: :file, name: "document.pdf", file: file}]
+        }
+        |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+
+      # Change file path in the document
+      markdown = String.replace(markdown, p("/document.pdf"), p("/other.pdf"))
+
+      {notebook, _} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               file_entries: [
+                 %{
+                   type: :file,
+                   name: "document.pdf",
+                   file: %Livebook.FileSystem.File{
+                     file_system: %Livebook.FileSystem.Local{},
+                     path: p("/other.pdf")
+                   }
+                 }
+               ]
+             } = notebook
+
+      assert notebook.quarantine_file_entry_names == MapSet.new(["document.pdf"])
+    end
+
+    test "imports quarantine file entry names from stamp metadata" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      {markdown, []} =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            file_entries: [
+              %{type: :file, name: "document1.pdf", file: file},
+              %{type: :file, name: "document2.pdf", file: file}
+            ],
+            quarantine_file_entry_names: MapSet.new(["document1.pdf"])
+        }
+        |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               file_entries: [
+                 %{
+                   type: :file,
+                   name: "document2.pdf",
+                   file: %Livebook.FileSystem.File{
+                     file_system: %Livebook.FileSystem.Local{},
+                     path: p("/document.pdf")
+                   }
+                 },
+                 %{
+                   type: :file,
+                   name: "document1.pdf",
+                   file: %Livebook.FileSystem.File{
+                     file_system: %Livebook.FileSystem.Local{},
+                     path: p("/document.pdf")
+                   }
+                 }
+               ]
+             } = notebook
+
+      assert notebook.quarantine_file_entry_names == MapSet.new(["document1.pdf"])
+    end
   end
 end

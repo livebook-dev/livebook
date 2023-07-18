@@ -428,8 +428,17 @@ defmodule Livebook.LiveMarkdown.Import do
               end
           end
 
-        {Map.put(attrs, :file_entries, file_entries), stamp_hub_id,
-         messages ++ file_entry_messages}
+        # By default we put all :file entries in quarantine, if there
+        # is a valid stamp, we override this later
+        quarantine_file_entry_names =
+          for entry <- file_entries, entry.type == :file, into: MapSet.new(), do: entry.name
+
+        attrs =
+          attrs
+          |> Map.put(:file_entries, file_entries)
+          |> Map.put(:quarantine_file_entry_names, quarantine_file_entry_names)
+
+        {attrs, stamp_hub_id, messages ++ file_entry_messages}
 
       _entry, {attrs, stamp_hub_id, messages} ->
         {attrs, stamp_hub_id, messages}
@@ -635,6 +644,9 @@ defmodule Livebook.LiveMarkdown.Import do
     Enum.reduce(metadata, notebook, fn
       {:hub_secret_names, hub_secret_names}, notebook ->
         %{notebook | hub_secret_names: hub_secret_names}
+
+      {:quarantine_file_entry_names, quarantine_file_entry_names}, notebook ->
+        %{notebook | quarantine_file_entry_names: MapSet.new(quarantine_file_entry_names)}
 
       _entry, notebook ->
         notebook

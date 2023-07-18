@@ -3894,6 +3894,27 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{notebook: %{file_entries: [^file_entry3, ^file_entry4, ^file_entry1]}}, []} =
                Data.apply_operation(data, operation)
     end
+
+    test "removes matching file entry names from quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      file_entry = %{type: :attachment, name: "image.jpg"}
+
+      operation = {:add_file_entries, @cid, [file_entry]}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new()
+    end
   end
 
   describe "apply_operation/2 given :delete_file_entry" do
@@ -3916,6 +3937,52 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{notebook: %{file_entries: [^file_entry2]}}, []} =
                Data.apply_operation(data, operation)
+    end
+
+    test "removes matching file entry names from quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      operation = {:delete_file_entry, @cid, "image.jpg"}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new()
+    end
+  end
+
+  describe "apply_operation/2 given :allow_file_entry" do
+    test "returns an error if no file entry with the given name exists" do
+      data = Data.new()
+      operation = {:allow_file_entry, @cid, "image.jpg"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "removes matching file entry names from quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      operation = {:allow_file_entry, @cid, "image.jpg"}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new()
     end
   end
 

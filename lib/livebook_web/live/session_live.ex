@@ -3,6 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.FileSystemHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -223,6 +224,7 @@ defmodule LivebookWeb.SessionLive do
             id="files-list"
             session={@session}
             file_entries={@data_view.file_entries}
+            quarantine_file_entry_names={@data_view.quarantine_file_entry_names}
           />
         </div>
         <div data-el-secrets-list>
@@ -1483,6 +1485,41 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("review_file_entry_access", %{"name" => name}, socket) do
+    file_entry = Enum.find(socket.private.data.notebook.file_entries, &(&1.name == name))
+
+    if file_entry do
+      on_confirm = fn socket ->
+        Session.allow_file_entry(socket.assigns.session.pid, file_entry.name)
+        socket
+      end
+
+      assigns = %{name: file_entry.name, file: file_entry.file}
+
+      description = ~H"""
+      <div>
+        File <span class="font-semibold">“<%= @name %>“</span>
+        points to an absolute path, do you want the notebook to access it?
+      </div>
+      <div class="mt-4 flex flex-col gap-2 border border-gray-200 rounded-lg p-4">
+        <.labeled_text label="Path"><%= @file.path %></.labeled_text>
+        <.labeled_text label="File system"><%= file_system_label(@file.file_system) %></.labeled_text>
+      </div>
+      """
+
+      {:noreply,
+       confirm(socket, on_confirm,
+         title: "Review access",
+         description: description,
+         confirm_text: "Allow access",
+         confirm_icon: "shield-check-line",
+         danger: false
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
@@ -2295,6 +2332,7 @@ defmodule LivebookWeb.SessionLive do
       any_session_secrets?:
         Session.Data.session_secrets(data.secrets, data.notebook.hub_id) != [],
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
+      quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug
     }

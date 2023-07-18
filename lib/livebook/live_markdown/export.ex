@@ -376,7 +376,21 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp notebook_stamp_metadata(notebook) do
     keys = [:hub_secret_names]
-    put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+
+    metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+
+    # If there are any :file file entries, we want to generate a stamp
+    # to make sure the entries are not tampered with. We also want to
+    # store the information about file entries already in quarantine
+    if Enum.any?(notebook.file_entries, &(&1.type == :file)) do
+      Map.put(
+        metadata,
+        :quarantine_file_entry_names,
+        MapSet.to_list(notebook.quarantine_file_entry_names)
+      )
+    else
+      metadata
+    end
   end
 
   defp ensure_order(%{} = map) do

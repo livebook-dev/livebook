@@ -1347,10 +1347,56 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       # My Notebook
       """
 
-      {document, []} = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
 
       assert expected_document == document
     end
+
+    test "stores quarantine file entry names if there are any :file file entries" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      # All allowed
+
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :file, name: "document.pdf", file: file}
+          ]
+      }
+
+      {document, []} = Export.notebook_to_livemd(notebook)
+
+      assert stamp_metadata(notebook, document) == %{quarantine_file_entry_names: []}
+
+      # Subset allowed
+
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :file, name: "document1.pdf", file: file},
+            %{type: :file, name: "document2.pdf", file: file}
+          ],
+          quarantine_file_entry_names: MapSet.new(["document1.pdf"])
+      }
+
+      {document, []} = Export.notebook_to_livemd(notebook)
+
+      assert stamp_metadata(notebook, document) == %{
+               quarantine_file_entry_names: ["document1.pdf"]
+             }
+    end
+  end
+
+  defp stamp_metadata(notebook, source) do
+    [_, json] = Regex.run(~r/<!-- livebook:(.*) -->\n$/, source)
+    %{"offset" => offset, "stamp" => stamp} = Jason.decode!(json)
+
+    hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
+    source = binary_slice(source, 0, offset)
+    {:ok, metadata} = Livebook.Hubs.verify_notebook_stamp(hub, source, stamp)
+    metadata
   end
 
   defp spawn_widget_with_data(ref, data) do
