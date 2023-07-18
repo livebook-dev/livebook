@@ -142,14 +142,6 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("canvas-close-button").addEventListener("click", (event) =>
-      this.handleCanvasCloseClick()
-    );
-
-    this.getElement("canvas-popout-button").addEventListener("click", (event) =>
-      this.handleCanvasPopoutClick()
-    );
-
     this.getElement("views").addEventListener("click", (event) => {
       this.handleViewsClick(event);
     });
@@ -680,11 +672,6 @@ const Session = {
     }
   },
 
-  handleCanvasCloseClick() {
-    this.closeCanvasWindow();
-    this.el.removeAttribute("data-js-view");
-  },
-
   handleCanvasPopoutClick() {
     this.canvasWindow = window.open(
       window.location.pathname + "/canvas",
@@ -1210,11 +1197,22 @@ const Session = {
   // Session event handlers
 
   handleSessionEvent(event) {
-    if (event.type === "cursor_selection_changed") {
-      this.sendLocationReport({
-        focusableId: event.focusableId,
-        selection: event.selection,
-      });
+    switch (event.type) {
+      case "cursor_selection_changed":
+        this.sendLocationReport({
+          focusableId: event.focusableId,
+          selection: event.selection,
+        });
+        break;
+      case "canvas_popout_clicked":
+        this.handleCanvasPopoutClick();
+        break;
+      case "canvas_popin_clicked":
+        this.el.setAttribute("data-js-view", "canvas");
+        break;
+      case "canvas_close_clicked":
+        this.el.removeAttribute("data-js-view");
+        break;
     }
   },
 
@@ -1401,16 +1399,7 @@ const Session = {
   },
   handleCanvasWindowMessage(event) {
     if (event.origin != window.location.origin) return;
-    switch (event.data) {
-      case "popin":
-        this.el.setAttribute("data-js-view", "canvas");
-        break;
-      case "close":
-        this.el.removeAttribute("data-js-view");
-        break;
-      default:
-        console.log("Got unkown message: ", event);
-    }
+    this.handleSessionEvent({ type: event.data });
   },
 };
 
