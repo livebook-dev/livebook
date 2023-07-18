@@ -4,6 +4,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs.Team
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.NotFoundError
 
   @dockerfile_form %{"apps_path" => "/apps"}
 
@@ -17,7 +18,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        Enum.find_value(secrets, &(&1.name == secret_name && &1.value))
+        Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
+          raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
     {:ok,

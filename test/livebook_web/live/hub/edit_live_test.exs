@@ -42,7 +42,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     end
 
     test "raises an error if does not exist secret", %{conn: conn, hub: hub} do
-      assert_raise LivebookWeb.Hub.Edit.PersonalComponent.NotFoundError, fn ->
+      assert_raise LivebookWeb.NotFoundError, fn ->
         live(conn, ~p"/hub/#{hub.id}/secrets/edit/HELLO")
       end
     end

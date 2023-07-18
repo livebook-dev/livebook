@@ -4,11 +4,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   alias Livebook.Hubs
   alias Livebook.Hubs.Personal
   alias LivebookWeb.LayoutHelpers
-
-  defmodule NotFoundError do
-    @moduledoc false
-    defexception [:message, plug_status: 404]
-  end
+  alias LivebookWeb.NotFoundError
 
   @impl true
   def update(assigns, socket) do
