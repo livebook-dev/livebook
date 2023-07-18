@@ -195,6 +195,35 @@ defmodule LivebookWeb.OpenLiveTest do
 
       close_session_by_path(path)
     end
+
+    test "allows importing notebook from upload", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/open/upload")
+
+      view
+      |> file_input("#upload-file-form", :notebook, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "notebook.livemd",
+          content: """
+          # My notebook
+          """,
+          size: 14,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("notebook.livemd")
+
+      view
+      |> element("#upload-file-form")
+      |> render_submit()
+
+      {path, _flash} = assert_redirect(view, 5000)
+
+      {:ok, view, _} = live(conn, path)
+      assert render(view) =~ "My notebook"
+
+      close_session_by_path(path)
+    end
   end
 
   describe "public import endpoint" do

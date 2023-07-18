@@ -861,6 +861,13 @@ defmodule LivebookWeb.SessionLive do
             <span class="font-medium">From URL</span>
           </.link>
           <.link
+            patch={~p"/sessions/#{@session.id}/add-file/upload"}
+            class={["tab", @tab == "upload" && "active"]}
+          >
+            <.remix_icon icon="file-upload-line" class="align-middle" />
+            <span class="font-medium">From upload</span>
+          </.link>
+          <.link
             patch={~p"/sessions/#{@session.id}/add-file/unlisted"}
             class={["tab", @tab == "unlisted" && "active"]}
           >
@@ -879,6 +886,12 @@ defmodule LivebookWeb.SessionLive do
           :if={@tab == "url"}
           module={LivebookWeb.SessionLive.AddFileEntryUrlComponent}
           id="add-file-entry-from-url"
+          session={@session}
+        />
+        <.live_component
+          :if={@tab == "upload"}
+          module={LivebookWeb.SessionLive.AddFileEntryUploadComponent}
+          id="add-file-entry-from-upload"
           session={@session}
         />
         <.live_component
