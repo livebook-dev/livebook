@@ -11,16 +11,23 @@ defmodule Livebook.Hubs.TeamClient do
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
 
-  defstruct [:hub, :connection_error, :derived_keys, connected?: false, secrets: []]
+  defstruct [
+    :hub,
+    :connection_error,
+    :derived_keys,
+    connected?: false,
+    offline?: false,
+    secrets: []
+  ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
   @doc """
   Connects the Team client with WebSocket server.
   """
-  @spec start_link(Team.t()) :: GenServer.on_start()
-  def start_link(%Team{} = team) do
-    GenServer.start_link(__MODULE__, team, name: registry_name(team.id))
+  @spec start_link(Team.t(), boolean()) :: GenServer.on_start()
+  def start_link(%Team{} = team, offline? \\ false) do
+    GenServer.start_link(__MODULE__, {team, offline?}, name: registry_name(team.id))
   end
 
   @doc """
@@ -66,7 +73,20 @@ defmodule Livebook.Hubs.TeamClient do
   ## GenServer callbacks
 
   @impl true
-  def init(%Team{} = team) do
+  def init({%Team{} = team, offline?}) do
+    derived_keys = Teams.derive_keys(team.teams_key)
+
+    {:ok,
+     %__MODULE__{
+       hub: team,
+       offline?: offline?,
+       connected?: offline?,
+       derived_keys: derived_keys
+     }, {:continue, :connect}}
+  end
+
+  @impl true
+  def handle_continue(:connect, %{offline?: false, hub: team} = state) do
     headers = [
       {"x-user", to_string(team.user_id)},
       {"x-org", to_string(team.org_id)},
@@ -74,11 +94,11 @@ defmodule Livebook.Hubs.TeamClient do
       {"x-session-token", team.session_token}
     ]
 
-    derived_keys = Teams.derive_keys(team.teams_key)
-
     {:ok, _pid} = Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
+    {:noreply, state}
   end
+
+  def handle_continue(:connect, state), do: {:noreply, state}
 
   @impl true
   def handle_call(:get_connection_error, _caller, state) do
