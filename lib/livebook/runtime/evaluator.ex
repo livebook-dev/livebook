@@ -434,7 +434,9 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     start_time = System.monotonic_time()
+
     {eval_result, code_markers} = eval(language, code, context.binding, context.env)
+
     evaluation_time_ms = time_diff_ms(start_time)
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
@@ -624,6 +626,11 @@ defmodule Livebook.Runtime.Evaluator do
     |> Map.update!(:context_modules, &(&1 ++ prev_env.context_modules))
   end
 
+  # TODO: Make sure to change this into a folder which pertains the session.
+  defp tmp_filename() do
+    :lists.flatten(:io_lib.format("/tmp/erlang-eval-~p.tmp", [:erlang.phash2(make_ref())]))
+  end
+
   defp eval(:elixir, code, binding, env) do
     {{result, extra_diagnostics}, diagnostics} =
       Code.with_diagnostics([log: true], fn ->
@@ -688,20 +695,88 @@ defmodule Livebook.Runtime.Evaluator do
     {result, code_markers}
   end
 
+  # Erlang code is either statements as currently supported, or modules.
+  # In case we want to support modules - it makes sense to allow users to use
+  # includes, defines and thus we use the epp-module first - try to find out
+  # if we have a module attribute, and if so deem it a module.
+  # If no module attribute was found the previous code is called.
   defp eval(:erlang, code, binding, env) do
+    filename = tmp_filename()
+    :file.write_file(filename, code)
+
+    eval_result =
+      case :epp.parse_file(filename, [], []) do
+        {:ok, forms} ->
+          case :lists.keyfind(:module, 3, forms) do
+            {:attribute, _lineno, :module, module} ->
+              eval_erlang_module(code, module, forms, binding, env)
+
+            false ->
+              case :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]) do
+                {:ok, tokens, _} ->
+                  eval_erlang_statements(code, tokens, binding, env)
+
+                {:error, {location, module, description}, _end_loc} ->
+                  process_erlang_error(env, code, location, module, description)
+              end
+          end
+
+        {:error, epp_parse_errors} ->
+          {{:error, :error, epp_parse_errors, []}, []}
+      end
+
+    # Clean up after ourselves.
+    :file.delete(filename)
+    eval_result
+  end
+
+  # Create module - tokens from string
+  # Based on: https://stackoverflow.com/questions/2160660/how-to-compile-erlang-code-loaded-into-a-string
+  # Step 1: Scan the code using the epp:parse_file erlang primitive
+  # - epp will do macro expansion etc.
+  # Step 2: Convert to forms
+  # Step 3: Extract module name
+  # Step 4: Compile and load
+  # Step 5: If compile success - register module
+
+  defp eval_erlang_module(_code, module, forms, binding, env) do
+    try do
+      case :compile.forms(forms) do
+        {:ok, _, binary_module} ->
+          {:module, module} = :code.load_binary(module, ~c"#{module}.beam", binary_module)
+
+          # Registration of module
+          env = %{env | module: module, versioned_vars: %{}}
+          Evaluator.Tracer.trace({:on_module, binary_module, %{}}, env)
+          result = {:ok, module}
+          {{:ok, result, binding, env}, []}
+
+        :error ->
+          error = "compile.forms failed - syntax error"
+          {{:error, :error, error, []}, []}
+          # process_erlang_error(env, code, {1,1}, :compile,"Compile forms failed")
+      end
+    catch
+      kind, error ->
+        stacktrace = prune_stacktrace(:erl_eval, __STACKTRACE__)
+        {{:error, kind, error, stacktrace}, []}
+    end
+  end
+
+  defp eval_erlang_statements(code, tokens, binding, env) do
     try do
       erl_binding =
         Enum.reduce(binding, %{}, fn {name, value}, erl_binding ->
           :erl_eval.add_binding(elixir_to_erlang_var(name), value, erl_binding)
         end)
 
-      with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(code), {1, 1}, [:text]),
-           {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
+      with {:ok, parsed} <- :erl_parse.parse_exprs(tokens),
            {:value, result, new_erl_binding} <- :erl_eval.exprs(parsed, erl_binding) do
         # Simple heuristic to detect the used variables. We look at
         # the tokens and assume all var tokens are used variables.
         # This will not handle shadowing of variables in fun definitions
         # and will only work well enough for expressions, not for modules.
+
         used_vars =
           for {:var, _anno, name} <- tokens,
               do: {erlang_to_elixir_var(name), nil},
@@ -731,10 +806,6 @@ defmodule Livebook.Runtime.Evaluator do
 
         {{:ok, result, binding, env}, []}
       else
-        # Tokenizer error
-        {:error, {location, module, description}, _end_loc} ->
-          process_erlang_error(env, code, location, module, description)
-
         # Parser error
         {:error, {location, module, description}} ->
           process_erlang_error(env, code, location, module, description)
@@ -873,11 +944,11 @@ defmodule Livebook.Runtime.Evaluator do
           do: {:module, module},
           into: identifiers_used
 
+    # Note: `module_info` works for both Erlang and Elixir modules, as opposed to `__info__`
     identifiers_defined =
-      for {module, _line_vars} <- tracer_info.modules_defined,
-          version = module.__info__(:md5),
-          do: {{:module, module}, version},
-          into: identifiers_defined
+      for {module, _line_vars} <- tracer_info.modules_defined, into: identifiers_defined do
+        {{:module, module}, module.module_info(:md5)}
+      end
 
     # Aliases
 
