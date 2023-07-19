@@ -1227,6 +1227,53 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_1, {:text, "6"}, metadata()}
     end
 
+    test "evaluate erlang-module code", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        "-module(tryme). -export([go/0]). go() ->{ok,went}.",
+        :code_4,
+        []
+      )
+
+      assert_receive {:runtime_evaluation_response, :code_4,
+                      {:text, "\"erlang module successfully compiled\""}, metadata()}
+    end
+
+    test "evaluate erlang-module error function already defined", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        "-module(tryme). -export([go/0]). go() ->{ok,went}. go() ->{ok,went}.",
+        :code_4,
+        []
+      )
+
+      assert_receive {:runtime_evaluation_output, :code_4,
+                      {:stdout, ":1:52: function go/0 already defined\n"}}
+    end
+
+    test "evaluate erlang-module error - expression after module", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        "-module(tryme). -export([go/0]). go() ->{ok,went}. go() ->{ok,went}. A = 1.",
+        :code_4,
+        []
+      )
+
+      assert_receive {
+        :runtime_evaluation_response,
+        :code_4,
+        {
+          :error,
+          _ErrorText,
+          :other
+        },
+        %{code_markers: _List}
+      }
+    end
+
     test "mixed erlang/elixir bindings", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, :elixir, "x = 1", :code_1, [])
       Evaluator.evaluate_code(evaluator, :erlang, "Y = X.", :code_2, [:code_1])
