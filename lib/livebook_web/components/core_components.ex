@@ -254,6 +254,10 @@ defmodule LivebookWeb.CoreComponents do
     default: :bottom_right,
     values: [:top_left, :top_right, :bottom_left, :bottom_right]
 
+  attr :md_position, :atom,
+    default: nil,
+    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+
   attr :distant, :boolean,
     default: false,
     doc: "whether the menu should be further from the anchor element"
@@ -284,6 +288,7 @@ defmodule LivebookWeb.CoreComponents do
         class={[
           "absolute z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)] hidden",
           menu_position_class(@position),
+          @md_position && menu_md_position_class(@md_position),
           @distant && menu_distant_class(@position)
         ]}
         role="menu"
@@ -309,6 +314,22 @@ defmodule LivebookWeb.CoreComponents do
   defp menu_position_class(:top_right), do: "top-0 right-0 transform -translate-y-full -mt-1"
   defp menu_position_class(:bottom_left), do: "bottom-0 left-0 transform translate-y-full -mb-1"
   defp menu_position_class(:bottom_right), do: "bottom-0 right-0 transform translate-y-full -mb-1"
+
+  defp menu_md_position_class(:top_left) do
+    "md:top-0 md:left-0 md:bottom-auto md:right-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
+  end
+
+  defp menu_md_position_class(:top_right) do
+    "md:top-0 md:right-0 md:bottom-auto md:left-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
+  end
+
+  defp menu_md_position_class(:bottom_left) do
+    "md:bottom-0 md:left-0 md:top-auto md:right-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
+  end
+
+  defp menu_md_position_class(:bottom_right) do
+    "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
+  end
 
   defp menu_distant_class(position) when position in [:top_left, :top_right], do: "-mt-2"
   defp menu_distant_class(position) when position in [:bottom_left, :bottom_right], do: "-mb-2"
