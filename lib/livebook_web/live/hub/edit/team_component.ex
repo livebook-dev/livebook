@@ -6,6 +6,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
 
+  @dockerfile_form %{"include_secrets" => "false"}
+
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -26,7 +28,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secrets: secrets,
        show_key: show_key?,
        secret_name: secret_name,
-       secret_value: secret_value
+       secret_value: secret_value,
+       dockerfile_form: to_form(@dockerfile_form, as: :dockerfile)
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -312,6 +315,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, assign_form(socket, changeset)}
   end
 
+  def handle_event("update_dockerfile", %{"dockerfile" => attrs}, socket) do
+    {:noreply,
+     socket
+     |> assign(dockerfile_form: to_form(attrs, as: :dockerfile))
+     |> assign_dockerfile()}
+  end
+
   def handle_event("delete_hub_secret", attrs, socket) do
     %{hub: hub} = socket.assigns
 
@@ -343,6 +353,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
+    form = socket.assigns.dockerfile_form.params
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
 
@@ -358,6 +369,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     """
 
     dockerfile =
+      if form["include_secrets"] == "true" do
+        secrets = ~s(\nENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}")
+        dockerfile <> secrets
+      else
+        dockerfile
+      end
+
+    dockerfile =
       if Livebook.Config.identity_source() != :session do
         {_module, zta} = Livebook.Config.identity_provider()
         identity_provider = ~s(\nENV LIVEBOOK_IDENTITY_PROVIDER "#{zta}")
@@ -369,5 +388,18 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     cmd = ~s(\n\nCMD [ "/app/bin/livebook", "start" ])
     assign(socket, :dockerfile, dockerfile <> cmd)
+  end
+
+  defp encrypt_secrets_to_dockerfile(socket) do
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
+
+    secrets_map =
+      for %{name: name, value: value} <- socket.assigns.secrets,
+          into: %{},
+          do: {name, Livebook.Teams.encrypt_secret_value(value, secret_key, sign_secret)}
+
+    stringified_secrets = Jason.encode!(secrets_map)
+
+    Livebook.Teams.encrypt_secret_value(stringified_secrets, secret_key, sign_secret)
   end
 end
