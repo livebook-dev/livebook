@@ -25,7 +25,7 @@ config :mime, :types, %{
 config :plug_cowboy, :log_exceptions_with_status_code, [407..599]
 
 config :livebook,
-  teams_url: nil,
+  teams_url: "http://localhost:4100",
   app_service_name: nil,
   app_service_url: nil,
   authentication_mode: :token,

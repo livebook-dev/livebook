@@ -175,5 +175,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
+
+    test "raises an error if does not exist secret", %{conn: conn, hub: hub} do
+      assert_raise LivebookWeb.NotFoundError, fn ->
+        live(conn, ~p"/hub/#{hub.id}/secrets/edit/HELLO")
+      end
+    end
   end
 end
