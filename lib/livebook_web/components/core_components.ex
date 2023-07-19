@@ -336,7 +336,6 @@ defmodule LivebookWeb.CoreComponents do
     "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
   end
 
-
   defp menu_sm_position_class(:top_left) do
     "sm:top-0 sm:left-0 sm:bottom-auto sm:right-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
   end
