@@ -6,8 +6,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
 
-  @dockerfile_form %{"apps_path" => "/apps"}
-
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -28,8 +26,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secrets: secrets,
        show_key: show_key?,
        secret_name: secret_name,
-       secret_value: secret_value,
-       dockerfile_form: to_form(@dockerfile_form, as: :dockerfile)
+       secret_value: secret_value
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -118,17 +115,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               using an instance of the Hub using
               environment variables.
             </p>
-
-            <.form
-              :let={f}
-              id="dockerfile-form"
-              class="flex flex-col mt-4 space-y-4"
-              for={@dockerfile_form}
-              phx-change="update_dockerfile"
-              phx-target={@myself}
-            >
-              <.text_field field={f[:apps_path]} label="The directory with app notebooks" />
-            </.form>
 
             <.code_preview
               source_id={"offline-deployment-#{@hub.id}"}
@@ -267,20 +253,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("update_dockerfile", %{"dockerfile" => attrs}, socket) do
-    form =
-      if attrs["apps_path"] do
-        to_form(attrs, as: :dockerfile)
-      else
-        to_form(attrs, as: :dockerfile, errors: [apps_path: ["can't be blank"]])
-      end
-
-    {:noreply,
-     socket
-     |> assign(dockerfile_form: form)
-     |> assign_dockerfile()}
-  end
-
   def handle_event("delete_hub_secret", attrs, socket) do
     %{hub: hub} = socket.assigns
 
@@ -312,18 +284,16 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    form = socket.assigns.dockerfile_form
-
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
-    apps_path = if value = form[:apps_path].value, do: value, else: "/apps"
 
     assign(socket, :dockerfile, """
     FROM livebook/livebook:#{version}
 
-    ENV LIVEBOOK_APPS_PATH "#{apps_path}"
+    COPY /path/to/my/notebooks /data
+    ENV LIVEBOOK_APPS_PATH "/data"
+
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
-    ENV LIVEBOOK_TEAMS_KEY "#{socket.assigns.hub.teams_key}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
     ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
 

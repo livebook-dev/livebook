@@ -207,10 +207,13 @@ defmodule Livebook.Application do
 
   def create_offline_hub() do
     name = System.get_env("LIVEBOOK_TEAMS_NAME")
-    teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
     public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
 
-    if name && teams_key && public_key do
+    if name && public_key do
+      teams_key =
+        System.get_env("LIVEBOOK_TEAMS_KEY") ||
+          raise "Environment variable LIVEBOOK_TEAMS_KEY must be specified. Exiting."
+
       Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
         id: "team-#{name}",
         hub_name: name,
