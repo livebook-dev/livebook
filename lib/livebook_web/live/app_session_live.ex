@@ -98,8 +98,8 @@ defmodule LivebookWeb.AppSessionLive do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
-        <div class="absolute md:fixed right-8 md:left-4 top-3 w-10 h-10">
-          <.menu id="app-menu" position={:bottom_left}>
+        <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
+          <.menu id="app-menu" position={:bottom_right} md_position={:bottom_left}>
             <:toggle>
               <button class="flex items-center text-gray-900">
                 <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
