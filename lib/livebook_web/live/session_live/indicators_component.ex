@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp view_indicator(assigns) do
     ~H"""
     <div class="tooltip left" data-tooltip="Choose views to activate" data-el-views>
-      <.menu id="views-menu" position={:top_right}>
+      <.menu id="views-menu" position={:bottom_right} sm_position={:top_right}>
         <:toggle>
           <button
             class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"

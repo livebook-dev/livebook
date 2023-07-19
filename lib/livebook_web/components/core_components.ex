@@ -254,6 +254,10 @@ defmodule LivebookWeb.CoreComponents do
     default: :bottom_right,
     values: [:top_left, :top_right, :bottom_left, :bottom_right]
 
+  attr :sm_position, :atom,
+    default: nil,
+    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+
   attr :md_position, :atom,
     default: nil,
     values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
@@ -289,6 +293,7 @@ defmodule LivebookWeb.CoreComponents do
           "absolute z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)] hidden",
           menu_position_class(@position),
           @md_position && menu_md_position_class(@md_position),
+          @sm_position && menu_sm_position_class(@sm_position),
           @distant && menu_distant_class(@position)
         ]}
         role="menu"
@@ -329,6 +334,23 @@ defmodule LivebookWeb.CoreComponents do
 
   defp menu_md_position_class(:bottom_right) do
     "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
+  end
+
+
+  defp menu_sm_position_class(:top_left) do
+    "sm:top-0 sm:left-0 sm:bottom-auto sm:right-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
+  end
+
+  defp menu_sm_position_class(:top_right) do
+    "sm:top-0 sm:right-0 sm:bottom-auto sm:left-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
+  end
+
+  defp menu_sm_position_class(:bottom_left) do
+    "sm:bottom-0 sm:left-0 sm:top-auto sm:right-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
+  end
+
+  defp menu_sm_position_class(:bottom_right) do
+    "sm:bottom-0 sm:right-0 sm:top-auto sm:left-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
   end
 
   defp menu_distant_class(position) when position in [:top_left, :top_right], do: "-mt-2"
