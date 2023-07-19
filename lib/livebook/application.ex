@@ -212,7 +212,7 @@ defmodule Livebook.Application do
     if name && public_key do
       teams_key =
         System.get_env("LIVEBOOK_TEAMS_KEY") ||
-          raise "Environment variable LIVEBOOK_TEAMS_KEY must be specified. Exiting."
+          Livebook.Config.abort!("You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing.")
 
       Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
         id: "team-#{name}",
