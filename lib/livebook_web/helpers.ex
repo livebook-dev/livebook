@@ -3,6 +3,9 @@ defmodule LivebookWeb.Helpers do
 
   use LivebookWeb, :verified_routes
 
+  alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
+
   @doc """
   Determines user platform based on the given *User-Agent* header.
   """
@@ -81,5 +84,16 @@ defmodule LivebookWeb.Helpers do
   @spec format_datetime_relatively(DateTime.t()) :: String.t()
   def format_datetime_relatively(date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+  end
+
+  def canvas_outputs(notebook) do
+    for {cell, section} <- Notebook.cells_with_section(notebook),
+        Cell.evaluable?(cell),
+        cell.output_location != nil,
+        into: %{} do
+      content = "#{section.name}\n#{cell.id}"
+
+      {cell.id, Map.put(cell.output_location, :content, content)}
+    end
   end
 end

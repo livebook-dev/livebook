@@ -15,7 +15,6 @@ defmodule LivebookWeb.Output do
   attr :dom_id_map, :map, required: true
   attr :client_id, :string, required: true
   attr :cell_id, :string, required: true
-  attr :output_location, :atom, required: true
 
   def outputs(assigns) do
     ~H"""
@@ -32,8 +31,7 @@ defmodule LivebookWeb.Output do
         session_pid: @session_pid,
         input_values: @input_values,
         client_id: @client_id,
-        cell_id: @cell_id,
-        output_location: @output_location
+        cell_id: @cell_id
       }) %>
     </div>
     """
@@ -86,15 +84,13 @@ defmodule LivebookWeb.Output do
   defp render_output({:js, js_info}, %{
          id: id,
          session_id: session_id,
-         client_id: client_id,
-         output_location: output_location
+         client_id: client_id
        }) do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
       js_view: js_info.js_view,
       session_id: session_id,
       client_id: client_id,
-      output_location: output_location,
       timeout_message: "Output data no longer available, please reevaluate this cell"
     )
   end

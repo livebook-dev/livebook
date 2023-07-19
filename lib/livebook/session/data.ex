@@ -173,6 +173,7 @@ defmodule Livebook.Session.Data do
           {:set_notebook_attributes, client_id(), map()}
           | {:move_output_to_canvas, client_id(), Cell.id()}
           | {:move_output_to_notebook, client_id(), Cell.id()}
+          | {:update_canvas, client_id(), list(any())}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
@@ -399,6 +400,27 @@ defmodule Livebook.Session.Data do
       |> wrap_ok()
     else
       _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:update_canvas, _client_id, updates}) do
+    cell_ids = Map.keys(updates)
+
+    cells_with_section =
+      data.notebook
+      |> Notebook.cells_with_section()
+      |> Enum.filter(fn {cell, _section} ->
+        cell.id in cell_ids
+      end)
+
+    if cell_ids != [] and length(cell_ids) == length(cells_with_section) do
+      data
+      |> with_actions()
+      |> update_canvas(updates)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      :error
     end
   end
 
@@ -1003,6 +1025,11 @@ defmodule Livebook.Session.Data do
   defp move_output_to_notebook({data, _} = data_actions, cell, section) do
     data_actions
     |> set!(notebook: Notebook.move_output_to_notebook(data.notebook, cell, section))
+  end
+
+  defp update_canvas({data, _} = data_actions, updates) do
+    data_actions
+    |> set!(notebook: Notebook.update_canvas(data.notebook, updates))
   end
 
   defp insert_section({data, _} = data_actions, index, section) do

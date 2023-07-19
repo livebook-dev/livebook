@@ -24,7 +24,6 @@ defmodule Livebook.Notebook do
     :default_language,
     :output_counter,
     :app_settings,
-    :canvas_settings,
     :hub_id,
     :hub_secret_names,
     :file_entries,
@@ -46,7 +45,6 @@ defmodule Livebook.Notebook do
           default_language: :elixir | :erlang,
           output_counter: non_neg_integer(),
           app_settings: AppSettings.t(),
-          canvas_settings: CanvasSettings.t(),
           hub_id: String.t(),
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
@@ -87,7 +85,6 @@ defmodule Livebook.Notebook do
       default_language: :elixir,
       output_counter: 0,
       app_settings: AppSettings.new(),
-      canvas_settings: CanvasSettings.new(),
       hub_id: Livebook.Hubs.Personal.id(),
       hub_secret_names: [],
       file_entries: [],
@@ -118,12 +115,9 @@ defmodule Livebook.Notebook do
         access_by_id(cell.id)
       ],
       fn cell ->
-        %{cell | output_location: :canvas}
+        %{cell | output_location: %{x: 0, y: 0, w: 4, h: 2}}
       end
     )
-    |> update_in([Access.key(:canvas_settings), Access.key(:items)], fn items ->
-      Map.put(items, cell.id, %{outputs: cell.outputs, w: 4, h: 2})
-    end)
   end
 
   @doc """
@@ -140,12 +134,22 @@ defmodule Livebook.Notebook do
         access_by_id(cell.id)
       ],
       fn cell ->
-        %{cell | output_location: :notebook}
+        %{cell | output_location: nil}
       end
     )
-    |> update_in([Access.key(:canvas_settings), Access.key(:items)], fn items ->
-      Map.delete(items, cell.id)
-    end)
+  end
+
+  @doc """
+  TODO
+  """
+  @spec update_canvas(t(), list(any())) :: t()
+  def update_canvas(notebook, updates) do
+    for {cell_id, location} <- updates, reduce: notebook do
+      acc ->
+        update_cell(acc, cell_id, fn cell ->
+          %{cell | output_location: location}
+        end)
+    end
   end
 
   @doc """

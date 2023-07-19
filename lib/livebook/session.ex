@@ -319,6 +319,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  TODO
+  """
+  @spec update_canvas(pid(), list(any())) :: :ok
+  def update_canvas(pid, updates) do
+    GenServer.cast(pid, {:update_canvas, self(), updates})
+  end
+
+  @doc """
   Sends section insertion request to the server.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
@@ -987,6 +995,12 @@ defmodule Livebook.Session do
   def handle_cast({:move_output_to_notebook, client_pid, cell_id}, state) do
     client_id = client_id(state, client_pid)
     operation = {:move_output_to_notebook, client_id, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:update_canvas, client_pid, updates}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:update_canvas, client_id, updates}
     {:noreply, handle_operation(state, operation)}
   end
 

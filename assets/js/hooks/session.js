@@ -153,6 +153,14 @@ const Session = {
       }
     );
 
+    this.getElement("canvas-close-button").addEventListener("click", (event) =>
+      this.handleCanvasCloseClick()
+    );
+
+    this.getElement("canvas-popout-button").addEventListener("click", (event) =>
+      this.handleCanvasPopoutClick()
+    );
+
     this.getElement("view-canvas-poppedout-button").addEventListener(
       "click",
       (event) => {
@@ -672,9 +680,14 @@ const Session = {
     }
   },
 
+  handleCanvasCloseClick() {
+    this.closeCanvasWindow();
+    this.el.removeAttribute("data-js-view");
+  },
+
   handleCanvasPopoutClick() {
     this.canvasWindow = window.open(
-      window.location.pathname + "/canvas",
+      window.location.pathname + `/popout-window?type=canvas`,
       "_blank",
       "toolbar=no, location=no, directories=no, titlebar=no, toolbar=0, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
@@ -1204,15 +1217,6 @@ const Session = {
           selection: event.selection,
         });
         break;
-      case "canvas_popout_clicked":
-        this.handleCanvasPopoutClick();
-        break;
-      case "canvas_popin_clicked":
-        this.el.setAttribute("data-js-view", "canvas");
-        break;
-      case "canvas_close_clicked":
-        this.el.removeAttribute("data-js-view");
-        break;
     }
   },
 
@@ -1396,10 +1400,18 @@ const Session = {
   closeCanvasWindow() {
     window.removeEventListener("message", this.handleCanvasWindowMessage);
     this.canvasWindow && this.canvasWindow.close();
+    this.canvasWindow = null;
   },
   handleCanvasWindowMessage(event) {
     if (event.origin != window.location.origin) return;
-    this.handleSessionEvent({ type: event.data });
+    switch (event.data) {
+      case "canvas_popin_clicked":
+        this.el.setAttribute("data-js-view", "canvas");
+        break;
+      case "canvas_close_clicked":
+        this.handleCanvasCloseClick();
+        break;
+    }
   },
 };
 

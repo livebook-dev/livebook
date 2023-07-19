@@ -81,7 +81,7 @@ defmodule LivebookWeb.Router do
       live "/hub/:id/secrets/edit/:secret_name", Hub.EditLive, :edit_secret, as: :hub
 
       live "/sessions/:id", SessionLive, :page
-      live "/sessions/:id/canvas", SessionLive.CanvasLive, :page
+      live "/sessions/:id/popout-window", SessionLive.PopoutWindowLive
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
       live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings

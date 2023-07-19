@@ -101,7 +101,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
       <.evaluation_outputs
-        :if={@output_location == :notebook}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -196,7 +195,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 js_view={@cell_view.js_view}
                 session_id={@session_id}
                 client_id={@client_id}
-                output_location={:notebook}
               />
               <.cell_editor
                 :if={@cell_view.editor}
@@ -253,7 +251,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
       <.evaluation_outputs
-        :if={@output_location == :notebook}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -663,7 +660,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         session_pid={@session_pid}
         client_id={@client_id}
         cell_id={@cell_view.id}
-        output_location={:notebook}
         input_values={@cell_view.eval.input_values}
       />
     </div>

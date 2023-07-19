@@ -76,8 +76,7 @@ defmodule LivebookWeb.SessionLive do
            select_secret_ref: nil,
            select_secret_options: nil,
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
-           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files(),
-           canvas_pid: nil
+           starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -413,14 +412,39 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
         <div class="flex-1 overflow-auto" data-el-canvas>
-          <%= live_render(@socket, LivebookWeb.SessionLive.CanvasLive,
-            id: "canvas",
-            session: %{
-              "session" => @session,
-              "client_id" => @client_id,
-              "canvas_settings" => @data_view.canvas_settings
-            }
-          ) %>
+          <.live_component
+            module={LivebookWeb.SessionLive.CanvasComponent}
+            id="canvas"
+            canvas_layout={@data_view.canvas_layout}
+            session={@session}
+            client_id={@client_id}
+          />
+          <div class="fixed top-[1rem] right-[1.5rem] z-[500]">
+            <div class="tooltip left" data-tooltip="Canvas Options" data-el-canvas-menu>
+              <.menu id="canvas-menu" position={:bottom_right}>
+                <:toggle>
+                  <button
+                    class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+                    aria-label="canvas options"
+                  >
+                    <.remix_icon icon="more-2-fill" class="text-xl text-gray-400" />
+                  </button>
+                </:toggle>
+                <.menu_item>
+                  <button role="menuitem" data-el-canvas-popout-button>
+                    <.remix_icon icon="external-link-line" />
+                    <span>Pop-Out</span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <button role="menuitem" data-el-canvas-close-button>
+                    <.remix_icon icon="close-fill" />
+                    <span>Close</span>
+                  </button>
+                </.menu_item>
+              </.menu>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1618,10 +1642,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, :app, app)}
   end
 
-  def handle_info({:canvas_pid, pid}, socket) do
-    {:noreply, assign(socket, canvas_pid: pid)}
-  end
-
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path, requested_url) do
@@ -1963,16 +1983,6 @@ defmodule LivebookWeb.SessionLive do
 
       assign(socket, app: app)
     end
-  end
-
-  defp after_operation(
-         %{assigns: %{canvas_pid: pid}} = socket,
-         _prev_socket,
-         {:move_output_to_canvas, _client_id, _cell_id}
-       )
-       when not is_nil(pid) do
-    send(pid, {:new_data, socket.private.data.notebook.canvas_settings})
-    socket
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
@@ -2319,7 +2329,7 @@ defmodule LivebookWeb.SessionLive do
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       app_settings: data.notebook.app_settings,
       deployed_app_slug: data.deployed_app_slug,
-      canvas_settings: data.notebook.canvas_settings
+      canvas_layout: canvas_outputs(data.notebook)
     }
   end
 
@@ -2434,7 +2444,7 @@ defmodule LivebookWeb.SessionLive do
   defp eval_info_to_view(cell, eval_info, data) do
     %{
       outputs: cell.outputs,
-      output_location: cell.output_location,
+      output_location: cell.output_location && :canvas,
       validity: eval_info.validity,
       status: eval_info.status,
       errored: eval_info.errored,

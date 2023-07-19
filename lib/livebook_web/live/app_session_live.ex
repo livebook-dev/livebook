@@ -31,8 +31,6 @@ defmodule LivebookWeb.AppSessionLive do
           {data, nil}
         end
 
-      data_view = data_to_view(data)
-
       {:ok,
        socket
        |> assign(
@@ -40,12 +38,9 @@ defmodule LivebookWeb.AppSessionLive do
          session: session,
          page_title: get_page_title(data.notebook.name),
          client_id: client_id,
-         data_view: data_view
+         data_view: data_to_view(data)
        )
-       |> assign_private(data: data)
-       |> push_event("load_layout", %{
-         layout: get_dashboard_layout(data_view.canvas_settings.items)
-       })}
+       |> assign_private(data: data)}
     else
       {:ok,
        assign(socket,
@@ -101,13 +96,6 @@ defmodule LivebookWeb.AppSessionLive do
 
   def render(%{data_view: %{output_type: :dashboard}} = assigns)
       when assigns.app_authenticated? do
-    assigns =
-      Map.put(
-        assigns,
-        :dashboard_layout,
-        get_dashboard_layout(assigns.data_view.canvas_settings.items)
-      )
-
     ~H"""
     <div class="h-full w-full" data-el-notebook>
       <div class="h-full w-full" data-el-notebook-content>
@@ -338,7 +326,6 @@ defmodule LivebookWeb.AppSessionLive do
           }
         ),
       output_type: data.notebook.app_settings.output_type,
-      canvas_settings: data.notebook.canvas_settings,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -356,14 +343,12 @@ defmodule LivebookWeb.AppSessionLive do
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
         output <-
-          filter_outputs(cell.outputs, cell.output_location, notebook.app_settings.output_type),
+          filter_outputs(cell.outputs, notebook.app_settings.output_type),
         do: {cell.id, output}
   end
 
-  defp filter_outputs(outputs, _, :all), do: outputs
-  defp filter_outputs(outputs, _, :rich), do: rich_outputs(outputs)
-  defp filter_outputs(outputs, :canvas, :dashboard), do: outputs
-  defp filter_outputs(_, _, :dashboard), do: []
+  defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
 
   defp rich_outputs(outputs) do
     for output <- outputs, output = filter_output(output), do: output

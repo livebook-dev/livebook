@@ -71,9 +71,9 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             field={f[:output_type]}
             label="Output type"
             options={[
-              {"All", :all},
-              {"Rich", :rich},
-              {"Dashboard", :dashboard}
+              {"All outputs", :all},
+              {"Rich outputs only", :rich},
+              {"Canvas", :canvas}
             ]}
             help={
               ~S'''

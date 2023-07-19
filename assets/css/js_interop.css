@@ -300,6 +300,8 @@ solely client-side operations.
 
 [data-el-session]:not([data-js-view="canvas"]) [data-el-canvas],
 [data-el-cell][data-el-js-cell-output-location-canvas]
+  [data-el-outputs-container],
+[data-el-cell][data-el-js-cell-output-location-canvas]
   [data-el-move-output-to-canvas-button],
 [data-el-cell]:not([data-el-js-cell-output-location-canvas])
   [data-el-move-output-to-notebook-button],
