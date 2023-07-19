@@ -395,7 +395,7 @@ defmodule Livebook.LiveMarkdown.Import do
       {"hub_id", hub_id}, {attrs, stamp_hub_id, messages} ->
         cond do
           Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), hub_id, messages}
-          Hubs.get_offline_hub(hub_id) -> {attrs, hub_id, messages}
+          Hubs.get_offline_hub(hub_id) -> {Map.put(attrs, :hub_id, hub_id), hub_id, messages}
           true -> {attrs, stamp_hub_id, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
