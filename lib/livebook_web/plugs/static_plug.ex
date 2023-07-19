@@ -135,7 +135,7 @@ defmodule LivebookWeb.StaticPlug do
 
   defp encoding_with_file(conn, file_provider, segments, gzip?) do
     cond do
-      file = gzip? and accept_encoding?(conn, "gzip") && file_provider.get_file(segments, :gzip) ->
+      file = (gzip? and accept_encoding?(conn, "gzip")) && file_provider.get_file(segments, :gzip) ->
         {"gzip", file}
 
       file = file_provider.get_file(segments, nil) ->

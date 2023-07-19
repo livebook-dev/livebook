@@ -2020,7 +2020,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
+      |> render_submit(%{
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
+      })
 
       assert_session_secret(view, session.pid, secret)
     end
@@ -2078,7 +2080,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}})
+      |> render_submit(%{
+        secret: %{name: secret.name, value: secret.value, hub_id: secret.hub_id}
+      })
 
       assert_session_secret(view, session.pid, secret)
       refute secret in Livebook.Hubs.get_secrets(hub)

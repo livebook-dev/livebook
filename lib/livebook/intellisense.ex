@@ -303,7 +303,11 @@ defmodule Livebook.Intellisense do
            end
        }
 
-  defp format_completion_item(%{kind: :module_attribute, name: name, documentation: documentation}),
+  defp format_completion_item(%{
+         kind: :module_attribute,
+         name: name,
+         documentation: documentation
+       }),
        do: %{
          label: Atom.to_string(name),
          kind: :variable,
