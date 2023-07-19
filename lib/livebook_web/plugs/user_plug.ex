@@ -48,6 +48,8 @@ defmodule LivebookWeb.UserPlug do
     end
   end
 
+  defp ensure_user_data(conn) when conn.halted, do: conn
+
   defp ensure_user_data(conn) do
     if Map.has_key?(conn.req_cookies, "lb:user_data") do
       conn
@@ -71,6 +73,8 @@ defmodule LivebookWeb.UserPlug do
 
   # Copies user_data from cookie to session, so that it's
   # accessible to LiveViews
+  defp mirror_user_data_in_session(conn) when conn.halted, do: conn
+
   defp mirror_user_data_in_session(conn) do
     user_data = conn.cookies["lb:user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
