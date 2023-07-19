@@ -186,6 +186,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:user_connected, user_connected, %{secrets: []} = state) do
     secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
+    for secret <- secrets, do: Broadcasts.secret_created(secret)
 
     %{state | secrets: secrets}
   end
@@ -208,15 +209,20 @@ defmodule Livebook.Hubs.TeamClient do
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
       end)
 
-    events_by_topic = [
+    secrets_by_topic = [
       secret_deleted: deleted_secrets,
       secret_created: created_secrets,
       secret_updated: updated_secrets
     ]
 
-    for {topic, events} <- events_by_topic,
-        event <- events,
+    for {topic, secrets} <- secrets_by_topic,
         reduce: state,
-        do: (acc -> handle_event(topic, event, acc))
+        do: (acc -> dispatch_secrets(topic, secrets, acc))
+  end
+
+  defp dispatch_secrets(topic, secrets, state) do
+    for secret <- secrets,
+        reduce: state,
+        do: (acc -> handle_event(topic, secret, acc))
   end
 end
