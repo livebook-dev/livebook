@@ -346,7 +346,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
 
-    assign(socket, :dockerfile, """
+    dockerfile = """
     FROM livebook/livebook:#{version}
 
     COPY /path/to/my/notebooks /data
@@ -354,9 +354,20 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
-    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"\
+    """
 
-    CMD [ "/app/bin/livebook", "start" ]\
-    """)
+    dockerfile =
+      if Livebook.Config.identity_source() != :session do
+        {_module, zta} = Livebook.Config.identity_provider()
+        identity_provider = ~s(\nENV LIVEBOOK_IDENTITY_PROVIDER "#{zta}")
+
+        dockerfile <> identity_provider
+      else
+        dockerfile
+      end
+
+    cmd = ~s(\n\nCMD [ "/app/bin/livebook", "start" ])
+    assign(socket, :dockerfile, dockerfile <> cmd)
   end
 end
