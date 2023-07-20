@@ -44,7 +44,7 @@ const Canvas = {
       console.log("ADDED", items);
     });
 
-    this.grid.on("change", function(event, items) {
+    this.grid.on("change", function (event, items) {
       console.log("ITEMS changed: ", items);
       let new_items = items.reduce((acc, item) => {
         acc[item.id] = {
@@ -56,14 +56,14 @@ const Canvas = {
         return acc;
       }, {});
       self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
-      //self.repositionIframe();
+      self.repositionIframe();
     });
 
     this.grid.on("removed", (event, items) => {
       console.log("REMOVED", event);
     });
 
-    this.grid.on("drag", function(event, item) {
+    this.grid.on("drag", function (event, item) {
       // TODO update iframe position when dragging
       //self.repositionIframe();
     });

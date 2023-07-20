@@ -31,6 +31,8 @@ defmodule LivebookWeb.AppSessionLive do
           {data, nil}
         end
 
+      data_view = data_to_view(data)
+
       {:ok,
        socket
        |> assign(
@@ -38,9 +40,10 @@ defmodule LivebookWeb.AppSessionLive do
          session: session,
          page_title: get_page_title(data.notebook.name),
          client_id: client_id,
-         data_view: data_to_view(data)
+         data_view: data_view
        )
-       |> assign_private(data: data)}
+       |> assign_private(data: data)
+       |> push_event("init", %{payload: data_view.canvas_layout})}
     else
       {:ok,
        assign(socket,
@@ -94,14 +97,16 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
-  def render(%{data_view: %{output_type: :dashboard}} = assigns)
+  def render(%{data_view: %{output_type: :canvas}} = assigns)
       when assigns.app_authenticated? do
     ~H"""
     <div class="h-full w-full" data-el-notebook>
       <div class="h-full w-full" data-el-notebook-content>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-canvas"></div>
-        <div id="app_dashboard" class="grid-stack" phx-hook="GridstackStatic" />
-        <div :for={output_view <- Enum.reverse(@data_view.output_views)} id={output_view.cell_id}>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <div
+          :for={output_view <- Enum.reverse(@data_view.output_views)}
+          id={"outputs-#{output_view.cell_id}"}
+        >
           <LivebookWeb.Output.outputs
             outputs={[output_view.output]}
             dom_id_map={%{}}
@@ -113,6 +118,7 @@ defmodule LivebookWeb.AppSessionLive do
             input_values={output_view.input_values}
           />
         </div>
+        <div id="app_canvas" phx-hook="AppCanvas" />
       </div>
     </div>
     """
@@ -316,6 +322,7 @@ defmodule LivebookWeb.AppSessionLive do
   defp data_to_view(data) do
     %{
       notebook_name: data.notebook.name,
+      canvas_layout: canvas_outputs(data.notebook),
       output_views:
         for(
           {cell_id, output} <- visible_outputs(data.notebook),
@@ -349,6 +356,7 @@ defmodule LivebookWeb.AppSessionLive do
 
   defp filter_outputs(outputs, :all), do: outputs
   defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
+  defp filter_outputs(outputs, :canvas), do: outputs
 
   defp rich_outputs(outputs) do
     for output <- outputs, output = filter_output(output), do: output
