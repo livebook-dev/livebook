@@ -286,6 +286,14 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session][data-js-view^="canvas"] ~ #app-settings-modal [data-el-app-settings-enable-canvas-button] {
+  @apply hidden;
+}
+
+[data-el-session]:not([data-js-view="canvas-popped-out"]) ~ #app-settings-modal [data-el-app-settings-popin-canvas-button] {
+  @apply hidden;
+}
+
 /* === Views === */
 
 [data-el-session]:not([data-js-view]) [data-el-view-deactivate-button] {

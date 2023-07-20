@@ -56,7 +56,7 @@ const Canvas = {
         return acc;
       }, {});
       self.pushEventTo(self.props.phxTarget, "items_changed", new_items);
-      self.repositionIframe();
+      //self.repositionIframe();
     });
 
     this.grid.on("removed", (event, items) => {

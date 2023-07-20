@@ -25,7 +25,6 @@ defmodule LivebookWeb.JSViewComponent do
       data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}
       data-iframe-url={Livebook.Config.iframe_url()}
       data-timeout-message={@timeout_message}
-      data-output-location={@output_location}
     >
     </div>
     """

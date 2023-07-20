@@ -48,6 +48,7 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
   def render(assigns) do
     ~H"""
     <div id="popout-window" class="w-full h-full" phx-hook="PopoutWindow">
+      <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
       <div
         :for={output_view <- Enum.reverse(@data_view.output_views)}
         id={"outputs-#{output_view.cell_id}"}

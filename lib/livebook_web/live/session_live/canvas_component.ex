@@ -50,9 +50,4 @@ defmodule LivebookWeb.SessionLive.CanvasComponent do
   end
 
   defp convert(value), do: value
-
-  @impl true
-  def handle_info({:new_output, cell_id}, socket) do
-    {:noreply, push_event(socket, "added", %{payload: "TODO"})}
-  end
 end

@@ -194,7 +194,6 @@ const JSView = {
       ),
       iframeUrl: getAttributeOrDefault(this.el, "data-iframe-url", null),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
-      outputLocation: getAttributeOrThrow(this.el, "data-output-location"),
     };
   },
 
@@ -328,9 +327,7 @@ const JSView = {
   },
 
   loadIframe() {
-    const iframesEl = document.querySelector(
-      `[data-el-js-view-iframes]#js-view-iframes-${this.props.outputLocation}`
-    );
+    const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
     initializeIframeSource(
       this.iframe,
       this.props.iframePort,

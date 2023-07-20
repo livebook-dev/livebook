@@ -13,8 +13,7 @@ defmodule Livebook.Notebook.Cell.Smart do
           source: String.t() | :__pruned__,
           chunks: Livebook.Runtime.chunks() | nil,
           outputs: list(Cell.indexed_output()),
-          # TODO
-          output_location: nil,
+          output_location: Cell.canvas_sprite() | nil,
           kind: String.t() | nil,
           attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,

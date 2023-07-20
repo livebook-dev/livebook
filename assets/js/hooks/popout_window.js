@@ -29,12 +29,10 @@ const PopoutWindow = {
   handleCanvasCloseClick() {
     window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
     this.sendToParent("canvas_close_clicked");
-    window.close();
   },
   handleCanvasPopinClick() {
     window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
     this.sendToParent("canvas_popin_clicked");
-    window.close();
   },
   getElement(name) {
     return document.querySelector(`[data-el-${name}]`);

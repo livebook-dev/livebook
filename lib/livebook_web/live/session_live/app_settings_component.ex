@@ -81,6 +81,22 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               '''
             }
           />
+          <div :if={@changeset.data.output_type == :canvas} class="text-sm text-green-400">
+            <.link
+              data-el-app-settings-enable-canvas-button
+              phx-click={JS.dispatch("canvas:enable", to: "[data-el-session]")}
+            >
+              <.remix_icon icon="arrow-right-line" class="text-sm" />
+              <span>Enable the Canvas view</span>
+            </.link>
+            <.link
+              data-el-app-settings-popin-canvas-button
+              phx-click={JS.dispatch("canvas:popin", to: "[data-el-session]")}
+            >
+              <.remix_icon icon="arrow-right-line" />
+              <span>Bring Canvas to front</span>
+            </.link>
+          </div>
           <.checkbox_field
             field={f[:show_source]}
             label="Show source"

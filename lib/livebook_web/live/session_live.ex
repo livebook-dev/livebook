@@ -240,7 +240,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex w-full h-screen">
         <div class="flex-1 overflow-y-auto relative" data-el-notebook>
-          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-notebook"></div>
+          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
           <LivebookWeb.SessionLive.IndicatorsComponent.render
             session_id={@session.id}
             file={@data_view.file}
@@ -2444,7 +2444,7 @@ defmodule LivebookWeb.SessionLive do
   defp eval_info_to_view(cell, eval_info, data) do
     %{
       outputs: cell.outputs,
-      output_location: cell.output_location && :canvas,
+      output_location: cell.output_location,
       validity: eval_info.validity,
       status: eval_info.status,
       errored: eval_info.errored,

@@ -95,10 +95,18 @@ const Session = {
     document.addEventListener("focus", this._handleDocumentFocus, true);
     document.addEventListener("click", this._handleDocumentClick);
 
-    document.addEventListener("canvas:show", (event) => {
+    this.el.addEventListener("canvas:show", (event) => {
       if (this.el.getAttribute("data-js-view") != "canvas-popped-out") {
         this.el.setAttribute("data-js-view", "canvas");
       }
+    });
+
+    this.el.addEventListener("canvas:popin", (event) => {
+      this.handleCanvasPopinClick();
+    });
+
+    this.el.addEventListener("canvas:enable", (event) => {
+      this.el.setAttribute("data-js-view", "canvas");
     });
 
     this.getElement("sections-list").addEventListener("click", (event) => {
@@ -164,7 +172,7 @@ const Session = {
     this.getElement("view-canvas-poppedout-button").addEventListener(
       "click",
       (event) => {
-        this.handleViewCanvasPoppedoutClick();
+        this.handleCanvasPopinClick();
       }
     );
 
@@ -695,7 +703,7 @@ const Session = {
     this.el.setAttribute("data-js-view", "canvas-popped-out");
   },
 
-  handleViewCanvasPoppedoutClick() {
+  handleCanvasPopinClick() {
     this.closeCanvasWindow();
     this.el.setAttribute("data-js-view", "canvas");
   },
@@ -1390,6 +1398,10 @@ const Session = {
     return this.el.querySelector(`[data-el-${name}]`);
   },
 
+  isViewCanvas() {
+    return this.view.startsWith("canvas");
+  },
+
   isViewCodeZen() {
     return this.view === "code-zen";
   },
@@ -1397,16 +1409,18 @@ const Session = {
   isViewPresentation() {
     return this.view === "presentation";
   },
+
   closeCanvasWindow() {
     window.removeEventListener("message", this.handleCanvasWindowMessage);
     this.canvasWindow && this.canvasWindow.close();
     this.canvasWindow = null;
   },
+
   handleCanvasWindowMessage(event) {
     if (event.origin != window.location.origin) return;
     switch (event.data) {
       case "canvas_popin_clicked":
-        this.el.setAttribute("data-js-view", "canvas");
+        this.handleCanvasPopinClick();
         break;
       case "canvas_close_clicked":
         this.handleCanvasCloseClick();
