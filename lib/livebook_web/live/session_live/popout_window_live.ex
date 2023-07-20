@@ -5,22 +5,43 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
   alias Livebook.Notebook.Cell
 
   @impl true
+  def mount(%{"id" => session_id, "type" => type}, _session, socket) do
+    case Sessions.fetch_session(session_id) do
+      {:ok, %{pid: session_pid}} ->
+        {data, client_id} =
+          if connected?(socket) do
+            {data, client_id} =
+              Session.register_client(session_pid, self(), socket.assigns.current_user)
+
+            Session.subscribe(session_id)
+
+            {data, client_id}
+          else
+            data = Session.get_data(session_pid)
+            {data, nil}
+          end
+
+        session = Session.get_by_pid(session_pid)
+
+        {:ok,
+         socket
+         |> assign(
+           session: session,
+           client_id: client_id,
+           type: type,
+           data_view: data_to_view(data)
+         )
+         |> assign_private(data: data)}
+
+      :error ->
+        # TODO: handle this error correclty
+        {:ok, redirect(socket, to: ~p"/")}
+    end
+  end
+
+  @impl true
   def mount(%{"id" => session_id}, _session, socket) do
-    {:ok, session} = Sessions.fetch_session(session_id)
-
-    data = Session.get_data(session.pid)
-
-    Session.subscribe(session_id)
-
-    {:ok,
-     socket
-     |> assign(
-       session: session,
-       # TODO
-       client_id: "",
-       data_view: data_to_view(data)
-     )
-     |> assign_private(data: data)}
+    {:ok, redirect(socket, to: ~p"/sessions/#{session_id}")}
   end
 
   defp assign_private(socket, assigns) do
@@ -47,7 +68,7 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
   end
 
   @impl true
-  def render(assigns) do
+  def render(%{type: "canvas"} = assigns) do
     ~H"""
     <div id="popout-window" class="w-full h-full" phx-hook="PopoutWindow">
       <div class="h-full w-full" data-el-notebook>
@@ -108,34 +129,23 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
 
   @impl true
   def handle_info({:operation, operation}, socket) do
-    {:noreply, handle_operation(socket, operation)}
+    socket =
+      case Session.Data.apply_operation(socket.private.data, operation) do
+        {:ok, data, _actions} ->
+          socket
+          |> assign_private(data: data)
+          |> assign(data_to_view(data))
+
+        :error ->
+          socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
   def handle_info(message, socket) do
     IO.inspect(message, label: "Not implemented for Popout Window")
     {:noreply, socket}
-  end
-
-  defp handle_operation(socket, operation) do
-    case Session.Data.apply_operation(socket.private.data, operation) do
-      {:ok, data, _actions} ->
-        socket
-        |> assign_private(data: data)
-        |> assign(
-          data_view:
-            update_data_view(data, operation)
-        )
-
-      :error ->
-        socket
-    end
-  end
-
-  defp update_data_view(data, operation) do
-    case operation do
-      _ ->
-        data_to_view(data)
-    end
   end
 end

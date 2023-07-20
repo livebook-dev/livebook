@@ -95,7 +95,6 @@ defmodule LivebookWeb.Helpers do
         Cell.evaluable?(cell),
         cell.output_location != nil,
         into: %{} do
-
       {cell.id, cell.output_location}
     end
   end
