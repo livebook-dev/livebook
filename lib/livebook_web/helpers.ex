@@ -86,6 +86,10 @@ defmodule LivebookWeb.Helpers do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
   end
 
+  @doc """
+  TODO
+  """
+  @spec canvas_outputs(Notebook.t()) :: list({Cell.id(), map()})
   def canvas_outputs(notebook) do
     for {cell, section} <- Notebook.cells_with_section(notebook),
         Cell.evaluable?(cell),
@@ -93,7 +97,8 @@ defmodule LivebookWeb.Helpers do
         into: %{} do
       content = "#{section.name}\n#{cell.id}"
 
-      {cell.id, Map.put(cell.output_location, :content, content)}
+      # {cell.id, Map.put(cell.output_location, :content, content)}
+      {cell.id, cell.output_location}
     end
   end
 end

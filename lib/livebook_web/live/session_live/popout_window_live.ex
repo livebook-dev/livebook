@@ -1,7 +1,8 @@
 defmodule LivebookWeb.SessionLive.PopoutWindowLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{Session, Sessions}
+  alias Livebook.{Notebook, Session, Sessions}
+  alias Livebook.Notebook.Cell
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -28,7 +29,18 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
 
   defp data_to_view(data) do
     %{
-      canvas_layout: canvas_outputs(data.notebook)
+      canvas_layout: canvas_outputs(data.notebook),
+      output_views:
+        for {cell, _section} <- Notebook.cells_with_section(data.notebook),
+            Cell.evaluable?(cell),
+            cell.id != "setup" do
+          %{
+            outputs: cell.outputs,
+            # input_values: input_values_for_output(cell.outputs, data),
+            input_values: %{},
+            cell_id: cell.id
+          }
+        end
     }
   end
 
@@ -36,6 +48,20 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
   def render(assigns) do
     ~H"""
     <div id="popout-window" class="w-full h-full" phx-hook="PopoutWindow">
+      <div
+        :for={output_view <- Enum.reverse(@data_view.output_views)}
+        id={"outputs-#{output_view.cell_id}"}
+      >
+        <LivebookWeb.Output.outputs
+          outputs={output_view.outputs}
+          dom_id_map={%{}}
+          session_id={@session.id}
+          session_pid={@session.pid}
+          client_id={@client_id}
+          cell_id={output_view.cell_id}
+          input_values={output_view.input_values}
+        />
+      </div>
       <.live_component
         module={LivebookWeb.SessionLive.CanvasComponent}
         id="canvas"
@@ -56,7 +82,7 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
             </:toggle>
             <.menu_item>
               <button role="menuitem" data-el-canvas-popin-button>
-                <.remix_icon icon="external-link-line" />
+                <.remix_icon icon="corner-left-down-fill" />
                 <span>Pop-In</span>
               </button>
             </.menu_item>

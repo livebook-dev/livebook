@@ -20,6 +20,7 @@ const Canvas = {
       resizable: { handles: "all" },
       margin: 0,
       cellHeight: "4rem",
+      //handle: ".drag-handle",
     };
 
     this.grid = GridStack.init(options, this.el);
@@ -34,6 +35,12 @@ const Canvas = {
     });
 
     this.grid.on("added", (event, items) => {
+      items.forEach((item) => {
+        const output_id = `[id^=outputs-${item.id}]`;
+        const output_el = document.querySelector(output_id);
+        output_el._notebookLocation = output_el.parentNode;
+        item.el.firstChild.appendChild(output_el);
+      });
       console.log("ADDED", items);
     });
 
