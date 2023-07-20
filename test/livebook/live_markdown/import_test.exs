@@ -1162,7 +1162,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
-               hub_id: "personal-hub",
+               hub_id: "team-org-number-3079",
                hub_secret_names: ["DB_PASSWORD"],
                teams_enabled: true
              } = notebook
@@ -1185,7 +1185,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
-      assert %Notebook{hub_id: "personal-hub", teams_enabled: false} = notebook
+      assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: false} = notebook
       assert messages == ["failed to verify notebook stamp"]
     end
 

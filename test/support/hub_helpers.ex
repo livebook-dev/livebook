@@ -67,7 +67,13 @@ defmodule Livebook.HubHelpers do
   end
 
   def set_offline_hub() do
-    Livebook.Hubs.set_offline_hub(@offline_hub)
+    hub = offline_hub()
+    Livebook.Hubs.set_offline_hub(hub)
+
+    child_spec = %{id: hub.id, start: {Livebook.Hubs.TeamClient, :start_link, [hub, true]}}
+    {:ok, _pid} = DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
+
+    hub
   end
 
   def offline_hub(), do: @offline_hub
