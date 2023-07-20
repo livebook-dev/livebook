@@ -3,8 +3,6 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   alias Livebook.Hubs.TeamClient
 
-  import Livebook.HubHelpers
-
   @moduletag :capture_log
 
   setup do

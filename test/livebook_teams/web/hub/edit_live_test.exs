@@ -2,7 +2,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
-  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.Hubs
