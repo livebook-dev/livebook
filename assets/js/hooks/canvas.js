@@ -13,35 +13,27 @@ const Canvas = {
     const self = this;
 
     const options = {
-      //acceptWidgets: true,
-      //removeable: true,
       styleInHead: true,
       float: true,
       resizable: { handles: "all" },
       margin: 0,
       cellHeight: "4rem",
-      //handle: ".drag-handle",
     };
 
     this.grid = GridStack.init(options, this.el);
 
-    this.handleEvent("init", ({ payload }) => {
+    this.handleEvent("reload", ({ payload }) => {
       const grid_items = Object.entries(payload).map(([id, value]) => ({
         id,
         ...value,
       }));
-      console.log("LAYOUT", grid_items);
       this.grid.load(grid_items);
-    });
-
-    this.grid.on("added", (event, items) => {
-      items.forEach((item) => {
-        const output_id = `[id^=outputs-${item.id}]`;
+      Array.from(this.grid.el.children).forEach((item) => {
+        console.log(item.attributes);
+        const output_id = `[id^=outputs-${item.attributes["gs-id"].value}]`;
         const output_el = document.querySelector(output_id);
-        output_el._notebookLocation = output_el.parentNode;
-        item.el.firstChild.appendChild(output_el);
+        item.firstChild.appendChild(output_el);
       });
-      console.log("ADDED", items);
     });
 
     this.grid.on("change", function (event, items) {

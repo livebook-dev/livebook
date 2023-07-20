@@ -24,7 +24,7 @@ defmodule Livebook.Notebook.Cell.Code do
           id: Cell.id(),
           source: String.t() | :__pruned__,
           outputs: list(Cell.indexed_output()),
-          output_location: Cell.canvas_sprite() | nil,
+          output_location: Cell.canvas_location() | nil,
           language: :elixir | :erlang,
           disable_formatting: boolean(),
           reevaluate_automatically: boolean(),

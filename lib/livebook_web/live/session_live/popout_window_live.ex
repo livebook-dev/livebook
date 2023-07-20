@@ -10,6 +10,8 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
 
     data = Session.get_data(session.pid)
 
+    Session.subscribe(session_id)
+
     {:ok,
      socket
      |> assign(
@@ -102,5 +104,38 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
       </div>
     </div>
     """
+  end
+
+  @impl true
+  def handle_info({:operation, operation}, socket) do
+    {:noreply, handle_operation(socket, operation)}
+  end
+
+  @impl true
+  def handle_info(message, socket) do
+    IO.inspect(message, label: "Not implemented for Popout Window")
+    {:noreply, socket}
+  end
+
+  defp handle_operation(socket, operation) do
+    case Session.Data.apply_operation(socket.private.data, operation) do
+      {:ok, data, actions} ->
+        socket
+        |> assign_private(data: data)
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+        )
+
+      :error ->
+        socket
+    end
+  end
+
+  defp update_data_view(data_view, prev_data, data, operation) do
+    case operation do
+      _ ->
+        data_to_view(data)
+    end
   end
 end

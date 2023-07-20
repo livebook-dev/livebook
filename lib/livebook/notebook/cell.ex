@@ -18,7 +18,7 @@ defmodule Livebook.Notebook.Cell do
 
   @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
-  @type canvas_sprite :: %{
+  @type canvas_location :: %{
           x: non_neg_integer(),
           y: non_neg_integer(),
           w: non_neg_integer(),

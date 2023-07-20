@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionLive.CanvasComponent do
         client_id: assigns.client_id,
         canvas_layout: assigns.canvas_layout
       )
-      |> push_event("init", %{payload: assigns.canvas_layout})
+      |> push_event("reload", %{payload: assigns.canvas_layout})
 
     {:ok, socket}
   end
