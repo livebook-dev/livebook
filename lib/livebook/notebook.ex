@@ -30,7 +30,7 @@ defmodule Livebook.Notebook do
     :teams_enabled
   ]
 
-  alias Livebook.Notebook.{Section, Cell, AppSettings, CanvasSettings}
+  alias Livebook.Notebook.{Section, Cell, AppSettings}
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
