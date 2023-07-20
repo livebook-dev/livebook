@@ -101,6 +101,54 @@ defmodule Livebook.AppsTest do
     end
 
     @tag :tmp_dir
+    test "deploys apps with offline hub secrets", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app1.livemd")
+      hub = offline_hub()
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"offline_hub_app2"},"hub_id":"team-org-number-3079"} -->
+
+      # App 2
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":148,"stamp":{"token":"QTEyOEdDTQ.M486X5ISDg_wVwvndrMYJKIkfXa5qAwggh5LzkV41wVOY8SNQvfA4EFx4Tk.RrcteIrzJVrqQdhH.mtmu5KFj.bibmp2rxZoniYX1xY8dTvw","token_signature":"28ucTCoDXxahOIMg7SvdYIoLpGIUSahEa7mchH0jKncKeZH8-w-vOaL1F1uj_94lqQJFkmHWv988__1bPmYCorw7F1wAvAaprt3o2vSitWWmBszuF5JaimkFqOFcK3mc4NHuswQKuBjSL0W_yR-viiwlx6zPNsTpftVKjRI2Cri1PsMeZgahfdR2gy1OEgavzU6J6YWsNQHIMWgt5gwT6fIua1zaV7K8-TA6-6NRgcfG-pSJqRIm-3-vnbH5lkXRCgXCo_S9zWa6Jrcl5AbLObSr5DUueiwac1RobH7jNghCm1F-o1cUk9W-BJRZ7igVMwaYqLaOnKO8ya9CrkIiMg","version":1}} -->
+      """)
+
+      Livebook.Apps.subscribe()
+
+      secret = %Livebook.Secrets.Secret{
+        name: "DB_PASSWORD",
+        value: "postgres",
+        hub_id: hub.id
+      }
+
+      put_offline_hub_secret(secret)
+      assert secret in Livebook.Hubs.get_secrets(hub)
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+
+      assert_receive {:app_created, %{pid: pid, slug: "offline_hub_app2"}}
+
+      assert_receive {:app_updated,
+                      %{
+                        slug: "offline_hub_app2",
+                        sessions: [%{app_status: %{execution: :executed}}]
+                      }}
+
+      session_id = Livebook.App.get_session_id(pid)
+      {:ok, session} = Livebook.Sessions.fetch_session(session_id)
+      assert %{hub_secrets: [^secret]} = Livebook.Session.get_data(session.pid)
+
+      Livebook.App.close(pid)
+      remove_offline_hub_secret(secret)
+    end
+
+    @tag :tmp_dir
     test "skips apps with incomplete config and warns", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
