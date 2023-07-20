@@ -114,7 +114,6 @@ defmodule LivebookWeb.AppSessionLive do
             session_pid={@session.pid}
             client_id={@client_id}
             cell_id={output_view.cell_id}
-            output_location={:canvas}
             input_values={output_view.input_values}
           />
         </div>
@@ -162,7 +161,7 @@ defmodule LivebookWeb.AppSessionLive do
             </.menu_item>
           </.menu>
         </div>
-        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes-notebook"></div>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
             <%= @data_view.notebook_name %>
@@ -183,7 +182,6 @@ defmodule LivebookWeb.AppSessionLive do
                 session_pid={@session.pid}
                 client_id={@client_id}
                 cell_id={output_view.cell_id}
-                output_location={:notebook}
                 input_values={output_view.input_values}
               />
             </div>
@@ -349,8 +347,7 @@ defmodule LivebookWeb.AppSessionLive do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),
         Cell.evaluable?(cell),
-        output <-
-          filter_outputs(cell.outputs, notebook.app_settings.output_type),
+        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
         do: {cell.id, output}
   end
 
@@ -394,13 +391,6 @@ defmodule LivebookWeb.AppSessionLive do
     do: {idx, output}
 
   defp filter_output(_output), do: nil
-
-  defp get_dashboard_layout(dashboard_items) do
-    for {id, rest} <- dashboard_items do
-      rest = %{"x" => rest[:x], "y" => rest[:y], "w" => rest[:w], "h" => rest[:h]}
-      Map.put(rest, "id", id)
-    end
-  end
 
   defp show_app_status?(%{execution: :executed, lifecycle: :active}), do: false
   defp show_app_status?(_status), do: true

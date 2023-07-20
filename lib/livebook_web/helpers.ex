@@ -91,13 +91,11 @@ defmodule LivebookWeb.Helpers do
   """
   @spec canvas_outputs(Notebook.t()) :: list({Cell.id(), map()})
   def canvas_outputs(notebook) do
-    for {cell, section} <- Notebook.cells_with_section(notebook),
+    for {cell, _section} <- Notebook.cells_with_section(notebook),
         Cell.evaluable?(cell),
         cell.output_location != nil,
         into: %{} do
-      content = "#{section.name}\n#{cell.id}"
 
-      # {cell.id, Map.put(cell.output_location, :content, content)}
       {cell.id, cell.output_location}
     end
   end

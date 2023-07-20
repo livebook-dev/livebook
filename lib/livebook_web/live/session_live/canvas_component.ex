@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.CanvasComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{Session, Sessions}
+  alias Livebook.Session
 
   @impl true
   def mount(socket) do
@@ -40,6 +40,7 @@ defmodule LivebookWeb.SessionLive.CanvasComponent do
   @impl true
   def handle_event("items_changed", params, socket) do
     items = params |> Enum.map(fn {k, v} -> {k, convert(v)} end) |> Enum.into(%{})
+    IO.inspect(items, label: "ITEMS CHANGED")
     Session.update_canvas(socket.assigns.session.pid, items)
     {:noreply, socket}
   end

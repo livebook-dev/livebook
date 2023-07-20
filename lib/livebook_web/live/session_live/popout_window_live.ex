@@ -119,12 +119,12 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
 
   defp handle_operation(socket, operation) do
     case Session.Data.apply_operation(socket.private.data, operation) do
-      {:ok, data, actions} ->
+      {:ok, data, _actions} ->
         socket
         |> assign_private(data: data)
         |> assign(
           data_view:
-            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+            update_data_view(data, operation)
         )
 
       :error ->
@@ -132,7 +132,7 @@ defmodule LivebookWeb.SessionLive.PopoutWindowLive do
     end
   end
 
-  defp update_data_view(data_view, prev_data, data, operation) do
+  defp update_data_view(data, operation) do
     case operation do
       _ ->
         data_to_view(data)
