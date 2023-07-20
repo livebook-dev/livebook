@@ -56,7 +56,7 @@ defmodule LivebookWeb.Hub.NewLive do
         <p class="text-gray-700">
           <a
             class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://livebook.dev/teams"
+            href="https://livebook.dev/teams?ref=LivebookApp"
             target="_blank"
           >
             Learn more about Livebook Teams
