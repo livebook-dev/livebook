@@ -214,7 +214,7 @@ defmodule Livebook.Runtime.Definitions do
         |> File.read!()
         |> Jason.decode!()
 
-      Kino.Tree.new(data)  \
+      Kino.Tree.new(data)\
       """,
       packages: [kino, jason]
     },
