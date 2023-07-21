@@ -14,7 +14,7 @@ solely client-side operations.
 }
 
 [phx-hook="Dropzone"][data-js-dragging] {
-  @apply bg-yellow-100 border-yellow-300;
+  @apply bg-blue-100 border-blue-300;
 }
 
 /* === Session === */
@@ -70,6 +70,10 @@ solely client-side operations.
   > [data-el-section-content],
 [data-el-section]:not([data-js-collapsed])
   > [data-el-section-subheadline-collapsed] {
+  @apply hidden;
+}
+
+[data-el-session]:not([data-js-dragging]) [data-el-insert-drop-area] {
   @apply hidden;
 }
 

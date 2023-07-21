@@ -45,7 +45,12 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
               <span class="break-all"><%= file_entry.name %></span>
             </button>
           <% else %>
-            <div class="flex items-center text-gray-500">
+            <div
+              class="flex items-center text-gray-500 cursor-grab"
+              draggable="true"
+              data-el-file-entry
+              data-name={file_entry.name}
+            >
               <.remix_icon icon={file_entry_icon(file_entry.type)} class="text-lg align-middle mr-2" />
               <span class="break-all"><%= file_entry.name %></span>
             </div>

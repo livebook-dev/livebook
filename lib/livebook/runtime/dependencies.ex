@@ -255,7 +255,7 @@ defmodule Livebook.Runtime.Dependencies do
   through the given list of packages.
   """
   @spec search_packages_in_list(
-          list(Livebook.Runtime.package()),
+          list(Livebook.Runtime.package_details()),
           pid(),
           String.t()
         ) :: reference()
