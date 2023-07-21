@@ -364,7 +364,7 @@ defprotocol Livebook.Runtime do
   @typedoc """
   Smart cell editor configuration.
   """
-  @type editor :: %{language: String.t(), placement: :bottom | :top, source: String.t()}
+  @type editor :: %{language: String.t() | nil, placement: :bottom | :top, source: String.t()}
 
   @typedoc """
   An opaque file reference.
