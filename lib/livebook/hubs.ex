@@ -299,7 +299,7 @@ defmodule Livebook.Hubs do
   @doc """
   Connects the given hub, without connecting with WebSocket.
   """
-  @spec start_offline_hub(Provider.t(), String.t()) :: :ok
+  @spec start_offline_hub(Provider.t(), String.t() | nil) :: :ok | :error
   def start_offline_hub(hub, encrypted_secrets) do
     {client, ^hub} = Provider.connection_spec(hub)
 
@@ -309,16 +309,20 @@ defmodule Livebook.Hubs do
         start: {client, :start_link, [hub, _offline? = true]}
       })
 
-    {secret_key, sign_secret} = Teams.derive_keys(hub.teams_key)
+    if encrypted_secrets do
+      {secret_key, sign_secret} = Teams.derive_keys(hub.teams_key)
 
-    with {:ok, json} <- Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret) do
-      secrets =
-        for {name, value} <- Jason.decode!(json),
-            do: LivebookProto.Secret.new(name: name, value: value)
+      with {:ok, json} <- Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret) do
+        secrets =
+          for {name, value} <- Jason.decode!(json),
+              do: LivebookProto.Secret.new(name: name, value: value)
 
-      user_connected = LivebookProto.UserConnected.new!(name: hub.hub_name, secrets: secrets)
+        user_connected = LivebookProto.UserConnected.new!(name: hub.hub_name, secrets: secrets)
 
-      send(pid, {:event, :user_connected, user_connected})
+        send(pid, {:event, :user_connected, user_connected})
+        :ok
+      end
+    else
       :ok
     end
   end
