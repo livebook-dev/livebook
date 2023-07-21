@@ -217,6 +217,7 @@ defmodule Livebook.Application do
   def create_offline_hub() do
     name = System.get_env("LIVEBOOK_TEAMS_NAME")
     public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
+    encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
 
     if name && public_key do
       teams_key =
@@ -235,8 +236,12 @@ defmodule Livebook.Application do
 
       Livebook.Hubs.set_offline_hub(hub)
 
-      if encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS") do
-        Livebook.Hubs.start_offline_hub(hub, encrypted_secrets)
+      with :error <- Livebook.Hubs.start_offline_hub(hub, encrypted_secrets) do
+        require Logger
+
+        Logger.warning(
+          "expected LIVEBOOK_TEAMS_SECRETS to be decryptable, but or the keys are invalid to decrypt or the data was encrypted with another keys."
+        )
       end
     end
   end
