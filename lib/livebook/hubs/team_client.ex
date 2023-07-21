@@ -11,14 +11,7 @@ defmodule Livebook.Hubs.TeamClient do
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
 
-  defstruct [
-    :hub,
-    :connection_error,
-    :derived_keys,
-    connected?: false,
-    offline?: false,
-    secrets: []
-  ]
+  defstruct [:hub, :connection_error, :derived_keys, connected?: false, secrets: []]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
@@ -76,29 +69,19 @@ defmodule Livebook.Hubs.TeamClient do
   def init({%Team{} = team, offline?}) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
-    {:ok,
-     %__MODULE__{
-       hub: team,
-       offline?: offline?,
-       connected?: offline?,
-       derived_keys: derived_keys
-     }, {:continue, :connect}}
+    unless offline? do
+      headers = [
+        {"x-user", to_string(team.user_id)},
+        {"x-org", to_string(team.org_id)},
+        {"x-org-key", to_string(team.org_key_id)},
+        {"x-session-token", team.session_token}
+      ]
+
+      {:ok, _pid} = Connection.start_link(self(), headers)
+    end
+
+    {:ok, %__MODULE__{hub: team, connected?: offline?, derived_keys: derived_keys}}
   end
-
-  @impl true
-  def handle_continue(:connect, %{offline?: false, hub: team} = state) do
-    headers = [
-      {"x-user", to_string(team.user_id)},
-      {"x-org", to_string(team.org_id)},
-      {"x-org-key", to_string(team.org_key_id)},
-      {"x-session-token", team.session_token}
-    ]
-
-    {:ok, _pid} = Connection.start_link(self(), headers)
-    {:noreply, state}
-  end
-
-  def handle_continue(:connect, state), do: {:noreply, state}
 
   @impl true
   def handle_call(:get_connection_error, _caller, state) do
