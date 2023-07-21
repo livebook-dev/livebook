@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive.InsertFileComponent do
       <p class="mt-8 text-gray-700">
         What do you want to do with the file?
       </p>
-      <div class="mt-4 w-full flex flex-col space-y-4">
+      <div class="mt-8 w-full flex flex-col space-y-4">
         <div
           :for={{handler, idx} <- Enum.with_index(@insert_file_metadata.handlers)}
           class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 cursor-pointer"
