@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
-      <div class="mb-8">
+      <div class="mb-8 flex flex-col space-y-8">
         <div class="flex justify-between">
           <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
@@ -59,6 +59,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             </button>
           </div>
         </div>
+        <div>
+          <p class="text-gray-700">
+            A shared Teams hub. All resources here are shared with your team. Manage users and billing on livebook.dev.
+          </p>
+        </div>
 
         <div class="flex flex-col space-y-10">
           <div class="flex flex-col space-y-2">
@@ -75,13 +80,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               phx-change="validate"
               phx-target={@myself}
             >
-              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="tooltip top close-gap flex-col" data-tooltip="Name cannot be changed.">
+                  <.text_field
+                    field={f[:hub_name]}
+                    label="Name"
+                    disabled
+                    class="bg-gray-200/50 border-200/80 tooltip top"
+                  />
+                </div>
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
 
-              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                Update Hub
-              </button>
+              <div>
+                <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                  Update Hub
+                </button>
+              </div>
             </.form>
           </div>
 
