@@ -356,6 +356,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     form = socket.assigns.dockerfile_form.params
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
+    identity_source = Livebook.Config.identity_source()
 
     dockerfile = """
     FROM livebook/livebook:#{version}
@@ -377,9 +378,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       end
 
     dockerfile =
-      if Livebook.Config.identity_source() != :session do
+      if identity_source != :session do
         {_module, zta} = Livebook.Config.identity_provider()
-        identity_provider = ~s(\nENV LIVEBOOK_IDENTITY_PROVIDER "#{zta}")
+        identity_provider = ~s(\nENV LIVEBOOK_IDENTITY_PROVIDER "#{identity_source}:#{zta}")
 
         dockerfile <> identity_provider
       else
