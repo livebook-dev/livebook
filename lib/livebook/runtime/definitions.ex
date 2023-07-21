@@ -46,6 +46,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:kino_explorer, "~> 0.1.4"}, config: []}
   }
 
+  jason = %{
+    name: "jason",
+    dependency: %{dep: {:jason, "~> 1.4"}, config: []}
+  }
+
   windows? = match?({:win32, _}, :os.type())
   nx_backend_package = if(windows?, do: torchx, else: exla)
 
@@ -159,8 +164,10 @@ defmodule Livebook.Runtime.Definitions do
     }
   ]
 
-  @code_block_definitions [
+  @snippet_definitions [
+    # Examples
     %{
+      type: :example,
       name: "Form",
       icon: "bill-line",
       variants: [
@@ -184,10 +191,47 @@ defmodule Livebook.Runtime.Definitions do
           packages: [kino]
         }
       ]
+    },
+    # File actions
+    %{
+      type: :file_action,
+      file_types: :any,
+      description: "Read file content",
+      source: """
+      content =
+        Kino.FS.file_path("{{NAME}}")
+        |> File.read!()\
+      """,
+      packages: [kino]
+    },
+    %{
+      type: :file_action,
+      file_types: ["application/json"],
+      description: "Parse JSON content",
+      source: """
+      data =
+        Kino.FS.file_path("{{NAME}}")
+        |> File.read!()
+        |> Jason.decode!()
+
+      Kino.Tree.new(data)\
+      """,
+      packages: [kino, jason]
+    },
+    %{
+      type: :file_action,
+      file_types: ["text/csv"],
+      description: "Create a dataframe",
+      source: """
+      df =
+        Kino.FS.file_path("{{NAME}}")
+        |> Explorer.DataFrame.from_csv!()\
+      """,
+      packages: [kino, kino_explorer]
     }
   ]
 
   def smart_cell_definitions(), do: @smart_cell_definitions
 
-  def code_block_definitions(), do: @code_block_definitions
+  def snippet_definitions(), do: @snippet_definitions
 end

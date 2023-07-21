@@ -843,8 +843,10 @@ defmodule Livebook.Notebook do
   """
   @spec validate_file_entry_name(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
   def validate_file_entry_name(changeset, field) do
-    Ecto.Changeset.validate_format(changeset, field, ~r/^[\w-.]+$/,
+    changeset
+    |> Ecto.Changeset.validate_format(field, ~r/^[\w-.]+$/,
       message: "should contain only alphanumeric characters, dash, underscore and dot"
     )
+    |> Ecto.Changeset.validate_format(field, ~r/\.\w+$/, message: "should end with an extension")
   end
 end

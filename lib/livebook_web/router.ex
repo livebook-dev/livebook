@@ -92,6 +92,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/export/:tab", SessionLive, :export
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
       live "/sessions/:id/insert-image", SessionLive, :insert_image
+      live "/sessions/:id/insert-file", SessionLive, :insert_file
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/files/:name", SessionController, :show_file
       get "/sessions/:id/images/:name", SessionController, :show_image

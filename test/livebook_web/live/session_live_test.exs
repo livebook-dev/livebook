@@ -244,11 +244,13 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
-      {:ok, view, _} =
-        live(
-          conn,
-          ~p"/sessions/#{session.id}/insert-image?section_id=#{section_id}&cell_id=#{cell_id}"
-        )
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s/[phx-click="insert_image"][phx-value-section_id="#{section_id}"][phx-value-cell_id="#{cell_id}"]/
+      )
+      |> render_click()
 
       view
       |> file_input(~s/#insert-image-modal form/, :image, [
@@ -277,6 +279,87 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "content"}
+    end
+
+    test "inserting a file", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "file.bin")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "file.bin"}])
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "file.bin",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Read file content")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       _first_cell,
+                       %Cell.Code{
+                         source: """
+                         content =
+                           Kino.FS.file_path("file.bin")
+                           |> File.read!()\
+                         """
+                       }
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "inserting a file as markdown image", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "image.jpg",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
     end
 
     test "deleting section with no cells requires no confirmation",

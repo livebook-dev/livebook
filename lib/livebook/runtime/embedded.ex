@@ -135,8 +135,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.has_dependencies?(runtime.server_pid, dependencies)
   end
 
-  def code_block_definitions(_runtime) do
-    Livebook.Runtime.Definitions.code_block_definitions()
+  def snippet_definitions(_runtime) do
+    Livebook.Runtime.Definitions.snippet_definitions()
   end
 
   def search_packages(_runtime, send_to, search) do

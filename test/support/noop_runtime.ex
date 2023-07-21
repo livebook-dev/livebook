@@ -55,7 +55,9 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def has_dependencies?(_runtime, _dependencies), do: true
 
-    def code_block_definitions(_runtime), do: []
+    def snippet_definitions(_runtime) do
+      Livebook.Runtime.Definitions.snippet_definitions()
+    end
 
     def search_packages(_, _, _), do: make_ref()
 

@@ -142,6 +142,8 @@ const Session = {
       (event) => this.toggleCollapseAllSections()
     );
 
+    this.initializeDragAndDrop();
+
     window.addEventListener(
       "phx:page-loading-stop",
       () => {
@@ -705,6 +707,45 @@ const Session = {
       );
       listItem.setAttribute("data-js-is-viewed", "");
     }
+  },
+
+  /**
+   * Initializes drag and drop event handlers.
+   */
+  initializeDragAndDrop() {
+    let draggedEl = null;
+
+    this.el.addEventListener("dragstart", (event) => {
+      draggedEl = event.target;
+      this.el.setAttribute("data-js-dragging", "");
+    });
+
+    this.el.addEventListener("dragend", (event) => {
+      this.el.removeAttribute("data-js-dragging");
+    });
+
+    this.el.addEventListener("dragover", (event) => {
+      const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
+
+      if (dropEl) {
+        event.preventDefault();
+      }
+    });
+
+    this.el.addEventListener("drop", (event) => {
+      const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
+
+      if (draggedEl.matches("[data-el-file-entry]") && dropEl) {
+        const fileEntryName = draggedEl.getAttribute("data-name");
+        const sectionId = dropEl.getAttribute("data-section-id") || null;
+        const cellId = dropEl.getAttribute("data-cell-id") || null;
+        this.pushEvent("insert_file", {
+          file_entry_name: fileEntryName,
+          section_id: sectionId,
+          cell_id: cellId,
+        });
+      }
+    });
   },
 
   // User action handlers (mostly keybindings)
