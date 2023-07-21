@@ -362,6 +362,47 @@ defmodule LivebookWeb.SessionLiveTest do
              } = Session.get_data(session.pid)
     end
 
+    test "inserting file after file drop upload", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> render_hook("handle_file_drop", %{"section_id" => section_id, "cell_id" => cell_id})
+
+      view
+      |> file_input(~s{#add-file-entry-form}, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
     test "deleting section with no cells requires no confirmation",
          %{conn: conn, session: session} do
       section_id = insert_section(session.pid)

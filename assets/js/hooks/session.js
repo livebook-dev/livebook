@@ -714,36 +714,66 @@ const Session = {
    */
   initializeDragAndDrop() {
     let draggedEl = null;
+    let files = null;
 
     this.el.addEventListener("dragstart", (event) => {
       draggedEl = event.target;
+    });
+
+    this.el.addEventListener("dragenter", (event) => {
       this.el.setAttribute("data-js-dragging", "");
     });
 
-    this.el.addEventListener("dragend", (event) => {
-      this.el.removeAttribute("data-js-dragging");
-    });
-
-    this.el.addEventListener("dragover", (event) => {
-      const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
-
-      if (dropEl) {
-        event.preventDefault();
+    this.el.addEventListener("dragleave", (event) => {
+      if (!this.el.contains(event.relatedTarget)) {
+        this.el.removeAttribute("data-js-dragging");
       }
     });
 
+    this.el.addEventListener("dragover", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
+
     this.el.addEventListener("drop", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+
+      this.el.removeAttribute("data-js-dragging");
+
       const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
 
-      if (draggedEl.matches("[data-el-file-entry]") && dropEl) {
+      if (!dropEl) return;
+
+      const sectionId = dropEl.getAttribute("data-section-id") || null;
+      const cellId = dropEl.getAttribute("data-cell-id") || null;
+
+      if (event.dataTransfer.files.length > 0) {
+        files = event.dataTransfer.files;
+
+        this.pushEvent("handle_file_drop", {
+          section_id: sectionId,
+          cell_id: cellId,
+        });
+      } else if (draggedEl && draggedEl.matches("[data-el-file-entry]")) {
         const fileEntryName = draggedEl.getAttribute("data-name");
-        const sectionId = dropEl.getAttribute("data-section-id") || null;
-        const cellId = dropEl.getAttribute("data-cell-id") || null;
+
         this.pushEvent("insert_file", {
           file_entry_name: fileEntryName,
           section_id: sectionId,
           cell_id: cellId,
         });
+      }
+    });
+
+    this.handleEvent("finish_file_drop", (event) => {
+      const inputEl = document.querySelector(
+        `#add-file-entry-modal input[type="file"]`
+      );
+
+      if (inputEl) {
+        inputEl.files = files;
+        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
       }
     });
   },

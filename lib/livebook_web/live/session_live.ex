@@ -965,9 +965,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, handle_relative_path(socket, path, requested_url)}
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket)
-      when socket.assigns.live_action in [:export, :add_file_entry] do
+  def handle_params(%{"tab" => tab}, _url, socket) when socket.assigns.live_action == :export do
     {:noreply, assign(socket, tab: tab)}
+  end
+
+  def handle_params(%{"tab" => tab} = params, _url, socket)
+      when socket.assigns.live_action == :add_file_entry do
+    file_drop_metadata = if(params["file_drop"] == "true", do: socket.assigns.file_drop_metadata)
+    {:noreply, assign(socket, tab: tab, file_drop_metadata: file_drop_metadata)}
   end
 
   def handle_params(params, _url, socket)
@@ -1523,22 +1528,7 @@ defmodule LivebookWeb.SessionLive do
         socket
       ) do
     if file_entry = find_file_entry(socket, file_entry_name) do
-      if Livebook.Runtime.connected?(socket.private.data.runtime) do
-        {:noreply,
-         socket
-         |> assign(
-           insert_file_metadata: %{
-             section_id: section_id,
-             cell_id: cell_id,
-             file_entry: file_entry,
-             handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
-           }
-         )
-         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
-      else
-        reason = "To see the available options, you need a connected runtime."
-        {:noreply, confirm_setup_default_runtime(socket, reason)}
-      end
+      {:noreply, open_insert_file(socket, section_id, cell_id, file_entry)}
     else
       {:noreply, socket}
     end
@@ -1577,6 +1567,18 @@ defmodule LivebookWeb.SessionLive do
       )
 
     {:noreply, socket}
+  end
+
+  def handle_event(
+        "handle_file_drop",
+        %{"section_id" => section_id, "cell_id" => cell_id},
+        socket
+      ) do
+    {:noreply,
+     socket
+     |> assign(file_drop_metadata: %{section_id: section_id, cell_id: cell_id})
+     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload?file_drop=true")
+     |> push_event("finish_file_drop", %{})}
   end
 
   @impl true
@@ -1681,6 +1683,16 @@ defmodule LivebookWeb.SessionLive do
     }
 
     {:noreply, insert_cell_below(socket, params)}
+  end
+
+  def handle_info({:file_entry_uploaded, file_entry}, socket) do
+    case socket.assigns.file_drop_metadata do
+      %{section_id: section_id, cell_id: cell_id} ->
+        {:noreply, open_insert_file(socket, section_id, cell_id, file_entry)}
+
+      nil ->
+        {:noreply, socket}
+    end
   end
 
   def handle_info({:push_patch, to}, socket) do
@@ -2378,6 +2390,24 @@ defmodule LivebookWeb.SessionLive do
 
   defp find_file_entry(socket, name) do
     Enum.find(socket.private.data.notebook.file_entries, &(&1.name == name))
+  end
+
+  defp open_insert_file(socket, section_id, cell_id, file_entry) do
+    if Livebook.Runtime.connected?(socket.private.data.runtime) do
+      socket
+      |> assign(
+        insert_file_metadata: %{
+          section_id: section_id,
+          cell_id: cell_id,
+          file_entry: file_entry,
+          handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+        }
+      )
+      |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")
+    else
+      reason = "To see the available options, you need a connected runtime."
+      confirm_setup_default_runtime(socket, reason)
+    end
   end
 
   defp handlers_for_file_entry(file_entry, runtime) do
