@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div
       class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
-      data-el-js-cell-output-location-canvas={@cell_view.eval.output_location != nil}
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
       data-cell-id={@cell_view.id}
@@ -83,8 +82,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-        <.move_output_to_canvas_button cell_id={@cell_view.id} />
-        <.move_output_to_notebook_button cell_id={@cell_view.id} />
+        <%= if @cell_view.eval.output_location do %>
+          <.move_output_to_notebook_button cell_id={@cell_view.id} />
+        <% else %>
+          <.move_output_to_canvas_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -179,8 +181,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-        <.move_output_to_canvas_button cell_id={@cell_view.id} />
-        <.move_output_to_notebook_button cell_id={@cell_view.id} />
+        <%= if @cell_view.eval.output_location do %>
+          <.move_output_to_notebook_button cell_id={@cell_view.id} />
+        <% else %>
+          <.move_output_to_canvas_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
