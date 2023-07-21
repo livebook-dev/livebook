@@ -234,23 +234,9 @@ defmodule Livebook.Application do
       }
 
       Livebook.Hubs.set_offline_hub(hub)
-      connect_offline_hub(hub)
-    end
-  end
 
-  defp connect_offline_hub(hub) do
-    if encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS") do
-      child_spec = %{id: hub.id, start: {Livebook.Hubs.TeamClient, :start_link, [hub, true]}}
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
-
-      with {:ok, pid} <- DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec),
-           {:ok, json} <-
-             Livebook.Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret),
-           {:ok, secrets} <- Jason.decode(json) do
-        for {name, value} <- secrets do
-          secret_created = LivebookProto.SecretCreated.new(name: name, value: value)
-          send(pid, {:event, :secret_created, secret_created})
-        end
+      if encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS") do
+        Livebook.Hubs.start_offline_hub(hub, encrypted_secrets)
       end
     end
   end
