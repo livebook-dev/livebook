@@ -315,8 +315,9 @@ defmodule LivebookWeb.SessionLiveTest do
                        _first_cell,
                        %Cell.Code{
                          source: """
-                         Kino.FS.file_path("file.bin")
-                         |> File.read!()\
+                         content =
+                           Kino.FS.file_path("file.bin")
+                           |> File.read!()\
                          """
                        }
                      ]

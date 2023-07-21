@@ -198,8 +198,9 @@ defmodule Livebook.Runtime.Definitions do
       file_types: :any,
       description: "Read file content",
       source: """
-      Kino.FS.file_path("{{NAME}}")
-      |> File.read!()\
+      content =
+        Kino.FS.file_path("{{NAME}}")
+        |> File.read!()\
       """,
       packages: [kino]
     },
