@@ -971,7 +971,9 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(%{"tab" => tab} = params, _url, socket)
       when socket.assigns.live_action == :add_file_entry do
-    file_drop_metadata = if(params["file_drop"] == "true", do: socket.assigns.file_drop_metadata)
+    file_drop_metadata =
+      if(params["file_drop"] == "true", do: socket.assigns[:file_drop_metadata])
+
     {:noreply, assign(socket, tab: tab, file_drop_metadata: file_drop_metadata)}
   end
 
@@ -1601,6 +1603,14 @@ defmodule LivebookWeb.SessionLive do
       reason = "To see the available options, you need a connected runtime."
       {:noreply, confirm_setup_default_runtime(socket, reason)}
     end
+  end
+
+  def handle_event("handle_file_drop", %{}, socket) do
+    {:noreply,
+     socket
+     |> assign(file_drop_metadata: nil)
+     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload?file_drop=true")
+     |> push_event("finish_file_drop", %{})}
   end
 
   @impl true

@@ -588,7 +588,7 @@ defmodule LivebookWeb.FormComponents do
         for={@upload.ref}
         phx-drop-target={@upload.ref}
       >
-        <span name="placeholder" class="font-medium text-gray-400">
+        <span class="font-medium text-gray-400">
           Click to select a file or drag a local file here
         </span>
       </label>

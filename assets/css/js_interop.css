@@ -77,6 +77,10 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session]:not([data-js-dragging="external"]) [data-el-files-drop-area] {
+  @apply hidden;
+}
+
 [data-el-cell][data-js-focused] {
   @apply border-blue-300 border-opacity-100;
 }

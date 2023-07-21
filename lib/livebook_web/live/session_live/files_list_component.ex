@@ -30,6 +30,16 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         </h3>
         <.files_info_icon />
       </div>
+      <div
+        class="mt-5 h-20 rounded-lg border-2 border-dashed border-gray-400 flex items-center justify-center"
+        data-el-files-drop-area
+        id="files-dropzone"
+        phx-hook="Dropzone"
+      >
+        <span class="font-medium text-gray-400">
+          Add to files
+        </span>
+      </div>
       <div class="mt-5 flex flex-col gap-1">
         <div
           :for={{file_entry, idx} <- Enum.with_index(@file_entries)}
