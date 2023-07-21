@@ -240,7 +240,7 @@ defmodule Livebook.Application do
         require Logger
 
         Logger.warning(
-          "expected LIVEBOOK_TEAMS_SECRETS to be decryptable, but or the keys are invalid to decrypt or the data was encrypted with another keys."
+          "expected LIVEBOOK_TEAMS_SECRETS to be decryptable, but either the keys are invalid to decrypt or the data was encrypted with another keys."
         )
       end
     end
