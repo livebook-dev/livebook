@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.InsertFileComponent do
     ~H"""
     <div class="p-6">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Insert file
+        Suggested actions
       </h3>
       <p class="mt-8 text-gray-700">
         What do you want to do with the file?
