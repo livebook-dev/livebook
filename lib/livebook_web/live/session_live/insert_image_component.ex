@@ -56,7 +56,13 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
             label="File"
             on_clear={JS.push("clear_file", target: @myself)}
           />
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field
+            field={f[:name]}
+            label="Name"
+            id="insert-image-form-name"
+            autocomplete="off"
+            phx-debounce="blur"
+          />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <.link patch={@return_to} class="button-base button-outlined-gray">
@@ -79,13 +85,21 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
   def handle_event("validate", %{"data" => data} = params, socket) do
     upload_entries = socket.assigns.uploads.image.entries
 
-    data =
+    {data, socket} =
       case {params["_target"], data["name"], upload_entries} do
         {["image"], "", [entry]} ->
-          %{data | "name" => entry.client_name}
+          # Emulate input event to make sure validation errors are shown
+          socket =
+            exec_js(
+              socket,
+              JS.dispatch("input", to: "#insert-image-form-name")
+              |> JS.dispatch("blur", to: "#insert-image-form-name")
+            )
+
+          {%{data | "name" => entry.client_name}, socket}
 
         _ ->
-          data
+          {data, socket}
       end
 
     changeset = data |> changeset() |> Map.replace!(:action, :validate)

@@ -713,72 +713,135 @@ const Session = {
    * Initializes drag and drop event handlers.
    */
   initializeDragAndDrop() {
+    let isDragging = false;
     let draggedEl = null;
+    let files = null;
+
+    const startDragging = (element = null) => {
+      if (!isDragging) {
+        isDragging = true;
+        draggedEl = element;
+
+        const type = element ? "internal" : "external";
+        this.el.setAttribute("data-js-dragging", type);
+
+        if (type === "external") {
+          this.toggleFilesList(true);
+        }
+      }
+    };
+
+    const stopDragging = () => {
+      if (isDragging) {
+        isDragging = false;
+        this.el.removeAttribute("data-js-dragging");
+      }
+    };
 
     this.el.addEventListener("dragstart", (event) => {
-      draggedEl = event.target;
-      this.el.setAttribute("data-js-dragging", "");
+      startDragging(event.target);
     });
 
-    this.el.addEventListener("dragend", (event) => {
-      this.el.removeAttribute("data-js-dragging");
+    this.el.addEventListener("dragenter", (event) => {
+      startDragging();
     });
 
-    this.el.addEventListener("dragover", (event) => {
-      const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
-
-      if (dropEl) {
-        event.preventDefault();
+    this.el.addEventListener("dragleave", (event) => {
+      if (!this.el.contains(event.relatedTarget)) {
+        stopDragging();
       }
     });
 
-    this.el.addEventListener("drop", (event) => {
-      const dropEl = event.target.closest(`[data-el-insert-drop-area]`);
+    this.el.addEventListener("dragover", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
 
-      if (draggedEl.matches("[data-el-file-entry]") && dropEl) {
-        const fileEntryName = draggedEl.getAttribute("data-name");
-        const sectionId = dropEl.getAttribute("data-section-id") || null;
-        const cellId = dropEl.getAttribute("data-cell-id") || null;
-        this.pushEvent("insert_file", {
-          file_entry_name: fileEntryName,
-          section_id: sectionId,
-          cell_id: cellId,
-        });
+    this.el.addEventListener("drop", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+
+      const insertDropEl = event.target.closest(`[data-el-insert-drop-area]`);
+      const filesDropEl = event.target.closest(`[data-el-files-drop-area]`);
+
+      if (insertDropEl) {
+        const sectionId = insertDropEl.getAttribute("data-section-id") || null;
+        const cellId = insertDropEl.getAttribute("data-cell-id") || null;
+
+        if (event.dataTransfer.files.length > 0) {
+          files = event.dataTransfer.files;
+
+          this.pushEvent("handle_file_drop", {
+            section_id: sectionId,
+            cell_id: cellId,
+          });
+        } else if (draggedEl && draggedEl.matches("[data-el-file-entry]")) {
+          const fileEntryName = draggedEl.getAttribute("data-name");
+
+          this.pushEvent("insert_file", {
+            file_entry_name: fileEntryName,
+            section_id: sectionId,
+            cell_id: cellId,
+          });
+        }
+      } else if (filesDropEl) {
+        if (event.dataTransfer.files.length > 0) {
+          files = event.dataTransfer.files;
+          this.pushEvent("handle_file_drop", {});
+        }
+      }
+
+      stopDragging();
+    });
+
+    this.handleEvent("finish_file_drop", (event) => {
+      const inputEl = document.querySelector(
+        `#add-file-entry-modal input[type="file"]`
+      );
+
+      if (inputEl) {
+        inputEl.files = files;
+        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
       }
     });
   },
 
   // User action handlers (mostly keybindings)
 
-  toggleSectionsList() {
-    this.toggleSidePanelContent("sections-list");
+  toggleSectionsList(force = null) {
+    this.toggleSidePanelContent("sections-list", force);
   },
 
-  toggleClientsList() {
-    this.toggleSidePanelContent("clients-list");
+  toggleClientsList(force = null) {
+    this.toggleSidePanelContent("clients-list", force);
   },
 
-  toggleSecretsList() {
-    this.toggleSidePanelContent("secrets-list");
+  toggleSecretsList(force = null) {
+    this.toggleSidePanelContent("secrets-list", force);
   },
 
-  toggleAppInfo() {
-    this.toggleSidePanelContent("app-info");
+  toggleAppInfo(force = null) {
+    this.toggleSidePanelContent("app-info", force);
   },
 
-  toggleFilesList() {
-    this.toggleSidePanelContent("files-list");
+  toggleFilesList(force = null) {
+    this.toggleSidePanelContent("files-list", force);
   },
 
-  toggleRuntimeInfo() {
-    this.toggleSidePanelContent("runtime-info");
+  toggleRuntimeInfo(force = null) {
+    this.toggleSidePanelContent("runtime-info", force);
   },
 
-  toggleSidePanelContent(name) {
-    if (this.el.getAttribute("data-js-side-panel-content") === name) {
-      this.el.removeAttribute("data-js-side-panel-content");
-    } else {
+  toggleSidePanelContent(name, force = null) {
+    const shouldOpen =
+      force === null
+        ? this.el.getAttribute("data-js-side-panel-content") !== name
+        : force;
+
+    if (shouldOpen) {
       this.el.setAttribute("data-js-side-panel-content", name);
+    } else {
+      this.el.removeAttribute("data-js-side-panel-content");
     }
   },
 

@@ -44,7 +44,13 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
             label="File"
             on_clear={JS.push("clear_file", target: @myself)}
           />
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field
+            field={f[:name]}
+            label="Name"
+            id="add-file-entry-form-name"
+            autocomplete="off"
+            phx-debounce="blur"
+          />
         </div>
         <div class="mt-6 flex space-x-3">
           <button
@@ -67,13 +73,21 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
   def handle_event("validate", %{"data" => data} = params, socket) do
     upload_entries = socket.assigns.uploads.file.entries
 
-    data =
+    {data, socket} =
       case {params["_target"], data["name"], upload_entries} do
         {["file"], "", [entry]} ->
-          %{data | "name" => entry.client_name}
+          # Emulate input event to make sure validation errors are shown
+          socket =
+            exec_js(
+              socket,
+              JS.dispatch("input", to: "#add-file-entry-form-name")
+              |> JS.dispatch("blur", to: "#add-file-entry-form-name")
+            )
+
+          {%{data | "name" => entry.client_name}, socket}
 
         _ ->
-          data
+          {data, socket}
       end
 
     changeset = data |> changeset() |> Map.replace!(:action, :validate)
@@ -108,6 +122,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
           :ok ->
             file_entry = %{name: data.name, type: :attachment}
             Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+            send(self(), {:file_entry_uploaded, file_entry})
             {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
 
           {:error, message} ->
