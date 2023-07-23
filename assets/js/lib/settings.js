@@ -65,6 +65,14 @@ class SettingsStore {
   getAndSubscribe(callback) {
     this._subscribers.push(callback);
     callback(this._settings);
+    return () => this.unsubscribe();
+  }
+
+  unsubscribe(callback) {
+    const index = this._subscribers.indexOf(callback);
+    if (index !== -1) {
+      this._subscribers.splice(index, 1);
+    }
   }
 
   _loadSettings() {

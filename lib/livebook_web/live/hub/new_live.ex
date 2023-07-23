@@ -41,39 +41,27 @@ defmodule LivebookWeb.Hub.NewLive do
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-6">
         <div>
-          <LayoutHelpers.title text="Hubs are coming soon!" />
+          <LayoutHelpers.title text="Livebook Teams is coming soon!" />
           <p class="mt-4 text-gray-700">
-            Deploy applications, share secrets, templates, and more with Livebook Hubs.
+            Livebook Teams will amplify Livebook with features designed for teams and businesses.
           </p>
         </div>
         <p class="text-gray-700">
-          Each Livebook user has their own personal Hub and soon they will be able to deploy
-          their personal notebooks to
-          <a
-            class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://fly.io/"
-            target="_blank"
-          >
-            Fly.io
-          </a>
-          and <a
-            class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://huggingface.co/"
-            target="_blank"
-          >Hugging Face</a>.
+          It will allow you to share notebooks, manage secrets, and deploy Livebook apps within your organization.
         </p>
         <p class="text-gray-700">
-          We are also working on <span class="font-bold">Livebook Teams</span>, which were
-          designed from the ground up to deploy notebooks within your organization.
-          <span class="font-bold">Livebook Teams</span>
-          runs on your own infrastructure
-          to provide essential features for secure collaboration between team members,
-          such as digital signing of notebooks, safe sharing of secrets, and more.
-          To learn more, <a
+          The product is still in development. We want to get feedback from beta users and understand
+          their use cases before the public launch.
+        </p>
+        <p class="text-gray-700">
+          <a
             class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://docs.google.com/forms/d/e/1FAIpQLScDfvUqT4f_s95dqNGyoXwVMD_Vl059jT6r5MPgXB99XVMCuw/viewform?usp=sf_link"
+            href="https://livebook.dev/teams?ref=LivebookApp"
             target="_blank"
-          >get in touch</a>!
+          >
+            Learn more about Livebook Teams
+          </a>
+          and join the beta program.
         </p>
         <p class="text-gray-700">
           - The Livebook crew

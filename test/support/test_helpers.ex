@@ -51,10 +51,15 @@ defmodule Livebook.TestHelpers do
   Confirms the action guarded by `LivebookWeb.Confirm/3` and
   returns the rendered result.
   """
-  def render_confirm(view) do
+  def render_confirm(view, options \\ %{}) do
+    options =
+      for {option, value} <- options,
+          into: %{},
+          do: {Atom.to_string(option), Atom.to_string(value)}
+
     view
     |> element(~s/[data-el-confirm-form]/)
-    |> render_submit()
+    |> render_submit(%{"options" => options})
   end
 
   @doc """
@@ -65,6 +70,19 @@ defmodule Livebook.TestHelpers do
       send(
         Process.group_leader(),
         {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
+      )
+    end
+    |> Macro.to_string()
+  end
+
+  @doc """
+  Builds code that renders the given output as part of evaluation.
+  """
+  def source_for_input_read(input_id) do
+    quote do
+      send(
+        Process.group_leader(),
+        {:io_request, self(), make_ref(), {:livebook_get_input_value, unquote(input_id)}}
       )
     end
     |> Macro.to_string()

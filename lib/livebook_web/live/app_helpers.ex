@@ -57,8 +57,8 @@ defmodule LivebookWeb.AppHelpers do
   defp app_status_indicator(assigns) do
     ~H"""
     <span class="flex items-center space-x-2">
-      <span :if={@text}><%= @text %></span>
       <.status_indicator variant={@variant} />
+      <span :if={@text}><%= @text %></span>
     </span>
     """
   end

@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </button>
         </div>
         <h2
-          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1.5 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
+          class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1.5 rounded-lg border border-transparent whitespace-pre-wrap cursor-text scroll-mt-[50px] sm:scroll-mt-0"
           tabindex="0"
           id={@section_view.html_id}
           data-el-heading
@@ -165,7 +165,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             id={"insert-buttons-#{@section_view.id}-first"}
             persistent={@section_view.cell_views == []}
             smart_cell_definitions={@smart_cell_definitions}
-            code_block_definitions={@code_block_definitions}
+            example_snippet_definitions={@example_snippet_definitions}
             runtime={@runtime}
             section_id={@section_view.id}
             cell_id={nil}
@@ -189,7 +189,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               id={"insert-buttons-#{@section_view.id}-#{index}"}
               persistent={false}
               smart_cell_definitions={@smart_cell_definitions}
-              code_block_definitions={@code_block_definitions}
+              example_snippet_definitions={@example_snippet_definitions}
               runtime={@runtime}
               section_id={@section_view.id}
               cell_id={cell_view.id}

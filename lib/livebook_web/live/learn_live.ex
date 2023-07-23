@@ -116,13 +116,9 @@ defmodule LivebookWeb.LearnLive do
   end
 
   @impl true
-  def handle_params(%{"slug" => "new"}, _url, socket) do
-    {:noreply, create_session(socket)}
-  end
-
   def handle_params(%{"slug" => slug}, _url, socket) do
-    {notebook, images} = Learn.notebook_by_slug!(slug)
-    {:noreply, create_session(socket, notebook: notebook, images: images)}
+    {notebook, files} = Learn.notebook_by_slug!(slug)
+    {:noreply, create_session(socket, notebook: notebook, files_source: {:inline, files})}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

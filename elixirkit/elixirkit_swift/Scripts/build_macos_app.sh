@@ -18,6 +18,7 @@ if [ -f Info.plist ]; then
   cp Info.plist $app_dir/Contents/Info.plist
 
   plutil -replace CFBundleVersion -string "${app_version}" $app_dir/Contents/Info.plist
+  plutil -replace CFBundleShortVersionString -string "${app_version}" $app_dir/Contents/Info.plist
 fi
 
 cp $target_dir/$app_name $app_dir/Contents/MacOS/$app_name

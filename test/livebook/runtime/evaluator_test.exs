@@ -138,7 +138,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [])
 
-      assert_receive {:runtime_evaluation_input, :code_1, reply_to, "input1"}
+      assert_receive {:runtime_evaluation_input_request, :code_1, reply_to, "input1"}
       send(reply_to, {:runtime_evaluation_input_reply, {:ok, 10}})
 
       assert_receive {:runtime_evaluation_response, :code_1, {:text, ansi_number(10)}, metadata()}

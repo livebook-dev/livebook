@@ -240,6 +240,201 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session.pid)
     end
 
+    test "inserting an image", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s/[phx-click="insert_image"][phx-value-section_id="#{section_id}"][phx-value-cell_id="#{cell_id}"]/
+      )
+      |> render_click()
+
+      view
+      |> file_input(~s/#insert-image-modal form/, :image, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      view
+      |> element(~s/#insert-image-modal form/)
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "inserting a file", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "file.bin")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "file.bin"}])
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "file.bin",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Read file content")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       _first_cell,
+                       %Cell.Code{
+                         source: """
+                         content =
+                           Kino.FS.file_path("file.bin")
+                           |> File.read!()\
+                         """
+                       }
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "inserting a file as markdown image", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("insert_file", %{
+        "file_entry_name" => "image.jpg",
+        "section_id" => section_id,
+        "cell_id" => cell_id
+      })
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "inserting file after file drop upload", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> render_hook("handle_file_drop", %{"section_id" => section_id, "cell_id" => cell_id})
+
+      view
+      |> file_input(~s{#add-file-entry-form}, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      view
+      |> element(~s/#insert-file-modal [phx-click]/, "Insert as Markdown image")
+      |> render_click()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{cells: [_first_cell, %Cell.Markdown{source: "![](files/image.jpg)"}]}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "deleting section with no cells requires no confirmation",
+         %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s{[data-section-id="#{section_id}"] [data-el-section-headline] [aria-label="delete section"]}
+      )
+      |> render_click()
+
+      assert %{notebook: %{sections: []}} = Session.get_data(session.pid)
+    end
+
+    test "deleting section with cells requires confirmation", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      insert_text_cell(session.pid, section_id, :code)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element(
+        ~s{[data-section-id="#{section_id}"] [data-el-section-headline] [aria-label="delete section"]}
+      )
+      |> render_click()
+
+      render_confirm(view)
+
+      assert %{notebook: %{sections: []}} = Session.get_data(session.pid)
+    end
+
     test "deleting the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
@@ -287,7 +482,7 @@ defmodule LivebookWeb.SessionLiveTest do
         id: "input1",
         type: :number,
         label: "Name",
-        default: "hey",
+        default: 1,
         destination: test
       }
 
@@ -301,7 +496,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"html_value" => "10"})
 
-      assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: 10}}} = Session.get_data(session.pid)
 
       assert_receive {:event, :input_ref, %{value: 10, type: :change}}
     end
@@ -330,7 +525,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"html_value" => "line\r\nline"})
 
-      assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: "line\nline"}}} = Session.get_data(session.pid)
     end
 
     test "form input changes are reflected only in local LV data",
@@ -371,7 +566,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # The new value is on the page
       assert render(view) =~ "sherlock"
       # but it's not reflected in the synchronized session data
-      assert %{input_values: %{"input1" => "initial"}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: "initial"}}} = Session.get_data(session.pid)
 
       view
       |> element(~s/[data-el-outputs-container] button/, "Send")
@@ -413,12 +608,12 @@ defmodule LivebookWeb.SessionLiveTest do
       ])
       |> render_upload("data.txt")
 
-      assert %{input_values: %{"input1" => value}} = Session.get_data(session.pid)
+      assert %{input_infos: %{"input1" => %{value: value}}} = Session.get_data(session.pid)
 
       assert %{file_ref: file_ref, client_name: "data.txt"} = value
 
-      send(session.pid, {:runtime_file_lookup, self(), file_ref})
-      assert_receive {:runtime_file_lookup_reply, {:ok, path}}
+      send(session.pid, {:runtime_file_path_request, self(), file_ref})
+      assert_receive {:runtime_file_path_reply, {:ok, path}}
       assert File.read!(path) == "content"
     end
   end
@@ -526,6 +721,40 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
+    end
+
+    test "shows change indicator on bound inputs",
+         %{conn: conn, session: session, test: test} do
+      section_id = insert_section(session.pid)
+
+      Process.register(self(), test)
+
+      input = %{
+        ref: :input_ref,
+        id: "input1",
+        type: :number,
+        label: "Name",
+        default: 1,
+        destination: test
+      }
+
+      Session.subscribe(session.id)
+
+      insert_cell_with_output(session.pid, section_id, {:input, input})
+
+      code = source_for_input_read(input.id)
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      refute render(view) =~ "This input has changed since it was last processed."
+
+      Session.set_input_value(session.pid, input.id, 10)
+      wait_for_session_update(session.pid)
+
+      assert render(view) =~ "This input has changed since it was last processed."
     end
   end
 
@@ -1322,7 +1551,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # clicks the button to edit a secret
       view
       |> with_target("#secrets_list")
-      |> element("#hub-#{hub.id}-secret-#{secret_name}-detail #edit-secret-button")
+      |> element("#hub-#{hub.id}-secret-#{secret_name}-edit-button")
       |> render_click()
 
       # redirects to hub page and loads the modal with
@@ -1449,6 +1678,293 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "file management" do
+    @tag :tmp_dir
+    test "adding :attachment file entry from file",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      Session.subscribe(session.id)
+
+      path = Path.join(tmp_dir, "image.jpg")
+      File.write!(path, "content")
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
+
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me", "copy" => "true"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "true"}})
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    @tag :tmp_dir
+    test "adding :file file entry from file", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "image.jpg")
+      File.write!(path, "content")
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg", "copy" => "false"}})
+
+      assert %{
+               notebook: %{
+                 file_entries: [
+                   %{
+                     type: :file,
+                     name: "image.jpg",
+                     file: %FileSystem.File{file_system: %FileSystem.Local{}, path: ^path}
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "adding :attachment file entry from url", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
+      bypass = Bypass.open()
+      file_url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/url")
+
+      # Validations
+      page =
+        view
+        |> element(~s{#add-file-entry-form})
+        |> render_change(%{"data" => %{"name" => "na me", "copy" => "true", "url" => "invalid"}})
+
+      page =~ "should contain only alphanumeric characters, dash, underscore and dot"
+      page =~ "must be a valid url"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{
+        "data" => %{"name" => "image.jpg", "copy" => "true", "url" => file_url}
+      })
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "adding :url file entry from url", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/url")
+
+      url = "https://example.com/image.jpg"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{
+        "data" => %{"name" => "image.jpg", "copy" => "false", "url" => url}
+      })
+
+      assert %{notebook: %{file_entries: [%{type: :url, name: "image.jpg", url: ^url}]}} =
+               Session.get_data(session.pid)
+    end
+
+    test "adding :attachment file entry from upload", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/upload")
+
+      view
+      |> file_input(~s{#add-file-entry-form}, :file, [
+        %{
+          last_modified: 1_594_171_879_000,
+          name: "image.jpg",
+          content: "content",
+          size: 7,
+          type: "text/plain"
+        }
+      ])
+      |> render_upload("image.jpg")
+
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"data" => %{"name" => "image.jpg"}})
+
+      assert_receive {:operation, {:add_file_entries, _client_id, [%{name: "image.jpg"}]}}
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "adding :attachment file entry from unlisted files", %{conn: conn, session: session} do
+      for name <- ["file1.txt", "file2.txt", "file3.txt"] do
+        file = FileSystem.File.resolve(session.files_dir, name)
+        :ok = FileSystem.File.write(file, "content")
+      end
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/unlisted")
+
+      page = render(view)
+
+      assert page =~ "file1.txt"
+      assert page =~ "file2.txt"
+      assert page =~ "file3.txt"
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_submit(%{"selected_indices" => ["0", "2"]})
+
+      assert %{
+               notebook: %{
+                 file_entries: [
+                   %{type: :attachment, name: "file1.txt"},
+                   %{type: :attachment, name: "file3.txt"}
+                 ]
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "deleting :attachment file entry and removing the file from the file system",
+         %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Delete")
+      |> render_click()
+
+      render_confirm(view, delete_from_file_system: true)
+
+      assert {:ok, false} = FileSystem.File.exists?(image_file)
+
+      assert %{notebook: %{file_entries: []}} = Session.get_data(session.pid)
+
+      refute view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+    end
+
+    test "deleting :attachment file entry and keeping the file in the file system",
+         %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Delete")
+      |> render_click()
+
+      render_confirm(view, delete_from_file_system: false)
+
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
+
+      assert %{notebook: %{file_entries: []}} = Session.get_data(session.pid)
+
+      refute view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+    end
+
+    @tag :tmp_dir
+    test "transferring file entry", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      Session.subscribe(session.id)
+
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "content")
+      Session.add_file_entries(session.pid, [%{type: :file, name: "image.jpg", file: image_file}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu button/, "Copy to files")
+      |> render_click()
+
+      assert_receive {:operation,
+                      {:add_file_entries, _client_id, [%{type: :attachment, name: "image.jpg"}]}}
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
+
+      assert FileSystem.File.resolve(session.files_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "content"}
+    end
+
+    test "allowing access to file entry in quarantine", %{conn: conn} do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      notebook = %{
+        Livebook.Notebook.new()
+        | file_entries: [
+            %{type: :file, name: "document.pdf", file: file}
+          ],
+          quarantine_file_entry_names: MapSet.new(["document.pdf"])
+      }
+
+      {:ok, session} = Sessions.create_session(notebook: notebook)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view
+             |> element(~s/[data-el-files-list]/)
+             |> render() =~ "Click to review access"
+
+      view
+      |> element(~s/[data-el-files-list] button/, "document.pdf")
+      |> render_click()
+
+      render_confirm(view)
+
+      refute view
+             |> element(~s/[data-el-files-list]/)
+             |> render() =~ "Click to review access"
+
+      Session.close(session.pid)
+    end
+  end
+
   describe "apps" do
     test "deploying an app", %{conn: conn, session: session} do
       Session.subscribe(session.id)
@@ -1530,6 +2046,16 @@ defmodule LivebookWeb.SessionLiveTest do
       refute render(view) =~ "/apps/#{slug}/#{app_session.id}"
 
       Livebook.App.close(app.pid)
+    end
+
+    test "shows a warning when any session secrets are defined", %{conn: conn, session: session} do
+      secret = build(:secret, name: "FOO", value: "456", hub_id: nil)
+      Session.set_secret(session.pid, secret)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert render(view) =~
+               "You defined session secrets, but those are not available to the deployed app, only Hub secrets are."
     end
   end
 end

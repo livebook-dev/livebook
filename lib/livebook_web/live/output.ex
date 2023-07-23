@@ -11,7 +11,7 @@ defmodule LivebookWeb.Output do
   attr :outputs, :list, required: true
   attr :session_id, :string, required: true
   attr :session_pid, :any, required: true
-  attr :input_values, :map, required: true
+  attr :input_views, :map, required: true
   attr :dom_id_map, :map, required: true
   attr :client_id, :string, required: true
   attr :cell_id, :string, required: true
@@ -29,7 +29,7 @@ defmodule LivebookWeb.Output do
         id: "output-#{idx}",
         session_id: @session_id,
         session_pid: @session_pid,
-        input_values: @input_values,
+        input_views: @input_views,
         client_id: @client_id,
         cell_id: @cell_id
       }) %>
@@ -91,20 +91,21 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:frame, outputs, _info}, %{
+  defp render_output({:frame, outputs, info}, %{
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
     live_component(Output.FrameComponent,
       id: id,
       outputs: outputs,
+      placeholder: Map.get(info, :placeholder, true),
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     )
@@ -114,7 +115,7 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
@@ -137,7 +138,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     }
@@ -176,7 +177,7 @@ defmodule LivebookWeb.Output do
             dom_id_map={%{}}
             session_id={@session_id}
             session_pid={@session_pid}
-            input_values={@input_values}
+            input_views={@input_views}
             client_id={@client_id}
             cell_id={@cell_id}
           />
@@ -190,7 +191,7 @@ defmodule LivebookWeb.Output do
          id: id,
          session_id: session_id,
          session_pid: session_pid,
-         input_values: input_values,
+         input_views: input_views,
          client_id: client_id,
          cell_id: cell_id
        }) do
@@ -204,7 +205,7 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       session_id: session_id,
       session_pid: session_pid,
-      input_values: input_values,
+      input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
     }
@@ -223,7 +224,7 @@ defmodule LivebookWeb.Output do
             dom_id_map={%{}}
             session_id={@session_id}
             session_pid={@session_pid}
-            input_values={@input_values}
+            input_views={@input_views}
             client_id={@client_id}
             cell_id={@cell_id}
           />
@@ -235,14 +236,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:input, attrs}, %{
          id: id,
-         input_values: input_values,
+         input_views: input_views,
          session_pid: session_pid,
          client_id: client_id
        }) do
     live_component(Output.InputComponent,
       id: id,
       attrs: attrs,
-      input_values: input_values,
+      input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
     )
@@ -250,14 +251,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:control, attrs}, %{
          id: id,
-         input_values: input_values,
+         input_views: input_views,
          session_pid: session_pid,
          client_id: client_id
        }) do
     live_component(Output.ControlComponent,
       id: id,
       attrs: attrs,
-      input_values: input_values,
+      input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
     )
@@ -288,6 +289,37 @@ defmodule LivebookWeb.Output do
         >
           Add secret
         </.link>
+      </div>
+      <%= render_formatted_error_message(@message) %>
+    </div>
+    """
+  end
+
+  defp render_output({:error, formatted, {:file_entry_forbidden, file_entry_name}}, %{
+         session_id: session_id
+       }) do
+    assigns = %{
+      message: formatted,
+      file_entry_name: file_entry_name,
+      session_id: session_id
+    }
+
+    ~H"""
+    <div class="-m-4 space-x-4 py-4">
+      <div
+        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
+        style="color: var(--ansi-color-red);"
+      >
+        <div class="flex space-x-2 font-editor">
+          <.remix_icon icon="close-circle-line" />
+          <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
+        </div>
+        <button
+          class="button-base button-gray"
+          phx-click={JS.push("review_file_entry_access", value: %{name: @file_entry_name})}
+        >
+          Review access
+        </button>
       </div>
       <%= render_formatted_error_message(@message) %>
     </div>

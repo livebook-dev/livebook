@@ -4,6 +4,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   alias Livebook.Hubs
   alias Livebook.Hubs.Personal
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.NotFoundError
 
   @impl true
   def update(assigns, socket) do
@@ -14,9 +15,8 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        secrets
-        |> Enum.find(&(&1.name == secret_name))
-        |> Map.get(:value)
+        Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
+          raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
     {:ok,
@@ -65,7 +65,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                     class="button-base button-blue"
                     type="submit"
                     phx-disable-with="Updating..."
-                    disable={not @changeset.valid?}
+                    disabled={not @changeset.valid?}
                   >
                     Save
                   </button>
@@ -140,7 +140,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                     class="button-base button-blue"
                     type="submit"
                     phx-disable-with="Updating..."
-                    disable={not @stamp_changeset.valid?}
+                    disabled={not @stamp_changeset.valid?}
                   >
                     Save
                   </button>
@@ -198,7 +198,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
     on_confirm = fn socket ->
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-      :ok = Livebook.Hubs.delete_secret(hub, secret)
+      _ = Livebook.Hubs.delete_secret(hub, secret)
 
       socket
       |> put_flash(:success, "Secret deleted successfully")

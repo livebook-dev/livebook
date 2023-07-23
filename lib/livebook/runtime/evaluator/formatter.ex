@@ -165,6 +165,9 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   defp error_type(error) when is_struct(error, Kino.InterruptError),
     do: {:interrupt, error.variant, error.message}
 
+  defp error_type(error) when is_struct(error, Kino.FS.ForbiddenError),
+    do: {:file_entry_forbidden, error.name}
+
   defp error_type(_), do: :other
 
   defp erlang_to_output(value) do

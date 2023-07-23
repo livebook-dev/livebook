@@ -7,7 +7,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="flex flex-col relative"
+      class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
@@ -97,6 +97,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>
       </div>
+      <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
       <.evaluation_outputs
         cell_view={@cell_view}
         session_id={@session_id}
@@ -268,7 +269,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <%= render_slot(@primary) %>
       </div>
       <div
-        class="relative z-20 flex items-center justify-end space-x-2"
+        class="relative z-20 flex items-center justify-end md:space-x-2"
         role="toolbar"
         aria-label="cell actions"
         data-el-actions
@@ -609,6 +610,23 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp rounded_class(:top), do: "rounded-t-lg"
   defp rounded_class(:bottom), do: "rounded-b-lg"
 
+  defp doctest_summary(assigns) do
+    ~H"""
+    <div :if={@doctest_summary.failures_count > 0} class="pt-2" id={"doctest-summary-#{@cell_id}"}>
+      <div class="error-box py-3">
+        <%= doctest_summary_message(@doctest_summary) %>
+      </div>
+    </div>
+    """
+  end
+
+  defp doctest_summary_message(%{doctests_count: total, failures_count: failed}) do
+    doctests_pl = pluralize(total, "doctest", "doctests")
+    failures_pl = if failed == 1, do: "failure has", else: "failures have"
+
+    "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)"
+  end
+
   defp evaluation_outputs(assigns) do
     ~H"""
     <div
@@ -624,7 +642,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         session_pid={@session_pid}
         client_id={@client_id}
         cell_id={@cell_view.id}
-        input_values={@cell_view.eval.input_values}
+        input_views={@cell_view.eval.input_views}
       />
     </div>
     """

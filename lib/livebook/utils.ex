@@ -165,6 +165,20 @@ defmodule Livebook.Utils do
     uri.scheme != nil and uri.host not in [nil, ""]
   end
 
+  @doc """
+  Validates a change is a valid URL.
+  """
+  @spec validate_url(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  def validate_url(changeset, field) do
+    Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
+      if valid_url?(url) do
+        []
+      else
+        [{field, "must be a valid URL"}]
+      end
+    end)
+  end
+
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 
@@ -243,13 +257,16 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.expand_url("https://example.com/lib/file.ex?token=supersecret", "../root.ex")
       "https://example.com/root.ex?token=supersecret"
 
+      iex> Livebook.Utils.expand_url("https://example.com", "./root.ex")
+      "https://example.com/root.ex"
+
   """
   @spec expand_url(String.t(), String.t()) :: String.t()
   def expand_url(url, relative_path) do
     url
     |> URI.parse()
     |> Map.update!(:path, fn path ->
-      Livebook.FileSystem.Utils.resolve_unix_like_path(path, relative_path)
+      Livebook.FileSystem.Utils.resolve_unix_like_path(path || "/", relative_path)
     end)
     |> URI.to_string()
   end

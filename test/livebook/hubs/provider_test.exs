@@ -2,7 +2,6 @@ defmodule Livebook.Hubs.ProviderTest do
   use Livebook.DataCase
 
   alias Livebook.Hubs.Provider
-  alias Livebook.Secrets
 
   describe "personal" do
     setup do
@@ -43,21 +42,21 @@ defmodule Livebook.Hubs.ProviderTest do
 
     test "update_secret/1", %{hub: hub} do
       secret = insert_secret(name: "UPDATE_PERSONAL_SECRET")
-      assert secret in Secrets.get_secrets(hub)
+      assert secret in Provider.get_secrets(hub)
 
       updated_secret = %{secret | value: "123321"}
 
       assert Provider.update_secret(hub, updated_secret) == :ok
-      assert updated_secret in Secrets.get_secrets(hub)
-      refute secret in Secrets.get_secrets(hub)
+      assert updated_secret in Provider.get_secrets(hub)
+      refute secret in Provider.get_secrets(hub)
     end
 
     test "delete_secret/1", %{hub: hub} do
       secret = insert_secret(name: "DELETE_PERSONAL_SECRET")
-      assert secret in Secrets.get_secrets(hub)
+      assert secret in Provider.get_secrets(hub)
 
       assert Provider.delete_secret(hub, secret) == :ok
-      refute secret in Secrets.get_secrets(hub)
+      refute secret in Provider.get_secrets(hub)
     end
 
     test "connection_error/1", %{hub: hub} do

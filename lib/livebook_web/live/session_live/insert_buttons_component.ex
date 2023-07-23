@@ -13,44 +13,62 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       aria-label="insert new"
       data-el-insert-buttons
     >
+      <div
+        class="absolute inset-0 h-[30px] z-[100] bg-white rounded-lg border-2 border-dashed border-gray-400"
+        data-el-insert-drop-area
+        data-section-id={@section_id}
+        data-cell-id={@cell_id}
+        id={"cell-#{@id}-dropzone"}
+        phx-hook="Dropzone"
+      >
+      </div>
       <div class={
-        "w-full absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
+        "w-full md:absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
       }>
-        <div class="relative">
-          <div class="absolute -left-1 top-0 bottom-0 flex items-center transform -translate-x-full">
-            <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
-              <:toggle>
-                <button class="button-base button-small flex items-center pr-1">
-                  <div
-                    class="pr-2"
-                    phx-click="insert_cell_below"
-                    phx-value-type="code"
-                    phx-value-section_id={@section_id}
-                    phx-value-cell_id={@cell_id}
-                    phx-value-language="elixir"
-                  >
-                    + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
-                  </div>
-                  <div class="pl-1 flex items-center border-l border-gray-200">
-                    <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
-                  </div>
-                </button>
-              </:toggle>
-              <.menu_item>
-                <button role="menuitem" phx-click="set_default_language" phx-value-language="elixir">
-                  <.cell_icon cell_type={:code} language={:elixir} />
-                  <span>Elixir</span>
-                </button>
-              </.menu_item>
-              <.menu_item>
-                <button role="menuitem" phx-click="set_default_language" phx-value-language="erlang">
-                  <.cell_icon cell_type={:code} language={:erlang} />
-                  <span>Erlang</span>
-                </button>
-              </.menu_item>
-            </.menu>
-          </div>
-        </div>
+        <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
+          <:toggle>
+            <button class="button-base button-small flex items-center pr-1">
+              <div
+                class="pr-2"
+                phx-click="insert_cell_below"
+                phx-value-type="code"
+                phx-value-section_id={@section_id}
+                phx-value-cell_id={@cell_id}
+              >
+                + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
+              </div>
+              <div class="pl-1 flex items-center border-l border-gray-200">
+                <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
+              </div>
+            </button>
+          </:toggle>
+          <.menu_item>
+            <button
+              role="menuitem"
+              phx-click="set_default_language"
+              phx-value-type="code"
+              phx-value-language="elixir"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
+              <.cell_icon cell_type={:code} language={:elixir} />
+              <span>Elixir</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button
+              role="menuitem"
+              phx-click="set_default_language"
+              phx-value-type="code"
+              phx-value-language="erlang"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
+              <.cell_icon cell_type={:code} language={:erlang} />
+              <span>Erlang</span>
+            </button>
+          </.menu_item>
+        </.menu>
         <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
           <:toggle>
             <button class="button-base button-small">+ Block</button>
@@ -94,25 +112,24 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </button>
           </.menu_item>
           <.menu_item>
-            <.link
-              patch={
-                ~p"/sessions/#{@session_id}/cell-upload?section_id=#{@section_id}&cell_id=#{@cell_id || ""}"
-              }
+            <button
+              phx-click="insert_image"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
               aria-label="insert image"
               role="menuitem"
             >
               <.remix_icon icon="image-add-line" />
               <span>Image</span>
-            </.link>
+            </button>
           </.menu_item>
-          <%= if @code_block_definitions != [] do %>
+          <%= if @example_snippet_definitions != [] do %>
             <div class="flex items-center mt-4 mb-1 px-5 text-xs text-gray-400 font-light">
               CODE
             </div>
-            <.menu_item :for={definition <- Enum.sort_by(@code_block_definitions, & &1.name)}>
-              <.code_block_insert_button
+            <.menu_item :for={definition <- @example_snippet_definitions}>
+              <.example_snippet_insert_button
                 definition={definition}
-                runtime={@runtime}
                 section_id={@section_id}
                 cell_id={@cell_id}
               />
@@ -140,7 +157,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <:toggle>
                 <button class="button-base button-small">+ Smart</button>
               </:toggle>
-              <.menu_item :for={definition <- Enum.sort_by(@smart_cell_definitions, & &1.name)}>
+              <.menu_item :for={definition <- @smart_cell_definitions}>
                 <.smart_cell_insert_button
                   definition={definition}
                   section_id={@section_id}
@@ -154,7 +171,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp code_block_insert_button(assigns) when is_many(assigns.definition.variants) do
+  defp example_snippet_insert_button(assigns) when is_many(assigns.definition.variants) do
     ~H"""
     <.submenu>
       <:primary>
@@ -166,7 +183,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       <.menu_item :for={{variant, idx} <- Enum.with_index(@definition.variants)}>
         <button
           role="menuitem"
-          phx-click={on_code_block_click(@definition, idx, @runtime, @section_id, @cell_id)}
+          phx-click={on_example_snippet_click(@definition, idx, @section_id, @cell_id)}
         >
           <span><%= variant.name %></span>
         </button>
@@ -175,11 +192,11 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp code_block_insert_button(assigns) do
+  defp example_snippet_insert_button(assigns) do
     ~H"""
     <button
       role="menuitem"
-      phx-click={on_code_block_click(@definition, 0, @runtime, @section_id, @cell_id)}
+      phx-click={on_example_snippet_click(@definition, 0, @section_id, @cell_id)}
     >
       <.remix_icon icon={@definition.icon} />
       <span><%= @definition.name %></span>
@@ -215,21 +232,15 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp on_code_block_click(definition, variant_idx, runtime, section_id, cell_id) do
-    if Livebook.Runtime.connected?(runtime) do
-      JS.push("insert_code_block_below",
-        value: %{
-          definition_name: definition.name,
-          variant_idx: variant_idx,
-          section_id: section_id,
-          cell_id: cell_id
-        }
-      )
-    else
-      JS.push("setup_default_runtime",
-        value: %{reason: "To insert this block, you need a connected runtime."}
-      )
-    end
+  defp on_example_snippet_click(definition, variant_idx, section_id, cell_id) do
+    JS.push("insert_example_snippet_below",
+      value: %{
+        definition_name: definition.name,
+        variant_idx: variant_idx,
+        section_id: section_id,
+        cell_id: cell_id
+      }
+    )
   end
 
   defp on_smart_cell_click(definition, section_id, cell_id) do

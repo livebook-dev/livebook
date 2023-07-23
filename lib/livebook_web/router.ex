@@ -60,8 +60,6 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/", HomeLive, :page
-      live "/home/sessions/:session_id/close", HomeLive, :close_session
-      live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
 
       live "/open/:tab", OpenLive, :page
 
@@ -88,14 +86,16 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
       live "/sessions/:id/settings/app", SessionLive, :app_settings
+      live "/sessions/:id/add-file/:tab", SessionLive, :add_file_entry
       live "/sessions/:id/bin", SessionLive, :bin
       get "/sessions/:id/export/download/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
-      live "/sessions/:id/cell-upload", SessionLive, :cell_upload
-      live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
+      live "/sessions/:id/insert-image", SessionLive, :insert_image
+      live "/sessions/:id/insert-file", SessionLive, :insert_file
       live "/sessions/:id/package-search", SessionLive, :package_search
-      get "/sessions/:id/images/:image", SessionController, :show_image
+      get "/sessions/:id/files/:name", SessionController, :show_file
+      get "/sessions/:id/images/:name", SessionController, :show_image
       live "/sessions/:id/settings/custom-view", SessionLive, :custom_view_settings
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
     end
@@ -104,6 +104,7 @@ defmodule LivebookWeb.Router do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
+      live "/new", HomeLive, :public_new_notebook
       live "/import", OpenLive, :public_import
       live "/open", OpenLive, :public_open
     end
@@ -115,6 +116,7 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :user]
 
       live "/apps/:slug", AppLive, :page
+      live "/apps/:slug/new", AppLive, :new_session
       live "/apps/:slug/authenticate", AppAuthLive, :page
 
       live "/apps/:slug/:id", AppSessionLive, :page

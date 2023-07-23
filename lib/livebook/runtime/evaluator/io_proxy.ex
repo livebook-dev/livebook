@@ -261,14 +261,40 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   defp io_request({:livebook_get_file_path, file_id}, state) do
     # We could cache forever, but we don't want the cache to pile up
-    # indefinitely, so we just reuse the input cache is cleared for
-    # ever evaluation
+    # indefinitely, so we just reuse the input cache which is cleared
+    # for ever evaluation
 
     cache_id = {:file_path, file_id}
 
     input_cache =
       Map.put_new_lazy(state.input_cache, cache_id, fn ->
         request_file_path(file_id, state)
+      end)
+
+    {input_cache[cache_id], %{state | input_cache: input_cache}}
+  end
+
+  defp io_request({:livebook_get_file_entry_path, name}, state) do
+    # Same as above as for caching
+
+    cache_id = {:file_entry_path, name}
+
+    input_cache =
+      Map.put_new_lazy(state.input_cache, cache_id, fn ->
+        request_file_entry_path(name, state)
+      end)
+
+    {input_cache[cache_id], %{state | input_cache: input_cache}}
+  end
+
+  defp io_request({:livebook_get_file_entry_spec, name}, state) do
+    # Same as above as for caching
+
+    cache_id = {:file_entry_spec, name}
+
+    input_cache =
+      Map.put_new_lazy(state.input_cache, cache_id, fn ->
+        request_file_entry_spec(name, state)
       end)
 
     {input_cache[cache_id], %{state | input_cache: input_cache}}
@@ -317,6 +343,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {state.file, state}
   end
 
+  defp io_request(:livebook_get_app_info, state) do
+    result = request_app_info(state)
+    {result, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
@@ -346,37 +377,53 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   defp request_input_value(input_id, state) do
-    send(state.send_to, {:runtime_evaluation_input, state.ref, self(), input_id})
+    request = {:runtime_evaluation_input_request, state.ref, self(), input_id}
+    reply_tag = :runtime_evaluation_input_reply
 
-    ref = Process.monitor(state.send_to)
-
-    receive do
-      {:runtime_evaluation_input_reply, {:ok, value}} ->
-        Process.demonitor(ref, [:flush])
-        {:ok, value}
-
-      {:runtime_evaluation_input_reply, :error} ->
-        Process.demonitor(ref, [:flush])
-        {:error, :not_found}
-
-      {:DOWN, ^ref, :process, _object, _reason} ->
-        {:error, :terminated}
+    with {:ok, reply} <- runtime_request(state, request, reply_tag) do
+      with :error <- reply, do: {:error, :not_found}
     end
   end
 
   defp request_file_path(file_id, state) do
-    send(state.send_to, {:runtime_file_lookup, self(), file_id})
+    request = {:runtime_file_path_request, self(), file_id}
+    reply_tag = :runtime_file_path_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag) do
+      with :error <- reply, do: {:error, :not_found}
+    end
+  end
+
+  defp request_file_entry_path(name, state) do
+    request = {:runtime_file_entry_path_request, self(), name}
+    reply_tag = :runtime_file_entry_path_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp request_file_entry_spec(name, state) do
+    request = {:runtime_file_entry_spec_request, self(), name}
+    reply_tag = :runtime_file_entry_spec_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp request_app_info(state) do
+    request = {:runtime_app_info_request, self()}
+    reply_tag = :runtime_app_info_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp runtime_request(state, request, reply_tag) do
+    send(state.send_to, request)
 
     ref = Process.monitor(state.send_to)
 
     receive do
-      {:runtime_file_lookup_reply, {:ok, path}} ->
+      {^reply_tag, reply} ->
         Process.demonitor(ref, [:flush])
-        {:ok, path}
-
-      {:runtime_file_lookup_reply, :error} ->
-        Process.demonitor(ref, [:flush])
-        {:error, :not_found}
+        {:ok, reply}
 
       {:DOWN, ^ref, :process, _object, _reason} ->
         {:error, :terminated}

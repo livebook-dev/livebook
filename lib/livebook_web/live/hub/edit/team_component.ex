@@ -4,6 +4,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs.Team
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.NotFoundError
 
   @impl true
   def update(assigns, socket) do
@@ -15,7 +16,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     secret_value =
       if assigns.live_action == :edit_secret do
-        Enum.find_value(secrets, &(&1.name == secret_name && &1.value))
+        Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
+          raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
     {:ok,
@@ -26,6 +28,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value
      )
+     |> assign_dockerfile()
      |> assign_form(changeset)}
   end
 
@@ -47,6 +50,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
             </button>
             <button
+              id="delete-hub"
               phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
               class="button-base button-red"
             >
@@ -100,86 +104,29 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               target={@myself}
             />
           </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Offline Deployment
+            </h2>
+
+            <p class="text-gray-700">
+              Deploy your stamped notebooks with your Hub
+              using an instance of the Hub using
+              environment variables.
+            </p>
+
+            <.code_preview
+              source_id={"offline-deployment-#{@hub.id}"}
+              source={@dockerfile}
+              language="dockerfile"
+            />
+          </div>
         </div>
       </div>
 
       <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
-        <div class="p-6 flex flex-col space-y-5">
-          <h3 class="text-2xl font-semibold text-gray-800">
-            Teams Key
-          </h3>
-          <div class="justify-center">
-            This is your <strong>Teams Key</strong>. If you want to join or invite others
-            to your organization, you will need to share your Teams Key with them. We
-            recommend storing it somewhere safe:
-          </div>
-          <div class=" w-full">
-            <div id="teams-key-toggle" class="relative flex">
-              <input
-                type="password"
-                id="teams-key"
-                readonly
-                value={@hub.teams_key}
-                class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
-              />
-
-              <div class="flex items-center absolute inset-y-0 right-1">
-                <button
-                  class="icon-button"
-                  data-copy
-                  data-tooltip="Copied to clipboard"
-                  type="button"
-                  aria-label="copy to clipboard"
-                  phx-click={
-                    JS.dispatch("lb:clipcopy", to: "#teams-key")
-                    |> JS.add_class(
-                      "tooltip top",
-                      to: "#teams-key-toggle [data-copy]",
-                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
-                    )
-                    |> JS.remove_class(
-                      "tooltip top",
-                      to: "#teams-key-toggle [data-copy]",
-                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
-                      time: 2000
-                    )
-                  }
-                >
-                  <.remix_icon icon="clipboard-line" class="text-xl" />
-                </button>
-
-                <button
-                  class="icon-button"
-                  data-show
-                  type="button"
-                  aria-label="show password"
-                  phx-click={
-                    JS.remove_attribute("type", to: "#teams-key-toggle input")
-                    |> JS.set_attribute({"type", "text"}, to: "#teams-key-toggle input")
-                    |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
-                    |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
-                  }
-                >
-                  <.remix_icon icon="eye-line" class="text-xl" />
-                </button>
-                <button
-                  class="icon-button hidden"
-                  data-hide
-                  type="button"
-                  aria-label="hide password"
-                  phx-click={
-                    JS.remove_attribute("type", to: "#teams-key-toggle input")
-                    |> JS.set_attribute({"type", "password"}, to: "#teams-key-toggle input")
-                    |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
-                    |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
-                  }
-                >
-                  <.remix_icon icon="eye-off-line" class="text-xl" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <.teams_key_modal teams_key={@hub.teams_key} />
       </.modal>
 
       <.modal
@@ -198,6 +145,87 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           return_to={~p"/hub/#{@hub.id}"}
         />
       </.modal>
+    </div>
+    """
+  end
+
+  defp teams_key_modal(assigns) do
+    ~H"""
+    <div class="p-6 flex flex-col space-y-5">
+      <h3 class="text-2xl font-semibold text-gray-800">
+        Teams Key
+      </h3>
+      <div class="justify-center">
+        This is your <strong>Teams Key</strong>. If you want to join or invite others
+        to your organization, you will need to share your Teams Key with them. We
+        recommend storing it somewhere safe:
+      </div>
+      <div class=" w-full">
+        <div id="teams-key-toggle" class="relative flex">
+          <input
+            type="password"
+            id="teams-key"
+            readonly
+            value={@teams_key}
+            class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
+          />
+
+          <div class="flex items-center absolute inset-y-0 right-1">
+            <button
+              class="icon-button"
+              data-copy
+              data-tooltip="Copied to clipboard"
+              type="button"
+              aria-label="copy to clipboard"
+              phx-click={
+                JS.dispatch("lb:clipcopy", to: "#teams-key")
+                |> JS.add_class(
+                  "tooltip top",
+                  to: "#teams-key-toggle [data-copy]",
+                  transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                )
+                |> JS.remove_class(
+                  "tooltip top",
+                  to: "#teams-key-toggle [data-copy]",
+                  transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                  time: 2000
+                )
+              }
+            >
+              <.remix_icon icon="clipboard-line" class="text-xl" />
+            </button>
+
+            <button
+              class="icon-button"
+              data-show
+              type="button"
+              aria-label="show password"
+              phx-click={
+                JS.remove_attribute("type", to: "#teams-key-toggle input")
+                |> JS.set_attribute({"type", "text"}, to: "#teams-key-toggle input")
+                |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
+                |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
+              }
+            >
+              <.remix_icon icon="eye-line" class="text-xl" />
+            </button>
+            <button
+              class="icon-button hidden"
+              data-hide
+              type="button"
+              aria-label="hide password"
+              phx-click={
+                JS.remove_attribute("type", to: "#teams-key-toggle input")
+                |> JS.set_attribute({"type", "password"}, to: "#teams-key-toggle input")
+                |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
+                |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
+              }
+            >
+              <.remix_icon icon="eye-off-line" class="text-xl" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
     """
   end
@@ -253,5 +281,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
+  end
+
+  defp assign_dockerfile(socket) do
+    version = to_string(Application.spec(:livebook, :vsn))
+    version = if version =~ "dev", do: "edge", else: version
+
+    assign(socket, :dockerfile, """
+    FROM livebook/livebook:#{version}
+
+    COPY /path/to/my/notebooks /data
+    ENV LIVEBOOK_APPS_PATH "/data"
+
+    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
+    ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
+    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+
+    CMD [ "/app/bin/livebook", "start" ]\
+    """)
   end
 end

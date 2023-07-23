@@ -1,4 +1,6 @@
 defmodule Livebook.Secrets do
+  # This module is used to store secrets on Livebook.Storage for specific hubs.
+  # Currently it is only used by personal hub.
   @moduledoc false
 
   alias Livebook.Hubs.Provider

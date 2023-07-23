@@ -65,9 +65,7 @@ defmodule LivebookWeb.SessionHelpers do
       |> Enum.intersperse("\n")
 
     flash =
-      IO.iodata_to_binary([
-        "We found problems while importing the file and tried to autofix them:\n" | list
-      ])
+      IO.iodata_to_binary(["We found problems while importing the file:\n" | list])
 
     put_flash(socket, :warning, flash)
   end
@@ -106,15 +104,15 @@ defmodule LivebookWeb.SessionHelpers do
   @spec fork_notebook(Socket.t(), FileSystem.File.t()) :: Socket.t()
   def fork_notebook(socket, file) do
     case import_notebook(file) do
-      {:ok, {notebook, messages}} ->
+      {:ok, {notebook, %{warnings: messages}}} ->
         notebook = Livebook.Notebook.forked(notebook)
-        images_dir = Session.images_dir_for_notebook(file)
+        files_dir = Session.files_dir_for_notebook(file)
 
         socket
         |> put_import_warnings(messages)
         |> create_session(
           notebook: notebook,
-          copy_images_from: images_dir,
+          files_source: {:dir, files_dir},
           origin: {:file, file}
         )
 
@@ -129,7 +127,7 @@ defmodule LivebookWeb.SessionHelpers do
   @spec open_notebook(Socket.t(), FileSystem.File.t()) :: Socket.t()
   def open_notebook(socket, file) do
     case import_notebook(file) do
-      {:ok, {notebook, messages}} ->
+      {:ok, {notebook, %{warnings: messages}}} ->
         socket
         |> put_import_warnings(messages)
         |> create_session(notebook: notebook, file: file, origin: {:file, file})
@@ -197,5 +195,46 @@ defmodule LivebookWeb.SessionHelpers do
       <.remix_icon icon="flashlight-line text-red-900" />
     </div>
     """
+  end
+
+  @doc """
+  Shows a confirmation modal to delete the given session.
+
+  ## Options
+
+    * `:redirect_to` - a URL to redirect to after closing the session
+
+  """
+  def confirm_close_session(socket, session, opts \\ []) do
+    redirect_to = opts[:redirect_to]
+
+    on_confirm = fn socket ->
+      Livebook.Session.close(session.pid)
+
+      if redirect_to do
+        push_redirect(socket, to: redirect_to)
+      else
+        socket
+      end
+    end
+
+    assigns = %{notebook_name: session.notebook_name, file: session.file}
+
+    description = ~H"""
+    Are you sure you want to close this session - <span class="font-semibold">“<%= @notebook_name %>”</span>?
+    <br />
+    <%= if @file do %>
+      This won't delete any persisted files.
+    <% else %>
+      The notebook is not persisted and content may be lost.
+    <% end %>
+    """
+
+    confirm(socket, on_confirm,
+      title: "Close session",
+      description: description,
+      confirm_text: "Close session",
+      confirm_icon: "close-circle-line"
+    )
   end
 end

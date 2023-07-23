@@ -58,13 +58,17 @@ defmodule Livebook.App do
 
     * `:warnings` - a list of warnings to show for the initial deployment
 
+    * `:files_source` - a location to fetch notebook files from, see
+      `Livebook.Session.start_link/1` for more details
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
     notebook = Keyword.fetch!(opts, :notebook)
     warnings = Keyword.get(opts, :warnings, [])
+    files_source = Keyword.get(opts, :files_source)
 
-    GenServer.start_link(__MODULE__, {notebook, warnings})
+    GenServer.start_link(__MODULE__, {notebook, warnings, files_source})
   end
 
   @doc """
@@ -116,7 +120,8 @@ defmodule Livebook.App do
   @spec deploy(pid(), Livebook.Notebook.t(), keyword()) :: :ok
   def deploy(pid, notebook, opts \\ []) do
     warnings = Keyword.get(opts, :warnings, [])
-    GenServer.cast(pid, {:deploy, notebook, warnings})
+    files_source = Keyword.get(opts, :files_source)
+    GenServer.cast(pid, {:deploy, notebook, warnings, files_source})
   end
 
   @doc """
@@ -150,11 +155,12 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def init({notebook, warnings}) do
+  def init({notebook, warnings, files_source}) do
     {:ok,
      %{
        version: 1,
        notebook: notebook,
+       files_source: files_source,
        warnings: warnings,
        sessions: [],
        users: %{}
@@ -191,11 +197,17 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def handle_cast({:deploy, notebook, warnings}, state) do
+  def handle_cast({:deploy, notebook, warnings, files_source}, state) do
     true = notebook.app_settings.slug == state.notebook.app_settings.slug
 
     {:noreply,
-     %{state | notebook: notebook, version: state.version + 1, warnings: warnings}
+     %{
+       state
+       | notebook: notebook,
+         version: state.version + 1,
+         warnings: warnings,
+         files_source: files_source
+     }
      |> start_eagerly()
      |> shutdown_old_versions()
      |> notify_update()}
@@ -215,14 +227,6 @@ defmodule Livebook.App do
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     app_session = Enum.find(state.sessions, &(&1.pid == pid))
     state = update_in(state.sessions, &(&1 -- [app_session]))
-
-    state =
-      if user_id = app_session.started_by_id do
-        untrack_user(state, user_id)
-      else
-        state
-      end
-
     {:noreply, notify_update(state)}
   end
 
@@ -240,12 +244,7 @@ defmodule Livebook.App do
       notebook_name: state.notebook.name,
       public?: state.notebook.app_settings.access_type == :public,
       multi_session: state.notebook.app_settings.multi_session,
-      sessions:
-        for session <- state.sessions do
-          {started_by_id, session} = Map.pop!(session, :started_by_id)
-          started_by = started_by_id && state.users[started_by_id].user
-          Map.put(session, :started_by, started_by)
-        end
+      sessions: state.sessions
     }
   end
 
@@ -274,11 +273,15 @@ defmodule Livebook.App do
   end
 
   defp start_app_session(state, user \\ nil) do
+    user = if(state.notebook.teams_enabled, do: user)
+
     opts = [
       notebook: state.notebook,
+      files_source: state.files_source,
       mode: :app,
       app_pid: self(),
-      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms
+      auto_shutdown_ms: state.notebook.app_settings.auto_shutdown_ms,
+      started_by: user
     ]
 
     case Livebook.Sessions.create_session(opts) do
@@ -290,19 +293,12 @@ defmodule Livebook.App do
           created_at: session.created_at,
           app_status: %{execution: :executing, lifecycle: :active},
           client_count: 0,
-          started_by_id: user && user.id
+          started_by: user
         }
 
         Process.monitor(session.pid)
 
         state = update_in(state.sessions, &[app_session | &1])
-
-        state =
-          if user do
-            track_user(state, user)
-          else
-            state
-          end
 
         {:ok, state, app_session}
 
@@ -351,24 +347,5 @@ defmodule Livebook.App do
 
   defp broadcast_message(slug, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "apps:#{slug}", message)
-  end
-
-  defp track_user(state, user) do
-    if Map.has_key?(state.users, user.id) do
-      update_in(state.users[user.id].count, &(&1 + 1))
-    else
-      Livebook.Users.subscribe(user.id)
-      put_in(state.users[user.id], %{user: user, count: 1})
-    end
-  end
-
-  defp untrack_user(state, user_id) do
-    if state.users[user_id] == 1 do
-      {_, state} = pop_in(state.users[user_id])
-      Livebook.Users.unsubscribe(user_id)
-      state
-    else
-      update_in(state.users[user_id].count, &(&1 - 1))
-    end
   end
 end

@@ -243,7 +243,7 @@ In the following map, we update the `paint` property of the `building` layer so 
 Ml.new(
   center: {-90.73414, 14.55524},
   zoom: 13,
-  style: "https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL"
+  style: "https://api.maptiler.com/maps/basic/style.json?key=Q4UbchekCfyvXvZcWRoU"
 )
 |> Ml.update_layer("building",
   paint: [
@@ -311,7 +311,7 @@ You can also create heatmaps with Maplibre:
 Ml.new(
   center: {-120, 50},
   zoom: 2,
-  style: "https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL"
+  style: "https://api.maptiler.com/maps/basic/style.json?key=Q4UbchekCfyvXvZcWRoU"
 )
 |> Ml.add_source("earthquakes",
   type: :geojson,

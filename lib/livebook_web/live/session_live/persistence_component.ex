@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         Save to file
       </h3>
       <div class="w-full flex-col space-y-6">
-        <div class="h-full h-52">
+        <div class="h-80">
           <.live_component
             module={LivebookWeb.FileSelectComponent}
             id="persistence_file_select"

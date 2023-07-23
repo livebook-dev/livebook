@@ -30,8 +30,11 @@ defmodule Livebook.FileSystem.S3 do
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
+    hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
+    id = "s3-#{hash}"
+
     %__MODULE__{
-      id: Livebook.Utils.random_short_id(),
+      id: id,
       bucket_url: bucket_url,
       region: region,
       access_key_id: access_key_id,
@@ -52,23 +55,22 @@ defmodule Livebook.FileSystem.S3 do
   def from_config(config) do
     case config do
       %{
-        id: id,
         bucket_url: bucket_url,
         access_key_id: access_key_id,
         secret_access_key: secret_access_key
       } ->
         file_system = new(bucket_url, access_key_id, secret_access_key, region: config[:region])
-        {:ok, %{file_system | id: id}}
+        {:ok, file_system}
 
       _config ->
         {:error,
-         "S3 file system config is expected to have keys: :id, :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
+         "S3 file system config is expected to have keys: :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
     end
   end
 
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
-    Map.take(s3, [:id, :bucket_url, :region, :access_key_id, :secret_access_key])
+    Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 end
 
@@ -214,6 +216,111 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     FileSystem.Utils.resolve_unix_like_path(dir_path, subject)
   end
 
+  def write_stream_init(_file_system, path, opts) do
+    opts = Keyword.validate!(opts, part_size: 50_000_000)
+
+    FileSystem.Utils.assert_regular_path!(path)
+    "/" <> key = path
+
+    {:ok,
+     %{
+       key: key,
+       parts: 0,
+       etags: [],
+       current_chunks: [],
+       current_size: 0,
+       part_size: opts[:part_size],
+       upload_id: nil
+     }}
+  end
+
+  def write_stream_chunk(file_system, state, chunk) when is_binary(chunk) do
+    chunk_size = byte_size(chunk)
+
+    state = update_in(state.current_size, &(&1 + chunk_size))
+    state = update_in(state.current_chunks, &[chunk | &1])
+
+    if state.current_size >= state.part_size do
+      maybe_state =
+        if state.upload_id do
+          {:ok, state}
+        else
+          with {:ok, upload_id} <- create_multipart_upload(file_system, state.key) do
+            {:ok, %{state | upload_id: upload_id}}
+          end
+        end
+
+      with {:ok, state} <- maybe_state do
+        upload_part_from_state(file_system, state, state.part_size)
+      end
+    else
+      {:ok, state}
+    end
+  end
+
+  defp upload_part_from_state(file_system, state, part_size) do
+    <<part::binary-size(part_size), rest::binary>> =
+      state.current_chunks
+      |> Enum.reverse()
+      |> IO.iodata_to_binary()
+
+    parts = state.parts + 1
+
+    with {:ok, %{etag: etag}} <- upload_part(file_system, state.key, state.upload_id, parts, part) do
+      {:ok,
+       %{
+         state
+         | current_chunks: [rest],
+           current_size: byte_size(rest),
+           etags: [etag | state.etags],
+           parts: parts
+       }}
+    end
+  end
+
+  def write_stream_finish(file_system, state) do
+    if state.upload_id do
+      maybe_state =
+        if state.current_size > 0 do
+          upload_part_from_state(file_system, state, state.current_size)
+        else
+          {:ok, state}
+        end
+
+      with {:ok, state} <- maybe_state,
+           :ok <-
+             complete_multipart_upload(
+               file_system,
+               state.key,
+               state.upload_id,
+               Enum.reverse(state.etags)
+             ) do
+        :ok
+      else
+        {:error, error} ->
+          abort_multipart_upload(file_system, state.key, state.upload_id)
+          {:error, error}
+      end
+    else
+      content = state.current_chunks |> Enum.reverse() |> IO.iodata_to_binary()
+      put_object(file_system, state.key, content)
+    end
+  end
+
+  def write_stream_halt(file_system, state) do
+    if state.upload_id do
+      abort_multipart_upload(file_system, state.key, state.upload_id)
+    else
+      :ok
+    end
+  end
+
+  def read_stream_into(file_system, path, collectable) do
+    FileSystem.Utils.assert_regular_path!(path)
+    "/" <> key = path
+    multipart_get_object(file_system, key, collectable)
+  end
+
   # Requests
 
   defp list_objects(file_system, opts) do
@@ -256,15 +363,24 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp get_object(file_system, key) do
-    case request(file_system, :get, "/" <> encode_key(key)) do
+    case request(file_system, :get, "/" <> encode_key(key), long: true) do
       {:ok, 200, _headers, body} -> {:ok, body}
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
     end
   end
 
+  defp multipart_get_object(file_system, key, collectable) do
+    case download(file_system, "/" <> encode_key(key), collectable) do
+      {:ok, collectable} -> {:ok, collectable}
+      {:error, _message, 404} -> FileSystem.Utils.posix_error(:enoent)
+      {:error, message, _status} -> {:error, message}
+    end
+  end
+
   defp put_object(file_system, key, content) do
-    case request(file_system, :put, "/" <> encode_key(key), body: content) |> decode() do
+    case request(file_system, :put, "/" <> encode_key(key), body: content, long: true)
+         |> decode() do
       {:ok, 200, _headers, _body} -> :ok
       other -> request_response_to_error(other)
     end
@@ -342,6 +458,66 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     end
   end
 
+  defp create_multipart_upload(file_system, key) do
+    query = %{"uploads" => ""}
+
+    case request(file_system, :post, "/" <> encode_key(key), query: query, body: "")
+         |> decode() do
+      {:ok, 200, _headers, %{"InitiateMultipartUploadResult" => %{"UploadId" => upload_id}}} ->
+        {:ok, upload_id}
+
+      other ->
+        request_response_to_error(other)
+    end
+  end
+
+  defp upload_part(file_system, key, upload_id, part_number, content) do
+    query = %{"uploadId" => upload_id, "partNumber" => part_number}
+
+    case request(file_system, :put, "/" <> encode_key(key),
+           query: query,
+           body: content,
+           long: true
+         )
+         |> decode() do
+      {:ok, 200, headers, _body} ->
+        {:ok, etag} = HTTP.fetch_header(headers, "etag")
+        {:ok, %{etag: etag}}
+
+      other ->
+        request_response_to_error(other)
+    end
+  end
+
+  defp complete_multipart_upload(file_system, key, upload_id, etags) do
+    query = %{"uploadId" => upload_id}
+
+    parts =
+      for {etag, n} <- Enum.with_index(etags, 1) do
+        %{"PartNumber" => n, "ETag" => etag}
+      end
+
+    body =
+      %{"CompleteMultipartUpload" => %{"Part" => parts}}
+      |> XML.encode_to_iodata!()
+      |> IO.iodata_to_binary()
+
+    case request(file_system, :post, "/" <> encode_key(key), query: query, body: body)
+         |> decode() do
+      {:ok, 200, _headers, _body} -> :ok
+      other -> request_response_to_error(other)
+    end
+  end
+
+  defp abort_multipart_upload(file_system, key, upload_id) do
+    query = %{"uploadId" => upload_id}
+
+    case request(file_system, :delete, "/" <> encode_key(key), query: query) |> decode() do
+      {:ok, 204, _headers, _body} -> :ok
+      other -> request_response_to_error(other)
+    end
+  end
+
   defp encode_key(key) do
     key
     |> String.split("/")
@@ -382,36 +558,59 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     query = opts[:query] || %{}
     headers = opts[:headers] || []
     body = opts[:body]
+    long = Keyword.get(opts, :long, false)
 
-    %{host: host} = URI.parse(file_system.bucket_url)
+    timeout_opts = if(long, do: [timeout: 60_000], else: [])
 
-    url = file_system.bucket_url <> path <> "?" <> URI.encode_query(query)
+    url = url(file_system, path, query)
+    headers = headers(file_system, method, url, headers, body)
+    body = body && {"application/octet-stream", body}
 
+    HTTP.request(method, url, [headers: headers, body: body] ++ timeout_opts)
+  end
+
+  defp download(file_system, path, collectable, opts \\ []) do
+    query = opts[:query] || %{}
+    headers = opts[:headers] || []
+
+    url = url(file_system, path, query)
+    headers = headers(file_system, :get, url, headers)
+
+    HTTP.download(url, collectable, headers: headers)
+  end
+
+  defp url(file_system, path, query) do
+    file_system.bucket_url <> path <> "?" <> URI.encode_query(query)
+  end
+
+  defp headers(file_system, method, url, headers, body \\ nil) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
-
+    %{host: host} = URI.parse(file_system.bucket_url)
     headers = [{"Host", host} | headers]
 
-    headers =
-      :aws_signature.sign_v4(
-        file_system.access_key_id,
-        file_system.secret_access_key,
-        file_system.region,
-        "s3",
-        now,
-        Atom.to_string(method),
-        url,
-        headers,
-        body || "",
-        uri_encode_path: false
-      )
-
-    body = body && {"application/octet-stream", body}
-    HTTP.request(method, url, headers: headers, body: body)
+    :aws_signature.sign_v4(
+      file_system.access_key_id,
+      file_system.secret_access_key,
+      file_system.region,
+      "s3",
+      now,
+      Atom.to_string(method),
+      url,
+      headers,
+      body || "",
+      uri_encode_path: false
+    )
   end
 
   defp decode({:ok, status, headers, body}) do
+    guess_xml? = String.starts_with?(body, "<?xml")
+
     case HTTP.fetch_content_type(headers) do
       {:ok, content_type} when content_type in ["text/xml", "application/xml"] ->
+        {:ok, status, headers, XML.decode!(body)}
+
+      # Apparently some requests return XML without content-type
+      :error when guess_xml? ->
         {:ok, status, headers, XML.decode!(body)}
 
       _ ->

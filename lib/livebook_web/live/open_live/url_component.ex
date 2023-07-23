@@ -1,17 +1,28 @@
 defmodule LivebookWeb.OpenLive.UrlComponent do
   use LivebookWeb, :live_component
 
+  import Ecto.Changeset
+
   alias Livebook.{Utils, Notebook}
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, url: "", error_message: nil)}
+    {:ok, assign(socket, changeset: changeset(), error_message: nil)}
+  end
+
+  defp changeset(attrs \\ %{}) do
+    data = %{url: nil}
+    types = %{url: :string}
+
+    cast({data, types}, attrs, [:url])
+    |> validate_required([:url])
+    |> Livebook.Utils.validate_url(:url)
   end
 
   @impl true
   def update(assigns, socket) do
     if url = assigns[:url] do
-      {:ok, do_import(socket, url)}
+      {:ok, do_import(socket, %{url: url})}
     else
       {:ok, socket}
     end
@@ -29,7 +40,7 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
       </p>
       <.form
         :let={f}
-        for={%{"url" => @url}}
+        for={@changeset}
         as={:data}
         phx-submit="import"
         phx-change="validate"
@@ -43,11 +54,7 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
           aria-labelledby="import-from-url"
           spellcheck="false"
         />
-        <button
-          class="mt-5 button-base button-blue"
-          type="submit"
-          disabled={not Utils.valid_url?(@url)}
-        >
+        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
           Import
         </button>
       </.form>
@@ -56,26 +63,41 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"data" => %{"url" => url}}, socket) do
-    {:noreply, assign(socket, url: url)}
+  def handle_event("validate", %{"data" => data}, socket) do
+    changeset = data |> changeset() |> Map.replace!(:action, :validate)
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("import", %{"data" => %{"url" => url}}, socket) do
-    {:noreply, do_import(socket, url)}
+  def handle_event("import", %{"data" => data}, socket) do
+    {:noreply, do_import(socket, data)}
   end
 
-  defp do_import(socket, url) do
-    origin = Notebook.ContentLoader.url_to_location(url)
-
-    origin
-    |> Notebook.ContentLoader.fetch_content_from_location()
+  defp do_import(socket, data) do
+    data
+    |> changeset()
+    |> apply_action(:insert)
     |> case do
-      {:ok, content} ->
-        send(self(), {:import_source, content, [origin: origin]})
-        socket
+      {:ok, data} ->
+        origin = Notebook.ContentLoader.url_to_location(data.url)
+        files_url = Livebook.Utils.expand_url(data.url, "files/")
 
-      {:error, message} ->
-        assign(socket, url: url, error_message: Utils.upcase_first(message))
+        origin
+        |> Notebook.ContentLoader.fetch_content_from_location()
+        |> case do
+          {:ok, content} ->
+            opts = [origin: origin, files_source: {:url, files_url}]
+            send(self(), {:import_source, content, opts})
+            socket
+
+          {:error, message} ->
+            assign(socket,
+              changeset: changeset(data),
+              error_message: Utils.upcase_first(message)
+            )
+        end
+
+      {:error, changeset} ->
+        assign(socket, changeset: changeset)
     end
   end
 end

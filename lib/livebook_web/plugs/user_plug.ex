@@ -4,8 +4,8 @@ defmodule LivebookWeb.UserPlug do
   # Initializes the session and cookies with user-related info.
   #
   # The first time someone visits Livebook
-  # this plug stores a new random user id
-  # in the session under `:current_user_id`.
+  # this plug stores a new random user id or the ZTA user
+  # in the session under `:identity_data`.
   #
   # Additionally the cookies are checked for the presence
   # of `"user_data"` and if there is none, a new user
@@ -26,24 +26,16 @@ defmodule LivebookWeb.UserPlug do
   @impl true
   def call(conn, _opts) do
     conn
-    |> ensure_current_user_id()
     |> ensure_user_identity()
     |> ensure_user_data()
     |> mirror_user_data_in_session()
   end
 
-  defp ensure_current_user_id(conn) do
-    if get_session(conn, :current_user_id) do
-      conn
-    else
-      user_id = Livebook.Utils.random_id()
-      put_session(conn, :current_user_id, user_id)
-    end
-  end
-
   defp ensure_user_identity(conn) do
     {module, _} = Livebook.Config.identity_provider()
-    identity_data = module.authenticate(LivebookWeb.ZTA, conn)
+
+    {conn, identity_data} =
+      module.authenticate(LivebookWeb.ZTA, conn, fields: [:id, :name, :email])
 
     if identity_data do
       put_session(conn, :identity_data, identity_data)
@@ -51,7 +43,7 @@ defmodule LivebookWeb.UserPlug do
       conn
       |> put_status(:forbidden)
       |> put_view(LivebookWeb.ErrorHTML)
-      |> render("403.html")
+      |> render("403.html", %{status: 403})
       |> halt()
     end
   end

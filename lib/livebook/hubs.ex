@@ -272,4 +272,25 @@ defmodule Livebook.Hubs do
   def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
   end
+
+  @offline_hub_key :livebook_offline_hub
+
+  @doc """
+  Gets the offline hub if the given id matches.
+  """
+  @spec get_offline_hub(String.t()) :: Provider.t() | nil
+  def get_offline_hub(id) do
+    case :persistent_term.get(@offline_hub_key, nil) do
+      %{id: ^id} = hub -> hub
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Sets a offline hub that will be kept only in memory.
+  """
+  @spec set_offline_hub(Provider.t()) :: :ok
+  def set_offline_hub(hub) do
+    :persistent_term.put(@offline_hub_key, hub)
+  end
 end

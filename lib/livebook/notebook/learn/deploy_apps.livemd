@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.9.1"}
+  {:kino, "~> 0.10.0"}
 ])
 ```
 
@@ -228,27 +228,57 @@ Give it a try!
 
 Our chat application is ready, therefore it means we are
 ready to deploy! Click on the <i class="ri-livebook-deploy"></i>
-icon on the sidebar.
+icon on the sidebar and then on "Configure".
 
 Now, define a slug for your deployment, such as "chat-app",
 set a password (or disable password protection), and click
-"Deploy".
+"Deploy". Now you can click the URL and interact with the
+chat app, as you did inside the notebook.
 
-Now you can click the URL and interact with the chat app,
-as you did inside the notebook. There are a couple things to
-keep in mind:
+When you deploy a notebook, Livebook will execute all of
+the code in the notebook from beginning to end. This sets
+up our whole application, including frames and forms, for
+users to interact with. In case something goes wrong, you
+can always click the Livebook icon on the deployed app and
+choose to debug the deployed notebook session.
 
-* Deployed applications only show `Kino` outputs. Sections,
-  Markdown, non-Kino results, are all discarded.
-
-* To deploy a notebook, Livebook will execute all of the code
-  cells in the notebook from beginning to end. If your notebook
-  cannot fully execute all of its cells, then its deployment
-  will be in a "Booting" stage forever. You can click the
-  <i class="ri-livebook-terminal"></i> icon on the deployment
-  to join its session and debug it.
-
-That's it. Feel free to adjust the deployed application, by
-removing unused outputs or by adding new features.
+From here onwards, feel free to adjust the deployed application,
+by removing unused outputs from earlier sections or by adding
+new features.
 
 Congratulations on shipping!
+
+## Where to go next
+
+There are many types of applications one can build with
+notebooks. For example, we can use the foundation we learned
+here to develop any type of form-driven application.
+The structure is always the same:
+
+  1. Define a inputs and forms for the user to interact with
+  2. Hook into the form events to receive and validate data
+  3. Render updates directly into `Kino.Frame`
+
+The frame plays an essential role here. If you render to the
+frame without the `to: origin` option, the updates are sent
+to all users. With the `to: origin` option, the changes are
+visible only to a given user. This means you get full control
+if the application is collaborative or not.
+
+Livebook also supports multi-session applications, where each
+user gets their own Livebook session (each running under their
+own Elixir runtime). Furthermore, instead of starting the
+application upfront, multi-session applications are started on
+demand. These differences mean multi-session apps may rely on
+different techniques during development and have their own
+trade-offs during deployment. To learn more, here are some
+resources to dig deeper into them:
+
+  * [The announcement of Livebook apps with livecoding of
+    the application built in this guide](https://www.youtube.com/watch?v=q7T6ue7cw1Q)
+
+  * [Livecoding of an audio-based chat application where
+    a Neural Network is used to convert speech to text](https://www.youtube.com/watch?v=uyVRPEXOqzw)
+
+  * [The announcement of multi-session apps with livecoding
+     of a sample application](https://www.youtube.com/watch?v=dSjryA1iFng)

@@ -53,7 +53,7 @@ defmodule Livebook.Session do
     :notebook_name,
     :file,
     :mode,
-    :images_dir,
+    :files_dir,
     :created_at,
     :memory_usage
   ]
@@ -80,7 +80,7 @@ defmodule Livebook.Session do
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           mode: Data.session_mode(),
-          images_dir: FileSystem.File.t(),
+          files_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
           memory_usage: memory_usage()
         }
@@ -93,7 +93,7 @@ defmodule Livebook.Session do
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           autosave_path: String.t(),
-          save_task_pid: pid() | nil,
+          save_task_ref: reference() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage(),
           worker_pid: pid(),
@@ -131,10 +131,16 @@ defmodule Livebook.Session do
 
     * `:file` - the file to which the notebook should be saved
 
-    * `:copy_images_from` - a directory file to copy notebook images from
+    * `:files_source` - a location to fetch notebook files from, either of:
 
-    * `:images` - a map from image name to its binary content, an alternative
-      to `:copy_images_from` when the images are in memory
+        * `{:dir, dir}` - a directory file
+
+        * `{:url, url} - a base url to the files directory (with `/` suffix)
+
+        * `{:inline, contents_map}` - a map with file names pointing to their
+          binary contents
+
+      Defaults to `nil`, in which case no files are copied
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
       Defaults to `Livebook.Settings.autosave_path/0`
@@ -150,6 +156,10 @@ defmodule Livebook.Session do
 
     * `:auto_shutdown_ms` - the inactivity period (no clients) after which
       the session should close automatically
+
+    * `:started_by` - the user that started the session. This is relevant
+      for app sessions using the Teams hub, in which case this information
+      is accessible from runtime
 
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
@@ -196,6 +206,14 @@ defmodule Livebook.Session do
   @spec get_notebook(pid()) :: Notebook.t()
   def get_notebook(pid) do
     GenServer.call(pid, :get_notebook, @timeout)
+  end
+
+  @doc """
+  Returns the current notebook file entries.
+  """
+  @spec get_notebook_file_entries(pid()) :: list(Notebook.file_entry())
+  def get_notebook_file_entries(pid) do
+    GenServer.call(pid, :get_notebook_file_entries, @timeout)
   end
 
   @doc """
@@ -554,11 +572,65 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a hub selection to the server.
+  Sends a hub selection request to the server.
   """
   @spec set_notebook_hub(pid(), String.t()) :: :ok
   def set_notebook_hub(pid, id) do
     GenServer.cast(pid, {:set_notebook_hub, self(), id})
+  end
+
+  @doc """
+  Sends a file entries addition request to the server.
+
+  Note that if file entries with any of the given names already exist
+  they are replaced.
+  """
+  @spec add_file_entries(pid(), list(Notebook.file_entry())) :: :ok
+  def add_file_entries(pid, file_entries) do
+    GenServer.cast(pid, {:add_file_entries, self(), file_entries})
+  end
+
+  @doc """
+  Sends a file entry deletion request to the server.
+  """
+  @spec delete_file_entry(pid(), String.t()) :: :ok
+  def delete_file_entry(pid, name) do
+    GenServer.cast(pid, {:delete_file_entry, self(), name})
+  end
+
+  @doc """
+  Sends a file entry unquarantine request to the server.
+  """
+  @spec allow_file_entry(pid(), String.t()) :: :ok
+  def allow_file_entry(pid, name) do
+    GenServer.cast(pid, {:allow_file_entry, self(), name})
+  end
+
+  @doc """
+  Removes cache file for the given entry file if one exists.
+  """
+  @spec clear_file_entry_cache(id(), String.t()) :: :ok
+  def clear_file_entry_cache(session_id, name) do
+    cache_file = file_entry_cache_file(session_id, name)
+    FileSystem.File.remove(cache_file)
+    :ok
+  end
+
+  @doc """
+  Checks whether caching applies to the given file entry.
+  """
+  @spec file_entry_cacheable?(t(), Notebook.file_entry()) :: boolean()
+  def file_entry_cacheable?(session, file_entry) do
+    case file_entry do
+      %{type: :attachment} ->
+        not FileSystem.File.local?(session.files_dir)
+
+      %{type: :file, file: file} ->
+        not FileSystem.File.local?(file)
+
+      %{type: :url} ->
+        true
+    end
   end
 
   @doc """
@@ -567,8 +639,8 @@ defmodule Livebook.Session do
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
 
-  Note that notebooks are automatically persisted every @autosave_interval
-  milliseconds.
+  Note that notebooks are automatically persisted periodically as
+  specified by the notebook settings.
   """
   @spec save(pid()) :: :ok
   def save(pid) do
@@ -695,13 +767,8 @@ defmodule Livebook.Session do
 
     with {:ok, state} <- init_state(id, worker_pid, opts),
          :ok <-
-           if(copy_images_from = opts[:copy_images_from],
-             do: copy_images(state, copy_images_from),
-             else: :ok
-           ),
-         :ok <-
-           if(images = opts[:images],
-             do: dump_images(state, images),
+           if(files_source = opts[:files_source],
+             do: initialize_files_from(state, files_source),
              else: :ok
            ) do
       state = schedule_autosave(state)
@@ -722,6 +789,7 @@ defmodule Livebook.Session do
       end
     else
       {:error, error} ->
+        cleanup_tmp_dir(id)
         {:stop, error}
     end
   end
@@ -736,7 +804,7 @@ defmodule Livebook.Session do
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
-        save_task_pid: nil,
+        save_task_ref: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
         worker_pid: worker_pid,
@@ -746,7 +814,8 @@ defmodule Livebook.Session do
         deployed_app_monitor_ref: nil,
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
-        auto_shutdown_timer_ref: nil
+        auto_shutdown_timer_ref: nil,
+        started_by: opts[:started_by]
       }
 
       {:ok, state}
@@ -881,6 +950,10 @@ defmodule Livebook.Session do
 
   def handle_call(:get_notebook, _from, state) do
     {:reply, state.data.notebook, state}
+  end
+
+  def handle_call(:get_notebook_file_entries, _from, state) do
+    {:reply, state.data.notebook.file_entries, state}
   end
 
   def handle_call(:save_sync, _from, state) do
@@ -1223,7 +1296,8 @@ defmodule Livebook.Session do
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
     if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook)
+      files_dir = files_dir_from_state(state)
+      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook, files_source: {:dir, files_dir})
 
       if ref = state.deployed_app_monitor_ref do
         Process.demonitor(ref, [:flush])
@@ -1255,6 +1329,24 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:add_file_entries, client_pid, file_entries}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:add_file_entries, client_id, file_entries}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:delete_file_entry, client_pid, name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:delete_file_entry, client_id, name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:allow_file_entry, client_pid, name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:allow_file_entry, client_id, name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, reason}, state)
       when ref == state.runtime_monitor_ref do
@@ -1268,6 +1360,10 @@ defmodule Livebook.Session do
      |> handle_operation(
        {:set_runtime, @client_id, Livebook.Runtime.duplicate(state.data.runtime)}
      )}
+  end
+
+  def handle_info({:DOWN, ref, :process, _, _}, state) when ref == state.save_task_ref do
+    {:noreply, %{state | save_task_ref: nil}}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state)
@@ -1361,7 +1457,7 @@ defmodule Livebook.Session do
      |> notify_update()}
   end
 
-  def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
+  def handle_info({:runtime_evaluation_input_request, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Data.fetch_input_value_for_cell(state.data, input_id, cell_id) do
@@ -1376,19 +1472,62 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_file_lookup, reply_to, file_ref}, state) do
+  def handle_info({:runtime_file_path_request, reply_to, file_ref}, state) do
     path = registered_file_path(state.session_id, file_ref)
 
     if File.exists?(path) do
       {:file, file_id} = file_ref
 
       Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
-        send(reply_to, {:runtime_file_lookup_reply, {:ok, path}})
+        send(reply_to, {:runtime_file_path_reply, {:ok, path}})
       end)
     else
-      send(reply_to, {:runtime_file_lookup_reply, :error})
+      send(reply_to, {:runtime_file_path_reply, :error})
     end
 
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_entry_path_request, reply_to, name}, state) do
+    file_entry_path(state, name, fn
+      {:ok, path} ->
+        file_id = file_entry_file_id(name)
+
+        Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+          send(reply_to, {:runtime_file_entry_path_reply, {:ok, path}})
+        end)
+
+      {:error, message} ->
+        send(reply_to, {:runtime_file_entry_path_reply, {:error, message}})
+    end)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_file_entry_spec_request, reply_to, name}, state) do
+    case file_entry_spec(state, name) do
+      # In case of files we call transfer to ensure the file is local
+      # to the runtime
+      {:ok, %{type: :local, path: path}} ->
+        file_id = file_entry_file_id(name)
+
+        Runtime.transfer_file(state.data.runtime, path, file_id, fn path ->
+          spec = %{type: :local, path: path}
+          send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+        end)
+
+      {:ok, spec} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:ok, spec}})
+
+      {:error, message} ->
+        send(reply_to, {:runtime_file_entry_spec_reply, {:error, message}})
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:runtime_app_info_request, reply_to}, state) do
+    send(reply_to, {:runtime_app_info_reply, app_info_for_runtime(state)})
     {:noreply, state}
   end
 
@@ -1413,11 +1552,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info(
-        {:save_finished, pid, result, warnings, file, default?},
-        %{save_task_pid: pid} = state
-      ) do
-    state = %{state | save_task_pid: nil}
+  def handle_info({ref, {:save_finished, result, warnings, file, default?}}, state)
+      when ref == state.save_task_ref do
+    state = %{state | save_task_ref: nil}
     {:noreply, handle_save_finished(state, result, warnings, file, default?)}
   end
 
@@ -1564,33 +1701,39 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       mode: state.data.mode,
-      images_dir: images_dir_from_state(state),
+      files_dir: files_dir_from_state(state),
       created_at: state.created_at,
       memory_usage: state.memory_usage
     }
   end
 
-  defp images_dir_from_state(%{data: %{file: nil}, session_id: id}) do
-    tmp_dir = session_tmp_dir(id)
-    FileSystem.File.resolve(tmp_dir, "images/")
+  defp files_dir_from_state(state) do
+    state
+    |> notebook_dir()
+    |> FileSystem.File.resolve("files/")
   end
 
-  defp images_dir_from_state(%{data: %{file: file}}) do
-    images_dir_for_notebook(file)
+  defp notebook_dir(state) do
+    if file = state.data.file || default_notebook_file(state) do
+      FileSystem.File.containing_dir(file)
+    else
+      tmp_dir = session_tmp_dir(state.session_id)
+      FileSystem.File.resolve(tmp_dir, "notebook/")
+    end
   end
 
   @doc """
-  Returns images directory corresponding to the given notebook file.
+  Returns files directory corresponding to the given notebook file.
   """
-  @spec images_dir_for_notebook(FileSystem.File.t()) :: FileSystem.File.t()
-  def images_dir_for_notebook(file) do
+  @spec files_dir_for_notebook(FileSystem.File.t()) :: FileSystem.File.t()
+  def files_dir_for_notebook(file) do
     file
     |> FileSystem.File.containing_dir()
-    |> FileSystem.File.resolve("images/")
+    |> FileSystem.File.resolve("files/")
   end
 
   defp session_tmp_dir(session_id) do
-    livebook_tmp_path()
+    Livebook.Config.tmp_path()
     |> Path.join("sessions/#{session_id}")
     |> FileSystem.Utils.ensure_dir_path()
     |> FileSystem.File.local()
@@ -1606,7 +1749,7 @@ defmodule Livebook.Session do
   """
   @spec local_assets_path(String.t()) :: String.t()
   def local_assets_path(hash) do
-    Path.join([livebook_tmp_path(), "assets", encode_path_component(hash)])
+    Path.join([Livebook.Config.tmp_path(), "assets", encode_path_component(hash)])
   end
 
   @doc """
@@ -1636,57 +1779,112 @@ defmodule Livebook.Session do
     String.replace(component, [".", "/", "\\", ":"], "_")
   end
 
-  defp livebook_tmp_path() do
-    tmp_dir = System.tmp_dir!() |> Path.expand()
-    Path.join(tmp_dir, "livebook")
+  defp initialize_files_from(state, {:inline, contents_map}) do
+    write_attachment_file_entries(state, fn destination_file, file_entry ->
+      case Map.fetch(contents_map, file_entry.name) do
+        {:ok, content} -> FileSystem.File.write(destination_file, content)
+        :error -> :ok
+      end
+    end)
   end
 
-  defp copy_images(state, source) do
-    images_dir = images_dir_from_state(state)
+  defp initialize_files_from(state, {:url, url}) do
+    write_attachment_file_entries(state, fn destination_file, file_entry ->
+      source_url =
+        url
+        |> Livebook.Utils.expand_url(file_entry.name)
+        |> Livebook.Notebook.ContentLoader.rewrite_url()
 
+      case download_content(source_url, destination_file) do
+        :ok -> :ok
+        {:error, _message, 404} -> :ok
+        {:error, message, _status} -> {:error, message}
+      end
+    end)
+  end
+
+  defp initialize_files_from(state, {:dir, dir}) do
+    copy_files(state, dir)
+  end
+
+  defp copy_files(state, source) do
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
-        FileSystem.File.copy(source, images_dir)
+        write_attachment_file_entries(state, fn destination_file, file_entry ->
+          source_file = FileSystem.File.resolve(source, file_entry.name)
+
+          case FileSystem.File.copy(source_file, destination_file) do
+            :ok ->
+              :ok
+
+            {:error, message} ->
+              # If the files does not exist, we treat it as copy success
+              case FileSystem.File.exists?(source_file) do
+                {:ok, false} -> :ok
+                _ -> {:error, file_entry.name, message}
+              end
+          end
+        end)
       else
         :ok
       end
     end
   end
 
-  defp move_images(state, source) do
-    images_dir = images_dir_from_state(state)
+  defp write_attachment_file_entries(state, write_fun) do
+    files_dir = files_dir_from_state(state)
+
+    state.data.notebook.file_entries
+    |> Enum.filter(&(&1.type == :attachment))
+    |> Task.async_stream(
+      fn file_entry ->
+        destination_file = FileSystem.File.resolve(files_dir, file_entry.name)
+
+        case write_fun.(destination_file, file_entry) do
+          :ok -> :ok
+          {:error, message} -> {:error, file_entry.name, message}
+        end
+      end,
+      max_concurrency: 20
+    )
+    |> Enum.reject(&(&1 == {:ok, :ok}))
+    |> case do
+      [] ->
+        :ok
+
+      errors ->
+        enumeration =
+          Enum.map_join(errors, ", ", fn {:ok, {:error, name, message}} ->
+            "#{name} (#{message})"
+          end)
+
+        {:error, "failed to copy files: " <> enumeration}
+    end
+  end
+
+  defp move_files(state, source) do
+    files_dir = files_dir_from_state(state)
 
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
-        with {:ok, destination_exists?} <- FileSystem.File.exists?(images_dir) do
+        with {:ok, destination_exists?} <- FileSystem.File.exists?(files_dir) do
           if destination_exists? do
             # If the directory exists, we use copy to place
-            # the images there
-            with :ok <- FileSystem.File.copy(source, images_dir) do
+            # the files there
+            with :ok <- FileSystem.File.copy(source, files_dir) do
               FileSystem.File.remove(source)
             end
           else
             # If the directory doesn't exist, we can just change
             # the directory name, which is more efficient if
             # available in the given file system
-            FileSystem.File.rename(source, images_dir)
+            FileSystem.File.rename(source, files_dir)
           end
         end
       else
         :ok
       end
     end
-  end
-
-  defp dump_images(state, images) do
-    images_dir = images_dir_from_state(state)
-
-    Enum.reduce(images, :ok, fn {filename, content}, result ->
-      with :ok <- result do
-        file = FileSystem.File.resolve(images_dir, filename)
-        FileSystem.File.write(file, content)
-      end
-    end)
   end
 
   defp own_runtime(runtime, state) do
@@ -1768,19 +1966,16 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, prev_state, {:set_file, _client_id, _file}) do
-    prev_images_dir = images_dir_from_state(prev_state)
+    prev_files_dir = files_dir_from_state(prev_state)
 
     if prev_state.data.file do
-      copy_images(state, prev_images_dir)
+      copy_files(state, prev_files_dir)
     else
-      move_images(state, prev_images_dir)
+      move_files(state, prev_files_dir)
     end
     |> case do
-      :ok ->
-        :ok
-
-      {:error, message} ->
-        broadcast_error(state.session_id, "failed to copy images - #{message}")
+      :ok -> :ok
+      {:error, message} -> broadcast_error(state.session_id, message)
     end
 
     if file = state.data.file do
@@ -1896,6 +2091,22 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
+  defp after_operation(state, prev_state, {:add_file_entries, _client_id, _file_entries}) do
+    replaced_names =
+      Enum.map(
+        prev_state.data.notebook.file_entries -- state.data.notebook.file_entries,
+        & &1.name
+      )
+
+    cleanup_file_entries(state, replaced_names)
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:delete_file_entry, _client_id, name}) do
+    cleanup_file_entries(state, [name])
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
@@ -1980,8 +2191,8 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:clean_up_input_values, input_values}) do
-    for {_input_id, value} <- input_values do
+  defp handle_action(state, {:clean_up_input_values, input_infos}) do
+    for {_input_id, %{value: value}} <- input_infos do
       case value do
         value when is_file_input_value(value) ->
           schedule_file_deletion(state, value.file_ref)
@@ -2116,17 +2327,16 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      pid = self()
       notebook = state.data.notebook
 
-      {:ok, pid} =
-        Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      %{ref: ref} =
+        Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
           {content, warnings} = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
-          send(pid, {:save_finished, self(), result, warnings, file, default?})
+          {:save_finished, result, warnings, file, default?}
         end)
 
-      %{state | save_task_pid: pid}
+      %{state | save_task_ref: ref}
     else
       state
     end
@@ -2149,7 +2359,7 @@ defmodule Livebook.Session do
   defp maybe_save_notebook_sync(state), do: state
 
   defp should_save_notebook?(state) do
-    (state.data.dirty or state.data.persistence_warnings != []) and state.save_task_pid == nil
+    (state.data.dirty or state.data.persistence_warnings != []) and state.save_task_ref == nil
   end
 
   defp notebook_autosave_file(state) do
@@ -2174,13 +2384,7 @@ defmodule Livebook.Session do
     # which are random already
     random_str = String.slice(state.session_id, -4..-1)
 
-    [date_str, time_str, _] =
-      state.created_at
-      |> DateTime.to_iso8601()
-      |> String.replace(["-", ":"], "_")
-      |> String.split(["T", "."])
-
-    "#{date_str}/#{time_str}_#{title_str}_#{random_str}.livemd"
+    Calendar.strftime(state.created_at, "%Y_%m_%d/%H_%M") <> "_#{random_str}/#{title_str}.livemd"
   end
 
   defp notebook_name_to_file_name(notebook_name) do
@@ -2196,19 +2400,14 @@ defmodule Livebook.Session do
   end
 
   defp handle_save_finished(state, result, warnings, file, default?) do
-    state =
-      if default? do
+    case result do
+      :ok ->
         if state.saved_default_file && state.saved_default_file != file do
           FileSystem.File.remove(state.saved_default_file)
         end
 
-        %{state | saved_default_file: file}
-      else
-        state
-      end
+        state = %{state | saved_default_file: if(default?, do: file, else: nil)}
 
-    case result do
-      :ok ->
         handle_operation(state, {:notebook_saved, @client_id, warnings})
 
       {:error, message} ->
@@ -2263,9 +2462,176 @@ defmodule Livebook.Session do
     %{state | registered_files: Map.new(other_files)}
   end
 
+  defp file_entry_path(state, name, callback) do
+    case fetch_file_entry(state, name) do
+      {:ok, %{type: :attachment, name: name}} ->
+        files_dir = files_dir_from_state(state)
+        file = FileSystem.File.resolve(files_dir, name)
+        file_entry_path_from_file(state, name, file, callback)
+
+      {:ok, %{type: :file, name: name, file: file}} ->
+        file_entry_path_from_file(state, name, file, callback)
+
+      {:ok, %{type: :url, name: name, url: url}} ->
+        file_entry_path_from_url(state, name, url, callback)
+
+      {:error, message} ->
+        callback.({:error, message})
+    end
+  end
+
+  defp fetch_file_entry(state, name) do
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == name))
+
+    cond do
+      file_entry == nil ->
+        {:error, "no file named #{inspect(name)} exists in the notebook"}
+
+      name in state.data.notebook.quarantine_file_entry_names ->
+        {:error, :forbidden}
+
+      true ->
+        {:ok, file_entry}
+    end
+  end
+
+  defp file_entry_path_from_file(state, name, file, callback) do
+    if FileSystem.File.local?(file) do
+      if FileSystem.File.exists?(file) == {:ok, true} do
+        callback.({:ok, file.path})
+      else
+        callback.({:error, "no file exists at path #{inspect(file.path)}"})
+      end
+    else
+      fetcher = fn cache_file ->
+        FileSystem.File.copy(file, cache_file)
+      end
+
+      cached_file_entry_path(state, name, fetcher, callback)
+    end
+  end
+
+  defp file_entry_path_from_url(state, name, url, callback) do
+    fetcher = fn cache_file ->
+      case download_content(url, cache_file) do
+        :ok -> :ok
+        {:error, message, _} -> {:error, message}
+      end
+    end
+
+    cached_file_entry_path(state, name, fetcher, callback)
+  end
+
+  defp cached_file_entry_path(state, name, fetcher, callback) do
+    cache_file = file_entry_cache_file(state.session_id, name)
+
+    if FileSystem.File.exists?(cache_file) == {:ok, true} do
+      callback.({:ok, cache_file.path})
+    else
+      Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+        case fetcher.(cache_file) do
+          :ok -> callback.({:ok, cache_file.path})
+          {:error, message} -> callback.({:error, message})
+        end
+      end)
+    end
+  end
+
+  defp file_entry_cache_file(session_id, name) do
+    tmp_dir = session_tmp_dir(session_id)
+    FileSystem.File.resolve(tmp_dir, "files_cache/#{name}")
+  end
+
+  defp file_entry_spec(state, name) do
+    case fetch_file_entry(state, name) do
+      {:ok, %{type: :attachment, name: name}} ->
+        files_dir = files_dir_from_state(state)
+        file = FileSystem.File.resolve(files_dir, name)
+        file_entry_spec_from_file(file)
+
+      {:ok, %{type: :file, file: file}} ->
+        file_entry_spec_from_file(file)
+
+      {:ok, %{type: :url, url: url}} ->
+        file_entry_spec_from_url(url)
+
+      {:error, message} ->
+        {:error, message}
+    end
+  end
+
+  defp file_entry_spec_from_file(file) do
+    if FileSystem.File.local?(file) do
+      if FileSystem.File.exists?(file) == {:ok, true} do
+        {:ok, %{type: :local, path: file.path}}
+      else
+        {:error, "no file exists at path #{inspect(file.path)}"}
+      end
+    else
+      spec =
+        case file.file_system do
+          %FileSystem.S3{} = file_system ->
+            "/" <> key = file.path
+
+            %{
+              type: :s3,
+              bucket_url: file_system.bucket_url,
+              region: file_system.region,
+              access_key_id: file_system.access_key_id,
+              secret_access_key: file_system.secret_access_key,
+              key: key
+            }
+        end
+
+      {:ok, spec}
+    end
+  end
+
+  defp file_entry_spec_from_url(url) do
+    {:ok, %{type: :url, url: url}}
+  end
+
+  defp file_entry_file_id(name), do: "notebook-file-entry-#{name}"
+
+  defp cleanup_file_entries(state, names) do
+    for name <- names do
+      cache_file = file_entry_cache_file(state.session_id, name)
+      FileSystem.File.remove(cache_file)
+
+      if Runtime.connected?(state.data.runtime) do
+        file_id = file_entry_file_id(name)
+        Runtime.revoke_file(state.data.runtime, file_id)
+      end
+    end
+  end
+
   defp before_close(state) do
     maybe_save_notebook_sync(state)
     broadcast_message(state.session_id, :session_closed)
+  end
+
+  defp app_info_for_runtime(state) do
+    case state.data do
+      %{mode: :app, notebook: %{app_settings: %{multi_session: true}}} ->
+        info = %{type: :multi_session}
+
+        if user = state.started_by do
+          started_by =
+            user
+            |> Map.take([:id, :name, :email])
+            |> Map.put(:source, Livebook.Config.identity_source())
+
+          Map.put(info, :started_by, started_by)
+        else
+          info
+        end
+
+      %{mode: :app, notebook: %{app_settings: %{multi_session: false}}} ->
+        %{type: :single_session}
+
+      _ ->
+        %{type: :none}
+    end
   end
 
   defp app_report_client_count_change(state) when state.data.mode == :app do
@@ -2365,4 +2731,46 @@ defmodule Livebook.Session do
 
   defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
+
+  @doc """
+  Converts the given file entry to attachment one.
+
+  The file is fetched into the notebook files directory.
+  """
+  @spec to_attachment_file_entry(t(), Notebook.file_entry()) :: {:ok, Notebook.file_entry()}
+  def to_attachment_file_entry(session, file_entry)
+
+  def to_attachment_file_entry(session, %{type: :file} = file_entry) do
+    destination = FileSystem.File.resolve(session.files_dir, file_entry.name)
+
+    with :ok <- FileSystem.File.copy(file_entry.file, destination) do
+      {:ok, %{name: file_entry.name, type: :attachment}}
+    end
+  end
+
+  def to_attachment_file_entry(session, %{type: :url} = file_entry) do
+    destination = FileSystem.File.resolve(session.files_dir, file_entry.name)
+
+    case download_content(file_entry.url, destination) do
+      :ok ->
+        {:ok, %{name: file_entry.name, type: :attachment}}
+
+      {:error, message, _status} ->
+        {:error, message}
+    end
+  end
+
+  def to_attachment_file_entry(_session, %{type: :attachment} = file_entry) do
+    {:ok, file_entry}
+  end
+
+  defp download_content(url, file) do
+    case Livebook.Utils.HTTP.download(url, file) do
+      {:ok, _file} ->
+        :ok
+
+      {:error, message, status} ->
+        {:error, "download failed, " <> message, status}
+    end
+  end
 end

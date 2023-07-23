@@ -5,6 +5,20 @@ defmodule Livebook.Config do
 
   @type auth_mode() :: :token | :password | :disabled
 
+  identity_providers = %{
+    session: LivebookWeb.SessionIdentity,
+    google_iap: Livebook.ZTA.GoogleIAP,
+    cloudflare: Livebook.ZTA.Cloudflare
+  }
+
+  @identity_provider_type_to_module Map.new(identity_providers, fn {key, value} ->
+                                      {Atom.to_string(key), value}
+                                    end)
+
+  @identity_provider_module_to_type Map.new(identity_providers, fn {key, value} ->
+                                      {value, key}
+                                    end)
+
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
   """
@@ -85,6 +99,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns path to Livebook temporary dir.
+  """
+  @spec tmp_path() :: String.t()
+  def tmp_path() do
+    tmp_dir = System.tmp_dir!() |> Path.expand()
+    Path.join(tmp_dir, "livebook")
+  end
+
+  @doc """
   Returns the apps path.
   """
   @spec apps_path() :: String.t() | nil
@@ -93,11 +116,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the password configured for all apps deployed rom `app_path`.
+  Returns the password configured for all apps deployed from `apps_path`.
   """
   @spec apps_path_password() :: String.t() | nil
   def apps_path_password() do
     Application.get_env(:livebook, :apps_path_password)
+  end
+
+  @doc """
+  Returns the hub configured for all apps deployed from `apps_path`.
+  """
+  @spec apps_path_hub_id() :: String.t() | nil
+  def apps_path_hub_id() do
+    Application.get_env(:livebook, :apps_path_hub_id)
   end
 
   @doc """
@@ -181,7 +212,16 @@ defmodule Livebook.Config do
   """
   @spec identity_readonly?() :: boolean()
   def identity_readonly?() do
-    not match?({LivebookWeb.Cookies, _}, Livebook.Config.identity_provider())
+    not match?({LivebookWeb.SessionIdentity, _}, Livebook.Config.identity_provider())
+  end
+
+  @doc """
+  Returns identity source as a friendly atom.
+  """
+  @spec identity_source() :: atom()
+  def identity_source() do
+    {module, _} = identity_provider()
+    @identity_provider_module_to_type[module]
   end
 
   @doc """
@@ -514,18 +554,20 @@ defmodule Livebook.Config do
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    case System.get_env(env) do
-      "googleiap:" <> rest ->
-        {Livebook.ZTA.GoogleIAP, rest}
+    if provider = System.get_env(env) do
+      identity_provider!(env, provider)
+    end
+  end
 
-      "cloudflare:" <> rest ->
-        {Livebook.ZTA.Cloudflare, rest}
-
-      nil ->
-        nil
-
-      _ ->
-        abort!("invalid configuration for identity provider")
+  @doc """
+  Parses and validates zero trust identity provider within context.
+  """
+  def identity_provider!(context, provider) do
+    with [type, key] <- String.split(provider, ":", parts: 2),
+         {:ok, module} <- Map.fetch(@identity_provider_type_to_module, type) do
+      {module, key}
+    else
+      _ -> abort!("invalid configuration for identity provider given in #{context}")
     end
   end
 end

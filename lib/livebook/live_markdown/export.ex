@@ -82,11 +82,16 @@ defmodule Livebook.LiveMarkdown.Export do
 
     app_settings_metadata = app_settings_metadata(notebook.app_settings)
 
-    if app_settings_metadata == %{} do
-      metadata
-    else
-      Map.put(metadata, :app_settings, app_settings_metadata)
-    end
+    file_entry_metadatas =
+      notebook.file_entries
+      |> Enum.sort_by(& &1.name)
+      |> Enum.map(&file_entry_metadata/1)
+
+    put_unless_default(
+      metadata,
+      %{app_settings: app_settings_metadata, file_entries: file_entry_metadatas},
+      %{app_settings: %{}, file_entries: []}
+    )
   end
 
   defp app_settings_metadata(app_settings) do
@@ -106,6 +111,18 @@ defmodule Livebook.LiveMarkdown.Export do
       Map.take(app_settings, keys),
       Map.take(Notebook.AppSettings.new(), keys)
     )
+  end
+
+  defp file_entry_metadata(%{type: :attachment, name: name}) do
+    %{type: "attachment", name: name}
+  end
+
+  defp file_entry_metadata(%{type: :file, name: name, file: file}) do
+    %{type: "file", name: name, file: %{file_system_id: file.file_system.id, path: file.path}}
+  end
+
+  defp file_entry_metadata(%{type: :url, name: name, url: url}) do
+    %{type: "url", name: name, url: url}
   end
 
   defp render_section(section, notebook, ctx) do
@@ -359,16 +376,33 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp notebook_stamp_metadata(notebook) do
     keys = [:hub_secret_names]
-    put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+
+    metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
+
+    # If there are any :file file entries, we want to generate a stamp
+    # to make sure the entries are not tampered with. We also want to
+    # store the information about file entries already in quarantine
+    if Enum.any?(notebook.file_entries, &(&1.type == :file)) do
+      Map.put(
+        metadata,
+        :quarantine_file_entry_names,
+        MapSet.to_list(notebook.quarantine_file_entry_names)
+      )
+    else
+      metadata
+    end
   end
 
-  defp ensure_order(map) do
+  defp ensure_order(%{} = map) do
     map
     |> Enum.sort()
-    |> Enum.map(fn
-      {key, %{} = value} -> {key, ensure_order(value)}
-      pair -> pair
-    end)
+    |> Enum.map(fn {key, value} -> {key, ensure_order(value)} end)
     |> Jason.OrderedObject.new()
   end
+
+  defp ensure_order(list) when is_list(list) do
+    Enum.map(list, &ensure_order/1)
+  end
+
+  defp ensure_order(term), do: term
 end

@@ -21,10 +21,13 @@ defmodule Livebook.Apps do
 
     * `:warnings` - a list of warnings to show for the new deployment
 
+    * `:files_source` - a location to fetch notebook files from, see
+      `Livebook.Session.start_link/1` for more details
+
   """
   @spec deploy(Livebook.Notebook.t(), keyword()) :: {:ok, pid()} | {:error, term()}
   def deploy(notebook, opts \\ []) do
-    opts = Keyword.validate!(opts, warnings: [])
+    opts = Keyword.validate!(opts, warnings: [], files_source: nil)
 
     slug = notebook.app_settings.slug
     name = name(slug)
@@ -34,25 +37,29 @@ defmodule Livebook.Apps do
         :global.trans({{:app_registration, name}, node()}, fn ->
           case :global.whereis_name(name) do
             :undefined ->
-              with {:ok, pid} <- start_app(notebook, opts[:warnings]) do
+              with {:ok, pid} <- start_app(notebook, opts[:warnings], opts[:files_source]) do
                 :yes = :global.register_name(name, pid)
                 {:ok, pid}
               end
 
             pid ->
-              App.deploy(pid, notebook, warnings: opts[:warnings])
+              App.deploy(pid, notebook,
+                warnings: opts[:warnings],
+                files_source: opts[:files_source]
+              )
+
               {:ok, pid}
           end
         end)
 
       pid ->
-        App.deploy(pid, notebook, warnings: opts[:warnings])
+        App.deploy(pid, notebook, warnings: opts[:warnings], files_source: opts[:files_source])
         {:ok, pid}
     end
   end
 
-  defp start_app(notebook, warnings) do
-    opts = [notebook: notebook, warnings: warnings]
+  defp start_app(notebook, warnings, files_source) do
+    opts = [notebook: notebook, warnings: warnings, files_source: files_source]
 
     case DynamicSupervisor.start_child(Livebook.AppSupervisor, {App, opts}) do
       {:ok, pid} ->
@@ -167,7 +174,9 @@ defmodule Livebook.Apps do
 
     for path <- paths do
       markdown = File.read!(path)
-      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+
+      {notebook, %{warnings: warnings, verified_hub_id: verified_hub_id}} =
+        Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
       if warnings != [] do
         items = Enum.map(warnings, &("- " <> &1))
@@ -186,7 +195,17 @@ defmodule Livebook.Apps do
 
       if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
         warnings = Enum.map(warnings, &("Import: " <> &1))
-        deploy(notebook, warnings: warnings)
+        apps_path_hub_id = Livebook.Config.apps_path_hub_id()
+
+        if apps_path_hub_id == nil or apps_path_hub_id == verified_hub_id do
+          notebook_file = Livebook.FileSystem.File.local(path)
+          files_dir = Livebook.Session.files_dir_for_notebook(notebook_file)
+          deploy(notebook, warnings: warnings, files_source: {:dir, files_dir})
+        else
+          Logger.warning(
+            "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
+          )
+        end
       else
         Logger.warning(
           "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."

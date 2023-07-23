@@ -254,6 +254,14 @@ defmodule LivebookWeb.CoreComponents do
     default: :bottom_right,
     values: [:top_left, :top_right, :bottom_left, :bottom_right]
 
+  attr :sm_position, :atom,
+    default: nil,
+    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+
+  attr :md_position, :atom,
+    default: nil,
+    values: [nil, :top_left, :top_right, :bottom_left, :bottom_right]
+
   attr :distant, :boolean,
     default: false,
     doc: "whether the menu should be further from the anchor element"
@@ -284,6 +292,8 @@ defmodule LivebookWeb.CoreComponents do
         class={[
           "absolute z-[100] rounded-lg bg-white flex flex-col py-2 shadow-[0_15px_99px_-0px_rgba(12,24,41,0.15)] hidden",
           menu_position_class(@position),
+          @md_position && menu_md_position_class(@md_position),
+          @sm_position && menu_sm_position_class(@sm_position),
           @distant && menu_distant_class(@position)
         ]}
         role="menu"
@@ -309,6 +319,38 @@ defmodule LivebookWeb.CoreComponents do
   defp menu_position_class(:top_right), do: "top-0 right-0 transform -translate-y-full -mt-1"
   defp menu_position_class(:bottom_left), do: "bottom-0 left-0 transform translate-y-full -mb-1"
   defp menu_position_class(:bottom_right), do: "bottom-0 right-0 transform translate-y-full -mb-1"
+
+  defp menu_md_position_class(:top_left) do
+    "md:top-0 md:left-0 md:bottom-auto md:right-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
+  end
+
+  defp menu_md_position_class(:top_right) do
+    "md:top-0 md:right-0 md:bottom-auto md:left-auto md:transform md:-translate-y-full md:-mt-1 md:mb-0"
+  end
+
+  defp menu_md_position_class(:bottom_left) do
+    "md:bottom-0 md:left-0 md:top-auto md:right-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
+  end
+
+  defp menu_md_position_class(:bottom_right) do
+    "md:bottom-0 md:right-0 md:top-auto md:left-auto md:transform md:translate-y-full md:-mb-1 md:mt-0"
+  end
+
+  defp menu_sm_position_class(:top_left) do
+    "sm:top-0 sm:left-0 sm:bottom-auto sm:right-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
+  end
+
+  defp menu_sm_position_class(:top_right) do
+    "sm:top-0 sm:right-0 sm:bottom-auto sm:left-auto sm:transform sm:-translate-y-full sm:-mt-1 sm:mb-0"
+  end
+
+  defp menu_sm_position_class(:bottom_left) do
+    "sm:bottom-0 sm:left-0 sm:top-auto sm:right-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
+  end
+
+  defp menu_sm_position_class(:bottom_right) do
+    "sm:bottom-0 sm:right-0 sm:top-auto sm:left-auto sm:transform sm:translate-y-full sm:-mb-1 sm:mt-0"
+  end
 
   defp menu_distant_class(position) when position in [:top_left, :top_right], do: "-mt-2"
   defp menu_distant_class(position) when position in [:bottom_left, :bottom_right], do: "-mb-2"
@@ -500,28 +542,36 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <span class="relative flex h-3 w-3">
       <span
-        :if={animated_circle_class(@variant)}
+        :if={animated_status_circle_class(@variant)}
         class={[
-          animated_circle_class(@variant),
+          animated_status_circle_class(@variant),
           "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
         ]}
       >
       </span>
-      <span class={[circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}></span>
+      <span class={[status_circle_class(@variant), "relative inline-flex rounded-full h-3 w-3"]}>
+      </span>
     </span>
     """
   end
 
-  defp circle_class(:success), do: "bg-green-bright-400"
-  defp circle_class(:warning), do: "bg-yellow-bright-200"
-  defp circle_class(:error), do: "bg-red-400"
-  defp circle_class(:inactive), do: "bg-gray-500"
-  defp circle_class(:waiting), do: "bg-gray-400"
-  defp circle_class(:progressing), do: "bg-blue-500"
+  @doc """
+  Returns background class based on the given variant.
 
-  defp animated_circle_class(:waiting), do: "bg-gray-300"
-  defp animated_circle_class(:progressing), do: "bg-blue-400"
-  defp animated_circle_class(_other), do: nil
+  See `status_indicator/1` for available variants.
+  """
+  def status_circle_class(variant)
+
+  def status_circle_class(:success), do: "bg-green-bright-400"
+  def status_circle_class(:warning), do: "bg-yellow-bright-200"
+  def status_circle_class(:error), do: "bg-red-400"
+  def status_circle_class(:inactive), do: "bg-gray-500"
+  def status_circle_class(:waiting), do: "bg-gray-400"
+  def status_circle_class(:progressing), do: "bg-blue-500"
+
+  defp animated_status_circle_class(:waiting), do: "bg-gray-300"
+  defp animated_status_circle_class(:progressing), do: "bg-blue-400"
+  defp animated_status_circle_class(_other), do: nil
 
   @doc """
   Renders an informative box as a placeholder for a list.
@@ -603,5 +653,20 @@ defmodule LivebookWeb.CoreComponents do
       |> JS.remove_class(name, to: "#{to}.#{name}")
       |> JS.add_class(name, to: "#{to}:not(.#{name})")
     end)
+  end
+
+  @doc """
+  Pushes and executes the given `%Phoenix.LiveView.JS{}` on the client.
+
+  ## Options
+
+    * `:to` - selector for elements to execute against. Defaults to
+      document body
+
+  """
+  def exec_js(socket, js, opts \\ []) do
+    opts = Keyword.validate!(opts, [:to])
+
+    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
   end
 end

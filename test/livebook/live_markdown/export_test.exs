@@ -1,6 +1,8 @@
 defmodule Livebook.LiveMarkdown.ExportTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.LiveMarkdown.Export
   alias Livebook.Notebook
 
@@ -1249,78 +1251,152 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     end
   end
 
-  test "notebook stamp is appended at the end" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    IO.puts("hey")
-                    """
-                }
-              ]
-          }
-        ],
-        hub_secret_names: ["DB_PASSWORD"]
-    }
+  describe "notebook stamp" do
+    test "notebook stamp is appended at the end" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: """
+                      IO.puts("hey")
+                      """
+                  }
+                ]
+            }
+          ],
+          hub_secret_names: ["DB_PASSWORD"]
+      }
 
-    expected_document = ~R"""
-    # My Notebook
+      expected_document = ~R"""
+      # My Notebook
 
-    ## Section 1
+      ## Section 1
 
-    ```elixir
-    IO.puts\("hey"\)
-    ```
+      ```elixir
+      IO.puts\("hey"\)
+      ```
 
-    <!-- livebook:{"offset":58,"stamp":(.*)} -->
-    """
+      <!-- livebook:{"offset":58,"stamp":(.*)} -->
+      """
 
-    {document, []} = Export.notebook_to_livemd(notebook)
+      {document, []} = Export.notebook_to_livemd(notebook)
 
-    assert document =~ expected_document
+      assert document =~ expected_document
+    end
+
+    test "skips notebook stamp if :include_stamp is false" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: """
+                      IO.puts("hey")
+                      """
+                  }
+                ]
+            }
+          ],
+          hub_secret_names: ["DB_PASSWORD"]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
+
+      assert expected_document == document
+    end
   end
 
-  test "skips notebook stamp if :include_stamp is false" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    IO.puts("hey")
-                    """
-                }
-              ]
-          }
-        ],
-        hub_secret_names: ["DB_PASSWORD"]
-    }
+  describe "file entries" do
+    test "persists file entries" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
 
-    expected_document = """
-    # My Notebook
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :attachment, name: "image.jpg"},
+            %{type: :url, name: "data.csv", url: "https://example.com/data.csv"},
+            %{type: :file, name: "document.pdf", file: file}
+          ]
+      }
 
-    ## Section 1
+      expected_document = """
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
-    ```elixir
-    IO.puts("hey")
-    ```
-    """
+      # My Notebook
+      """
 
-    {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
+      {document, []} = Export.notebook_to_livemd(notebook, include_stamp: false)
 
-    assert expected_document == document
+      assert expected_document == document
+    end
+
+    test "stores quarantine file entry names if there are any :file file entries" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/document.pdf"))
+
+      # All allowed
+
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :file, name: "document.pdf", file: file}
+          ]
+      }
+
+      {document, []} = Export.notebook_to_livemd(notebook)
+
+      assert stamp_metadata(notebook, document) == %{quarantine_file_entry_names: []}
+
+      # Subset allowed
+
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          file_entries: [
+            %{type: :file, name: "document1.pdf", file: file},
+            %{type: :file, name: "document2.pdf", file: file}
+          ],
+          quarantine_file_entry_names: MapSet.new(["document1.pdf"])
+      }
+
+      {document, []} = Export.notebook_to_livemd(notebook)
+
+      assert stamp_metadata(notebook, document) == %{
+               quarantine_file_entry_names: ["document1.pdf"]
+             }
+    end
+  end
+
+  defp stamp_metadata(notebook, source) do
+    [_, json] = Regex.run(~r/<!-- livebook:(.*) -->\n$/, source)
+    %{"offset" => offset, "stamp" => stamp} = Jason.decode!(json)
+
+    hub = Livebook.Hubs.fetch_hub!(notebook.hub_id)
+    source = binary_slice(source, 0, offset)
+    {:ok, metadata} = Livebook.Hubs.verify_notebook_stamp(hub, source, stamp)
+    metadata
   end
 
   defp spawn_widget_with_data(ref, data) do

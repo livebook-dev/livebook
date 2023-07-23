@@ -74,6 +74,7 @@ const Session = {
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
     this.followedClientId = null;
+    this.unsubscribeCustomViewFromSettings = null;
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -121,6 +122,10 @@ const Session = {
       this.toggleAppInfo()
     );
 
+    this.getElement("files-list-toggle").addEventListener("click", (event) =>
+      this.toggleFilesList()
+    );
+
     this.getElement("notebook").addEventListener("scroll", (event) =>
       this.updateSectionListHighlight()
     );
@@ -137,6 +142,8 @@ const Session = {
       "click",
       (event) => this.toggleCollapseAllSections()
     );
+
+    this.initializeDragAndDrop();
 
     window.addEventListener(
       "phx:page-loading-stop",
@@ -368,6 +375,8 @@ const Session = {
         this.toggleAppInfo();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
+      } else if (keyBuffer.tryMatch(["s", "f"])) {
+        this.toggleFilesList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
         this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "b"])) {
@@ -703,33 +712,139 @@ const Session = {
     }
   },
 
+  /**
+   * Initializes drag and drop event handlers.
+   */
+  initializeDragAndDrop() {
+    let isDragging = false;
+    let draggedEl = null;
+    let files = null;
+
+    const startDragging = (element = null) => {
+      if (!isDragging) {
+        isDragging = true;
+        draggedEl = element;
+
+        const type = element ? "internal" : "external";
+        this.el.setAttribute("data-js-dragging", type);
+
+        if (type === "external") {
+          this.toggleFilesList(true);
+        }
+      }
+    };
+
+    const stopDragging = () => {
+      if (isDragging) {
+        isDragging = false;
+        this.el.removeAttribute("data-js-dragging");
+      }
+    };
+
+    this.el.addEventListener("dragstart", (event) => {
+      startDragging(event.target);
+    });
+
+    this.el.addEventListener("dragenter", (event) => {
+      startDragging();
+    });
+
+    this.el.addEventListener("dragleave", (event) => {
+      if (!this.el.contains(event.relatedTarget)) {
+        stopDragging();
+      }
+    });
+
+    this.el.addEventListener("dragover", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
+
+    this.el.addEventListener("drop", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+
+      const insertDropEl = event.target.closest(`[data-el-insert-drop-area]`);
+      const filesDropEl = event.target.closest(`[data-el-files-drop-area]`);
+
+      if (insertDropEl) {
+        const sectionId = insertDropEl.getAttribute("data-section-id") || null;
+        const cellId = insertDropEl.getAttribute("data-cell-id") || null;
+
+        if (event.dataTransfer.files.length > 0) {
+          files = event.dataTransfer.files;
+
+          this.pushEvent("handle_file_drop", {
+            section_id: sectionId,
+            cell_id: cellId,
+          });
+        } else if (draggedEl && draggedEl.matches("[data-el-file-entry]")) {
+          const fileEntryName = draggedEl.getAttribute("data-name");
+
+          this.pushEvent("insert_file", {
+            file_entry_name: fileEntryName,
+            section_id: sectionId,
+            cell_id: cellId,
+          });
+        }
+      } else if (filesDropEl) {
+        if (event.dataTransfer.files.length > 0) {
+          files = event.dataTransfer.files;
+          this.pushEvent("handle_file_drop", {});
+        }
+      }
+
+      stopDragging();
+    });
+
+    this.handleEvent("finish_file_drop", (event) => {
+      const inputEl = document.querySelector(
+        `#add-file-entry-modal input[type="file"]`
+      );
+
+      if (inputEl) {
+        inputEl.files = files;
+        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  },
+
   // User action handlers (mostly keybindings)
 
-  toggleSectionsList() {
-    this.toggleSidePanelContent("sections-list");
+  toggleSectionsList(force = null) {
+    this.toggleSidePanelContent("sections-list", force);
   },
 
-  toggleClientsList() {
-    this.toggleSidePanelContent("clients-list");
+  toggleClientsList(force = null) {
+    this.toggleSidePanelContent("clients-list", force);
   },
 
-  toggleSecretsList() {
-    this.toggleSidePanelContent("secrets-list");
+  toggleSecretsList(force = null) {
+    this.toggleSidePanelContent("secrets-list", force);
   },
 
-  toggleAppInfo() {
-    this.toggleSidePanelContent("app-info");
+  toggleAppInfo(force = null) {
+    this.toggleSidePanelContent("app-info", force);
   },
 
-  toggleRuntimeInfo() {
-    this.toggleSidePanelContent("runtime-info");
+  toggleFilesList(force = null) {
+    this.toggleSidePanelContent("files-list", force);
   },
 
-  toggleSidePanelContent(name) {
-    if (this.el.getAttribute("data-js-side-panel-content") === name) {
-      this.el.removeAttribute("data-js-side-panel-content");
-    } else {
+  toggleRuntimeInfo(force = null) {
+    this.toggleSidePanelContent("runtime-info", force);
+  },
+
+  toggleSidePanelContent(name, force = null) {
+    const shouldOpen =
+      force === null
+        ? this.el.getAttribute("data-js-side-panel-content") !== name
+        : force;
+
+    if (shouldOpen) {
       this.el.setAttribute("data-js-side-panel-content", name);
+    } else {
+      this.el.removeAttribute("data-js-side-panel-content");
     }
   },
 
@@ -974,19 +1089,15 @@ const Session = {
     if (this.view === view) {
       this.view = null;
       this.el.removeAttribute("data-js-view");
-      this.unsubscribeCustomViewFromSettings();
+      this.customViewSelection();
     } else {
       this.view = view;
       this.el.setAttribute("data-js-view", view);
-      if (view === "custom") {
-        this.customViewSelection();
-      }
-      if (view !== "custom") {
-        this.unsubscribeCustomViewFromSettings();
-      }
+
       if (view === "presentation") {
         this.el.toggleAttribute("data-js-show-spotlight", true);
       }
+      this.customViewSelection();
     }
 
     // If nothing is focused, use the first cell in the viewport
@@ -1005,34 +1116,35 @@ const Session = {
     }
   },
   customViewSelection() {
-    settingsStore.getAndSubscribe((settings) => {
-      this.el.toggleAttribute(
-        "data-js-hide-section",
-        !settings.custom_view_show_section
-      );
-      this.el.toggleAttribute(
-        "data-js-hide-markdown",
-        !settings.custom_view_show_markdown
-      );
-      this.el.toggleAttribute(
-        "data-js-hide-output",
-        !settings.custom_view_show_output
-      );
-      this.el.toggleAttribute(
-        "data-js-show-spotlight",
-        settings.custom_view_show_spotlight
-      );
-
-      return () => {
-        this.unsubscribeCustomViewFromSettings();
-      };
-    });
-  },
-  unsubscribeCustomViewFromSettings() {
-    this.el.removeAttribute("data-js-hide-section");
-    this.el.removeAttribute("data-js-hide-markdown");
-    this.el.removeAttribute("data-js-hide-output");
-    this.el.removeAttribute("data-js-show-spotlight");
+    this.unsubscribeCustomViewFromSettings = settingsStore.getAndSubscribe(
+      (settings) => {
+        if (this.view == "custom") {
+          this.el.toggleAttribute(
+            "data-js-hide-section",
+            !settings.custom_view_show_section
+          );
+          this.el.toggleAttribute(
+            "data-js-hide-markdown",
+            !settings.custom_view_show_markdown
+          );
+          this.el.toggleAttribute(
+            "data-js-hide-output",
+            !settings.custom_view_show_output
+          );
+          this.el.toggleAttribute(
+            "data-js-show-spotlight",
+            settings.custom_view_show_spotlight
+          );
+        } else {
+          this.el.removeAttribute("data-js-hide-section");
+          this.el.removeAttribute("data-js-hide-markdown");
+          this.el.removeAttribute("data-js-hide-output");
+          if (this.view !== "presentation") {
+            this.el.removeAttribute("data-js-show-spotlight");
+          }
+        }
+      }
+    );
   },
 
   toggleCollapseSection() {

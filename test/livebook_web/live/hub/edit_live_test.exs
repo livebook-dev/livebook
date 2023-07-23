@@ -41,6 +41,12 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
+    test "raises an error if does not exist secret", %{conn: conn, hub: hub} do
+      assert_raise LivebookWeb.NotFoundError, fn ->
+        live(conn, ~p"/hub/#{hub.id}/secrets/edit/HELLO")
+      end
+    end
+
     test "creates secret", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       secret = build(:secret, name: "PERSONAL_ADD_SECRET")

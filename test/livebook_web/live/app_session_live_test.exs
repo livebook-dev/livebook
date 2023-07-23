@@ -108,7 +108,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Livebook.App.close(app.pid)
   end
 
-  test "only shows an error message when session errors", %{conn: conn} do
+  test "shows an error message when session errors", %{conn: conn, test: test} do
     slug = Livebook.Utils.random_short_id()
     app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
 
@@ -125,7 +125,14 @@ defmodule LivebookWeb.AppSessionLiveTest do
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: ~s/raise "oops"/
+                  | id: "error-cell",
+                    source: """
+                    # Fail on the first run
+                    unless :persistent_term.get(#{inspect(test)}, false) do
+                      :persistent_term.put(#{inspect(test)}, true)
+                      raise "oops"
+                    end
+                    """
                 }
               ]
           }
@@ -138,12 +145,23 @@ defmodule LivebookWeb.AppSessionLiveTest do
     assert_receive {:app_created, %{pid: ^app_pid} = app}
 
     assert_receive {:app_updated,
-                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :error}}]}}
+                    %{
+                      pid: ^app_pid,
+                      sessions: [%{id: session_id, app_status: %{execution: :error}}]
+                    }}
 
     {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
 
+    assert render(view) =~ "Printed output"
     assert render(view) =~ "Something went wrong"
-    refute render(view) =~ "Printed output"
+    assert render(view) =~ ~p"/sessions/#{session_id}" <> "#cell-error-cell"
+
+    view
+    |> element("button", "Retry")
+    |> render_click()
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
 
     Livebook.App.close(app.pid)
   end

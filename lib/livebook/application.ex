@@ -57,6 +57,7 @@ defmodule Livebook.Application do
       {:ok, _} = result ->
         Livebook.Migration.migrate()
         load_lb_env_vars()
+        create_offline_hub()
         clear_env_vars()
         display_startup_info()
         Livebook.Hubs.connect_hubs()
@@ -189,7 +190,7 @@ defmodule Livebook.Application do
     end
   end
 
-  defp load_lb_env_vars do
+  defp load_lb_env_vars() do
     secrets =
       for {"LB_" <> name = var, value} <- System.get_env() do
         System.delete_env(var)
@@ -202,6 +203,27 @@ defmodule Livebook.Application do
       end
 
     Livebook.Secrets.set_startup_secrets(secrets)
+  end
+
+  def create_offline_hub() do
+    name = System.get_env("LIVEBOOK_TEAMS_NAME")
+    public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
+
+    if name && public_key do
+      teams_key =
+        System.get_env("LIVEBOOK_TEAMS_KEY") ||
+          Livebook.Config.abort!(
+            "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
+          )
+
+      Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
+        id: "team-#{name}",
+        hub_name: name,
+        hub_emoji: "💡",
+        teams_key: teams_key,
+        org_public_key: public_key
+      })
+    end
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true

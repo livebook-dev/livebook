@@ -1,5 +1,9 @@
 import LiveEditor from "./cell_editor/live_editor";
-import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import {
+  getAttributeOrDefault,
+  getAttributeOrThrow,
+  parseBoolean,
+} from "../lib/attribute";
 
 const CellEditor = {
   mounted() {
@@ -70,7 +74,7 @@ const CellEditor = {
     return {
       cellId: getAttributeOrThrow(this.el, "data-cell-id"),
       tag: getAttributeOrThrow(this.el, "data-tag"),
-      language: getAttributeOrThrow(this.el, "data-language"),
+      language: getAttributeOrDefault(this.el, "data-language", null),
       intellisense: getAttributeOrThrow(
         this.el,
         "data-intellisense",

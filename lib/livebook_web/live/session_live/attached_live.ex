@@ -1,10 +1,18 @@
 defmodule LivebookWeb.SessionLive.AttachedLive do
   use LivebookWeb, :live_view
 
+  import Ecto.Changeset
+
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
+  def mount(
+        _params,
+        %{"session_pid" => session_pid, "current_runtime" => current_runtime},
+        socket
+      ) do
+    session = Session.get_by_pid(session_pid)
+
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Attached) do
       raise "runtime module not allowed"
     end
@@ -18,8 +26,24 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
        session: session,
        current_runtime: current_runtime,
        error_message: nil,
-       data: initial_data(current_runtime)
+       changeset: changeset(current_runtime)
      )}
+  end
+
+  defp changeset(runtime, attrs \\ %{}) do
+    data =
+      case runtime do
+        %Runtime.Attached{node: node, cookie: cookie} ->
+          %{name: Atom.to_string(node), cookie: Atom.to_string(cookie)}
+
+        _ ->
+          %{name: nil, cookie: nil}
+      end
+
+    types = %{name: :string, cookie: :string}
+
+    cast({data, types}, attrs, [:name, :cookie])
+    |> validate_required([:name, :cookie])
   end
 
   @impl true
@@ -32,8 +56,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
-        Thanks to this approach you can work with
-        an arbitrary Elixir runtime.
+        The node must run Erlang/OTP <%= :erlang.system_info(:otp_release) %> and Elixir <%= System.version() %> (or later).
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
@@ -48,7 +71,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       </p>
       <.form
         :let={f}
-        for={@data}
+        for={@changeset}
         as={:data}
         phx-submit="init"
         phx-change="validate"
@@ -59,42 +82,48 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <.text_field field={f[:name]} label="Name" placeholder={name_placeholder()} />
           <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>
-        <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
-          <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
+        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
+          <%= if(reconnecting?(@changeset), do: "Reconnect", else: "Connect") %>
         </button>
       </.form>
     </div>
     """
   end
 
-  defp matching_runtime?(%Runtime.Attached{} = runtime, data) do
-    initial_data(runtime) == data
-  end
-
-  defp matching_runtime?(_runtime, _data), do: false
-
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
+    changeset =
+      socket.assigns.current_runtime |> changeset(data) |> Map.replace!(:action, :validate)
+
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
   def handle_event("init", %{"data" => data}, socket) do
-    node = String.to_atom(data["name"])
-    cookie = String.to_atom(data["cookie"])
+    socket.assigns.current_runtime
+    |> changeset(data)
+    |> apply_action(:insert)
+    |> case do
+      {:ok, data} ->
+        node = String.to_atom(data.name)
+        cookie = String.to_atom(data.cookie)
 
-    runtime = Runtime.Attached.new(node, cookie)
+        runtime = Runtime.Attached.new(node, cookie)
 
-    case Runtime.connect(runtime) do
-      {:ok, runtime} ->
-        Session.set_runtime(socket.assigns.session.pid, runtime)
-        {:noreply, assign(socket, data: initial_data(runtime), error_message: nil)}
+        case Runtime.connect(runtime) do
+          {:ok, runtime} ->
+            Session.set_runtime(socket.assigns.session.pid, runtime)
+            {:noreply, assign(socket, changeset: changeset(runtime), error_message: nil)}
 
-      {:error, message} ->
-        {:noreply,
-         assign(socket,
-           data: data,
-           error_message: Livebook.Utils.upcase_first(message)
-         )}
+          {:error, message} ->
+            {:noreply,
+             assign(socket,
+               changeset: changeset(socket.assigns.current_runtime, data),
+               error_message: Livebook.Utils.upcase_first(message)
+             )}
+        end
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
     end
   end
 
@@ -105,17 +134,8 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp initial_data(%Runtime.Attached{node: node, cookie: cookie}) do
-    %{
-      "name" => Atom.to_string(node),
-      "cookie" => Atom.to_string(cookie)
-    }
-  end
-
-  defp initial_data(_runtime), do: %{"name" => "", "cookie" => ""}
-
-  defp data_valid?(data) do
-    data["name"] != "" and data["cookie"] != ""
+  defp reconnecting?(changeset) do
+    changeset.valid? and changeset.data == apply_changes(changeset)
   end
 
   defp name_placeholder do
