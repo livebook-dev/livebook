@@ -65,7 +65,7 @@ class SettingsStore {
   getAndSubscribe(callback) {
     this._subscribers.push(callback);
     callback(this._settings);
-    return () => this.unsubscribe();
+    return () => this.unsubscribe(callback);
   }
 
   unsubscribe(callback) {
