@@ -255,6 +255,7 @@ const Session = {
 
   destroyed() {
     this.unsubscribeFromSessionEvents();
+    this.unsubscribeCustomViewFromSettings();
 
     document.removeEventListener("keydown", this._handleDocumentKeyDown, true);
     document.removeEventListener("mousedown", this._handleDocumentMouseDown);
