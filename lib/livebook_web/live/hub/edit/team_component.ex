@@ -44,18 +44,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             <button
               phx-click={show_modal("show-key-modal")}
               phx-target={@myself}
-              class="button-base button-gray"
+              class="button-base button-outlined-gray"
             >
               <span class="hidden sm:block">Teams key</span>
               <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
-            </button>
-            <button
-              id="delete-hub"
-              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-              class="button-base button-red"
-            >
-              <span class="hidden sm:block">Delete hub</span>
-              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
             </button>
           </div>
         </div>
@@ -80,16 +72,16 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               phx-change="validate"
               phx-target={@myself}
             >
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                 <div class="tooltip top close-gap flex-col" data-tooltip="Name cannot be changed.">
                   <.text_field
                     field={f[:hub_name]}
                     label="Name"
                     disabled
-                    class="bg-gray-200/50 border-200/80 tooltip top"
+                    class="bg-gray-200/50 border-200/80 cursor-not-allowed"
                   />
                 </div>
-                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+                <.emoji_field field={f[:hub_emoji]} label="Emoji" Pπ />
               </div>
 
               <div>
@@ -131,11 +123,64 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               environment variables.
             </p>
 
-            <.code_preview
-              source_id={"offline-deployment-#{@hub.id}"}
-              source={@dockerfile}
-              language="dockerfile"
-            />
+            <div id="env-code" class="bg-gray-900 p-2 rounded-md">
+              <div class="flex justify-between items-center mb-2 ">
+                <span class="text-gray-200 font-mono px-4 text-sm"> Dockerfile </span>
+                <button
+                  class="flex items-center justify-center bg-gray-900 hover:bg-gray-200 focus:bg-white text-gray-200 hover:text-gray-700 focus:text-gray-900 rounded-md font-mono text-xs gap-1 px-1 mr-2"
+                  data-copy
+                  data-tooltip="Copied to clipboard"
+                  type="button"
+                  aria-label="copy to clipboard"
+                  phx-click={
+                    JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-highlight")
+                    |> JS.add_class(
+                      "tooltip top",
+                      to: "#env-code [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                    )
+                    |> JS.remove_class(
+                      "tooltip top",
+                      to: "#env-code [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                      time: 2000
+                    )
+                  }
+                >
+                  <.remix_icon icon="clipboard-line" class="text-xl" /> Copy code
+                </button>
+              </div>
+
+              <.code_preview
+                source_id={"offline-deployment-#{@hub.id}"}
+                source={@dockerfile}
+                language="dockerfile"
+                scrollbar={false}
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Danger Zone
+            </h2>
+
+            <div class="flex items-center justify-between gap-4 text-gray-700">
+              <div class="flex flex-col">
+                <h3 class="font-semibold">
+                  Delete this hub
+                </h3>
+                <p>Once deleted, you won’t be able to access its features unless you rejoin.</p>
+              </div>
+              <button
+                id="delete-hub"
+                phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+                class="button-base button-outlined-red"
+              >
+                <span class="hidden sm:block">Delete hub</span>
+                <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

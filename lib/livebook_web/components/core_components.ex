@@ -449,12 +449,13 @@ defmodule LivebookWeb.CoreComponents do
   attr :source_id, :string, required: true
   attr :language, :string, required: true
   attr :source, :string, required: true
+  attr :scrollbar, :boolean, default: true
 
   def code_preview(assigns) do
     ~H"""
     <div class="markdown">
       <pre><code
-      class="tiny-scrollbar"
+      class={@scrollbar && "tiny-scrollbar"}
       id={"#{@source_id}-highlight"}
       phx-hook="Highlight"
       data-language={@language}
