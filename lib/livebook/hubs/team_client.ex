@@ -167,13 +167,6 @@ defmodule Livebook.Hubs.TeamClient do
     remove_secret(state, secret)
   end
 
-  defp handle_event(:user_connected, user_connected, %{secrets: []} = state) do
-    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
-    for secret <- secrets, do: Broadcasts.secret_created(secret)
-
-    %{state | secrets: secrets}
-  end
-
   defp handle_event(:user_connected, user_connected, state) do
     secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
 
@@ -199,12 +192,7 @@ defmodule Livebook.Hubs.TeamClient do
     ]
 
     for {topic, secrets} <- secrets_by_topic,
-        reduce: state,
-        do: (acc -> dispatch_secrets(topic, secrets, acc))
-  end
-
-  defp dispatch_secrets(topic, secrets, state) do
-    for secret <- secrets,
+        secret <- secrets,
         reduce: state,
         do: (acc -> handle_event(topic, secret, acc))
   end
