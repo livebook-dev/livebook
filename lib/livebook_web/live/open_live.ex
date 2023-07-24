@@ -34,19 +34,19 @@ defmodule LivebookWeb.OpenLive do
     ~H"""
     <LayoutHelpers.layout current_page={~p"/"} current_user={@current_user} saved_hubs={@saved_hubs}>
       <:topbar_action>
-        <button class="button-base button-blue" phx-click="new">
+        <.link class="button-base button-blue" navigate={~p"/new"}>
           <.remix_icon icon="add-line" class="align-middle mr-1" />
           <span>New notebook</span>
-        </button>
+        </.link>
       </:topbar_action>
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutHelpers.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">
-            <button class="button-base button-blue" phx-click="new">
+            <.link class="button-base button-blue" navigate={~p"/new"}>
               <.remix_icon icon="add-line" class="align-middle mr-1" />
               <span>New notebook</span>
-            </button>
+            </.link>
           </div>
         </div>
 
@@ -181,10 +181,6 @@ defmodule LivebookWeb.OpenLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("new", %{}, socket) do
-    {:noreply, create_session(socket)}
-  end
-
   def handle_event("hide_recent_notebook", %{"idx" => idx}, socket) do
     on_confirm = fn socket ->
       %{file: file} = Enum.fetch!(socket.assigns.recent_notebooks, idx)
