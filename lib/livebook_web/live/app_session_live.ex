@@ -189,8 +189,8 @@ defmodule LivebookWeb.AppSessionLive do
           class="tooltip left"
           data-tooltip={
             ~S'''
-            Some inputs have changed since they were last processed.
-            Click this button to reprocess with latest values.
+            Some inputs have changed.
+            Click this button to process with latest values.
             '''
           }
         >
