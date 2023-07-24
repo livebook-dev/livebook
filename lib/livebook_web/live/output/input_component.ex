@@ -266,11 +266,7 @@ defmodule LivebookWeb.Output.InputComponent do
     <.label help={@help}>
       <div class="flex items-center justify-between gap-1">
         <span><%= @label %></span>
-        <span
-          :if={@changed}
-          class="cursor-pointer tooltip top"
-          data-tooltip="This input has changed since it was last processed."
-        >
+        <span :if={@changed} class="cursor-pointer tooltip top" data-tooltip="This input has changed.">
           <.remix_icon icon="error-warning-line text-gray-500" />
         </span>
       </div>
