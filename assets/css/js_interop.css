@@ -309,12 +309,12 @@ solely client-side operations.
   @apply text-green-bright-400;
 }
 
-[data-el-session][data-js-view] [data-el-actions],
-[data-el-session][data-js-view] [data-el-insert-buttons] {
+[data-el-session][data-js-view]
+  :is([data-el-actions], [data-el-insert-buttons]) {
   @apply hidden;
 }
 
-[data-el-session]:is([data-js-view]) [data-el-views-disabled] {
+[data-el-session][data-js-view] [data-el-views-disabled] {
   @apply hidden;
 }
 
@@ -326,9 +326,12 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-js-hide-section] [data-el-section-headline],
-[data-js-hide-section] [data-el-section-subheadline],
-[data-js-hide-section] [data-el-section-subheadline-collapsed] {
+[data-js-hide-section]
+  :is(
+    [data-el-section-headline],
+    [data-el-section-subheadline],
+    [data-el-section-subheadline-collapsed]
+  ) {
   @apply hidden;
 }
 
@@ -340,15 +343,17 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-js-spotlight] [data-el-section-headline]:not([data-js-focused]),
-[data-js-spotlight] [data-el-section-subheadline]:not([data-js-focused]),
-[data-js-spotlight] [data-el-cell]:not([data-js-focused]),
-[data-js-spotlight] [data-el-js-view-iframes] iframe:not([data-js-focused]) {
+[data-js-spotlight]
+  :is(
+    [data-el-section-headline]:not([data-js-focused]),
+    [data-el-section-subheadline]:not([data-js-focused]),
+    [data-el-cell]:not([data-js-focused]),
+    [data-el-js-view-iframes] iframe:not([data-js-focused])
+  ) {
   @apply opacity-10;
 }
 
-[data-js-spotlight] [data-el-sidebar],
-[data-js-spotlight] [data-el-side-panel],
-[data-js-spotlight] [data-el-toggle-sidebar] {
+[data-js-spotlight]
+  :is([data-el-sidebar], [data-el-side-panel], [data-el-toggle-sidebar]) {
   @apply hidden;
 }
