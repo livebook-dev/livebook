@@ -1845,7 +1845,7 @@ defmodule LivebookWeb.SessionLive do
   defp open_notebook(socket, origin, fallback_locations, requested_url) do
     case fetch_content_with_fallbacks(origin, fallback_locations) do
       {:ok, content} ->
-        {notebook, %{warnings: messages}} = Livebook.LiveMarkdown.notebook_from_livemd(content)
+        {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
         # If the current session has no file, fork the notebook
         fork? = socket.private.data.file == nil

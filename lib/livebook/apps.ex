@@ -234,8 +234,7 @@ defmodule Livebook.Apps do
     for path <- Path.wildcard(pattern) do
       markdown = File.read!(path)
 
-      {notebook, %{warnings: warnings, verified_hub_id: verified_hub_id}} =
-        Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
       apps_path_hub_id = Livebook.Config.apps_path_hub_id()
 
@@ -245,7 +244,7 @@ defmodule Livebook.Apps do
             {:error,
              "the deployment settings are missing or invalid. Please configure them under the notebook deploy panel"}
 
-          apps_path_hub_id && apps_path_hub_id != verified_hub_id ->
+          apps_path_hub_id && apps_path_hub_id != notebook.hub_id ->
             {:error, "the notebook is not verified to come from hub #{apps_path_hub_id}"}
 
           true ->

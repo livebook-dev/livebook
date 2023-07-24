@@ -22,11 +22,8 @@ defmodule Livebook.Integration.AppsTest do
       ```
       """
 
-      {notebook, %{warnings: [], verified_hub_id: nil}} =
-        Livebook.LiveMarkdown.notebook_from_livemd(markdown)
-
+      {notebook, []} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
       notebook = Map.replace!(notebook, :hub_secret_names, [secret_name])
-
       {source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
 
       File.write!(app_path, source)
