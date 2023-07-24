@@ -593,6 +593,21 @@ defmodule LivebookWeb.SessionLive do
         return_to={@self_path}
       />
     </.modal>
+
+    <.modal
+      :if={@live_action == :custom_view_settings}
+      id="custom-view-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.CustomViewComponent}
+        id="custom"
+        return_to={@self_path}
+        session={@session}
+      />
+    </.modal>
     """
   end
 
@@ -1611,6 +1626,11 @@ defmodule LivebookWeb.SessionLive do
      |> assign(file_drop_metadata: nil)
      |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload?file_drop=true")
      |> push_event("finish_file_drop", %{})}
+  end
+
+  def handle_event("open_custom_view_settings", %{}, socket) do
+    {:noreply,
+     push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
   end
 
   @impl true

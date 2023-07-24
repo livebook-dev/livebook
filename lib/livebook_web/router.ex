@@ -96,6 +96,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/files/:name", SessionController, :show_file
       get "/sessions/:id/images/:name", SessionController, :show_image
+      live "/sessions/:id/settings/custom-view", SessionLive, :custom_view_settings
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
     end
 

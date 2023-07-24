@@ -85,6 +85,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span>Presentation</span>
           </button>
         </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-view-toggle="custom">
+            <.remix_icon icon="settings-5-line" />
+            <span>Custom</span>
+          </button>
+        </.menu_item>
       </.menu>
     </div>
     """
