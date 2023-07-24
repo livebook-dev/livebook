@@ -51,6 +51,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:jason, "~> 1.4"}, config: []}
   }
 
+  stb_image = %{
+    name: "stb_image",
+    dependency: %{dep: {:stb_image, "~> 0.6.2"}, config: []}
+  }
+
   windows? = match?({:win32, _}, :os.type())
   nx_backend_package = if(windows?, do: torchx, else: exla)
 
@@ -228,6 +233,113 @@ defmodule Livebook.Runtime.Definitions do
         |> Explorer.DataFrame.from_csv!()\
       """,
       packages: [kino, kino_explorer]
+    },
+    %{
+      type: :file_action,
+      file_types: [".parquet"],
+      description: "Create a dataframe",
+      source: """
+      df =
+        Kino.FS.file_path("{{NAME}}")
+        |> Explorer.DataFrame.from_parquet!()\
+      """,
+      packages: [kino, kino_explorer]
+    },
+    %{
+      type: :file_action,
+      file_types: ["image/*"],
+      description: "Classify image",
+      source: """
+      # To explore more models, see "+ Smart" > "Neural Network task"
+
+      {:ok, model_info} = Bumblebee.load_model({:hf, "microsoft/resnet-50"})
+      {:ok, featurizer} = Bumblebee.load_featurizer({:hf, "microsoft/resnet-50"})
+
+      #{if windows? do
+        """
+        serving = Bumblebee.Vision.image_classification(model_info, featurizer)\
+        """
+      else
+        """
+        serving =
+          Bumblebee.Vision.image_classification(model_info, featurizer,
+            compile: [batch_size: 1],
+            defn_options: [compiler: EXLA]
+          )\
+        """
+      end}
+
+      image = Kino.FS.file_path("{{NAME}}") |> StbImage.read_file!()
+
+      output = Nx.Serving.run(serving, image)\
+      """,
+      packages: [kino_bumblebee, nx_backend_package, stb_image]
+    },
+    %{
+      type: :file_action,
+      file_types: ["image/*"],
+      description: "Describe image",
+      source: """
+      # To explore more models, see "+ Smart" > "Neural Network task"
+
+      repo = {:hf, "Salesforce/blip-image-captioning-base"}
+      {:ok, model_info} = Bumblebee.load_model(repo)
+      {:ok, featurizer} = Bumblebee.load_featurizer(repo)
+      {:ok, tokenizer} = Bumblebee.load_tokenizer(repo)
+      {:ok, generation_config} = Bumblebee.load_generation_config(repo)
+      generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
+
+      #{if windows? do
+        """
+        serving = Bumblebee.Vision.image_to_text(model_info, featurizer, tokenizer, generation_config)\
+        """
+      else
+        """
+        serving =
+          Bumblebee.Vision.image_to_text(model_info, featurizer, tokenizer, generation_config,
+            compile: [batch_size: 1],
+            defn_options: [compiler: EXLA]
+          )\
+        """
+      end}
+
+      image = Kino.FS.file_path("{{NAME}}") |> StbImage.read_file!()
+
+      Nx.Serving.run(serving, image)\
+      """,
+      packages: [kino_bumblebee, nx_backend_package, stb_image]
+    },
+    %{
+      type: :file_action,
+      file_types: ["audio/*"],
+      description: "Transcribe speech",
+      source: """
+      # To explore more models, see "+ Smart" > "Neural Network task"
+
+      {:ok, model_info} = Bumblebee.load_model({:hf, "openai/whisper-tiny"})
+      {:ok, featurizer} = Bumblebee.load_featurizer({:hf, "openai/whisper-tiny"})
+      {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "openai/whisper-tiny"})
+      {:ok, generation_config} = Bumblebee.load_generation_config({:hf, "openai/whisper-tiny"})
+      generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
+
+      #{if windows? do
+        """
+        serving = Bumblebee.Audio.speech_to_text(model_info, featurizer, tokenizer, generation_config)\
+        """
+      else
+        """
+        serving =
+          Bumblebee.Audio.speech_to_text(model_info, featurizer, tokenizer, generation_config,
+            compile: [batch_size: 1],
+            defn_options: [compiler: EXLA]
+          )\
+        """
+      end}
+
+      path = Kino.FS.file_path("{{NAME}}")
+      output = Nx.Serving.run(serving, {:file, path})\
+      """,
+      packages: [kino_bumblebee, nx_backend_package]
     }
   ]
 
