@@ -81,7 +81,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     class="bg-gray-200/50 border-200/80 cursor-not-allowed"
                   />
                 </div>
-                <.emoji_field field={f[:hub_emoji]} label="Emoji" Pπ />
+                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
 
               <div>
@@ -123,17 +123,17 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               environment variables.
             </p>
 
-            <div id="env-code" class="bg-gray-900 p-2 rounded-md">
-              <div class="flex justify-between items-center mb-2 ">
-                <span class="text-gray-200 font-mono px-4 text-sm"> Dockerfile </span>
+            <div id="env-code">
+              <div class="flex justify-between items-center mb-2 px-2">
+                <span class="text-sm text-gray-700 font-semibold"> Dockerfile </span>
                 <button
-                  class="flex items-center justify-center bg-gray-900 hover:bg-gray-200 focus:bg-white text-gray-200 hover:text-gray-700 focus:text-gray-900 rounded-md font-mono text-xs gap-1 px-1 mr-2"
+                  class="button-base button-gray whitespace-nowrap py-1 px-2"
                   data-copy
                   data-tooltip="Copied to clipboard"
                   type="button"
                   aria-label="copy to clipboard"
                   phx-click={
-                    JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-highlight")
+                    JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
                     |> JS.add_class(
                       "tooltip top",
                       to: "#env-code [data-copy]",
@@ -147,15 +147,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     )
                   }
                 >
-                  <.remix_icon icon="clipboard-line" class="text-xl" /> Copy code
+                  <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-" /> Copy source
                 </button>
               </div>
 
               <.code_preview
-                source_id={"offline-deployment-#{@hub.id}"}
+                source_id={"offline-deployment-#{@hub.id}-source"}
                 source={@dockerfile}
                 language="dockerfile"
-                scrollbar={false}
+                wrap
               />
             </div>
           </div>
