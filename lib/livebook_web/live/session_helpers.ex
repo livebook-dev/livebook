@@ -11,10 +11,17 @@ defmodule LivebookWeb.SessionHelpers do
   Creates a new session, redirects on success,
   puts an error flash message on failure.
 
+  ## Options
+
+    * `:queue_setup` - whether to queue the setup cell right after
+      the session is started. Defaults to `false`
+
   Accepts the same options as `Livebook.Sessions.create_session/1`.
   """
   @spec create_session(Socket.t(), keyword()) :: Socket.t()
   def create_session(socket, opts \\ []) do
+    {queue_setup, opts} = Keyword.pop(opts, :queue_setup, false)
+
     # Revert persistence options to default values if there is
     # no file attached to the new session
     opts =
@@ -26,6 +33,10 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
+        if queue_setup do
+          Session.queue_cell_evaluation(session.pid, Livebook.Notebook.Cell.setup_cell_id())
+        end
+
         redirect_path = session_path(session.id, opts)
         push_navigate(socket, to: redirect_path)
 
