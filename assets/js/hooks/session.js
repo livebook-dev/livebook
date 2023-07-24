@@ -16,6 +16,7 @@ import monaco from "./cell_editor/live_editor/monaco";
 import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 import { settingsStore } from "../lib/settings";
+
 /**
  * A hook managing the whole session.
  *
@@ -70,11 +71,11 @@ const Session = {
     this.focusedId = null;
     this.insertMode = false;
     this.view = null;
+    this.viewOptions = null;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
     this.followedClientId = null;
-    this.unsubscribeCustomViewFromSettings = null;
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -255,7 +256,6 @@ const Session = {
 
   destroyed() {
     this.unsubscribeFromSessionEvents();
-    this.unsubscribeCustomViewFromSettings();
 
     document.removeEventListener("keydown", this._handleDocumentKeyDown, true);
     document.removeEventListener("mousedown", this._handleDocumentMouseDown);
@@ -417,9 +417,13 @@ const Session = {
       } else if (keyBuffer.tryMatch(["N"])) {
         this.insertCellAboveFocused("code");
       } else if (keyBuffer.tryMatch(["m"])) {
-        !this.isViewCodeZen() && this.insertCellBelowFocused("markdown");
+        if (!this.view || this.viewOptions.showMarkdown) {
+          this.insertCellBelowFocused("markdown");
+        }
       } else if (keyBuffer.tryMatch(["M"])) {
-        !this.isViewCodeZen() && this.insertCellAboveFocused("markdown");
+        if (!this.view || this.viewOptions.showMarkdown) {
+          this.insertCellAboveFocused("markdown");
+        }
       } else if (keyBuffer.tryMatch(["v", "z"])) {
         this.toggleView("code-zen");
       } else if (keyBuffer.tryMatch(["v", "p"])) {
@@ -427,9 +431,13 @@ const Session = {
       } else if (keyBuffer.tryMatch(["v", "c"])) {
         this.toggleView("custom");
       } else if (keyBuffer.tryMatch(["c"])) {
-        !this.isViewCodeZen() && this.toggleCollapseSection();
+        if (!this.view || this.viewOptions.showSection) {
+          this.toggleCollapseSection();
+        }
       } else if (keyBuffer.tryMatch(["C"])) {
-        !this.isViewCodeZen() && this.toggleCollapseAllSections();
+        if (!this.view || this.viewOptions.showSection) {
+          this.toggleCollapseAllSections();
+        }
       }
     }
   },
@@ -1087,18 +1095,39 @@ const Session = {
   },
 
   toggleView(view) {
-    if (this.view === view) {
-      this.view = null;
-      this.el.removeAttribute("data-js-view");
-      this.customViewSelection();
-    } else {
-      this.view = view;
-      this.el.setAttribute("data-js-view", view);
+    if (view === this.view) {
+      this.unsetView();
 
-      if (view === "presentation") {
-        this.el.toggleAttribute("data-js-show-spotlight", true);
+      if (view === "custom") {
+        this.unsubscribeCustomViewFromSettings();
       }
-      this.customViewSelection();
+    } else if (view === "code-zen") {
+      this.setView(view, {
+        showSection: false,
+        showMarkdown: false,
+        showOutput: true,
+        spotlight: false,
+      });
+    } else if (view === "presentation") {
+      this.setView(view, {
+        showSection: true,
+        showMarkdown: true,
+        showOutput: true,
+        spotlight: true,
+      });
+    } else if (view === "custom") {
+      this.unsubscribeCustomViewFromSettings = settingsStore.getAndSubscribe(
+        (settings) => {
+          this.setView(view, {
+            showSection: settings.custom_view_show_section,
+            showMarkdown: settings.custom_view_show_markdown,
+            showOutput: settings.custom_view_show_output,
+            spotlight: settings.custom_view_spotlight,
+          });
+        }
+      );
+
+      this.pushEvent("open_custom_view_settings");
     }
 
     // If nothing is focused, use the first cell in the viewport
@@ -1116,36 +1145,29 @@ const Session = {
       }
     }
   },
-  customViewSelection() {
-    this.unsubscribeCustomViewFromSettings = settingsStore.getAndSubscribe(
-      (settings) => {
-        if (this.view == "custom") {
-          this.el.toggleAttribute(
-            "data-js-hide-section",
-            !settings.custom_view_show_section
-          );
-          this.el.toggleAttribute(
-            "data-js-hide-markdown",
-            !settings.custom_view_show_markdown
-          );
-          this.el.toggleAttribute(
-            "data-js-hide-output",
-            !settings.custom_view_show_output
-          );
-          this.el.toggleAttribute(
-            "data-js-show-spotlight",
-            settings.custom_view_show_spotlight
-          );
-        } else {
-          this.el.removeAttribute("data-js-hide-section");
-          this.el.removeAttribute("data-js-hide-markdown");
-          this.el.removeAttribute("data-js-hide-output");
-          if (this.view !== "presentation") {
-            this.el.removeAttribute("data-js-show-spotlight");
-          }
-        }
-      }
-    );
+
+  setView(view, options) {
+    this.view = view;
+    this.viewOptions = options;
+
+    this.el.setAttribute("data-js-view", view);
+
+    this.el.toggleAttribute("data-js-hide-section", !options.showSection);
+    this.el.toggleAttribute("data-js-hide-markdown", !options.showMarkdown);
+    this.el.toggleAttribute("data-js-hide-output", !options.showOutput);
+    this.el.toggleAttribute("data-js-spotlight", options.spotlight);
+  },
+
+  unsetView() {
+    this.view = null;
+    this.viewOptions = null;
+
+    this.el.removeAttribute("data-js-view");
+
+    this.el.removeAttribute("data-js-hide-section");
+    this.el.removeAttribute("data-js-hide-markdown");
+    this.el.removeAttribute("data-js-hide-output");
+    this.el.removeAttribute("data-js-spotlight");
   },
 
   toggleCollapseSection() {
@@ -1193,7 +1215,7 @@ const Session = {
 
   handleCellDeleted(cellId, siblingCellId) {
     if (this.focusedId === cellId) {
-      if (this.isViewCodeZen()) {
+      if (this.view) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
         this.setFocusedEl(visibleSiblingId);
       } else {
@@ -1479,18 +1501,6 @@ const Session = {
 
   getElement(name) {
     return this.el.querySelector(`[data-el-${name}]`);
-  },
-
-  isViewCodeZen() {
-    return this.view === "code-zen";
-  },
-
-  isViewPresentation() {
-    return this.view === "presentation";
-  },
-
-  isViewCustomView() {
-    return this.view === "custom";
   },
 };
 

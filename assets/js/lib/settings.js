@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS = {
   custom_view_show_section: true,
   custom_view_show_markdown: true,
   custom_view_show_output: true,
-  custom_view_show_spotlight: false,
+  custom_view_spotlight: false,
 };
 
 /**
@@ -61,15 +61,28 @@ class SettingsStore {
    *
    * The given function is called immediately with the current
    * settings and then on every change.
+   *
+   * Returns a function that unsubscribes as a shorthand for
+   * `unsubscribe`.
    */
   getAndSubscribe(callback) {
     this._subscribers.push(callback);
     callback(this._settings);
-    return () => this.unsubscribe(callback);
+
+    return () => {
+      this.unsubscribe(callback);
+    };
   }
 
+  /**
+   * Unsubscribes the given function from updates.
+   *
+   * Note that you must pass the same function reference as you
+   * passed to `subscribe`.
+   */
   unsubscribe(callback) {
     const index = this._subscribers.indexOf(callback);
+
     if (index !== -1) {
       this._subscribers.splice(index, 1);
     }

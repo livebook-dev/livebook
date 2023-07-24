@@ -21,7 +21,7 @@ import UserForm from "./user_form";
 import UtcDateTimeInput from "./utc_datetime_input";
 import UtcTimeInput from "./utc_time_input";
 import VirtualizedLines from "./virtualized_lines";
-import CustomViewSettings from "./custom_view";
+import CustomViewSettings from "./custom_view_settings";
 
 export default {
   AppAuth,

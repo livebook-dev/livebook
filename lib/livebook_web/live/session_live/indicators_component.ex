@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2"
           data-el-notebook-indicators
         >
-          <.view_indicator session_id={@session_id} />
+          <.view_indicator />
           <.persistence_indicator
             file={@file}
             dirty={@dirty}
@@ -85,14 +85,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             <span>Presentation</span>
           </button>
         </.menu_item>
-        <.link patch={~p"/sessions/#{@session_id}/settings/custom-view"}>
-          <.menu_item>
-            <button role="menuitem" data-el-view-toggle="custom">
-              <.remix_icon icon="settings-5-line" />
-              <span>Custom</span>
-            </button>
-          </.menu_item>
-        </.link>
+        <.menu_item>
+          <button role="menuitem" data-el-view-toggle="custom">
+            <.remix_icon icon="settings-5-line" />
+            <span>Custom</span>
+          </button>
+        </.menu_item>
       </.menu>
     </div>
     """

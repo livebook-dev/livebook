@@ -1628,6 +1628,11 @@ defmodule LivebookWeb.SessionLive do
      |> push_event("finish_file_drop", %{})}
   end
 
+  def handle_event("open_custom_view_settings", %{}, socket) do
+    {:noreply,
+     push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
