@@ -107,11 +107,13 @@ defmodule Livebook.StorageTest do
     defp read_table_and_lookup(entity) do
       Process.sleep(1)
 
+      # :ets.tab2file is asynchronous and may occasionally take
+      # longer, so we retry
       {:ok, tab} =
-        with {:error, _} <- read_table() do
-          # :ets.tab2file is asynchronous and may occasionally take
-          # longer, so we retry once
-          Process.sleep(100)
+        with {:error, _} <- read_table(),
+             :ok <- Process.sleep(100),
+             {:error, _} <- read_table(),
+             :ok <- Process.sleep(1000) do
           read_table()
         end
 
