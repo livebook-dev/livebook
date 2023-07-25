@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.Attached do
     # Set cookie for connecting to this specific node
     Node.set_cookie(node, cookie)
 
-    with :pong <- Node.ping(node),
+    with :ok <- connect_to_node(node),
          :ok <- check_attached_node_version(node) do
       server_pid =
         Livebook.Runtime.ErlDist.initialize(node,
@@ -47,9 +47,15 @@ defmodule Livebook.Runtime.Attached do
         )
 
       {:ok, %{runtime | node: node, server_pid: server_pid}}
+    end
+  end
+
+  defp connect_to_node(node) do
+    with true <- :net_kernel.hidden_connect_node(node),
+         :pong <- Node.ping(node) do
+      :ok
     else
-      :pang -> {:error, "node #{inspect(node)} is unreachable"}
-      {:error, msg} -> {:error, msg}
+      _ -> {:error, "node #{inspect(node)} is unreachable"}
     end
   end
 
