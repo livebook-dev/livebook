@@ -25,10 +25,6 @@ Example usage:
   --distance: 10px;
 }
 
-.tooltip.close-gap {
-  --distance: -21px;
-}
-
 /* Tooltip text */
 .tooltip:before {
   position: absolute;
