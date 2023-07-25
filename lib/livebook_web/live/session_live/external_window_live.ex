@@ -56,15 +56,20 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
 
     %{
       notebook_name: data.notebook.name,
-      output_view: update_in(data.notebook.output_panel, [
-        Access.key(:rows),
-        Access.all(),
-        Access.key(:items),
-        Access.all()
-      ], fn item ->
-        {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
-        Map.put(item, :outputs, cell.outputs)
-      end)
+      output_view:
+        update_in(
+          data.notebook.output_panel,
+          [
+            Access.key(:rows),
+            Access.all(),
+            Access.key(:items),
+            Access.all()
+          ],
+          fn item ->
+            {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
+            Map.put(item, :outputs, cell.outputs)
+          end
+        )
     }
   end
 

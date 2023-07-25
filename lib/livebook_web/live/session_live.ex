@@ -2716,6 +2716,11 @@ defmodule LivebookWeb.SessionLive do
   defp eval_info_to_view(cell, eval_info, data, changed_input_ids) do
     %{
       outputs: cell.outputs,
+      output_location:
+        if(cell.id in Notebook.output_panel_ids(data.notebook),
+          do: :output_panel,
+          else: :notebook
+        ),
       doctest_summary: doctest_summary(eval_info.doctest_reports),
       validity: eval_info.validity,
       status: eval_info.status,
