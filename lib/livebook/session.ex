@@ -303,6 +303,22 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends add output to output panel request to the server.
+  """
+  @spec add_output_to_output_panel(pid(), Cell.id()) :: :ok
+  def add_output_to_output_panel(pid, cell_id) do
+    GenServer.cast(pid, {:add_output_to_output_panel, self(), cell_id})
+  end
+
+  @doc """
+  Sends remove output from output panel request to the server.
+  """
+  @spec remove_output_from_output_panel(pid(), Cell.id()) :: :ok
+  def remove_output_from_output_panel(pid, cell_id) do
+    GenServer.cast(pid, {:remove_output_from_output_panel, self(), cell_id})
+  end
+
+  @doc """
   Sends section insertion request to the server.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
@@ -994,6 +1010,18 @@ defmodule Livebook.Session do
   def handle_cast({:set_notebook_attributes, client_pid, attrs}, state) do
     client_id = client_id(state, client_pid)
     operation = {:set_notebook_attributes, client_id, attrs}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:add_output_to_output_panel, client_pid, cell_id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:add_output_to_output_panel, client_id, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:remove_output_from_output_panel, client_pid, cell_id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:remove_output_from_output_panel, client_id, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 

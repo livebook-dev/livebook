@@ -42,7 +42,6 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
-    IO.inspect("NOOO")
     {:ok, redirect(socket, to: ~p"/sessions/#{session_id}")}
   end
 
@@ -57,15 +56,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
 
     %{
       notebook_name: data.notebook.name,
-      output_views:
-        for(
-          {cell_id, output} <- visible_outputs(data.notebook),
-          do: %{
-            output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
-            cell_id: cell_id
-          }
-        )
+      output_panel: data.notebook.output_panel
     }
   end
 
@@ -79,18 +70,20 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
           <%= @data_view.notebook_name %>
         </h1>
       </div>
-      <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
-        <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
-          <LivebookWeb.Output.outputs
-            outputs={[output_view.output]}
-            dom_id_map={%{}}
-            session_id={@session.id}
-            session_pid={@session.pid}
-            client_id={@client_id}
-            cell_id={output_view.cell_id}
-            input_views={output_view.input_views}
-          />
-        </div>
+      <div class="grid grid-cols-12">
+        <%= for output_row <- @data_view.output_panel.rows do %>
+          <div :for={item <- output_row.items} class="grid col-span-12">
+            <LivebookWeb.Output.outputs
+              outputs={item.outputs}
+              dom_id_map={%{}}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              cell_id={item.id}
+              input_views={%{}}
+            />
+          </div>
+        <% end %>
       </div>
       <.external_window_menu :if={not @embedded?} />
     </div>

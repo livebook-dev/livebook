@@ -82,6 +82,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
+        <.remove_output_from_output_panel_button cell_id={@cell_view.id} />
+        <.add_output_to_output_panel_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -177,6 +179,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
+        <.remove_output_from_output_panel_button cell_id={@cell_view.id} />
+        <.add_output_to_output_panel_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -474,6 +478,46 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </.link>
       </span>
     <% end %>
+    """
+  end
+
+  defp add_output_to_output_panel_button(assigns) do
+    ~H"""
+    <span
+      class="tooltip top"
+      data-tooltip="Add output to Output Panel"
+      data-el-add-output-to-output-panel-button
+    >
+      <button
+        class="icon-button"
+        aria-label="add output to output panel"
+        phx-click={
+          JS.push("add_output_to_output_panel", value: %{cell_id: @cell_id})
+          |> JS.dispatch("output_panel:activate", to: "[data-el-session]")
+        }
+        phx-value-cell_id={@cell_id}
+      >
+        <.remix_icon icon="logout-box-r-line" class="text-xl" />
+      </button>
+    </span>
+    """
+  end
+
+  defp remove_output_from_output_panel_button(assigns) do
+    ~H"""
+    <span
+      class="tooltip top"
+      data-tooltip="Remove output from Output Panel"
+      data-el-remove-output-from-output-panel-button
+    >
+      <button
+        class="icon-button"
+        aria-label="remove output from output panel"
+        phx-click={JS.push("remove_output_from_output_panel", value: %{cell_id: @cell_id})}
+      >
+        <.remix_icon icon="logout-box-line" class="text-xl" />
+      </button>
+    </span>
     """
   end
 

@@ -28,7 +28,8 @@ defmodule Livebook.Notebook do
     :hub_secret_names,
     :file_entries,
     :quarantine_file_entry_names,
-    :teams_enabled
+    :teams_enabled,
+    :output_panel
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -50,7 +51,8 @@ defmodule Livebook.Notebook do
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
           quarantine_file_entry_names: MapSet.new(String.t()),
-          teams_enabled: boolean()
+          teams_enabled: boolean(),
+          output_panel: %{rows: list(output_panel_row())}
         }
 
   @type file_entry ::
@@ -68,6 +70,14 @@ defmodule Livebook.Notebook do
               type: :url,
               url: String.t()
             }
+
+  @type output_panel_row :: %{items: list(output_panel_item)}
+
+  @type output_panel_item :: %{
+          id: Livebook.Utils.id(),
+          width: 1..12,
+          outputs: list(Cell.indexed_output())
+        }
 
   @version "1.0"
 
@@ -91,9 +101,67 @@ defmodule Livebook.Notebook do
       hub_secret_names: [],
       file_entries: [],
       quarantine_file_entry_names: MapSet.new(),
-      teams_enabled: false
+      teams_enabled: false,
+      output_panel: %{rows: []}
     }
     |> put_setup_cell(Cell.new(:code))
+  end
+
+  @doc """
+  Adds the output of the given cell_id to the end of the output panel.
+  """
+  @spec add_output_to_output_panel(t(), Cell.id()) :: t()
+  def add_output_to_output_panel(notebook, cell_id) do
+    {:ok, cell, _section} = fetch_cell_and_section(notebook, cell_id)
+    row = %{items: [%{id: cell_id, width: 12, outputs: cell.outputs}]}
+    put_in(notebook.output_panel.rows, notebook.output_panel.rows ++ [row])
+  end
+
+  @doc """
+  Removes the output of the given cell_id from the output panel.
+  """
+  @spec remove_output_from_output_panel(t(), Cell.id()) :: t()
+  def remove_output_from_output_panel(notebook, cell_id) do
+    {_, notebook} =
+      pop_in(notebook, [
+        Access.key(:output_panel),
+        Access.key(:rows),
+        Access.all(),
+        Access.key(:items),
+        access_by_id(cell_id)
+      ])
+
+    notebook
+  end
+
+  @doc """
+  Updates the width of the given output in the output panel.
+  """
+  @spec update_output_width(t(), Cell.id(), 1..12) :: t()
+  def update_output_width(notebook, cell_id, width) do
+    update_in(
+      notebook,
+      [Access.key(:output_panel), Access.key(:rows), access_by_id(cell_id)],
+      fn output ->
+        %{output | width: width}
+      end
+    )
+  end
+
+  @doc """
+  Returns all output ids already added to the output panel.
+  """
+  @spec output_panel_ids(t()) :: list(Cell.id())
+  def output_panel_ids(notebook) do
+    get_in(notebook, [
+      Access.key(:output_panel),
+      Access.key(:rows),
+      Access.all(),
+      Access.key(:items),
+      Access.all(),
+      Access.key(:id)
+    ])
+    |> List.flatten()
   end
 
   @doc """

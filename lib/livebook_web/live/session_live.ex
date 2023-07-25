@@ -419,7 +419,7 @@ defmodule LivebookWeb.SessionLive do
             <div style="height: 80vh"></div>
           </div>
         </div>
-        <div class="absolute w-1/2 p-4 right-0" data-el-output-panel>
+        <div class="absolute w-1/2 p-4 right-0 h-full" data-el-output-panel>
           <iframe
             class="h-full w-full"
             src={~p"/sessions/#{@session.id}/external-window?type=output-panel&embedded=true"}
@@ -1157,6 +1157,16 @@ defmodule LivebookWeb.SessionLive do
     language = String.to_atom(language)
     Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
     {:noreply, insert_cell_below(socket, params)}
+  end
+
+  def handle_event("add_output_to_output_panel", %{"cell_id" => cell_id}, socket) do
+    Session.add_output_to_output_panel(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
+  end
+
+  def handle_event("remove_output_from_output_panel", %{"cell_id" => cell_id}, socket) do
+    Session.remove_output_from_output_panel(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do

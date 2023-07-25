@@ -92,6 +92,12 @@ const Session = {
     this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
     this._handleDocumentClick = this.handleDocumentClick.bind(this);
 
+    this.el.addEventListener("output_panel:activate", (event) => {
+      if (this.el.getAttribute("data-js-view") != "output-panel-popped-out") {
+        this.el.setAttribute("data-js-view", "output-panel");
+      }
+    });
+
     document.addEventListener("keydown", this._handleDocumentKeyDown, true);
     document.addEventListener("mousedown", this._handleDocumentMouseDown);
     // Note: the focus event doesn't bubble, so we register for the capture phase

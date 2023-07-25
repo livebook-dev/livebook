@@ -175,6 +175,8 @@ defmodule Livebook.Session.Data do
 
   @type operation ::
           {:set_notebook_attributes, client_id(), map()}
+          | {:add_output_to_output_panel, client_id(), Cell.id()}
+          | {:remove_output_from_output_panel, client_id(), Cell.id()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
@@ -377,6 +379,29 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:add_output_to_output_panel, _client_id, cell_id}) do
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         eval_info <- data.cell_infos[cell_id].eval,
+         true <- eval_info.validity == :evaluated,
+         false <- cell_id in Notebook.output_panel_ids(data.notebook) do
+      data
+      |> with_actions()
+      |> add_output_to_output_panel(cell_id)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:remove_output_from_output_panel, _client_id, cell_id}) do
+    data
+    |> with_actions()
+    |> remove_output_from_output_panel(cell_id)
+    |> set_dirty()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:insert_section, _client_id, index, id}) do
@@ -985,6 +1010,16 @@ defmodule Livebook.Session.Data do
   defp set_notebook_attributes({data, _} = data_actions, attrs) do
     data_actions
     |> set!(notebook: Map.merge(data.notebook, attrs))
+  end
+
+  defp add_output_to_output_panel({data, _} = data_actions, cell_id) do
+    data_actions
+    |> set!(notebook: Notebook.add_output_to_output_panel(data.notebook, cell_id))
+  end
+
+  defp remove_output_from_output_panel({data, _} = data_actions, cell_id) do
+    data_actions
+    |> set!(notebook: Notebook.remove_output_from_output_panel(data.notebook, cell_id))
   end
 
   defp insert_section({data, _} = data_actions, index, section) do
