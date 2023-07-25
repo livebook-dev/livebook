@@ -71,7 +71,6 @@ defmodule Livebook.HubHelpers do
 
   def set_offline_hub() do
     hub = offline_hub()
-    {:ok, _pid} = start_offline_hub(hub)
     ^hub = Livebook.Hubs.save_hub(hub)
 
     hub
@@ -81,7 +80,7 @@ defmodule Livebook.HubHelpers do
 
   def put_offline_hub_secret(secret) do
     hub = offline_hub()
-    {:ok, pid} = start_offline_hub(hub)
+    {:ok, pid} = hub_pid(hub)
     {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
     value = Livebook.Teams.encrypt_secret_value(secret.value, secret_key, sign_secret)
     secret_created = LivebookProto.SecretCreated.new(name: secret.name, value: value)
@@ -91,18 +90,15 @@ defmodule Livebook.HubHelpers do
 
   def remove_offline_hub_secret(secret) do
     hub = offline_hub()
-    {:ok, pid} = start_offline_hub(hub)
+    {:ok, pid} = hub_pid(hub)
     secret_deleted = LivebookProto.SecretDeleted.new(name: secret.name)
 
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
 
-  defp start_offline_hub(hub) do
-    child_spec = %{id: hub.id, start: {Livebook.Hubs.TeamClient, :start_link, [hub, true]}}
-
-    case DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec) do
-      {:ok, pid} -> {:ok, pid}
-      {:error, {:already_started, pid}} -> {:ok, pid}
+  defp hub_pid(hub) do
+    if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
+      {:ok, pid}
     end
   end
 
