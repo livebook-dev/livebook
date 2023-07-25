@@ -226,23 +226,35 @@ defmodule Livebook.Application do
             "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
           )
 
-      hub = %Livebook.Hubs.Team{
+      id = "team-#{name}"
+
+      secrets =
+        if encrypted_secrets do
+          {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
+
+          {:ok, json} =
+            Livebook.Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret)
+
+          for {name, value} <- Jason.decode!(json),
+              do: %Livebook.Secrets.Secret{
+                name: name,
+                value: value,
+                hub_id: id
+              }
+        else
+          []
+        end
+
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
         id: "team-#{name}",
         hub_name: name,
         hub_emoji: "💡",
         teams_key: teams_key,
-        org_public_key: public_key
-      }
-
-      Livebook.Hubs.set_offline_hub(hub)
-
-      with :error <- Livebook.Hubs.start_offline_hub(hub, encrypted_secrets) do
-        require Logger
-
-        Logger.warning(
-          "expected LIVEBOOK_TEAMS_SECRETS to be decryptable, but either the keys are invalid to decrypt or the data was encrypted with another keys."
-        )
-      end
+        org_public_key: public_key,
+        offline: %Livebook.Hubs.Team.Offline{
+          secrets: secrets
+        }
+      })
     end
   end
 
