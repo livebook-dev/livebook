@@ -151,4 +151,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
       :error
     end
   end
+
+  def to_attributes(team) do
+    team
+    |> Map.from_struct()
+    |> Map.delete(:offline)
+  end
 end

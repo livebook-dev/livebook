@@ -155,4 +155,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
     Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
   end
+
+  def to_attributes(personal) do
+    Map.from_struct(personal)
+  end
 end

@@ -80,8 +80,8 @@ defmodule Livebook.Hubs do
   """
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
-    attributes = struct |> Map.from_struct() |> Map.to_list()
-    :ok = Storage.insert(@namespace, struct.id, attributes)
+    attributes = Provider.to_attributes(struct)
+    :ok = Storage.insert(@namespace, struct.id, Map.to_list(attributes))
     :ok = connect_hub(struct)
     :ok = Broadcasts.hub_changed(struct.id)
 
