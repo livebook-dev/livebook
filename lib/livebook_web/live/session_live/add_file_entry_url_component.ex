@@ -68,7 +68,8 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
             type="submit"
             disabled={not @changeset.valid? or @fetching}
           >
-            Add
+            <.spinner :if={@fetching} class="mr-2" />
+            <span>Add</span>
           </button>
           <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
             Cancel
