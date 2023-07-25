@@ -4,6 +4,22 @@ defmodule Livebook.Hubs.Team do
   use Ecto.Schema
   import Ecto.Changeset
 
+  defmodule Offline do
+    @moduledoc false
+    use Ecto.Schema
+
+    alias Livebook.Secrets.Secret
+
+    @type t :: %__MODULE__{
+            secrets: list(Secret.t())
+          }
+
+    @primary_key false
+    embedded_schema do
+      field :secrets, {:array, :map}, default: []
+    end
+  end
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
           org_id: pos_integer() | nil,
@@ -13,7 +29,8 @@ defmodule Livebook.Hubs.Team do
           org_public_key: String.t() | nil,
           session_token: String.t() | nil,
           hub_name: String.t() | nil,
-          hub_emoji: String.t() | nil
+          hub_emoji: String.t() | nil,
+          offline: Offline.t() | nil
         }
 
   embedded_schema do
@@ -25,6 +42,8 @@ defmodule Livebook.Hubs.Team do
     field :session_token, :string
     field :hub_name, :string
     field :hub_emoji, :string
+
+    embeds_one :offline, Offline
   end
 
   @fields ~w(
