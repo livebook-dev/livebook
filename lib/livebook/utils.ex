@@ -118,11 +118,11 @@ defmodule Livebook.Utils do
     fn
       :get, data, next when is_list(data) ->
         data
-        |> Enum.find(fn item -> Map.get(item, field) == id end)
+        |> Enum.find(fn item -> Map.fetch!(item, field) == id end)
         |> next.()
 
       :get_and_update, data, next when is_list(data) ->
-        case Enum.split_while(data, fn item -> Map.get(item, field) != id end) do
+        case Enum.split_while(data, fn item -> Map.fetch!(item, field) != id end) do
           {prev, [item | cons]} ->
             case next.(item) do
               {get, update} ->
