@@ -176,9 +176,7 @@ defmodule Livebook.Hubs.TeamClient do
     remove_secret(state, secret)
   end
 
-  defp handle_event(:user_connected, user_connected, state) do
-    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
-
+  defp handle_event(:user_connected, %{secrets: secrets}, state) do
     created_secrets =
       Enum.reject(secrets, fn secret ->
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
