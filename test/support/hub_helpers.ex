@@ -68,8 +68,8 @@ defmodule Livebook.HubHelpers do
 
   def set_offline_hub() do
     hub = offline_hub()
-    :ok = Livebook.Hubs.set_offline_hub(hub)
     {:ok, _pid} = start_offline_hub(hub)
+    ^hub = Livebook.Hubs.save_hub(hub)
 
     hub
   end

@@ -1,7 +1,6 @@
 defmodule Livebook.Hubs do
   @moduledoc false
 
-  alias Livebook.Teams
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
@@ -273,57 +272,5 @@ defmodule Livebook.Hubs do
   @spec capability?(Provider.t(), list(atom())) :: boolean()
   def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
-  end
-
-  @offline_hub_key :livebook_offline_hub
-
-  @doc """
-  Gets the offline hub if the given id matches.
-  """
-  @spec get_offline_hub(String.t()) :: Provider.t() | nil
-  def get_offline_hub(id) do
-    case :persistent_term.get(@offline_hub_key, nil) do
-      %{id: ^id} = hub -> hub
-      _ -> nil
-    end
-  end
-
-  @doc """
-  Sets a offline hub that will be kept only in memory.
-  """
-  @spec set_offline_hub(Provider.t()) :: :ok
-  def set_offline_hub(hub) do
-    :persistent_term.put(@offline_hub_key, hub)
-  end
-
-  @doc """
-  Connects the given hub, without connecting with WebSocket.
-  """
-  @spec start_offline_hub(Provider.t(), String.t() | nil) :: :ok | :error
-  def start_offline_hub(hub, encrypted_secrets) do
-    {client, ^hub} = Provider.connection_spec(hub)
-
-    {:ok, pid} =
-      DynamicSupervisor.start_child(@supervisor, %{
-        id: hub.id,
-        start: {client, :start_link, [hub, _offline? = true]}
-      })
-
-    if encrypted_secrets do
-      {secret_key, sign_secret} = Teams.derive_keys(hub.teams_key)
-
-      with {:ok, json} <- Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret) do
-        secrets =
-          for {name, value} <- Jason.decode!(json),
-              do: LivebookProto.Secret.new(name: name, value: value)
-
-        user_connected = LivebookProto.UserConnected.new!(name: hub.hub_name, secrets: secrets)
-
-        send(pid, {:event, :user_connected, user_connected})
-        :ok
-      end
-    else
-      :ok
-    end
   end
 end
