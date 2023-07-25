@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div id={"#{@id}-component"}>
-      <div class="mb-8">
+      <div class="mb-8 flex flex-col space-y-8">
         <div class="flex justify-between">
           <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
@@ -44,20 +44,17 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             <button
               phx-click={show_modal("show-key-modal")}
               phx-target={@myself}
-              class="button-base button-gray"
+              class="button-base button-outlined-gray"
             >
               <span class="hidden sm:block">Teams key</span>
               <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
             </button>
-            <button
-              id="delete-hub"
-              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-              class="button-base button-red"
-            >
-              <span class="hidden sm:block">Delete hub</span>
-              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
-            </button>
           </div>
+        </div>
+        <div>
+          <p class="text-gray-700">
+            A shared Teams hub. All resources here are shared with your team. Manage users and billing on livebook.dev.
+          </p>
         </div>
 
         <div class="flex flex-col space-y-10">
@@ -75,13 +72,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               phx-change="validate"
               phx-target={@myself}
             >
-              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                <.text_field
+                  field={f[:hub_name]}
+                  label="Name"
+                  disabled
+                  help="Name cannot be changed"
+                  class="bg-gray-200/50 border-200/80 cursor-not-allowed"
+                />
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
 
-              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                Update Hub
-              </button>
+              <div>
+                <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                  Update Hub
+                </button>
+              </div>
             </.form>
           </div>
 
@@ -116,11 +122,64 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               environment variables.
             </p>
 
-            <.code_preview
-              source_id={"offline-deployment-#{@hub.id}"}
-              source={@dockerfile}
-              language="dockerfile"
-            />
+            <div id="env-code">
+              <div class="flex justify-between items-center mb-2 px-2">
+                <span class="text-sm text-gray-700 font-semibold"> Dockerfile </span>
+                <button
+                  class="button-base button-gray whitespace-nowrap py-1 px-2"
+                  data-copy
+                  data-tooltip="Copied to clipboard"
+                  type="button"
+                  aria-label="copy to clipboard"
+                  phx-click={
+                    JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
+                    |> JS.add_class(
+                      "tooltip top",
+                      to: "#env-code [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                    )
+                    |> JS.remove_class(
+                      "tooltip top",
+                      to: "#env-code [data-copy]",
+                      transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                      time: 2000
+                    )
+                  }
+                >
+                  <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-" /> Copy source
+                </button>
+              </div>
+
+              <.code_preview
+                source_id={"offline-deployment-#{@hub.id}-source"}
+                source={@dockerfile}
+                language="dockerfile"
+                wrap
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              Danger Zone
+            </h2>
+
+            <div class="flex items-center justify-between gap-4 text-gray-700">
+              <div class="flex flex-col">
+                <h3 class="font-semibold">
+                  Delete this hub
+                </h3>
+                <p>Once deleted, you won’t be able to access its features unless you rejoin.</p>
+              </div>
+              <button
+                id="delete-hub"
+                phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+                class="button-base button-outlined-red"
+              >
+                <span class="hidden sm:block">Delete hub</span>
+                <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

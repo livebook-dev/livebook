@@ -346,7 +346,7 @@ defmodule LivebookWeb.Hub.NewLive do
   def handle_info(_any, socket), do: {:noreply, socket}
 
   defp assign_form(socket, "join-org") do
-    org = %Org{emoji: "💡"}
+    org = %Org{emoji: random_emoji()}
     changeset = Teams.change_org(org)
 
     socket
@@ -359,7 +359,7 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   defp assign_form(socket, "new-org") do
-    org = %Org{emoji: "⭐️", teams_key: Org.teams_key()}
+    org = %Org{emoji: random_emoji(), teams_key: Org.teams_key()}
     changeset = Teams.change_org(org)
 
     socket
@@ -373,5 +373,9 @@ defmodule LivebookWeb.Hub.NewLive do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
+  end
+
+  defp random_emoji do
+    Enum.random(~w[💡 🚀 🌈 🦄 🐱 👩‍💻 ⚽️ ⭐️])
   end
 end
