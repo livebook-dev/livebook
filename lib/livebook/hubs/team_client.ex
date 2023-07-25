@@ -70,10 +70,10 @@ defmodule Livebook.Hubs.TeamClient do
     derived_keys = Teams.derive_keys(team.teams_key)
 
     headers = [
-      {"x-user", to_string(team.user_id)},
-      {"x-org", to_string(team.org_id)},
-      {"x-org-key", to_string(team.org_key_id)},
-      {"x-session-token", team.session_token}
+      {"x-user", to_string(team.user_id || 0)},
+      {"x-org", to_string(team.org_id || 0)},
+      {"x-org-key", to_string(team.org_key_id || 0)},
+      {"x-session-token", to_string(team.session_token)}
     ]
 
     {:ok, _pid} = Connection.start_link(self(), headers)
