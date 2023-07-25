@@ -73,14 +73,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               phx-target={@myself}
             >
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                <div class="tooltip top close-gap flex-col" data-tooltip="Name cannot be changed.">
-                  <.text_field
-                    field={f[:hub_name]}
-                    label="Name"
-                    disabled
-                    class="bg-gray-200/50 border-200/80 cursor-not-allowed"
-                  />
-                </div>
+                <.text_field
+                  field={f[:hub_name]}
+                  label="Name"
+                  disabled
+                  help="Name cannot be changed"
+                  class="bg-gray-200/50 border-200/80 cursor-not-allowed"
+                />
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
 

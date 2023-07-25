@@ -455,7 +455,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class="markdown">
       <pre><code
-      class={@wrap && "break-all whitespace-pre-wrap"}
+      class={if(@wrap, do: "break-all whitespace-pre-wrap", else: "tiny-scrollbar")}
       id={"#{@source_id}-highlight"}
       phx-hook="Highlight"
       data-language={@language}
