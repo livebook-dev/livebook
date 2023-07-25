@@ -273,7 +273,7 @@ defmodule Livebook.Session.Data do
         %{status: %{execution: :executing, lifecycle: :active}}
       end
 
-    hub = Hubs.get_offline_hub(notebook.hub_id) || Hubs.fetch_hub!(notebook.hub_id)
+    hub = Hubs.fetch_hub!(notebook.hub_id)
     hub_secrets = Hubs.get_secrets(hub)
 
     startup_secrets =

@@ -395,7 +395,6 @@ defmodule Livebook.LiveMarkdown.Import do
       {"hub_id", hub_id}, {attrs, messages} ->
         cond do
           Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
-          Hubs.get_offline_hub(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
           true -> {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
         end
 
@@ -606,11 +605,8 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
-    {hub, offline?} =
-      cond do
-        hub = Hubs.get_offline_hub(notebook.hub_id) -> {hub, true}
-        hub = Hubs.fetch_hub!(notebook.hub_id) -> {hub, false}
-      end
+    hub = Hubs.fetch_hub!(notebook.hub_id)
+    offline? = Map.has_key?(hub, :offline) and Map.get(hub, :offline) != nil
 
     {valid_stamp?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,

@@ -18,9 +18,9 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Connects the Team client with WebSocket server.
   """
-  @spec start_link(Team.t(), boolean()) :: GenServer.on_start()
-  def start_link(%Team{} = team, offline? \\ false) do
-    GenServer.start_link(__MODULE__, {team, offline?}, name: registry_name(team.id))
+  @spec start_link(Team.t()) :: GenServer.on_start()
+  def start_link(%Team{} = team) do
+    GenServer.start_link(__MODULE__, team, name: registry_name(team.id))
   end
 
   @doc """
@@ -66,21 +66,30 @@ defmodule Livebook.Hubs.TeamClient do
   ## GenServer callbacks
 
   @impl true
-  def init({%Team{} = team, offline?}) do
+  def init(%Team{offline: nil} = team) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
-    unless offline? do
-      headers = [
-        {"x-user", to_string(team.user_id)},
-        {"x-org", to_string(team.org_id)},
-        {"x-org-key", to_string(team.org_key_id)},
-        {"x-session-token", team.session_token}
-      ]
+    headers = [
+      {"x-user", to_string(team.user_id)},
+      {"x-org", to_string(team.org_id)},
+      {"x-org-key", to_string(team.org_key_id)},
+      {"x-session-token", team.session_token}
+    ]
 
-      {:ok, _pid} = Connection.start_link(self(), headers)
-    end
+    {:ok, _pid} = Connection.start_link(self(), headers)
+    {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
+  end
 
-    {:ok, %__MODULE__{hub: team, connected?: offline?, derived_keys: derived_keys}}
+  def init(%Team{} = team) do
+    derived_keys = Teams.derive_keys(team.teams_key)
+
+    {:ok,
+     %__MODULE__{
+       hub: team,
+       connected?: true,
+       secrets: team.offline.secrets,
+       derived_keys: derived_keys
+     }}
   end
 
   @impl true
