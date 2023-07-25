@@ -56,7 +56,15 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
 
     %{
       notebook_name: data.notebook.name,
-      output_panel: data.notebook.output_panel
+      output_view: update_in(data.notebook.output_panel, [
+        Access.key(:rows),
+        Access.all(),
+        Access.key(:items),
+        Access.all()
+      ], fn item ->
+        {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
+        Map.put(item, :outputs, cell.outputs)
+      end)
     }
   end
 
@@ -71,7 +79,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
         </h1>
       </div>
       <div class="grid grid-cols-12">
-        <%= for output_row <- @data_view.output_panel.rows do %>
+        <%= for output_row <- @data_view.output_view.rows do %>
           <div :for={item <- output_row.items} class="grid col-span-12">
             <LivebookWeb.Output.outputs
               outputs={item.outputs}
@@ -79,7 +87,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
               session_id={@session.id}
               session_pid={@session.pid}
               client_id={@client_id}
-              cell_id={item.id}
+              cell_id={item.cell_id}
               input_views={%{}}
             />
           </div>

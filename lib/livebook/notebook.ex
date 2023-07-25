@@ -34,7 +34,7 @@ defmodule Livebook.Notebook do
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
   alias Livebook.Utils.Graph
-  import Livebook.Utils, only: [access_by_id: 1]
+  import Livebook.Utils, only: [access_by_id: 1, access_by_id: 2]
 
   @type t :: %__MODULE__{
           name: String.t(),
@@ -74,9 +74,8 @@ defmodule Livebook.Notebook do
   @type output_panel_row :: %{items: list(output_panel_item)}
 
   @type output_panel_item :: %{
-          id: Livebook.Utils.id(),
-          width: 1..12,
-          outputs: list(Cell.indexed_output())
+          cell_id: Livebook.Utils.id(),
+          width: 1..12
         }
 
   @version "1.0"
@@ -112,8 +111,7 @@ defmodule Livebook.Notebook do
   """
   @spec add_output_to_output_panel(t(), Cell.id()) :: t()
   def add_output_to_output_panel(notebook, cell_id) do
-    {:ok, cell, _section} = fetch_cell_and_section(notebook, cell_id)
-    row = %{items: [%{id: cell_id, width: 12, outputs: cell.outputs}]}
+    row = %{items: [%{cell_id: cell_id, width: 12}]}
     put_in(notebook.output_panel.rows, notebook.output_panel.rows ++ [row])
   end
 
@@ -128,7 +126,7 @@ defmodule Livebook.Notebook do
         Access.key(:rows),
         Access.all(),
         Access.key(:items),
-        access_by_id(cell_id)
+        access_by_id(cell_id, :cell_id)
       ])
 
     notebook
@@ -159,7 +157,7 @@ defmodule Livebook.Notebook do
       Access.all(),
       Access.key(:items),
       Access.all(),
-      Access.key(:id)
+      Access.key(:cell_id)
     ])
     |> List.flatten()
   end

@@ -382,8 +382,7 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:add_output_to_output_panel, _client_id, cell_id}) do
-    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-         eval_info <- data.cell_infos[cell_id].eval,
+    with eval_info <- data.cell_infos[cell_id].eval,
          true <- eval_info.validity == :evaluated,
          false <- cell_id in Notebook.output_panel_ids(data.notebook) do
       data
