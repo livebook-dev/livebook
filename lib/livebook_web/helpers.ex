@@ -3,6 +3,8 @@ defmodule LivebookWeb.Helpers do
 
   use LivebookWeb, :verified_routes
 
+  alias Livebook.Notebook.Cell
+
   @doc """
   Determines user platform based on the given *User-Agent* header.
   """
@@ -82,4 +84,64 @@ defmodule LivebookWeb.Helpers do
   def format_datetime_relatively(date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
   end
+
+  # TODO
+  def input_views_for_output(output, data, changed_input_ids) do
+    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+
+    data.input_infos
+    |> Map.take(input_ids)
+    |> Map.new(fn {input_id, %{value: value}} ->
+      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
+    end)
+  end
+
+  # TODO
+  def visible_outputs(notebook) do
+    for section <- Enum.reverse(notebook.sections),
+        cell <- Enum.reverse(section.cells),
+        Cell.evaluable?(cell),
+        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
+        do: {cell.id, output}
+  end
+
+  defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
+
+  defp rich_outputs(outputs) do
+    for output <- outputs, output = filter_output(output), do: output
+  end
+
+  defp filter_output({idx, output})
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       do: {idx, output}
+
+  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+    outputs_with_labels =
+      for {output, label} <- Enum.zip(outputs, metadata.labels),
+          output = filter_output(output),
+          do: {output, label}
+
+    {outputs, labels} = Enum.unzip(outputs_with_labels)
+
+    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+  end
+
+  defp filter_output({idx, {:grid, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+
+    if outputs != [] do
+      {idx, {:grid, outputs, metadata}}
+    end
+  end
+
+  defp filter_output({idx, {:frame, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+    {idx, {:frame, outputs, metadata}}
+  end
+
+  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+    do: {idx, output}
+
+  defp filter_output(_output), do: nil
 end

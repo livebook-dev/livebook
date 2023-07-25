@@ -419,6 +419,13 @@ defmodule LivebookWeb.SessionLive do
             <div style="height: 80vh"></div>
           </div>
         </div>
+        <div class="absolute w-1/2 p-4 right-0" data-el-output-panel>
+          <iframe
+            class="h-full w-full"
+            src={~p"/sessions/#{@session.id}/external-window?type=output-panel&embedded=true"}
+          />
+          <.output_panel_menu />
+        </div>
       </div>
     </div>
 
@@ -932,6 +939,37 @@ defmodule LivebookWeb.SessionLive do
           session={@session}
           file_entries={@file_entries}
         />
+      </div>
+    </div>
+    """
+  end
+
+  defp output_panel_menu(assigns) do
+    ~H"""
+    <div class="fixed top-[1rem] right-[1.5rem] z-[500]">
+      <div class="tooltip left" data-tooltip="Output Panel Menu" data-el-output-panel-menu>
+        <.menu id="output-panel-menu" position={:bottom_right}>
+          <:toggle>
+            <button
+              class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+              aria-label="output panel menu"
+            >
+              <.remix_icon icon="more-2-fill" class="text-xl text-gray-400" />
+            </button>
+          </:toggle>
+          <.menu_item>
+            <button role="menuitem" data-el-output-panel-popout-button>
+              <.remix_icon icon="external-link-line" />
+              <span>Pop-Out</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button role="menuitem" data-el-output-panel-close-button>
+              <.remix_icon icon="close-fill" />
+              <span>Close</span>
+            </button>
+          </.menu_item>
+        </.menu>
       </div>
     </div>
     """

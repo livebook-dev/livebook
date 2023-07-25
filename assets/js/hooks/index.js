@@ -5,6 +5,7 @@ import CellEditor from "./cell_editor";
 import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
 import EmojiPicker from "./emoji_picker";
+import ExternalWindow from "./external_window";
 import FocusOnUpdate from "./focus_on_update";
 import Headline from "./headline";
 import Highlight from "./highlight";
@@ -31,6 +32,7 @@ export default {
   Dropzone,
   EditorSettings,
   EmojiPicker,
+  ExternalWindow,
   FocusOnUpdate,
   Headline,
   Highlight,
