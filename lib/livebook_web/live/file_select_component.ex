@@ -51,7 +51,11 @@ defmodule LivebookWeb.FileSelectComponent do
        accept: :any,
        auto_upload: true,
        max_entries: 1,
-       progress: &handle_progress/3
+       progress: &handle_progress/3,
+       writer: fn _name, entry, socket ->
+         file = FileSystem.File.resolve(socket.assigns.current_dir, entry.client_name)
+         {LivebookWeb.FileSystemWriter, [file: file]}
+       end
      )}
   end
 
@@ -421,19 +425,7 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   defp handle_progress(:folder, entry, socket) when entry.done? do
-    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
-      content = File.read!(file_path)
-
-      file_path =
-        FileSystem.File.resolve(
-          socket.assigns.current_dir,
-          entry.client_name
-        )
-
-      FileSystem.File.write(file_path, content)
-      {:ok, :ok}
-    end)
-
+    :ok = consume_uploaded_entry(socket, entry, fn %{} -> {:ok, :ok} end)
     {:noreply, update_file_infos(socket, true)}
   end
 

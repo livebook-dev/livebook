@@ -253,6 +253,10 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       view
+      |> element(~s/#insert-image-modal form/)
+      |> render_change(%{"data" => %{"name" => "image.jpg"}})
+
+      view
       |> file_input(~s/#insert-image-modal form/, :image, [
         %{
           last_modified: 1_594_171_879_000,
@@ -373,6 +377,10 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> render_hook("handle_file_drop", %{"section_id" => section_id, "cell_id" => cell_id})
+
+      view
+      |> element(~s{#add-file-entry-form})
+      |> render_change(%{"data" => %{"name" => "image.jpg"}})
 
       view
       |> file_input(~s{#add-file-entry-form}, :file, [
@@ -1796,6 +1804,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/upload")
 
+      # Validations
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "na me"}}) =~
+               "should contain only alphanumeric characters, dash, underscore and dot"
+
+      assert view
+             |> element(~s{#add-file-entry-form})
+             |> render_change(%{"data" => %{"name" => "image.jpg"}})
+
       view
       |> file_input(~s{#add-file-entry-form}, :file, [
         %{
@@ -1807,12 +1825,6 @@ defmodule LivebookWeb.SessionLiveTest do
         }
       ])
       |> render_upload("image.jpg")
-
-      # Validations
-      assert view
-             |> element(~s{#add-file-entry-form})
-             |> render_change(%{"data" => %{"name" => "na me"}}) =~
-               "should contain only alphanumeric characters, dash, underscore and dot"
 
       view
       |> element(~s{#add-file-entry-form})
