@@ -685,6 +685,18 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Looks up file entry with the given name and returns a local path
+  for accessing the file.
+
+  When a file is available remotely, it is first downloaded into a
+  cached location.
+  """
+  @spec fetch_file_entry_path(pid(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def fetch_file_entry_path(pid, name) do
+    GenServer.call(pid, {:fetch_file_entry_path, name}, :infinity)
+  end
+
+  @doc """
   Closes one or more sessions.
 
   This results in saving the file and broadcasting
@@ -988,6 +1000,14 @@ defmodule Livebook.Session do
       end
 
     {:reply, :ok, state}
+  end
+
+  def handle_call({:fetch_file_entry_path, name}, from, state) do
+    file_entry_path(state, name, fn reply ->
+      GenServer.reply(from, reply)
+    end)
+
+    {:noreply, state}
   end
 
   @impl true

@@ -39,6 +39,16 @@ defmodule LivebookWeb.SessionController do
     end
   end
 
+  def download_file(conn, %{"id" => id, "name" => name}) do
+    with {:ok, session} <- Sessions.fetch_session(id),
+         {:ok, path} <- Session.fetch_file_entry_path(session.pid, name) do
+      send_download(conn, {:file, path}, filename: name)
+    else
+      _ ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
   def download_source(conn, %{"id" => id, "format" => format}) do
     case Sessions.fetch_session(id) do
       {:ok, session} ->

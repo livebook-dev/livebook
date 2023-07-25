@@ -97,6 +97,12 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
                 <span>Clear cache</span>
               </button>
             </.menu_item>
+            <.menu_item>
+              <a role="menuitem" href={~p"/sessions/#{@session.id}/files/download/#{file_entry.name}"}>
+                <.remix_icon icon="download-2-line" />
+                <span>Download</span>
+              </a>
+            </.menu_item>
             <.menu_item variant={:danger}>
               <button
                 role="menuitem"
