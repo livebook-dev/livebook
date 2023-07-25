@@ -151,7 +151,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <.menu_item>
             <a
               role="menuitem"
-              href={~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"}
+              href={~p"/sessions/#{session.id}/download/export/livemd?include_outputs=false"}
               download
             >
               <.remix_icon icon="download-2-line" />

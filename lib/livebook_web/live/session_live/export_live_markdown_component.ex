@@ -51,7 +51,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
                 class="icon-button"
                 aria-label="download source"
                 href={
-                  ~p"/sessions/#{@session.id}/export/download/livemd?include_outputs=#{@include_outputs}"
+                  ~p"/sessions/#{@session.id}/download/export/livemd?include_outputs=#{@include_outputs}"
                 }
               >
                 <.remix_icon icon="download-2-line" class="text-lg" />

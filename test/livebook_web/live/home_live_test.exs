@@ -73,7 +73,7 @@ defmodule LivebookWeb.HomeLiveTest do
         |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
         |> render_click
 
-      assert to == ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"
+      assert to == ~p"/sessions/#{session.id}/download/export/livemd?include_outputs=false"
 
       Session.close(session.pid)
     end
