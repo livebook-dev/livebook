@@ -151,6 +151,19 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 >
                   <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-" /> Copy source
                 </button>
+
+                <span class="text-sm text-gray-700 font-semibold"> Include encrypted secrets </span>
+
+                <.form
+                  :let={f}
+                  id="dockerfile-form"
+                  class="my-4"
+                  for={@dockerfile_form}
+                  phx-change="update_dockerfile"
+                  phx-target={@myself}
+                >
+                  <.switch_field field={f[:include_secrets]} />
+                </.form>
               </div>
 
               <.code_preview
