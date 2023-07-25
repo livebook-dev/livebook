@@ -9,11 +9,15 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
   def mount(socket) do
     {:ok,
      socket
-     |> assign(changeset: changeset(), error_message: nil)
+     |> assign(changeset: changeset())
      |> allow_upload(:image,
        accept: ~w(.jpg .jpeg .png .gif .svg),
        max_entries: 1,
-       max_file_size: 5_000_000
+       max_file_size: 5_000_000,
+       writer: fn _name, _entry, socket ->
+         file = file_entry_file(socket)
+         {LivebookWeb.FileSystemWriter, [file: file]}
+       end
      )}
   end
 
@@ -33,11 +37,10 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Insert image
       </h3>
-      <div :if={@uploads.image.errors != []} class="error-box">
-        Invalid image file. The image must be either GIF, JPEG, SVG or PNG and cannot exceed 5MB in size.
-      </div>
-      <div :if={@error_message} class="error-box">
-        <%= @error_message %>
+      <div class="flex flex-col gap-2">
+        <div :for={message <- upload_error_messages(@uploads.image)} class="error-box">
+          <%= message %>
+        </div>
       </div>
       <div :for={entry <- @uploads.image.entries}>
         <.live_img_preview entry={entry} class="max-h-80 m-auto" />
@@ -108,10 +111,7 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
   end
 
   def handle_event("clear_file", %{"ref" => ref}, socket) do
-    {:noreply,
-     socket
-     |> cancel_upload(:image, ref)
-     |> assign(error_message: nil)}
+    {:noreply, cancel_upload(socket, :image, ref)}
   end
 
   def handle_event("save", %{"data" => data}, socket) do
@@ -120,35 +120,22 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
     |> apply_action(:insert)
     |> case do
       {:ok, data} ->
-        %{files_dir: files_dir} = socket.assigns.session
+        [:ok] =
+          consume_uploaded_entries(socket, :image, fn %{}, _entry -> {:ok, :ok} end)
 
-        [upload_result] =
-          consume_uploaded_entries(socket, :image, fn %{path: path}, _entry ->
-            upload_file = FileSystem.File.local(path)
-            destination_file = FileSystem.File.resolve(files_dir, data.name)
-
-            result =
-              with :ok <- FileSystem.File.copy(upload_file, destination_file) do
-                {:ok, data.name}
-              end
-
-            {:ok, result}
-          end)
-
-        case upload_result do
-          {:ok, filename} ->
-            file_entry = %{name: filename, type: :attachment}
-            Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-            url = "files/#{URI.encode(filename, &URI.char_unreserved?/1)}"
-            send(self(), {:insert_image_complete, socket.assigns.insert_image_metadata, url})
-            {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-
-          {:error, message} ->
-            {:noreply, assign(socket, error_message: message)}
-        end
+        file_entry = %{name: data.name, type: :attachment}
+        Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+        url = "files/#{URI.encode(data.name, &URI.char_unreserved?/1)}"
+        send(self(), {:insert_image_complete, socket.assigns.insert_image_metadata, url})
+        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
     end
+  end
+
+  defp file_entry_file(socket) do
+    data = apply_changes(socket.assigns.changeset)
+    FileSystem.File.resolve(socket.assigns.session.files_dir, data.name)
   end
 end

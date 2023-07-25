@@ -9,8 +9,16 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
   def mount(socket) do
     {:ok,
      socket
-     |> assign(changeset: changeset(), error_message: nil)
-     |> allow_upload(:file, accept: :any, max_entries: 1, max_file_size: 100_000_000_000)}
+     |> assign(changeset: changeset())
+     |> allow_upload(:file,
+       accept: :any,
+       max_entries: 1,
+       max_file_size: 100_000_000_000,
+       writer: fn _name, _entry, socket ->
+         file = file_entry_file(socket)
+         {LivebookWeb.FileSystemWriter, [file: file]}
+       end
+     )}
   end
 
   defp changeset(attrs \\ %{}) do
@@ -26,8 +34,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <div :if={@error_message} class="mb-6 error-box">
-        <%= @error_message %>
+      <div class="mb-6 flex flex-col gap-2">
+        <div :for={message <- upload_error_messages(@uploads.file)} class="error-box">
+          <%= message %>
+        </div>
       </div>
       <.form
         :let={f}
@@ -96,10 +106,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
   end
 
   def handle_event("clear_file", %{"ref" => ref}, socket) do
-    {:noreply,
-     socket
-     |> cancel_upload(:file, ref)
-     |> assign(error_message: nil)}
+    {:noreply, cancel_upload(socket, :file, ref)}
   end
 
   def handle_event("add", %{"data" => data}, socket) do
@@ -108,29 +115,21 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
     |> apply_action(:insert)
     |> case do
       {:ok, data} ->
-        %{files_dir: files_dir} = socket.assigns.session
+        [:ok] =
+          consume_uploaded_entries(socket, :file, fn %{}, _entry -> {:ok, :ok} end)
 
-        [upload_result] =
-          consume_uploaded_entries(socket, :file, fn %{path: path}, _entry ->
-            upload_file = FileSystem.File.local(path)
-            destination_file = FileSystem.File.resolve(files_dir, data.name)
-            result = FileSystem.File.copy(upload_file, destination_file)
-            {:ok, result}
-          end)
-
-        case upload_result do
-          :ok ->
-            file_entry = %{name: data.name, type: :attachment}
-            Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-            send(self(), {:file_entry_uploaded, file_entry})
-            {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
-
-          {:error, message} ->
-            {:noreply, assign(socket, error_message: message)}
-        end
+        file_entry = %{name: data.name, type: :attachment}
+        Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+        send(self(), {:file_entry_uploaded, file_entry})
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
     end
+  end
+
+  defp file_entry_file(socket) do
+    data = apply_changes(socket.assigns.changeset)
+    FileSystem.File.resolve(socket.assigns.session.files_dir, data.name)
   end
 end
