@@ -336,7 +336,7 @@ solely client-side operations.
 }
 
 [data-el-session][data-js-view="output-panel"] [data-el-notebook-content] {
-  @apply absolute w-1/2 left-0 px-16 py-4 overflow-auto;
+  @apply absolute w-1/2 left-0 px-16 py-4;
 }
 
 [data-el-session][data-js-view="output-panel"] [data-el-notebook-indicators] {

@@ -419,13 +419,13 @@ defmodule LivebookWeb.SessionLive do
             <div style="height: 80vh"></div>
           </div>
         </div>
-        <div class="absolute w-1/2 right-0 h-full overflow-auto" data-el-output-panel>
-          <iframe
-            class="h-full w-full p-4"
-            src={~p"/sessions/#{@session.id}/external-window?type=output-panel&embedded=true"}
-          />
-          <.output_panel_menu />
-        </div>
+      </div>
+      <div class="absolute w-1/2 right-0 h-full overflow-auto" data-el-output-panel>
+        <iframe
+          class="h-full w-full p-4"
+          src={~p"/sessions/#{@session.id}/external-window?type=output-panel&embedded=true"}
+        />
+        <.output_panel_menu />
       </div>
     </div>
 
