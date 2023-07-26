@@ -142,17 +142,21 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     :skip
   end
 
-  def notebook_stamp(hub, notebook_source, metadata) do
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, hub.secret_key)
+  def notebook_stamp(personal, notebook_source, metadata) do
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, personal.secret_key)
 
     stamp = %{"version" => 1, "token" => token}
 
     {:ok, stamp}
   end
 
-  def verify_notebook_stamp(hub, notebook_source, stamp) do
+  def verify_notebook_stamp(personal, notebook_source, stamp) do
     %{"version" => 1, "token" => token} = stamp
 
-    Livebook.Stamping.aead_decrypt(token, notebook_source, hub.secret_key)
+    Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
+  end
+
+  def dump(personal) do
+    Map.from_struct(personal)
   end
 end

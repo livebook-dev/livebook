@@ -7,21 +7,7 @@ defmodule Livebook.Hubs.TeamTest do
 
   describe "stamping" do
     test "generates and verifies stamp for a notebook", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      org_key_pair = :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      team =
-        build(:team,
-          id: "team-#{org.name}",
-          hub_name: org.name,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          org_public_key: org_key_pair.public_key,
-          session_token: token
-        )
+      team = create_team_hub(user, node)
 
       notebook_source = """
       # Team notebook

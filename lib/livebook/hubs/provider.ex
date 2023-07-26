@@ -112,4 +112,10 @@ defprotocol Livebook.Hubs.Provider do
   @spec verify_notebook_stamp(t(), iodata(), notebook_stamp()) ::
           {:ok, metadata :: map()} | :error
   def verify_notebook_stamp(hub, notebook_source, stamp)
+
+  @doc """
+  Transforms hub to the attributes map sent to storage.
+  """
+  @spec dump(t()) :: map()
+  def dump(hub)
 end

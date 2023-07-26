@@ -66,7 +66,9 @@ defmodule Livebook.Hubs.TeamClient do
   ## GenServer callbacks
 
   @impl true
-  def init(%Team{} = team) do
+  def init(%Team{offline: nil} = team) do
+    derived_keys = Teams.derive_keys(team.teams_key)
+
     headers = [
       {"x-user", to_string(team.user_id)},
       {"x-org", to_string(team.org_id)},
@@ -74,10 +76,14 @@ defmodule Livebook.Hubs.TeamClient do
       {"x-session-token", team.session_token}
     ]
 
-    derived_keys = Teams.derive_keys(team.teams_key)
-
     {:ok, _pid} = Connection.start_link(self(), headers)
     {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
+  end
+
+  def init(%Team{} = team) do
+    derived_keys = Teams.derive_keys(team.teams_key)
+
+    {:ok, %__MODULE__{hub: team, secrets: team.offline.secrets, derived_keys: derived_keys}}
   end
 
   @impl true
@@ -134,7 +140,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_secret(state, %{name: name, value: value}) do
     {secret_key, sign_secret} = state.derived_keys
-    {:ok, decrypted_value} = Teams.decrypt_secret_value(value, secret_key, sign_secret)
+    {:ok, decrypted_value} = Teams.decrypt(value, secret_key, sign_secret)
 
     %Livebook.Secrets.Secret{
       name: name,
@@ -164,15 +170,7 @@ defmodule Livebook.Hubs.TeamClient do
     remove_secret(state, secret)
   end
 
-  defp handle_event(:user_connected, user_connected, %{secrets: []} = state) do
-    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
-
-    %{state | secrets: secrets}
-  end
-
-  defp handle_event(:user_connected, user_connected, state) do
-    secrets = for secret <- user_connected.secrets, do: build_secret(state, secret)
-
+  defp handle_event(:user_connected, %{secrets: secrets}, state) do
     created_secrets =
       Enum.reject(secrets, fn secret ->
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
@@ -188,15 +186,15 @@ defmodule Livebook.Hubs.TeamClient do
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
       end)
 
-    events_by_topic = [
+    secrets_by_topic = [
       secret_deleted: deleted_secrets,
       secret_created: created_secrets,
       secret_updated: updated_secrets
     ]
 
-    for {topic, events} <- events_by_topic,
-        event <- events,
+    for {topic, secrets} <- secrets_by_topic,
+        secret <- secrets,
         reduce: state,
-        do: (acc -> handle_event(topic, event, acc))
+        do: (acc -> handle_event(topic, secret, acc))
   end
 end

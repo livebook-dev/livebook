@@ -355,9 +355,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
     ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
 
     ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
     RUN /app/bin/warmup_apps.sh\
     """)
+  end
+
+  defp encrypt_secrets_to_dockerfile(socket) do
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
+
+    secrets_map =
+      for %{name: name, value: value} <- socket.assigns.secrets,
+          into: %{},
+          do: {name, value}
+
+    stringified_secrets = Jason.encode!(secrets_map)
+
+    Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
   end
 end

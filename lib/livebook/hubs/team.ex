@@ -4,17 +4,36 @@ defmodule Livebook.Hubs.Team do
   use Ecto.Schema
   import Ecto.Changeset
 
+  defmodule Offline do
+    @moduledoc false
+    use Ecto.Schema
+
+    alias Livebook.Secrets.Secret
+
+    @type t :: %__MODULE__{
+            secrets: list(Secret.t())
+          }
+
+    @primary_key false
+    embedded_schema do
+      field :secrets, {:array, :map}, default: []
+    end
+  end
+
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          org_id: pos_integer() | nil,
-          user_id: pos_integer() | nil,
-          org_key_id: pos_integer() | nil,
-          teams_key: String.t() | nil,
-          org_public_key: String.t() | nil,
-          session_token: String.t() | nil,
+          org_id: non_neg_integer(),
+          user_id: non_neg_integer(),
+          org_key_id: non_neg_integer(),
+          teams_key: String.t(),
+          org_public_key: String.t(),
+          session_token: String.t(),
           hub_name: String.t() | nil,
-          hub_emoji: String.t() | nil
+          hub_emoji: String.t() | nil,
+          offline: Offline.t() | nil
         }
+
+  @enforce_keys [:user_id, :org_id, :org_key_id, :session_token, :org_public_key, :teams_key]
 
   embedded_schema do
     field :org_id, :integer
@@ -25,6 +44,8 @@ defmodule Livebook.Hubs.Team do
     field :session_token, :string
     field :hub_name, :string
     field :hub_emoji, :string
+
+    embeds_one :offline, Offline
   end
 
   @fields ~w(
@@ -37,6 +58,20 @@ defmodule Livebook.Hubs.Team do
     hub_name
     hub_emoji
   )a
+
+  @doc """
+  Initializes a new Team hub.
+  """
+  def new() do
+    %__MODULE__{
+      user_id: nil,
+      org_id: nil,
+      org_key_id: nil,
+      session_token: nil,
+      org_public_key: nil,
+      teams_key: nil
+    }
+  end
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
@@ -101,7 +136,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
   end
 
-  def notebook_stamp(hub, notebook_source, metadata) do
+  def notebook_stamp(team, notebook_source, metadata) do
     # We apply authenticated encryption using the shared teams key,
     # just as for the personal hub, but we additionally sign the token
     # with a private organization key stored on the Teams server. We
@@ -111,9 +146,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     # stamp requires access to the shared local key and an authenticated
     # request to the Teams server (which ensures team membership).
 
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, hub.teams_key)
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, team.teams_key)
 
-    case Livebook.Teams.org_sign(hub, token) do
+    case Livebook.Teams.org_sign(team, token) do
       {:ok, token_signature} ->
         stamp = %{"version" => 1, "token" => token, "token_signature" => token_signature}
         {:ok, stamp}
@@ -123,13 +158,19 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  def verify_notebook_stamp(hub, notebook_source, stamp) do
+  def verify_notebook_stamp(team, notebook_source, stamp) do
     %{"version" => 1, "token" => token, "token_signature" => token_signature} = stamp
 
-    if Livebook.Stamping.rsa_verify?(token_signature, token, hub.org_public_key) do
-      Livebook.Stamping.aead_decrypt(token, notebook_source, hub.teams_key)
+    if Livebook.Stamping.rsa_verify?(token_signature, token, team.org_public_key) do
+      Livebook.Stamping.aead_decrypt(token, notebook_source, team.teams_key)
     else
       :error
     end
+  end
+
+  def dump(team) do
+    team
+    |> Map.from_struct()
+    |> Map.delete(:offline)
   end
 end

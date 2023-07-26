@@ -2,7 +2,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
-  import Livebook.HubHelpers
   import Livebook.SessionHelpers
 
   alias Livebook.{Sessions, Session}

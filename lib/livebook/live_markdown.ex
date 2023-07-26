@@ -98,21 +98,9 @@ defmodule Livebook.LiveMarkdown do
   @doc """
   Converts the given Markdown document into a notebook data structure.
 
-  Returns the notebook struct and info map with the following keys:
-
-    * `:warnings` - a list of informative messages/warnings related
-      to the imported input
-
-    * `:verified_hub_id` - the hub id specified in the notebook
-      provided that the stamp was successfully verified, `nil`
-      otherwise
-
+  Returns the notebook structure and a list of informative messages/warnings
+  related to the imported input.
   """
-  @spec notebook_from_livemd(String.t()) ::
-          {Notebook.t(),
-           %{
-             required(:warnings) => list(String.t()),
-             required(:verified_hub_id) => String.t() | nil
-           }}
+  @spec notebook_from_livemd(String.t()) :: {Notebook.t(), list(String.t())}
   defdelegate notebook_from_livemd(markdown), to: Livebook.LiveMarkdown.Import
 end

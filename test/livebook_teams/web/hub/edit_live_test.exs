@@ -2,22 +2,21 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
-  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.Hubs
 
+  setup %{user: user, node: node} do
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+    hub = create_team_hub(user, node)
+    id = hub.id
+
+    assert_receive {:hub_connected, ^id}
+
+    {:ok, hub: hub}
+  end
+
   describe "team" do
-    setup %{user: user, node: node} do
-      Livebook.Hubs.subscribe([:crud, :connection, :secrets])
-      hub = create_team_hub(user, node)
-      id = hub.id
-
-      assert_receive {:hub_connected, ^id}
-
-      {:ok, hub: hub}
-    end
-
     test "updates the hub", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 

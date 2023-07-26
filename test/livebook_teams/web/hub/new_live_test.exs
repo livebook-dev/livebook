@@ -3,7 +3,6 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
   alias Livebook.Teams.Org
 
-  import Livebook.HubHelpers
   import Phoenix.LiveViewTest
 
   test "render hub selection cards", %{conn: conn} do

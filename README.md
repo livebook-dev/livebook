@@ -261,6 +261,10 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_TEAMS_OFFLINE_KEY - sets the Livebook Teams public key for creating an offline hub.
     Must be set together with LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_KEY.
 
+  * LIVEBOOK_TEAMS_SECRETS - sets the Livebook Teams encrypted secrets for deploying apps with secrets.
+    This is relevant when deploying apps with offline hub. Must be set together with
+    LIVEBOOK_TEAMS_NAME, LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY.
+
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to
     disable it.
