@@ -140,7 +140,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
         {:ok, data, _actions} ->
           socket
           |> assign_private(data: data)
-          |> assign(data_to_view(data))
+          |> assign(data_view: data_to_view(data))
 
         :error ->
           socket
