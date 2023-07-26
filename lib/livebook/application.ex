@@ -43,13 +43,17 @@ defmodule Livebook.Application do
         # Start the supervisor dynamically managing connections
         {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
-        iframe_server_specs() ++
-        identity_provider() ++
-        [
-          # Start the Endpoint (http/https)
-          # We skip the access url as we do our own logging below
-          {LivebookWeb.Endpoint, log_access_url: false}
-        ] ++ app_specs()
+        if serverless?() do
+          []
+        else
+          iframe_server_specs() ++
+            identity_provider() ++
+            [
+              # Start the Endpoint (http/https)
+              # We skip the access url as we do our own logging below
+              {LivebookWeb.Endpoint, log_access_url: false}
+            ] ++ app_specs()
+        end
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -61,7 +65,11 @@ defmodule Livebook.Application do
         clear_env_vars()
         display_startup_info()
         Livebook.Hubs.connect_hubs()
-        deploy_apps()
+
+        unless serverless?() do
+          deploy_apps()
+        end
+
         result
 
       {:error, error} ->
@@ -293,5 +301,9 @@ defmodule Livebook.Application do
   defp identity_provider() do
     {module, key} = Livebook.Config.identity_provider()
     [{module, name: LivebookWeb.ZTA, identity: [key: key]}]
+  end
+
+  defp serverless?() do
+    Application.get_env(:livebook, :serverless, false)
   end
 end

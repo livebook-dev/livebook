@@ -156,64 +156,145 @@ defmodule Livebook.Apps do
   @doc """
   Deploys an app for each notebook in the given directory.
 
+  Before apps are deployed, the setup cell is run in each of the
+  notebooks, one by one to avoid race conditions.
+
   ## Options
 
     * `:password` - a password to set for every loaded app
 
+    * `:dry_run` - when `true`, does not deploy apps, only runs their
+      setup. Defaults to `false`
+
   """
   @spec deploy_apps_in_dir(String.t(), keyword()) :: :ok
   def deploy_apps_in_dir(path, opts \\ []) do
-    opts = Keyword.validate!(opts, [:password])
+    opts = Keyword.validate!(opts, [:password, dry_run: false])
 
-    pattern = Path.join([path, "**", "*.livemd"])
-    paths = Path.wildcard(pattern)
+    infos = import_app_notebooks(path)
 
-    if paths == [] do
+    if infos == [] do
       Logger.warning("No .livemd files were found for deployment at #{path}")
     end
 
-    for path <- paths do
+    for %{status: {:error, message}} = info <- infos do
+      Logger.warning(
+        "Skipping deployment for app at #{info.relative_path}. #{Livebook.Utils.upcase_first(message)}."
+      )
+    end
+
+    infos = Enum.filter(infos, &(&1.status == :ok))
+
+    for info <- infos, info.import_warnings != [] do
+      items = Enum.map(info.import_warnings, &("- " <> &1))
+
+      Logger.warning(
+        "Found warnings while importing app notebook at #{info.relative_path}:\n\n" <>
+          Enum.join(items, "\n")
+      )
+    end
+
+    if infos != [] do
+      Logger.info("Running app setups")
+
+      for info <- infos do
+        with {:error, message} <- run_app_setup_sync(info.notebook, info.files_source) do
+          Logger.warning(
+            "Failed to run setup for app at #{info.relative_path}. #{Livebook.Utils.upcase_first(message)}."
+          )
+        end
+      end
+    end
+
+    if infos != [] and not opts[:dry_run] do
+      Logger.info("Deploying apps")
+
+      for %{notebook: notebook} = info <- infos do
+        notebook =
+          if password = opts[:password] do
+            put_in(notebook.app_settings.password, password)
+          else
+            notebook
+          end
+
+        warnings = Enum.map(info.import_warnings, &("Import: " <> &1))
+
+        {:ok, _} = deploy(notebook, warnings: warnings, files_source: info.files_source)
+      end
+    end
+
+    :ok
+  end
+
+  defp import_app_notebooks(dir) do
+    pattern = Path.join([dir, "**", "*.livemd"])
+
+    for path <- Path.wildcard(pattern) do
       markdown = File.read!(path)
 
       {notebook, %{warnings: warnings, verified_hub_id: verified_hub_id}} =
         Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
-      if warnings != [] do
-        items = Enum.map(warnings, &("- " <> &1))
+      apps_path_hub_id = Livebook.Config.apps_path_hub_id()
 
-        Logger.warning(
-          "Found warnings while importing app notebook at #{path}:\n\n" <> Enum.join(items, "\n")
-        )
-      end
+      status =
+        cond do
+          not Livebook.Notebook.AppSettings.valid?(notebook.app_settings) ->
+            {:error,
+             "the deployment settings are missing or invalid. Please configure them under the notebook deploy panel"}
 
-      notebook =
-        if password = opts[:password] do
-          put_in(notebook.app_settings.password, password)
-        else
-          notebook
+          apps_path_hub_id && apps_path_hub_id != verified_hub_id ->
+            {:error, "the notebook is not verified to come from hub #{apps_path_hub_id}"}
+
+          true ->
+            :ok
         end
 
-      if Livebook.Notebook.AppSettings.valid?(notebook.app_settings) do
-        warnings = Enum.map(warnings, &("Import: " <> &1))
-        apps_path_hub_id = Livebook.Config.apps_path_hub_id()
+      notebook_file = Livebook.FileSystem.File.local(path)
+      files_dir = Livebook.Session.files_dir_for_notebook(notebook_file)
 
-        if apps_path_hub_id == nil or apps_path_hub_id == verified_hub_id do
-          notebook_file = Livebook.FileSystem.File.local(path)
-          files_dir = Livebook.Session.files_dir_for_notebook(notebook_file)
-          deploy(notebook, warnings: warnings, files_source: {:dir, files_dir})
-        else
-          Logger.warning(
-            "Skipping app deployment at #{path}. The notebook is not verified to come from hub #{apps_path_hub_id}"
-          )
-        end
-      else
-        Logger.warning(
-          "Skipping app deployment at #{path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
-        )
-      end
+      %{
+        relative_path: Path.relative_to(path, dir),
+        status: status,
+        notebook: notebook,
+        import_warnings: warnings,
+        files_source: {:dir, files_dir}
+      }
     end
+  end
 
-    :ok
+  defp run_app_setup_sync(notebook, files_source) do
+    notebook = %{notebook | sections: []}
+
+    opts = [
+      notebook: notebook,
+      files_source: files_source,
+      mode: :app,
+      app_pid: self()
+    ]
+
+    case Livebook.Sessions.create_session(opts) do
+      {:ok, %{id: session_id} = session} ->
+        ref = Process.monitor(session.pid)
+
+        receive do
+          {:app_status_changed, ^session_id, status} ->
+            Process.demonitor(ref)
+            Livebook.Session.close(session.pid)
+
+            if status.execution == :executed do
+              :ok
+            else
+              {:error, "setup cell finished with failure"}
+            end
+
+          {:DOWN, ^ref, :process, _, reason} ->
+            {:error, "session terminated unexpectedly, reason: #{inspect(reason)}"}
+        end
+
+      {:error, reason} ->
+        {:error, "failed to start session, reason: #{inspect(reason)}"}
+    end
   end
 
   @doc """

@@ -172,9 +172,11 @@ The following environment variables can be used to configure Livebook on boot:
     Livebook instance within the cloud provider platform.
 
   * LIVEBOOK_APPS_PATH - the directory with app notebooks. When set, the apps
-    are deployed on Livebook startup with the persisted settings.
-    Password-protected notebooks will receive a random password,
-    unless LIVEBOOK_APPS_PATH_PASSWORD is set.
+    are deployed on Livebook startup with the persisted settings. Password-protected
+    notebooks will receive a random password, unless LIVEBOOK_APPS_PATH_PASSWORD
+    is set. When deploying on top of the Livebook Docker image, you can run apps
+    setup at build time by with `RUN /app/bin/run_apps_setup.sh`, this way all
+    dependencies are cached and starting the apps is faster.
 
   * LIVEBOOK_APPS_PATH_HUB_ID - deploy only the notebooks in
     LIVEBOOK_APPS_PATH that belong to the given Hub ID
