@@ -64,12 +64,12 @@ defmodule Livebook.Hubs.Team do
   """
   def new() do
     %__MODULE__{
-      user_id: 0,
-      org_id: 0,
-      org_key_id: 0,
-      session_token: "",
-      org_public_key: "",
-      teams_key: ""
+      user_id: nil,
+      org_id: nil,
+      org_key_id: nil,
+      session_token: nil,
+      org_public_key: nil,
+      teams_key: nil
     }
   end
 
