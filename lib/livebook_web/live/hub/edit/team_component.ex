@@ -123,7 +123,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             </p>
 
             <div id="env-code">
-              <div class="flex justify-between items-center mb-2 px-2">
+              <div class="flex justify-between items-end mb-1">
                 <span class="text-sm text-gray-700 font-semibold"> Dockerfile </span>
                 <button
                   class="button-base button-gray whitespace-nowrap py-1 px-2"
@@ -146,7 +146,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     )
                   }
                 >
-                  <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-" /> Copy source
+                  <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+                  <span class="font-normal text-xs">Copy source</span>
                 </button>
               </div>
 
@@ -154,7 +155,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 source_id={"offline-deployment-#{@hub.id}-source"}
                 source={@dockerfile}
                 language="dockerfile"
-                wrap
               />
             </div>
           </div>
@@ -356,7 +356,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
     ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
 
-    CMD [ "/app/bin/livebook", "start" ]\
+    ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+    RUN /app/bin/warmup_apps.sh\
     """)
   end
 end
