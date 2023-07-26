@@ -156,20 +156,22 @@ defmodule Livebook.Apps do
   @doc """
   Deploys an app for each notebook in the given directory.
 
-  Before apps are deployed, the setup cell is run in each of the
-  notebooks, one by one to avoid race conditions.
-
   ## Options
 
     * `:password` - a password to set for every loaded app
 
-    * `:dry_run` - when `true`, does not deploy apps, only runs their
-      setup. Defaults to `false`
+    * `:warmup` - when `true`, run setup cell for each of the
+      notebooks before the actual deployment. The setup cells are
+      run one by one to avoid race conditions. Defaults to `true`
+
+    * `:skip_deploy` - when `true`, the apps are not deployed.
+      This can be used to warmup apps without deployment. Defaults
+      to `false`
 
   """
   @spec deploy_apps_in_dir(String.t(), keyword()) :: :ok
   def deploy_apps_in_dir(path, opts \\ []) do
-    opts = Keyword.validate!(opts, [:password, dry_run: false])
+    opts = Keyword.validate!(opts, [:password, warmup: true, skip_deploy: false])
 
     infos = import_app_notebooks(path)
 
@@ -194,8 +196,8 @@ defmodule Livebook.Apps do
       )
     end
 
-    if infos != [] do
-      Logger.info("Running app setups")
+    if infos != [] and opts[:warmup] do
+      Logger.info("Running app warmups")
 
       for info <- infos do
         with {:error, message} <- run_app_setup_sync(info.notebook, info.files_source) do
@@ -206,7 +208,7 @@ defmodule Livebook.Apps do
       end
     end
 
-    if infos != [] and not opts[:dry_run] do
+    if infos != [] and not opts[:skip_deploy] do
       Logger.info("Deploying apps")
 
       for %{notebook: notebook} = info <- infos do

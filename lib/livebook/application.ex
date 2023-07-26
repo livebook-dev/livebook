@@ -187,7 +187,7 @@ defmodule Livebook.Application do
   end
 
   defp display_startup_info() do
-    if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
+    if not serverless?() and Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
       IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
@@ -247,7 +247,12 @@ defmodule Livebook.Application do
 
   defp deploy_apps() do
     if apps_path = Livebook.Config.apps_path() do
-      Livebook.Apps.deploy_apps_in_dir(apps_path, password: Livebook.Config.apps_path_password())
+      warmup = Livebook.Config.apps_path_warmup() == :auto
+
+      Livebook.Apps.deploy_apps_in_dir(apps_path,
+        password: Livebook.Config.apps_path_password(),
+        warmup: warmup
+      )
     end
   end
 

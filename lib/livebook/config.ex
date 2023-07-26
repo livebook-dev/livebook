@@ -132,6 +132,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns warmup mode for apps deployed from dir.
+  """
+  @spec apps_path_warmup() :: :auto | :manual
+  def apps_path_warmup() do
+    Application.get_env(:livebook, :apps_path_warmup, :auto)
+  end
+
+  @doc """
   Returns the configured port for the Livebook endpoint.
 
   Note that the value may be `0`.
@@ -506,6 +514,31 @@ defmodule Livebook.Config do
         abort!(
           ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
+    end
+  end
+
+  @doc """
+  Parses and validates apps warmup mode from env.
+  """
+  def apps_path_warmup!(env) do
+    if warmup = System.get_env(env) do
+      apps_path_warmup!(env, warmup)
+    end
+  end
+
+  @doc """
+  Parses and validates apps warmup mode within context.
+  """
+  def apps_path_warmup!(context, warmup) do
+    case warmup do
+      "auto" ->
+        :auto
+
+      "manual" ->
+        :manual
+
+      other ->
+        abort!(~s{expected #{context} to be either "auto" or "manual", got: #{inspect(other)}})
     end
   end
 
