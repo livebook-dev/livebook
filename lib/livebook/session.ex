@@ -319,6 +319,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends move output to new row request to the server.
+  """
+  @spec move_output_to_new_row(pid(), Cell.id(), integer()) :: :ok
+  def move_output_to_new_row(pid, cell_id, row_num) do
+    GenServer.cast(pid, {:move_output_to_new_row, self(), cell_id, row_num})
+  end
+
+  @doc """
   Sends section insertion request to the server.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
@@ -1022,6 +1030,12 @@ defmodule Livebook.Session do
   def handle_cast({:remove_output_from_output_panel, client_pid, cell_id}, state) do
     client_id = client_id(state, client_pid)
     operation = {:remove_output_from_output_panel, client_id, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:move_output_to_new_row, client_pid, cell_id, row_num}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:move_output_to_new_row, client_id, cell_id, row_num}
     {:noreply, handle_operation(state, operation)}
   end
 

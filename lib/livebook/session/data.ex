@@ -177,6 +177,7 @@ defmodule Livebook.Session.Data do
           {:set_notebook_attributes, client_id(), map()}
           | {:add_output_to_output_panel, client_id(), Cell.id()}
           | {:remove_output_from_output_panel, client_id(), Cell.id()}
+          | {:move_output_to_new_row, client_id(), Cell.id(), integer()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
@@ -399,6 +400,14 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> remove_output_from_output_panel(cell_id)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:move_output_to_new_row, _client_id, cell_id, row_num}) do
+    data
+    |> with_actions()
+    |> move_output_to_new_row(cell_id, row_num)
     |> set_dirty()
     |> wrap_ok()
   end
@@ -1019,6 +1028,11 @@ defmodule Livebook.Session.Data do
   defp remove_output_from_output_panel({data, _} = data_actions, cell_id) do
     data_actions
     |> set!(notebook: Notebook.remove_output_from_output_panel(data.notebook, cell_id))
+  end
+
+  defp move_output_to_new_row({data, _} = data_actions, cell_id, row_num) do
+    data_actions
+    |> set!(notebook: Notebook.move_output_to_new_row(data.notebook, cell_id, row_num))
   end
 
   defp insert_section({data, _} = data_actions, index, section) do

@@ -336,7 +336,7 @@ solely client-side operations.
 }
 
 [data-el-session][data-js-view="output-panel"] [data-el-notebook-content] {
-  @apply absolute w-1/2 left-0 px-16 py-4;
+  @apply absolute w-1/2 left-0 px-16 py-4 overflow-auto;
 }
 
 [data-el-session][data-js-view="output-panel"] [data-el-notebook-indicators] {
@@ -394,4 +394,18 @@ solely client-side operations.
 [data-js-spotlight]
   :is([data-el-sidebar], [data-el-side-panel], [data-el-toggle-sidebar]) {
   @apply hidden;
+}
+
+/* === Output Panel === */
+
+[data-el-output-panel-content]:not([data-js-dragging]) {
+  @apply gap-4 pt-4;
+}
+
+[data-el-output-panel-content]:not([data-js-dragging]) [data-el-output-panel-row-drop-area] {
+  @apply hidden;
+}
+
+[data-el-output-panel-row-drop-area][data-js-dragging] {
+  @apply h-16;
 }

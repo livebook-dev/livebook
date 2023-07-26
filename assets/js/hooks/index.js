@@ -14,6 +14,7 @@ import ImageOutput from "./image_output";
 import JSView from "./js_view";
 import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
+import OutputPanel from "./output_panel";
 import ScrollOnUpdate from "./scroll_on_update";
 import Session from "./session";
 import TextareaAutosize from "./textarea_autosize";
@@ -41,6 +42,7 @@ export default {
   JSView,
   KeyboardControl,
   MarkdownRenderer,
+  OutputPanel,
   ScrollOnUpdate,
   Session,
   TextareaAutosize,

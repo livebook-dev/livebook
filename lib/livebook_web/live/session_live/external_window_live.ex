@@ -67,7 +67,14 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
           ],
           fn item ->
             {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
-            Map.put(item, :outputs, cell.outputs)
+
+            item
+            |> Map.put(:outputs, cell.outputs)
+            # TODO fix for multiple outputs
+            |> Map.put(
+              :input_views,
+              input_views_for_output(cell.outputs |> hd(), data, changed_input_ids)
+            )
           end
         )
     }
@@ -83,21 +90,13 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
           <%= @data_view.notebook_name %>
         </h1>
       </div>
-      <div class="grid grid-cols-12">
-        <%= for output_row <- @data_view.output_view.rows do %>
-          <div :for={item <- output_row.items} class="grid col-span-12">
-            <LivebookWeb.Output.outputs
-              outputs={item.outputs}
-              dom_id_map={%{}}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              cell_id={item.cell_id}
-              input_views={%{}}
-            />
-          </div>
-        <% end %>
-      </div>
+      <.live_component
+        module={LivebookWeb.SessionLive.OutputPanelComponent}
+        id="output-panel"
+        session={@session}
+        client_id={@client_id}
+        output_view={@data_view.output_view}
+      />
       <.external_window_menu :if={not @embedded?} />
     </div>
     """

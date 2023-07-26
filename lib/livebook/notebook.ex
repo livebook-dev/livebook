@@ -75,8 +75,10 @@ defmodule Livebook.Notebook do
 
   @type output_panel_item :: %{
           cell_id: Livebook.Utils.id(),
-          width: 1..12
+          width: output_width()
         }
+
+  @type output_width :: 0..100
 
   @version "1.0"
 
@@ -111,8 +113,7 @@ defmodule Livebook.Notebook do
   """
   @spec add_output_to_output_panel(t(), Cell.id()) :: t()
   def add_output_to_output_panel(notebook, cell_id) do
-    row = %{items: [%{cell_id: cell_id, width: 12}]}
-    put_in(notebook.output_panel.rows, notebook.output_panel.rows ++ [row])
+    insert_new_row(notebook, cell_id, -1)
   end
 
   @doc """
@@ -120,22 +121,49 @@ defmodule Livebook.Notebook do
   """
   @spec remove_output_from_output_panel(t(), Cell.id()) :: t()
   def remove_output_from_output_panel(notebook, cell_id) do
-    {_, notebook} =
-      pop_in(notebook, [
-        Access.key(:output_panel),
-        Access.key(:rows),
-        Access.all(),
-        Access.key(:items),
-        access_by_id(cell_id, :cell_id)
-      ])
-
+    {_, notebook} = pop_output_from_output_panel(notebook, cell_id)
     notebook
+  end
+
+  @doc """
+  Move output to new location in output panel.
+  """
+  @spec move_output_to_new_location(t(), Cell.id(), integer(), integer()) :: t()
+  def move_output_to_new_location(notebook, cell_id, row_num, column_num) do
+    {item, notebook} = pop_output_from_output_panel(notebook, cell_id)
+
+    update_in(notebook.output_panel.rows, fn rows ->
+      List.update_at(rows, row_num, fn row ->
+        row_length = length(row.items)
+
+        items =
+          if row_length == 0 do
+            [%{item | width: 100}]
+          else
+            width = div(100, length(row.items))
+
+            List.insert_at(row.items, column_num, item)
+            |> Enum.map(fn item -> %{item | width: width} end)
+          end
+
+        %{row | items: items}
+      end)
+    end)
+  end
+
+  @doc """
+  Move output to a newly created row.
+  """
+  @spec move_output_to_new_row(t(), Cell.id(), integer()) :: t()
+  def move_output_to_new_row(notebook, cell_id, row_num) do
+    {_, notebook} = pop_output_from_output_panel(notebook, cell_id)
+    insert_new_row(notebook, cell_id, row_num)
   end
 
   @doc """
   Updates the width of the given output in the output panel.
   """
-  @spec update_output_width(t(), Cell.id(), 1..12) :: t()
+  @spec update_output_width(t(), Cell.id(), output_width()) :: t()
   def update_output_width(notebook, cell_id, width) do
     update_in(
       notebook,
@@ -160,6 +188,29 @@ defmodule Livebook.Notebook do
       Access.key(:cell_id)
     ])
     |> List.flatten()
+  end
+
+  defp pop_output_from_output_panel(notebook, cell_id) do
+    # TODO: update width for sibling elements
+    pop_in(notebook, [
+      Access.key(:output_panel),
+      Access.key(:rows),
+      Access.all(),
+      Access.key(:items),
+      access_by_id(cell_id, :cell_id)
+    ])
+  end
+
+  defp insert_new_row(notebook, cell_id, row_num) do
+    row = %{items: [%{cell_id: cell_id, width: 100}]}
+
+    update_in(notebook.output_panel.rows, fn rows ->
+      List.insert_at(rows, row_num, row)
+    end)
+  end
+
+  defp add_item_to_new_row(notebook, item, row) do
+    update_in(notebook.output_panel.rows, &List.insert_at(&1, row, [item]))
   end
 
   @doc """
