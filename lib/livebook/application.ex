@@ -243,7 +243,7 @@ defmodule Livebook.Application do
 
             :error ->
               Livebook.Config.abort!(
-                "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY."
+                "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
               )
           end
         else
