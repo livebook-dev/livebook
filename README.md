@@ -172,15 +172,22 @@ The following environment variables can be used to configure Livebook on boot:
     Livebook instance within the cloud provider platform.
 
   * LIVEBOOK_APPS_PATH - the directory with app notebooks. When set, the apps
-    are deployed on Livebook startup with the persisted settings.
-    Password-protected notebooks will receive a random password,
-    unless LIVEBOOK_APPS_PATH_PASSWORD is set.
+    are deployed on Livebook startup with the persisted settings. Password-protected
+    notebooks will receive a random password, unless LIVEBOOK_APPS_PATH_PASSWORD
+    is set. When deploying using Livebook's Docker image, consider using
+    `LIVEBOOK_APPS_PATH_WARMUP`.
 
   * LIVEBOOK_APPS_PATH_HUB_ID - deploy only the notebooks in
     LIVEBOOK_APPS_PATH that belong to the given Hub ID
 
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
     deployed from LIVEBOOK_APPS_PATH.
+
+  * LIVEBOOK_APPS_PATH_WARMUP - sets the warmup mode for apps deployed from
+    LIVEBOOK_APPS_PATH. Must be either "auto" (apps are warmed up on Livebook
+    startup, right before app deployment) or "manual" (apps are warmed up when
+    building the Docker image; to do so add "RUN /app/bin/warmup_apps.sh" to
+    your image). Defaults to "auto".
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is
     served on. Useful when deploying behind a reverse proxy.

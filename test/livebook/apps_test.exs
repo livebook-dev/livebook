@@ -111,7 +111,7 @@ defmodule Livebook.AppsTest do
       assert capture_log(fn ->
                Livebook.Apps.deploy_apps_in_dir(tmp_dir)
              end) =~
-               "Skipping app deployment at #{app_path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
+               "Skipping deployment for app at app.livemd. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
     end
 
     @tag :tmp_dir
