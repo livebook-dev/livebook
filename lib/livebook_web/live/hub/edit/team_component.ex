@@ -6,8 +6,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
 
-  @dockerfile_form %{"include_secrets" => "false"}
-
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -28,8 +26,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secrets: secrets,
        show_key: show_key?,
        secret_name: secret_name,
-       secret_value: secret_value,
-       dockerfile_form: to_form(@dockerfile_form, as: :dockerfile)
+       secret_value: secret_value
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -151,19 +148,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 >
                   <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-" /> Copy source
                 </button>
-
-                <span class="text-sm text-gray-700 font-semibold"> Include encrypted secrets </span>
-
-                <.form
-                  :let={f}
-                  id="dockerfile-form"
-                  class="my-4"
-                  for={@dockerfile_form}
-                  phx-change="update_dockerfile"
-                  phx-target={@myself}
-                >
-                  <.switch_field field={f[:include_secrets]} />
-                </.form>
               </div>
 
               <.code_preview
@@ -328,13 +312,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, assign_form(socket, changeset)}
   end
 
-  def handle_event("update_dockerfile", %{"dockerfile" => attrs}, socket) do
-    {:noreply,
-     socket
-     |> assign(dockerfile_form: to_form(attrs, as: :dockerfile))
-     |> assign_dockerfile()}
-  end
-
   def handle_event("delete_hub_secret", attrs, socket) do
     %{hub: hub} = socket.assigns
 
@@ -366,7 +343,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    form = socket.assigns.dockerfile_form.params
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
     identity_source = Livebook.Config.identity_source()
@@ -379,16 +355,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
-    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"\
+    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"\
     """
-
-    dockerfile =
-      if form["include_secrets"] == "true" do
-        secrets = ~s(\nENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}")
-        dockerfile <> secrets
-      else
-        dockerfile
-      end
 
     dockerfile =
       if identity_source != :session do
