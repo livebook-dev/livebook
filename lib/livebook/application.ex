@@ -187,7 +187,8 @@ defmodule Livebook.Application do
   end
 
   defp display_startup_info() do
-    if not serverless?() and Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
+    if Process.whereis(LivebookWeb.Endpoint) &&
+         Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
       IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
