@@ -605,8 +605,11 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
-    hub = Hubs.fetch_hub!(notebook.hub_id)
-    offline? = Map.has_key?(hub, :offline) and Map.get(hub, :offline) != nil
+    {hub, offline?} =
+      case Hubs.fetch_hub!(notebook.hub_id) do
+        %{offline: _} = hub -> {hub, hub.offline != nil}
+        hub -> {hub, false}
+      end
 
     {valid_stamp?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
