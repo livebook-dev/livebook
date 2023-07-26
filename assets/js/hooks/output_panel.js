@@ -67,9 +67,10 @@ const OutputPanel = {
         `[data-el-output-panel-row-drop-area]`
       );
 
-      if (insertDropEl && draggedEl) {
-        console.log(draggedEl);
-        const cellId = getAttributeOrThrow(draggedEl, "data-cell-id");
+      const srcDragEl = draggedEl.closest(`[data-el-output-panel-item]`);
+
+      if (insertDropEl && srcDragEl) {
+        const cellId = getAttributeOrThrow(srcDragEl, "data-cell-id");
         const dstRow = getAttributeOrThrow(
           insertDropEl,
           "data-drop-area-row-index",
@@ -81,7 +82,6 @@ const OutputPanel = {
           row_num: dstRow,
         });
       }
-      console.log(event);
 
       stopDragging();
     });

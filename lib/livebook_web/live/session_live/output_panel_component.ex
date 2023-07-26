@@ -35,11 +35,12 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       <%= for {output_row, row_index} <- Enum.with_index(@output_view.rows) do %>
         <div
           :for={item <- output_row.items}
-          class="grid col-span-12"
+          class="relative group grid col-span-12"
           data-row-index={row_index}
           data-cell-id={item.cell_id}
-          draggable="true"
+          data-el-output-panel-item
         >
+          <.output_options cell_id={item.cell_id} myself={@myself} />
           <LivebookWeb.Output.outputs
             outputs={item.outputs}
             dom_id_map={%{}}
@@ -68,6 +69,33 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     """
   end
 
+  defp output_options(assigns) do
+    ~H"""
+    <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400">
+      <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
+        <ul class="flex space-x-4">
+          <li class="cursor-move" draggable="true">
+            <.remix_icon icon="draggable" />
+          </li>
+          <li class="cursor-pointer">
+            <span class="tooltip top" data-tooltip="Remove output from Output Panel">
+              <button
+                class="icon-button"
+                aria-label="remove output from output panel"
+                phx-click="remove_output_from_output_panel"
+                phx-value-cell_id={@cell_id}
+                phx-target={@myself}
+              >
+                <.remix_icon icon="delete-bin-line" />
+              </button>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    """
+  end
+
   @impl true
   def handle_event(
         "handle_move_item_to_new_row",
@@ -75,6 +103,11 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
         socket
       ) do
     Session.move_output_to_new_row(socket.assigns.session.pid, cell_id, row_num)
+    {:noreply, socket}
+  end
+
+  def handle_event("remove_output_from_output_panel", %{"cell_id" => cell_id}, socket) do
+    Session.remove_output_from_output_panel(socket.assigns.session.pid, cell_id)
     {:noreply, socket}
   end
 end
