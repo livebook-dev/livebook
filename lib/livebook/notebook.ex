@@ -118,11 +118,26 @@ defmodule Livebook.Notebook do
 
   @doc """
   Removes the output of the given cell_id from the output panel.
+  If it's the only item in the row, the whole row is removed.
+  Otherwise, the space left behind is spread out amoung the other items in the row.
   """
   @spec remove_output_from_output_panel(t(), Cell.id()) :: t()
   def remove_output_from_output_panel(notebook, cell_id) do
-    {_, notebook} = pop_output_from_output_panel(notebook, cell_id)
-    notebook
+    row_num =
+      Enum.find_index(notebook.output_panel.rows, fn %{items: items} ->
+        Enum.any?(items, &(&1.cell_id == cell_id))
+      end)
+
+    update_in(notebook.output_panel.rows, fn rows ->
+      row = Enum.at(rows, row_num)
+
+      if length(row.items) == 1 do
+        List.delete_at(rows, row_num)
+      else
+        pop_in(rows, [Access.key(:items), access_by_id(cell_id, :cell_id)])
+        |> elem(1)
+      end
+    end)
   end
 
   @doc """
@@ -130,7 +145,7 @@ defmodule Livebook.Notebook do
   """
   @spec move_output_to_new_location(t(), Cell.id(), integer(), integer()) :: t()
   def move_output_to_new_location(notebook, cell_id, row_num, column_num) do
-    {item, notebook} = pop_output_from_output_panel(notebook, cell_id)
+    {item, notebook} = remove_output_from_output_panel(notebook, cell_id)
 
     update_in(notebook.output_panel.rows, fn rows ->
       List.update_at(rows, row_num, fn row ->
@@ -156,8 +171,9 @@ defmodule Livebook.Notebook do
   """
   @spec move_output_to_new_row(t(), Cell.id(), integer()) :: t()
   def move_output_to_new_row(notebook, cell_id, row_num) do
-    {_, notebook} = pop_output_from_output_panel(notebook, cell_id)
-    insert_new_row(notebook, cell_id, row_num)
+    notebook
+    |> remove_output_from_output_panel(cell_id)
+    |> insert_new_row(cell_id, row_num)
   end
 
   @doc """
@@ -188,17 +204,6 @@ defmodule Livebook.Notebook do
       Access.key(:cell_id)
     ])
     |> List.flatten()
-  end
-
-  defp pop_output_from_output_panel(notebook, cell_id) do
-    # TODO: update width for sibling elements
-    pop_in(notebook, [
-      Access.key(:output_panel),
-      Access.key(:rows),
-      Access.all(),
-      Access.key(:items),
-      access_by_id(cell_id, :cell_id)
-    ])
   end
 
   defp insert_new_row(notebook, cell_id, row_num) do

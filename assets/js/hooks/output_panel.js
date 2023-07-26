@@ -63,16 +63,25 @@ const OutputPanel = {
       event.stopPropagation();
       event.preventDefault();
 
-      const insertDropEl = event.target.closest(`[data-el-output-panel-row-drop-area]`);
+      const insertDropEl = event.target.closest(
+        `[data-el-output-panel-row-drop-area]`
+      );
 
       if (insertDropEl && draggedEl) {
-        console.log(draggedEl)
+        console.log(draggedEl);
         const cellId = getAttributeOrThrow(draggedEl, "data-cell-id");
-        const dstRow = getAttributeOrThrow(insertDropEl, "data-drop-area-row-index", parseInteger);
+        const dstRow = getAttributeOrThrow(
+          insertDropEl,
+          "data-drop-area-row-index",
+          parseInteger
+        );
 
-        this.pushEventTo(this.props.phxTarget, "handle_move_item_to_new_row", { cell_id: cellId, row_num: dstRow });
+        this.pushEventTo(this.props.phxTarget, "handle_move_item_to_new_row", {
+          cell_id: cellId,
+          row_num: dstRow,
+        });
       }
-      console.log(event)
+      console.log(event);
 
       stopDragging();
     });
@@ -90,4 +99,4 @@ const OutputPanel = {
   },
 };
 
-export default OutputPanel
+export default OutputPanel;
