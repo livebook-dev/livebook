@@ -605,11 +605,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
-    {hub, offline?} =
-      case Hubs.fetch_hub!(notebook.hub_id) do
-        %{offline: _} = hub -> {hub, hub.offline != nil}
-        hub -> {hub, false}
-      end
+    hub = Hubs.fetch_hub!(notebook.hub_id)
 
     {valid_stamp?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
@@ -623,7 +619,7 @@ defmodule Livebook.LiveMarkdown.Import do
 
     # We enable teams features for offline hub only if the stamp
     # is valid, which ensures it is an existing Teams hub
-    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (not offline? or valid_stamp?)
+    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or valid_stamp?)
 
     {%{notebook | teams_enabled: teams_enabled}, messages}
   end
