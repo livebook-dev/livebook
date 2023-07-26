@@ -345,9 +345,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   defp assign_dockerfile(socket) do
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
-    identity_source = Livebook.Config.identity_source()
 
-    dockerfile = """
+    assign(socket, :dockerfile, """
     FROM livebook/livebook:#{version}
 
     COPY /path/to/my/notebooks /data
@@ -356,21 +355,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
     ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
-    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"\
-    """
+    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
 
-    dockerfile =
-      if identity_source != :session do
-        {_module, zta} = Livebook.Config.identity_provider()
-        identity_provider = ~s(\nENV LIVEBOOK_IDENTITY_PROVIDER "#{identity_source}:#{zta}")
-
-        dockerfile <> identity_provider
-      else
-        dockerfile
-      end
-
-    cmd = ~s(\n\nCMD [ "/app/bin/livebook", "start" ])
-    assign(socket, :dockerfile, dockerfile <> cmd)
+    CMD [ "/app/bin/livebook", "start" ]\
+    """)
   end
 
   defp encrypt_secrets_to_dockerfile(socket) do
