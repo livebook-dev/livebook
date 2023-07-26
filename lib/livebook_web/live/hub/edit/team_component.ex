@@ -410,10 +410,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     secrets_map =
       for %{name: name, value: value} <- socket.assigns.secrets,
           into: %{},
-          do: {name, Livebook.Teams.encrypt_secret_value(value, secret_key, sign_secret)}
+          do: {name, value}
 
     stringified_secrets = Jason.encode!(secrets_map)
 
-    Livebook.Teams.encrypt_secret_value(stringified_secrets, secret_key, sign_secret)
+    Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
   end
 end

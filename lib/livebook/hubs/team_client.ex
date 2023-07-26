@@ -70,10 +70,10 @@ defmodule Livebook.Hubs.TeamClient do
     derived_keys = Teams.derive_keys(team.teams_key)
 
     headers = [
-      {"x-user", to_string(team.user_id || 0)},
-      {"x-org", to_string(team.org_id || 0)},
-      {"x-org-key", to_string(team.org_key_id || 0)},
-      {"x-session-token", to_string(team.session_token)}
+      {"x-user", to_string(team.user_id)},
+      {"x-org", to_string(team.org_id)},
+      {"x-org-key", to_string(team.org_key_id)},
+      {"x-session-token", team.session_token}
     ]
 
     {:ok, _pid} = Connection.start_link(self(), headers)
@@ -83,13 +83,7 @@ defmodule Livebook.Hubs.TeamClient do
   def init(%Team{} = team) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
-    {:ok,
-     %__MODULE__{
-       hub: team,
-       connected?: true,
-       secrets: team.offline.secrets,
-       derived_keys: derived_keys
-     }}
+    {:ok, %__MODULE__{hub: team, secrets: team.offline.secrets, derived_keys: derived_keys}}
   end
 
   @impl true
@@ -146,7 +140,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_secret(state, %{name: name, value: value}) do
     {secret_key, sign_secret} = state.derived_keys
-    {:ok, decrypted_value} = Teams.decrypt_secret_value(value, secret_key, sign_secret)
+    {:ok, decrypted_value} = Teams.decrypt(value, secret_key, sign_secret)
 
     %Livebook.Secrets.Secret{
       name: name,

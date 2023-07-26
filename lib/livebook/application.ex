@@ -232,15 +232,20 @@ defmodule Livebook.Application do
         if encrypted_secrets do
           {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
 
-          {:ok, json} =
-            Livebook.Teams.decrypt_secret_value(encrypted_secrets, secret_key, sign_secret)
+          case Livebook.Teams.decrypt(encrypted_secrets, secret_key, sign_secret) do
+            {:ok, json} ->
+              for {name, value} <- Jason.decode!(json),
+                  do: %Livebook.Secrets.Secret{
+                    name: name,
+                    value: value,
+                    hub_id: id
+                  }
 
-          for {name, value} <- Jason.decode!(json),
-              do: %Livebook.Secrets.Secret{
-                name: name,
-                value: value,
-                hub_id: id
-              }
+            :error ->
+              Livebook.Config.abort!(
+                "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY."
+              )
+          end
         else
           []
         end
@@ -249,6 +254,10 @@ defmodule Livebook.Application do
         id: "team-#{name}",
         hub_name: name,
         hub_emoji: "💡",
+        user_id: 0,
+        org_id: 0,
+        org_key_id: 0,
+        session_token: "",
         teams_key: teams_key,
         org_public_key: public_key,
         offline: %Livebook.Hubs.Team.Offline{

@@ -80,7 +80,7 @@ defmodule Livebook.Hubs do
   """
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
-    attributes = Provider.to_attributes(struct)
+    attributes = Provider.dump(struct)
     :ok = Storage.insert(@namespace, struct.id, Map.to_list(attributes))
     :ok = connect_hub(struct)
     :ok = Broadcasts.hub_changed(struct.id)
@@ -165,7 +165,7 @@ defmodule Livebook.Hubs do
   end
 
   defp to_struct(%{id: "team-" <> _} = fields) do
-    Provider.load(%Team{}, fields)
+    Provider.load(Team.new(), fields)
   end
 
   @doc """

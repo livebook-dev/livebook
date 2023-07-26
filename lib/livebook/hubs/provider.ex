@@ -114,8 +114,8 @@ defprotocol Livebook.Hubs.Provider do
   def verify_notebook_stamp(hub, notebook_source, stamp)
 
   @doc """
-  Transforms given hub to map.
+  Transforms hub to the attributes map sent to storage.
   """
-  @spec to_attributes(t()) :: map()
-  def to_attributes(hub)
+  @spec dump(t()) :: map()
+  def dump(hub)
 end

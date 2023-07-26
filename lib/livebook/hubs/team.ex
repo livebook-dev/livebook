@@ -22,24 +22,26 @@ defmodule Livebook.Hubs.Team do
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          org_id: pos_integer() | nil,
-          user_id: pos_integer() | nil,
-          org_key_id: pos_integer() | nil,
-          teams_key: String.t() | nil,
-          org_public_key: String.t() | nil,
-          session_token: String.t() | nil,
+          org_id: non_neg_integer(),
+          user_id: non_neg_integer(),
+          org_key_id: non_neg_integer(),
+          teams_key: String.t(),
+          org_public_key: String.t(),
+          session_token: String.t(),
           hub_name: String.t() | nil,
           hub_emoji: String.t() | nil,
           offline: Offline.t() | nil
         }
 
+  @enforce_keys [:user_id, :org_id, :org_key_id, :session_token, :org_public_key, :teams_key]
+
   embedded_schema do
-    field :org_id, :integer
-    field :user_id, :integer
-    field :org_key_id, :integer
-    field :teams_key, :string
-    field :org_public_key, :string
-    field :session_token, :string
+    field :org_id, :integer, default: 0
+    field :user_id, :integer, default: 0
+    field :org_key_id, :integer, default: 0
+    field :teams_key, :string, default: ""
+    field :org_public_key, :string, default: ""
+    field :session_token, :string, default: ""
     field :hub_name, :string
     field :hub_emoji, :string
 
@@ -56,6 +58,20 @@ defmodule Livebook.Hubs.Team do
     hub_name
     hub_emoji
   )a
+
+  @doc """
+  Initializes a new Team hub.
+  """
+  def new() do
+    %__MODULE__{
+      user_id: 0,
+      org_id: 0,
+      org_key_id: 0,
+      session_token: "",
+      org_public_key: "",
+      teams_key: ""
+    }
+  end
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
@@ -152,7 +168,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  def to_attributes(team) do
+  def dump(team) do
     team
     |> Map.from_struct()
     |> Map.delete(:offline)
