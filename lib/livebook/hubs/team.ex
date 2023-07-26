@@ -36,12 +36,12 @@ defmodule Livebook.Hubs.Team do
   @enforce_keys [:user_id, :org_id, :org_key_id, :session_token, :org_public_key, :teams_key]
 
   embedded_schema do
-    field :org_id, :integer, default: 0
-    field :user_id, :integer, default: 0
-    field :org_key_id, :integer, default: 0
-    field :teams_key, :string, default: ""
-    field :org_public_key, :string, default: ""
-    field :session_token, :string, default: ""
+    field :org_id, :integer
+    field :user_id, :integer
+    field :org_key_id, :integer
+    field :teams_key, :string
+    field :org_public_key, :string
+    field :session_token, :string
     field :hub_name, :string
     field :hub_emoji, :string
 
