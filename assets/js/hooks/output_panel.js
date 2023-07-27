@@ -10,52 +10,23 @@ import {
 const OutputPanel = {
   mounted() {
     this.props = this.getProps();
-    this.initializeDragAndDrop();
-  },
-  update() {
-    this.props = this.getProps();
-  },
-  getProps() {
-    return {
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-    };
-  },
-
-  /**
-   * Initializes drag and drop event handlers.
-   */
-  initializeDragAndDrop() {
-    let isDragging = false;
-    let draggedEl = null;
-
-    const startDragging = (element = null) => {
-      if (!isDragging) {
-        isDragging = true;
-        draggedEl = element;
-
-        this.el.setAttribute("data-js-dragging", "");
-      }
-    };
-
-    const stopDragging = () => {
-      if (isDragging) {
-        isDragging = false;
-        this.el.removeAttribute("data-js-dragging");
-      }
-    };
+    this.isDragging = false;
+    this.draggedEl = null;
 
     this.el.addEventListener("dragstart", (event) => {
-      startDragging(event.target);
+      this.startDragging(event.target);
+    });
+
+    this.el.addEventListener("dragend", (event) => {
+      this.stopDragging();
     });
 
     this.el.addEventListener("dragenter", (event) => {
-      startDragging();
+      //console.log("Valid drop area", event);
     });
 
     this.el.addEventListener("dragleave", (event) => {
-      if (!this.el.contains(event.relatedTarget)) {
-        stopDragging();
-      }
+      //console.log("Valid drop area left", event);
     });
 
     this.el.addEventListener("dragover", (event) => {
@@ -69,10 +40,20 @@ const OutputPanel = {
 
       const dstEl = event.target.closest(`[phx-hook="Dropzone"]`);
 
-      const srcEl = draggedEl.closest(`[data-el-output-panel-item]`);
+      const srcEl = this.draggedEl.closest(`[data-el-output-panel-item]`);
 
       if (dstEl && srcEl) {
         const cellId = getAttributeOrThrow(srcEl, "data-cell-id");
+        const srcRow = getAttributeOrThrow(
+          srcEl,
+          "data-row-index",
+          parseInteger
+        );
+        const srcCol = getAttributeOrThrow(
+          srcEl,
+          "data-col-index",
+          parseInteger
+        );
         let dstRow = getAttributeOrThrow(dstEl, "data-row-index", parseInteger);
         let dstCol = getAttributeOrDefault(
           dstEl,
@@ -82,8 +63,11 @@ const OutputPanel = {
         );
 
         if (dstCol !== null) {
+          console.log(srcCol, dstCol);
           // when dropping on the right side, move element one column to the right
-          if (event.layerX > dstEl.offsetWidth / 2) dstCol += 1;
+          if (srcRow !== dstRow && event.layerX > dstEl.offsetWidth / 2)
+            dstCol += 1;
+          if (srcRow === dstRow && srcCol < dstCol) dstCol += 1;
 
           this.pushEventTo(this.props.phxTarget, "handle_move_item", {
             cell_id: cellId,
@@ -102,8 +86,30 @@ const OutputPanel = {
         }
       }
 
-      stopDragging();
+      this.stopDragging();
     });
+  },
+  update() {
+    this.props = this.getProps();
+  },
+  getProps() {
+    return {
+      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
+    };
+  },
+  startDragging(element) {
+    if (!this.isDragging) {
+      this.isDragging = true;
+      this.draggedEl = element;
+
+      this.el.setAttribute("data-js-dragging", "");
+    }
+  },
+  stopDragging() {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.el.removeAttribute("data-js-dragging");
+    }
   },
 };
 

@@ -77,26 +77,37 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
 
   defp output_options(assigns) do
     ~H"""
-    <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400">
+    <div
+      class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
+      data-el-output-panel-item-options
+    >
       <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
-        <ul class="flex space-x-4">
-          <li class="cursor-move" draggable="true">
-            <.remix_icon icon="draggable" />
-          </li>
-          <li class="cursor-pointer">
-            <span class="tooltip top" data-tooltip="Remove output from Output Panel">
-              <button
-                class="icon-button"
-                aria-label="remove output from output panel"
-                phx-click="remove_output_from_output_panel"
-                phx-value-cell_id={@cell_id}
-                phx-target={@myself}
-              >
-                <.remix_icon icon="delete-bin-line" />
-              </button>
-            </span>
-          </li>
-        </ul>
+        <div class="flex space-x-4">
+          <div class="flex" draggable="true">
+            <div class="cursor-move">
+              <.remix_icon icon="draggable" />
+            </div>
+            <div
+              class="w-16 bg-blue-500 text-white text-sm rounded py-1 px-2 shadow-lg"
+              data-el-output-panel-item-options-drag-label
+            />
+          </div>
+          <div class="flex" data-el-output-panel-item-options-controls>
+            <div class="cursor-pointer">
+              <span class="tooltip top" data-tooltip="Remove output from Output Panel">
+                <button
+                  class="icon-button"
+                  aria-label="remove output from output panel"
+                  phx-click="remove_output_from_output_panel"
+                  phx-value-cell_id={@cell_id}
+                  phx-target={@myself}
+                >
+                  <.remix_icon icon="delete-bin-line" />
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     """

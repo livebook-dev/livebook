@@ -60,23 +60,22 @@ defmodule Livebook.Notebook.OutputPanel do
   @spec move_item_to_new_row(t(), item(), integer()) :: t()
   def move_item_to_new_row(panel, item, row_index \\ -1) do
     old_position = get_item_position(panel, item)
-    item = %{item | width: 100}
-
-    # when a new row gets added before the old location we need to update the row_index
-    old_position =
-      if old_position && row_index <= elem(old_position, 0) do
-        {row_index, col_index} = old_position
-        {row_index + 1, col_index}
-      else
-        old_position
-      end
+    {panel, row_removed?} = remove_item_at(panel, old_position)
+    row_index = if row_removed?, do: update_row_index(row_index, old_position), else: row_index
 
     update_in(panel.rows, fn rows ->
+      item = set_item_width(item, 100)
       row = %{items: [item]}
       List.insert_at(rows, row_index, row)
     end)
-    |> remove_item_at(old_position)
   end
+
+  defp update_row_index(row_index, nil), do: row_index
+
+  defp update_row_index(row_index, {old_row_index, _}) when row_index > old_row_index,
+    do: row_index - 1
+
+  defp update_row_index(row_index, _), do: row_index
 
   @doc """
   Moves the item to the given position and updates the width of
@@ -88,9 +87,17 @@ defmodule Livebook.Notebook.OutputPanel do
     old_position = get_item_position(panel, item)
 
     panel
-    |> insert_item(item, position)
-    |> remove_item_at(old_position)
+    |> remove_item(item)
+    |> insert_item(item, update_position(position, old_position))
   end
+
+  defp update_position(position, nil), do: position
+
+  defp update_position({same_row, col_index}, {same_row, old_col_index})
+       when col_index > old_col_index,
+       do: {same_row, col_index - 1}
+
+  defp update_position(position, _), do: position
 
   @doc """
   Removes the item from the output panel.
@@ -100,7 +107,8 @@ defmodule Livebook.Notebook.OutputPanel do
   @spec remove_item(t(), item()) :: t()
   def remove_item(panel, item) do
     position = get_item_position(panel, item)
-    remove_item_at(panel, position)
+    {panel, _} = remove_item_at(panel, position)
+    panel
   end
 
   @doc """
@@ -146,24 +154,31 @@ defmodule Livebook.Notebook.OutputPanel do
     end)
   end
 
-  defp remove_item_at(panel, nil), do: panel
+  defp remove_item_at(panel, nil), do: {panel, false}
 
   defp remove_item_at(panel, {row_index, col_index}) do
-    update_in(panel.rows, fn rows ->
-      row = Enum.at(rows, row_index)
-      num_items = length(row.items)
+    row = Enum.at(panel.rows, row_index)
+    num_items = length(row.items)
 
-      if num_items == 1 do
-        List.delete_at(rows, row_index)
-      else
-        update_in(rows, [Access.at(row_index), Access.key(:items)], fn items ->
-          {removed_item, updated_items} = List.pop_at(items, col_index)
+    panel =
+      update_in(panel.rows, fn rows ->
+        if num_items == 1 do
+          List.delete_at(rows, row_index)
+        else
+          update_in(rows, [Access.at(row_index), Access.key(:items)], fn items ->
+            {removed_item, updated_items} = List.pop_at(items, col_index)
 
-          Enum.map(updated_items, fn item ->
-            %{item | width: item.width + div(removed_item.width, num_items - 1)}
+            Enum.map(updated_items, fn item ->
+              %{item | width: item.width + div(removed_item.width, num_items - 1)}
+            end)
           end)
-        end)
-      end
-    end)
+        end
+      end)
+
+    {panel, num_items == 1}
+  end
+
+  defp set_item_width(item, width) do
+    %{item | width: width}
   end
 end

@@ -410,3 +410,13 @@ solely client-side operations.
 [data-el-output-panel-row-drop-area][data-js-dragging] {
   @apply h-16;
 }
+
+[data-el-output-panel-content][data-js-dragging]
+  [data-el-output-panel-item-options-controls] {
+  @apply hidden;
+}
+
+[data-el-output-panel-content]:not([data-js-dragging])
+  [data-el-output-panel-item-options-drag-label] {
+  @apply hidden;
+}
