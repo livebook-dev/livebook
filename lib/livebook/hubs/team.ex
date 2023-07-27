@@ -96,6 +96,12 @@ defmodule Livebook.Hubs.Team do
       changeset
     end
   end
+
+  @doc """
+  Returns the public key prefix
+  """
+  @spec public_key_prefix() :: String.t()
+  def public_key_prefix(), do: "lb_opk_"
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do

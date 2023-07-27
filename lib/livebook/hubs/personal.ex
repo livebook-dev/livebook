@@ -7,6 +7,7 @@ defmodule Livebook.Hubs.Personal do
   alias Livebook.Hubs
 
   @secret_key_size 64
+  @prefix "lb_ph_"
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -81,8 +82,15 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
-    :crypto.strong_rand_bytes(@secret_key_size) |> Base.url_encode64(padding: false)
+    key = :crypto.strong_rand_bytes(@secret_key_size)
+    @prefix <> Base.url_encode64(key, padding: false)
   end
+
+  @doc """
+  Returns the secret key prefix
+  """
+  @spec secret_key_prefix() :: String.t()
+  def secret_key_prefix(), do: @prefix
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
