@@ -165,4 +165,86 @@ defmodule LivebookWeb.AppSessionLiveTest do
 
     Livebook.App.close(app.pid)
   end
+
+  test "shows the reprocessing button when there are changed inputs and no errors",
+       %{conn: conn, test: test} do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+
+    Process.register(self(), test)
+
+    input = %{
+      ref: :input_ref,
+      id: "input1",
+      type: :number,
+      label: "Name",
+      default: 1,
+      destination: test
+    }
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: app_settings,
+        sections: [
+          %{
+            Livebook.Notebook.Section.new()
+            | cells: [
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: source_for_output({:input, input})
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: source_for_input_read(input.id)
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | id: "error-cell",
+                    source: """
+                    # Fail on the first run
+                    unless :persistent_term.get(#{inspect(test)}, false) do
+                      :persistent_term.put(#{inspect(test)}, true)
+                      raise "oops"
+                    end
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    Livebook.Apps.subscribe()
+    {:ok, app_pid} = Apps.deploy(notebook)
+
+    assert_receive {:app_created, %{pid: ^app_pid} = app}
+
+    assert_receive {:app_updated,
+                    %{
+                      pid: ^app_pid,
+                      sessions: [%{pid: session_pid, app_status: %{execution: :error}}]
+                    }}
+
+    Livebook.Session.set_input_value(session_pid, input.id, 10)
+
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+
+    # The button should not appear on error
+    refute render(view) =~
+             "Some inputs have changed.\nClick this button to process with latest values."
+
+    view
+    |> element("button", "Retry")
+    |> render_click()
+
+    assert_receive {:app_updated,
+                    %{pid: ^app_pid, sessions: [%{app_status: %{execution: :executed}}]}}
+
+    Livebook.Session.set_input_value(session_pid, input.id, 20)
+    Livebook.SessionHelpers.wait_for_session_update(session_pid)
+
+    assert render(view) =~
+             "Some inputs have changed.\nClick this button to process with latest values."
+
+    Livebook.App.close(app.pid)
+  end
 end
