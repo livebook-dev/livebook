@@ -177,6 +177,7 @@ defmodule Livebook.Session.Data do
           {:set_notebook_attributes, client_id(), map()}
           | {:add_output_to_output_panel, client_id(), Cell.id()}
           | {:remove_output_from_output_panel, client_id(), Cell.id()}
+          | {:move_output_to_new_location, client_id(), Cell.id(), integer(), integer()}
           | {:move_output_to_new_row, client_id(), Cell.id(), integer()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
@@ -404,10 +405,21 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:move_output_to_new_row, _client_id, cell_id, row_num}) do
+  def apply_operation(
+        data,
+        {:move_output_to_new_location, _client_id, cell_id, row_index, col_index}
+      ) do
     data
     |> with_actions()
-    |> move_output_to_new_row(cell_id, row_num)
+    |> move_output_to_new_location(cell_id, row_index, col_index)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:move_output_to_new_row, _client_id, cell_id, row_index}) do
+    data
+    |> with_actions()
+    |> move_output_to_new_row(cell_id, row_index)
     |> set_dirty()
     |> wrap_ok()
   end
@@ -1030,9 +1042,16 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.remove_output_from_output_panel(data.notebook, cell_id))
   end
 
-  defp move_output_to_new_row({data, _} = data_actions, cell_id, row_num) do
+  defp move_output_to_new_location({data, _} = data_actions, cell_id, row_index, col_index) do
     data_actions
-    |> set!(notebook: Notebook.move_output_to_new_row(data.notebook, cell_id, row_num))
+    |> set!(
+      notebook: Notebook.move_output_to_new_location(data.notebook, cell_id, row_index, col_index)
+    )
+  end
+
+  defp move_output_to_new_row({data, _} = data_actions, cell_id, row_index) do
+    data_actions
+    |> set!(notebook: Notebook.move_output_to_new_row(data.notebook, cell_id, row_index))
   end
 
   defp insert_section({data, _} = data_actions, index, section) do

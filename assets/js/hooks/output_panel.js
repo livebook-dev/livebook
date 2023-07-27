@@ -1,4 +1,8 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrThrow,
+  getAttributeOrDefault,
+  parseInteger,
+} from "../lib/attribute";
 /**
  * A hook for the output panel.
  */
@@ -63,38 +67,42 @@ const OutputPanel = {
       event.stopPropagation();
       event.preventDefault();
 
-      const insertDropEl = event.target.closest(
-        `[data-el-output-panel-row-drop-area]`
-      );
+      const dstEl = event.target.closest(`[phx-hook="Dropzone"]`);
 
-      const srcDragEl = draggedEl.closest(`[data-el-output-panel-item]`);
+      const srcEl = draggedEl.closest(`[data-el-output-panel-item]`);
 
-      if (insertDropEl && srcDragEl) {
-        const cellId = getAttributeOrThrow(srcDragEl, "data-cell-id");
-        const dstRow = getAttributeOrThrow(
-          insertDropEl,
-          "data-drop-area-row-index",
+      if (dstEl && srcEl) {
+        const cellId = getAttributeOrThrow(srcEl, "data-cell-id");
+        let dstRow = getAttributeOrThrow(dstEl, "data-row-index", parseInteger);
+        let dstCol = getAttributeOrDefault(
+          dstEl,
+          "data-col-index",
+          null,
           parseInteger
         );
 
-        this.pushEventTo(this.props.phxTarget, "handle_move_item_to_new_row", {
-          cell_id: cellId,
-          row_num: dstRow,
-        });
+        if (dstCol !== null) {
+          // when dropping on the right side, move element one column to the right
+          if (event.layerX > dstEl.offsetWidth / 2) dstCol += 1;
+
+          this.pushEventTo(this.props.phxTarget, "handle_move_item", {
+            cell_id: cellId,
+            row_index: dstRow,
+            col_index: dstCol,
+          });
+        } else {
+          this.pushEventTo(
+            this.props.phxTarget,
+            "handle_move_item_to_new_row",
+            {
+              cell_id: cellId,
+              row_index: dstRow,
+            }
+          );
+        }
       }
 
       stopDragging();
-    });
-
-    this.handleEvent("finish_file_drop", (event) => {
-      const inputEl = document.querySelector(
-        `#add-file-entry-modal input[type="file"]`
-      );
-
-      if (inputEl) {
-        inputEl.files = files;
-        inputEl.dispatchEvent(new Event("change", { bubbles: true }));
-      }
     });
   },
 };

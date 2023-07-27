@@ -60,6 +60,7 @@ defmodule Livebook.Notebook.OutputPanel do
   @spec move_item_to_new_row(t(), item(), integer()) :: t()
   def move_item_to_new_row(panel, item, row_index \\ -1) do
     old_position = get_item_position(panel, item)
+    item = %{item | width: 100}
 
     # when a new row gets added before the old location we need to update the row_index
     old_position =
@@ -155,10 +156,10 @@ defmodule Livebook.Notebook.OutputPanel do
       if num_items == 1 do
         List.delete_at(rows, row_index)
       else
-        update_in(rows, [Access.at(row_index)], fn row ->
-          {removed_item, updated_row} = List.pop_at(row, col_index)
+        update_in(rows, [Access.at(row_index), Access.key(:items)], fn items ->
+          {removed_item, updated_items} = List.pop_at(items, col_index)
 
-          Enum.map(updated_row, fn item ->
+          Enum.map(updated_items, fn item ->
             %{item | width: item.width + div(removed_item.width, num_items - 1)}
           end)
         end)
