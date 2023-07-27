@@ -9,6 +9,8 @@ defmodule Livebook.Teams do
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2, change: 1]
 
+  @prefix Org.teams_key_prefix()
+
   @doc """
   Creates an Org.
 
@@ -204,7 +206,7 @@ defmodule Livebook.Teams do
   Derives the secret and sign secret from given `teams_key`.
   """
   @spec derive_keys(String.t()) :: {bitstring(), bitstring()}
-  def derive_keys(teams_key) do
+  def derive_keys(@prefix <> teams_key) do
     binary_key = Base.url_decode64!(teams_key, padding: false)
 
     <<secret::16-bytes, sign_secret::16-bytes>> =

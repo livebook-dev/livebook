@@ -68,7 +68,7 @@ defmodule Livebook.Hubs.Personal do
     personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
-    |> validate_change(:secret_key, fn :secret_key, secret_key ->
+    |> validate_change(:secret_key, fn :secret_key, @prefix <> secret_key ->
       case Base.url_decode64(secret_key, padding: false) do
         {:ok, binary} when byte_size(binary) == @secret_key_size -> []
         _ -> [secret_key: "must be #{@secret_key_size} bytes in Base 64 URL alphabet"]
@@ -96,6 +96,8 @@ end
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Secrets
+
+  @prefix Livebook.Hubs.Personal.secret_key_prefix()
 
   def load(personal, fields) do
     %{
@@ -151,7 +153,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def notebook_stamp(personal, notebook_source, metadata) do
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, personal.secret_key)
+    @prefix <> secret_key = personal.secret_key
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, secret_key)
 
     stamp = %{"version" => 1, "token" => token}
 
@@ -160,8 +163,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def verify_notebook_stamp(personal, notebook_source, stamp) do
     %{"version" => 1, "token" => token} = stamp
+    @prefix <> secret_key = personal.secret_key
 
-    Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
+    Livebook.Stamping.aead_decrypt(token, notebook_source, secret_key)
   end
 
   def dump(personal) do
