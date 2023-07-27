@@ -263,21 +263,18 @@ Now open up a new notebook and click the "Runtime" icon on the sidebar.
 Click to "Configure" the runtime and choose "Attached node". Input the
 name and cookie as above and you should be ready to connect to it.
 
-Note, however, that you can't install new dependencies on a connected runtime.
-If you want to install dependencies, you have three options:
+Note, however, that you can't install new dependencies on a attached runtime.
+We recommend the attached mode only for debugging an external system.
+If you want to install dependencies or use Livebook alongside an existing
+application, we suggest to either:
 
-  1. Add any Livebook related to dependencies directly to the project
-     (you may add them to a specific environment, such as `:dev` or
-     `:livebook`, and then set `MIX_ENV` accordingly when starting your
-     application)
+  * Use the Mix project approach outlined in the previous section;
 
-  2. Use the Mix project approach outlined in the previous section;
-
-  3. Use a regular notebook and use
-     [`Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
-     to connect to your application.
-     Use [the `:erpc` module](https://www.erlang.org/doc/man/erpc.html)
-     to fetch data from the remote node and execute code.
+  * Use a regular notebook and use
+    [`Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
+    to connect to your application.
+    Use [the `:erpc` module](https://www.erlang.org/doc/man/erpc.html)
+    to fetch data from the remote node and execute code.
 
 <!-- livebook:{"break_markdown":true} -->
 
