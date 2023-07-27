@@ -186,7 +186,7 @@ defmodule LivebookWeb.AppSessionLive do
       <div class="fixed right-3 bottom-4 flex flex-col gap-2 items-center text-gray-600 w-10">
         <span
           :if={
-            @data_view.app_status.execution not in [:executing, :error, :interrupted] and
+            @data_view.app_status.execution == :executed and
               @data_view.any_stale?
           }
           class="tooltip left"
