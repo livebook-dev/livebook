@@ -276,7 +276,7 @@ your deployment platform, with the value of your choice, if you want
 to access and debug your deployed notebooks in production.
 
 If you want to develop and deploy notebooks as a team, check out
-[Livebook Teams](https://teams.livebook.dev/).
+[Livebook Teams](https://livebook.dev/teams).
 
 ## Where to go next
 
