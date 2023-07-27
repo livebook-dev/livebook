@@ -113,13 +113,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              Offline Deployment
+              Airgapped Deployment
             </h2>
 
             <p class="text-gray-700">
-              Deploy your stamped notebooks with your Hub
-              using an instance of the Hub using
-              environment variables.
+              It is possible to deploy notebooks that belong to this Hub in an airgapped
+              deployment, without connecting back to Livebook Teams server. This is done
+              using the Docker image template below, which encrypts all of your Hub metadata,
+              and taking some additional steps.
             </p>
 
             <div id="env-code">
@@ -156,6 +157,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 source={@dockerfile}
                 language="dockerfile"
               />
+
+              <ol class="text-gray-700">
+                <li>
+                  You must change <code>/path/to/my/notebooks</code> in the template above
+                  to point to a directory with the `.livemd` files you want to deploy
+                </li>
+                <li>
+                  You must set the <code>LIVEBOOK_TEAMS_KEY</code> environment variable
+                  directly on your deployment platform, with the value you can find at the
+                  top of this page
+                </li>
+                <li>
+                  You may set the <code>LIVEBOOK_PASSWORD</code> environment variable to any
+                  value of your choice, if you want to access and debug your deployed notebooks
+                  in production
+                </li>
+              </ol>
             </div>
           </div>
 
@@ -347,16 +365,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     version = if version =~ "dev", do: "edge", else: version
 
     assign(socket, :dockerfile, """
-    FROM livebook/livebook:#{version}
-
-    COPY /path/to/my/notebooks /data
-    ENV LIVEBOOK_APPS_PATH "/data"
+    FROM ghcr.io/livebook-dev/livebook:#{version}
 
     ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
     ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
     ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
     ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
 
+    COPY /path/to/my/notebooks /apps
+    ENV LIVEBOOK_APPS_PATH "/apps"
     ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
     RUN /app/bin/warmup_apps.sh\
     """)

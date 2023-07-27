@@ -248,6 +248,36 @@ new features.
 
 Congratulations on shipping!
 
+## Docker deployment
+
+Now that you have deployed your first notebook as an application
+locally, you may be wondering: can I actually ship this production?
+
+The answer is yes!
+
+You can do so in any platform that supports Docker containers.
+For example, imagine you have a folder called "public-apps" with
+all of your public notebooks you want to deploy. You can then
+run your own Livebook image which points to said directory:
+
+```dockerfile
+FROM ghcr.io/livebook-dev/livebook:latest
+
+COPY /path/to/my/public-apps /apps
+ENV LIVEBOOK_APPS_PATH "/apps"
+ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+RUN /app/bin/warmup_apps.sh
+```
+
+You may also set additional environment variables, [see the complete
+list](https://github.com/livebook-dev/livebook#environment-variables).
+Some of them, such as `LIVEBOOK_PASSWORD`, must be set directly on
+your deployment platform, with the value of your choice, if you want
+to access and debug your deployed notebooks in production.
+
+If you want to develop and deploy notebooks as a team, check out
+[Livebook Teams](https://teams.livebook.dev/).
+
 ## Where to go next
 
 There are many types of applications one can build with
