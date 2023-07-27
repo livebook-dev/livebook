@@ -64,7 +64,7 @@ defmodule Livebook.Notebook.OutputPanel do
 
     # when a new row gets added before the old location we need to update the row_index
     old_position =
-      if old_position && row_index < elem(old_position, 0) do
+      if old_position && row_index <= elem(old_position, 0) do
         {row_index, col_index} = old_position
         {row_index + 1, col_index}
       else
