@@ -22,12 +22,12 @@ defmodule Livebook.Hubs.Team do
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          org_id: non_neg_integer(),
-          user_id: non_neg_integer(),
-          org_key_id: non_neg_integer(),
-          teams_key: String.t(),
-          org_public_key: String.t(),
-          session_token: String.t(),
+          org_id: non_neg_integer() | nil,
+          user_id: non_neg_integer() | nil,
+          org_key_id: non_neg_integer() | nil,
+          teams_key: String.t() | nil,
+          org_public_key: String.t() | nil,
+          session_token: String.t() | nil,
           hub_name: String.t() | nil,
           hub_emoji: String.t() | nil,
           offline: Offline.t() | nil
@@ -62,6 +62,7 @@ defmodule Livebook.Hubs.Team do
   @doc """
   Initializes a new Team hub.
   """
+  @spec new() :: t()
   def new() do
     %__MODULE__{
       user_id: nil,
