@@ -165,4 +165,42 @@ defmodule LivebookWeb.AppSessionLiveTest do
 
     Livebook.App.close(app.pid)
   end
+
+  test "hide process button when session errors", %{conn: conn, test: test} do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: app_settings,
+        sections: [
+          %{
+            Livebook.Notebook.Section.new()
+            | cells: [
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | source: source_for_output({:stdout, "Printed output"})
+                },
+                %{
+                  Livebook.Notebook.Cell.new(:code)
+                  | id: "error-cell",
+                    source: """
+                    # Fail on the first run
+                    unless :persistent_term.get(#{inspect(test)}, false) do
+                      :persistent_term.put(#{inspect(test)}, true)
+                      raise "oops"
+                    end
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    {:ok, _app_pid} = Apps.deploy(notebook)
+    {:ok, view, _} = conn |> live(~p"/apps/#{slug}") |> follow_redirect(conn)
+
+    refute render(view) =~ "Some inputs have changed"
+    refute render(view) =~ "Click this button to process with latest values"
+  end
 end
