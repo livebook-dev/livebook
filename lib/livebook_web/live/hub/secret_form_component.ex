@@ -86,7 +86,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
        |> push_redirect(to: socket.assigns.return_to)}
     else
       {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
+        {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
 
       {:transport_error, error} ->
         {:noreply,
@@ -100,7 +100,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     changeset =
       %Secret{}
       |> Secrets.change_secret(attrs)
-      |> Map.put(:action, :validate)
+      |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset)}
   end
