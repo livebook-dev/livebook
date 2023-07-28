@@ -22,12 +22,12 @@ defmodule Livebook.Hubs.Team do
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          org_id: non_neg_integer(),
-          user_id: non_neg_integer(),
-          org_key_id: non_neg_integer(),
-          teams_key: String.t(),
-          org_public_key: String.t(),
-          session_token: String.t(),
+          org_id: non_neg_integer() | nil,
+          user_id: non_neg_integer() | nil,
+          org_key_id: non_neg_integer() | nil,
+          teams_key: String.t() | nil,
+          org_public_key: String.t() | nil,
+          session_token: String.t() | nil,
           hub_name: String.t() | nil,
           hub_emoji: String.t() | nil,
           offline: Offline.t() | nil
@@ -62,6 +62,7 @@ defmodule Livebook.Hubs.Team do
   @doc """
   Initializes a new Team hub.
   """
+  @spec new() :: t()
   def new() do
     %__MODULE__{
       user_id: nil,
@@ -95,11 +96,20 @@ defmodule Livebook.Hubs.Team do
       changeset
     end
   end
+
+  @doc """
+  Returns the public key prefix
+  """
+  @spec public_key_prefix() :: String.t()
+  def public_key_prefix(), do: "lb_opk_"
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   alias Livebook.Hubs.TeamClient
   alias Livebook.Teams
+
+  @teams_key_prefix Teams.Org.teams_key_prefix()
+  @public_key_prefix Livebook.Hubs.Team.public_key_prefix()
 
   def load(team, fields) do
     struct(team, fields)
@@ -146,7 +156,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     # stamp requires access to the shared local key and an authenticated
     # request to the Teams server (which ensures team membership).
 
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, team.teams_key)
+    @teams_key_prefix <> teams_key = team.teams_key
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, teams_key)
 
     case Livebook.Teams.org_sign(team, token) do
       {:ok, token_signature} ->
@@ -161,8 +172,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def verify_notebook_stamp(team, notebook_source, stamp) do
     %{"version" => 1, "token" => token, "token_signature" => token_signature} = stamp
 
-    if Livebook.Stamping.rsa_verify?(token_signature, token, team.org_public_key) do
-      Livebook.Stamping.aead_decrypt(token, notebook_source, team.teams_key)
+    @teams_key_prefix <> teams_key = team.teams_key
+    @public_key_prefix <> org_public_key = team.org_public_key
+
+    if Livebook.Stamping.rsa_verify?(token_signature, token, org_public_key) do
+      Livebook.Stamping.aead_decrypt(token, notebook_source, teams_key)
     else
       :error
     end

@@ -81,7 +81,7 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
-    :crypto.strong_rand_bytes(@secret_key_size) |> Base.url_encode64(padding: false)
+    Base.url_encode64(:crypto.strong_rand_bytes(@secret_key_size), padding: false)
   end
 end
 
