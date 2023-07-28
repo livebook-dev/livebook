@@ -5,6 +5,8 @@ defmodule Livebook.Hubs do
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
 
+  require Logger
+
   @namespace :hubs
   @supervisor Livebook.HubsSupervisor
 
@@ -186,7 +188,13 @@ defmodule Livebook.Hubs do
 
   defp connect_hub(hub) do
     if child_spec = Provider.connection_spec(hub) do
-      DynamicSupervisor.start_child(@supervisor, child_spec)
+      case DynamicSupervisor.start_child(@supervisor, child_spec) do
+        {:ok, _} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Could not start Hub #{hub.id}: #{Exception.format_exit(reason)}")
+      end
     end
 
     :ok
