@@ -221,8 +221,10 @@ const JSView = {
     this.iframe.className = "w-full h-0 absolute z-[1]";
 
     const notebookEl = document.querySelector(`[data-el-notebook]`);
-    const notebookContentEl = notebookEl.querySelector(
-      `[data-el-notebook-content]`
+    const notebookContentEl =
+      notebookEl && notebookEl.querySelector(`[data-el-notebook-content]`);
+    const externalWindowEl = document.querySelector(
+      `[data-el-external-window]`
     );
 
     // Most placeholder position changes are accompanied by changes to the
@@ -234,8 +236,9 @@ const JSView = {
     const resizeObserver = new ResizeObserver((entries) => {
       this.repositionIframe();
     });
-    resizeObserver.observe(notebookContentEl);
-    resizeObserver.observe(notebookEl);
+    notebookContentEl && resizeObserver.observe(notebookContentEl);
+    notebookEl && resizeObserver.observe(notebookEl);
+    externalWindowEl && resizeObserver.observe(externalWindowEl);
 
     // On certain events, like section/cell moved, a global event is
     // dispatched to trigger reposition. This way we don't need to
@@ -307,19 +310,21 @@ const JSView = {
 
   repositionIframe() {
     const { iframe, iframePlaceholder } = this;
-    const notebookEl = document.querySelector(`[data-el-notebook]`);
+    const containerEl =
+      document.querySelector(`[data-el-notebook]`) ||
+      document.querySelector(`[data-el-external-window]`);
 
     if (isElementHidden(iframePlaceholder)) {
       // When the placeholder is hidden, we hide the iframe as well
       iframe.classList.add("hidden");
     } else {
       iframe.classList.remove("hidden");
-      const notebookBox = notebookEl.getBoundingClientRect();
+      const notebookBox = containerEl.getBoundingClientRect();
       const placeholderBox = iframePlaceholder.getBoundingClientRect();
-      const top = placeholderBox.top - notebookBox.top + notebookEl.scrollTop;
+      const top = placeholderBox.top - notebookBox.top + containerEl.scrollTop;
       iframe.style.top = `${top}px`;
       const left =
-        placeholderBox.left - notebookBox.left + notebookEl.scrollLeft;
+        placeholderBox.left - notebookBox.left + containerEl.scrollLeft;
       iframe.style.left = `${left}px`;
       iframe.style.height = `${placeholderBox.height}px`;
       iframe.style.width = `${placeholderBox.width}px`;

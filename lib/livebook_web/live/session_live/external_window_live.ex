@@ -83,8 +83,19 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="external-window" phx-hook="ExternalWindow" data-window-embedded={@embedded?}>
-      <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+    <div
+      id="external-window"
+      phx-hook="ExternalWindow"
+      data-window-embedded={@embedded?}
+      data-el-external-window
+    >
+      <div
+        data-el-js-view-iframes
+        class="pointer-events-none"
+        phx-update="ignore"
+        id="js-view-iframes"
+      >
+      </div>
       <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
         <h1 class="text-3xl font-semibold text-gray-800">
           <%= @data_view.notebook_name %>

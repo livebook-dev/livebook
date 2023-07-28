@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
   defp output_options(assigns) do
     ~H"""
     <div
-      class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
+      class="absolute z-10 top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
       data-el-output-panel-item-options
     >
       <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
