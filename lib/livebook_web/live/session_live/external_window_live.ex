@@ -1,8 +1,7 @@
 defmodule LivebookWeb.SessionLive.ExternalWindowLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{Notebook, Session, Sessions}
-  alias Livebook.Notebook.Cell
+  alias Livebook.{Session, Sessions}
 
   @impl true
   def mount(%{"id" => session_id, "type" => type} = params, _session, socket) do
@@ -152,7 +151,13 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
         |> assign_private(data: data)
         |> assign(
           data_view:
-            update_data_view(socket.assigns.type, socket.assigns.data_view, socket.private.data, data, operation)
+            update_data_view(
+              socket.assigns.type,
+              socket.assigns.data_view,
+              socket.private.data,
+              data,
+              operation
+            )
         )
         |> after_operation(socket, operation)
 
@@ -169,7 +174,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
     |> push_navigate(to: ~p"/")
   end
 
-  defp update_data_view(type, data_view, _prev_data, data, operation) do
+  defp update_data_view(type, _data_view, _prev_data, data, operation) do
     case operation do
       # See LivebookWeb.SessionLive for more details
       _ ->

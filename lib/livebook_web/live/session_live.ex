@@ -314,7 +314,11 @@ defmodule LivebookWeb.SessionLive do
                     </button>
                   </.menu_item>
                   <.menu_item>
-                    <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
+                    <a
+                      role="menuitem"
+                      href={live_dashboard_process_path(@session.pid)}
+                      target="_blank"
+                    >
                       <.remix_icon icon="dashboard-2-line" />
                       <span>See on Dashboard</span>
                     </a>

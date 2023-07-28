@@ -9,7 +9,6 @@ defmodule Livebook.Notebook.OutputPanel do
   defstruct [:rows]
 
   alias Livebook.Notebook.Cell
-  alias Livebook.Utils
   import Livebook.Utils, only: [access_by_id: 2]
 
   @type t :: %__MODULE__{

@@ -450,11 +450,13 @@ defmodule LivebookWeb.AppSessionLive do
       errored_cell_id: errored_cell_id(data),
       any_stale?: any_stale?(data)
     }
-    |> Map.put(:output_views, case data.notebook.app_settings.output_type do
-      :output_panel -> enrich_output_panel_data(data)
-      _ -> get_output_views(data)
-    end)
-
+    |> Map.put(
+      :output_views,
+      case data.notebook.app_settings.output_type do
+        :output_panel -> enrich_output_panel_data(data)
+        _ -> get_output_views(data)
+      end
+    )
   end
 
   defp errored_cell_id(data) do
@@ -492,7 +494,6 @@ defmodule LivebookWeb.AppSessionLive do
 
   defp filter_outputs(outputs, :all), do: outputs
   defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
-  defp filter_outputs(outputs, :output_panel), do: []
 
   defp rich_outputs(outputs) do
     for output <- outputs, output = filter_output(output), do: output

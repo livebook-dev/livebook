@@ -34,7 +34,7 @@ defmodule Livebook.Notebook do
 
   alias Livebook.Notebook.{Section, Cell, AppSettings, OutputPanel}
   alias Livebook.Utils.Graph
-  import Livebook.Utils, only: [access_by_id: 1, access_by_id: 2]
+  import Livebook.Utils, only: [access_by_id: 1]
 
   @type t :: %__MODULE__{
           name: String.t(),
