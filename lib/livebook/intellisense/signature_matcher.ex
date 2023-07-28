@@ -1,8 +1,8 @@
 defmodule Livebook.Intellisense.SignatureMatcher do
   @moduledoc false
 
-  # This module allows for extracting information about
-  # function signatures matching an incomplete call.
+  # This module allows for extracting information about function
+  # signatures matching an incomplete call.
 
   alias Livebook.Intellisense.Docs
 

@@ -3,9 +3,9 @@ defmodule Livebook.Notebook.Cell do
 
   # Data structure representing a single cell in a notebook.
   #
-  # A cell is the smallest unit of work in a notebook.
-  # It may consist of text content, outputs, rendered content
-  # and other special forms.
+  # Cell is the smallest structural unit in a notebook, in other words
+  # it is a block. Depending on the cell type, it may consist of text
+  # content, outputs or a specific UI.
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell

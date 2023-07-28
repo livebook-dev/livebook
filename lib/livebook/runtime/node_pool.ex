@@ -3,13 +3,10 @@ defmodule Livebook.Runtime.NodePool do
 
   @moduledoc false
 
-  # A pool for reusing child node names.
+  # A pool with generated node names.
   #
-  # `free_name` refers to the list of unused names.
-  # `generated_names` refers to the list of names ever generated.
-  #
-  # `buffer_time` refers to time the pool waits before
-  # adding a name to `pool`,  which by default is 1 minute.
+  # The names are randomly generated, however to avoid atom exhaustion
+  # unused names return back to the pool and can be reused later.
 
   @default_time 60_000
 
@@ -20,11 +17,11 @@ defmodule Livebook.Runtime.NodePool do
 
   ## Options
 
-    * `:name` - The name the NodePool is locally registered as. By
-      default, it is `Livebook.Runtime.NodePool`
+    * `:name` - the name to register the pool process under. Defaults
+      to `Livebook.Runtime.NodePool`
 
-    * `:buffer_time` - The time that is spent before a disconnected
-      node's name is  added to pool. The default is 1 minute.
+    * `:buffer_time` - the time that is awaited before a disconnected
+      node's name is added to pool. Defaults to 1 minute
 
   """
   def start_link(opts) do

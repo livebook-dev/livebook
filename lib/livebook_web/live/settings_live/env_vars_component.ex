@@ -1,4 +1,4 @@
-defmodule LivebookWeb.EnvVarsComponent do
+defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
   use LivebookWeb, :live_component
 
   @impl true

@@ -1,25 +1,50 @@
 defmodule Livebook.Session do
   @moduledoc false
 
-  # Server corresponding to a single notebook session.
+  # Server process representing a single notebook session.
   #
-  # The process keeps the current notebook state and serves
-  # as a source of truth that multiple clients talk to.
-  # Receives update requests from the clients and notifies
-  # them of any changes applied to the notebook.
+  # Session keeps a notebook document, as well as additional ephemeral
+  # state, such as evaluation outputs. It serves as a source of truth
+  # that multiple clients talk to. Those clients send update requests
+  # or commands to the session, while the session notifies them of any
+  # changes applied to the notebook state.
   #
   # ## Collaborative state
   #
-  # The core concept is the `Livebook.Session.Data` structure
-  # to which we can apply reproducible operations.
-  # See `Livebook.Session.Data` for more information.
+  # The core concept is the `%Livebook.Session.Data{}` struct, which
+  # holds state shared across all of the clients. Refer to the module
+  # documentation for more details.
+  #
+  # ## Runtime
+  #
+  # Code evaluation, as well as related features, such as intellisense,
+  # smart cells and dependency management are abstracted into the
+  # `Livebook.Runtime` protocol.
+  #
+  # Conceptually, we draw a thick line between Livebook server and the
+  # runtime. In particular, even though Livebook is Elixir centric, it
+  # rarely makes any Elixir specific assumptions. In theory, the runtime
+  # could be implemented for another language, as long as it is possible
+  # to adhere to certain semantics. As a result, the `Livebook.Runtime`
+  # protocol uses rather generic wording and data types.
   #
   # ## Evaluation
   #
-  # All regular sections are evaluated in the same process
-  # (the :main_flow evaluation container). On the other hand,
-  # each branching section is evaluated in its own process
-  # and thus runs concurrently.
+  # The evaluation in Livebook is sequential, that is, all cells in
+  # regular sections run one by one in the same evaluation container
+  # (= process) named `:main_flow`. Additionally, Livebook supports
+  # branching sections. Each branching section forks the evaluation
+  # state at a certain point and is evaluated in its own container
+  # (= process) concurrently, while still being a linear continuation
+  # of the parent section.
+  #
+  # The evaluation is sequential, however Livebook is smart about
+  # reevaluating cells. We keep track of dependencies between cells,
+  # based on which cells are marked as "stale" and only these cells
+  # are reevaluated in order to bring the notebook up to date.
+  #
+  # For evaluation-specific details refer to `Livebook.Runtime.ErlDist.RuntimeServer`
+  # and `Livebook.Runtime.Evaluator`.
   #
   # ### Implementation considerations
   #
@@ -43,9 +68,9 @@ defmodule Livebook.Session do
   # for a single specific evaluation context we make sure to copy
   # as little memory as necessary.
 
-  # The struct holds the basic session information that we track
-  # and pass around. The notebook and evaluation state is kept
-  # within the process state.
+  # The struct holds the basic session information that we track and
+  # pass around. The notebook and evaluation state is kept within the
+  # process state.
   defstruct [
     :id,
     :pid,

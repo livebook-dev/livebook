@@ -209,8 +209,8 @@ defmodule Livebook.Utils.HTTP do
   pems = :public_key.pem_decode(crt)
   ders = Enum.map(pems, fn {:Certificate, der, _} -> der end)
 
-  # Note: we need to load the certificates at compilation time,
-  # as we don't have access to package files in Escript.
+  # Note: we need to load the certificates at compilation time, as we
+  # don't have access to package files in Escript.
   @cacerts ders
 
   defp http_ssl_opts() do

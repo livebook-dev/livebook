@@ -1,17 +1,16 @@
 defmodule Livebook.Intellisense.IdentifierMatcher do
   @moduledoc false
 
-  # This module allows for extracting information about
-  # identifiers based on code and runtime information
-  # (binding, environment).
+  # This module allows for extracting information about identifiers
+  # based on code and runtime information (binding, environment).
   #
-  # This functionality is a basic building block to be
-  # used for code completion and information extraction.
+  # This functionality is a basic building block to be used for code
+  # completion and information extraction.
   #
-  # The implementation is based primarily on `IEx.Autocomplete`.
-  # It also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
-  # which is a very extensive implementation used in the
-  # Elixir Language Server.
+  # The implementation is based primarily on `IEx.Autocomplete`. It
+  # also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
+  # which is a very extensive implementation used in the Elixir Language
+  # Server.
 
   alias Livebook.Intellisense
   alias Livebook.Intellisense.Docs
@@ -103,8 +102,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @alias_only_charlists ~w(alias import require)c
 
   @doc """
-  Returns a list of identifiers matching the given `hint`
-  together with relevant information.
+  Returns a list of identifiers matching the given `hint` together
+  with relevant information.
 
   Evaluation binding and environment is used to expand aliases,
   imports, nested maps, etc.
@@ -126,8 +125,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   @doc """
-  Extracts information about an identifier found in `column`
-  in `line`.
+  Extracts information about an identifier found in `column` in
+  `line`.
 
   The function returns range of columns where the identifier
   is located and a list of matching identifier items.

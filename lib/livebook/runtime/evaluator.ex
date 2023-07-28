@@ -3,19 +3,18 @@ defmodule Livebook.Runtime.Evaluator do
 
   # A process responsible for evaluating notebook code.
   #
-  # Evaluator receives an evaluation request and synchronously
-  # evaluates the given code within itself (rather than spawning
-  # a separate process). It stores the resulting binding and env
-  # in its state (under a specific reference).
+  # When evaluator receives an evaluation request, it synchronously
+  # evaluates the given code within itself, rather than spawning a
+  # separate process. It stores the resulting binding and env in its
+  # state (under a specific reference).
   #
-  # Storing the binding in the same process that evaluates the
-  # code is essential, because otherwise we would have to send it
-  # to another process, which means copying a potentially massive
-  # amounts of data.
+  # Storing the binding in the same process that evaluates the code is
+  # essential, because otherwise we would have to send it to another
+  # process, which means copying a potentially massive amounts of data.
   #
-  # Also, note that this process is intentionally not a GenServer,
+  # Also, note that this process intentionally is not a GenServer,
   # because during evaluation we it may receive arbitrary messages
-  # and we want to keep them in the inbox, while a GenServer would
+  # and we want to keep them in the inbox, whereas a GenServer would
   # always consume them.
 
   require Logger
@@ -124,19 +123,18 @@ defmodule Livebook.Runtime.Evaluator do
   @doc """
   Asynchronously parses and evaluates the given code.
 
-  Any exceptions are captured and transformed into an error
-  result.
-
   The resulting context (binding and env) is stored under `ref`. Any
   subsequent calls may specify `parent_refs` pointing to a sequence
-  of previous evaluations, in which case the corresponding context is
+  of previous evaluations, in which case the accumulated context is
   used as the entry point for evaluation.
+
+  Any exceptions are captured and transformed into an error result.
 
   The evaluation result is formatted into an output and sent to the
   configured client (see `start_link/1`) together with metadata.
 
-  See `Livebook.Runtime.evaluate_code/5` for the messages format
-  and the list of available options.
+  See `Livebook.Runtime.evaluate_code/5` for the messages format and
+  the list of available options.
 
   ## Options
 

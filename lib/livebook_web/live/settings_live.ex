@@ -123,7 +123,7 @@ defmodule LivebookWeb.SettingsLive do
               make system dependencies available to notebooks.
             </p>
             <.live_component
-              module={LivebookWeb.EnvVarsComponent}
+              module={LivebookWeb.SettingsLive.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
               return_to={~p"/settings"}
@@ -196,7 +196,7 @@ defmodule LivebookWeb.SettingsLive do
       patch={~p"/settings"}
     >
       <.live_component
-        module={LivebookWeb.EnvVarComponent}
+        module={LivebookWeb.SettingsLive.EnvVarComponent}
         id="env-var"
         env_var={@env_var}
         headline="Configure your application global environment variables."

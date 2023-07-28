@@ -1,13 +1,11 @@
 defmodule Livebook.FileSystem.File do
   @moduledoc false
 
-  # A file points to a specific location in the given
-  # file system.
+  # A file points to a specific location in the given file system.
   #
-  # This module provides a number of high-level functions
-  # similar to the `File` and `Path` core module. Many
-  # functions simply delegate the work to the underlying
-  # file system.
+  # This module provides a number of high-level functions similar to
+  # the `File` and `Path` core module. Many functions simply delegate
+  # the work to the underlying file system.
 
   defstruct [:file_system, :path]
 
@@ -44,8 +42,8 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Returns a new file within the `Livebook.FileSystem.Local`
-  file system.
+  Returns a new file within the `Livebook.FileSystem.Local` file
+  system.
   """
   @spec local(FileSystem.path()) :: t()
   def local(path) do
@@ -53,8 +51,8 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Returns a term uniquely identifying the file together
-  with its file system.
+  Returns a term uniquely identifying the file together with its file
+  system.
   """
   @spec resource_identifier(t()) :: term()
   def resource_identifier(file) do
@@ -70,11 +68,10 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Returns a new file resulting from resolving `subject`
-  against `file`.
+  Returns a new file resulting from resolving `subject` against `file`.
 
-  An absolute path may be given, in which case it
-  replaces the file path altogether.
+  An absolute path may be given, in which case it replaces the file
+  path altogether.
   """
   @spec resolve(t(), String.t()) :: t()
   def resolve(file, subject) do
@@ -114,8 +111,8 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Returns a directory that contains the given file.
 
-  If a directory is given, the parent directory is returned.
-  Root directory is mapped to itself for consistency.
+  If a directory is given, the parent directory is returned. Root
+  directory is mapped to itself for consistency.
   """
   @spec containing_dir(t()) :: t()
   def containing_dir(file) do
@@ -137,8 +134,8 @@ defmodule Livebook.FileSystem.File do
 
   ## Options
 
-    * `:recursive` - whether to traverse all nested directories,
-      defaults to `false`
+    * `:recursive` - whether to traverse all nested directories.
+      Defaults to `false`
 
   """
   @spec list(t(), keyword()) :: {:ok, list(t())} | {:error, FileSystem.error()}
@@ -194,10 +191,9 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Copies the given file or directory contents.
 
-  Files from different file systems are supported,
-  however keep in mind that this involves reading
-  contents of individual files from one file system
-  and writing them to the other.
+  Files from different file systems are supported, however keep in
+  mind that this copies individual files chunk by chunk from one file
+  system to the other.
   """
   @spec copy(t(), t()) :: :ok | {:error, FileSystem.error()}
   def copy(source, destination)
@@ -235,10 +231,9 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Renames the given file.
 
-  Files from different file systems are supported,
-  however keep in mind that this involves reading
-  contents of individual files from one file system
-  and writing them to the other.
+  Files from different file systems are supported, however keep in
+  mind that this copies individual files chunk by chunk from one file
+  system to the other.
   """
   @spec rename(t(), t()) :: :ok | {:error, FileSystem.error()}
   def rename(source, destination)

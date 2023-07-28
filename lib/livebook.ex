@@ -70,6 +70,7 @@ defmodule Livebook do
           path: "/path/to/other_notebook.livemd"
         }
       ]
+
   """
 
   @doc """

@@ -1,11 +1,11 @@
 defmodule Livebook.Intellisense do
   @moduledoc false
 
-  # This module provides intellisense related operations
-  # suitable for integration with a text editor.
+  # This module provides intellisense related operations suitable for
+  # integration with a text editor.
   #
-  # In a way, this provides the very basic features of a
-  # language server that Livebook uses.
+  # In a way, this provides the very basic features of a language
+  # server that Livebook uses.
 
   alias Livebook.Intellisense.{IdentifierMatcher, SignatureMatcher, Docs}
   alias Livebook.Runtime
@@ -17,8 +17,8 @@ defmodule Livebook.Intellisense do
   @typedoc """
   Evaluation state to consider for intellisense.
 
-  The `:map_binding` is only called when a value needs to
-  be extracted from binding.
+  The `:map_binding` is only called when a value needs to be extracted
+  from binding.
   """
   @type context :: %{
           env: Macro.Env.t(),

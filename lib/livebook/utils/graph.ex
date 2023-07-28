@@ -2,8 +2,8 @@ defmodule Livebook.Utils.Graph do
   @moduledoc false
 
   @typedoc """
-  A bottom-up graph representation encoded as a map
-  of child-to-parent entries.
+  A bottom-up graph representation encoded as a map of child-to-parent
+  entries.
   """
   @type t() :: %{node_id => node_id | nil}
 
@@ -14,9 +14,8 @@ defmodule Livebook.Utils.Graph do
   @doc """
   Finds a path between nodes `from_id` and `to_id`.
 
-  If the path exists, a top-down list of nodes is
-  returned including the extreme nodes. Otherwise,
-  an empty list is returned.
+  If the path exists, a top-down list of nodes is returned including
+  the extreme nodes. Otherwise, an empty list is returned.
   """
   @spec find_path(t(), node_id(), node_id()) :: list(node_id())
   def find_path(graph, from_id, to_id) do
@@ -30,8 +29,7 @@ defmodule Livebook.Utils.Graph do
     do: find_path(graph, graph[from_id], to_id, [from_id | path])
 
   @doc """
-  Finds graph leave nodes, that is, nodes with
-  no children.
+  Finds graph leave nodes, that is, nodes with no children.
   """
   @spec leaves(t()) :: list(node_id())
   def leaves(graph) do
@@ -43,8 +41,8 @@ defmodule Livebook.Utils.Graph do
   @doc """
   Reduces each top-down path in the graph.
 
-  Returns a list of accumulators, one for each leaf in the graph,
-  in no specific order.
+  Returns a list of accumulators, one for each leaf in the graph, in
+  no specific order.
   """
   @spec reduce_paths(t(), acc, (node_id(), acc -> acc)) :: acc when acc: term()
   def reduce_paths(graph, acc, fun) do

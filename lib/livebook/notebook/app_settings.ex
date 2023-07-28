@@ -1,6 +1,8 @@
 defmodule Livebook.Notebook.AppSettings do
   @moduledoc false
 
+  # Data structure configuring how notebook gets deployed as an app.
+
   use Ecto.Schema
 
   import Ecto.Changeset, except: [change: 1, change: 2]

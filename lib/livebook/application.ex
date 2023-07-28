@@ -34,7 +34,7 @@ defmodule Livebook.Application do
         {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
         # Start the server responsible for associating files with sessions
         Livebook.Session.FileGuard,
-        # Start the Node Pool for managing node names
+        # Start the node pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
         Livebook.Utils.UniqueTask,

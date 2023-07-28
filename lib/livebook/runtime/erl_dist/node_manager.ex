@@ -3,16 +3,14 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   # The primary Livebook process started on a remote node.
   #
-  # This process is responsible for initializing the node
-  # with necessary runtime configuration and then starting
-  # runtime server processes, one per runtime.
-  # This approach allows for multiple runtimes connected
-  # to the same node, while preserving the necessary
-  # cleanup semantics.
+  # This process is responsible for initializing the node with necessary
+  # configuration and then starting runtime server processes, one per
+  # runtime. This approach allows for multiple runtimes connected to
+  # the same node, while preserving the necessary cleanup semantics.
   #
-  # The manager process terminates as soon as the last runtime
-  # server terminates. Upon termination the manager reverts the
-  # runtime configuration back to the initial state.
+  # The manager process terminates as soon as the last runtime server
+  # terminates. Upon termination the manager reverts the configuration
+  # back to the initial state.
 
   use GenServer
 
@@ -26,12 +24,11 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   ## Options
 
-    * `:unload_modules_on_termination` - whether to unload all
-      Livebook related modules from the node on termination.
-      Defaults to `true`
+    * `:unload_modules_on_termination` - whether to unload all Livebook
+      related modules from the node on termination. Defaults to `true`
 
-    * `:auto_termination` - whether to terminate the manager
-      when the last runtime server terminates. Defaults to `true`
+    * `:auto_termination` - whether to terminate the manager when the
+      last runtime server terminates. Defaults to `true`
 
     * `:parent_node` - indicates which node spawned the node manager.
        It is used to disconnect the node when the server terminates,
@@ -89,8 +86,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     {:ok, io_proxy_registry} =
       Registry.start_link(name: @io_proxy_registry_name, keys: :duplicate)
 
-    # Register our own standard error IO device that proxies
-    # to sender's group leader.
+    # Register our own standard error IO device that proxies to
+    # sender's group leader.
     original_standard_error = Process.whereis(:standard_error)
     {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
     Process.unregister(:standard_error)
