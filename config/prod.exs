@@ -5,6 +5,7 @@ config :livebook, LivebookWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 8080, protocol_options: [max_header_value_length: 32768]],
   server: true
 
+config :livebook, :teams_url, "https://teams.livebook.dev"
 config :livebook, :iframe_port, 8081
 
 # Set log level to warning by default to reduce output
