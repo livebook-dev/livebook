@@ -87,6 +87,14 @@ defmodule Livebook.Teams.Connection do
     handle_websocket_message(message, data)
   end
 
+  def handle_event(:info, {:ssl_closed, _port} = message, @no_state, %__MODULE__{} = data) do
+    handle_websocket_message(message, data)
+  end
+
+  def handle_event(:info, {:ssl, _port, _data} = message, @no_state, %__MODULE__{} = data) do
+    handle_websocket_message(message, data)
+  end
+
   def handle_event(:info, _message, @no_state, _data) do
     :keep_state_and_data
   end
