@@ -148,7 +148,7 @@ defmodule LivebookWeb.Hub.NewLive do
                 </div>
                 <div class="text-center mt-4 text-gray-700">
                   <span class="text-sm">
-                    2. Visit Livebook Teams and paste it:
+                    2. Sign in to Livebook Teams and paste the code:
                   </span>
                   <div>
                     <a
