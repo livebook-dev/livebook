@@ -397,6 +397,18 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session][data-js-view^="output-panel"]
+  ~ #app-settings-modal
+  [data-el-app-settings-enable-output-panel-button] {
+  @apply hidden;
+}
+
+[data-el-session]:not([data-js-view="output-panel-popped-out"])
+  ~ #app-settings-modal
+  [data-el-app-settings-popin-output-panel-button] {
+  @apply hidden;
+}
+
 /* === Output Panel === */
 
 [data-el-output-panel-content]:not([data-js-dragging]) {

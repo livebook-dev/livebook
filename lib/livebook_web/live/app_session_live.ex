@@ -94,6 +94,46 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
+  def render(%{data_view: %{output_type: :output_panel}} = assigns)
+      when assigns.app_authenticated? do
+    ~H"""
+    <div class="h-full w-full" data-el-output-panel>
+      <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+      <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
+        <h1 class="text-3xl font-semibold text-gray-800">
+          <%= @data_view.notebook_name %>
+        </h1>
+      </div>
+      <div id="output-panel" class="flex flex-col" data-el-output-panel-content>
+        <%= for {output_row, row_index} <- Enum.with_index(@data_view.output_panel_views.rows) do %>
+          <div class="flex flex-grow" data-row-index={row_index} data-el-output-panel-row>
+            <div
+              :for={{item, col_index} <- Enum.with_index(output_row.items)}
+              id={"output-panel-item-#{row_index}-#{col_index}"}
+              class="relative group"
+              style={"width: #{item.width}%"}
+              data-cell-id={item.cell_id}
+              data-row-index={row_index}
+              data-col-index={col_index}
+              data-el-output-panel-item
+            >
+              <LivebookWeb.Output.outputs
+                outputs={item.outputs}
+                dom_id_map={%{}}
+                session_id={@session.id}
+                session_pid={@session.pid}
+                client_id={@client_id}
+                cell_id={item.cell_id}
+                input_views={item.input_views}
+              />
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   def render(assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
@@ -404,6 +444,7 @@ defmodule LivebookWeb.AppSessionLive do
 
     %{
       notebook_name: data.notebook.name,
+      output_type: data.notebook.app_settings.output_type,
       output_views:
         for(
           {cell_id, output} <- visible_outputs(data.notebook),
@@ -413,6 +454,7 @@ defmodule LivebookWeb.AppSessionLive do
             cell_id: cell_id
           }
         ),
+      output_panel_views: enrich_output_panel_data(data),
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -433,4 +475,53 @@ defmodule LivebookWeb.AppSessionLive do
   defp any_stale?(data) do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
   end
+
+  defp visible_outputs(notebook) do
+    for section <- Enum.reverse(notebook.sections),
+        cell <- Enum.reverse(section.cells),
+        Cell.evaluable?(cell),
+        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
+        do: {cell.id, output}
+  end
+
+  defp filter_outputs(outputs, :all), do: outputs
+  defp filter_outputs(outputs, :rich), do: rich_outputs(outputs)
+  defp filter_outputs(outputs, :output_panel), do: []
+
+  defp rich_outputs(outputs) do
+    for output <- outputs, output = filter_output(output), do: output
+  end
+
+  defp filter_output({idx, output})
+       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       do: {idx, output}
+
+  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+    outputs_with_labels =
+      for {output, label} <- Enum.zip(outputs, metadata.labels),
+          output = filter_output(output),
+          do: {output, label}
+
+    {outputs, labels} = Enum.unzip(outputs_with_labels)
+
+    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+  end
+
+  defp filter_output({idx, {:grid, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+
+    if outputs != [] do
+      {idx, {:grid, outputs, metadata}}
+    end
+  end
+
+  defp filter_output({idx, {:frame, outputs, metadata}}) do
+    outputs = rich_outputs(outputs)
+    {idx, {:frame, outputs, metadata}}
+  end
+
+  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+    do: {idx, output}
+
+  defp filter_output(_output), do: nil
 end

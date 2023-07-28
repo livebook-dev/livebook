@@ -64,7 +64,9 @@ const OutputPanel = {
         );
 
         if (dstCol !== null) {
-          console.log(srcCol, dstCol);
+          console.log("New position");
+          console.log("Rows", srcRow, "->", dstRow);
+          console.log("Cols", srcCol, "->", dstCol);
           // when dropping on the right side, move element one column to the right
           if (srcRow !== dstRow && event.layerX > dstEl.offsetWidth / 2)
             dstCol += 1;
@@ -76,6 +78,9 @@ const OutputPanel = {
             col_index: dstCol,
           });
         } else {
+          console.log("New row");
+          console.log("Rows", srcRow, "->", dstRow);
+          console.log("Cols", srcCol, "->", dstCol);
           this.pushEventTo(
             this.props.phxTarget,
             "handle_move_item_to_new_row",

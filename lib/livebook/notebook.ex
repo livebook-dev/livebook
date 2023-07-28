@@ -103,7 +103,7 @@ defmodule Livebook.Notebook do
       file_entries: [],
       quarantine_file_entry_names: MapSet.new(),
       teams_enabled: false,
-      output_panel: %{rows: []}
+      output_panel: OutputPanel.new()
     }
     |> put_setup_cell(Cell.new(:code))
   end

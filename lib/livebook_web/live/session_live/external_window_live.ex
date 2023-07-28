@@ -52,31 +52,9 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
   end
 
   defp data_to_view(data) do
-    changed_input_ids = Session.Data.changed_input_ids(data)
-
     %{
       notebook_name: data.notebook.name,
-      output_view:
-        update_in(
-          data.notebook.output_panel,
-          [
-            Access.key(:rows),
-            Access.all(),
-            Access.key(:items),
-            Access.all()
-          ],
-          fn item ->
-            {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
-
-            item
-            |> Map.put(:outputs, cell.outputs)
-            # TODO fix for multiple outputs
-            |> Map.put(
-              :input_views,
-              input_views_for_output(cell.outputs |> hd(), data, changed_input_ids)
-            )
-          end
-        )
+      output_view: enrich_output_panel_data(data)
     }
   end
 

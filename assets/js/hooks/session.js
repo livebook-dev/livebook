@@ -98,6 +98,10 @@ const Session = {
       }
     });
 
+    this.el.addEventListener("output_panel:popin", (event) => {
+      this.handleOutputPanelPopinClick();
+    });
+
     document.addEventListener("keydown", this._handleDocumentKeyDown, true);
     document.addEventListener("mousedown", this._handleDocumentMouseDown);
     // Note: the focus event doesn't bubble, so we register for the capture phase
