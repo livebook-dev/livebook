@@ -24,7 +24,7 @@ defmodule Livebook.Teams.WebSocket do
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
-    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port),
+    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, protocols: [:http1]),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
       receive_upgrade(conn, ref, state)
     else
