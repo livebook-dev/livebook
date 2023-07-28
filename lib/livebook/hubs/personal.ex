@@ -7,7 +7,6 @@ defmodule Livebook.Hubs.Personal do
   alias Livebook.Hubs
 
   @secret_key_size 64
-  @prefix "lb_ph_"
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -68,7 +67,7 @@ defmodule Livebook.Hubs.Personal do
     personal
     |> cast(attrs, @fields)
     |> validate_required(@fields)
-    |> validate_change(:secret_key, fn :secret_key, @prefix <> secret_key ->
+    |> validate_change(:secret_key, fn :secret_key, secret_key ->
       case Base.url_decode64(secret_key, padding: false) do
         {:ok, binary} when byte_size(binary) == @secret_key_size -> []
         _ -> [secret_key: "must be #{@secret_key_size} bytes in Base 64 URL alphabet"]
@@ -82,22 +81,13 @@ defmodule Livebook.Hubs.Personal do
   """
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
-    key = :crypto.strong_rand_bytes(@secret_key_size)
-    @prefix <> Base.url_encode64(key, padding: false)
+    Base.url_encode64(:crypto.strong_rand_bytes(@secret_key_size), padding: false)
   end
-
-  @doc """
-  Returns the secret key prefix
-  """
-  @spec secret_key_prefix() :: String.t()
-  def secret_key_prefix(), do: @prefix
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   alias Livebook.Hubs.Broadcasts
   alias Livebook.Secrets
-
-  @prefix Livebook.Hubs.Personal.secret_key_prefix()
 
   def load(personal, fields) do
     %{
@@ -153,8 +143,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def notebook_stamp(personal, notebook_source, metadata) do
-    @prefix <> secret_key = personal.secret_key
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, secret_key)
+    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, personal.secret_key)
 
     stamp = %{"version" => 1, "token" => token}
 
@@ -163,9 +152,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def verify_notebook_stamp(personal, notebook_source, stamp) do
     %{"version" => 1, "token" => token} = stamp
-    @prefix <> secret_key = personal.secret_key
 
-    Livebook.Stamping.aead_decrypt(token, notebook_source, secret_key)
+    Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
   end
 
   def dump(personal) do

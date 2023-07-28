@@ -108,7 +108,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   alias Livebook.Hubs.TeamClient
   alias Livebook.Teams
 
-  @prefix Teams.Org.teams_key_prefix()
+  @teams_key_prefix Teams.Org.teams_key_prefix()
   @public_key_prefix Livebook.Hubs.Team.public_key_prefix()
 
   def load(team, fields) do
@@ -156,7 +156,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     # stamp requires access to the shared local key and an authenticated
     # request to the Teams server (which ensures team membership).
 
-    @prefix <> teams_key = team.teams_key
+    @teams_key_prefix <> teams_key = team.teams_key
     token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, teams_key)
 
     case Livebook.Teams.org_sign(team, token) do
@@ -172,7 +172,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def verify_notebook_stamp(team, notebook_source, stamp) do
     %{"version" => 1, "token" => token, "token_signature" => token_signature} = stamp
 
-    @prefix <> teams_key = team.teams_key
+    @teams_key_prefix <> teams_key = team.teams_key
     @public_key_prefix <> org_public_key = team.org_public_key
 
     if Livebook.Stamping.rsa_verify?(token_signature, token, org_public_key) do
