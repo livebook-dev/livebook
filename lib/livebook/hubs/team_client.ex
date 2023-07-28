@@ -70,6 +70,7 @@ defmodule Livebook.Hubs.TeamClient do
     derived_keys = Teams.derive_keys(team.teams_key)
 
     headers = [
+      {"x-lb-version", to_string(Application.spec(:livebook, :vsn))},
       {"x-user", to_string(team.user_id)},
       {"x-org", to_string(team.org_id)},
       {"x-org-key", to_string(team.org_key_id)},
