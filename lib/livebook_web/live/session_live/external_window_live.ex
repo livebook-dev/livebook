@@ -22,6 +22,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
           end
 
         session = Session.get_by_pid(session_pid)
+        type = String.to_existing_atom(type)
 
         {:ok,
          socket
@@ -30,7 +31,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
            client_id: client_id,
            type: type,
            embedded?: params["embedded"] == "true",
-           data_view: data_to_view(data)
+           data_view: data_to_view(type, data)
          )
          |> assign_private(data: data)}
 
@@ -51,15 +52,8 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
     end)
   end
 
-  defp data_to_view(data) do
-    %{
-      notebook_name: data.notebook.name,
-      output_view: enrich_output_panel_data(data)
-    }
-  end
-
   @impl true
-  def render(%{type: "output-panel"} = assigns) do
+  def render(%{type: :output_panel} = assigns) do
     ~H"""
     <div
       id="external-window"
@@ -84,7 +78,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
         id="output-panel"
         session={@session}
         client_id={@client_id}
-        output_view={@data_view.output_view}
+        output_views={@data_view.output_views}
       />
       <.external_window_menu :if={not @embedded?} />
     </div>
@@ -124,23 +118,69 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
 
   @impl true
   def handle_info({:operation, operation}, socket) do
-    socket =
-      case Session.Data.apply_operation(socket.private.data, operation) do
-        {:ok, data, _actions} ->
-          socket
-          |> assign_private(data: data)
-          |> assign(data_view: data_to_view(data))
-
-        :error ->
-          socket
-      end
-
-    {:noreply, socket}
+    {:noreply, handle_operation(socket, operation)}
   end
 
-  @impl true
-  def handle_info(message, socket) do
-    IO.inspect(message, label: "Not implemented for External Window")
-    {:noreply, socket}
+  def handle_info({:set_input_values, values, local}, socket) do
+    if local do
+      socket =
+        Enum.reduce(values, socket, fn {input_id, value}, socket ->
+          operation = {:set_input_value, socket.assigns.client_id, input_id, value}
+          handle_operation(socket, operation)
+        end)
+
+      {:noreply, socket}
+    else
+      for {input_id, value} <- values do
+        Session.set_input_value(socket.assigns.session.pid, input_id, value)
+      end
+
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(:session_closed, socket) do
+    {:noreply, redirect_on_closed(socket)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp handle_operation(socket, operation) do
+    case Session.Data.apply_operation(socket.private.data, operation) do
+      {:ok, data, _actions} ->
+        socket
+        |> assign_private(data: data)
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.type, socket.assigns.data_view, socket.private.data, data, operation)
+        )
+        |> after_operation(socket, operation)
+
+      :error ->
+        socket
+    end
+  end
+
+  defp after_operation(socket, _prev_socket, _operation), do: socket
+
+  defp redirect_on_closed(socket) do
+    socket
+    |> put_flash(:info, "Session has been closed")
+    |> push_navigate(to: ~p"/")
+  end
+
+  defp update_data_view(type, data_view, _prev_data, data, operation) do
+    case operation do
+      # See LivebookWeb.SessionLive for more details
+      _ ->
+        data_to_view(type, data)
+    end
+  end
+
+  defp data_to_view(:output_panel, data) do
+    %{
+      notebook_name: data.notebook.name,
+      output_views: enrich_output_panel_data(data)
+    }
   end
 end

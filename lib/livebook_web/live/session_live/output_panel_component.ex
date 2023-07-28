@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       |> assign(
         session: assigns.session,
         client_id: assigns.client_id,
-        output_view: assigns.output_view
+        output_views: assigns.output_views
       )
 
     {:ok, socket}
@@ -32,7 +32,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       data-el-output-panel-content
     >
       <.row_dropzone row={0} />
-      <%= for {output_row, row_index} <- Enum.with_index(@output_view.rows) do %>
+      <%= for {output_row, row_index} <- Enum.with_index(@output_views.rows) do %>
         <div class="flex flex-grow" data-row-index={row_index} data-el-output-panel-row>
           <div
             :for={{item, col_index} <- Enum.with_index(output_row.items)}

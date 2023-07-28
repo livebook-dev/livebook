@@ -105,7 +105,7 @@ defmodule LivebookWeb.AppSessionLive do
         </h1>
       </div>
       <div id="output-panel" class="flex flex-col" data-el-output-panel-content>
-        <%= for {output_row, row_index} <- Enum.with_index(@data_view.output_panel_views.rows) do %>
+        <%= for {output_row, row_index} <- Enum.with_index(@data_view.output_views.rows) do %>
           <div class="flex flex-grow" data-row-index={row_index} data-el-output-panel-row>
             <div
               :for={{item, col_index} <- Enum.with_index(output_row.items)}
@@ -440,21 +440,9 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp data_to_view(data) do
-    changed_input_ids = Session.Data.changed_input_ids(data)
-
     %{
       notebook_name: data.notebook.name,
       output_type: data.notebook.app_settings.output_type,
-      output_views:
-        for(
-          {cell_id, output} <- visible_outputs(data.notebook),
-          do: %{
-            output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
-            cell_id: cell_id
-          }
-        ),
-      output_panel_views: enrich_output_panel_data(data),
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -462,6 +450,11 @@ defmodule LivebookWeb.AppSessionLive do
       errored_cell_id: errored_cell_id(data),
       any_stale?: any_stale?(data)
     }
+    |> Map.put(:output_views, case data.notebook.app_settings.output_type do
+      :output_panel -> enrich_output_panel_data(data)
+      _ -> get_output_views(data)
+    end)
+
   end
 
   defp errored_cell_id(data) do
@@ -474,6 +467,19 @@ defmodule LivebookWeb.AppSessionLive do
 
   defp any_stale?(data) do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
+  end
+
+  defp get_output_views(data) do
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
+    for(
+      {cell_id, output} <- visible_outputs(data.notebook),
+      do: %{
+        output: output,
+        input_views: input_views_for_output(output, data, changed_input_ids),
+        cell_id: cell_id
+      }
+    )
   end
 
   defp visible_outputs(notebook) do

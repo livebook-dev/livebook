@@ -704,7 +704,7 @@ const Session = {
 
   handleOutputPanelPopoutClick() {
     this.outputPanelWindow = window.open(
-      window.location.pathname + `/external-window?type=output-panel`,
+      window.location.pathname + `/external-window?type=output_panel`,
       "_blank",
       "toolbar=no, location=no, directories=no, titlebar=no, toolbar=0, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
     );
