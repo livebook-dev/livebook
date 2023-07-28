@@ -237,7 +237,7 @@ defmodule LivebookWeb.LayoutHelpers do
     border_color = sidebar_link_border_color(to, current)
 
     class =
-      "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
+      "h-7 inline-flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
     if hub.connected? do
       [id: "hub-#{hub.id}", navigate: to, class: class]
@@ -246,7 +246,7 @@ defmodule LivebookWeb.LayoutHelpers do
         id: "hub-#{hub.id}",
         navigate: to,
         "data-tooltip": Provider.connection_error(hub.provider),
-        class: "tooltip right " <> class
+        class: ["tooltip right distant", class]
       ]
     end
   end

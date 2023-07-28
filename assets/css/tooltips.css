@@ -17,6 +17,10 @@ Example usage:
   --show-delay: 0.5s;
 }
 
+.tooltip.inline-flex {
+  display: inline-flex;
+}
+
 .tooltip.distant {
   --distance: 28px;
 }

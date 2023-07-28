@@ -143,7 +143,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def connection_error(team) do
     reason = TeamClient.get_connection_error(team.id)
-    "Cannot connect to Hub: #{reason}. Will attempt to reconnect automatically..."
+    "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
   end
 
   def notebook_stamp(team, notebook_source, metadata) do
