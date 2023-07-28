@@ -88,7 +88,11 @@ defmodule Livebook.Teams.Requests do
 
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
-    [{"authorization", "Bearer " <> token}]
+
+    [
+      {"x-lb-version", to_string(Application.spec(:livebook, :vsn))},
+      {"authorization", "Bearer " <> token}
+    ]
   end
 
   defp post(path, json, headers \\ []) do

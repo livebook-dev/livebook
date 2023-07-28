@@ -12,6 +12,8 @@ defmodule Livebook.Teams.Connection do
   @no_state :no_state
   @loop_ping_delay 5_000
 
+  @websocket_messages [:ssl, :tcp, :ssl_closed, :tcp_closed, :ssl_error, :tcp_error]
+
   defstruct [:listener, :headers, :http_conn, :websocket, :ref]
 
   @doc """
@@ -79,11 +81,8 @@ defmodule Livebook.Teams.Connection do
     :keep_state_and_data
   end
 
-  def handle_event(:info, {:tcp_closed, _port} = message, @no_state, %__MODULE__{} = data) do
-    handle_websocket_message(message, data)
-  end
-
-  def handle_event(:info, {:tcp, _port, _data} = message, @no_state, %__MODULE__{} = data) do
+  def handle_event(:info, message, @no_state, %__MODULE__{} = data)
+      when elem(message, 0) in @websocket_messages do
     handle_websocket_message(message, data)
   end
 

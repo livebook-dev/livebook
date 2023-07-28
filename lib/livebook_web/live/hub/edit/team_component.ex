@@ -158,7 +158,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 language="dockerfile"
               />
 
-              <ol class="text-gray-700">
+              <ol class="text-gray-700 mt-4 space-y-2 list-disc list-inside">
                 <li>
                   You must change <code>/path/to/my/notebooks</code> in the template above
                   to point to a directory with the `.livemd` files you want to deploy
