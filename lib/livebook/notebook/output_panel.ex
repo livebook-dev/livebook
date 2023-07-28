@@ -61,21 +61,20 @@ defmodule Livebook.Notebook.OutputPanel do
   def move_item_to_new_row(panel, item, row_index \\ -1) do
     old_position = get_item_position(panel, item)
     {panel, row_removed?} = remove_item_at(panel, old_position)
-    row_index = if row_removed?, do: update_row_index(row_index, old_position), else: row_index
 
     update_in(panel.rows, fn rows ->
       item = set_item_width(item, 100)
       row = %{items: [item]}
-      List.insert_at(rows, row_index, row)
+      List.insert_at(rows, update_row_index(row_index, old_position, row_removed?), row)
     end)
   end
 
-  defp update_row_index(row_index, nil), do: row_index
+  defp update_row_index(row_index, nil, _), do: row_index
 
-  defp update_row_index(row_index, {old_row_index, _}) when row_index > old_row_index,
+  defp update_row_index(row_index, {old_row_index, _}, true) when row_index > old_row_index,
     do: row_index - 1
 
-  defp update_row_index(row_index, _), do: row_index
+  defp update_row_index(row_index, _, _), do: row_index
 
   @doc """
   Moves the item to the given position and updates the width of
@@ -85,19 +84,21 @@ defmodule Livebook.Notebook.OutputPanel do
   @spec move_item(t(), item(), item_position()) :: t()
   def move_item(panel, item, position) do
     old_position = get_item_position(panel, item)
-
-    panel
-    |> remove_item(item)
-    |> insert_item(item, update_position(position, old_position))
+    {panel, row_removed?} = remove_item_at(panel, old_position)
+    insert_item(panel, item, update_position(position, old_position, row_removed?))
   end
 
-  defp update_position(position, nil), do: position
+  defp update_position(position, nil, _), do: position
 
-  defp update_position({same_row, col_index}, {same_row, old_col_index})
+  defp update_position({same_row, col_index}, {same_row, old_col_index}, _)
        when col_index > old_col_index,
        do: {same_row, col_index - 1}
 
-  defp update_position(position, _), do: position
+  defp update_position({row_index, col_index}, {old_row_index, _}, true)
+       when row_index > old_row_index,
+       do: {row_index - 1, col_index}
+
+  defp update_position(position, _, _), do: position
 
   @doc """
   Removes the item from the output panel.
