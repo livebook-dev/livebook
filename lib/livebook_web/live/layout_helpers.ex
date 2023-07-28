@@ -77,7 +77,7 @@ defmodule LivebookWeb.LayoutHelpers do
         <.remix_icon icon="menu-fold-line" />
       </button>
 
-      <div class="flex flex-col justify-between h-full">
+      <div class="flex flex-col justify-between h-full w-full">
         <div class="flex flex-col">
           <div class="space-y-3">
             <div class="flex items-center mb-5">
