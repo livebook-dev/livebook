@@ -331,7 +331,8 @@ solely client-side operations.
   @apply text-green-bright-400;
 }
 
-[data-el-session]:not([data-js-view="output-panel"]) [data-el-output-panel] {
+[data-el-session]:not([data-js-view="output-panel"])
+  [data-el-output-panel-embedded] {
   @apply hidden;
 }
 

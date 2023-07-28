@@ -81,13 +81,13 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
   end
 
   @impl true
-  def render(assigns) do
+  def render(%{type: "output-panel"} = assigns) do
     ~H"""
     <div
       id="external-window"
       phx-hook="ExternalWindow"
       data-window-embedded={@embedded?}
-      data-el-external-window
+      data-el-output-panel
     >
       <div
         data-el-js-view-iframes

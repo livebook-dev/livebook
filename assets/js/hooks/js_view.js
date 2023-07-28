@@ -223,9 +223,7 @@ const JSView = {
     const notebookEl = document.querySelector(`[data-el-notebook]`);
     const notebookContentEl =
       notebookEl && notebookEl.querySelector(`[data-el-notebook-content]`);
-    const externalWindowEl = document.querySelector(
-      `[data-el-external-window]`
-    );
+    const outputPanelEl = document.querySelector(`[data-el-output-panel]`);
 
     // Most placeholder position changes are accompanied by changes to the
     // notebook content element height (adding cells, inserting newlines
@@ -238,7 +236,7 @@ const JSView = {
     });
     notebookContentEl && resizeObserver.observe(notebookContentEl);
     notebookEl && resizeObserver.observe(notebookEl);
-    externalWindowEl && resizeObserver.observe(externalWindowEl);
+    outputPanelEl && resizeObserver.observe(outputPanelEl);
 
     // On certain events, like section/cell moved, a global event is
     // dispatched to trigger reposition. This way we don't need to
@@ -312,7 +310,7 @@ const JSView = {
     const { iframe, iframePlaceholder } = this;
     const containerEl =
       document.querySelector(`[data-el-notebook]`) ||
-      document.querySelector(`[data-el-external-window]`);
+      document.querySelector(`[data-el-output-panel]`);
 
     if (isElementHidden(iframePlaceholder)) {
       // When the placeholder is hidden, we hide the iframe as well

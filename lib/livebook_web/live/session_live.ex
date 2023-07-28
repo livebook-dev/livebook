@@ -420,7 +420,7 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
       </div>
-      <div class="absolute w-1/2 right-0 h-full overflow-auto" data-el-output-panel>
+      <div class="absolute w-1/2 right-0 h-full overflow-auto" data-el-output-panel-embedded>
         <iframe
           class="h-full w-full p-4"
           src={~p"/sessions/#{@session.id}/external-window?type=output-panel&embedded=true"}

@@ -3,6 +3,7 @@ import {
   getAttributeOrDefault,
   parseInteger,
 } from "../lib/attribute";
+import { globalPubSub } from "../lib/pub_sub";
 /**
  * A hook for the output panel.
  */
@@ -85,7 +86,10 @@ const OutputPanel = {
           );
         }
       }
-
+      setTimeout(
+        () => globalPubSub.broadcast("js_views", { type: "reposition" }),
+        200
+      );
       this.stopDragging();
     });
   },
