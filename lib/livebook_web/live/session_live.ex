@@ -2751,19 +2751,6 @@ defmodule LivebookWeb.SessionLive do
     %{doctests_count: doctests_count, failures_count: failures_count}
   end
 
-  defp input_views_for_cell(cell, data, changed_input_ids) do
-    input_ids =
-      for output <- cell.outputs,
-          attrs <- Cell.find_inputs_in_output(output),
-          do: attrs.id
-
-    data.input_infos
-    |> Map.take(input_ids)
-    |> Map.new(fn {input_id, %{value: value}} ->
-      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
-    end)
-  end
-
   def app_status(%{sessions: [app_session | _]}), do: app_session.app_status
   def app_status(_), do: nil
 

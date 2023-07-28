@@ -484,6 +484,16 @@ defmodule LivebookWeb.AppSessionLive do
     )
   end
 
+  defp input_views_for_output(output, data, changed_input_ids) do
+    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+
+    data.input_infos
+    |> Map.take(input_ids)
+    |> Map.new(fn {input_id, %{value: value}} ->
+      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
+    end)
+  end
+
   defp visible_outputs(notebook) do
     for section <- Enum.reverse(notebook.sections),
         cell <- Enum.reverse(section.cells),

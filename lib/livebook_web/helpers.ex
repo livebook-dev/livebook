@@ -108,18 +108,20 @@ defmodule LivebookWeb.Helpers do
 
         item
         |> Map.put(:outputs, cell.outputs)
-        # TODO fix for multiple outputs
-        |> Map.put(
-          :input_views,
-          input_views_for_output(cell.outputs |> hd(), data, changed_input_ids)
-        )
+        |> Map.put(:input_views, input_views_for_cell(cell, data, changed_input_ids))
       end
     )
   end
 
-  # TODO
-  def input_views_for_output(output, data, changed_input_ids) do
-    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+  @doc """
+  Returns input_views for the given cell.
+  """
+  @spec input_views_for_cell(Cell.t(), Data.t(), MapSet.t(Data.input_id())) :: map()
+  def input_views_for_cell(cell, data, changed_input_ids) do
+    input_ids =
+      for output <- cell.outputs,
+          attrs <- Cell.find_inputs_in_output(output),
+          do: attrs.id
 
     data.input_infos
     |> Map.take(input_ids)
