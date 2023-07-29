@@ -178,7 +178,7 @@ defmodule Livebook.Notebook.OutputPanel do
           List.delete_at(rows, row_index)
         else
           update_in(rows, [Access.at(row_index), Access.key(:items)], fn items ->
-            {removed_item, updated_items} = List.pop_at(items, col_index)
+            {_removed_item, updated_items} = List.pop_at(items, col_index)
 
             Enum.map(updated_items, fn item ->
               %{item | width: div(100, num_items - 1)}
