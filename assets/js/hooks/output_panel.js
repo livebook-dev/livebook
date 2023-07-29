@@ -38,7 +38,8 @@ const OutputPanel = {
       event.stopPropagation();
       event.preventDefault();
 
-      const dstEl = event.target.closest(`[phx-hook="Dropzone"]`);
+      const dstEl = event.target.closest(`[data-js-dropzone]`);
+      console.log(dstEl);
 
       const srcEl = this.draggedEl.closest(`[data-el-output-panel-item]`);
 

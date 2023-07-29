@@ -13,7 +13,7 @@ solely client-side operations.
   @apply hidden;
 }
 
-[phx-hook="Dropzone"][data-js-dragging] {
+[phx-hook="FileDropzone"][data-js-dragging] {
   @apply bg-blue-100 border-blue-300;
 }
 
@@ -406,6 +406,10 @@ solely client-side operations.
 }
 
 /* === Output Panel === */
+
+[data-el-output-panel-content][data-js-dragging] [data-js-dropzone] {
+  @apply z-20 bg-blue-100 border-blue-300;
+}
 
 [data-el-output-panel-content]:not([data-js-dragging]) {
   @apply gap-4 pt-4;

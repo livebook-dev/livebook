@@ -37,13 +37,14 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
           <div
             :for={{item, col_index} <- Enum.with_index(output_row.items)}
             id={"output-panel-item-#{row_index}-#{col_index}"}
-            class="relative group"
+            class="relative"
             style={"width: #{item.width}%"}
             data-cell-id={item.cell_id}
             data-row-index={row_index}
             data-col-index={col_index}
             data-el-output-panel-item
-            phx-hook="Dropzone"
+            phx-hook="OutputPanelItem"
+            data-js-dropzone
           >
             <.output_options cell_id={item.cell_id} myself={@myself} />
             <LivebookWeb.Output.outputs
@@ -70,17 +71,15 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       class="w-full h-4 bg-white rounded-lg border-2 border-dashed border-gray-400"
       data-el-output-panel-row-drop-area
       data-row-index={@row}
-      phx-hook="Dropzone"
+      phx-hook="OutputPanelRowDropzone"
+      data-js-dropzone
     />
     """
   end
 
   defp output_options(assigns) do
     ~H"""
-    <div
-      class="absolute z-10 top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-      data-el-output-panel-item-options
-    >
+    <div class="absolute z-10 top-0 right-0 hidden" data-el-output-panel-item-options>
       <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
         <div class="flex space-x-4">
           <div class="flex" draggable="true">

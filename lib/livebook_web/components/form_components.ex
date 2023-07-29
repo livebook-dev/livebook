@@ -583,7 +583,7 @@ defmodule LivebookWeb.FormComponents do
       <.live_file_input upload={@upload} class="hidden" />
       <label
         class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48 cursor-pointer"
-        phx-hook="Dropzone"
+        phx-hook="FileDropzone"
         id={"#{@upload.ref}-dropzone"}
         for={@upload.ref}
         phx-drop-target={@upload.ref}
