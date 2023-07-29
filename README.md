@@ -102,7 +102,9 @@ be installed as follows:
 sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl erlang-xmerl erlang-dev erlang-parsetools
 ```
 
-**Note:** Livebook is not meant to be used as a Mix/Hex dependency.
+**Note:** The [`livebook` package](https://hex.pm/packages/livebook)
+is meant to be used as a CLI tool. Livebook is not officially
+supported as a Mix/Hex dependency.
 
 #### Escript
 
