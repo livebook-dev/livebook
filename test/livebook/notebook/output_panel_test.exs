@@ -117,13 +117,19 @@ defmodule Livebook.Notebook.OutputPanelTest do
     test "move to invalid position at same row", %{test_panel: panel} do
       item = OP.get_item_by_cell_id(panel, "item4")
       new_panel = OP.move_item(panel, item, {2, 8})
-      assert panel == new_panel
+      assert new_panel == panel
     end
 
     test "move to invalid position at different row", %{test_panel: panel} do
       item = OP.get_item_by_cell_id(panel, "item4")
       new_panel = OP.move_item(panel, item, {8, 8})
-      assert panel == new_panel
+      assert new_panel == panel
+    end
+
+    test "move item to same location", %{test_panel: panel} do
+      item = OP.get_item_by_cell_id(panel, "item4")
+      new_panel = OP.move_item(panel, item, {1, 0})
+      assert new_panel == panel
     end
   end
 
@@ -158,6 +164,12 @@ defmodule Livebook.Notebook.OutputPanelTest do
       assert OP.get_item_by_cell_id(panel, "item2") |> Map.get(:width) == 50
       assert OP.get_item_position(panel, item) == {2, 0}
       assert length(panel.rows) == 4
+    end
+
+    test "move item to same row", %{test_panel: panel} do
+      item = OP.get_item_by_cell_id(panel, "item4")
+      new_panel = OP.move_item_to_new_row(panel, item, 1)
+      assert new_panel == panel
     end
   end
 end

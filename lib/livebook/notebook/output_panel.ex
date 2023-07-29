@@ -83,8 +83,9 @@ defmodule Livebook.Notebook.OutputPanel do
   """
   @spec move_item(t(), item(), item_position()) :: t()
   def move_item(panel, item, position) do
-    if valid_position?(panel, position) do
-      old_position = get_item_position(panel, item)
+    old_position = get_item_position(panel, item)
+
+    if valid_position?(panel, position) && position != old_position do
       {panel, row_removed?} = remove_item_at(panel, old_position)
       insert_item(panel, item, update_position(position, old_position, row_removed?))
     else
