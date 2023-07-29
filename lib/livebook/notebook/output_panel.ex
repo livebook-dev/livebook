@@ -119,9 +119,10 @@ defmodule Livebook.Notebook.OutputPanel do
   """
   @spec get_item_position(t(), item()) :: item_position() | nil
   def get_item_position(panel, item) do
-    find_position_in_rows(panel.rows, item.cell_id, 0)
+    find_position_in_rows(panel.rows, item[:cell_id], 0)
   end
 
+  defp find_position_in_rows(_rows, nil, _row_index), do: nil
   defp find_position_in_rows([], _cell_id, _row_index), do: nil
 
   defp find_position_in_rows([row | rows], cell_id, row_index) do

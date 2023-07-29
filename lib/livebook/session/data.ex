@@ -1149,6 +1149,7 @@ defmodule Livebook.Session.Data do
       ]
     )
     |> delete_cell_info(cell)
+    |> remove_output_from_output_panel(cell.id)
   end
 
   defp pristine_evaluation?(eval_info) do
