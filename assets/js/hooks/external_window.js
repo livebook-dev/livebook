@@ -1,4 +1,4 @@
-import { getAttributeOrDefault, parseBoolean } from "../lib/attribute";
+import { globalPubSub } from "../lib/pub_sub";
 /**
  * A hook for external windows.
  */
@@ -18,6 +18,10 @@ const ExternalWindow = {
         (event) => this.handleExternalWindowPopinClick()
       );
     }
+
+    this.handleEvent("output_panel_item_moved", ({ cell_id }) => {
+      this.handleOutputPanelItemMoved(cell_id);
+    });
   },
   updated() {
     this.props = this.getProps();
@@ -38,11 +42,17 @@ const ExternalWindow = {
     window.removeEventListener("beforeunload", this.handleBeforeUnloadEvent);
     this.sendToParent("external_window_popin_clicked");
   },
+  handleOutputPanelItemMoved(cell_id) {
+    this.repositionJSViews();
+  },
   getElement(name) {
     return document.querySelector(`[data-el-${name}]`);
   },
   sendToParent(message) {
     window.opener.postMessage(message, window.location.origin);
+  },
+  repositionJSViews() {
+    globalPubSub.broadcast("js_views", { type: "reposition" });
   },
 };
 

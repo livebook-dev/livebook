@@ -166,6 +166,22 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
     end
   end
 
+  defp after_operation(socket, _prev_socket, {:move_output_to_new_row, client_id, cell_id, _row_index}) do
+    if client_id == socket.assigns.client_id do
+      push_event(socket, "output_panel_item_moved", %{cell_id: cell_id})
+    else
+      socket
+    end
+  end
+
+  defp after_operation(socket, _prev_socket, {:move_output_to_new_location, client_id, cell_id, _row_index, _col_index}) do
+    if client_id == socket.assigns.client_id do
+      push_event(socket, "output_panel_item_moved", %{cell_id: cell_id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp redirect_on_closed(socket) do
