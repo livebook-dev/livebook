@@ -795,9 +795,6 @@ To learn more about Elixir, we welcome you to explore our [website](http://elixi
 [read our Getting Started guide](https://elixir-lang.org/getting-started/introduction.html),
 and [many of the available learning resources](https://elixir-lang.org/learning.html).
 
-You can also learn how to use some of Elixir and Livebook's unique features together
-in the [Welcome to Livebook](/learn/notebooks/intro-to-livebook) notebook.
-
 Finally, huge thanks to Augie De Blieck Jr. for the drawings in this tutorial.
 
 See you around!
