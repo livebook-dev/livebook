@@ -79,12 +79,17 @@ defmodule Livebook.Notebook.OutputPanel do
   Moves the item to the given position and updates the width of
   the influenced items.
   If the item is already in the output panel, it gets removed.
+  If the position is invalid, the panel isn't updated.
   """
   @spec move_item(t(), item(), item_position()) :: t()
   def move_item(panel, item, position) do
-    old_position = get_item_position(panel, item)
-    {panel, row_removed?} = remove_item_at(panel, old_position)
-    insert_item(panel, item, update_position(position, old_position, row_removed?))
+    if valid_position?(panel, position) do
+      old_position = get_item_position(panel, item)
+      {panel, row_removed?} = remove_item_at(panel, old_position)
+      insert_item(panel, item, update_position(position, old_position, row_removed?))
+    else
+      panel
+    end
   end
 
   defp update_position(position, nil, _), do: position
@@ -143,6 +148,11 @@ defmodule Livebook.Notebook.OutputPanel do
       else: find_position_in_items(items, cell_id, column_index + 1)
   end
 
+  defp valid_position?(panel, {row_index, col_index}) do
+    row = Enum.at(panel.rows, row_index)
+    row && col_index <= length(row.items)
+  end
+
   defp insert_item(panel, item, {row_index, col_index}) do
     update_in(panel, [Access.key(:rows), Access.at(row_index), Access.key(:items)], fn items ->
       num_items = length(items)
@@ -170,7 +180,7 @@ defmodule Livebook.Notebook.OutputPanel do
             {removed_item, updated_items} = List.pop_at(items, col_index)
 
             Enum.map(updated_items, fn item ->
-              %{item | width: item.width + div(removed_item.width, num_items - 1)}
+              %{item | width: div(100, num_items - 1)}
             end)
           end)
         end
