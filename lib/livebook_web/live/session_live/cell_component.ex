@@ -83,7 +83,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
         <.add_output_to_output_panel_button
-          :if={@cell_view.eval.output_location == :notebook}
+          :if={
+            @cell_view.eval.output_location == :notebook &&
+              @cell_view.eval.validity in [:evaluated, :stale]
+          }
           cell_id={@cell_view.id}
         />
         <.remove_output_from_output_panel_button
@@ -186,7 +189,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
         <.add_output_to_output_panel_button
-          :if={@cell_view.eval.output_location == :notebook}
+          :if={
+            @cell_view.eval.output_location == :notebook &&
+              @cell_view.eval.validity in [:evaluated, :stale]
+          }
           cell_id={@cell_view.id}
         />
         <.remove_output_from_output_panel_button
