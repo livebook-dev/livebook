@@ -407,8 +407,23 @@ solely client-side operations.
 
 /* === Output Panel === */
 
-[data-el-output-panel-content][data-js-dragging] [data-js-dropzone] {
-  @apply z-20 bg-blue-100 border-blue-300;
+[data-el-output-panel-content][data-js-dragging] [data-el-output-panel-item] {
+  @apply z-20 bg-blue-100 border-blue-300 opacity-50;
+}
+
+[data-el-output-panel-content][data-js-dragging]
+  [data-el-output-panel-item][data-js-dragging] {
+  @apply bg-blue-200 opacity-80;
+}
+
+[data-el-output-panel-content][data-js-dragging]
+  [data-el-output-panel-row-drop-area] {
+  @apply bg-blue-100 border-blue-300;
+}
+
+[data-el-output-panel-content][data-js-dragging]
+  [data-el-output-panel-row-drop-area][data-js-dragging] {
+  @apply h-16 bg-blue-200;
 }
 
 [data-el-output-panel-content]:not([data-js-dragging]) {
@@ -416,19 +431,9 @@ solely client-side operations.
 }
 
 [data-el-output-panel-content]:not([data-js-dragging])
-  [data-el-output-panel-row-drop-area] {
-  @apply hidden;
-}
-
-[data-el-output-panel-row-drop-area][data-js-dragging] {
-  @apply h-16;
-}
-
+  [data-el-output-panel-row-drop-area],
 [data-el-output-panel-content][data-js-dragging]
-  [data-el-output-panel-item-options-controls] {
-  @apply hidden;
-}
-
+  [data-el-output-panel-item-options-controls],
 [data-el-output-panel-content]:not([data-js-dragging])
   [data-el-output-panel-item-options-drag-label] {
   @apply hidden;

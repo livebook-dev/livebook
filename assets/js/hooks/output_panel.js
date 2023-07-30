@@ -21,14 +21,6 @@ const OutputPanel = {
       this.stopDragging();
     });
 
-    this.el.addEventListener("dragenter", (event) => {
-      //console.log("Valid drop area", event);
-    });
-
-    this.el.addEventListener("dragleave", (event) => {
-      //console.log("Valid drop area left", event);
-    });
-
     this.el.addEventListener("dragover", (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -38,8 +30,7 @@ const OutputPanel = {
       event.stopPropagation();
       event.preventDefault();
 
-      const dstEl = event.target.closest(`[data-js-dropzone]`);
-      console.log(dstEl);
+      const dstEl = event.target.closest(`[data-js-droppable]`);
 
       const srcEl = this.draggedEl.closest(`[data-el-output-panel-item]`);
 
@@ -64,9 +55,6 @@ const OutputPanel = {
         );
 
         if (dstCol !== null) {
-          console.log("New position");
-          console.log("Rows", srcRow, "->", dstRow);
-          console.log("Cols", srcCol, "->", dstCol);
           // when dropping on the right side, move element one column to the right
           if (srcRow !== dstRow && event.layerX > dstEl.offsetWidth / 2)
             dstCol += 1;
@@ -78,9 +66,6 @@ const OutputPanel = {
             col_index: dstCol,
           });
         } else {
-          console.log("New row");
-          console.log("Rows", srcRow, "->", dstRow);
-          console.log("Cols", srcCol, "->", dstCol);
           this.pushEventTo(
             this.props.phxTarget,
             "handle_move_item_to_new_row",

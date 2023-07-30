@@ -44,7 +44,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
             data-col-index={col_index}
             data-el-output-panel-item
             phx-hook="OutputPanelItem"
-            data-js-dropzone
+            data-js-droppable
           >
             <.output_options cell_id={item.cell_id} myself={@myself} />
             <LivebookWeb.Output.outputs
@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       data-el-output-panel-row-drop-area
       data-row-index={@row}
       phx-hook="OutputPanelRowDropzone"
-      data-js-dropzone
+      data-js-droppable
     />
     """
   end
