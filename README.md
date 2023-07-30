@@ -85,7 +85,7 @@ See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/li
 ### Embedded devices
 
 If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
-check out [the Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+check out [the Livebook firmware](https://github.com/nerves-livebook/nerves_livebook) built
 with [Nerves](https://www.nerves-project.org/).
 
 ### Direct installation with Elixir

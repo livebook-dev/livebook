@@ -279,7 +279,7 @@ and, in general, we recommend it only for debugging of external system.
 
 If you want to run Livebook on embedded devices, such as Raspberry Pi,
 BeagleBone, etc., check out [the Livebook
-firmware](https://github.com/livebook-dev/nerves_livebook) built
+firmware](https://github.com/nerves-livebook/nerves_livebook) built
 with [Nerves](https://www.nerves-project.org/). In such cases, Livebook
 uses a special runtime, called the Embedded Runtime, where all of your
 code runs within Livebook itself, without starting additional runtimes
