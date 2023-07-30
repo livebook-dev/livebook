@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
          {:move_output_to_new_row, client_id, cell_id, _row_index}
        ) do
     if client_id == socket.assigns.client_id do
-      push_event(socket, "output_panel_item_moved", %{cell_id: cell_id})
+      push_event(socket, "output_panel_updated", %{cell_id: cell_id})
     else
       socket
     end
@@ -173,10 +173,22 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
          {:move_output_to_new_location, client_id, cell_id, _row_index, _col_index}
        ) do
     if client_id == socket.assigns.client_id do
-      push_event(socket, "output_panel_item_moved", %{cell_id: cell_id})
+      push_event(socket, "output_panel_updated", %{cell_id: cell_id})
     else
       socket
     end
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:remove_output_from_output_panel, client_id, cell_id}
+       ) do
+    push_event(socket, "output_panel_updated", %{cell_id: cell_id})
+  end
+
+  defp after_operation(socket, _prev_socket, {:delete_cell, client_id, cell_id}) do
+    push_event(socket, "output_panel_updated", %{cell_id: cell_id})
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket

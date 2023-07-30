@@ -19,7 +19,7 @@ const ExternalWindow = {
       );
     }
 
-    this.handleEvent("output_panel_item_moved", ({ cell_id }) => {
+    this.handleEvent("output_panel_updated", ({ cell_id }) => {
       this.handleOutputPanelItemMoved(cell_id);
     });
   },
