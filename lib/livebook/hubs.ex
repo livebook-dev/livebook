@@ -218,7 +218,9 @@ defmodule Livebook.Hubs do
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
     if capability?(hub, [:list_secrets]) do
-      Provider.get_secrets(hub)
+      hub
+      |> Provider.get_secrets()
+      |> Enum.sort()
     else
       []
     end
