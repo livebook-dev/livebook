@@ -63,9 +63,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             </div>
           </div>
 
-          <div :if={not @hub_metadata.connected?}>
-            <.message_box kind={:error} message={Provider.connection_error(@hub)} />
-          </div>
+          <.message_box
+            :if={!@hub_metadata.connected?}
+            kind={:error}
+            message={Provider.connection_error(@hub)}
+          />
         </div>
 
         <div>
