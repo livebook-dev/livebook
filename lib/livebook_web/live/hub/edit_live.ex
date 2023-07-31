@@ -93,7 +93,7 @@ defmodule LivebookWeb.Hub.EditLive do
       ) do
     {:noreply,
      socket
-     |> increment_counter()
+     |> push_navigate(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret #{name} created successfully")}
   end
 
@@ -103,7 +103,7 @@ defmodule LivebookWeb.Hub.EditLive do
       ) do
     {:noreply,
      socket
-     |> increment_counter()
+     |> push_navigate(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret #{name} updated successfully")}
   end
 
@@ -113,13 +113,11 @@ defmodule LivebookWeb.Hub.EditLive do
       ) do
     {:noreply,
      socket
-     |> increment_counter()
+     |> push_navigate(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret #{name} deleted successfully")}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
   end
-
-  defp increment_counter(socket), do: assign(socket, counter: socket.assigns.counter + 1)
 end
