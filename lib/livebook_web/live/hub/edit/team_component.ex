@@ -45,11 +45,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
               <div class="flex ml-2">
                 <div class={[
-                  "w-[10px] h-[10px] border-gray-900 border-2 rounded-full",
-                  if(@hub_metadata.connected?,
-                    do: "bg-green-400",
-                    else: "bg-red-400"
-                  )
+                  "w-3 h-3 rounded-full",
+                  if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
                 ]} />
               </div>
             </div>
@@ -67,9 +64,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           </div>
 
           <div :if={not @hub_metadata.connected?}>
-            <p class="text-red-700">
-              <%= Provider.connection_error(@hub) %>
-            </p>
+            <.message_box kind={:error} message={Provider.connection_error(@hub)} />
           </div>
         </div>
 
