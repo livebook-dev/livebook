@@ -201,8 +201,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
       _ = Livebook.Hubs.delete_secret(hub, secret)
 
       socket
-      |> put_flash(:success, "Secret deleted successfully")
-      |> push_navigate(to: ~p"/hub/#{hub.id}")
     end
 
     {:noreply,
