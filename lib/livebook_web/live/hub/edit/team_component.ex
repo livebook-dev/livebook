@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.Edit.TeamComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.Team
+  alias Livebook.Hubs.{Provider, Team}
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
@@ -26,7 +26,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secrets: secrets,
        show_key: show_key?,
        secret_name: secret_name,
-       secret_value: secret_value
+       secret_value: secret_value,
+       hub_metadata: Provider.to_metadata(assigns.hub)
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -37,20 +38,41 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ~H"""
     <div id={"#{@id}-component"}>
       <div class="mb-8 flex flex-col space-y-8">
-        <div class="flex justify-between">
-          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
-          <div class="flex justify-end gap-2">
-            <button
-              phx-click={show_modal("show-key-modal")}
-              phx-target={@myself}
-              class="button-base button-outlined-gray"
-            >
-              <span class="hidden sm:block">Teams key</span>
-              <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
-            </button>
+              <div class="flex ml-2">
+                <div class={[
+                  "w-[10px] h-[10px] border-gray-900 border-2 rounded-full",
+                  if(@hub_metadata.connected?,
+                    do: "bg-green-400",
+                    else: "bg-red-400"
+                  )
+                ]} />
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <button
+                phx-click={show_modal("show-key-modal")}
+                phx-target={@myself}
+                class="button-base button-outlined-gray"
+              >
+                <span class="hidden sm:block">Teams key</span>
+                <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
+              </button>
+            </div>
+          </div>
+
+          <div :if={not @hub_metadata.connected?}>
+            <p class="text-red-700">
+              <%= Provider.connection_error(@hub) %>
+            </p>
           </div>
         </div>
+
         <div>
           <p class="text-gray-700">
             A shared Teams hub. All resources here are shared with your team. Manage users and billing on livebook.dev.
