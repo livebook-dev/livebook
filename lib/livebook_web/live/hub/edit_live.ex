@@ -87,25 +87,34 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_created, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
      |> increment_counter()
-     |> put_flash(:success, "Secret created successfully")}
+     |> put_flash(:success, "Secret #{name} created successfully")}
   end
 
-  def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_updated, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
      |> increment_counter()
-     |> put_flash(:success, "Secret updated successfully")}
+     |> put_flash(:success, "Secret #{name} updated successfully")}
   end
 
-  def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_deleted, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
      |> increment_counter()
-     |> put_flash(:success, "Secret deleted successfully")}
+     |> put_flash(:success, "Secret #{name} deleted successfully")}
   end
 
   def handle_info(_message, socket) do

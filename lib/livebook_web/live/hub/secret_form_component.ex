@@ -77,8 +77,8 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
          :ok <- set_secret(socket, secret) do
       message =
         if socket.assigns.secret_name,
-          do: "Secret updated successfully",
-          else: "Secret created successfully"
+          do: "Secret #{secret.name} updated successfully",
+          else: "Secret #{secret.name} created successfully"
 
       {:noreply,
        socket

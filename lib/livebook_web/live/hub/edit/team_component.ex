@@ -339,7 +339,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       case Livebook.Hubs.delete_secret(hub, secret) do
         :ok ->
           socket
-          |> put_flash(:success, "Secret deleted successfully")
+          |> put_flash(:success, "Secret #{secret.name} deleted successfully")
           |> push_navigate(to: ~p"/hub/#{hub.id}")
 
         {:transport_error, reason} ->
