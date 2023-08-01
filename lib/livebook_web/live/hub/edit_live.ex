@@ -29,15 +29,13 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <.hub_component
-          type={@type}
-          hub={@hub}
-          live_action={@live_action}
-          params={@params}
-          counter={@counter}
-        />
-      </div>
+      <.hub_component
+        type={@type}
+        hub={@hub}
+        live_action={@live_action}
+        params={@params}
+        counter={@counter}
+      />
     </LayoutHelpers.layout>
     """
   end
