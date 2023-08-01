@@ -279,4 +279,18 @@ defmodule LivebookWeb.LayoutHelpers do
     </div>
     """
   end
+
+  @doc """
+  The topbar used in the non-session pages.
+  """
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def topbar(assigns) do
+    ~H"""
+    <div class={["px-2 py-2 text-sm text-center", @class]}>
+      <%= render_slot(@inner_block) %>
+    </div>
+    """
+  end
 end
