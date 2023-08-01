@@ -47,7 +47,7 @@ defmodule Livebook.Utils do
     random_part = :crypto.strong_rand_bytes(9)
     binary = <<node_part::binary, random_part::binary>>
     # 16B + 9B = 25B is suitable for base32 encoding without padding
-    Base.encode32(binary, case: :lower)
+    Livebook.Config.random_boot_id() <> Base.encode32(binary, case: :lower)
   end
 
   # Note: the result is always 16 bytes long
@@ -63,14 +63,18 @@ defmodule Livebook.Utils do
   """
   @spec node_from_node_aware_id(id()) :: {:ok, node()} | :error
   def node_from_node_aware_id(id) do
-    binary = Base.decode32!(id, case: :lower)
-    <<node_part::binary-size(16), _random_part::binary-size(9)>> = binary
+    with <<boot_id::binary-size(4), id::binary>> <- id,
+         {:ok, binary} <- Base.decode32(id, case: :lower),
+         <<node_part::binary-size(16), _random_part::binary-size(9)>> <-
+           binary do
+      known_nodes = [node() | Node.list()]
 
-    known_nodes = [node() | Node.list()]
-
-    Enum.find_value(known_nodes, :error, fn node ->
-      node_hash(node) == node_part && {:ok, node}
-    end)
+      Enum.find_value(known_nodes, :error, fn node ->
+        node_hash(node) == node_part && {:ok, node, boot_id}
+      end)
+    else
+      _ -> :error
+    end
   end
 
   @doc """

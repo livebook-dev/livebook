@@ -94,8 +94,18 @@ defmodule LivebookWeb.SessionLive do
          |> prune_outputs()
          |> prune_cell_sources()}
 
-      :error ->
+      {:error, :not_found} ->
         {:ok, redirect(socket, to: ~p"/")}
+
+      {:error, :maybe_crashed} ->
+        {:ok,
+         socket
+         |> put_flash(
+           :error,
+           "Could not find notebook session because Livebook has rebooted. " <>
+             "This may happen if Livebook runs out of memory while installing dependencies or executing code."
+         )
+         |> redirect(to: ~p"/")}
     end
   end
 

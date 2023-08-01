@@ -305,6 +305,13 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :allowed_uri_schemes)
   end
 
+  @doc """
+  Returns a random id set on boot.
+  """
+  def random_boot_id() do
+    Application.fetch_env!(:livebook, :random_boot_id)
+  end
+
   ## Parsing
 
   @doc """

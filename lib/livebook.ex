@@ -86,6 +86,8 @@ defmodule Livebook do
   def config_runtime do
     import Config
 
+    config :livebook, :random_boot_id, Base.encode64(:crypto.strong_rand_bytes(3))
+
     config :livebook, LivebookWeb.Endpoint,
       secret_key_base:
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||

@@ -32,7 +32,7 @@ defmodule Livebook.SessionsTest do
   describe "fetch_session/1" do
     test "returns an error if no session with the given id exists" do
       id = Livebook.Utils.random_node_aware_id()
-      assert :error = Sessions.fetch_session(id)
+      assert Sessions.fetch_session(id) == {:error, :not_found}
     end
 
     test "returns session matching the given id" do
@@ -40,6 +40,9 @@ defmodule Livebook.SessionsTest do
       assert {:ok, ^session} = Sessions.fetch_session(session.id)
 
       Session.close(session.pid)
+      assert Sessions.fetch_session(session.id) == {:error, :not_found}
+      Application.put_env(:livebook, :random_boot_id, "^^^^")
+      assert Sessions.fetch_session(session.id) == {:error, :maybe_crashed}
     end
   end
 

@@ -50,21 +50,31 @@ defmodule Livebook.Sessions do
   @doc """
   Returns tracked session with the given id.
   """
-  @spec fetch_session(Session.id()) :: {:ok, Session.t()} | :error
+  @spec fetch_session(Session.id()) :: {:ok, Session.t()} | {:error, :not_found | :maybe_crashed}
   def fetch_session(id) do
     case Livebook.Tracker.fetch_session(id) do
       {:ok, session} ->
         {:ok, session}
 
       :error ->
-        # The local tracker server doesn't know about this session,
-        # but it may not have propagated yet, so we extract the session
-        # node from id and ask the corresponding tracker directly
-        with {:ok, other_node} when other_node != node() <- Utils.node_from_node_aware_id(id),
-             {:ok, session} <- :rpc.call(other_node, Livebook.Tracker, :fetch_session, [id]) do
-          {:ok, session}
-        else
-          _ -> :error
+        boot_id = Livebook.Config.random_boot_id()
+
+        case Utils.node_from_node_aware_id(id) do
+          # The local tracker server doesn't know about this session,
+          # but it may not have propagated yet, so we extract the session
+          # node from id and ask the corresponding tracker directly
+          {:ok, other_node, _other_boot_id} when other_node != node() ->
+            case :rpc.call(other_node, Livebook.Tracker, :fetch_session, [id]) do
+              {:ok, session} -> {:ok, session}
+              _ -> {:error, :not_found}
+            end
+
+          {:ok, other_node, other_boot_id}
+          when other_node == node() and other_boot_id != boot_id ->
+            {:error, :maybe_crashed}
+
+          _ ->
+            {:error, :not_found}
         end
     end
   end
