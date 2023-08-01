@@ -41,7 +41,7 @@ defmodule Livebook.SessionsTest do
 
       Session.close(session.pid)
       assert Sessions.fetch_session(session.id) == {:error, :not_found}
-      Application.put_env(:livebook, :random_boot_id, "^^^^")
+      Application.put_env(:livebook, :random_boot_id, "aaaa")
       assert Sessions.fetch_session(session.id) == {:error, :maybe_crashed}
     end
   end
