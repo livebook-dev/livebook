@@ -37,7 +37,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutHelpers.topbar :if={not @hub_metadata.connected?} class="bg-yellow-400 text-gray-900">
+      <LayoutHelpers.topbar :if={not @hub_metadata.connected?} variant={:warning}>
         <%= Provider.connection_error(@hub) %>
       </LayoutHelpers.topbar>
 

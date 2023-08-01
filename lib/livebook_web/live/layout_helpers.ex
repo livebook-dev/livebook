@@ -291,16 +291,20 @@ defmodule LivebookWeb.LayoutHelpers do
   end
 
   @doc """
-  The topbar used in the non-session pages.
+  Topbar for showing pinned, page-specific messages.
   """
-  attr :class, :any, default: nil
+  attr :variant, :atom, default: :info, values: [:warning, :info, :error]
   slot :inner_block, required: true
 
   def topbar(assigns) do
     ~H"""
-    <div class={["px-2 py-2 text-sm text-center", @class]}>
+    <div class={["px-2 py-2 text-sm text-center", topbar_class(@variant)]}>
       <%= render_slot(@inner_block) %>
     </div>
     """
   end
+
+  defp topbar_class(:warning), do: "bg-yellow-200 text-gray-900"
+  defp topbar_class(:info), do: "bg-blue-200 text-gray-900"
+  defp topbar_class(:error), do: "bg-red-200 text-gray-900"
 end
