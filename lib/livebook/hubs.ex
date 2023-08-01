@@ -126,7 +126,6 @@ defmodule Livebook.Hubs do
   Topic `hubs:connection`:
 
     * `{:hub_connected, hub_id}`
-    * `{:hub_disconnected, hub_id}`
     * `{:hub_connection_failed, hub_id, reason}`
     * `{:hub_server_error, hub_id, reason}`
 
@@ -218,7 +217,9 @@ defmodule Livebook.Hubs do
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
     if capability?(hub, [:list_secrets]) do
-      Provider.get_secrets(hub)
+      hub
+      |> Provider.get_secrets()
+      |> Enum.sort()
     else
       []
     end

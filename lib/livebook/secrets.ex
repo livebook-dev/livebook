@@ -62,17 +62,6 @@ defmodule Livebook.Secrets do
   end
 
   @doc """
-  Returns an `%Ecto.Changeset{}` with errors.
-  """
-  @spec add_secret_error(Ecto.Changeset.t() | Secret.t(), atom(), String.t()) ::
-          Ecto.Changeset.t()
-  def add_secret_error(%Secret{} = secret, field, message) do
-    secret
-    |> change_secret(%{})
-    |> Ecto.Changeset.add_error(field, message)
-  end
-
-  @doc """
   Stores the given secret as is, without validation.
   """
   @spec set_secret(Secret.t()) :: Secret.t()
