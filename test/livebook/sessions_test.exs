@@ -40,7 +40,14 @@ defmodule Livebook.SessionsTest do
       assert {:ok, ^session} = Sessions.fetch_session(session.id)
 
       Session.close(session.pid)
-      assert Sessions.fetch_session(session.id) == {:error, :not_found}
+    end
+    
+    test "returns an error if session comes from a different boot" do
+      boot_id = Application.put_env(:livebook, :random_boot_id, "aaaa")
+      id = Livebook.Utils.random_node_aware_id()
+      Application.put_env(:livebook, :random_boot_id, boot_id)
+      
+      assert Sessions.fetch_session(id) == {:error, :maybe_crashed}
       Application.put_env(:livebook, :random_boot_id, "aaaa")
       assert Sessions.fetch_session(session.id) == {:error, :maybe_crashed}
     end
