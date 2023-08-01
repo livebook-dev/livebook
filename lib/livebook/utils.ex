@@ -63,7 +63,7 @@ defmodule Livebook.Utils do
 
   The node in question must be connected, otherwise it won't be found.
   """
-  @spec node_from_node_aware_id(id()) :: {:ok, node()} | :error
+  @spec node_from_node_aware_id(id()) :: {:ok, node(), boot_id :: binary()} | :error
   def node_from_node_aware_id(id) do
     case Base.decode32(id, case: :lower) do
       {:ok,
