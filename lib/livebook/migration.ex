@@ -37,7 +37,7 @@ defmodule Livebook.Migration do
         hub_id: Livebook.Hubs.Personal.id()
       }
 
-      Livebook.Secrets.set_secret(secret)
+      Livebook.Hubs.Personal.set_secret(secret)
       Livebook.Storage.delete(:secrets, name)
     end
   end

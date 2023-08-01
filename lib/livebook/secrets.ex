@@ -1,47 +1,8 @@
 defmodule Livebook.Secrets do
-  # This module is used to store secrets on Livebook.Storage for specific hubs.
-  # Currently it is only used by personal hub.
+  # Shared secret functionality across all hubs.
   @moduledoc false
 
-  alias Livebook.Hubs.Provider
-  alias Livebook.Storage
   alias Livebook.Secrets.Secret
-
-  @namespace :hub_secrets
-
-  @doc """
-  Get the secrets list from storage.
-  """
-  @spec get_secrets(Provider.t()) :: list(Secret.t())
-  def get_secrets(hub) do
-    for fields <- Storage.all(@namespace),
-        from_hub?(fields, hub),
-        do: to_struct(fields)
-  end
-
-  @doc """
-  Gets a secret from storage.
-  Raises `RuntimeError` if the secret doesn't exist.
-  """
-  @spec fetch_secret!(Provider.t(), String.t()) :: Secret.t()
-  def fetch_secret!(hub, id) do
-    fields = Storage.fetch!(@namespace, id)
-    true = from_hub?(fields, hub)
-
-    to_struct(fields)
-  end
-
-  @doc """
-  Gets a secret from storage.
-  """
-  @spec get_secret(Provider.t(), String.t()) :: {:ok, Secret.t()} | :error
-  def get_secret(hub, id) do
-    with {:ok, fields} <- Storage.fetch(@namespace, id) do
-      if from_hub?(fields, hub),
-        do: {:ok, to_struct(fields)},
-        else: :error
-    end
-  end
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking secret changes.
@@ -59,42 +20,6 @@ defmodule Livebook.Secrets do
     secret
     |> Secret.changeset(attrs)
     |> Ecto.Changeset.apply_action(:update)
-  end
-
-  @doc """
-  Stores the given secret as is, without validation.
-  """
-  @spec set_secret(Secret.t()) :: Secret.t()
-  def set_secret(secret) do
-    attributes = Map.from_struct(secret)
-    :ok = Storage.insert(@namespace, secret.name, Map.to_list(attributes))
-
-    secret
-  end
-
-  @doc """
-  Unset secret from given id.
-  """
-  @spec unset_secret(Provider.t(), String.t()) :: :ok
-  def unset_secret(hub, id) do
-    with {:ok, _secret} <- get_secret(hub, id) do
-      Storage.delete(@namespace, id)
-    end
-
-    :ok
-  end
-
-  defp to_struct(%{name: name, value: value} = fields) do
-    %Secret{
-      name: name,
-      value: value,
-      hub_id: fields[:hub_id] || Livebook.Hubs.Personal.id()
-    }
-  end
-
-  defp from_hub?(fields, hub) do
-    hub_id = fields[:hub_id] || Livebook.Hubs.Personal.id()
-    hub_id == hub.id
   end
 
   @secret_startup_key :livebook_startup_secrets
