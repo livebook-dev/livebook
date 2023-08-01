@@ -36,6 +36,7 @@ defmodule Livebook.Utils do
 
   The id is formed from the following binary parts:
 
+    * 3B - random boot id
     * 16B - hashed node name
     * 9B - random bytes
 
