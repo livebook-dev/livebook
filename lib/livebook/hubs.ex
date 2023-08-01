@@ -126,7 +126,6 @@ defmodule Livebook.Hubs do
   Topic `hubs:connection`:
 
     * `{:hub_connected, hub_id}`
-    * `{:hub_disconnected, hub_id}`
     * `{:hub_connection_failed, hub_id, reason}`
     * `{:hub_server_error, hub_id, reason}`
 
