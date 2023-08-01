@@ -50,7 +50,8 @@ defmodule Livebook.Sessions do
   @doc """
   Returns tracked session with the given id.
   """
-  @spec fetch_session(Session.id()) :: {:ok, Session.t()} | {:error, :not_found | :maybe_crashed}
+  @spec fetch_session(Session.id()) ::
+          {:ok, Session.t()} | {:error, :not_found | :different_boot_id}
   def fetch_session(id) do
     case Livebook.Tracker.fetch_session(id) do
       {:ok, session} ->
@@ -71,7 +72,7 @@ defmodule Livebook.Sessions do
 
           {:ok, other_node, other_boot_id}
           when other_node == node() and other_boot_id != boot_id ->
-            {:error, :maybe_crashed}
+            {:error, :different_boot_id}
 
           _ ->
             {:error, :not_found}

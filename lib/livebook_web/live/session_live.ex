@@ -97,7 +97,7 @@ defmodule LivebookWeb.SessionLive do
       {:error, :not_found} ->
         {:ok, redirect(socket, to: ~p"/")}
 
-      {:error, :maybe_crashed} ->
+      {:error, :different_boot_id} ->
         {:ok,
          socket
          |> put_flash(
