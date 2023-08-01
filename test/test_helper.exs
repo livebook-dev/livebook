@@ -50,6 +50,9 @@ Livebook.Hubs.Personal.update_hub(personal_hub, %{secret_key: secret_key})
 # Always set the same offline team hub in tests
 Livebook.HubHelpers.set_offline_hub()
 
+# Compile anything pending on TeamsServer
+Livebook.TeamsServer.setup()
+
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
 windows? = match?({:win32, _}, :os.type())
