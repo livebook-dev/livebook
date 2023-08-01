@@ -34,7 +34,7 @@ defmodule LivebookWeb.SessionController do
         file = FileSystem.File.resolve(images_dir, name)
         serve_static(conn, file)
 
-      :error ->
+      {:error, _} ->
         send_resp(conn, 404, "Not found")
     end
   end
@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionController do
 
         send_notebook_source(conn, notebook, file_name, format)
 
-      :error ->
+      {:error, _} ->
         send_resp(conn, 404, "Not found")
     end
   end
