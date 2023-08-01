@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
             label="Name"
             id="add-file-entry-form-name"
             autocomplete="off"
-            phx-debounce="blur"
+            phx-debounce="200"
           />
         </div>
         <div class="mt-6 flex space-x-3">

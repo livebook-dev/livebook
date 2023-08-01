@@ -52,8 +52,8 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
         phx-target={@myself}
       >
         <div class="flex flex-col space-y-4">
-          <.text_field field={f[:url]} label="URL" autocomplete="off" phx-debounce="blur" />
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field field={f[:url]} label="URL" autocomplete="off" phx-debounce="200" />
+          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="200" />
           <.radio_field
             field={f[:copy]}
             options={[

@@ -64,7 +64,7 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
             label="Name"
             id="insert-image-form-name"
             autocomplete="off"
-            phx-debounce="blur"
+            phx-debounce="200"
           />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
