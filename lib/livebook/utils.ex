@@ -277,6 +277,27 @@ defmodule Livebook.Utils do
     |> URI.to_string()
   end
 
+  @doc """
+  Infers file name from the given URL.
+
+  ## Examples
+
+      iex> Livebook.Utils.url_basename("https://example.com/data.csv")
+      "data.csv"
+
+      iex> Livebook.Utils.url_basename("https://example.com")
+      ""
+
+  """
+  @spec url_basename(String.t()) :: String.t()
+  def url_basename(url) do
+    uri = URI.parse(url)
+
+    (uri.path || "/")
+    |> String.split("/")
+    |> List.last()
+  end
+
   @doc ~S"""
   Wraps the given line into lines that fit in `width` characters.
 

@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
         phx-target={@myself}
       >
         <div class="flex flex-col space-y-4">
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="200" />
           <.radio_field
             field={f[:copy]}
             options={[
