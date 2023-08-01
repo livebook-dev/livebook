@@ -259,10 +259,16 @@ defmodule LivebookWeb.LayoutHelpers do
       <.title text="Learn" />
 
   """
-  attr :text, :string, required: true
+  attr :text, :string, default: nil
   attr :back_navigate, :string, default: nil
 
+  slot :inner_block
+
   def title(assigns) do
+    if assigns.text == nil and assigns.inner_block == [] do
+      raise ArgumentError, "should pass at least text attribute or an inner block"
+    end
+
     ~H"""
     <div class="relative">
       <div
@@ -274,7 +280,11 @@ defmodule LivebookWeb.LayoutHelpers do
         </.link>
       </div>
       <h1 class="text-2xl text-gray-800 font-medium">
-        <%= @text %>
+        <%= if @inner_block != [] do %>
+          <%= render_slot(@inner_block) %>
+        <% else %>
+          <%= @text %>
+        <% end %>
       </h1>
     </div>
     """
