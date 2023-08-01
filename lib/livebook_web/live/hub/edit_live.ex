@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    Hubs.subscribe([:secrets])
+    Hubs.subscribe([:connection, :secrets])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
@@ -113,6 +113,14 @@ defmodule LivebookWeb.Hub.EditLive do
      socket
      |> push_navigate(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret #{name} deleted successfully")}
+  end
+
+  def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
+  end
+
+  def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
   end
 
   def handle_info(_message, socket) do
