@@ -574,7 +574,7 @@ defmodule Livebook.Runtime.Evaluator do
   defp prune_env(env, tracer_info) do
     env
     |> Map.replace!(:aliases, Map.to_list(tracer_info.aliases_defined))
-    |> Map.replace!(:requires, MapSet.to_list(tracer_info.requires_defined))
+    |> Map.replace!(:requires, Enum.sort(tracer_info.requires_defined))
     |> Map.replace!(:context_modules, Map.keys(tracer_info.modules_defined))
   end
 
