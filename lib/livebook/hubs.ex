@@ -27,16 +27,6 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of hubs from storage with given capabilities.
-  """
-  @spec get_hubs(Provider.capabilities()) :: list(Provider.t())
-  def get_hubs(capabilities) do
-    for hub <- get_hubs(),
-        capability?(hub, capabilities),
-        do: hub
-  end
-
-  @doc """
   Gets a list of metadatas from storage.
   """
   @spec get_metadatas() :: list(Metadata.t())
@@ -180,7 +170,7 @@ defmodule Livebook.Hubs do
   """
   @spec connect_hubs() :: :ok
   def connect_hubs do
-    for hub <- get_hubs([:connect]), do: connect_hub(hub)
+    for hub <- get_hubs(), do: connect_hub(hub)
 
     :ok
   end
@@ -209,7 +199,7 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets() :: list(Secret.t())
   def get_secrets do
-    for hub <- get_hubs([:list_secrets]),
+    for hub <- get_hubs(),
         secret <- Provider.get_secrets(hub),
         do: secret
   end
@@ -219,13 +209,9 @@ defmodule Livebook.Hubs do
   """
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
-    if capability?(hub, [:list_secrets]) do
-      hub
-      |> Provider.get_secrets()
-      |> Enum.sort()
-    else
-      []
-    end
+    hub
+    |> Provider.get_secrets()
+    |> Enum.sort()
   end
 
   @doc """
@@ -236,8 +222,6 @@ defmodule Livebook.Hubs do
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_secret(hub, %Secret{} = secret) do
-    true = capability?(hub, [:create_secret])
-
     Provider.create_secret(hub, secret)
   end
 
@@ -276,13 +260,5 @@ defmodule Livebook.Hubs do
           {:ok, metadata :: map()} | :error
   def verify_notebook_stamp(hub, notebook_source, stamp) do
     Provider.verify_notebook_stamp(hub, notebook_source, stamp)
-  end
-
-  @doc """
-  Checks the hub capability for given hub.
-  """
-  @spec capability?(Provider.t(), list(atom())) :: boolean()
-  def capability?(hub, capabilities) do
-    capabilities -- Provider.capabilities(hub) == []
   end
 end
