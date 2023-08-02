@@ -43,189 +43,191 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <div id={"#{@id}-component"}>
-          <div class="mb-8 flex flex-col space-y-8">
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <LayoutHelpers.title>
-                  <div class="flex gap-2">
-                    <div class="flex justify-center">
-                      <span class="relative">
-                        <%= @hub.hub_emoji %>
+          <div class="mb-8 flex flex-col space-y-10">
+            <div class="flex flex-col space-y-2">
+              <LayoutHelpers.title>
+                <div class="flex gap-2 items-center">
+                  <div class="flex justify-center">
+                    <span class="relative">
+                      <%= @hub.hub_emoji %>
 
-                        <div class={[
-                          "absolute w-[10px] h-[10px] border-gray-900 border-2 rounded-full right-0 bottom-1",
-                          if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
-                        ]} />
-                      </span>
-                    </div>
-                    <%= @hub.hub_name %>
+                      <div class={[
+                        "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
+                        if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
+                      ]} />
+                    </span>
                   </div>
-                </LayoutHelpers.title>
-
-                <div class="flex justify-end gap-2">
-                  <button
-                    phx-click={show_modal("show-key-modal")}
-                    phx-target={@myself}
-                    class="button-base button-outlined-gray"
-                  >
-                    <span class="hidden sm:block">Teams key</span>
-                    <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
-                  </button>
+                  <%= @hub.hub_name %>
+                  <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                    Livebook Teams
+                  </span>
                 </div>
-              </div>
-            </div>
+              </LayoutHelpers.title>
 
-            <div>
-              <p class="text-gray-700">
-                A shared Teams hub. All resources here are shared with your team. Manage users and billing on livebook.dev.
+              <p class="text-sm flex flex-row space-x-6 text-gray-700">
+                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                  <.remix_icon icon="mail-line" /> Invite users
+                </a>
+
+                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                  <.remix_icon icon="settings-line" /> Manage organization
+                </a>
+
+                <a
+                  phx-click={show_modal("show-key-modal")}
+                  phx-target={@myself}
+                  class="hover:text-blue-600 cursor-pointer"
+                >
+                  <.remix_icon icon="key-2-fill" /> Display Teams key
+                </a>
               </p>
             </div>
 
-            <div class="flex flex-col space-y-10">
-              <div class="flex flex-col space-y-2">
-                <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                  General
-                </h2>
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                General
+              </h2>
 
-                <.form
-                  :let={f}
-                  id={@id}
-                  class="flex flex-col mt-4 space-y-4"
-                  for={@form}
-                  phx-submit="save"
-                  phx-change="validate"
-                  phx-target={@myself}
-                >
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                    <.text_field
-                      field={f[:hub_name]}
-                      label="Name"
-                      disabled
-                      help="Name cannot be changed"
-                      class="bg-gray-200/50 border-200/80 cursor-not-allowed"
-                    />
-                    <.emoji_field field={f[:hub_emoji]} label="Emoji" />
-                  </div>
+              <.form
+                :let={f}
+                id={@id}
+                class="flex flex-col mt-4 space-y-4"
+                for={@form}
+                phx-submit="save"
+                phx-change="validate"
+                phx-target={@myself}
+              >
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <.text_field
+                    field={f[:hub_name]}
+                    label="Name"
+                    disabled
+                    help="Name cannot be changed"
+                    class="bg-gray-200/50 border-200/80 cursor-not-allowed"
+                  />
+                  <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+                </div>
 
-                  <div>
-                    <button
-                      class="button-base button-blue"
-                      type="submit"
-                      phx-disable-with="Updating..."
-                    >
-                      Update Hub
-                    </button>
-                  </div>
-                </.form>
-              </div>
+                <div>
+                  <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                    Save
+                  </button>
+                </div>
+              </.form>
+            </div>
 
-              <div class="flex flex-col space-y-4">
-                <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                  Secrets
-                </h2>
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Secrets
+              </h2>
 
-                <p class="text-gray-700">
-                  Secrets are a safe way to share credentials and tokens with notebooks.
-                  They are often shared with Smart cells and can be read as
-                  environment variables using the <code>LB_</code> prefix.
-                </p>
+              <p class="text-gray-700">
+                Secrets are a safe way to share credentials and tokens with notebooks.
+                They are often used by Smart cells and can be read as
+                environment variables using the <code>LB_</code> prefix.
+              </p>
 
-                <.live_component
-                  module={LivebookWeb.Hub.SecretListComponent}
-                  id="hub-secrets-list"
-                  hub={@hub}
-                  secrets={@secrets}
-                  target={@myself}
+              <.live_component
+                module={LivebookWeb.Hub.SecretListComponent}
+                id="hub-secrets-list"
+                hub={@hub}
+                secrets={@secrets}
+                target={@myself}
+              />
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Airgapped Deployment
+              </h2>
+
+              <p class="text-gray-700">
+                It is possible to deploy notebooks that belong to this Hub in an airgapped
+                deployment, without connecting back to Livebook Teams server. This is done
+                using the Docker image template below, which encrypts all of your Hub metadata,
+                and taking some additional steps.
+              </p>
+
+              <div id="env-code">
+                <div class="flex justify-between items-end">
+                  <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
+                  <button
+                    class="button-base button-gray whitespace-nowrap py-1 px-2"
+                    data-copy
+                    data-tooltip="Copied to clipboard"
+                    type="button"
+                    aria-label="copy to clipboard"
+                    phx-click={
+                      JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
+                      |> JS.add_class(
+                        "tooltip top",
+                        to: "#env-code [data-copy]",
+                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                      )
+                      |> JS.remove_class(
+                        "tooltip top",
+                        to: "#env-code [data-copy]",
+                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                        time: 2000
+                      )
+                    }
+                  >
+                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+                    <span class="font-normal text-xs">Copy source</span>
+                  </button>
+                </div>
+
+                <.code_preview
+                  source_id={"offline-deployment-#{@hub.id}-source"}
+                  source={@dockerfile}
+                  language="dockerfile"
                 />
               </div>
 
-              <div class="flex flex-col space-y-4">
-                <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                  Airgapped Deployment
-                </h2>
+              <p class="text-gray-700 py-2">
+                Before deployment, you must perform the following manual steps:
+              </p>
 
-                <p class="text-gray-700">
-                  It is possible to deploy notebooks that belong to this Hub in an airgapped
-                  deployment, without connecting back to Livebook Teams server. This is done
-                  using the Docker image template below, which encrypts all of your Hub metadata,
-                  and taking some additional steps.
-                </p>
+              <ol class="text-gray-700 space-y-3 list-disc list-inside">
+                <li>
+                  You must change <code>/path/to/my/notebooks</code> in the template above
+                  to point to a directory with the <code>.livemd</code> files you want to deploy
+                </li>
+                <li>
+                  You must set the <code>LIVEBOOK_TEAMS_KEY</code> environment variable
+                  directly on your deployment platform, with the value you can find at the
+                  top of this page
+                </li>
+                <li>
+                  You may set the <code>LIVEBOOK_PASSWORD</code> environment variable to any
+                  value of your choice, if you want to access and debug your deployed notebooks
+                  in production
+                </li>
+              </ol>
+            </div>
 
-                <div id="env-code">
-                  <div class="flex justify-between items-end mb-1">
-                    <span class="text-sm text-gray-700 font-semibold"> Dockerfile </span>
-                    <button
-                      class="button-base button-gray whitespace-nowrap py-1 px-2"
-                      data-copy
-                      data-tooltip="Copied to clipboard"
-                      type="button"
-                      aria-label="copy to clipboard"
-                      phx-click={
-                        JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
-                        |> JS.add_class(
-                          "tooltip top",
-                          to: "#env-code [data-copy]",
-                          transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
-                        )
-                        |> JS.remove_class(
-                          "tooltip top",
-                          to: "#env-code [data-copy]",
-                          transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
-                          time: 2000
-                        )
-                      }
-                    >
-                      <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
-                      <span class="font-normal text-xs">Copy source</span>
-                    </button>
-                  </div>
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Danger Zone
+              </h2>
 
-                  <.code_preview
-                    source_id={"offline-deployment-#{@hub.id}-source"}
-                    source={@dockerfile}
-                    language="dockerfile"
-                  />
-
-                  <ol class="text-gray-700 mt-4 space-y-2 list-disc list-inside">
-                    <li>
-                      You must change <code>/path/to/my/notebooks</code> in the template above
-                      to point to a directory with the `.livemd` files you want to deploy
-                    </li>
-                    <li>
-                      You must set the <code>LIVEBOOK_TEAMS_KEY</code> environment variable
-                      directly on your deployment platform, with the value you can find at the
-                      top of this page
-                    </li>
-                    <li>
-                      You may set the <code>LIVEBOOK_PASSWORD</code> environment variable to any
-                      value of your choice, if you want to access and debug your deployed notebooks
-                      in production
-                    </li>
-                  </ol>
+              <div class="flex items-center justify-between gap-4 text-gray-700">
+                <div class="flex flex-col">
+                  <h3 class="font-semibold">
+                    Delete this hub
+                  </h3>
+                  <p class="text-sm">
+                    This only removes the hub from this machine. You must rejoin to access its features once again.
+                  </p>
                 </div>
-              </div>
-
-              <div class="flex flex-col space-y-4">
-                <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                  Danger Zone
-                </h2>
-
-                <div class="flex items-center justify-between gap-4 text-gray-700">
-                  <div class="flex flex-col">
-                    <h3 class="font-semibold">
-                      Delete this hub
-                    </h3>
-                    <p>Once deleted, you won’t be able to access its features unless you rejoin.</p>
-                  </div>
-                  <button
-                    id="delete-hub"
-                    phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-                    class="button-base button-outlined-red"
-                  >
-                    <span class="hidden sm:block">Delete hub</span>
-                    <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
-                  </button>
-                </div>
+                <button
+                  id="delete-hub"
+                  phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+                  class="button-base button-outlined-red"
+                >
+                  <span class="hidden sm:block">Delete hub</span>
+                  <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+                </button>
               </div>
             </div>
           </div>
@@ -254,6 +256,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       </div>
     </div>
     """
+  end
+
+  defp org_url(hub, path) do
+    Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
   end
 
   defp teams_key_modal(assigns) do

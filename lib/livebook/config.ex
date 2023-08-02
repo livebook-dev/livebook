@@ -180,9 +180,9 @@ defmodule Livebook.Config do
   @doc """
   Returns the configured URL for the Livebook Teams endpoint.
   """
-  @spec teams_url() :: String.t() | nil
+  @spec teams_url() :: String.t()
   def teams_url() do
-    Application.get_env(:livebook, :teams_url)
+    Application.fetch_env!(:livebook, :teams_url)
   end
 
   @doc """
