@@ -13,6 +13,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     show_key? = assigns.params["show-key"] == "true"
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
     secret_name = assigns.params["secret_name"]
+    zta = %{"provider" => "", "key" => ""}
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -27,7 +28,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        show_key: show_key?,
        secret_name: secret_name,
        secret_value: secret_value,
-       hub_metadata: Provider.to_metadata(assigns.hub)
+       hub_metadata: Provider.to_metadata(assigns.hub),
+       zta: zta
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -134,6 +136,32 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 secrets={@secrets}
                 target={@myself}
               />
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Zero Trust Authentication
+              </h2>
+
+              <p class="text-gray-700">
+                Enables Zero Trust Authentication to be used as the identity provider.
+              </p>
+
+              <.form :let={f} for={@zta} phx-change="change_zta" phx-target={@myself}>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <.select_field
+                    name="provider"
+                    label="Provider"
+                    value={@zta["provider"]}
+                    options={[
+                      {"None", ""},
+                      {"Cloudflare", "cloudflare"},
+                      {"GoogleIAP", "google_iap"}
+                    ]}
+                  />
+                  <.text_field field={f[:key]} label="Key" phx-debounce />
+                </div>
+              </.form>
             </div>
 
             <div class="flex flex-col space-y-4">
@@ -387,6 +415,16 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
      )}
   end
 
+  def handle_event("change_zta", %{"provider" => ""}, socket) do
+    zta = %{"provider" => "", "key" => ""}
+    {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
+  end
+
+  def handle_event("change_zta", %{"provider" => provider, "key" => key}, socket) do
+    zta = %{"provider" => provider, "key" => key}
+    {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
+  end
+
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
   end
@@ -395,19 +433,29 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
 
-    assign(socket, :dockerfile, """
-    FROM ghcr.io/livebook-dev/livebook:#{version}
+    base =
+      """
+      FROM ghcr.io/livebook-dev/livebook:#{version}
 
-    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
-    ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
-    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
-    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
+      ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
+      ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
+      ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+      ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
 
-    COPY /path/to/my/notebooks /apps
-    ENV LIVEBOOK_APPS_PATH "/apps"
-    ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-    RUN /app/bin/warmup_apps.sh\
-    """)
+      """
+
+    apps =
+      """
+      COPY /path/to/my/notebooks /apps
+      ENV LIVEBOOK_APPS_PATH "/apps"
+      ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+      RUN /app/bin/warmup_apps.sh\
+      """
+
+    zta = zta_env(socket.assigns.zta)
+    dockerfile = if zta, do: base <> zta <> apps, else: base <> apps
+
+    assign(socket, :dockerfile, dockerfile)
   end
 
   defp encrypt_secrets_to_dockerfile(socket) do
@@ -421,5 +469,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     stringified_secrets = Jason.encode!(secrets_map)
 
     Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
+  end
+
+  defp zta_env(%{"provider" => ""}), do: nil
+  defp zta_env(%{"key" => ""}), do: nil
+
+  defp zta_env(%{"provider" => provider, "key" => key}) do
+    """
+    ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
+
+    """
   end
 end
