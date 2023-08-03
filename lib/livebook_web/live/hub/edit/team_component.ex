@@ -159,8 +159,38 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                       {"GoogleIAP", "google_iap"}
                     ]}
                   />
-                  <.text_field field={f[:key]} label="Key" phx-debounce />
+                  <span class={[@zta["provider"] == "" && "hidden"]}>
+                    <.text_field
+                      field={f[:key]}
+                      label={"#{if @zta["provider"] == "cloudflare", do: "Team name (domain)", else: "Audience (aud)"}"}
+                      phx-debounce
+                    />
+                  </span>
                 </div>
+                <%= if @zta["provider"] == "cloudflare" do %>
+                  <span>
+                    See the
+                    <a
+                      class="text-blue-800 hover:text-blue-600"
+                      href="https://developers.cloudflare.com/cloudflare-one/"
+                    >
+                      CloudFlare docs
+                    </a>
+                    for more information about Cloudflare Zero Trust.
+                  </span>
+                <% end %>
+                <%= if @zta["provider"] == "google_iap" do %>
+                  <span>
+                    See the
+                    <a
+                      class="text-blue-800 hover:text-blue-600"
+                      href="https://cloud.google.com/iap/docs/concepts-overview"
+                    >
+                      Google docs
+                    </a>
+                    for more information about Google Identity-Aware Proxy (IAP).
+                  </span>
+                <% end %>
               </.form>
             </div>
 
