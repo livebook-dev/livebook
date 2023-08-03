@@ -312,6 +312,13 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :random_boot_id)
   end
 
+  @doc """
+  If we should warn when using production servers.
+  """
+  def warn_on_live_teams_server?() do
+    Application.get_env(:livebook, :warn_on_live_teams_server, false)
+  end
+
   ## Parsing
 
   @doc """

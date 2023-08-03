@@ -126,7 +126,7 @@ defmodule Livebook do
     end
 
     if url = Livebook.Config.teams_url!("LIVEBOOK_TEAMS_URL") do
-      config :livebook, :teams_url, url
+      config :livebook, teams_url: url, warn_on_live_teams_server: false
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do

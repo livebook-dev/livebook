@@ -16,11 +16,10 @@ config :livebook, LivebookWeb.Endpoint,
     npm: ["run", "watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
-config :livebook, :iframe_port, 4001
-config :livebook, :shutdown_callback, {System, :stop, []}
-
-# Feature flags
-config :livebook, :feature_flags, create_hub: true
+config :livebook,
+  iframe_port: 4001,
+  shutdown_callback: {System, :stop, []},
+  warn_on_live_teams_server: true
 
 # ## SSL Support
 #

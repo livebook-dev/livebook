@@ -15,13 +15,10 @@ defmodule LivebookWeb.Hub.NewLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    enabled? = Livebook.Config.feature_flag_enabled?(:create_hub)
-
     socket =
       assign(socket,
         selected_option: "new-org",
         page_title: "Hub - Livebook",
-        enabled?: enabled?,
         requested_code: false,
         org: nil,
         verification_uri: nil,
@@ -36,44 +33,14 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
-  def render(%{enabled?: false} = assigns) do
-    ~H"""
-    <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-6">
-        <div>
-          <LayoutHelpers.title text="Livebook Teams is coming soon!" />
-          <p class="mt-4 text-gray-700">
-            Livebook Teams will amplify Livebook with features designed for teams and businesses.
-          </p>
-        </div>
-        <p class="text-gray-700">
-          It will allow you to share notebooks, manage secrets, and deploy Livebook apps within your organization.
-        </p>
-        <p class="text-gray-700">
-          The product is still in development. We want to get feedback from beta users and understand
-          their use cases before the public launch.
-        </p>
-        <p class="text-gray-700">
-          <a
-            class="font-medium underline text-gray-900 hover:no-underline"
-            href="https://livebook.dev/teams?ref=LivebookApp"
-            target="_blank"
-          >
-            Learn more about Livebook Teams
-          </a>
-          and join the beta program.
-        </p>
-        <p class="text-gray-700">
-          - The Livebook crew
-        </p>
-      </div>
-    </LayoutHelpers.layout>
-    """
-  end
-
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
+      <LayoutHelpers.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
+        <strong>Beware!</strong>
+        You are running Livebook in development but this page communicates with production servers.
+      </LayoutHelpers.topbar>
+
       <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <LayoutHelpers.title text="Add Hub" />

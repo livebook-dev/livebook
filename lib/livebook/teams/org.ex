@@ -49,7 +49,7 @@ defmodule Livebook.Teams.Org do
     |> cast(attrs, @fields)
     |> validate_required(@required_fields)
     |> validate_format(:name, ~r/^[a-z0-9][a-z0-9\-]*$/,
-      message: "should only contain alphanumeric characters and dashes"
+      message: "should only contain lowercase alphanumeric characters and dashes"
     )
   end
 
