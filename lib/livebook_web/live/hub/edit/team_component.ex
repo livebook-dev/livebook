@@ -327,9 +327,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         Teams Key
       </h3>
       <div class="justify-center">
-        This is your <strong>Teams Key</strong>. If you want to join or invite others
-        to your organization, you will need to share your Teams Key with them. We
-        recommend storing it somewhere safe:
+        This is your <strong>Teams Key</strong>. This key is
+        required for you and invited users to join this organization.
+        We recommend storing it somewhere safe:
       </div>
       <div class=" w-full">
         <div id="teams-key-toggle" class="relative flex">
