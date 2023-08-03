@@ -76,16 +76,15 @@ defmodule LivebookWeb.Hub.NewLive do
     <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
       <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
-          <LayoutHelpers.title text="Add Teams Hub" />
+          <LayoutHelpers.title text="Add Organization" />
           <p class="mt-4 text-gray-700">
             <a
               class="font-medium underline text-gray-900 hover:no-underline"
               href="https://livebook.dev/teams?ref=LivebookApp"
               target="_blank"
+              phx-no-format
             >
-              Livebook Teams
-            </a>
-            amplifies Livebook with features designed for teams and businesses. It is currently in closed beta.
+              Livebook Teams</a> amplifies Livebook with features designed for teams and businesses. It is currently in closed beta.
           </p>
           <p class="mt-4 text-gray-700">
             To create a Teams organization, you must <a
