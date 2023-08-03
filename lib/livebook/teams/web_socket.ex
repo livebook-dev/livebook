@@ -20,7 +20,7 @@ defmodule Livebook.Teams.WebSocket do
           | {:transport_error, String.t()}
           | {:server_error, String.t()}
   def connect(headers \\ []) do
-    uri = URI.parse(Livebook.Config.teams_url() || raise("missing Livebook Teams URL"))
+    uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
