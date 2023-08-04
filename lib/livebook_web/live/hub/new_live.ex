@@ -102,7 +102,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <.password_field
               :if={@selected_option == "join-org"}
               field={f[:teams_key]}
-              label="Livebook Teams Key"
+              label="Livebook Teams key"
             />
 
             <button

@@ -324,10 +324,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ~H"""
     <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Teams Key
+        Teams key
       </h3>
       <div class="justify-center">
-        This is your <strong>Teams Key</strong>. This key is
+        This is your <strong>Teams key</strong>. This key is
         required for you and invited users to join this organization.
         We recommend storing it somewhere safe:
       </div>
