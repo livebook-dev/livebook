@@ -220,7 +220,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <% end %>
         <% end %>
 
-        <.sidebar_link title="Add Teams" icon="add-line" to={~p"/hub"} current={@current_page} />
+        <.sidebar_link title="Add Organization" icon="add-line" to={~p"/hub"} current={@current_page} />
       </div>
     </div>
     """
