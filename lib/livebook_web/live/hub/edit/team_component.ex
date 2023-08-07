@@ -140,35 +140,38 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                Zero Trust Authentication
+                Airgapped Deployment
               </h2>
 
               <p class="text-gray-700">
-                Enables Zero Trust Authentication to be used as the identity provider.
+                It is possible to deploy notebooks that belong to this Hub in an airgapped
+                deployment, without connecting back to Livebook Teams server, by following
+                the steps below. First, configure your deployment:
               </p>
 
-              <.form :let={f} for={@zta} phx-change="change_zta" phx-target={@myself}>
+              <.form :let={f} class="py-2" for={@zta} phx-change="change_zta" phx-target={@myself}>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <.select_field
                     name="provider"
-                    label="Provider"
+                    label="Zero Trust Authentication provider"
                     value={@zta["provider"]}
+                    help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
                     options={[
                       {"None", ""},
                       {"Cloudflare", "cloudflare"},
-                      {"GoogleIAP", "google_iap"}
+                      {"Google IAP", "google_iap"}
                     ]}
                   />
-                  <span class={[@zta["provider"] == "" && "hidden"]}>
-                    <.text_field
-                      field={f[:key]}
-                      label={"#{if @zta["provider"] == "cloudflare", do: "Team name (domain)", else: "Audience (aud)"}"}
-                      phx-debounce
-                    />
-                  </span>
+                  <.text_field
+                    :if={@zta["provider"] != ""}
+                    field={f[:key]}
+                    label={zta_key_label(@zta["provider"])}
+                    phx-debounce
+                  />
                 </div>
-                <%= if @zta["provider"] == "cloudflare" do %>
-                  <span>
+
+                <div class="text-sm mt-2">
+                  <span :if={@zta["provider"] == "cloudflare"}>
                     See the
                     <a
                       class="text-blue-800 hover:text-blue-600"
@@ -178,9 +181,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     </a>
                     for more information about Cloudflare Zero Trust.
                   </span>
-                <% end %>
-                <%= if @zta["provider"] == "google_iap" do %>
-                  <span>
+
+                  <span :if={@zta["provider"] == "google_iap"}>
                     See the
                     <a
                       class="text-blue-800 hover:text-blue-600"
@@ -190,24 +192,18 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     </a>
                     for more information about Google Identity-Aware Proxy (IAP).
                   </span>
-                <% end %>
+                </div>
               </.form>
-            </div>
-
-            <div class="flex flex-col space-y-4">
-              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                Airgapped Deployment
-              </h2>
 
               <p class="text-gray-700">
-                It is possible to deploy notebooks that belong to this Hub in an airgapped
-                deployment, without connecting back to Livebook Teams server. This is done
-                using the Docker image template below, which encrypts all of your Hub metadata,
-                and taking some additional steps.
+                Then save the Dockerfile below in a repository with the Livebook notebooks
+                that belong to your Organization. <strong>You must change</strong>
+                <code>/path/to/my/notebooks</code> in the template below to point to a directory
+                with all <code>.livemd</code> files you want to deploy.
               </p>
 
-              <div id="env-code">
-                <div class="flex justify-between items-end">
+              <div id="env-code" class="py-2">
+                <div class="flex justify-between items-end mb-1">
                   <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
                   <button
                     class="button-base button-gray whitespace-nowrap py-1 px-2"
@@ -243,25 +239,20 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
 
               <p class="text-gray-700 py-2">
-                Before deployment, you must perform the following manual steps:
+                Finally, you must set the following environment variables in your deployment platform:
               </p>
 
-              <ol class="text-gray-700 space-y-3 list-disc list-inside">
+              <ul class="text-gray-700 pl-1 space-y-3 list-disc list-inside">
                 <li>
-                  You must change <code>/path/to/my/notebooks</code> in the template above
-                  to point to a directory with the <code>.livemd</code> files you want to deploy
+                  <code>LIVEBOOK_TEAMS_KEY</code>
+                  - set it to the "Livebook Teams key" value you can find at the top of this page
                 </li>
                 <li>
-                  You must set the <code>LIVEBOOK_TEAMS_KEY</code> environment variable
-                  directly on your deployment platform, with the value you can find at the
-                  top of this page
+                  <code>LIVEBOOK_PASSWORD</code>
+                  (optional) - set it to any value of your choice, if you want to access and debug
+                  your deployed notebooks in production
                 </li>
-                <li>
-                  You may set the <code>LIVEBOOK_PASSWORD</code> environment variable to any
-                  value of your choice, if you want to access and debug your deployed notebooks
-                  in production
-                </li>
-              </ol>
+              </ul>
             </div>
 
             <div class="flex flex-col space-y-4">
@@ -315,6 +306,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     </div>
     """
   end
+
+  defp zta_key_label("cloudflare"), do: "Team name (domain)"
+  defp zta_key_label("google_iap"), do: "Audience (aud)"
 
   defp org_url(hub, path) do
     Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
@@ -445,13 +439,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
      )}
   end
 
-  def handle_event("change_zta", %{"provider" => ""}, socket) do
-    zta = %{"provider" => "", "key" => ""}
-    {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
-  end
-
-  def handle_event("change_zta", %{"provider" => provider, "key" => key}, socket) do
-    zta = %{"provider" => provider, "key" => key}
+  def handle_event("change_zta", %{"provider" => provider} = params, socket) do
+    zta = %{"provider" => provider, "key" => params["key"]}
     {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
   end
 
@@ -471,11 +460,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
       ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
       ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
-
       """
 
     apps =
       """
+
       COPY /path/to/my/notebooks /apps
       ENV LIVEBOOK_APPS_PATH "/apps"
       ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
@@ -507,7 +496,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   defp zta_env(%{"provider" => provider, "key" => key}) do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
-
     """
   end
 end
