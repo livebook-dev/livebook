@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, title: title(socket))}
+    {:ok, socket}
   end
 
   @impl true
@@ -19,6 +19,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
     socket =
       socket
+      |> assign(title: title(socket))
       |> assign_new(:changeset, fn ->
         attrs = %{name: secret_name, value: nil, hub_id: nil}
         Secrets.change_secret(%Secret{}, attrs)
