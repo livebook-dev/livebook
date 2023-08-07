@@ -14,7 +14,7 @@ defmodule LivebookWeb.Output.ControlComponent do
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
       data-cell-id={@cell_id}
-      data-default-handlers={to_string(Map.get(@attrs, :default_handlers, :off))}
+      data-default-handlers={Map.get(@attrs, :default_handlers, :off)}
       data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @attrs.events)}
       data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @attrs.events)}
       data-target={@myself}
