@@ -243,6 +243,10 @@ const Session = {
     if (this.props.globalStatus !== prevProps.globalStatus) {
       setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
     }
+
+    if (this.focusedId) {
+      this.broadcastElementFocused(this.focusedId, false);
+    }
   },
 
   disconnected() {
@@ -1056,12 +1060,7 @@ const Session = {
       }
     }
 
-    globalPubSub.broadcast("navigation", {
-      type: "element_focused",
-      focusableId: focusableId,
-      scroll,
-    });
-
+    this.broadcastElementFocused(focusableId, scroll);
     this.setInsertMode(false);
   },
 
@@ -1082,6 +1081,14 @@ const Session = {
     globalPubSub.broadcast("navigation", {
       type: "insert_mode_changed",
       enabled: insertModeEnabled,
+    });
+  },
+
+  broadcastElementFocused(focusableId, scroll) {
+    globalPubSub.broadcast("navigation", {
+      type: "element_focused",
+      focusableId: focusableId,
+      scroll,
     });
   },
 

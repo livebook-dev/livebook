@@ -107,7 +107,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
       %{seq: ["s", "p"], desc: "Show package search"},
-      %{seq: ["0", "0"], desc: "Reconnect current runtime"}
+      %{seq: ["0", "0"], desc: "Reconnect current runtime"},
+      %{
+        seq: ["ctrl", "k"],
+        seq_mac: ["⌘", "k"],
+        press_all: true,
+        desc: "Toggle Kino keyboard control"
+      }
     ],
     universal: [
       %{
