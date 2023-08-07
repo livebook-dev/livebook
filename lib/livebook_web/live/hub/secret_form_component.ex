@@ -43,6 +43,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
+              disabled={@secret_name != nil}
               phx-debounce
               class="uppercase"
             />
