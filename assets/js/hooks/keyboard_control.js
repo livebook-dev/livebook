@@ -73,7 +73,10 @@ const KeyboardControl = {
   },
 
   handleDocumentKeyDown(event) {
-    if (this.isKeyboardToggle(event)) {
+    if (
+      this.isKeyboardToggle(event) &&
+      !isEditableElement(document.activeElement)
+    ) {
       cancelEvent(event);
       this.keyboardEnabled() ? this.disableKeyboard() : this.enableKeyboard();
       return;
