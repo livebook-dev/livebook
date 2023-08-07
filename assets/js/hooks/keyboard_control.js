@@ -97,10 +97,6 @@ const KeyboardControl = {
         cancelEvent(event);
       }
 
-      if (event.repeat) {
-        return;
-      }
-
       if (this.props.isKeyupEnabled) {
         const { key } = event;
         this.pushEventTo(this.props.target, "keyup", { key });
