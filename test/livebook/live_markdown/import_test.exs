@@ -768,8 +768,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     {notebook, messages} = Import.notebook_from_livemd(markdown)
 
-    assert messages == ["ignoring notebook Hub with unknown id"]
     assert notebook.hub_id != "nonexistent"
+    assert ["this notebook belongs to an Organization you don't have access to" <> _] = messages
   end
 
   describe "app settings" do
@@ -1141,7 +1141,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, messages} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: []} = notebook
-      assert messages == ["failed to verify notebook stamp"]
+      assert ["invalid notebook stamp" <> _] = messages
     end
 
     test "restores hub secret names from notebook stamp using offline hub" do
@@ -1186,7 +1186,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, messages} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: true} = notebook
-      assert messages == ["failed to verify notebook stamp"]
+      assert ["invalid notebook stamp" <> _] = messages
     end
 
     test "sets :teams_enabled to true when the teams hub exist regardless the stamp" do

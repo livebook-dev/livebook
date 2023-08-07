@@ -379,6 +379,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp grab_leading_comments(elems), do: {[], elems}
 
+  @unknown_hub_message "this notebook belongs to an Organization you don't have access to. " <>
+                         "Head to Livebook's home and add the Organization to your application before reopening this notebook"
+
   defp notebook_metadata_to_attrs(metadata) do
     Enum.reduce(metadata, {%{}, []}, fn
       {"persist_outputs", persist_outputs}, {attrs, messages} ->
@@ -395,7 +398,7 @@ defmodule Livebook.LiveMarkdown.Import do
       {"hub_id", hub_id}, {attrs, messages} ->
         cond do
           Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
-          true -> {attrs, messages ++ ["ignoring notebook Hub with unknown id"]}
+          true -> {attrs, messages ++ [@unknown_hub_message]}
         end
 
       {"app_settings", app_settings_metadata}, {attrs, messages} ->
@@ -602,6 +605,10 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
+  @invalid_stamp_message "invalid notebook stamp, disabling default access to secrets and remote file systems "
+  @personal_stamp_context "(you are either not the author of this notebook or changed its source outside of Livebook)"
+  @org_stamp_context "(this may happen if you made changes to the notebook source outside of Livebook)"
+
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
@@ -614,7 +621,15 @@ defmodule Livebook.LiveMarkdown.Import do
         notebook = apply_stamp_metadata(notebook, metadata)
         {true, notebook, []}
       else
-        _ -> {false, notebook, ["failed to verify notebook stamp"]}
+        _ ->
+          extra =
+            if notebook.hub_id == "personal-hub" do
+              @personal_stamp_context
+            else
+              @org_stamp_context
+            end
+
+          {false, notebook, [@invalid_stamp_message <> extra]}
       end
 
     # We enable teams features for offline hub only if the stamp
