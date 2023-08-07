@@ -22,7 +22,6 @@ import { globalPubSub } from "../lib/pub_sub";
 const KeyboardControl = {
   mounted() {
     this.props = this.getProps();
-    this.cellFocused = false;
 
     this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
     this._handleDocumentKeyUp = this.handleDocumentKeyUp.bind(this);
@@ -36,11 +35,6 @@ const KeyboardControl = {
     // Note: the focus event doesn't bubble, so we register for the
     // capture phase
     window.addEventListener("focus", this._handleDocumentFocus, true);
-
-    this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
-      "navigation",
-      (event) => this.handleNavigationEvent(event)
-    );
   },
 
   updated() {
@@ -51,7 +45,6 @@ const KeyboardControl = {
     window.removeEventListener("keydown", this._handleDocumentKeyDown, true);
     window.removeEventListener("keyup", this._handleDocumentKeyUp, true);
     window.removeEventListener("focus", this._handleDocumentFocus, true);
-    this.unsubscribeFromNavigationEvents();
   },
 
   getProps() {
@@ -121,12 +114,6 @@ const KeyboardControl = {
     }
   },
 
-  handleNavigationEvent(event) {
-    if (event.type === "element_focused") {
-      this.cellFocused = event.focusableId === this.props.cellId;
-    }
-  },
-
   enableKeyboard() {
     if (!this.keyboardEnabled()) {
       this.pushEventTo(this.props.target, "enable_keyboard", {});
@@ -143,10 +130,15 @@ const KeyboardControl = {
     return this.props.isKeydownEnabled || this.props.isKeyupEnabled;
   },
 
-  isKeyboardToggle({ key, metaKey, ctrlKey }) {
+  isKeyboardToggle(event) {
+    if (event.repeat) {
+      return false;
+    }
+
+    const { metaKey, ctrlKey, key } = event;
     const cmd = isMacOS() ? metaKey : ctrlKey;
 
-    if (cmd && key === "k" && this.cellFocused) {
+    if (cmd && key === "k" && this.isCellFocused()) {
       return (
         !this.keyboardEnabled() ||
         (this.keyboardEnabled() && this.props.defaultHandlers !== "off")
@@ -154,6 +146,11 @@ const KeyboardControl = {
     } else {
       return false;
     }
+  },
+
+  isCellFocused() {
+    const sessionEl = this.el.closest("[data-el-session]");
+    return sessionEl && sessionEl.dataset.focusedId === this.props.cellId;
   },
 };
 

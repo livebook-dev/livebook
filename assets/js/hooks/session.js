@@ -245,7 +245,7 @@ const Session = {
     }
 
     if (this.focusedId) {
-      this.broadcastElementFocused(this.focusedId, false);
+      this.el.dataset.focusedId = this.focusedId;
     }
   },
 
@@ -1036,6 +1036,7 @@ const Session = {
 
   setFocusedEl(focusableId, { scroll = true, focusElement = true } = {}) {
     this.focusedId = focusableId;
+    this.el.dataset.focusedId = focusableId;
 
     if (focusableId) {
       // If the element is inside collapsed section, expand that section
@@ -1060,7 +1061,12 @@ const Session = {
       }
     }
 
-    this.broadcastElementFocused(focusableId, scroll);
+    globalPubSub.broadcast("navigation", {
+      type: "element_focused",
+      focusableId: focusableId,
+      scroll,
+    });
+
     this.setInsertMode(false);
   },
 
@@ -1081,14 +1087,6 @@ const Session = {
     globalPubSub.broadcast("navigation", {
       type: "insert_mode_changed",
       enabled: insertModeEnabled,
-    });
-  },
-
-  broadcastElementFocused(focusableId, scroll) {
-    globalPubSub.broadcast("navigation", {
-      type: "element_focused",
-      focusableId: focusableId,
-      scroll,
     });
   },
 
