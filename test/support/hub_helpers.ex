@@ -40,7 +40,7 @@ defmodule Livebook.HubHelpers do
     {hub, headers}
   end
 
-  defp build_team_hub(user, node) do
+  def build_team_hub(user, node) do
     teams_org = build(:org)
     teams_key = teams_org.teams_key
     key_hash = Livebook.Teams.Org.key_hash(teams_org)

@@ -12,7 +12,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   describe "start_link/1" do
     test "successfully authenticates the web socket connection", %{user: user, node: node} do
-      team = create_team_hub(user, node)
+      team = build_team_hub(user, node)
       id = team.id
 
       refute TeamClient.connected?(team.id)
@@ -49,9 +49,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = create_team_hub(user, node)
       id = team.id
 
-      refute TeamClient.connected?(team.id)
-
-      TeamClient.start_link(team)
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_CREATED_FOO", value: "BAR")
@@ -69,9 +66,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = create_team_hub(user, node)
       id = team.id
 
-      refute TeamClient.connected?(team.id)
-
-      TeamClient.start_link(team)
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_UPDATED_FOO", value: "BAR")
@@ -98,9 +92,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = create_team_hub(user, node)
       id = team.id
 
-      refute TeamClient.connected?(team.id)
-
-      TeamClient.start_link(team)
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_DELETED_FOO", value: "BAR")
