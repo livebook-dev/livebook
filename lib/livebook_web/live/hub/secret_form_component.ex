@@ -43,9 +43,11 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
-              disabled={@secret_name != nil}
+              readonly={@secret_name != nil}
               phx-debounce
               class="uppercase"
+              help="Name cannot be changed"
+              class={@secret_name != nil && "bg-gray-200/50 border-200/80 cursor-not-allowed"}
             />
             <.password_field
               field={f[:value]}
