@@ -303,6 +303,17 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
+  Gets a list of file systems from all hubs.
+  """
+  @spec get_file_systems() :: list(FileSystem.t())
+  def get_file_systems() do
+    file_systems = Enum.flat_map(get_hubs(), &Provider.get_file_systems/1)
+    local_file_system = Livebook.Config.local_file_system()
+
+    [local_file_system | Enum.sort_by(file_systems, & &1.id)]
+  end
+
+  @doc """
   Gets a list of file systems for given hub.
   """
   @spec get_file_systems(Provider.t()) :: list(FileSystem.t())
