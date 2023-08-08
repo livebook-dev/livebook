@@ -457,8 +457,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     base =
       """
       FROM ghcr.io/livebook-dev/livebook:#{version}
-      ARG APPS_PATH /path/to/my/notebooks
-      ARG TEAMS_KEY "#{socket.assigns.hub.teams_key}"
+      ARG APPS_PATH=/path/to/my/notebooks
+      ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
 
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
