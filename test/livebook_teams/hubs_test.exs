@@ -11,7 +11,7 @@ defmodule Livebook.HubsTest do
     refute team in Hubs.get_hubs()
   end
 
-  test "get_metadata/0 returns a list of persisted hubs normalized", %{user: user, node: node} do
+  test "get_metadatas/0 returns a list of persisted hubs normalized", %{user: user, node: node} do
     team = create_team_hub(user, node)
     metadata = Hubs.Provider.to_metadata(team)
 
