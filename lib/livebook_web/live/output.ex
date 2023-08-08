@@ -253,14 +253,16 @@ defmodule LivebookWeb.Output do
          id: id,
          input_views: input_views,
          session_pid: session_pid,
-         client_id: client_id
+         client_id: client_id,
+         cell_id: cell_id
        }) do
     live_component(Output.ControlComponent,
       id: id,
       attrs: attrs,
       input_views: input_views,
       session_pid: session_pid,
-      client_id: client_id
+      client_id: client_id,
+      cell_id: cell_id
     )
   end
 
