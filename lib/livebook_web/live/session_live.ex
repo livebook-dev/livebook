@@ -361,8 +361,8 @@ defmodule LivebookWeb.SessionLive do
                   </button>
                 </.menu_item>
                 <.menu_item>
-                  <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
-                    <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
+                  <.link navigate={~p"/hub"} aria-label="Add Organization" role="menuitem">
+                    <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Organization
                   </.link>
                 </.menu_item>
               </.menu>
