@@ -112,7 +112,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq: ["ctrl", "k"],
         seq_mac: ["⌘", "k"],
         press_all: true,
-        desc: "Toggle Kino keyboard control"
+        desc: "Toggle keyboard control in cell output"
       }
     ],
     universal: [

@@ -243,10 +243,6 @@ const Session = {
     if (this.props.globalStatus !== prevProps.globalStatus) {
       setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
     }
-
-    if (this.focusedId) {
-      this.el.dataset.focusedId = this.focusedId;
-    }
   },
 
   disconnected() {
@@ -1036,7 +1032,12 @@ const Session = {
 
   setFocusedEl(focusableId, { scroll = true, focusElement = true } = {}) {
     this.focusedId = focusableId;
-    this.el.dataset.focusedId = focusableId;
+
+    if (focusableId) {
+      this.el.setAttribute("data-js-focused-id", focusableId);
+    } else {
+      this.el.removeAttribute("data-js-focused-id");
+    }
 
     if (focusableId) {
       // If the element is inside collapsed section, expand that section

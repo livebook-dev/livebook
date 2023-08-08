@@ -1,6 +1,5 @@
 import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
 import { cancelEvent, isEditableElement, isMacOS } from "../lib/utils";
-import { globalPubSub } from "../lib/pub_sub";
 
 /**
  * A hook for ControlComponent to handle user keyboard interactions.
@@ -137,7 +136,7 @@ const KeyboardControl = {
     if (cmd && key === "k" && this.isCellFocused()) {
       return (
         !this.keyboardEnabled() ||
-        (this.keyboardEnabled() && this.props.defaultHandlers !== "off")
+        ["on", "disable_only"].includes(this.props.defaultHandlers)
       );
     } else {
       return false;
@@ -146,7 +145,10 @@ const KeyboardControl = {
 
   isCellFocused() {
     const sessionEl = this.el.closest("[data-el-session]");
-    return sessionEl && sessionEl.dataset.focusedId === this.props.cellId;
+    return (
+      sessionEl &&
+      sessionEl.getAttribute("data-js-focused-id") === this.props.cellId
+    );
   },
 };
 
