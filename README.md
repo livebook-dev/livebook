@@ -210,7 +210,7 @@ The following environment variables can be used to configure Livebook on boot:
     cluster. Must be "name" (long names) or "sname" (short names). Note that this
     sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
-  * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
+  * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTPS.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
   * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
@@ -264,8 +264,8 @@ The following environment variables can be used to configure Livebook on boot:
     Must be set together with LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_KEY.
 
   * LIVEBOOK_TEAMS_SECRETS - sets the Livebook Teams encrypted secrets for deploying apps with secrets.
-    This is relevant when deploying apps with offline hub. Must be set together with
-    LIVEBOOK_TEAMS_NAME, LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_OFFLINE_KEY.
+    This is relevant when deploying airgapped apps. Must be set together with
+    LIVEBOOK_TEAMS_NAME, LIVEBOOK_TEAMS_KEY, and LIVEBOOK_TEAMS_OFFLINE_KEY.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to

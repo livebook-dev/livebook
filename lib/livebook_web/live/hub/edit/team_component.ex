@@ -198,8 +198,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <p class="text-gray-700">
                 Then save the Dockerfile below in a repository with the Livebook notebooks
                 that belong to your Organization. <strong>You must change</strong>
-                <code>/path/to/my/notebooks</code> in the template below to point to a directory
-                with all <code>.livemd</code> files you want to deploy.
+                the value of the <code>APPS_PATH</code>
+                argument in the template below to point to a directory with all <code>.livemd</code>
+                files you want to deploy.
               </p>
 
               <div id="env-code" class="py-2">
@@ -239,18 +240,19 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
 
               <p class="text-gray-700 py-2">
-                Finally, you must set the following environment variables in your deployment platform:
+                You may additionally perform the following optional steps:
               </p>
 
               <ul class="text-gray-700 pl-1 space-y-3 list-disc list-inside">
                 <li>
-                  <code>LIVEBOOK_TEAMS_KEY</code>
-                  - set it to the "Livebook Teams key" value you can find at the top of this page
+                  you may remove the default value for <code>TEAMS_KEY</code>
+                  from your Dockerfile and set it as a build argument in your deployment
+                  platform
                 </li>
                 <li>
-                  <code>LIVEBOOK_PASSWORD</code>
-                  (optional) - set it to any value of your choice, if you want to access and debug
-                  your deployed notebooks in production
+                  if you want to debug your deployed notebooks in production, you may
+                  set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
+                  value of at least 12 characters of your choice
                 </li>
               </ul>
             </div>
@@ -455,8 +457,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     base =
       """
       FROM ghcr.io/livebook-dev/livebook:#{version}
+      ARG APPS_PATH /path/to/my/notebooks
+      ARG TEAMS_KEY "#{socket.assigns.hub.teams_key}"
 
-      ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
+      ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
       ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
       ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
@@ -465,9 +469,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     apps =
       """
 
-      COPY /path/to/my/notebooks /apps
       ENV LIVEBOOK_APPS_PATH "/apps"
       ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+      ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
+      COPY ${APPS_PATH} /apps
       RUN /app/bin/warmup_apps.sh\
       """
 
