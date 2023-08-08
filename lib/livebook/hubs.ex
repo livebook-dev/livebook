@@ -191,6 +191,9 @@ defmodule Livebook.Hubs do
         {:ok, _} ->
           :ok
 
+        {:error, {:already_started, _pid}} ->
+          :ok
+
         {:error, reason} ->
           Logger.error("Could not start Hub #{hub.id}: #{Exception.format_exit(reason)}")
       end
