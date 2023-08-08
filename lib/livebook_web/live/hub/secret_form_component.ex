@@ -43,9 +43,10 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
-              disabled={@secret_name != nil}
+              readonly={@secret_name != nil}
               phx-debounce
-              class="uppercase"
+              help="Name cannot be changed"
+              class={secret_name_input_class(@secret_name)}
             />
             <.password_field
               field={f[:value]}
@@ -119,4 +120,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   defp set_secret(socket, %Secret{} = secret) do
     Hubs.update_secret(socket.assigns.hub, secret)
   end
+
+  defp secret_name_input_class(nil), do: "uppercase"
+  defp secret_name_input_class(_), do: "uppercase bg-gray-200/50 border-200/80 cursor-not-allowed"
 end
