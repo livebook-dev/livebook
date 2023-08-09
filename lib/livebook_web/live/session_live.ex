@@ -488,7 +488,12 @@ defmodule LivebookWeb.SessionLive do
       width={:big}
       patch={@self_path}
     >
-      <.add_file_entry_content session={@session} file_entries={@data_view.file_entries} tab={@tab} />
+      <.add_file_entry_content
+        session={@session}
+        hub={@data_view.hub}
+        file_entries={@data_view.file_entries}
+        tab={@tab}
+      />
     </.modal>
 
     <.modal
@@ -947,24 +952,28 @@ defmodule LivebookWeb.SessionLive do
           :if={@tab == "storage"}
           module={LivebookWeb.SessionLive.AddFileEntryFileComponent}
           id="add-file-entry-from-file"
+          hub={@hub}
           session={@session}
         />
         <.live_component
           :if={@tab == "url"}
           module={LivebookWeb.SessionLive.AddFileEntryUrlComponent}
           id="add-file-entry-from-url"
+          hub={@hub}
           session={@session}
         />
         <.live_component
           :if={@tab == "upload"}
           module={LivebookWeb.SessionLive.AddFileEntryUploadComponent}
           id="add-file-entry-from-upload"
+          hub={@hub}
           session={@session}
         />
         <.live_component
           :if={@tab == "unlisted"}
           module={LivebookWeb.SessionLive.AddFileEntryUnlistedComponent}
           id="add-file-entry-from-unlisted"
+          hub={@hub}
           session={@session}
           file_entries={@file_entries}
         />
