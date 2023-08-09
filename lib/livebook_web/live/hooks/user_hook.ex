@@ -33,9 +33,7 @@ defmodule LivebookWeb.UserHook do
   # attributes if the socket is connected. Otherwise uses
   # `user_data` from session.
   defp build_current_user(session, socket) do
-    user = User.new()
     identity_data = Map.new(session["identity_data"], fn {k, v} -> {Atom.to_string(k), v} end)
-
     connect_params = get_connect_params(socket) || %{}
     attrs = connect_params["user_data"] || session["user_data"] || %{}
 
@@ -44,6 +42,8 @@ defmodule LivebookWeb.UserHook do
         %{"name" => nil, "email" => email} = attrs -> %{attrs | "name" => email}
         attrs -> attrs
       end
+
+    user = User.new(attrs["id"])
 
     case Livebook.Users.update_user(user, attrs) do
       {:ok, user} -> user
