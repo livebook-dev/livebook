@@ -216,6 +216,13 @@ defmodule Livebook.Apps do
           if password = opts[:password] do
             put_in(notebook.app_settings.password, password)
           else
+            if notebook.app_settings.access_type == :protected do
+              Logger.warning(
+                "The app at #{info.relative_path} will use a random password." <>
+                  " You may want to set LIVEBOOK_APPS_PATH_PASSWORD or make the app public."
+              )
+            end
+
             notebook
           end
 

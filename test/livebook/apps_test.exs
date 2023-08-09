@@ -11,13 +11,13 @@ defmodule Livebook.AppsTest do
       app2_path = Path.join(tmp_dir, "app2.livemd")
 
       File.write!(app1_path, """
-      <!-- livebook:{"app_settings":{"slug":"app1"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app1"}} -->
 
       # App 1
       """)
 
       File.write!(app2_path, """
-      <!-- livebook:{"app_settings":{"slug":"app2"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app2"}} -->
 
       # App 2
       """)
@@ -100,6 +100,7 @@ defmodule Livebook.AppsTest do
       Livebook.App.close(pid)
     end
 
+    @tag :capture_log
     @tag :tmp_dir
     test "deploys apps with offline hub secrets", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app1.livemd")
@@ -163,6 +164,28 @@ defmodule Livebook.AppsTest do
     end
 
     @tag :tmp_dir
+    test "warns when a notebook is protected and no :password is set", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # App
+      """)
+
+      Livebook.Apps.subscribe()
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+             end) =~
+               "The app at app.livemd will use a random password. You may want to set LIVEBOOK_APPS_PATH_PASSWORD or make the app public."
+
+      assert_receive {:app_created, %{slug: "app"} = app}
+
+      Livebook.App.close(app.pid)
+    end
+
+    @tag :tmp_dir
     test "overrides apps password when :password is set", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
@@ -183,13 +206,12 @@ defmodule Livebook.AppsTest do
       Livebook.App.close(app.pid)
     end
 
-    @tag :capture_log
     @tag :tmp_dir
     test "deploys with import warnings", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
 
       # App
 
@@ -198,7 +220,9 @@ defmodule Livebook.AppsTest do
 
       Livebook.Apps.subscribe()
 
-      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+             end) =~ "line 5 - fenced Code Block opened with"
 
       assert_receive {:app_created, %{slug: "app", warnings: warnings} = app}
 
@@ -218,7 +242,7 @@ defmodule Livebook.AppsTest do
       File.write!(image_path, "content")
 
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
 
       # App
       """)
