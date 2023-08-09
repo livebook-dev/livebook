@@ -321,8 +321,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         Teams key
       </h3>
       <div class="justify-center">
-        This is your <strong>Teams key</strong>. We use this key to
-        encrypt your data stored in Livebook Teams servers. This key is
+        This is your <strong>Teams key</strong>. This key encrypts your
+        data before it is sent to Livebook Teams servers. This key is
         required for you and invited users to join this organization.
         We recommend storing it somewhere safe:
       </div>
