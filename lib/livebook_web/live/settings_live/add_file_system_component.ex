@@ -58,7 +58,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
           />
           <.text_field field={f[:region]} label="Region (optional)" />
           <.password_field field={f[:access_key_id]} label="Access Key ID" />
-          <.password_field field={f[:secret_access_key]} label="Access Key ID" />
+          <.password_field field={f[:secret_access_key]} label="Secret Access Key" />
           <div class="flex space-x-2">
             <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
               Add
