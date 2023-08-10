@@ -33,6 +33,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     |> validate_required([:url, :name, :copy])
     |> Livebook.Notebook.validate_file_entry_name(:name)
     |> Livebook.Utils.validate_url(:url)
+    |> Livebook.Utils.validate_not_s3_url(
+      :url,
+      ~s{s3:// URL scheme is not supported here, please connect to the bucket and use "From storage"}
+    )
   end
 
   @impl true
