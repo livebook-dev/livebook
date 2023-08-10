@@ -94,7 +94,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <br />
         Looking for unsaved notebooks? <.link
           class="font-semibold"
-          navigate={~p"/open/file?autosave=true"}
+          navigate={~p"/open/storage?autosave=true"}
           phx-no-format
         >Browse them here</.link>.
       <% end %>

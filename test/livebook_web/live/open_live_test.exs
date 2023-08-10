@@ -7,7 +7,7 @@ defmodule LivebookWeb.OpenLiveTest do
 
   describe "file selection" do
     test "updates the list of files as the input changes", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
@@ -20,7 +20,7 @@ defmodule LivebookWeb.OpenLiveTest do
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = test_notebook_path("basic")
 
@@ -45,7 +45,7 @@ defmodule LivebookWeb.OpenLiveTest do
 
     @tag :tmp_dir
     test "disables import when a directory is selected", %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       view
       |> element(~s{form[phx-change="set_path"]})
@@ -57,7 +57,7 @@ defmodule LivebookWeb.OpenLiveTest do
     end
 
     test "disables import when a nonexistent file is selected", %{conn: conn} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = File.cwd!() |> Path.join("nonexistent.livemd")
 
@@ -73,7 +73,7 @@ defmodule LivebookWeb.OpenLiveTest do
     @tag :tmp_dir
     test "disables open when a write-protected notebook is selected",
          %{conn: conn, tmp_dir: tmp_dir} do
-      {:ok, view, _} = live(conn, ~p"/open/file")
+      {:ok, view, _} = live(conn, ~p"/open/storage")
 
       path = Path.join(tmp_dir, "write_protected.livemd")
       File.touch!(path)
@@ -284,7 +284,7 @@ defmodule LivebookWeb.OpenLiveTest do
 
       assert {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/open?path=#{directory_path}")
 
-      assert to == ~p"/open/file?path=#{directory_path}"
+      assert to == ~p"/open/storage?path=#{directory_path}"
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ directory_path

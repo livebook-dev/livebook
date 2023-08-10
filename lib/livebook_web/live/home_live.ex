@@ -45,7 +45,10 @@ defmodule LivebookWeb.HomeLive do
     >
       <:topbar_action>
         <div class="flex space-x-2">
-          <.link navigate={~p"/open/file"} class="button-base button-outlined-gray whitespace-nowrap">
+          <.link
+            navigate={~p"/open/storage"}
+            class="button-base button-outlined-gray whitespace-nowrap"
+          >
             Open
           </.link>
           <.link class="button-base button-blue" patch={~p"/new"}>
@@ -63,7 +66,7 @@ defmodule LivebookWeb.HomeLive do
           <LayoutHelpers.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
             <.link
-              navigate={~p"/open/file"}
+              navigate={~p"/open/storage"}
               class="button-base button-outlined-gray whitespace-nowrap"
             >
               Open

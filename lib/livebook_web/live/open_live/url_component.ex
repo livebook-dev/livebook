@@ -17,6 +17,10 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
     cast({data, types}, attrs, [:url])
     |> validate_required([:url])
     |> Livebook.Utils.validate_url(:url)
+    |> Livebook.Utils.validate_not_s3_url(
+      :url,
+      ~s{s3:// URL scheme is not supported here, please connect to the bucket and use "From storage"}
+    )
   end
 
   @impl true
