@@ -285,7 +285,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <%= for file_system <- @file_systems do %>
         <%= if file_system == @file.file_system do %>
           <.menu_item variant={:selected}>
-            <button role="menuitem">
+            <button id={"file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
             </button>
@@ -293,6 +293,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% else %>
           <.menu_item>
             <button
+              id={"file-system-#{file_system.id}"}
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
