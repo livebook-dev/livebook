@@ -135,7 +135,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         <.link
           class="w-full flex items-center justify-center p-8 py-1 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
           role="button"
-          patch={~p"/sessions/#{@session.id}/add-file/file"}
+          patch={~p"/sessions/#{@session.id}/add-file/storage"}
         >
           <.remix_icon icon="add-line" class="text-lg align-center" />
           <span>New file</span>

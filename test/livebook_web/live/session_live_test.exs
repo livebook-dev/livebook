@@ -1688,14 +1688,14 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "file management" do
     @tag :tmp_dir
-    test "adding :attachment file entry from file",
+    test "adding :attachment file entry from storage",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
       Session.subscribe(session.id)
 
       path = Path.join(tmp_dir, "image.jpg")
       File.write!(path, "content")
 
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
       |> element(~s{form[phx-change="set_path"]})
@@ -1721,11 +1721,11 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     @tag :tmp_dir
-    test "adding :file file entry from file", %{conn: conn, session: session, tmp_dir: tmp_dir} do
+    test "adding :file file entry from storage", %{conn: conn, session: session, tmp_dir: tmp_dir} do
       path = Path.join(tmp_dir, "image.jpg")
       File.write!(path, "content")
 
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/file")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
       |> element(~s{form[phx-change="set_path"]})
