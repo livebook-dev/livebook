@@ -152,9 +152,11 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       data-tooltip={
         ~S'''
         Manage files used by the notebook.
-        Files are either links to existing
-        resources or hard copies stored in
-        the notebook files directory.
+        Files are links to existing resources in
+        your disk, a remote storage, or a URL.
+        Files may also be hard copies stored in
+        the files/ directory kept alongside your
+        notebook.
         '''
       }
     >
