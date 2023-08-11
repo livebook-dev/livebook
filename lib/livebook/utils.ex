@@ -185,6 +185,20 @@ defmodule Livebook.Utils do
     end)
   end
 
+  @doc """
+  Validates a change is not an S3 URL.
+  """
+  @spec validate_not_s3_url(Ecto.Changeset.t(), atom(), String.t()) :: Ecto.Changeset.t()
+  def validate_not_s3_url(changeset, field, message) do
+    Ecto.Changeset.validate_change(changeset, field, fn ^field, url ->
+      if valid_url?(url) and String.starts_with?(url, "s3://") do
+        [{field, message}]
+      else
+        []
+      end
+    end)
+  end
+
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 

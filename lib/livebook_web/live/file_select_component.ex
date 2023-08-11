@@ -268,11 +268,14 @@ defmodule LivebookWeb.FileSelectComponent do
       <:toggle>
         <button
           type="button"
-          class="button-base button-gray button-square-icon"
+          class="button-base button-gray pl-3 pr-2"
           aria-label="switch file system"
           disabled={@file_system_select_disabled}
         >
-          <.file_system_icon file_system={@file.file_system} />
+          <span><%= file_system_name(@file.file_system) %></span>
+          <div class="pl-0.5 flex items-center">
+            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
+          </div>
         </button>
       </:toggle>
       <%= for file_system <- @file_systems do %>

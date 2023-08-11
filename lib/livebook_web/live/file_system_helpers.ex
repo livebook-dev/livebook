@@ -4,11 +4,19 @@ defmodule LivebookWeb.FileSystemHelpers do
   alias Livebook.FileSystem
 
   @doc """
+  Formats the given file system into a short name.
+  """
+  def file_system_name(file_system)
+
+  def file_system_name(%FileSystem.Local{}), do: "Disk"
+  def file_system_name(%FileSystem.S3{}), do: "S3"
+
+  @doc """
   Formats the given file system into a descriptive label.
   """
   def file_system_label(file_system)
 
-  def file_system_label(%FileSystem.Local{}), do: "Local disk"
+  def file_system_label(%FileSystem.Local{}), do: "Disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
 
   @doc """

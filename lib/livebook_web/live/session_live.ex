@@ -888,11 +888,11 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col space-y-4">
         <div class="tabs">
           <.link
-            patch={~p"/sessions/#{@session.id}/add-file/file"}
-            class={["tab", @tab == "file" && "active"]}
+            patch={~p"/sessions/#{@session.id}/add-file/storage"}
+            class={["tab", @tab == "storage" && "active"]}
           >
             <.remix_icon icon="file-3-line" class="align-middle" />
-            <span class="font-medium">From file</span>
+            <span class="font-medium">From storage</span>
           </.link>
           <.link
             patch={~p"/sessions/#{@session.id}/add-file/url"}
@@ -918,7 +918,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="grow tab"></div>
         </div>
         <.live_component
-          :if={@tab == "file"}
+          :if={@tab == "storage"}
           module={LivebookWeb.SessionLive.AddFileEntryFileComponent}
           id="add-file-entry-from-file"
           session={@session}
