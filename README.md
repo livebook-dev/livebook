@@ -74,6 +74,9 @@ docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
 docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" ghcr.io/livebook-dev/livebook
+
+# Or if you need to run on different ports:
+docker run -p 8090:8090 -p 8091:8091 --pull always -e LIVEBOOK_PORT=8090 -e LIVEBOOK_IFRAME_PORT=8091 ghcr.io/livebook-dev/livebook
 ```
 
 For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
@@ -81,6 +84,20 @@ For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-d
 To try out features from the main branch you can alternatively
 use the `ghcr.io/livebook-dev/livebook:edge` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
+
+If using Docker Compose the following template is a good starting point:
+
+```yml
+services:
+  livebook:
+    image: ghcr.io/livebook-dev/livebook
+    ports:
+      - 8090:8090
+      - 8091:8091
+    environment:
+      - LIVEBOOK_PORT=8090
+      - LIVEBOOK_IFRAME_PORT=8091
+```
 
 ### Embedded devices
 
