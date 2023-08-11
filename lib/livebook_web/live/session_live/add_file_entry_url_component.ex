@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     |> Livebook.Utils.validate_url(:url)
     |> Livebook.Utils.validate_not_s3_url(
       :url,
-      ~s{s3:// URL scheme is not supported here, please connect to the bucket and use "From storage"}
+      ~s{invalid s3:// URL scheme, you must first connect to the Cloud Storage in your Hub page and then choose the relevant file in "From storage"}
     )
   end
 
