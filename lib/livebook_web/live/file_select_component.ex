@@ -269,7 +269,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <button
           type="button"
           class="button-base button-gray pl-3 pr-2"
-          aria-label="switch file system"
+          aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
           <span><%= file_system_name(@file.file_system) %></span>

@@ -209,7 +209,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
              [
                %{
                  name: "delete_from_file_system",
-                 label: "Delete the corresponding file from the file system",
+                 label: "Delete the corresponding file from its storage",
                  default: true,
                  disabled: false
                }

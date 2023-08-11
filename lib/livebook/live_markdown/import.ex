@@ -494,7 +494,7 @@ defmodule Livebook.LiveMarkdown.Import do
       file = Livebook.FileSystem.File.new(file_system, path)
       {:ok, %{type: :file, name: name, file: file}}
     else
-      {:error, "skipping file #{name}, since it points to an unknown file system"}
+      {:error, "skipping file #{name}, since it points to an unknown file storage"}
     end
   end
 
@@ -605,7 +605,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
-  @invalid_stamp_message "invalid notebook stamp, disabling default access to secrets and remote file systems "
+  @invalid_stamp_message "invalid notebook stamp, disabling default access to secrets and remote files "
   @personal_stamp_context "(you are either not the author of this notebook or changed its source outside of Livebook)"
   @org_stamp_context "(this may happen if you made changes to the notebook source outside of Livebook)"
 

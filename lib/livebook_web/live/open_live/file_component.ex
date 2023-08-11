@@ -27,7 +27,7 @@ defmodule LivebookWeb.OpenLive.FileComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="h-80" role="region" aria-label="file system">
+    <div class="h-80" role="region" aria-label="file storage">
       <.live_component
         module={LivebookWeb.FileSelectComponent}
         id="home-file-select"

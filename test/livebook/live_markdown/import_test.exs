@@ -1249,7 +1249,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       assert %Notebook{file_entries: []} = notebook
 
-      assert messages == ["skipping file document.pdf, since it points to an unknown file system"]
+      assert messages == ["skipping file document.pdf, since it points to an unknown file storage"]
     end
 
     test "imports :file file entries with quarantine when no stamp is given" do
