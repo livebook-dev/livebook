@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Insert image
       </h3>
-      <div class="flex flex-col gap-2">
+      <div :if={upload_error_messages(@uploads.image) != []} class="flex flex-col gap-2">
         <div :for={message <- upload_error_messages(@uploads.image)} class="error-box">
           <%= message %>
         </div>

@@ -21,6 +21,7 @@ defmodule LivebookWeb.Output.FileInputComponent do
           # allow_upload and override the accept attribute ourselves
           accept: :any,
           max_entries: 1,
+          max_file_size: 100_000_000_000,
           progress: &handle_progress/3,
           auto_upload: true
         )
@@ -56,6 +57,9 @@ defmodule LivebookWeb.Output.FileInputComponent do
         </div>
         <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
       </label>
+      <p :for={msg <- upload_error_messages(@uploads.file)} class="mt-0.5 text-red-600 text-sm">
+        <%= msg %>
+      </p>
     </form>
     """
   end
