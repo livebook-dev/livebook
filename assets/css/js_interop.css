@@ -427,11 +427,14 @@ solely client-side operations.
 }
 
 [data-el-output-panel-content]:not([data-js-dragging]) {
-  @apply gap-4 pt-4;
+  @apply gap-4;
 }
 
 [data-el-output-panel-content]:not([data-js-dragging])
-  [data-el-output-panel-row-drop-area],
+  [data-el-output-panel-row-drop-area] {
+  @apply invisible;
+}
+
 [data-el-output-panel-content][data-js-dragging]
   [data-el-output-panel-item-options-controls],
 [data-el-output-panel-content]:not([data-js-dragging])

@@ -26,14 +26,17 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id="output-panel"
-      class="flex flex-col"
+      class="h-full w-full overflow-hidden"
       phx-hook="OutputPanel"
       data-phx-target={@myself}
       data-el-output-panel-content
     >
+      <h1 class="p-4 text-3xl text-center font-semibold text-gray-800">
+        Output Panel
+      </h1>
       <.row_dropzone row={0} />
       <%= for {output_row, row_index} <- Enum.with_index(@output_views.rows) do %>
-        <div class="flex flex-grow" data-row-index={row_index} data-el-output-panel-row>
+        <div class="flex" data-row-index={row_index} data-el-output-panel-row>
           <div
             :for={{item, col_index} <- Enum.with_index(output_row.items)}
             id={"output-panel-item-#{row_index}-#{col_index}"}
@@ -68,7 +71,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id={"dropzone-row-#{@row}"}
-      class="w-full h-4 bg-white rounded-lg border-2 border-dashed border-gray-400"
+      class="w-full h-2 bg-white rounded-lg border-2 border-dashed border-gray-400"
       data-el-output-panel-row-drop-area
       data-row-index={@row}
       phx-hook="OutputPanelRowDropzone"
@@ -79,7 +82,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
 
   defp output_options(assigns) do
     ~H"""
-    <div class="absolute z-10 top-0 right-0 hidden" data-el-output-panel-item-options>
+    <div class="absolute z-10 top-0 right-2 hidden" data-el-output-panel-item-options>
       <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
         <div class="flex space-x-4">
           <div class="flex" draggable="true">

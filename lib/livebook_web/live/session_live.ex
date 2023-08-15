@@ -262,8 +262,8 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} />
         </div>
       </div>
-      <div class="flex w-full h-screen overflow-hidden">
-        <div class="flex-1 overflow-y-auto relative" data-el-notebook>
+      <div class="flex grow h-screen overflow-hidden">
+        <div class="flex-1 overflow-y-scroll overflow-x-hidden" data-el-notebook>
           <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
           <LivebookWeb.SessionLive.IndicatorsComponent.render
             session_id={@session.id}
@@ -435,7 +435,7 @@ defmodule LivebookWeb.SessionLive do
             </div>
           </div>
         </div>
-        <div class="flex-1 overflow-y-auto" data-el-output-panel-embedded>
+        <div class="flex-1 overflow-y-scroll" data-el-output-panel-embedded>
           <iframe
             class="h-full w-full"
             src={~p"/sessions/#{@session.id}/external-window?type=output_panel&embedded=true"}

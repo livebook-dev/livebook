@@ -56,6 +56,7 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
     ~H"""
     <div
       id="external-window"
+      class="h-full w-full"
       phx-hook="ExternalWindow"
       data-window-embedded={@embedded?}
       data-el-output-panel
