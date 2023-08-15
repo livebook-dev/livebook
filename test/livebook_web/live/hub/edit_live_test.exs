@@ -81,7 +81,9 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-      %{"success" => "Secret created successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret PERSONAL_ADD_SECRET created successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -126,7 +128,9 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-      %{"success" => "Secret updated successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret PERSONAL_EDIT_SECRET updated successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
@@ -149,7 +153,9 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-      %{"success" => "Secret deleted successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret PERSONAL_DELETE_SECRET deleted successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       refute render(element(view, "#hub-secrets-list")) =~ secret.name

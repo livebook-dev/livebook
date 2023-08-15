@@ -23,9 +23,10 @@ defmodule Livebook.Factory do
       org_id: 1,
       user_id: 1,
       org_key_id: 1,
-      org_public_key: Livebook.Utils.random_id(),
+      org_public_key: Livebook.Hubs.Team.public_key_prefix() <> Livebook.Utils.random_id(),
       teams_key: org.teams_key,
-      session_token: Livebook.Utils.random_short_id()
+      session_token: Livebook.Utils.random_short_id(),
+      offline: nil
     }
   end
 

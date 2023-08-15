@@ -248,9 +248,39 @@ new features.
 
 Congratulations on shipping!
 
+## Docker deployment
+
+Now that you have deployed your first notebook as an application
+locally, you may be wondering: can I actually ship this production?
+
+The answer is yes!
+
+You can do so in any platform that supports Docker containers.
+For example, imagine you have a folder called "public-apps" with
+all of your public notebooks you want to deploy. You can then
+run your own Livebook image which points to said directory:
+
+```dockerfile
+FROM ghcr.io/livebook-dev/livebook:latest
+
+COPY /path/to/my/public-apps /apps
+ENV LIVEBOOK_APPS_PATH "/apps"
+ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+RUN /app/bin/warmup_apps.sh
+```
+
+You may also set additional environment variables, [see the complete
+list](https://github.com/livebook-dev/livebook#environment-variables).
+Some of them, such as `LIVEBOOK_PASSWORD`, must be set directly on
+your deployment platform, with the value of your choice, if you want
+to access and debug your deployed notebooks in production.
+
+If you want to develop and deploy notebooks as a team, check out
+[Livebook Teams](https://livebook.dev/teams).
+
 ## Where to go next
 
-There are many types of applications one can build with
+There are many types of applications you can build with
 notebooks. For example, we can use the foundation we learned
 here to develop any type of form-driven application.
 The structure is always the same:
@@ -265,14 +295,17 @@ to all users. With the `to: origin` option, the changes are
 visible only to a given user. This means you get full control
 if the application is collaborative or not.
 
-Livebook also supports multi-session applications, where each
-user gets their own Livebook session (each running under their
-own Elixir runtime). Furthermore, instead of starting the
-application upfront, multi-session applications are started on
-demand. These differences mean multi-session apps may rely on
-different techniques during development and have their own
-trade-offs during deployment. To learn more, here are some
-resources to dig deeper into them:
+[Livebook also supports multi-session applications](https://www.youtube.com/watch?v=dSjryA1iFng),
+where each user starts their own Livebook session on demand.
+By using `Kino.Input` and `Kino.interrupt/2`, it is common to
+build multi-session applications that execute step-by-step,
+similar to regular notebooks, without a need to setup form
+controls and events handlers as done in this guide.
+Furthermore, each session in a multi-session app has their
+own Elixir runtime, which provides isolation but also leads
+to higher memory usage per session.
+
+To learn more about apps, here are some resources to dig deeper:
 
   * [The announcement of Livebook apps with livecoding of
     the application built in this guide](https://www.youtube.com/watch?v=q7T6ue7cw1Q)

@@ -240,7 +240,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     if node(file_system.origin_pid) == node() do
       :ok
     else
-      {:error, "this local file system belongs to a different host"}
+      {:error, "this disk belongs to a different host"}
     end
   end
 

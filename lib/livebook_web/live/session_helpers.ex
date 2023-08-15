@@ -115,7 +115,7 @@ defmodule LivebookWeb.SessionHelpers do
   @spec fork_notebook(Socket.t(), FileSystem.File.t()) :: Socket.t()
   def fork_notebook(socket, file) do
     case import_notebook(file) do
-      {:ok, {notebook, %{warnings: messages}}} ->
+      {:ok, {notebook, messages}} ->
         notebook = Livebook.Notebook.forked(notebook)
         files_dir = Session.files_dir_for_notebook(file)
 
@@ -138,7 +138,7 @@ defmodule LivebookWeb.SessionHelpers do
   @spec open_notebook(Socket.t(), FileSystem.File.t()) :: Socket.t()
   def open_notebook(socket, file) do
     case import_notebook(file) do
-      {:ok, {notebook, %{warnings: messages}}} ->
+      {:ok, {notebook, messages}} ->
         socket
         |> put_import_warnings(messages)
         |> create_session(notebook: notebook, file: file, origin: {:file, file})

@@ -1,6 +1,8 @@
 defmodule Livebook.Notebook.AppSettings do
   @moduledoc false
 
+  # Data structure configuring how notebook gets deployed as an app.
+
   use Ecto.Schema
 
   import Ecto.Changeset, except: [change: 1, change: 2]
@@ -90,7 +92,7 @@ defmodule Livebook.Notebook.AppSettings do
       :output_type
     ])
     |> validate_format(:slug, ~r/^[a-zA-Z0-9-]+$/,
-      message: "slug can only contain alphanumeric characters and dashes"
+      message: "should only contain alphanumeric characters and dashes"
     )
     |> cast_access_attrs(attrs)
     |> cast_mode_specific_attrs(attrs)

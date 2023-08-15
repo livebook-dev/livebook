@@ -33,6 +33,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     |> validate_required([:url, :name, :copy])
     |> Livebook.Notebook.validate_file_entry_name(:name)
     |> Livebook.Utils.validate_url(:url)
+    |> Livebook.Utils.validate_not_s3_url(
+      :url,
+      ~s{invalid s3:// URL scheme, you must first connect to the Cloud Storage in your Hub page and then choose the relevant file in "From storage"}
+    )
   end
 
   @impl true
@@ -52,8 +56,21 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
         phx-target={@myself}
       >
         <div class="flex flex-col space-y-4">
-          <.text_field field={f[:url]} label="URL" autocomplete="off" phx-debounce="blur" />
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field
+            field={f[:url]}
+            label="URL"
+            autocomplete="off"
+            phx-debounce="200"
+            phx-blur="url_blur"
+            phx-target={@myself}
+          />
+          <.text_field
+            field={f[:name]}
+            label="Name"
+            id="add-file-entry-form-name"
+            autocomplete="off"
+            phx-debounce="200"
+          />
           <.radio_field
             field={f[:copy]}
             options={[
@@ -68,7 +85,8 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
             type="submit"
             disabled={not @changeset.valid? or @fetching}
           >
-            Add
+            <.spinner :if={@fetching} class="mr-2" />
+            <span>Add</span>
           </button>
           <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
             Cancel
@@ -83,6 +101,28 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
   def handle_event("validate", %{"data" => data}, socket) do
     changeset = data |> changeset() |> Map.replace!(:action, :validate)
     {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  def handle_event("url_blur", %{"value" => url}, socket) do
+    name = Livebook.Utils.url_basename(url)
+
+    socket =
+      if socket.assigns.changeset.params["name"] == "" and name != "" do
+        # Emulate input event to make sure validation errors are shown
+        exec_js(
+          socket,
+          JS.dispatch("lb:set_value",
+            to: "#add-file-entry-form-name",
+            detail: %{value: name}
+          )
+          |> JS.dispatch("input", to: "#add-file-entry-form-name")
+          |> JS.dispatch("blur", to: "#add-file-entry-form-name")
+        )
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("add", %{"data" => data}, socket) do

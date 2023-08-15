@@ -1,10 +1,10 @@
 defmodule Livebook.Notebook.Cell.Code do
   @moduledoc false
 
-  # A cell with Elixir code.
+  # Notebook cell with evaluable code.
   #
-  # It consists of text content that the user can edit
-  # and produces some output once evaluated.
+  # It consists of text content that the user can edit and produces
+  # output once evaluated.
 
   defstruct [
     :id,

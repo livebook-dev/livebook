@@ -45,7 +45,10 @@ defmodule LivebookWeb.HomeLive do
     >
       <:topbar_action>
         <div class="flex space-x-2">
-          <.link navigate={~p"/open/file"} class="button-base button-outlined-gray whitespace-nowrap">
+          <.link
+            navigate={~p"/open/storage"}
+            class="button-base button-outlined-gray whitespace-nowrap"
+          >
             Open
           </.link>
           <.link class="button-base button-blue" patch={~p"/new"}>
@@ -63,7 +66,7 @@ defmodule LivebookWeb.HomeLive do
           <LayoutHelpers.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
             <.link
-              navigate={~p"/open/file"}
+              navigate={~p"/open/storage"}
               class="button-base button-outlined-gray whitespace-nowrap"
             >
               Open
@@ -157,7 +160,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp update_notification(assigns) do
     ~H"""
-    <div class="px-2 py-2 bg-blue-200 text-gray-900 text-sm text-center">
+    <LayoutHelpers.topbar>
       <span>
         Livebook v<%= @version %> available!
         <%= if @instructions_url do %>
@@ -189,16 +192,13 @@ defmodule LivebookWeb.HomeLive do
         <% end %>
         🚀
       </span>
-    </div>
+    </LayoutHelpers.topbar>
     """
   end
 
   defp memory_notification(assigns) do
     ~H"""
-    <div
-      :if={@app_service_url && @memory.free < 30_000_000}
-      class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center"
-    >
+    <LayoutHelpers.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
       <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
       Less than 30 MB of memory left, consider
       <a
@@ -215,7 +215,7 @@ defmodule LivebookWeb.HomeLive do
       >
         running sessions
       </a>
-    </div>
+    </LayoutHelpers.topbar>
     """
   end
 

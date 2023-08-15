@@ -129,4 +129,26 @@ defmodule LivebookWeb.Helpers do
       {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
     end)
   end
+
+  @doc """
+  Returns a list of human readable messages for all upload and upload
+  entry errors.
+  """
+  @spec upload_error_messages(Phoenix.LiveView.UploadConfig.t()) :: list(String.t())
+  def upload_error_messages(upload) do
+    errors = upload_errors(upload) ++ Enum.flat_map(upload.entries, &upload_errors(upload, &1))
+    Enum.map(errors, &upload_error_to_string/1)
+  end
+
+  @doc """
+  Converts an upload or entry error to string.
+  """
+  @spec upload_error_to_string(term()) :: String.t()
+  def upload_error_to_string(:too_large), do: "Too large"
+  def upload_error_to_string(:too_many_files), do: "You have selected too many files"
+  def upload_error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
+
+  def upload_error_to_string({:writer_failure, message}) when is_binary(message) do
+    Livebook.Utils.upcase_first(message)
+  end
 end

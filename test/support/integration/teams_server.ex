@@ -12,6 +12,12 @@ defmodule Livebook.TeamsServer do
     System.get_env("TEAMS_PATH") != nil or File.exists?(@default_teams_dir)
   end
 
+  def setup do
+    if available?() do
+      mix(%{"MIX_ENV" => "livebook"}, ["compile"])
+    end
+  end
+
   def start(opts \\ []) do
     GenServer.start(__MODULE__, opts, name: @name)
   end
@@ -30,13 +36,6 @@ defmodule Livebook.TeamsServer do
 
   def get_node() do
     GenServer.call(@name, :fetch_node, @timeout)
-  end
-
-  def drop_database() do
-    app_port = GenServer.call(@name, :fetch_port)
-    state_env = GenServer.call(@name, :fetch_env)
-
-    app_port |> env(state_env) |> mix(["ecto.drop", "--quiet"])
   end
 
   # GenServer Callbacks

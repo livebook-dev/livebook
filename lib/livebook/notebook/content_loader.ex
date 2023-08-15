@@ -9,12 +9,14 @@ defmodule Livebook.Notebook.ContentLoader do
   @type location :: {:file, FileSystem.File.t()} | {:url, String.t()}
 
   @doc """
-  Rewrite known URLs, so that they point to plain text file rather than HTML.
+  Rewrite known URLs, so that they point to plain text file rather
+  than HTML.
 
   Currently the rewerites handle:
 
     * GitHub files
     * Gist files
+
   """
   @spec rewrite_url(String.t()) :: String.t()
   def rewrite_url(url) do

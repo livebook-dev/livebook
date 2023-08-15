@@ -17,6 +17,10 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
     cast({data, types}, attrs, [:url])
     |> validate_required([:url])
     |> Livebook.Utils.validate_url(:url)
+    |> Livebook.Utils.validate_not_s3_url(
+      :url,
+      ~s{invalid s3:// URL scheme, you must first connect to the Cloud Storage in your Hub page and then choose the relevant file in "From storage"}
+    )
   end
 
   @impl true

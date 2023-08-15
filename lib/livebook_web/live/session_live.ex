@@ -94,8 +94,18 @@ defmodule LivebookWeb.SessionLive do
          |> prune_outputs()
          |> prune_cell_sources()}
 
-      :error ->
+      {:error, :not_found} ->
         {:ok, redirect(socket, to: ~p"/")}
+
+      {:error, :different_boot_id} ->
+        {:ok,
+         socket
+         |> put_flash(
+           :error,
+           "Could not find notebook session because Livebook has rebooted. " <>
+             "This may happen if Livebook runs out of memory while installing dependencies or executing code."
+         )
+         |> redirect(to: ~p"/")}
     end
   end
 
@@ -331,59 +341,59 @@ defmodule LivebookWeb.SessionLive do
                   </.menu_item>
                 </.menu>
               </div>
-              <div class="flex flex-nowrap place-content-between items-center gap-2">
-                <.menu position={:bottom_left} id="notebook-hub-menu">
-                  <:toggle>
-                    <div
-                      class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
-                      aria-label={@data_view.hub.hub_name}
-                    >
-                      <span>in</span>
-                      <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
-                      <span><%= @data_view.hub.hub_name %></span>
-                      <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
-                    </div>
-                  </:toggle>
-                  <.menu_item :for={hub <- @saved_hubs}>
-                    <button
-                      id={"select-hub-#{hub.id}"}
-                      phx-click={JS.push("select_hub", value: %{id: hub.id})}
-                      aria-label={hub.name}
-                      role="menuitem"
-                    >
-                      <%= hub.emoji %>
-                      <span class="ml-2"><%= hub.name %></span>
-                    </button>
-                  </.menu_item>
-                  <.menu_item>
-                    <.link navigate={~p"/hub"} aria-label="Add Hub" role="menuitem">
-                      <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Hub
-                    </.link>
-                  </.menu_item>
-                </.menu>
+            </div>
+            <div class="flex flex-nowrap place-content-between items-center gap-2">
+              <.menu position={:bottom_left} id="notebook-hub-menu">
+                <:toggle>
+                  <div
+                    class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
+                    aria-label={@data_view.hub.hub_name}
+                  >
+                    <span>in</span>
+                    <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
+                    <span><%= @data_view.hub.hub_name %></span>
+                    <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
+                  </div>
+                </:toggle>
+                <.menu_item :for={hub <- @saved_hubs}>
+                  <button
+                    id={"select-hub-#{hub.id}"}
+                    phx-click={JS.push("select_hub", value: %{id: hub.id})}
+                    aria-label={hub.name}
+                    role="menuitem"
+                  >
+                    <%= hub.emoji %>
+                    <span class="ml-2"><%= hub.name %></span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <.link navigate={~p"/hub"} aria-label="Add Organization" role="menuitem">
+                    <.remix_icon icon="add-line" class="align-middle mr-1" /> Add Organization
+                  </.link>
+                </.menu_item>
+              </.menu>
 
-                <div class="px-[1px]">
-                  <%= cond do %>
-                    <% @data_view.file == nil -> %>
-                      <span class="tooltip left" data-tooltip="Save this notebook before starring it">
-                        <button class="icon-button" disabled>
-                          <.remix_icon icon="star-line text-lg" />
-                        </button>
-                      </span>
-                    <% @data_view.file in @starred_files -> %>
-                      <span class="tooltip left" data-tooltip="Unstar notebook">
-                        <button class="icon-button" phx-click="unstar_notebook">
-                          <.remix_icon icon="star-fill text-lg text-yellow-600" />
-                        </button>
-                      </span>
-                    <% true -> %>
-                      <span class="tooltip left" data-tooltip="Star notebook">
-                        <button class="icon-button" phx-click="star_notebook">
-                          <.remix_icon icon="star-line text-lg" />
-                        </button>
-                      </span>
-                  <% end %>
-                </div>
+              <div class="px-[1px]">
+                <%= cond do %>
+                  <% @data_view.file == nil -> %>
+                    <span class="tooltip left" data-tooltip="Save this notebook before starring it">
+                      <button class="icon-button" disabled>
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
+                    </span>
+                  <% @data_view.file in @starred_files -> %>
+                    <span class="tooltip left" data-tooltip="Unstar notebook">
+                      <button class="icon-button" phx-click="unstar_notebook">
+                        <.remix_icon icon="star-fill text-lg text-yellow-600" />
+                      </button>
+                    </span>
+                  <% true -> %>
+                    <span class="tooltip left" data-tooltip="Star notebook">
+                      <button class="icon-button" phx-click="star_notebook">
+                        <.remix_icon icon="star-line text-lg" />
+                      </button>
+                    </span>
+                <% end %>
               </div>
             </div>
             <div>
@@ -891,11 +901,11 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col space-y-4">
         <div class="tabs">
           <.link
-            patch={~p"/sessions/#{@session.id}/add-file/file"}
-            class={["tab", @tab == "file" && "active"]}
+            patch={~p"/sessions/#{@session.id}/add-file/storage"}
+            class={["tab", @tab == "storage" && "active"]}
           >
             <.remix_icon icon="file-3-line" class="align-middle" />
-            <span class="font-medium">From file</span>
+            <span class="font-medium">From storage</span>
           </.link>
           <.link
             patch={~p"/sessions/#{@session.id}/add-file/url"}
@@ -921,7 +931,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="grow tab"></div>
         </div>
         <.live_component
-          :if={@tab == "file"}
+          :if={@tab == "storage"}
           module={LivebookWeb.SessionLive.AddFileEntryFileComponent}
           id="add-file-entry-from-file"
           session={@session}
@@ -1899,7 +1909,7 @@ defmodule LivebookWeb.SessionLive do
   defp open_notebook(socket, origin, fallback_locations, requested_url) do
     case fetch_content_with_fallbacks(origin, fallback_locations) do
       {:ok, content} ->
-        {notebook, %{warnings: messages}} = Livebook.LiveMarkdown.notebook_from_livemd(content)
+        {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
         # If the current session has no file, fork the notebook
         fork? = socket.private.data.file == nil

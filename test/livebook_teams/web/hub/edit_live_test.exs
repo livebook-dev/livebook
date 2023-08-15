@@ -2,22 +2,21 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
-  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.Hubs
 
+  setup %{user: user, node: node} do
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+    hub = create_team_hub(user, node)
+    id = hub.id
+
+    assert_receive {:hub_connected, ^id}
+
+    {:ok, hub: hub}
+  end
+
   describe "team" do
-    setup %{user: user, node: node} do
-      Livebook.Hubs.subscribe([:crud, :connection, :secrets])
-      hub = create_team_hub(user, node)
-      id = hub.id
-
-      assert_receive {:hub_connected, ^id}
-
-      {:ok, hub: hub}
-    end
-
     test "updates the hub", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -99,7 +98,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-      %{"success" => "Secret created successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret TEAM_ADD_SECRET created successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -145,7 +146,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-      %{"success" => "Secret updated successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret TEAM_EDIT_SECRET updated successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
@@ -169,7 +172,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-      %{"success" => "Secret deleted successfully"} = assert_redirect(view, "/hub/#{hub.id}")
+
+      %{"success" => "Secret TEAM_DELETE_SECRET deleted successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       refute render(element(view, "#hub-secrets-list")) =~ secret.name

@@ -104,7 +104,7 @@ defmodule Livebook.Settings do
   defp storage_to_fs(%{type: "s3"} = config) do
     case FileSystem.S3.from_config(config) do
       {:ok, fs} -> fs
-      {:error, message} -> raise ArgumentError, "invalid S3 file system: #{message}"
+      {:error, message} -> raise ArgumentError, "invalid S3 configuration: #{message}"
     end
   end
 

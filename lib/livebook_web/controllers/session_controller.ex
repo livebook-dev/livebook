@@ -34,7 +34,17 @@ defmodule LivebookWeb.SessionController do
         file = FileSystem.File.resolve(images_dir, name)
         serve_static(conn, file)
 
-      :error ->
+      {:error, _} ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
+  def download_file(conn, %{"id" => id, "name" => name}) do
+    with {:ok, session} <- Sessions.fetch_session(id),
+         {:ok, path} <- Session.fetch_file_entry_path(session.pid, name) do
+      send_download(conn, {:file, path}, filename: name)
+    else
+      _ ->
         send_resp(conn, 404, "Not found")
     end
   end
@@ -47,7 +57,7 @@ defmodule LivebookWeb.SessionController do
 
         send_notebook_source(conn, notebook, file_name, format)
 
-      :error ->
+      {:error, _} ->
         send_resp(conn, 404, "Not found")
     end
   end

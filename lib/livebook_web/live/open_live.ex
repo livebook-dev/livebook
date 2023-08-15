@@ -51,9 +51,9 @@ defmodule LivebookWeb.OpenLive do
         </div>
 
         <div class="tabs">
-          <.link patch={~p"/open/file"} class={["tab", @tab == "file" && "active"]}>
+          <.link patch={~p"/open/storage"} class={["tab", @tab == "storage" && "active"]}>
             <.remix_icon icon="file-3-line" class="align-middle" />
-            <span class="font-medium">From file</span>
+            <span class="font-medium">From storage</span>
           </.link>
           <.link patch={~p"/open/url"} class={["tab", @tab == "url" && "active"]}>
             <.remix_icon icon="download-cloud-2-line" class="align-middle" />
@@ -72,7 +72,7 @@ defmodule LivebookWeb.OpenLive do
 
         <div class="h-96">
           <.live_component
-            :if={@tab == "file"}
+            :if={@tab == "storage"}
             module={LivebookWeb.OpenLive.FileComponent}
             id="import-file"
             sessions={@sessions}
@@ -129,7 +129,7 @@ defmodule LivebookWeb.OpenLive do
           <div class="mt-3 text-gray-600 text-sm">
             Looking for unsaved notebooks? <.link
               class="font-semibold"
-              navigate={~p"/open/file?autosave=true"}
+              navigate={~p"/open/storage?autosave=true"}
               phx-no-format
             >Browse them here</.link>.
           </div>
@@ -165,7 +165,7 @@ defmodule LivebookWeb.OpenLive do
     expanded_path = Path.expand(path)
 
     if File.dir?(expanded_path) do
-      {:noreply, push_patch(socket, to: ~p"/open/file?path=#{path}")}
+      {:noreply, push_patch(socket, to: ~p"/open/storage?path=#{path}")}
     else
       file = FileSystem.File.local(expanded_path)
 
@@ -249,7 +249,7 @@ defmodule LivebookWeb.OpenLive do
   defp file_from_params(_params), do: Livebook.Settings.default_dir()
 
   defp import_source(socket, source, session_opts) do
-    {notebook, %{warnings: messages}} = Livebook.LiveMarkdown.notebook_from_livemd(source)
+    {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(source)
 
     socket =
       socket

@@ -101,10 +101,71 @@ defmodule LivebookWeb.SessionControllerTest do
     end
   end
 
+  describe "download_file" do
+    test "returns not found when the given session does not exist", %{conn: conn} do
+      id = Livebook.Utils.random_node_aware_id()
+      conn = get(conn, ~p"/sessions/#{id}/download/files/data.csv")
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+    end
+
+    test "returns not found when file entry with this name does not exist", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+
+      conn = get(conn, ~p"/sessions/#{session.id}/download/files/data.csv")
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+
+      Session.close(session.pid)
+    end
+
+    test "returns the file contents when it does exist", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+
+      :ok =
+        FileSystem.File.resolve(session.files_dir, "data.csv") |> FileSystem.File.write("hello")
+
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "data.csv"}])
+
+      conn = get(conn, ~p"/sessions/#{session.id}/download/files/data.csv")
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-disposition") == [~s/attachment; filename="data.csv"/]
+      assert get_resp_header(conn, "content-type") == ["text/csv"]
+      assert conn.resp_body == "hello"
+
+      Session.close(session.pid)
+    end
+
+    test "downloads remote file to cache and returns the file contents", %{conn: conn} do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/data.csv"
+
+      Bypass.expect_once(bypass, "GET", "/data.csv", fn conn ->
+        Plug.Conn.resp(conn, 200, "hello")
+      end)
+
+      {:ok, session} = Sessions.create_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "data.csv", url: url}])
+
+      conn = get(conn, ~p"/sessions/#{session.id}/download/files/data.csv")
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-disposition") == [~s/attachment; filename="data.csv"/]
+      assert get_resp_header(conn, "content-type") == ["text/csv"]
+      assert conn.resp_body == "hello"
+
+      Session.close(session.pid)
+    end
+  end
+
   describe "download_source" do
     test "returns not found when the given session does not exist", %{conn: conn} do
       id = Livebook.Utils.random_node_aware_id()
-      conn = get(conn, ~p"/sessions/#{id}/export/download/livemd")
+      conn = get(conn, ~p"/sessions/#{id}/download/export/livemd")
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
@@ -113,7 +174,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns bad request when given an invalid format", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, ~p"/sessions/#{session.id}/export/download/invalid")
+      conn = get(conn, ~p"/sessions/#{session.id}/download/export/invalid")
 
       assert conn.status == 400
       assert conn.resp_body == "Invalid format, supported formats: livemd, exs"
@@ -124,9 +185,13 @@ defmodule LivebookWeb.SessionControllerTest do
     test "handles live markdown notebook source", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, ~p"/sessions/#{session.id}/export/download/livemd")
+      conn = get(conn, ~p"/sessions/#{session.id}/download/export/livemd")
 
       assert conn.status == 200
+
+      assert get_resp_header(conn, "content-disposition") ==
+               [~s/attachment; filename="untitled_notebook.livemd"/]
+
       assert get_resp_header(conn, "content-type") == ["text/plain"]
 
       assert conn.resp_body == """
@@ -165,9 +230,13 @@ defmodule LivebookWeb.SessionControllerTest do
 
       {:ok, session} = Sessions.create_session(notebook: notebook)
 
-      conn = get(conn, ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=true")
+      conn = get(conn, ~p"/sessions/#{session.id}/download/export/livemd?include_outputs=true")
 
       assert conn.status == 200
+
+      assert get_resp_header(conn, "content-disposition") ==
+               [~s/attachment; filename="my_notebook.livemd"/]
+
       assert get_resp_header(conn, "content-type") == ["text/plain"]
 
       assert conn.resp_body == """
@@ -192,9 +261,13 @@ defmodule LivebookWeb.SessionControllerTest do
     test "handles elixir notebook source", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
 
-      conn = get(conn, ~p"/sessions/#{session.id}/export/download/exs")
+      conn = get(conn, ~p"/sessions/#{session.id}/download/export/exs")
 
       assert conn.status == 200
+
+      assert get_resp_header(conn, "content-disposition") ==
+               [~s/attachment; filename="untitled_notebook.exs"/]
+
       assert get_resp_header(conn, "content-type") == ["text/plain"]
 
       assert conn.resp_body == """

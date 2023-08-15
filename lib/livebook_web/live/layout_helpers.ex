@@ -77,7 +77,7 @@ defmodule LivebookWeb.LayoutHelpers do
         <.remix_icon icon="menu-fold-line" />
       </button>
 
-      <div class="flex flex-col justify-between h-full">
+      <div class="flex flex-col justify-between h-full w-full">
         <div class="flex flex-col">
           <div class="space-y-3">
             <div class="flex items-center mb-5">
@@ -220,7 +220,7 @@ defmodule LivebookWeb.LayoutHelpers do
           <% end %>
         <% end %>
 
-        <.sidebar_link title="Add Teams" icon="add-line" to={~p"/hub"} current={@current_page} />
+        <.sidebar_link title="Add Organization" icon="add-line" to={~p"/hub"} current={@current_page} />
       </div>
     </div>
     """
@@ -259,10 +259,16 @@ defmodule LivebookWeb.LayoutHelpers do
       <.title text="Learn" />
 
   """
-  attr :text, :string, required: true
+  attr :text, :string, default: nil
   attr :back_navigate, :string, default: nil
 
+  slot :inner_block
+
   def title(assigns) do
+    if assigns.text == nil and assigns.inner_block == [] do
+      raise ArgumentError, "should pass at least text attribute or an inner block"
+    end
+
     ~H"""
     <div class="relative">
       <div
@@ -274,9 +280,31 @@ defmodule LivebookWeb.LayoutHelpers do
         </.link>
       </div>
       <h1 class="text-2xl text-gray-800 font-medium">
-        <%= @text %>
+        <%= if @inner_block != [] do %>
+          <%= render_slot(@inner_block) %>
+        <% else %>
+          <%= @text %>
+        <% end %>
       </h1>
     </div>
     """
   end
+
+  @doc """
+  Topbar for showing pinned, page-specific messages.
+  """
+  attr :variant, :atom, default: :info, values: [:warning, :info, :error]
+  slot :inner_block, required: true
+
+  def topbar(assigns) do
+    ~H"""
+    <div class={["px-2 py-2 text-sm text-center", topbar_class(@variant)]}>
+      <%= render_slot(@inner_block) %>
+    </div>
+    """
+  end
+
+  defp topbar_class(:warning), do: "bg-yellow-200 text-gray-900"
+  defp topbar_class(:info), do: "bg-blue-200 text-gray-900"
+  defp topbar_class(:error), do: "bg-red-200 text-gray-900"
 end

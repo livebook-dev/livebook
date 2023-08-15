@@ -89,7 +89,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/settings/app", SessionLive, :app_settings
       live "/sessions/:id/add-file/:tab", SessionLive, :add_file_entry
       live "/sessions/:id/bin", SessionLive, :bin
-      get "/sessions/:id/export/download/:format", SessionController, :download_source
+      get "/sessions/:id/download/export/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
       live "/sessions/:id/insert-image", SessionLive, :insert_image
@@ -97,6 +97,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/files/:name", SessionController, :show_file
       get "/sessions/:id/images/:name", SessionController, :show_image
+      get "/sessions/:id/download/files/:name", SessionController, :download_file
       live "/sessions/:id/settings/custom-view", SessionLive, :custom_view_settings
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
     end

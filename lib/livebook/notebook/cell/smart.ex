@@ -1,7 +1,16 @@
 defmodule Livebook.Notebook.Cell.Smart do
   @moduledoc false
 
-  # A cell with Elixir code that is edited through a dedicated UI.
+  # A cell with evaluable code that is edited through a dedicated UI.
+  #
+  # Smart cell is supposed to provide the user with an easy, code-free
+  # way to achieve a specific task, such as plotting a chart or querying
+  # a database. The user interacts with smart cell through UI, while
+  # the smart cell generates plain code to be executed. The user can
+  # access and take over the underlying code at any point.
+  #
+  # The available smart cells come from the runtime, therefore they
+  # are one Livebook's extension points.
 
   defstruct [:id, :source, :chunks, :outputs, :kind, :attrs, :js_view, :editor]
 

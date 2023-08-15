@@ -1088,6 +1088,12 @@ const Session = {
     this.focusedId = focusableId;
 
     if (focusableId) {
+      this.el.setAttribute("data-js-focused-id", focusableId);
+    } else {
+      this.el.removeAttribute("data-js-focused-id");
+    }
+
+    if (focusableId) {
       // If the element is inside collapsed section, expand that section
       if (!this.isSection(focusableId)) {
         const sectionId = this.getSectionIdByFocusableId(focusableId);

@@ -1,18 +1,18 @@
 defmodule Livebook.Session.Data do
   @moduledoc false
 
-  # A structure with shared session data.
+  # Session data is a state shared across all of the clients.
   #
-  # In practice this structure is a `Notebook` decorated with all
-  # the ephemeral session data.
+  # In practice this structure is a `Notebook` decorated with all the
+  # ephemeral session data.
   #
   # The data is kept both in the `Session` process and in all client
   # processes. All changes go through the `Session` process first to
-  # introduce linearity and then are broadcasted to the clients, hence
-  # every client receives changes in the same order. Upon receiving
-  # an operation, every process applies the change to the locally
-  # stored `Data`. This way the local `Data` stays the same in all
-  # processes, while the messages are minimal.
+  # introduce linearity and then are broadcasted to the clients, so
+  # that every client receives changes in the same order. Upon
+  # receiving an operation, every process applies the change to the
+  # locally stored `%Data{}`. This way the local `%Data{}` stays the
+  # same in all of the processes, while the messages are minimal.
   #
   # The operations cover most of the session state management, in
   # particular all notebook edits and scheduling cell evaluation.

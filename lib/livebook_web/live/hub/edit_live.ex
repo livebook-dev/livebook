@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    Hubs.subscribe([:secrets])
+    Hubs.subscribe([:connection, :secrets])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
@@ -29,15 +29,13 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
-        <.hub_component
-          type={@type}
-          hub={@hub}
-          live_action={@live_action}
-          params={@params}
-          counter={@counter}
-        />
-      </div>
+      <.hub_component
+        type={@type}
+        hub={@hub}
+        live_action={@live_action}
+        params={@params}
+        counter={@counter}
+      />
     </LayoutHelpers.layout>
     """
   end
@@ -87,30 +85,45 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info({:secret_created, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_created, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret created successfully")}
+     |> push_navigate(to: ~p"/hub/#{id}")
+     |> put_flash(:success, "Secret #{name} created successfully")}
   end
 
-  def handle_info({:secret_updated, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_updated, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret updated successfully")}
+     |> push_navigate(to: ~p"/hub/#{id}")
+     |> put_flash(:success, "Secret #{name} updated successfully")}
   end
 
-  def handle_info({:secret_deleted, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+  def handle_info(
+        {:secret_deleted, %{name: name, hub_id: id}},
+        %{assigns: %{hub: %{id: id}}} = socket
+      ) do
     {:noreply,
      socket
-     |> increment_counter()
-     |> put_flash(:success, "Secret deleted successfully")}
+     |> push_navigate(to: ~p"/hub/#{id}")
+     |> put_flash(:success, "Secret #{name} deleted successfully")}
+  end
+
+  def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
+  end
+
+  def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
   end
-
-  defp increment_counter(socket), do: assign(socket, counter: socket.assigns.counter + 1)
 end

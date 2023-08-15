@@ -43,8 +43,10 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               autofocus={@secret_name == nil}
               spellcheck="false"
               autocomplete="off"
+              readonly={@secret_name != nil}
               phx-debounce
-              class="uppercase"
+              help="Name cannot be changed"
+              class={secret_name_input_class(@secret_name)}
             />
             <.password_field
               field={f[:value]}
@@ -77,8 +79,8 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
          :ok <- set_secret(socket, secret) do
       message =
         if socket.assigns.secret_name,
-          do: "Secret updated successfully",
-          else: "Secret created successfully"
+          do: "Secret #{secret.name} updated successfully",
+          else: "Secret #{secret.name} created successfully"
 
       {:noreply,
        socket
@@ -86,7 +88,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
        |> push_redirect(to: socket.assigns.return_to)}
     else
       {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
+        {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
 
       {:transport_error, error} ->
         {:noreply,
@@ -100,7 +102,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     changeset =
       %Secret{}
       |> Secrets.change_secret(attrs)
-      |> Map.put(:action, :validate)
+      |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset)}
   end
@@ -118,4 +120,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   defp set_secret(socket, %Secret{} = secret) do
     Hubs.update_secret(socket.assigns.hub, secret)
   end
+
+  defp secret_name_input_class(nil), do: "uppercase"
+  defp secret_name_input_class(_), do: "uppercase bg-gray-200/50 border-200/80 cursor-not-allowed"
 end

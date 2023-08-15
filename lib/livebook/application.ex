@@ -34,7 +34,7 @@ defmodule Livebook.Application do
         {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
         # Start the server responsible for associating files with sessions
         Livebook.Session.FileGuard,
-        # Start the Node Pool for managing node names
+        # Start the node pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
         Livebook.Utils.UniqueTask,
@@ -43,13 +43,17 @@ defmodule Livebook.Application do
         # Start the supervisor dynamically managing connections
         {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
       ] ++
-        iframe_server_specs() ++
-        identity_provider() ++
-        [
-          # Start the Endpoint (http/https)
-          # We skip the access url as we do our own logging below
-          {LivebookWeb.Endpoint, log_access_url: false}
-        ] ++ app_specs()
+        if serverless?() do
+          []
+        else
+          iframe_server_specs() ++
+            identity_provider() ++
+            [
+              # Start the Endpoint (http/https)
+              # We skip the access url as we do our own logging below
+              {LivebookWeb.Endpoint, log_access_url: false}
+            ] ++ app_specs()
+        end
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -61,7 +65,11 @@ defmodule Livebook.Application do
         clear_env_vars()
         display_startup_info()
         Livebook.Hubs.connect_hubs()
-        deploy_apps()
+
+        unless serverless?() do
+          deploy_apps()
+        end
+
         result
 
       {:error, error} ->
@@ -179,7 +187,8 @@ defmodule Livebook.Application do
   end
 
   defp display_startup_info() do
-    if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
+    if Process.whereis(LivebookWeb.Endpoint) &&
+         Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
       IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
@@ -208,6 +217,7 @@ defmodule Livebook.Application do
   def create_offline_hub() do
     name = System.get_env("LIVEBOOK_TEAMS_NAME")
     public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
+    encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
 
     if name && public_key do
       teams_key =
@@ -216,12 +226,43 @@ defmodule Livebook.Application do
             "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
           )
 
-      Livebook.Hubs.set_offline_hub(%Livebook.Hubs.Team{
+      id = "team-#{name}"
+
+      secrets =
+        if encrypted_secrets do
+          {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
+
+          case Livebook.Teams.decrypt(encrypted_secrets, secret_key, sign_secret) do
+            {:ok, json} ->
+              for {name, value} <- Jason.decode!(json),
+                  do: %Livebook.Secrets.Secret{
+                    name: name,
+                    value: value,
+                    hub_id: id
+                  }
+
+            :error ->
+              Livebook.Config.abort!(
+                "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
+              )
+          end
+        else
+          []
+        end
+
+      Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
         id: "team-#{name}",
         hub_name: name,
         hub_emoji: "💡",
+        user_id: 0,
+        org_id: 0,
+        org_key_id: 0,
+        session_token: "",
         teams_key: teams_key,
-        org_public_key: public_key
+        org_public_key: public_key,
+        offline: %Livebook.Hubs.Team.Offline{
+          secrets: secrets
+        }
       })
     end
   end
@@ -239,7 +280,12 @@ defmodule Livebook.Application do
 
   defp deploy_apps() do
     if apps_path = Livebook.Config.apps_path() do
-      Livebook.Apps.deploy_apps_in_dir(apps_path, password: Livebook.Config.apps_path_password())
+      warmup = Livebook.Config.apps_path_warmup() == :auto
+
+      Livebook.Apps.deploy_apps_in_dir(apps_path,
+        password: Livebook.Config.apps_path_password(),
+        warmup: warmup
+      )
     end
   end
 
@@ -293,5 +339,9 @@ defmodule Livebook.Application do
   defp identity_provider() do
     {module, key} = Livebook.Config.identity_provider()
     [{module, name: LivebookWeb.ZTA, identity: [key: key]}]
+  end
+
+  defp serverless?() do
+    Application.get_env(:livebook, :serverless, false)
   end
 end

@@ -11,6 +11,8 @@ defmodule Livebook.TeamsIntegrationCase do
       @moduletag :teams_integration
 
       alias Livebook.TeamsServer
+
+      import Livebook.HubHelpers
     end
   end
 

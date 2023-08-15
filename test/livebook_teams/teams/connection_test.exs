@@ -5,8 +5,6 @@ defmodule Livebook.Teams.ConnectionTest do
 
   alias Livebook.Teams.Connection
 
-  import Livebook.HubHelpers
-
   describe "connect" do
     test "successfully authenticates the websocket connection", %{user: user, node: node} do
       {_, headers} = build_team_headers(user, node)

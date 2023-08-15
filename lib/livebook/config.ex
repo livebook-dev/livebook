@@ -132,6 +132,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns warmup mode for apps deployed from dir.
+  """
+  @spec apps_path_warmup() :: :auto | :manual
+  def apps_path_warmup() do
+    Application.get_env(:livebook, :apps_path_warmup, :auto)
+  end
+
+  @doc """
   Returns the configured port for the Livebook endpoint.
 
   Note that the value may be `0`.
@@ -172,9 +180,9 @@ defmodule Livebook.Config do
   @doc """
   Returns the configured URL for the Livebook Teams endpoint.
   """
-  @spec teams_url() :: String.t() | nil
+  @spec teams_url() :: String.t()
   def teams_url() do
-    Application.get_env(:livebook, :teams_url)
+    Application.fetch_env!(:livebook, :teams_url)
   end
 
   @doc """
@@ -295,6 +303,20 @@ defmodule Livebook.Config do
   @spec allowed_uri_schemes() :: list(String.t())
   def allowed_uri_schemes() do
     Application.fetch_env!(:livebook, :allowed_uri_schemes)
+  end
+
+  @doc """
+  Returns a random id set on boot.
+  """
+  def random_boot_id() do
+    Application.fetch_env!(:livebook, :random_boot_id)
+  end
+
+  @doc """
+  If we should warn when using production servers.
+  """
+  def warn_on_live_teams_server?() do
+    Application.get_env(:livebook, :warn_on_live_teams_server, false)
   end
 
   ## Parsing
@@ -506,6 +528,31 @@ defmodule Livebook.Config do
         abort!(
           ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
+    end
+  end
+
+  @doc """
+  Parses and validates apps warmup mode from env.
+  """
+  def apps_path_warmup!(env) do
+    if warmup = System.get_env(env) do
+      apps_path_warmup!(env, warmup)
+    end
+  end
+
+  @doc """
+  Parses and validates apps warmup mode within context.
+  """
+  def apps_path_warmup!(context, warmup) do
+    case warmup do
+      "auto" ->
+        :auto
+
+      "manual" ->
+        :manual
+
+      other ->
+        abort!(~s{expected #{context} to be either "auto" or "manual", got: #{inspect(other)}})
     end
   end
 

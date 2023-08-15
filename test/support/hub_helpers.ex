@@ -7,10 +7,19 @@ defmodule Livebook.HubHelpers do
 
   @offline_hub %Livebook.Hubs.Team{
     id: "team-org-number-3079",
-    teams_key: "A9TarFeAzmX3sDwSPm5JP5qbLPnNpLpzmjVZUCHXwmI",
+    teams_key:
+      Livebook.Teams.Org.teams_key_prefix() <> "A9TarFeAzmX3sDwSPm5JP5qbLPnNpLpzmjVZUCHXwmI",
     org_public_key:
-      "MIIBCgKCAQEA5v_qciaRGOZd5kgCQbhQDgFCnTnIKI5xzN4m4rVtLXMPH7RTA-K6C-e4wy2gn8zulXgSYX4vXDACSjFAG4PlFhXTPgb-v3rFLwbBrUHdaTMTyxRdK52NyNoDpYklQ7FaEU9vr3Z_-cpAQjdADOV1k45GmFe3bo4gImIfUSDYp1rRiEsYcIBt0Wc0S-vQHKSlmfcCexe254_UkvWjLW7KO790bem-PSWcBI_713oRr2mQoxXeeGKd5dSyFsIr5SZXVRWcRK3soQimCXB0ddBSXZ7d2Md3P9Ylo7TcYdBGHlwVIsrmB-P70KPHPYuAVgS9QsIiiMGXPwYVW77xNRTlcwIDAQAB",
-    hub_name: "org-number-3079"
+      Livebook.Hubs.Team.public_key_prefix() <>
+        "MIIBCgKCAQEA5v_qciaRGOZd5kgCQbhQDgFCnTnIKI5xzN4m4rVtLXMPH7RTA-K6C-e4wy2gn8zulXgSYX4vXDACSjFAG4PlFhXTPgb-v3rFLwbBrUHdaTMTyxRdK52NyNoDpYklQ7FaEU9vr3Z_-cpAQjdADOV1k45GmFe3bo4gImIfUSDYp1rRiEsYcIBt0Wc0S-vQHKSlmfcCexe254_UkvWjLW7KO790bem-PSWcBI_713oRr2mQoxXeeGKd5dSyFsIr5SZXVRWcRK3soQimCXB0ddBSXZ7d2Md3P9Ylo7TcYdBGHlwVIsrmB-P70KPHPYuAVgS9QsIiiMGXPwYVW77xNRTlcwIDAQAB",
+    hub_name: "org-number-3079",
+    user_id: 0,
+    org_id: 0,
+    org_key_id: 0,
+    session_token: "",
+    offline: %Livebook.Hubs.Team.Offline{
+      secrets: []
+    }
   }
 
   def create_team_hub(user, node) do
@@ -31,7 +40,7 @@ defmodule Livebook.HubHelpers do
     {hub, headers}
   end
 
-  defp build_team_hub(user, node) do
+  def build_team_hub(user, node) do
     teams_org = build(:org)
     teams_key = teams_org.teams_key
     key_hash = Livebook.Teams.Org.key_hash(teams_org)
@@ -67,10 +76,37 @@ defmodule Livebook.HubHelpers do
   end
 
   def set_offline_hub() do
-    Livebook.Hubs.set_offline_hub(@offline_hub)
+    hub = offline_hub()
+    ^hub = Livebook.Hubs.save_hub(hub)
+
+    hub
   end
 
   def offline_hub(), do: @offline_hub
+
+  def put_offline_hub_secret(secret) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
+    value = Livebook.Teams.encrypt(secret.value, secret_key, sign_secret)
+    secret_created = LivebookProto.SecretCreated.new(name: secret.name, value: value)
+
+    send(pid, {:event, :secret_created, secret_created})
+  end
+
+  def remove_offline_hub_secret(secret) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+    secret_deleted = LivebookProto.SecretDeleted.new(name: secret.name)
+
+    send(pid, {:event, :secret_deleted, secret_deleted})
+  end
+
+  defp hub_pid(hub) do
+    if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
+      {:ok, pid}
+    end
+  end
 
   defp hub_element_id(id), do: "#hubs #hub-#{id}"
 

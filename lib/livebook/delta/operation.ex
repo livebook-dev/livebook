@@ -5,9 +5,15 @@ defmodule Livebook.Delta.Operation do
   #
   # For plain-text (our use case) an operation can be either of:
   #
-  # * `{:insert, string}` - insert the given text at the current position
-  # * `{:retain, length}` - preserve the given number of characters (effectively moving the cursor)
-  # * `{:delete, number}` - delete the given number of characters starting from the current position
+  #   * `{:insert, string}` - insert the given text at the current
+  #      position
+  #
+  #   * `{:retain, length}` - preserve the given number of characters
+  #     (effectively moving the cursor)
+  #
+  #   * `{:delete, number}` - delete the given number of characters
+  #     starting from the current position
+  #
 
   import Kernel, except: [length: 1]
 
@@ -72,8 +78,8 @@ defmodule Livebook.Delta.Operation do
   def from_compressed(length) when is_integer(length) and length < 0, do: {:delete, -length}
 
   @doc """
-  Modifies the given operation lists, so that their heads
-  have the same operation length.
+  Modifies the given operation lists, so that their heads have the
+  same operation length.
 
   ## Examples
 

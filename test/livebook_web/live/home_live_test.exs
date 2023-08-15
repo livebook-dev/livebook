@@ -73,7 +73,7 @@ defmodule LivebookWeb.HomeLiveTest do
         |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
         |> render_click
 
-      assert to == ~p"/sessions/#{session.id}/export/download/livemd?include_outputs=false"
+      assert to == ~p"/sessions/#{session.id}/download/export/livemd?include_outputs=false"
 
       Session.close(session.pid)
     end
@@ -208,7 +208,7 @@ defmodule LivebookWeb.HomeLiveTest do
     test "renders sidebar section", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/")
       assert html =~ "HUBS"
-      assert html =~ "Add Teams"
+      assert html =~ "Add Organization"
     end
 
     test "renders sidebar persisted hubs", %{conn: conn} do

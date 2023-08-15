@@ -1,10 +1,10 @@
 defmodule Livebook.Notebook.Cell.Markdown do
   @moduledoc false
 
-  # A cell with Markdown text content.
+  # Notebook cell with Markdown text content.
   #
-  # It consists of Markdown content that the user can edit
-  # and which is then rendered on the page.
+  # It consists of text content that the user can edit and which is
+  # rendered on the page.
 
   defstruct [:id, :source]
 

@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.Edit.TeamComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.Team
+  alias Livebook.Hubs.{Provider, Team}
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
@@ -13,6 +13,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     show_key? = assigns.params["show-key"] == "true"
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
     secret_name = assigns.params["secret_name"]
+    zta = %{"provider" => "", "key" => ""}
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -26,7 +27,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secrets: secrets,
        show_key: show_key?,
        secret_name: secret_name,
-       secret_value: secret_value
+       secret_value: secret_value,
+       hub_metadata: Provider.to_metadata(assigns.hub),
+       zta: zta
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -35,130 +38,295 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"#{@id}-component"}>
-      <div class="mb-8">
-        <div class="flex justify-between">
-          <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+    <div>
+      <LayoutHelpers.topbar :if={not @hub_metadata.connected?} variant={:warning}>
+        <%= Provider.connection_error(@hub) %>
+      </LayoutHelpers.topbar>
 
-          <div class="flex justify-end gap-2">
-            <button
-              phx-click={show_modal("show-key-modal")}
-              phx-target={@myself}
-              class="button-base button-gray"
-            >
-              <span class="hidden sm:block">Teams key</span>
-              <.remix_icon icon="key-2-fill" class="text-xl sm:hidden" />
-            </button>
-            <button
-              id="delete-hub"
-              phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-              class="button-base button-red"
-            >
-              <span class="hidden sm:block">Delete hub</span>
-              <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
-            </button>
-          </div>
-        </div>
+      <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
+        <div id={"#{@id}-component"}>
+          <div class="mb-8 flex flex-col space-y-10">
+            <div class="flex flex-col space-y-2">
+              <LayoutHelpers.title>
+                <div class="flex gap-2 items-center">
+                  <div class="flex justify-center">
+                    <span class="relative">
+                      <%= @hub.hub_emoji %>
 
-        <div class="flex flex-col space-y-10">
-          <div class="flex flex-col space-y-2">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              General
-            </h2>
+                      <div class={[
+                        "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
+                        if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
+                      ]} />
+                    </span>
+                  </div>
+                  <%= @hub.hub_name %>
+                  <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                    Livebook Teams
+                  </span>
+                </div>
+              </LayoutHelpers.title>
 
-            <.form
-              :let={f}
-              id={@id}
-              class="flex flex-col mt-4 space-y-4"
-              for={@form}
-              phx-submit="save"
-              phx-change="validate"
-              phx-target={@myself}
-            >
-              <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-                <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+              <p class="text-sm flex flex-row space-x-6 text-gray-700">
+                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                  <.remix_icon icon="mail-line" /> Invite users
+                </a>
+
+                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                  <.remix_icon icon="settings-line" /> Manage organization
+                </a>
+
+                <a
+                  phx-click={show_modal("show-key-modal")}
+                  phx-target={@myself}
+                  class="hover:text-blue-600 cursor-pointer"
+                >
+                  <.remix_icon icon="key-2-fill" /> Display Teams key
+                </a>
+              </p>
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                General
+              </h2>
+
+              <.form
+                :let={f}
+                id={@id}
+                class="flex flex-col mt-4 space-y-4"
+                for={@form}
+                phx-submit="save"
+                phx-change="validate"
+                phx-target={@myself}
+              >
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <.text_field
+                    field={f[:hub_name]}
+                    label="Name"
+                    disabled
+                    help="Name cannot be changed"
+                    class="bg-gray-200/50 border-200/80 cursor-not-allowed"
+                  />
+                  <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+                </div>
+
+                <div>
+                  <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                    Save
+                  </button>
+                </div>
+              </.form>
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Secrets
+              </h2>
+
+              <p class="text-gray-700">
+                Secrets are a safe way to share credentials and tokens with notebooks.
+                They are often used by Smart cells and can be read as
+                environment variables using the <code>LB_</code> prefix.
+              </p>
+
+              <.live_component
+                module={LivebookWeb.Hub.SecretListComponent}
+                id="hub-secrets-list"
+                hub={@hub}
+                secrets={@secrets}
+                target={@myself}
+              />
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Airgapped Deployment
+              </h2>
+
+              <p class="text-gray-700">
+                It is possible to deploy notebooks that belong to this Hub in an airgapped
+                deployment, without connecting back to Livebook Teams server, by following
+                the steps below. First, configure your deployment:
+              </p>
+
+              <.form :let={f} class="py-2" for={@zta} phx-change="change_zta" phx-target={@myself}>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <.select_field
+                    name="provider"
+                    label="Zero Trust Authentication provider"
+                    value={@zta["provider"]}
+                    help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
+                    options={[
+                      {"None", ""},
+                      {"Cloudflare", "cloudflare"},
+                      {"Google IAP", "google_iap"}
+                    ]}
+                  />
+                  <.text_field
+                    :if={@zta["provider"] != ""}
+                    field={f[:key]}
+                    label={zta_key_label(@zta["provider"])}
+                    phx-debounce
+                  />
+                </div>
+
+                <div class="text-sm mt-2">
+                  <span :if={@zta["provider"] == "cloudflare"}>
+                    See the
+                    <a
+                      class="text-blue-800 hover:text-blue-600"
+                      href="https://developers.cloudflare.com/cloudflare-one/"
+                    >
+                      CloudFlare docs
+                    </a>
+                    for more information about Cloudflare Zero Trust.
+                  </span>
+
+                  <span :if={@zta["provider"] == "google_iap"}>
+                    See the
+                    <a
+                      class="text-blue-800 hover:text-blue-600"
+                      href="https://cloud.google.com/iap/docs/concepts-overview"
+                    >
+                      Google docs
+                    </a>
+                    for more information about Google Identity-Aware Proxy (IAP).
+                  </span>
+                </div>
+              </.form>
+
+              <p class="text-gray-700">
+                Then save the Dockerfile below in a repository with the Livebook notebooks
+                that belong to your Organization. <strong>You must change</strong>
+                the value of the <code>APPS_PATH</code>
+                argument in the template below to point to a directory with all <code>.livemd</code>
+                files you want to deploy.
+              </p>
+
+              <div id="env-code" class="py-2">
+                <div class="flex justify-between items-end mb-1">
+                  <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
+                  <button
+                    class="button-base button-gray whitespace-nowrap py-1 px-2"
+                    data-copy
+                    data-tooltip="Copied to clipboard"
+                    type="button"
+                    aria-label="copy to clipboard"
+                    phx-click={
+                      JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
+                      |> JS.add_class(
+                        "tooltip top",
+                        to: "#env-code [data-copy]",
+                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+                      )
+                      |> JS.remove_class(
+                        "tooltip top",
+                        to: "#env-code [data-copy]",
+                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
+                        time: 2000
+                      )
+                    }
+                  >
+                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+                    <span class="font-normal text-xs">Copy source</span>
+                  </button>
+                </div>
+
+                <.code_preview
+                  source_id={"offline-deployment-#{@hub.id}-source"}
+                  source={@dockerfile}
+                  language="dockerfile"
+                />
               </div>
 
-              <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
-                Update Hub
-              </button>
-            </.form>
+              <p class="text-gray-700 py-2">
+                You may additionally perform the following optional steps:
+              </p>
+
+              <ul class="text-gray-700 pl-1 space-y-3 list-disc list-inside">
+                <li>
+                  you may remove the default value for <code>TEAMS_KEY</code>
+                  from your Dockerfile and set it as a build argument in your deployment
+                  platform
+                </li>
+                <li>
+                  if you want to debug your deployed notebooks in production, you may
+                  set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
+                  value of at least 12 characters of your choice
+                </li>
+              </ul>
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Danger Zone
+              </h2>
+
+              <div class="flex items-center justify-between gap-4 text-gray-700">
+                <div class="flex flex-col">
+                  <h3 class="font-semibold">
+                    Delete this hub
+                  </h3>
+                  <p class="text-sm">
+                    This only removes the hub from this machine. You must rejoin to access its features once again.
+                  </p>
+                </div>
+                <button
+                  id="delete-hub"
+                  phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
+                  class="button-base button-outlined-red"
+                >
+                  <span class="hidden sm:block">Delete hub</span>
+                  <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              Secrets
-            </h2>
+          <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
+            <.teams_key_modal teams_key={@hub.teams_key} />
+          </.modal>
 
-            <p class="text-gray-700">
-              Secrets are a safe way to share credentials and tokens with notebooks.
-              They are often shared with Smart cells and can be read as
-              environment variables using the <code>LB_</code> prefix.
-            </p>
-
+          <.modal
+            :if={@live_action in [:new_secret, :edit_secret]}
+            id="secrets-modal"
+            show
+            width={:medium}
+            patch={~p"/hub/#{@hub.id}"}
+          >
             <.live_component
-              module={LivebookWeb.Hub.SecretListComponent}
-              id="hub-secrets-list"
+              module={LivebookWeb.Hub.SecretFormComponent}
+              id="secrets"
               hub={@hub}
-              secrets={@secrets}
-              target={@myself}
+              secret_name={@secret_name}
+              secret_value={@secret_value}
+              return_to={~p"/hub/#{@hub.id}"}
             />
-          </div>
-
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              Offline Deployment
-            </h2>
-
-            <p class="text-gray-700">
-              Deploy your stamped notebooks with your Hub
-              using an instance of the Hub using
-              environment variables.
-            </p>
-
-            <.code_preview
-              source_id={"offline-deployment-#{@hub.id}"}
-              source={@dockerfile}
-              language="dockerfile"
-            />
-          </div>
+          </.modal>
         </div>
       </div>
-
-      <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
-        <.teams_key_modal teams_key={@hub.teams_key} />
-      </.modal>
-
-      <.modal
-        :if={@live_action in [:new_secret, :edit_secret]}
-        id="secrets-modal"
-        show
-        width={:medium}
-        patch={~p"/hub/#{@hub.id}"}
-      >
-        <.live_component
-          module={LivebookWeb.Hub.SecretFormComponent}
-          id="secrets"
-          hub={@hub}
-          secret_name={@secret_name}
-          secret_value={@secret_value}
-          return_to={~p"/hub/#{@hub.id}"}
-        />
-      </.modal>
     </div>
     """
+  end
+
+  defp zta_key_label("cloudflare"), do: "Team name (domain)"
+  defp zta_key_label("google_iap"), do: "Audience (aud)"
+
+  defp org_url(hub, path) do
+    Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
   end
 
   defp teams_key_modal(assigns) do
     ~H"""
     <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Teams Key
+        Teams key
       </h3>
       <div class="justify-center">
-        This is your <strong>Teams Key</strong>. If you want to join or invite others
-        to your organization, you will need to share your Teams Key with them. We
-        recommend storing it somewhere safe:
+        This is your <strong>Teams key</strong>. This key encrypts your
+        data before it is sent to Livebook Teams servers. This key is
+        required for you and invited users to join this organization.
+        We recommend storing it somewhere safe:
       </div>
       <div class=" w-full">
         <div id="teams-key-toggle" class="relative flex">
@@ -260,13 +428,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
 
       case Livebook.Hubs.delete_secret(hub, secret) do
-        :ok ->
-          socket
-          |> put_flash(:success, "Secret deleted successfully")
-          |> push_navigate(to: ~p"/hub/#{hub.id}")
-
-        {:transport_error, reason} ->
-          put_flash(socket, :error, reason)
+        :ok -> socket
+        {:transport_error, reason} -> put_flash(socket, :error, reason)
       end
     end
 
@@ -279,6 +442,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
      )}
   end
 
+  def handle_event("change_zta", %{"provider" => provider} = params, socket) do
+    zta = %{"provider" => provider, "key" => params["key"]}
+    {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
+  end
+
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
   end
@@ -287,17 +455,53 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
 
-    assign(socket, :dockerfile, """
-    FROM livebook/livebook:#{version}
+    base =
+      """
+      FROM ghcr.io/livebook-dev/livebook:#{version}
+      ARG APPS_PATH=/path/to/my/notebooks
+      ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
 
-    COPY /path/to/my/notebooks /data
-    ENV LIVEBOOK_APPS_PATH "/data"
+      ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
+      ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
+      ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+      ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
+      """
 
-    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
-    ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
-    ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
+    apps =
+      """
 
-    CMD [ "/app/bin/livebook", "start" ]\
-    """)
+      ENV LIVEBOOK_APPS_PATH "/apps"
+      ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
+      ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
+      COPY ${APPS_PATH} /apps
+      RUN /app/bin/warmup_apps.sh\
+      """
+
+    zta = zta_env(socket.assigns.zta)
+    dockerfile = if zta, do: base <> zta <> apps, else: base <> apps
+
+    assign(socket, :dockerfile, dockerfile)
+  end
+
+  defp encrypt_secrets_to_dockerfile(socket) do
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
+
+    secrets_map =
+      for %{name: name, value: value} <- socket.assigns.secrets,
+          into: %{},
+          do: {name, value}
+
+    stringified_secrets = Jason.encode!(secrets_map)
+
+    Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
+  end
+
+  defp zta_env(%{"provider" => ""}), do: nil
+  defp zta_env(%{"key" => ""}), do: nil
+
+  defp zta_env(%{"provider" => provider, "key" => key}) do
+    """
+    ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
+    """
   end
 end

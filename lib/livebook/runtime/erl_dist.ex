@@ -1,25 +1,28 @@
 defmodule Livebook.Runtime.ErlDist do
   @moduledoc false
 
-  # This module allows for initializing nodes connected using
-  # Erlang Distribution with modules and processes necessary for evaluation.
+  # This module allows for initializing connected runtime nodes with
+  # modules and processes necessary for evaluation.
   #
-  # To ensure proper isolation between sessions,
-  # code evaluation may take place in a separate Elixir runtime,
-  # which also makes it easy to terminate the whole
-  # evaluation environment without stopping Livebook.
-  # This is what `Runtime.ElixirStandalone` and `Runtime.Attached` do,
-  # so this module contains the shared functionality they need.
+  # To ensure proper isolation between sessions, code evaluation may
+  # take place in a separate Elixir runtime, which also makes it easy
+  # to terminate the whole evaluation environment without stopping
+  # Livebook. Both `Runtime.ElixirStandalone` and `Runtime.Attached`
+  # do that and this module contains the shared functionality.
   #
   # To work with a separate node, we have to inject the necessary
   # Livebook modules there and also start the relevant processes
-  # related to evaluation. Fortunately Erlang allows us to send modules
-  # binary representation to the other node and load them dynamically.
+  # related to evaluation. Fortunately Erlang allows us to send
+  # modules binary representation to the other node and load them
+  # dynamically.
   #
   # For further details see `Livebook.Runtime.ErlDist.NodeManager`.
 
-  # Modules to load into the connected node.
-  def required_modules do
+  @doc """
+  Livebook modules necessary for evaluation within a runtime node.
+  """
+  @spec required_modules() :: list(module())
+  def required_modules() do
     [
       Livebook.Runtime.Definitions,
       Livebook.Runtime.Evaluator,
@@ -47,9 +50,8 @@ defmodule Livebook.Runtime.ErlDist do
   @doc """
   Starts a runtime server on the given node.
 
-  If necessary, the required modules are loaded
-  into the given node and the node manager process
-  is started with `node_manager_opts`.
+  If necessary, the required modules are loaded into the given node
+  and the node manager process is started with `node_manager_opts`.
 
   ## Options
 
@@ -85,7 +87,8 @@ defmodule Livebook.Runtime.ErlDist do
 
           if local_otp != remote_otp do
             raise RuntimeError,
-                  "failed to load #{inspect(module)} module into the remote node, potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})"
+                  "failed to load #{inspect(module)} module into the remote node," <>
+                    " potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})"
           else
             raise RuntimeError,
                   "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"

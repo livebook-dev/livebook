@@ -18,8 +18,8 @@ defmodule Livebook.Utils.Time do
   end
 
   @doc """
-  Formats time distance between `from_ndt` and `to_ndt`
-  as a human-readable string.
+  Formats time distance between `from_ndt` and `to_ndt` as a
+  human-readable string.
 
   ## Examples
 

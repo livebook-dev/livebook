@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
       <div :if={@error_message} class="mb-6 error-box">
         <%= @error_message %>
       </div>
-      <div class="h-80" role="region" aria-label="file system">
+      <div class="h-80" role="region" aria-label="file storage">
         <.live_component
           module={LivebookWeb.FileSelectComponent}
           id="add-file-entry-select"
@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
         phx-target={@myself}
       >
         <div class="flex flex-col space-y-4">
-          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="blur" />
+          <.text_field field={f[:name]} label="Name" autocomplete="off" phx-debounce="200" />
           <.radio_field
             field={f[:copy]}
             options={[
@@ -94,7 +94,8 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
             type="submit"
             disabled={not @changeset.valid? or not regular?(@file, @file_info) or @fetching}
           >
-            Add
+            <.spinner :if={@fetching} class="mr-2" />
+            <span>Add</span>
           </button>
           <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
             Cancel

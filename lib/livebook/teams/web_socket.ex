@@ -20,11 +20,11 @@ defmodule Livebook.Teams.WebSocket do
           | {:transport_error, String.t()}
           | {:server_error, String.t()}
   def connect(headers \\ []) do
-    uri = URI.parse(Livebook.Config.teams_url() || raise("missing Livebook Teams URL"))
+    uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
 
-    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port),
+    with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, protocols: [:http1]),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
       receive_upgrade(conn, ref, state)
     else

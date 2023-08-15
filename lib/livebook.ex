@@ -70,6 +70,7 @@ defmodule Livebook do
           path: "/path/to/other_notebook.livemd"
         }
       ]
+
   """
 
   @doc """
@@ -84,6 +85,8 @@ defmodule Livebook do
   """
   def config_runtime do
     import Config
+
+    config :livebook, :random_boot_id, :crypto.strong_rand_bytes(3)
 
     config :livebook, LivebookWeb.Endpoint,
       secret_key_base:
@@ -123,7 +126,7 @@ defmodule Livebook do
     end
 
     if url = Livebook.Config.teams_url!("LIVEBOOK_TEAMS_URL") do
-      config :livebook, :teams_url, url
+      config :livebook, teams_url: url, warn_on_live_teams_server: false
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
@@ -166,6 +169,10 @@ defmodule Livebook do
 
     if apps_path_password = Livebook.Config.password!("LIVEBOOK_APPS_PATH_PASSWORD") do
       config :livebook, :apps_path_password, apps_path_password
+    end
+
+    if apps_path_warmup = Livebook.Config.apps_path_warmup!("LIVEBOOK_APPS_PATH_WARMUP") do
+      config :livebook, :apps_path_warmup, apps_path_warmup
     end
 
     if force_ssl_host = Livebook.Config.force_ssl_host!("LIVEBOOK_FORCE_SSL_HOST") do

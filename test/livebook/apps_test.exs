@@ -11,13 +11,13 @@ defmodule Livebook.AppsTest do
       app2_path = Path.join(tmp_dir, "app2.livemd")
 
       File.write!(app1_path, """
-      <!-- livebook:{"app_settings":{"slug":"app1"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app1"}} -->
 
       # App 1
       """)
 
       File.write!(app2_path, """
-      <!-- livebook:{"app_settings":{"slug":"app2"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app2"}} -->
 
       # App 2
       """)
@@ -100,6 +100,55 @@ defmodule Livebook.AppsTest do
       Livebook.App.close(pid)
     end
 
+    @tag :capture_log
+    @tag :tmp_dir
+    test "deploys apps with offline hub secrets", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app1.livemd")
+      hub = offline_hub()
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"offline_hub_app2"},"hub_id":"team-org-number-3079"} -->
+
+      # App 2
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      <!-- livebook:{"offset":148,"stamp":{"token":"QTEyOEdDTQ.M486X5ISDg_wVwvndrMYJKIkfXa5qAwggh5LzkV41wVOY8SNQvfA4EFx4Tk.RrcteIrzJVrqQdhH.mtmu5KFj.bibmp2rxZoniYX1xY8dTvw","token_signature":"28ucTCoDXxahOIMg7SvdYIoLpGIUSahEa7mchH0jKncKeZH8-w-vOaL1F1uj_94lqQJFkmHWv988__1bPmYCorw7F1wAvAaprt3o2vSitWWmBszuF5JaimkFqOFcK3mc4NHuswQKuBjSL0W_yR-viiwlx6zPNsTpftVKjRI2Cri1PsMeZgahfdR2gy1OEgavzU6J6YWsNQHIMWgt5gwT6fIua1zaV7K8-TA6-6NRgcfG-pSJqRIm-3-vnbH5lkXRCgXCo_S9zWa6Jrcl5AbLObSr5DUueiwac1RobH7jNghCm1F-o1cUk9W-BJRZ7igVMwaYqLaOnKO8ya9CrkIiMg","version":1}} -->
+      """)
+
+      Livebook.Apps.subscribe()
+
+      secret = %Livebook.Secrets.Secret{
+        name: "DB_PASSWORD",
+        value: "postgres",
+        hub_id: hub.id
+      }
+
+      put_offline_hub_secret(secret)
+      assert secret in Livebook.Hubs.get_secrets(hub)
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+
+      assert_receive {:app_created, %{pid: pid, slug: "offline_hub_app2"}}
+
+      assert_receive {:app_updated,
+                      %{
+                        slug: "offline_hub_app2",
+                        sessions: [%{app_status: %{execution: :executed}}]
+                      }}
+
+      session_id = Livebook.App.get_session_id(pid)
+      {:ok, session} = Livebook.Sessions.fetch_session(session_id)
+      assert %{hub_secrets: [^secret]} = Livebook.Session.get_data(session.pid)
+
+      Livebook.App.close(pid)
+      remove_offline_hub_secret(secret)
+    end
+
     @tag :tmp_dir
     test "skips apps with incomplete config and warns", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
@@ -111,7 +160,29 @@ defmodule Livebook.AppsTest do
       assert capture_log(fn ->
                Livebook.Apps.deploy_apps_in_dir(tmp_dir)
              end) =~
-               "Skipping app deployment at #{app_path}. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
+               "Skipping deployment for app at app.livemd. The deployment settings are missing or invalid. Please configure them under the notebook deploy panel."
+    end
+
+    @tag :tmp_dir
+    test "warns when a notebook is protected and no :password is set", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+
+      # App
+      """)
+
+      Livebook.Apps.subscribe()
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+             end) =~
+               "The app at app.livemd will use a random password. You may want to set LIVEBOOK_APPS_PATH_PASSWORD or make the app public."
+
+      assert_receive {:app_created, %{slug: "app"} = app}
+
+      Livebook.App.close(app.pid)
     end
 
     @tag :tmp_dir
@@ -135,13 +206,12 @@ defmodule Livebook.AppsTest do
       Livebook.App.close(app.pid)
     end
 
-    @tag :capture_log
     @tag :tmp_dir
     test "deploys with import warnings", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
 
       # App
 
@@ -150,7 +220,9 @@ defmodule Livebook.AppsTest do
 
       Livebook.Apps.subscribe()
 
-      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+             end) =~ "line 5 - fenced Code Block opened with"
 
       assert_receive {:app_created, %{slug: "app", warnings: warnings} = app}
 
@@ -170,7 +242,7 @@ defmodule Livebook.AppsTest do
       File.write!(image_path, "content")
 
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
 
       # App
       """)

@@ -64,7 +64,7 @@ defmodule Livebook.FileSystem.S3 do
 
       _config ->
         {:error,
-         "S3 file system config is expected to have keys: :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
+         "S3 configuration is expected to have keys: :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
     end
   end
 

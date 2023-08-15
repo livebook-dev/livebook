@@ -74,6 +74,9 @@ docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
 docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" ghcr.io/livebook-dev/livebook
+
+# Or if you need to run on different ports:
+docker run -p 8090:8090 -p 8091:8091 --pull always -e LIVEBOOK_PORT=8090 -e LIVEBOOK_IFRAME_PORT=8091 ghcr.io/livebook-dev/livebook
 ```
 
 For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
@@ -82,10 +85,24 @@ To try out features from the main branch you can alternatively
 use the `ghcr.io/livebook-dev/livebook:edge` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
+If using Docker Compose the following template is a good starting point:
+
+```yml
+services:
+  livebook:
+    image: ghcr.io/livebook-dev/livebook
+    ports:
+      - 8090:8090
+      - 8091:8091
+    environment:
+      - LIVEBOOK_PORT=8090
+      - LIVEBOOK_IFRAME_PORT=8091
+```
+
 ### Embedded devices
 
 If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
-check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+check out [the Livebook firmware](https://github.com/nerves-livebook/nerves_livebook) built
 with [Nerves](https://www.nerves-project.org/).
 
 ### Direct installation with Elixir
@@ -102,7 +119,9 @@ be installed as follows:
 sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl erlang-xmerl erlang-dev erlang-parsetools
 ```
 
-**Note:** Livebook is not meant to be used as a Mix/Hex dependency.
+**Note:** The [`livebook` package](https://hex.pm/packages/livebook)
+is meant to be used as a CLI tool. Livebook is not officially
+supported as a Mix/Hex dependency.
 
 #### Escript
 
@@ -172,15 +191,22 @@ The following environment variables can be used to configure Livebook on boot:
     Livebook instance within the cloud provider platform.
 
   * LIVEBOOK_APPS_PATH - the directory with app notebooks. When set, the apps
-    are deployed on Livebook startup with the persisted settings.
-    Password-protected notebooks will receive a random password,
-    unless LIVEBOOK_APPS_PATH_PASSWORD is set.
+    are deployed on Livebook startup with the persisted settings. Password-protected
+    notebooks will receive a random password, unless LIVEBOOK_APPS_PATH_PASSWORD
+    is set. When deploying using Livebook's Docker image, consider using
+    `LIVEBOOK_APPS_PATH_WARMUP`.
 
   * LIVEBOOK_APPS_PATH_HUB_ID - deploy only the notebooks in
     LIVEBOOK_APPS_PATH that belong to the given Hub ID
 
   * LIVEBOOK_APPS_PATH_PASSWORD - the password to use for all protected apps
     deployed from LIVEBOOK_APPS_PATH.
+
+  * LIVEBOOK_APPS_PATH_WARMUP - sets the warmup mode for apps deployed from
+    LIVEBOOK_APPS_PATH. Must be either "auto" (apps are warmed up on Livebook
+    startup, right before app deployment) or "manual" (apps are warmed up when
+    building the Docker image; to do so add "RUN /app/bin/warmup_apps.sh" to
+    your image). Defaults to "auto".
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is
     served on. Useful when deploying behind a reverse proxy.
@@ -201,7 +227,7 @@ The following environment variables can be used to configure Livebook on boot:
     cluster. Must be "name" (long names) or "sname" (short names). Note that this
     sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
-  * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
+  * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTPS.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
   * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
@@ -253,6 +279,10 @@ The following environment variables can be used to configure Livebook on boot:
 
   * LIVEBOOK_TEAMS_OFFLINE_KEY - sets the Livebook Teams public key for creating an offline hub.
     Must be set together with LIVEBOOK_TEAMS_NAME and LIVEBOOK_TEAMS_KEY.
+
+  * LIVEBOOK_TEAMS_SECRETS - sets the Livebook Teams encrypted secrets for deploying apps with secrets.
+    This is relevant when deploying airgapped apps. Must be set together with
+    LIVEBOOK_TEAMS_NAME, LIVEBOOK_TEAMS_KEY, and LIVEBOOK_TEAMS_OFFLINE_KEY.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless LIVEBOOK_PASSWORD is set. Set it to "false" to

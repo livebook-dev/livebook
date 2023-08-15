@@ -51,7 +51,11 @@ defmodule LivebookWeb.FileSelectComponent do
        accept: :any,
        auto_upload: true,
        max_entries: 1,
-       progress: &handle_progress/3
+       progress: &handle_progress/3,
+       writer: fn _name, entry, socket ->
+         file = FileSystem.File.resolve(socket.assigns.current_dir, entry.client_name)
+         {LivebookWeb.FileSystemWriter, [file: file]}
+       end
      )}
   end
 
@@ -264,11 +268,14 @@ defmodule LivebookWeb.FileSelectComponent do
       <:toggle>
         <button
           type="button"
-          class="button-base button-gray button-square-icon"
-          aria-label="switch file system"
+          class="button-base button-gray pl-3 pr-2"
+          aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
-          <.file_system_icon file_system={@file.file_system} />
+          <span><%= file_system_name(@file.file_system) %></span>
+          <div class="pl-0.5 flex items-center">
+            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
+          </div>
         </button>
       </:toggle>
       <%= for file_system <- @file_systems do %>
@@ -421,19 +428,7 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   defp handle_progress(:folder, entry, socket) when entry.done? do
-    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
-      content = File.read!(file_path)
-
-      file_path =
-        FileSystem.File.resolve(
-          socket.assigns.current_dir,
-          entry.client_name
-        )
-
-      FileSystem.File.write(file_path, content)
-      {:ok, :ok}
-    end)
-
+    :ok = consume_uploaded_entry(socket, entry, fn %{} -> {:ok, :ok} end)
     {:noreply, update_file_infos(socket, true)}
   end
 

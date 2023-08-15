@@ -1,23 +1,23 @@
 defmodule Livebook.Delta do
   @moduledoc false
 
-  # Delta is a format used to represent a set of changes
-  # introduced to a text document.
+  # Delta is a format used to represent a set of changes introduced
+  # to a text document.
   #
-  # By design, delta is suitable for Operational Transformation
-  # and is hence our primary building block in collaborative text editing.
+  # By design, delta is suitable for Operational Transformation and
+  # is hence our primary building block in collaborative text editing.
   #
-  # For a detailed write-up see https://quilljs.com/docs/delta
-  # and https://quilljs.com/guides/designing-the-delta-format.
-  # The specification covers rich-text editing, while we only
-  # need to work with plain-text, so we use a subset of the specification
+  # For a detailed write-up see https://quilljs.com/docs/delta and
+  # https://quilljs.com/guides/designing-the-delta-format. The
+  # specification covers rich-text editing, while we only need to
+  # work with plain-text, so we use a subset of the specification
   # with operations listed in `Livebook.Delta.Operation`.
   #
-  # An implementation of the full Delta specification is available
-  # in the :text_delta package (https://github.com/deltadoc/text_delta)
+  # An implementation of the full Delta specification is available in
+  # the :text_delta package (https://github.com/deltadoc/text_delta)
   # by Konstantin Kudryashov under the MIT license. This module builds
-  # directly on that package, and is simplified to better fit our
-  # not rich-text use case.
+  # directly on that package, and is simplified to better fit our not
+  # rich-text use case.
 
   defstruct ops: []
 
@@ -68,13 +68,19 @@ defmodule Livebook.Delta do
 
   The specification imposes two constraints:
 
-  1. Delta must be *compact* - there must be no shorter equivalent delta.
-  2. Delta must be *canonical* - there is just a single valid representation of the given change.
+    1. Delta must be *compact* - there must be no shorter equivalent
+       delta.
+
+    2. Delta must be *canonical* - there is just a single valid
+       representation of the given change.
 
   To satisfy these constraints we follow two rules:
 
-  1. Delete followed by insert is swapped to ensure that insert goes first.
-  2. Operations of the same type are merged.
+    1. Delete followed by insert is swapped to ensure that insert
+       goes first.
+
+    2. Operations of the same type are merged.
+
   """
   @spec append(t(), Operation.t()) :: t()
   def append(delta, op) do
@@ -130,8 +136,8 @@ defmodule Livebook.Delta do
   end
 
   @doc """
-  Converts the given delta to a compact representation,
-  suitable for sending over the network.
+  Converts the given delta to a compact representation, suitable for
+  sending over the network.
 
   ## Examples
 

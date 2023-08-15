@@ -3,19 +3,18 @@ defmodule Livebook.Notebook do
 
   # Data structure representing a notebook.
   #
-  # A notebook is just the representation and roughly
-  # maps to a file that the user can edit.
+  # A notebook is just a document and roughly maps to a plain file
+  # that the user can edit.
   #
-  # A notebook *session* is a living process that holds a specific
+  # A notebook **session** is a living process that holds a specific
   # notebook instance and allows users to collaboratively apply
-  # changes to this notebook.
+  # changes to that notebook. See `Livebook.Session`.
   #
-  # A notebook is divided into a number of *sections*, each
-  # containing a number of *cells*.
+  # Structurally, a notebook is divided into a number of **sections**,
+  # each containing a number of **cells**.
 
   defstruct [
     :name,
-    :version,
     :setup_section,
     :sections,
     :leading_comments,
@@ -38,7 +37,6 @@ defmodule Livebook.Notebook do
 
   @type t :: %__MODULE__{
           name: String.t(),
-          version: String.t(),
           setup_section: Section.t(),
           sections: list(Section.t()),
           leading_comments: list(list(line :: String.t())),
@@ -55,6 +53,32 @@ defmodule Livebook.Notebook do
           output_panel: %{rows: list(output_panel_row())}
         }
 
+  @typedoc """
+  File entry represents a virtual file that the notebook is aware of.
+
+  Files can be of different types:
+
+    * `:attachment` - a hard copy of a file managed together with the
+      notebook. These files are stored in files/ directory alongside
+      the notebook file
+
+    * `:file` - absolute link to a file on any of the available file
+      systems
+
+    * `:url` - absolute link to a file available online
+
+  ## Quarantine
+
+  File entries of type `:file` are somewhat sensitive, since they may
+  point to an external file system, like S3. When importing a notebook,
+  we don't want to allow access to arbitrary files, since the user may
+  not realize what exact location the file entry is pointing to. Hence,
+  on import we place these file entries in "quarantine" and require
+  the user to explicitly allow access to them. We persist this choice
+  using the notebook stamp, so if the file is saved and opened later,
+  the files are automatically allowed. If the stamp is not valid, all
+  files are placed back in the quarantine.
+  """
   @type file_entry ::
           %{
             name: String.t(),
@@ -80,8 +104,6 @@ defmodule Livebook.Notebook do
 
   @type output_width :: 0..100
 
-  @version "1.0"
-
   @doc """
   Returns a blank notebook.
   """
@@ -89,7 +111,6 @@ defmodule Livebook.Notebook do
   def new() do
     %__MODULE__{
       name: "Untitled notebook",
-      version: @version,
       setup_section: %{Section.new() | id: "setup-section", name: "Setup", cells: []},
       sections: [],
       leading_comments: [],

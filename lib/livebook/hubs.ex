@@ -5,7 +5,10 @@ defmodule Livebook.Hubs do
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
 
+  require Logger
+
   @namespace :hubs
+  @supervisor Livebook.HubsSupervisor
 
   @type connected_hub :: %{
           required(:pid) => pid(),
@@ -79,8 +82,8 @@ defmodule Livebook.Hubs do
   """
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
-    attributes = struct |> Map.from_struct() |> Map.to_list()
-    :ok = Storage.insert(@namespace, struct.id, attributes)
+    attributes = Provider.dump(struct)
+    :ok = Storage.insert(@namespace, struct.id, Map.to_list(attributes))
     :ok = connect_hub(struct)
     :ok = Broadcasts.hub_changed(struct.id)
 
@@ -123,7 +126,6 @@ defmodule Livebook.Hubs do
   Topic `hubs:connection`:
 
     * `{:hub_connected, hub_id}`
-    * `{:hub_disconnected, hub_id}`
     * `{:hub_connection_failed, hub_id, reason}`
     * `{:hub_server_error, hub_id, reason}`
 
@@ -164,7 +166,7 @@ defmodule Livebook.Hubs do
   end
 
   defp to_struct(%{id: "team-" <> _} = fields) do
-    Provider.load(%Team{}, fields)
+    Provider.load(Team.new(), fields)
   end
 
   @doc """
@@ -185,7 +187,16 @@ defmodule Livebook.Hubs do
 
   defp connect_hub(hub) do
     if child_spec = Provider.connection_spec(hub) do
-      DynamicSupervisor.start_child(Livebook.HubsSupervisor, child_spec)
+      case DynamicSupervisor.start_child(@supervisor, child_spec) do
+        {:ok, _} ->
+          :ok
+
+        {:error, {:already_started, _pid}} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Could not start Hub #{hub.id}: #{Exception.format_exit(reason)}")
+      end
     end
 
     :ok
@@ -209,7 +220,9 @@ defmodule Livebook.Hubs do
   @spec get_secrets(Provider.t()) :: list(Secret.t())
   def get_secrets(hub) do
     if capability?(hub, [:list_secrets]) do
-      Provider.get_secrets(hub)
+      hub
+      |> Provider.get_secrets()
+      |> Enum.sort()
     else
       []
     end
@@ -271,26 +284,5 @@ defmodule Livebook.Hubs do
   @spec capability?(Provider.t(), list(atom())) :: boolean()
   def capability?(hub, capabilities) do
     capabilities -- Provider.capabilities(hub) == []
-  end
-
-  @offline_hub_key :livebook_offline_hub
-
-  @doc """
-  Gets the offline hub if the given id matches.
-  """
-  @spec get_offline_hub(String.t()) :: Provider.t() | nil
-  def get_offline_hub(id) do
-    case :persistent_term.get(@offline_hub_key, nil) do
-      %{id: ^id} = hub -> hub
-      _ -> nil
-    end
-  end
-
-  @doc """
-  Sets a offline hub that will be kept only in memory.
-  """
-  @spec set_offline_hub(Provider.t()) :: :ok
-  def set_offline_hub(hub) do
-    :persistent_term.put(@offline_hub_key, hub)
   end
 end

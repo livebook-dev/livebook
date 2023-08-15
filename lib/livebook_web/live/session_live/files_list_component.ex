@@ -4,7 +4,12 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   alias Livebook.FileSystem
 
   @impl true
-  def update(%{transfer_file_entry_result: file_entry_result}, socket) do
+  def mount(socket) do
+    {:ok, assign(socket, transferring_file_entry_names: MapSet.new())}
+  end
+
+  @impl true
+  def update(%{transfer_file_entry_result: {name, file_entry_result}}, socket) do
     case file_entry_result do
       {:ok, file_entry} ->
         Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
@@ -12,6 +17,8 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       {:error, message} ->
         send(self(), {:put_flash, :error, Livebook.Utils.upcase_first(message)})
     end
+
+    socket = update(socket, :transferring_file_entry_names, &MapSet.delete(&1, name))
 
     {:ok, socket}
   end
@@ -65,57 +72,70 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
               <span class="break-all"><%= file_entry.name %></span>
             </div>
           <% end %>
-          <.menu id={"file-entry-#{idx}-menu"} position={:bottom_right}>
-            <:toggle>
-              <button class="icon-button" aria-label="menu">
-                <.remix_icon icon="more-2-line" />
-              </button>
-            </:toggle>
-            <.menu_item>
-              <button
-                :if={file_entry.type != :attachment}
-                role="menuitem"
-                phx-click={
-                  JS.push("transfer_file_entry", value: %{name: file_entry.name}, target: @myself)
-                }
-              >
-                <.remix_icon icon="file-transfer-line" />
-                <span>Copy to files directory</span>
-              </button>
-            </.menu_item>
-            <.menu_item disabled={not Livebook.Session.file_entry_cacheable?(@session, file_entry)}>
-              <button
-                role="menuitem"
-                phx-click={
-                  JS.push("clear_file_entry_cache",
-                    value: %{name: file_entry.name},
-                    target: @myself
-                  )
-                }
-              >
-                <.remix_icon icon="eraser-line" />
-                <span>Clear cache</span>
-              </button>
-            </.menu_item>
-            <.menu_item variant={:danger}>
-              <button
-                role="menuitem"
-                phx-click={
-                  JS.push("delete_file_entry", value: %{name: file_entry.name}, target: @myself)
-                }
-              >
-                <.remix_icon icon="delete-bin-line" />
-                <span>Delete</span>
-              </button>
-            </.menu_item>
-          </.menu>
+          <%= if file_entry.name in @transferring_file_entry_names do %>
+            <.spinner class="mr-[3px]" />
+          <% else %>
+            <.menu id={"file-entry-#{idx}-menu"} position={:bottom_right}>
+              <:toggle>
+                <button class="icon-button" aria-label="menu">
+                  <.remix_icon icon="more-2-line" />
+                </button>
+              </:toggle>
+              <.menu_item>
+                <button
+                  :if={file_entry.type != :attachment}
+                  role="menuitem"
+                  phx-click={
+                    JS.push("transfer_file_entry", value: %{name: file_entry.name}, target: @myself)
+                  }
+                >
+                  <.remix_icon icon="file-transfer-line" />
+                  <span>Copy to files directory</span>
+                </button>
+              </.menu_item>
+              <.menu_item disabled={not Livebook.Session.file_entry_cacheable?(@session, file_entry)}>
+                <button
+                  role="menuitem"
+                  phx-click={
+                    JS.push("clear_file_entry_cache",
+                      value: %{name: file_entry.name},
+                      target: @myself
+                    )
+                  }
+                >
+                  <.remix_icon icon="eraser-line" />
+                  <span>Clear cache</span>
+                </button>
+              </.menu_item>
+              <.menu_item>
+                <a
+                  role="menuitem"
+                  href={~p"/sessions/#{@session.id}/download/files/#{file_entry.name}"}
+                >
+                  <.remix_icon icon="download-2-line" />
+                  <span>Download</span>
+                </a>
+              </.menu_item>
+              <.menu_item variant={:danger}>
+                <button
+                  role="menuitem"
+                  phx-click={
+                    JS.push("delete_file_entry", value: %{name: file_entry.name}, target: @myself)
+                  }
+                >
+                  <.remix_icon icon="delete-bin-line" />
+                  <span>Delete</span>
+                </button>
+              </.menu_item>
+            </.menu>
+          <% end %>
         </div>
       </div>
       <div class="flex mt-5">
         <.link
           class="w-full flex items-center justify-center p-8 py-1 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
           role="button"
-          patch={~p"/sessions/#{@session.id}/add-file/file"}
+          patch={~p"/sessions/#{@session.id}/add-file/storage"}
         >
           <.remix_icon icon="add-line" class="text-lg align-center" />
           <span>New file</span>
@@ -132,9 +152,11 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
       data-tooltip={
         ~S'''
         Manage files used by the notebook.
-        Files are either links to existing
-        resources or hard copies stored in
-        the notebook files directory.
+        Files are links to existing resources in
+        your disk, a remote storage, or a URL.
+        Files may also be hard copies stored in
+        the files/ directory kept alongside your
+        notebook.
         '''
       }
     >
@@ -187,7 +209,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
              [
                %{
                  name: "delete_from_file_system",
-                 label: "Delete the corresponding file from the file system",
+                 label: "Delete the corresponding file from its storage",
                  default: true,
                  disabled: false
                }
@@ -209,9 +231,15 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
 
       Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
         file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
-        send_update(pid, __MODULE__, id: id, transfer_file_entry_result: file_entry_result)
+
+        send_update(pid, __MODULE__,
+          id: id,
+          transfer_file_entry_result: {name, file_entry_result}
+        )
       end)
     end
+
+    socket = update(socket, :transferring_file_entry_names, &MapSet.put(&1, name))
 
     {:noreply, socket}
   end
