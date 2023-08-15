@@ -242,7 +242,7 @@ defmodule LivebookWeb.AppSessionLive do
   defp app_menu(assigns) do
     ~H"""
     <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3 z-10">
-      <.menu id="app-menu" class="shadow-custom-1" position={:bottom_right} md_position={:bottom_left}>
+      <.menu id="app-menu" position={:bottom_right} md_position={:bottom_left}>
         <:toggle>
           <button class="flex items-center text-gray-900">
             <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
