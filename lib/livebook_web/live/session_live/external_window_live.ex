@@ -182,12 +182,12 @@ defmodule LivebookWeb.SessionLive.ExternalWindowLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:remove_output_from_output_panel, client_id, cell_id}
+         {:remove_output_from_output_panel, _client_id, cell_id}
        ) do
     push_event(socket, "output_panel_updated", %{cell_id: cell_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:delete_cell, client_id, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:delete_cell, _client_id, cell_id}) do
     push_event(socket, "output_panel_updated", %{cell_id: cell_id})
   end
 
