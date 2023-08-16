@@ -642,20 +642,6 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp button_item(assigns) do
-    ~H"""
-    <span class="tooltip right distant" data-tooltip={@label}>
-      <button
-        class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-        aria-label={@label}
-        {@button_attrs}
-      >
-        <.remix_icon icon={@icon} />
-      </button>
-    </span>
-    """
-  end
-
   defp link_item(assigns) do
     assigns = assign_new(assigns, :link_attrs, fn -> [] end)
 
