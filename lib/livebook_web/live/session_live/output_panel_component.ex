@@ -26,7 +26,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id="output-panel"
-      class="h-full w-full overflow-hidden"
+      class="h-full w-full"
       phx-hook="OutputPanel"
       data-phx-target={@myself}
       data-el-output-panel-content

@@ -262,85 +262,79 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} />
         </div>
       </div>
-      <div class="flex grow h-screen overflow-hidden">
-        <div class="flex-1 overflow-y-scroll overflow-x-hidden" data-el-notebook>
-          <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-          <LivebookWeb.SessionLive.IndicatorsComponent.render
-            session_id={@session.id}
-            file={@data_view.file}
-            dirty={@data_view.dirty}
-            persistence_warnings={@data_view.persistence_warnings}
-            autosave_interval_s={@data_view.autosave_interval_s}
-            runtime={@data_view.runtime}
-            global_status={@data_view.global_status}
-          />
-          <div
-            class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
-            data-el-notebook-content
-          >
-            <div class="pb-4 mb-2 border-b border-gray-200">
-              <div class="flex flex-nowrap items-center gap-2">
-                <div
-                  class="grow"
-                  data-el-notebook-headline
-                  data-focusable-id="notebook"
-                  id="notebook"
-                  phx-hook="Headline"
-                  data-on-value-change="set_notebook_name"
-                  data-metadata="notebook"
-                >
-                  <h1
-                    class="px-1 -ml-1.5 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
-                    tabindex="0"
-                    id="notebook-heading"
-                    data-el-heading
-                    spellcheck="false"
-                    phx-no-format
-                  ><%= @data_view.notebook_name %></h1>
-                </div>
-
-                <.menu id="session-menu">
-                  <:toggle>
-                    <button class="icon-button" aria-label="open notebook menu">
-                      <.remix_icon icon="more-2-fill" class="text-xl" />
-                    </button>
-                  </:toggle>
-                  <.menu_item>
-                    <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
-                      <.remix_icon icon="download-2-line" />
-                      <span>Export</span>
-                    </.link>
-                  </.menu_item>
-                  <.menu_item>
-                    <button role="menuitem" phx-click="erase_outputs">
-                      <.remix_icon icon="eraser-fill" />
-                      <span>Erase outputs</span>
-                    </button>
-                  </.menu_item>
-                  <.menu_item>
-                    <button role="menuitem" phx-click="fork_session">
-                      <.remix_icon icon="git-branch-line" />
-                      <span>Fork</span>
-                    </button>
-                  </.menu_item>
-                  <.menu_item>
-                    <a
-                      role="menuitem"
-                      href={live_dashboard_process_path(@session.pid)}
-                      target="_blank"
-                    >
-                      <.remix_icon icon="dashboard-2-line" />
-                      <span>See on Dashboard</span>
-                    </a>
-                  </.menu_item>
-                  <.menu_item variant={:danger}>
-                    <button role="menuitem" phx-click="close_session">
-                      <.remix_icon icon="close-circle-line" />
-                      <span>Close</span>
-                    </button>
-                  </.menu_item>
-                </.menu>
+      <div class="flex-1 overflow-y-auto relative" data-el-notebook>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <LivebookWeb.SessionLive.IndicatorsComponent.render
+          session_id={@session.id}
+          file={@data_view.file}
+          dirty={@data_view.dirty}
+          persistence_warnings={@data_view.persistence_warnings}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          runtime={@data_view.runtime}
+          global_status={@data_view.global_status}
+        />
+        <div
+          class="relative w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
+          data-el-notebook-content
+        >
+          <div class="pb-4 mb-2 border-b border-gray-200">
+            <div class="flex flex-nowrap items-center gap-2">
+              <div
+                class="grow"
+                data-el-notebook-headline
+                data-focusable-id="notebook"
+                id="notebook"
+                phx-hook="Headline"
+                data-on-value-change="set_notebook_name"
+                data-metadata="notebook"
+              >
+                <h1
+                  class="px-1 -ml-1.5 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+                  tabindex="0"
+                  id="notebook-heading"
+                  data-el-heading
+                  spellcheck="false"
+                  phx-no-format
+                ><%= @data_view.notebook_name %></h1>
               </div>
+
+              <.menu id="session-menu">
+                <:toggle>
+                  <button class="icon-button" aria-label="open notebook menu">
+                    <.remix_icon icon="more-2-fill" class="text-xl" />
+                  </button>
+                </:toggle>
+                <.menu_item>
+                  <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
+                    <.remix_icon icon="download-2-line" />
+                    <span>Export</span>
+                  </.link>
+                </.menu_item>
+                <.menu_item>
+                  <button role="menuitem" phx-click="erase_outputs">
+                    <.remix_icon icon="eraser-fill" />
+                    <span>Erase outputs</span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <button role="menuitem" phx-click="fork_session">
+                    <.remix_icon icon="git-branch-line" />
+                    <span>Fork</span>
+                  </button>
+                </.menu_item>
+                <.menu_item>
+                  <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
+                    <.remix_icon icon="dashboard-2-line" />
+                    <span>See on Dashboard</span>
+                  </a>
+                </.menu_item>
+                <.menu_item variant={:danger}>
+                  <button role="menuitem" phx-click="close_session">
+                    <.remix_icon icon="close-circle-line" />
+                    <span>Close</span>
+                  </button>
+                </.menu_item>
+              </.menu>
             </div>
             <div class="flex flex-nowrap place-content-between items-center gap-2">
               <.menu position={:bottom_left} id="notebook-hub-menu">
@@ -396,52 +390,52 @@ defmodule LivebookWeb.SessionLive do
                 <% end %>
               </div>
             </div>
-            <div>
-              <.live_component
-                module={LivebookWeb.SessionLive.CellComponent}
-                id={@data_view.setup_cell_view.id}
-                session_id={@session.id}
-                session_pid={@session.pid}
-                client_id={@client_id}
-                runtime={@data_view.runtime}
-                installing?={@data_view.installing?}
-                allowed_uri_schemes={@allowed_uri_schemes}
-                cell_view={@data_view.setup_cell_view}
-              />
+          </div>
+          <div>
+            <.live_component
+              module={LivebookWeb.SessionLive.CellComponent}
+              id={@data_view.setup_cell_view.id}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              runtime={@data_view.runtime}
+              installing?={@data_view.installing?}
+              allowed_uri_schemes={@allowed_uri_schemes}
+              cell_view={@data_view.setup_cell_view}
+            />
+          </div>
+          <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
+            <div :if={@data_view.section_views == []} class="flex justify-center">
+              <button class="button-base button-small" phx-click="append_section">
+                + Section
+              </button>
             </div>
-            <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
-              <div :if={@data_view.section_views == []} class="flex justify-center">
-                <button class="button-base button-small" phx-click="append_section">
-                  + Section
-                </button>
-              </div>
-              <.live_component
-                :for={{section_view, index} <- Enum.with_index(@data_view.section_views)}
-                module={LivebookWeb.SessionLive.SectionComponent}
-                id={section_view.id}
-                index={index}
-                session_id={@session.id}
-                session_pid={@session.pid}
-                client_id={@client_id}
-                runtime={@data_view.runtime}
-                smart_cell_definitions={@data_view.smart_cell_definitions}
-                example_snippet_definitions={@data_view.example_snippet_definitions}
-                installing?={@data_view.installing?}
-                allowed_uri_schemes={@allowed_uri_schemes}
-                section_view={section_view}
-                default_language={@data_view.default_language}
-              />
-              <div style="height: 80vh"></div>
-            </div>
+            <.live_component
+              :for={{section_view, index} <- Enum.with_index(@data_view.section_views)}
+              module={LivebookWeb.SessionLive.SectionComponent}
+              id={section_view.id}
+              index={index}
+              session_id={@session.id}
+              session_pid={@session.pid}
+              client_id={@client_id}
+              runtime={@data_view.runtime}
+              smart_cell_definitions={@data_view.smart_cell_definitions}
+              example_snippet_definitions={@data_view.example_snippet_definitions}
+              installing?={@data_view.installing?}
+              allowed_uri_schemes={@allowed_uri_schemes}
+              section_view={section_view}
+              default_language={@data_view.default_language}
+            />
+            <div style="height: 80vh"></div>
           </div>
         </div>
-        <div class="flex-1 overflow-y-scroll" data-el-output-panel-embedded>
-          <iframe
-            class="h-full w-full"
-            src={~p"/sessions/#{@session.id}/external-window?type=output_panel&embedded=true"}
-          />
-          <.output_panel_menu />
-        </div>
+      </div>
+      <div class="flex-1" data-el-output-panel-embedded>
+        <iframe
+          class="h-full w-full"
+          src={~p"/sessions/#{@session.id}/external-window?type=output_panel&embedded=true"}
+        />
+        <.output_panel_menu />
       </div>
     </div>
 
@@ -631,6 +625,20 @@ defmodule LivebookWeb.SessionLive do
         session={@session}
       />
     </.modal>
+    """
+  end
+
+  defp button_item(assigns) do
+    ~H"""
+    <span class="tooltip right distant" data-tooltip={@label}>
+      <button
+        class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+        aria-label={@label}
+        {@button_attrs}
+      >
+        <.remix_icon icon={@icon} />
+      </button>
+    </span>
     """
   end
 
