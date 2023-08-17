@@ -722,7 +722,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex flex-col mt-5 space-y-4">
         <div
-          :for={{client_id, user} <- sort_clients(@data_view.clients, @client_id)}
+          :for={{client_id, user} <- @data_view.clients}
           class="flex items-center justify-between space-x-2"
           id={"clients-list-item-#{client_id}"}
           data-el-clients-list-item
@@ -2519,16 +2519,6 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp sort_clients(clients, own_client_id) do
-    Enum.sort_by(clients, fn {client_id, user} ->
-      {
-        if(client_id == own_client_id, do: 0, else: 1),
-        if(user.name, do: 0, else: 1),
-        user.name
-      }
-    end)
-  end
-
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -2563,9 +2553,9 @@ defmodule LivebookWeb.SessionLive do
           }
         end,
       clients:
-        Enum.map(data.clients_map, fn {client_id, user_id} ->
-          {client_id, data.users_map[user_id]}
-        end),
+        data.clients_map
+        |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
+        |> Enum.sort_by(fn {_client_id, user} -> user.name end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{
         cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
