@@ -734,9 +734,20 @@ defmodule LivebookWeb.SessionLive do
             data-el-client-link
           >
             <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
-            <span class="text-left"><%= user.name || "Anonymous" %></span>
+            <span class="text-left">
+              <%= user.name || "Anonymous" %>
+              <%= if(client_id == @client_id, do: "(you)") %>
+            </span>
           </button>
-          <%= if client_id != @client_id do %>
+          <%= if client_id == @client_id do %>
+            <button
+              class="icon-button"
+              aria-label="edit profile"
+              phx-click={show_current_user_modal()}
+            >
+              <.remix_icon icon="user-settings-line" class="text-lg" />
+            </button>
+          <% else %>
             <span
               class="tooltip left"
               data-tooltip="Follow this user"
@@ -2547,7 +2558,7 @@ defmodule LivebookWeb.SessionLive do
       clients:
         data.clients_map
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
-        |> Enum.sort_by(fn {_client_id, user} -> user.name end),
+        |> Enum.sort_by(fn {_client_id, user} -> user.name || "Anonymous" end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{
         cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
