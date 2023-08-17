@@ -15,7 +15,7 @@ To work with maps in Livebook we need two libraries:
 * The [`maplibre`](https://github.com/livebook-dev/maplibre)
   package allows us to define our map style specifications
 
-* The [`kino_maplibre`](https://github.com/livebook-dev/kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented)
+* The [`kino_maplibre`](https://github.com/livebook-dev/kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js/docs/api/events/#evented)
 
 We will make extensive use of MapLibre's functions, so it's handy to alias the module to something shorter.
 
@@ -98,13 +98,13 @@ Quite succinctly, sources specify the map's data while layers define how this da
 
 > Adding a source isn't enough to make data appear on the map because sources don't contain styling details like color or width. Layers refer to a source and give it a visual representation. This makes it possible to style the same source in different ways, like differentiating between types of roads in a highways layer.
 >
-> -- <cite>[Sources documentation](https://maplibre.org/maplibre-gl-js-docs/style-spec/sources/)</cite>
+> -- <cite>[Sources documentation](https://maplibre.org/maplibre-gl-js/docs/style-spec/sources/)</cite>
 
 > A style's layers property lists all the layers available in that style. The type of layer is specified by the "type" property, and must be one of background, fill, line, symbol, raster, circle, fill-extrusion, heatmap, hillshade.
 >
 > Except for layers of the background type, each layer needs to refer to a source. Layers take the data that they get from a source, optionally filter features, and then define how those features are styled.
 >
-> -- <cite>[Layers documentation](https://maplibre.org/maplibre-gl-js-docs/style-spec/layers/)
+> -- <cite>[Layers documentation](https://maplibre.org/maplibre-gl-js/docs/style-spec/layers/)
 
 Sources and layers are the core of a map. For this reason, we have a set of functions to make it straightforward to work with them.
 
@@ -232,7 +232,7 @@ Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 5, style: :street
 
 ## Expressions
 
-[Expressions](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/) are a powerful way to render quite complex maps solely through style specifications.
+[Expressions](https://maplibre.org/maplibre-gl-js/docs/style-spec/expressions/) are a powerful way to render quite complex maps solely through style specifications.
 We can use expressions to define a formula for computing the value for any `layout`, `paint` or `filter` property.
 
 If the layer you want to make more dynamic through expressions already exists on the map, you can use `Ml.update_layer/3` to update the respective layer.
@@ -259,7 +259,7 @@ Another great example of using expressions is showing the population density of 
 Ml.new(center: {30.0222, -1.9596}, zoom: 7, style: :street)
 |> Ml.add_source("rwanda-provinces",
   type: :geojson,
-  data: "https://maplibre.org/maplibre-gl-js-docs/assets/rwanda-provinces.geojson"
+  data: "https://maplibre.org/maplibre-gl-js/docs/assets/rwanda-provinces.geojson"
 )
 |> Ml.add_layer_below_labels(
   id: "rwanda-provinces",
@@ -315,7 +315,7 @@ Ml.new(
 )
 |> Ml.add_source("earthquakes",
   type: :geojson,
-  data: "https://maplibre.org/maplibre-gl-js-docs/assets/earthquakes.geojson"
+  data: "https://maplibre.org/maplibre-gl-js/docs/assets/earthquakes.geojson"
 )
 |> Ml.add_layer_below_labels(
   id: "earthquakes-heat",
@@ -352,7 +352,7 @@ Ml.new(
 
 ## Interactive maps
 
-As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented) we need `Kino.MapLibre`.
+As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js/docs/api/events/#evented) we need `Kino.MapLibre`.
 
 `Kino.MapLibre` supports two types of maps: static and dynamic. Essentially, a dynamic map can be updated on the fly without having to be re-evaluated. To make a map dynamic you need to wrap it in `Kino.MapLibre.new/1`
 
@@ -378,7 +378,7 @@ Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 3)
 Ml.new(center: {-100.486052, 37.830348}, zoom: 3, style: :street)
 |> Ml.add_source("states",
   type: :geojson,
-  data: "https://maplibre.org/maplibre-gl-js-docs/assets/us_states.geojson"
+  data: "https://maplibre.org/maplibre-gl-js/docs/assets/us_states.geojson"
 )
 |> Ml.add_layer_below_labels(
   id: "state-fills",
@@ -407,7 +407,7 @@ Ml.new(center: {-100.486052, 37.830348}, zoom: 3, style: :street)
 Ml.new(style: :street)
 |> Ml.add_source("earthquakes",
   type: :geojson,
-  data: "https://maplibre.org/maplibre-gl-js-docs/assets/earthquakes.geojson",
+  data: "https://maplibre.org/maplibre-gl-js/docs/assets/earthquakes.geojson",
   cluster: true,
   cluster_max_zoom: 14,
   cluster_radius: 50
@@ -586,7 +586,7 @@ Ml.new()
 )
 |> Kino.MapLibre.add_custom_image(
   "custom-marker",
-  "https://maplibre.org/maplibre-gl-js-docs/assets/osgeo-logo.png"
+  "https://maplibre.org/maplibre-gl-js/docs/assets/osgeo-logo.png"
 )
 ```
 
