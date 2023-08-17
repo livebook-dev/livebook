@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
             field={f[:copy]}
             options={[
               {"false", "Store only URL location"},
-              {"true", "Download URL contents to the notebook files directory"}
+              {"true", "Download file as an attachment to the notebook files directory"}
             ]}
           />
         </div>
@@ -104,7 +104,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
   end
 
   def handle_event("url_blur", %{"value" => url}, socket) do
-    name = Livebook.Utils.url_basename(url)
+    name =
+      url
+      |> Livebook.Utils.url_basename()
+      |> LivebookWeb.SessionHelpers.sanitize_file_entry_name()
 
     socket =
       if socket.assigns.changeset.params["name"] == "" and name != "" do

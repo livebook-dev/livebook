@@ -492,6 +492,21 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :rename_file_entry}
+      id="rename-file-entry-modal"
+      show
+      width={:big}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.RenameFileEntryComponent}
+        id="rename-file-entry"
+        session={@session}
+        file_entry={@renaming_file_entry}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -987,6 +1002,15 @@ defmodule LivebookWeb.SessionLive do
       when socket.assigns.live_action == :insert_file and
              not is_map_key(socket.assigns, :insert_file_metadata) do
     {:noreply, redirect_to_self(socket)}
+  end
+
+  def handle_params(%{"name" => name}, _url, socket)
+      when socket.assigns.live_action == :rename_file_entry do
+    if file_entry = find_file_entry(socket, name) do
+      {:noreply, assign(socket, renaming_file_entry: file_entry)}
+    else
+      {:noreply, redirect_to_self(socket)}
+    end
   end
 
   def handle_params(%{"path_parts" => path_parts}, requested_url, socket)

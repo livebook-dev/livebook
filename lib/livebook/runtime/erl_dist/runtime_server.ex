@@ -200,6 +200,20 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Changes the file id set by `transfer_file/4`, if any.
+
+  See `Livebook.Runtime` for more details.
+  """
+  @spec relabel_file(pid(), String.t(), String.t()) :: :ok
+  def relabel_file(pid, file_id, new_file_id) do
+    unless same_host?(pid) do
+      GenServer.cast(pid, {:relabel_file, file_id, new_file_id})
+    end
+
+    :ok
+  end
+
+  @doc """
   Removes the file created by `transfer_file/4`, if any.
 
   See `Livebook.Runtime` for more details.
@@ -610,6 +624,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       name -> {name, nil}
     end)
     |> System.put_env()
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:relabel_file, file_id, new_file_id}, state) do
+    path = file_path(state, file_id)
+    new_path = file_path(state, new_file_id)
+    File.rename(path, new_path)
 
     {:noreply, state}
   end

@@ -141,6 +141,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     RuntimeServer.transfer_file(runtime.server_pid, path, file_id, callback)
   end
 
+  def relabel_file(runtime, file_id, new_file_id) do
+    RuntimeServer.relabel_file(runtime.server_pid, file_id, new_file_id)
+  end
+
   def revoke_file(runtime, file_id) do
     RuntimeServer.revoke_file(runtime.server_pid, file_id)
   end

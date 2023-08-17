@@ -95,7 +95,8 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
               |> JS.dispatch("blur", to: "#add-file-entry-form-name")
             )
 
-          {%{data | "name" => entry.client_name}, socket}
+          name = LivebookWeb.SessionHelpers.sanitize_file_entry_name(entry.client_name)
+          {%{data | "name" => name}, socket}
 
         _ ->
           {data, socket}

@@ -554,6 +554,12 @@ defprotocol Livebook.Runtime do
   def transfer_file(runtime, path, file_id, callback)
 
   @doc """
+  Updates the id by which the file is referenced.
+  """
+  @spec relabel_file(t(), String.t(), String.t()) :: :ok
+  def relabel_file(runtime, file_id, new_file_id)
+
+  @doc """
   Cleans up resources allocated with `transfer_file/4`, if any.
   """
   @spec revoke_file(t(), String.t()) :: :ok

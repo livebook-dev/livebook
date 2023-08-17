@@ -221,6 +221,7 @@ defmodule Livebook.Session.Data do
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
           | {:add_file_entries, client_id(), list(Notebook.file_entry())}
+          | {:rename_file_entry, client_id(), name :: String.t(), new_name :: String.t()}
           | {:delete_file_entry, client_id(), String.t()}
           | {:allow_file_entry, client_id(), String.t()}
           | {:set_app_settings, client_id(), AppSettings.t()}
@@ -911,6 +912,19 @@ defmodule Livebook.Session.Data do
     |> add_file_entries(file_entries)
     |> set_dirty()
     |> wrap_ok()
+  end
+
+  def apply_operation(data, {:rename_file_entry, _client_id, name, new_name}) do
+    with {:ok, file_entry} <- fetch_file_entry(data.notebook, name),
+         true <- name != new_name do
+      data
+      |> with_actions()
+      |> rename_file_entry(file_entry, new_name)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
   end
 
   def apply_operation(data, {:delete_file_entry, _client_id, name}) do
@@ -1710,6 +1724,38 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: %{data.notebook | file_entries: file_entries ++ kept_file_entries})
+  end
+
+  defp rename_file_entry({data, _} = data_actions, file_entry, new_name) do
+    file_entries =
+      for entry <- data.notebook.file_entries, entry.name != new_name do
+        if entry == file_entry do
+          %{entry | name: new_name}
+        else
+          entry
+        end
+      end
+
+    quarantine_file_entry_names =
+      MapSet.delete(data.notebook.quarantine_file_entry_names, new_name)
+
+    quarantine_file_entry_names =
+      if MapSet.member?(quarantine_file_entry_names, file_entry.name) do
+        quarantine_file_entry_names
+        |> MapSet.delete(file_entry.name)
+        |> MapSet.put(new_name)
+      else
+        quarantine_file_entry_names
+      end
+
+    data_actions
+    |> set!(
+      notebook: %{
+        data.notebook
+        | file_entries: file_entries,
+          quarantine_file_entry_names: quarantine_file_entry_names
+      }
+    )
   end
 
   defp delete_file_entry({data, _} = data_actions, file_entry) do
