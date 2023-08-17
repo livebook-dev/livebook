@@ -736,7 +736,15 @@ defmodule LivebookWeb.SessionLive do
             <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
             <span class="text-left"><%= user.name || "Anonymous" %></span>
           </button>
-          <%= if client_id != @client_id do %>
+          <%= if client_id == @client_id do %>
+            <button
+              class="icon-button"
+              aria-label="edit profile"
+              phx-click={show_current_user_modal()}
+            >
+              <.remix_icon icon="user-settings-line" class="text-lg" />
+            </button>
+          <% else %>
             <span
               class="tooltip left"
               data-tooltip="Follow this user"
