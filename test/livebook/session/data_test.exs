@@ -3917,6 +3917,62 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :rename_file_entry" do
+    test "returns an error if no file entry with the given name exists" do
+      data = Data.new()
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "replaces file entry name" do
+      file_entry = %{type: :attachment, name: "image.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "replaces existing file entry with the same name" do
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :attachment, name: "image2.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry1, file_entry2]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "updates matching file entry name in quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new(["image2.jpg"])
+    end
+  end
+
   describe "apply_operation/2 given :delete_file_entry" do
     test "returns an error if no file entry with the given name exists" do
       data = Data.new()

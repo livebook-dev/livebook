@@ -15,7 +15,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       </div>
       <span class="text-sm text-gray-500">Available only to this session</span>
       <div class="flex flex-col">
-        <div class="flex flex-col space-y-4 mt-6">
+        <div
+          :if={Session.Data.session_secrets(@secrets, @hub.id) != []}
+          class="flex flex-col space-y-4 mt-6"
+        >
           <.session_secret
             :for={
               secret <- @secrets |> Session.Data.session_secrets(@hub.id) |> Enum.sort_by(& &1.name)

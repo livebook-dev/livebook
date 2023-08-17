@@ -1867,6 +1867,32 @@ defmodule LivebookWeb.SessionLiveTest do
              } = Session.get_data(session.pid)
     end
 
+    test "renaming :attachment file entry", %{conn: conn, session: session} do
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
+
+      view
+      |> element(~s/[data-el-files-list] menu a/, "Rename")
+      |> render_click()
+
+      view
+      |> element(~s/#rename-file-entry-form/)
+      |> render_submit(%{"data" => %{"name" => "image2.jpg"}})
+
+      assert %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}} =
+               Session.get_data(session.pid)
+
+      page = view |> element(~s/[data-el-files-list]/) |> render()
+      assert page =~ "image2.jpg"
+      refute page =~ "image.jpg"
+    end
+
     test "deleting :attachment file entry and removing the file from the file system",
          %{conn: conn, session: session} do
       %{files_dir: files_dir} = session
@@ -1929,7 +1955,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert view |> element(~s/[data-el-files-list]/) |> render() =~ "image.jpg"
 
       view
-      |> element(~s/[data-el-files-list] menu button/, "Copy to files")
+      |> element(~s/[data-el-files-list] menu button/, "Move to attachments")
       |> render_click()
 
       assert_receive {:operation,

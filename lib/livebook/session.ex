@@ -616,6 +616,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a file entry rename request to the server.
+  """
+  @spec rename_file_entry(pid(), String.t(), String.t()) :: :ok
+  def rename_file_entry(pid, name, new_name) do
+    GenServer.cast(pid, {:rename_file_entry, self(), name, new_name})
+  end
+
+  @doc """
   Sends a file entry deletion request to the server.
   """
   @spec delete_file_entry(pid(), String.t()) :: :ok
@@ -1380,6 +1388,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:rename_file_entry, client_pid, name, new_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:rename_file_entry, client_id, name, new_name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:delete_file_entry, client_pid, name}, state) do
     client_id = client_id(state, client_pid)
     operation = {:delete_file_entry, client_id, name}
@@ -2136,14 +2150,26 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
-  defp after_operation(state, prev_state, {:add_file_entries, _client_id, _file_entries}) do
+  defp after_operation(state, prev_state, {:add_file_entries, _client_id, file_entries}) do
+    names = for entry <- file_entries, do: entry.name, into: MapSet.new()
+
     replaced_names =
-      Enum.map(
-        prev_state.data.notebook.file_entries -- state.data.notebook.file_entries,
-        & &1.name
-      )
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name in names,
+          do: file_entry.name
 
     cleanup_file_entries(state, replaced_names)
+    state
+  end
+
+  defp after_operation(state, prev_state, {:rename_file_entry, _client_id, name, new_name}) do
+    replaced_names =
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name == new_name,
+          do: file_entry.name
+
+    cleanup_file_entries(state, replaced_names)
+    remap_file_entry(state, name, new_name)
     state
   end
 
@@ -2647,6 +2673,27 @@ defmodule Livebook.Session do
         file_id = file_entry_file_id(name)
         Runtime.revoke_file(state.data.runtime, file_id)
       end
+    end
+  end
+
+  defp remap_file_entry(state, name, new_name) do
+    cache_file = file_entry_cache_file(state.session_id, name)
+    new_cache_file = file_entry_cache_file(state.session_id, new_name)
+    FileSystem.File.rename(cache_file, new_cache_file)
+
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == new_name))
+
+    if file_entry.type == :attachment do
+      files_dir = files_dir_from_state(state)
+      file = FileSystem.File.resolve(files_dir, name)
+      new_file = FileSystem.File.resolve(files_dir, new_name)
+      FileSystem.File.rename(file, new_file)
+    end
+
+    if Runtime.connected?(state.data.runtime) do
+      file_id = file_entry_file_id(name)
+      new_file_id = file_entry_file_id(new_name)
+      Runtime.relabel_file(state.data.runtime, file_id, new_file_id)
     end
   end
 

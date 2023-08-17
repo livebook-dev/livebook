@@ -1716,6 +1716,33 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :url, url: ^url}}}
     end
 
+    test "renaming file entry renames the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image.jpg", "image2.jpg")
+
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image2.jpg"})
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path2}}
+
+      refute File.exists?(path)
+      assert File.exists?(path2)
+    end
+
     test "removing file entry removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
@@ -1740,7 +1767,7 @@ defmodule Livebook.SessionTest do
       refute File.exists?(path)
     end
 
-    test "replacing file entry removes the cached file" do
+    test "replacing file entry via add removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
 
@@ -1759,6 +1786,35 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
 
       Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(path)
+    end
+
+    test "replacing file entry via rename removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      %{files_dir: files_dir} = Session.get_by_pid(session.pid)
+      image_file = FileSystem.File.resolve(files_dir, "image2.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image2.jpg"}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image2.jpg", "image.jpg")
       wait_for_session_update(session.pid)
 
       refute File.exists?(path)

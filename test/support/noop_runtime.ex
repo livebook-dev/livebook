@@ -38,6 +38,8 @@ defmodule Livebook.Runtime.NoopRuntime do
       :ok
     end
 
+    def relabel_file(_runtime, _file_id, _new_file_id), do: :ok
+
     def revoke_file(runtime, file_id) do
       trace(runtime, :revoke_file, [file_id])
       :ok

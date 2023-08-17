@@ -248,4 +248,28 @@ defmodule LivebookWeb.SessionHelpers do
       confirm_icon: "close-circle-line"
     )
   end
+
+  @doc """
+  Converts the given arbitrary name to a file entry name.
+
+  The returned name is either valid or empty.
+  """
+  @spec sanitize_file_entry_name(String.t()) :: String.t() | nil
+  def sanitize_file_entry_name(client_name) do
+    client_name
+    |> String.replace(~r/[^\s\w-.]/u, "")
+    |> String.trim()
+    |> String.replace(~r/\s+/u, "_")
+    |> case do
+      "" ->
+        ""
+
+      name ->
+        if String.contains?(name, ".") do
+          name
+        else
+          name <> ".bin"
+        end
+    end
+  end
 end

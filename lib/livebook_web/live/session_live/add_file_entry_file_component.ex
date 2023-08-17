@@ -30,6 +30,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
   def update(%{event: {:set_file, file, info}}, socket) do
     file_info = %{exists: info.exists}
     name = if FileSystem.File.dir?(file), do: "", else: FileSystem.File.name(file)
+    name = LivebookWeb.SessionHelpers.sanitize_file_entry_name(name)
     changeset = changeset(Map.put(socket.assigns.changeset.params, "name", name))
     {:ok, assign(socket, file: file, file_info: file_info, changeset: changeset)}
   end
@@ -84,7 +85,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
             field={f[:copy]}
             options={[
               {"false", "Store only file location"},
-              {"true", "Copy file contents to the notebook files directory"}
+              {"true", "Save file as an attachment in the notebook files directory"}
             ]}
           />
         </div>
