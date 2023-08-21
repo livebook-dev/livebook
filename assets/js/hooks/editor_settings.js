@@ -26,11 +26,8 @@ const EditorSettings = {
     const editorMarkdownWordWrapCheckbox = this.el.querySelector(
       `[name="editor_markdown_word_wrap"][value="true"]`
     );
-    const editorVimMode = this.el.querySelector(
-      `[name="editor_vim_mode"][value="true"]`
-    );
-    const editorEmacsMode = this.el.querySelector(
-      `[name="editor_emacs_mode"][value="true"]`
+    const editorMode = this.el.querySelector(
+      `select[name="editor_mode"]`
     );
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
@@ -40,8 +37,7 @@ const EditorSettings = {
     editorLightThemeCheckbox.checked =
       settings.editor_theme === EDITOR_THEME.light ? true : false;
     editorMarkdownWordWrapCheckbox.checked = settings.editor_markdown_word_wrap;
-    editorVimMode.checked = settings.editor_vim_mode;
-    editorEmacsMode.checked = settings.editor_emacs_mode;
+    editorMode.value = settings.editor_mode;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ editor_auto_completion: event.target.checked });
@@ -71,20 +67,8 @@ const EditorSettings = {
       settingsStore.update({ editor_markdown_word_wrap: event.target.checked });
     });
 
-    editorVimMode.addEventListener("change", (event) => {
-      settingsStore.update({ editor_vim_mode: event.target.checked });
-      if (event.target.checked) {
-        settingsStore.update({ editor_emacs_mode: false });
-        editorEmacsMode.checked = false;
-      }
-    });
-
-    editorEmacsMode.addEventListener("change", (event) => {
-      settingsStore.update({ editor_emacs_mode: event.target.checked });
-      if (event.target.checked) {
-        settingsStore.update({ editor_vim_mode: false });
-        editorVimMode.checked = false;
-      }
+    editorMode.addEventListener("change", (event) => {
+      settingsStore.update({ editor_mode: event.target.value });
     });
   },
 };
