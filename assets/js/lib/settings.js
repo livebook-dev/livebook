@@ -18,6 +18,8 @@ const DEFAULT_SETTINGS = {
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
   editor_markdown_word_wrap: true,
+  editor_vim_mode: false,
+  editor_emacs_mode: false,
   custom_view_show_section: true,
   custom_view_show_markdown: true,
   custom_view_show_output: true,

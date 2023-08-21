@@ -19,6 +19,7 @@
     "jest": "^29.1.2",
     "mermaid": "^10.0.2",
     "monaco-editor": "^0.39.0",
+    "monaco-emacs": "^0.3.0",
     "monaco-vim": "^0.4.0",
     "morphdom": "^2.6.1",
     "phoenix": "file:../deps/phoenix",

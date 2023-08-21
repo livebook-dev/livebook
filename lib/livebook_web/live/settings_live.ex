@@ -168,11 +168,8 @@ defmodule LivebookWeb.SettingsLive do
                 label="Wrap words in Markdown"
                 value={false}
               />
-              <.switch_field
-                name="editor_vim_mode"
-                label="Use Vim key-bindings"
-                value={false}
-              />
+              <.switch_field name="editor_vim_mode" label="Use Vim key-bindings" value={false} />
+              <.switch_field name="editor_emacs_mode" label="Use Emacs key-bindings" value={false} />
             </div>
           </div>
         </div>

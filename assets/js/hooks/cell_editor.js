@@ -6,6 +6,7 @@ import {
 } from "../lib/attribute";
 import { settingsStore } from "../lib/settings";
 import { initVimMode } from "monaco-vim";
+import { EmacsExtension, unregisterKey } from "monaco-emacs";
 
 const CellEditor = {
   mounted() {
@@ -47,6 +48,10 @@ const CellEditor = {
             this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
               editorEl.setAttribute("data-vim-mode", mode);
             });
+          } else if (settings.editor_emacs_mode) {
+            this.emacsMode = new EmacsExtension(this.liveEditor.editor);
+            this.emacsMode.start();
+            unregisterKey("Tab");
           }
         });
 
