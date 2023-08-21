@@ -4,14 +4,10 @@ import {
   getAttributeOrThrow,
   parseBoolean,
 } from "../lib/attribute";
-import { settingsStore } from "../lib/settings";
-import { initVimMode } from "monaco-vim";
-import { EmacsExtension, unregisterKey } from "monaco-emacs";
 
 const CellEditor = {
   mounted() {
     this.props = this.getProps();
-    const settings = settingsStore.get();
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
@@ -42,20 +38,6 @@ const CellEditor = {
           const skeletonEl =
             editorContainer.querySelector(`[data-el-skeleton]`);
           skeletonEl && skeletonEl.remove();
-
-          switch (settings.editor_mode) {
-            case "emacs":
-              this.emacsMode = new EmacsExtension(this.liveEditor.editor);
-              this.emacsMode.start();
-              unregisterKey("Tab");
-              break;
-            case "vim":
-              this.vimMode = initVimMode(this.liveEditor.editor);
-              this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
-                editorEl.setAttribute("data-vim-mode", mode);
-              });
-              break;
-          }
         });
 
         this.el.dispatchEvent(

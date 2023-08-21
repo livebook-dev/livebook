@@ -470,7 +470,7 @@ const Session = {
     }
 
     // Vim insert mode
-    if (editor.parentElement.dataset.vimMode == "insert") {
+    if (editor.dataset.vimMode == "insert") {
       return true;
     }
 
