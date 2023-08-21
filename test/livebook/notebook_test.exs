@@ -282,7 +282,7 @@ defmodule Livebook.NotebookTest do
   end
 
   describe "add_cell_output/3" do
-    test "merges consecutive stdout results" do
+    test "merges consecutive text outputs when both are chunks" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -290,7 +290,11 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, {:terminal_text, "Hola", %{chunk: true}}}]
+                  }
                 ]
             }
           ],
@@ -300,13 +304,58 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "Hola amigo!"}}]}]
+                   cells: [%{outputs: [{0, {:terminal_text, "Hola amigo!", %{chunk: true}}}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, " amigo!"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 {:terminal_text, " amigo!", %{chunk: true}}
+               )
     end
 
-    test "normalizes individual stdout results to respect CR" do
+    test "adds separate text outputs when they are not chunks" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, {:terminal_text, "Hola", %{chunk: false}}}]
+                  }
+                ]
+            }
+          ],
+          output_counter: 1
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [
+                     %{
+                       outputs: [
+                         {1, {:terminal_text, " amigo!", %{chunk: true}}},
+                         {0, {:terminal_text, "Hola", %{chunk: false}}}
+                       ]
+                     }
+                   ]
+                 }
+               ]
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 {:terminal_text, " amigo!", %{chunk: true}}
+               )
+    end
+
+    test "normalizes individual terminal text outputs to respect CR" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -324,13 +373,18 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "Hey"}}]}]
+                   cells: [%{outputs: [{0, {:terminal_text, "Hey", %{chunk: false}}}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "Hola\rHey"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 {:terminal_text, "Hola\rHey", %{chunk: false}}
+               )
     end
 
-    test "normalizes consecutive stdout results to respect CR" do
+    test "normalizes consecutive terminal text outputs to respect CR" do
       notebook = %{
         Notebook.new()
         | sections: [
@@ -338,7 +392,11 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{
+                    Cell.new(:code)
+                    | id: "c1",
+                      outputs: [{0, {:terminal_text, "Hola", %{chunk: true}}}]
+                  }
                 ]
             }
           ],
@@ -348,10 +406,15 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:stdout, "amigo!\r"}}]}]
+                   cells: [%{outputs: [{0, {:terminal_text, "amigo!\r", %{chunk: true}}}]}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "\ramigo!\r"})
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 {:terminal_text, "\ramigo!\r", %{chunk: true}}
+               )
     end
 
     test "updates existing frames on frame update output" do
@@ -384,12 +447,16 @@ defmodule Livebook.NotebookTest do
                    cells: [
                      %{
                        outputs: [
-                         {0, {:frame, [{2, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                         {0,
+                          {:frame, [{2, {:terminal_text, "hola", %{chunk: false}}}],
+                           %{ref: "1", type: :default}}}
                        ]
                      },
                      %{
                        outputs: [
-                         {1, {:frame, [{3, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                         {1,
+                          {:frame, [{3, {:terminal_text, "hola", %{chunk: false}}}],
+                           %{ref: "1", type: :default}}}
                        ]
                      }
                    ]
@@ -399,7 +466,47 @@ defmodule Livebook.NotebookTest do
                Notebook.add_cell_output(
                  notebook,
                  "c2",
-                 {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}
+                 {:frame, [{:terminal_text, "hola", %{chunk: false}}],
+                  %{ref: "1", type: :replace}}
+               )
+    end
+
+    test "merges chunked text outputs in a new frame" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [%{Cell.new(:code) | id: "c1", outputs: []}]
+            }
+          ],
+          output_counter: 0
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [
+                     %{
+                       outputs: [
+                         {2,
+                          {:frame, [{1, {:terminal_text, "hola amigo!", %{chunk: true}}}],
+                           %{ref: "1", type: :default}}}
+                       ]
+                     }
+                   ]
+                 }
+               ]
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c1",
+                 {:frame,
+                  [
+                    {:terminal_text, " amigo!", %{chunk: true}},
+                    {:terminal_text, "hola", %{chunk: true}}
+                  ], %{ref: "1", type: :default}}
                )
     end
 
@@ -423,6 +530,36 @@ defmodule Livebook.NotebookTest do
                  }
                ]
              } = Notebook.add_cell_output(notebook, "c1", :ignored)
+    end
+
+    test "supports legacy text outputs" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [%{Cell.new(:code) | id: "c1", outputs: []}]
+            }
+          ],
+          output_counter: 0
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: [{0, {:terminal_text, "Hola", %{chunk: false}}}]}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", {:text, "Hola"})
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: [{0, {:markdown, "Hola", %{chunk: false}}}]}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", {:markdown, "Hola"})
     end
   end
 

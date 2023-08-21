@@ -37,40 +37,26 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp border?({:stdout, _text}), do: true
-  defp border?({:text, _text}), do: true
+  defp border?({:terminal_text, _text, _info}), do: true
+  defp border?({:plain_text, _text, _info}), do: true
   defp border?({:error, _message, {:interrupt, _, _}}), do: false
   defp border?({:error, _message, _type}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
 
-  defp render_output({:stdout, text}, %{id: id}) do
+  defp render_output({:terminal_text, text, _info}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.StdoutComponent, id: id, text: text)
+    live_component(Output.TerminalTextComponent, id: id, text: text)
   end
 
-  defp render_output({:text, text}, %{id: id}) do
-    assigns = %{id: id, text: text}
-
-    ~H"""
-    <Output.TextComponent.render id={@id} content={@text} />
-    """
+  defp render_output({:plain_text, text, _info}, %{id: id}) do
+    text = if(text == :__pruned__, do: nil, else: text)
+    live_component(Output.PlainTextComponent, id: id, text: text)
   end
 
-  defp render_output({:plain_text, text}, %{id: id}) do
-    assigns = %{id: id, text: text}
-
-    ~H"""
-    <div id={@id} class="text-gray-700 whitespace-pre-wrap"><%= @text %></div>
-    """
-  end
-
-  defp render_output({:markdown, markdown}, %{id: id, session_id: session_id}) do
-    live_component(Output.MarkdownComponent,
-      id: id,
-      session_id: session_id,
-      content: markdown
-    )
+  defp render_output({:markdown, text, _info}, %{id: id, session_id: session_id}) do
+    text = if(text == :__pruned__, do: nil, else: text)
+    live_component(Output.MarkdownComponent, id: id, session_id: session_id, text: text)
   end
 
   defp render_output({:image, content, mime_type}, %{id: id}) do

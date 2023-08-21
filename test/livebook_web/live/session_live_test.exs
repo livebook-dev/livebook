@@ -176,8 +176,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[32m\"true\"\e[0m"},
-                       _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, "\e[32m\"true\"\e[0m", %{chunk: false}}, _}}
     end
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
@@ -627,7 +627,7 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   describe "outputs" do
-    test "stdout output update", %{conn: conn, session: session} do
+    test "chunked text output update", %{conn: conn, session: session} do
       Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
@@ -636,14 +636,21 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 1\n"}})
+      send(
+        session.pid,
+        {:runtime_evaluation_output, cell_id, {:terminal_text, "line 1\n", %{chunk: true}}}
+      )
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert render(view) =~ "line 1"
 
-      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
+      send(
+        session.pid,
+        {:runtime_evaluation_output, cell_id, {:terminal_text, "line 2\n", %{chunk: true}}}
+      )
+
       wait_for_session_update(session.pid)
-      # Render once, so that stdout send_update is processed
+      # Render once, so that the send_update is processed
       _ = render(view)
       assert render(view) =~ "line 2"
     end
@@ -660,7 +667,7 @@ defmodule LivebookWeb.SessionLiveTest do
       send(
         session.pid,
         {:runtime_evaluation_output, cell_id,
-         {:frame, [{:text, "In frame"}], %{ref: "1", type: :default}}}
+         {:frame, [{:terminal_text, "In frame", %{chunk: false}}], %{ref: "1", type: :default}}}
       )
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -669,7 +676,8 @@ defmodule LivebookWeb.SessionLiveTest do
       send(
         session.pid,
         {:runtime_evaluation_output, cell_id,
-         {:frame, [{:text, "Updated frame"}], %{ref: "1", type: :replace}}}
+         {:frame, [{:terminal_text, "Updated frame", %{chunk: false}}],
+          %{ref: "1", type: :replace}}}
       )
 
       wait_for_session_update(session.pid)
@@ -696,11 +704,13 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:runtime_evaluation_output_to, client_id, cell_id, {:stdout, "line 1\n"}}
+        {:runtime_evaluation_output_to, client_id, cell_id,
+         {:terminal_text, "line 1\n", %{chunk: true}}}
       )
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+                      {:add_cell_evaluation_output, _, ^cell_id,
+                       {:terminal_text, "line 1\n", %{chunk: true}}}}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -721,11 +731,13 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:runtime_evaluation_output_to_clients, cell_id, {:stdout, "line 1\n"}}
+        {:runtime_evaluation_output_to_clients, cell_id,
+         {:terminal_text, "line 1\n", %{chunk: false}}}
       )
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_output, _, ^cell_id, {:stdout, "line 1\n"}}}
+                      {:add_cell_evaluation_output, _, ^cell_id,
+                       {:terminal_text, "line 1\n", %{chunk: false}}}}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       refute render(view) =~ "line 1"
@@ -1467,7 +1479,8 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, output, %{chunk: false}}, _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -1514,7 +1527,8 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, output, %{chunk: false}}, _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -1605,7 +1619,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, "\e[35mnil\e[0m", %{chunk: false}}, _}}
 
       attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
       Settings.set_env_var(attrs)
@@ -1616,7 +1631,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id,
-                       {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
+                       {:terminal_text, "\e[32m\"MyEnvVarValue\"\e[0m", %{chunk: false}}, _}}
 
       Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
 
@@ -1626,7 +1641,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id,
-                       {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
+                       {:terminal_text, "\e[32m\"OTHER_VALUE\"\e[0m", %{chunk: false}}, _}}
 
       Settings.unset_env_var("MY_AWESOME_ENV")
 
@@ -1635,7 +1650,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, "\e[35mnil\e[0m", %{chunk: false}}, _}}
     end
 
     @tag :tmp_dir
@@ -1669,7 +1685,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, output, %{chunk: false}}, _}}
 
       assert output == "\e[32m\"#{String.replace(expected_path, "\\", "\\\\")}\"\e[0m"
 
@@ -1680,7 +1697,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, output}, _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, output, %{chunk: false}}, _}}
 
       assert output == "\e[32m\"#{String.replace(initial_os_path, "\\", "\\\\")}\"\e[0m"
     end
@@ -2009,7 +2027,12 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       section_id = insert_section(session.pid)
-      insert_cell_with_output(session.pid, section_id, {:text, "Hello from the app!"})
+
+      insert_cell_with_output(
+        session.pid,
+        section_id,
+        {:terminal_text, "Hello from the app!", %{chunk: false}}
+      )
 
       slug = Livebook.Utils.random_short_id()
 

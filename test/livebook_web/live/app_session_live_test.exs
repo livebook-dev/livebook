@@ -81,11 +81,11 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:stdout, "Printed output"})
+                  | source: source_for_output({:terminal_text, "Printed output", %{chunk: false}})
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:plain_text, "Custom text"})
+                  | source: source_for_output({:plain_text, "Custom text", %{chunk: false}})
                 }
               ]
           }
@@ -121,7 +121,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:stdout, "Printed output"})
+                  | source: source_for_output({:terminal_text, "Printed output", %{chunk: false}})
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)

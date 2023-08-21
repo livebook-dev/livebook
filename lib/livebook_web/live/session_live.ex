@@ -2783,11 +2783,19 @@ defmodule LivebookWeb.SessionLive do
 
         data_view
 
-      {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
+      {:add_cell_evaluation_output, _client_id, cell_id, {type, text, %{chunk: true}}}
+      when type in [:terminal_text, :plain_text, :markdown] ->
         # Lookup in previous data to see if the output is already there
         case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
-            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
+          {:ok, %{outputs: [{idx, {^type, _, %{chunk: true}}} | _]}, _section} ->
+            module =
+              case type do
+                :terminal_text -> LivebookWeb.Output.TerminalTextComponent
+                :plain_text -> LivebookWeb.Output.PlainTextComponent
+                :markdown -> LivebookWeb.Output.MarkdownComponent
+              end
+
+            send_update(module, id: "output-#{idx}", text: text)
             data_view
 
           _ ->

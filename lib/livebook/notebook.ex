@@ -666,9 +666,21 @@ defmodule Livebook.Notebook do
   @doc """
   Adds new output to the given cell.
 
-  Automatically merges stdout outputs and updates frames.
+  Automatically merges terminal outputs and updates frames.
   """
   @spec add_cell_output(t(), Cell.id(), Livebook.Runtime.output()) :: t()
+  def add_cell_output(notebook, cell_id, output)
+
+  # Map legacy outputs
+  def add_cell_output(notebook, cell_id, {:text, text}),
+    do: add_cell_output(notebook, cell_id, {:terminal_text, text, %{chunk: false}})
+
+  def add_cell_output(notebook, cell_id, {:plain_text, text}),
+    do: add_cell_output(notebook, cell_id, {:plain_text, text, %{chunk: false}})
+
+  def add_cell_output(notebook, cell_id, {:markdown, text}),
+    do: add_cell_output(notebook, cell_id, {:markdown, text, %{chunk: false}})
+
   def add_cell_output(notebook, cell_id, output) do
     {notebook, counter} = do_add_cell_output(notebook, cell_id, notebook.output_counter, output)
     %{notebook | output_counter: counter}
@@ -714,45 +726,80 @@ defmodule Livebook.Notebook do
     end)
   end
 
-  defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
-  defp apply_frame_update(outputs, new_outputs, :append), do: new_outputs ++ outputs
+  defp apply_frame_update(_outputs, new_outputs, :replace) do
+    merge_chunk_outputs(new_outputs)
+  end
+
+  defp apply_frame_update(outputs, new_outputs, :append) do
+    Enum.reduce(Enum.reverse(new_outputs), outputs, &add_output(&2, &1))
+  end
 
   defp add_output(outputs, {_idx, :ignored}), do: outputs
 
-  defp add_output([], {idx, {:stdout, text}}),
-    do: [{idx, {:stdout, normalize_stdout(text)}}]
-
-  defp add_output([], output), do: [output]
-
-  # Session clients prune stdout content and handle subsequent
-  # ones by directly appending page content to the previous one
-  defp add_output([{_idx1, {:stdout, :__pruned__}} | _] = outputs, {_idx2, {:stdout, _text}}) do
-    outputs
+  # Session clients prune rendered chunks, we only keep add the new one
+  defp add_output(
+         [{idx, {type, :__pruned__, %{chunk: true} = info}} | tail],
+         {_idx, {type, text, %{chunk: true}}}
+       )
+       when type in [:terminal_text, :plain_text, :markdown] do
+    [{idx, {type, text, info}} | tail]
   end
 
-  # Session server keeps all outputs, so we merge consecutive stdouts
-  defp add_output([{idx, {:stdout, text}} | tail], {_idx, {:stdout, cont}}) do
-    [{idx, {:stdout, normalize_stdout(text <> cont)}} | tail]
+  # Session server keeps all outputs, so we merge consecutive chunks
+  defp add_output(
+         [{idx, {:terminal_text, text, %{chunk: true} = info}} | tail],
+         {_idx, {:terminal_text, cont, %{chunk: true}}}
+       ) do
+    [{idx, {:terminal_text, normalize_terminal_text(text <> cont), info}} | tail]
+  end
+
+  defp add_output(outputs, {idx, {:terminal_text, text, info}}) do
+    [{idx, {:terminal_text, normalize_terminal_text(text), info}} | outputs]
+  end
+
+  defp add_output(
+         [{idx, {type, text, %{chunk: true} = info}} | tail],
+         {_idx, {type, cont, %{chunk: true}}}
+       )
+       when type in [:plain_text, :markdown] do
+    [{idx, {type, normalize_terminal_text(text <> cont), info}} | tail]
+  end
+
+  defp add_output(outputs, {idx, {type, text, info}}) when type in [:plain_text, :markdown] do
+    [{idx, {type, normalize_terminal_text(text), info}} | outputs]
+  end
+
+  defp add_output(outputs, {idx, {type, container_outputs, info}}) when type in [:frame, :grid] do
+    [{idx, {type, merge_chunk_outputs(container_outputs), info}} | outputs]
   end
 
   defp add_output(outputs, output), do: [output | outputs]
 
-  @doc """
-  Normalizes a text chunk coming form the standard output.
-
-  Handles CR rawinds and caps output lines.
-  """
-  @spec normalize_stdout(String.t()) :: String.t()
-  def normalize_stdout(text) do
-    text
-    |> Livebook.Utils.apply_rewind()
-    |> Livebook.Utils.cap_lines(max_stdout_lines())
+  defp merge_chunk_outputs(outputs) do
+    outputs
+    |> Enum.reverse()
+    |> Enum.reduce([], &add_output(&2, &1))
   end
 
   @doc """
-  The maximum desired number of lines of the standard output.
+  Normalizes terminal text chunk.
+
+  Handles CR rewinds and caps output lines.
   """
-  def max_stdout_lines(), do: 1_000
+  @spec normalize_terminal_text(String.t()) :: String.t()
+  def normalize_terminal_text(text) do
+    text
+    |> Livebook.Utils.apply_rewind()
+    |> Livebook.Utils.cap_lines(max_terminal_lines())
+  end
+
+  @doc """
+  The maximum desired number of lines of terminal text.
+
+  This is particularly relevant for standard output, which may receive
+  a lot of lines.
+  """
+  def max_terminal_lines(), do: 1_000
 
   @doc """
   Recursively adds index to all outputs, including frames.
@@ -803,60 +850,65 @@ defmodule Livebook.Notebook do
   @spec prune_cell_outputs(t()) :: t()
   def prune_cell_outputs(notebook) do
     update_cells(notebook, fn
-      %{outputs: _outputs} = cell -> %{cell | outputs: prune_outputs(cell.outputs)}
+      %{outputs: _outputs} = cell -> %{cell | outputs: prune_outputs(cell.outputs, true)}
       cell -> cell
     end)
   end
 
-  defp prune_outputs(outputs) do
+  defp prune_outputs(outputs, appendable?) do
     outputs
     |> Enum.reverse()
-    |> do_prune_outputs([])
+    |> do_prune_outputs(appendable?, [])
   end
 
-  defp do_prune_outputs([], acc), do: acc
+  defp do_prune_outputs([], _appendable?, acc), do: acc
 
-  # Keep the last stdout, so that we know to message it directly, but remove its contents
-  defp do_prune_outputs([{idx, {:stdout, _}}], acc) do
-    [{idx, {:stdout, :__pruned__}} | acc]
+  # Keep trailing outputs that can be merged with subsequent outputs
+  defp do_prune_outputs([{idx, {type, _, %{chunk: true} = info}}], true = _appendable?, acc)
+       when type in [:terminal_text, :plain_text, :markdown] do
+    [{idx, {type, :__pruned__, info}} | acc]
   end
 
   # Keep frame and its relevant contents
-  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], acc) do
-    do_prune_outputs(outputs, [{idx, {:frame, prune_outputs(frame_outputs), info}} | acc])
+  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], appendable?, acc) do
+    do_prune_outputs(
+      outputs,
+      appendable?,
+      [{idx, {:frame, prune_outputs(frame_outputs, true), info}} | acc]
+    )
   end
 
   # Keep layout output and its relevant contents
-  defp do_prune_outputs([{idx, {:tabs, tabs_outputs, info}} | outputs], acc) do
-    case prune_outputs(tabs_outputs) do
+  defp do_prune_outputs([{idx, {:tabs, tabs_outputs, info}} | outputs], appendable?, acc) do
+    case prune_outputs(tabs_outputs, false) do
       [] ->
-        do_prune_outputs(outputs, acc)
+        do_prune_outputs(outputs, appendable?, acc)
 
       pruned_tabs_outputs ->
         info = Map.replace(info, :labels, :__pruned__)
-        do_prune_outputs(outputs, [{idx, {:tabs, pruned_tabs_outputs, info}} | acc])
+        do_prune_outputs(outputs, appendable?, [{idx, {:tabs, pruned_tabs_outputs, info}} | acc])
     end
   end
 
-  defp do_prune_outputs([{idx, {:grid, grid_outputs, info}} | outputs], acc) do
-    case prune_outputs(grid_outputs) do
+  defp do_prune_outputs([{idx, {:grid, grid_outputs, info}} | outputs], appendable?, acc) do
+    case prune_outputs(grid_outputs, false) do
       [] ->
-        do_prune_outputs(outputs, acc)
+        do_prune_outputs(outputs, appendable?, acc)
 
       pruned_grid_outputs ->
-        do_prune_outputs(outputs, [{idx, {:grid, pruned_grid_outputs, info}} | acc])
+        do_prune_outputs(outputs, appendable?, [{idx, {:grid, pruned_grid_outputs, info}} | acc])
     end
   end
 
   # Keep outputs that get re-rendered
-  defp do_prune_outputs([{idx, output} | outputs], acc)
+  defp do_prune_outputs([{idx, output} | outputs], appendable?, acc)
        when elem(output, 0) in [:input, :control, :error] do
-    do_prune_outputs(outputs, [{idx, output} | acc])
+    do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
   end
 
   # Remove everything else
-  defp do_prune_outputs([_output | outputs], acc) do
-    do_prune_outputs(outputs, acc)
+  defp do_prune_outputs([_output | outputs], appendable?, acc) do
+    do_prune_outputs(outputs, appendable?, acc)
   end
 
   @doc """

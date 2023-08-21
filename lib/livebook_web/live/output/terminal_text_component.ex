@@ -1,4 +1,4 @@
-defmodule LivebookWeb.Output.StdoutComponent do
+defmodule LivebookWeb.Output.TerminalTextComponent do
   use LivebookWeb, :live_component
 
   @impl true
@@ -15,7 +15,7 @@ defmodule LivebookWeb.Output.StdoutComponent do
     if text do
       text = (socket.assigns.last_line || "") <> text
 
-      text = Livebook.Notebook.normalize_stdout(text)
+      text = Livebook.Notebook.normalize_terminal_text(text)
 
       last_line =
         case Livebook.Utils.split_at_last_occurrence(text, "\n") do
@@ -49,7 +49,7 @@ defmodule LivebookWeb.Output.StdoutComponent do
       phx-hook="VirtualizedLines"
       data-max-height="300"
       data-follow="true"
-      data-max-lines={Livebook.Notebook.max_stdout_lines()}
+      data-max-lines={Livebook.Notebook.max_terminal_lines()}
       data-ignore-trailing-empty-line="true"
     >
       <% # Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>

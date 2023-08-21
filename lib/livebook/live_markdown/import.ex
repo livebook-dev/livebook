@@ -195,7 +195,7 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
-    take_outputs(ast, [{:text, output} | outputs])
+    take_outputs(ast, [{:terminal_text, output, %{chunk: false}} | outputs])
   end
 
   defp take_outputs(
@@ -206,7 +206,7 @@ defmodule Livebook.LiveMarkdown.Import do
          ],
          outputs
        ) do
-    take_outputs(ast, [{:text, output} | outputs])
+    take_outputs(ast, [{:terminal_text, output, %{chunk: false}} | outputs])
   end
 
   # Ignore other exported outputs
