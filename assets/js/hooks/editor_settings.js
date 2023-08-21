@@ -12,23 +12,21 @@ const EditorSettings = {
     const settings = settingsStore.get();
 
     const editorAutoCompletionCheckbox = this.el.querySelector(
-      `[name="editor_auto_completion"][value="true"]`
+      `[name="editor_auto_completion"][value="true"]`,
     );
     const editorAutoSignatureCheckbox = this.el.querySelector(
-      `[name="editor_auto_signature"][value="true"]`
+      `[name="editor_auto_signature"][value="true"]`,
     );
     const editorFontSizeCheckbox = this.el.querySelector(
-      `[name="editor_font_size"][value="true"]`
+      `[name="editor_font_size"][value="true"]`,
     );
     const editorLightThemeCheckbox = this.el.querySelector(
-      `[name="editor_light_theme"][value="true"]`
+      `[name="editor_light_theme"][value="true"]`,
     );
     const editorMarkdownWordWrapCheckbox = this.el.querySelector(
-      `[name="editor_markdown_word_wrap"][value="true"]`
+      `[name="editor_markdown_word_wrap"][value="true"]`,
     );
-    const editorMode = this.el.querySelector(
-      `select[name="editor_mode"]`
-    );
+    const editorMode = this.el.querySelector(`select[name="editor_mode"]`);
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
