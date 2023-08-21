@@ -88,7 +88,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             *****
           </span>
           <button
-            id={"session-secret-#{@secret.name}-delete"}
+            id={"session-secret-#{@secret.name}-copy"}
             type="button"
             phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
             class="icon-button"
@@ -167,7 +167,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 *****
               </span>
               <button
-                id={"session-secret-#{@secret.name}-delete"}
+                id={"#{@id}-copy-button"}
                 type="button"
                 phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
                 class="icon-button"
