@@ -23,9 +23,33 @@ message SecretDeleted {
   string name = 1;
 }
 
+message FileSystem {
+  string name = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message FileSystemCreated {
+  string name = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message FileSystemUpdated {
+  string name = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message FileSystemDeleted {
+  string name = 1;
+  string type = 2;
+}
+
 message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
+  repeated FileSystem file_systems = 3;
 }
 
 message Event {
@@ -34,5 +58,8 @@ message Event {
     SecretUpdated secret_updated = 2;
     SecretDeleted secret_deleted = 3;
     UserConnected user_connected = 4;
+    FileSystemCreated file_system_created = 5;
+    FileSystemUpdated file_system_updated = 6;
+    FileSystemDeleted file_system_deleted = 7;
   }
 }

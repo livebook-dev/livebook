@@ -3,9 +3,12 @@ defmodule LivebookProto do
 
   alias LivebookProto.{
     Event,
+    FileSystemCreated,
+    FileSystemDeleted,
+    FileSystemUpdated,
     SecretCreated,
-    SecretUpdated,
     SecretDeleted,
+    SecretUpdated,
     UserSynchronized
   }
 
@@ -15,9 +18,12 @@ defmodule LivebookProto do
                   end)
 
   @type event_proto ::
-          SecretCreated.t()
-          | SecretUpdated.t()
+          FileSystemCreated.t()
+          | FileSystemDeleted.t()
+          | FileSystemUpdated.t()
+          | SecretCreated.t()
           | SecretDeleted.t()
+          | SecretUpdated.t()
           | UserSynchronized.t()
 
   @doc """
