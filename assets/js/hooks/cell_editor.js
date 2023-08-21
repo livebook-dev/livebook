@@ -4,11 +4,13 @@ import {
   getAttributeOrThrow,
   parseBoolean,
 } from "../lib/attribute";
+import { settingsStore } from "../lib/settings";
 import { initVimMode } from "monaco-vim";
 
 const CellEditor = {
   mounted() {
     this.props = this.getProps();
+    const settings = settingsStore.get();
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
@@ -40,10 +42,12 @@ const CellEditor = {
             editorContainer.querySelector(`[data-el-skeleton]`);
           skeletonEl && skeletonEl.remove();
 
-          this.vimMode = initVimMode(this.liveEditor.editor);
-          this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
-            editorEl.setAttribute("data-vim-mode", mode);
-          });
+          if (settings.editor_vim_mode) {
+            this.vimMode = initVimMode(this.liveEditor.editor);
+            this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
+              editorEl.setAttribute("data-vim-mode", mode);
+            });
+          }
         });
 
         this.el.dispatchEvent(
