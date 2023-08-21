@@ -26,7 +26,7 @@ class LiveEditor {
     intellisense,
     readOnly,
     codeMarkers,
-    doctestReports,
+    doctestReports
   ) {
     this.hook = hook;
     this.container = container;
@@ -93,7 +93,7 @@ class LiveEditor {
 
     this.editor.onDidChangeCursorSelection((event) => {
       this._onCursorSelectionChange.forEach((callback) =>
-        callback(event.selection),
+        callback(event.selection)
       );
     });
 
@@ -193,7 +193,7 @@ class LiveEditor {
         this.editor,
         selection,
         client.hex_color,
-        client.name,
+        client.name
       );
     }
   }
@@ -221,7 +221,7 @@ class LiveEditor {
     } else {
       this._doctestByLine[doctestReport.line] = new Doctest(
         this.editor,
-        doctestReport,
+        doctestReport
       );
     }
   }
@@ -360,11 +360,11 @@ class LiveEditor {
     // so that it's visible on small editors.
     // See: https://github.com/microsoft/monaco-editor/issues/70
     const commandPaletteNode = this.editor.getContribution(
-      "editor.controller.quickInput",
+      "editor.controller.quickInput"
     ).widget.domNode;
     commandPaletteNode.remove();
     this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
-      commandPaletteNode,
+      commandPaletteNode
     );
 
     // Add the widgets that the editor was initialized with
@@ -443,18 +443,18 @@ class LiveEditor {
         .then((response) => {
           const suggestions = completionItemsToSuggestions(
             response.items,
-            settings,
+            settings
           ).map((suggestion) => {
             const replaceLength = replacedSuffixLength(
               lineUntilCursor,
-              suggestion.insertText,
+              suggestion.insertText
             );
 
             const range = new monaco.Range(
               position.lineNumber,
               position.column - replaceLength,
               position.lineNumber,
-              position.column,
+              position.column
             );
 
             return { ...suggestion, range };
@@ -474,7 +474,7 @@ class LiveEditor {
 
       if (!this.hoverContentEl) {
         this.hoverContentEl = this.container.querySelector(
-          ".monaco-hover-content",
+          ".monaco-hover-content"
         );
 
         if (this.hoverContentEl) {
@@ -494,7 +494,7 @@ class LiveEditor {
           }).observe(this.hoverContentEl, { childList: true });
         } else {
           console.warn(
-            "Could not find an element matching .monaco-hover-content",
+            "Could not find an element matching .monaco-hover-content"
           );
         }
       }
@@ -513,7 +513,7 @@ class LiveEditor {
             position.lineNumber,
             response.range.from,
             position.lineNumber,
-            response.range.to,
+            response.range.to
           );
 
           return { contents, range };
@@ -642,7 +642,7 @@ class LiveEditor {
           } else {
             reject(null);
           }
-        },
+        }
       );
     });
   }
