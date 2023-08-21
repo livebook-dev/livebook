@@ -469,6 +469,11 @@ const Session = {
       return true;
     }
 
+    // Vim insert mode
+    if (editor.parentElement.dataset.vimMode == "insert") {
+      return true;
+    }
+
     return false;
   },
 

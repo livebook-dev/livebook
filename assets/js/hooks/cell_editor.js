@@ -4,6 +4,7 @@ import {
   getAttributeOrThrow,
   parseBoolean,
 } from "../lib/attribute";
+import { initVimMode } from "monaco-vim";
 
 const CellEditor = {
   mounted() {
@@ -38,6 +39,11 @@ const CellEditor = {
           const skeletonEl =
             editorContainer.querySelector(`[data-el-skeleton]`);
           skeletonEl && skeletonEl.remove();
+
+          this.vimMode = initVimMode(this.liveEditor.editor);
+          this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
+            editorEl.setAttribute("data-vim-mode", mode);
+          });
         });
 
         this.el.dispatchEvent(
