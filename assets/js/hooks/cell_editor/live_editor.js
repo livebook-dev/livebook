@@ -371,18 +371,15 @@ class LiveEditor {
     this._initializeWidgets();
 
     // Set the editor mode
-    switch (settings.editor_mode) {
-      case "emacs":
-        this.emacsMode = new EmacsExtension(this.editor);
-        this.emacsMode.start();
-        unregisterKey("Tab");
-        break;
-      case "vim":
-        this.vimMode = initVimMode(this.editor);
-        this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
-          this.editor.getDomNode().setAttribute("data-vim-mode", mode);
-        });
-        break;
+    if (settings.editor_mode == "emacs") {
+      this.emacsMode = new EmacsExtension(this.editor);
+      this.emacsMode.start();
+      unregisterKey("Tab");
+    } else if (settings.editor_mode == "vim") {
+      this.vimMode = initVimMode(this.editor);
+      this.vimMode.on("vim-mode-change", ({"mode": mode}) => {
+        this.editor.getDomNode().setAttribute("data-vim-mode", mode);
+      });
     }
   }
 
