@@ -33,6 +33,8 @@ defprotocol Livebook.FileSystem do
   """
   @type error :: String.t()
 
+  @type t :: Livebook.FileSystem.S3.t()
+
   @type access :: :read | :write | :read_write | :none
 
   @doc """
@@ -229,4 +231,16 @@ defprotocol Livebook.FileSystem do
   @spec read_stream_into(t(), path(), Collectable.t()) ::
           {:ok, Collectable.t()} | {:error, error()}
   def read_stream_into(file_system, path, collectable)
+
+  @doc """
+  Loads fields into given file system.
+  """
+  @spec load(t(), map()) :: struct()
+  def load(file_system, fields)
+
+  @doc """
+  Transforms file system to the attributes map.
+  """
+  @spec dump(t()) :: map()
+  def dump(file_system)
 end
