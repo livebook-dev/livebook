@@ -290,7 +290,7 @@ defmodule Livebook.Session do
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
     local_assets_path = local_assets_path(hash)
-    flag_path = File.join(local_assets_path, ".lb-done")
+    flag_path = Path.join(local_assets_path, ".lb-done")
 
     if File.exists?(flag_path) do
       :ok
