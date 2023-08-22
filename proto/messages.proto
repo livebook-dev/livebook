@@ -24,26 +24,28 @@ message SecretDeleted {
 }
 
 message FileSystem {
-  string name = 1;
-  string type = 2;
-  string value = 3;
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
 }
 
 message FileSystemCreated {
-  string name = 1;
-  string type = 2;
-  string value = 3;
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
 }
 
 message FileSystemUpdated {
-  string name = 1;
-  string type = 2;
-  string value = 3;
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string value = 4;
 }
 
 message FileSystemDeleted {
-  string name = 1;
-  string type = 2;
+  string id = 1;
 }
 
 message UserConnected {
