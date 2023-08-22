@@ -3,9 +3,6 @@ defprotocol Livebook.Hubs.Provider do
 
   alias Livebook.Secrets.Secret
 
-  @type capability :: :connect | :list_secrets | :create_secret
-  @type capabilities :: list(capability())
-
   @typedoc """
   An provider-specific map stored as notebook stamp.
 
@@ -52,12 +49,6 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec disconnect(t()) :: :ok
   def disconnect(hub)
-
-  @doc """
-  Gets the capabilities of the given hub.
-  """
-  @spec capabilities(t()) :: capabilities()
-  def capabilities(hub)
 
   @doc """
   Gets the secrets of the given hub.

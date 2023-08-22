@@ -82,8 +82,8 @@ defmodule Livebook.Hubs.Personal do
   @doc """
   Get the secrets list from storage.
   """
-  @spec get_secrets :: [Secret.t()]
-  def get_secrets do
+  @spec get_secrets() :: list(Secret.t())
+  def get_secrets() do
     Enum.map(Storage.all(@secrets_namespace), &to_secret/1)
   end
 
@@ -162,8 +162,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   def connection_spec(_personal), do: nil
 
   def disconnect(_personal), do: raise("not implemented")
-
-  def capabilities(_personal), do: ~w(list_secrets create_secret)a
 
   def get_secrets(_personal) do
     Personal.get_secrets()
