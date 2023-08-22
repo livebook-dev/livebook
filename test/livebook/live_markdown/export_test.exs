@@ -577,7 +577,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        {0, {:stdout, "hey"}}
+                        {0, {:terminal_text, "hey", %{chunk: true}}}
                       ]
                   }
                 ]
@@ -614,7 +614,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:stdout, "hey"}}]
+                      outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
                   }
                 ]
             }
@@ -656,7 +656,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:text, "\e[34m:ok\e[0m"}}, {1, {:stdout, "hey"}}]
+                      outputs: [
+                        {0, {:terminal_text, "\e[34m:ok\e[0m", %{chunk: false}}},
+                        {1, {:terminal_text, "hey", %{chunk: true}}}
+                      ]
                   }
                 ]
             }
@@ -947,8 +950,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                        {:tabs,
                         [
                           {1, {:markdown, "a"}},
-                          {2, {:text, "b"}},
-                          {3, {:text, "c"}}
+                          {2, {:terminal_text, "b", %{chunk: false}}},
+                          {3, {:terminal_text, "c", %{chunk: false}}}
                         ], %{labels: ["A", "B", "C"]}}}
                     ]
                 }
@@ -994,9 +997,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       {0,
                        {:grid,
                         [
-                          {1, {:text, "a"}},
+                          {1, {:terminal_text, "a", %{chunk: false}}},
                           {2, {:markdown, "b"}},
-                          {3, {:text, "c"}}
+                          {3, {:terminal_text, "c", %{chunk: false}}}
                         ], %{columns: 2}}}
                     ]
                 }
@@ -1047,7 +1050,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:stdout, "hey"}}]
+                    outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
                 }
               ]
           }
@@ -1092,7 +1095,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:stdout, "hey"}}]
+                    outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
                 }
               ]
           }

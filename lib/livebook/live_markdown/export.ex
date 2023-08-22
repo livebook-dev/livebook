@@ -212,16 +212,8 @@ defmodule Livebook.LiveMarkdown.Export do
     |> Enum.intersperse("\n\n")
   end
 
-  defp render_output({:stdout, text}, _ctx) do
+  defp render_output({:terminal_text, text, %{}}, _ctx) do
     text = String.replace_suffix(text, "\n", "")
-    delimiter = MarkdownHelpers.code_block_delimiter(text)
-    text = strip_ansi(text)
-
-    [delimiter, "\n", text, "\n", delimiter]
-    |> prepend_metadata(%{output: true})
-  end
-
-  defp render_output({:text, text}, _ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
 

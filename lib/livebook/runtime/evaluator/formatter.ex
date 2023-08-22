@@ -76,7 +76,7 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   defp to_inspect_output(value, opts \\ []) do
     try do
       inspected = inspect(value, inspect_opts(opts))
-      {:text, inspected}
+      {:terminal_text, inspected, %{chunk: false}}
     catch
       kind, error ->
         formatted = format_error(kind, error, __STACKTRACE__)
@@ -172,6 +172,6 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
 
   defp erlang_to_output(value) do
     text = :io_lib.format("~p", [value]) |> IO.iodata_to_binary()
-    {:text, text}
+    {:terminal_text, text, %{chunk: false}}
   end
 end

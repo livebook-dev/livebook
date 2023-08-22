@@ -9,6 +9,7 @@ defmodule Livebook.Session.DataTest do
 
   @eval_resp {:ok, [1, 2, 3]}
   @smart_cell_definitions [%{kind: "text", name: "Text", requirement_presets: []}]
+  @stdout {:terminal_text, "Hello!", %{chunk: true}}
   @cid "__anonymous__"
 
   defp eval_meta(opts \\ []) do
@@ -78,13 +79,13 @@ defmodule Livebook.Session.DataTest do
               Notebook.Section.new()
               | id: "s1",
                 cells: [
-                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hello!"}}]}
+                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, @stdout}]}
                 ]
             }
           ]
       }
 
-      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]}]}} =
+      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, @stdout}]}]}]}} =
                Data.new(notebook: notebook)
 
       assert %{notebook: %{sections: [%{cells: [%{outputs: []}]}]}} =
@@ -1819,14 +1820,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{1, {:stdout, "Hello!"}}]}]
+                      cells: [%{outputs: [{1, @stdout}]}]
                     }
                   ]
                 }
@@ -1842,14 +1843,14 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup", "c1"])
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{2, {:stdout, "Hello!"}}, _result]}]
+                      cells: [%{outputs: [{2, @stdout}, _result]}]
                     }
                   ]
                 }
@@ -1868,7 +1869,7 @@ defmodule Livebook.Session.DataTest do
           {:notebook_saved, @cid, []}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end

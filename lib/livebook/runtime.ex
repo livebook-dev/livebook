@@ -72,14 +72,12 @@ defprotocol Livebook.Runtime do
   """
   @type output ::
           :ignored
-          # IO output, adjacent such outputs are treated as a whole
-          | {:stdout, binary()}
-          # Standalone text block otherwise matching :stdout
-          | {:text, binary()}
+          # Text with terminal style and ANSI support
+          | {:terminal_text, text :: String.t(), info :: map()}
           # Plain text content
-          | {:plain_text, binary()}
+          | {:plain_text, text :: String.t(), info :: map()}
           # Markdown content
-          | {:markdown, binary()}
+          | {:markdown, text :: String.t(), info :: map()}
           # A raw image in the given format
           | {:image, content :: binary(), mime_type :: binary()}
           # JavaScript powered output

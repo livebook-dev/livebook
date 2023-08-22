@@ -221,7 +221,7 @@ defmodule LivebookWeb.SessionControllerTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:stdout, "hey"}}]
+                      outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
                   }
                 ]
             }

@@ -187,7 +187,7 @@ defmodule Livebook.SessionTest do
         | kind: "text",
           source: "chunk 1\n\nchunk 2",
           chunks: [{0, 7}, {9, 7}],
-          outputs: [{1, {:text, "Hello"}}]
+          outputs: [{1, {:terminal_text, "Hello", %{chunk: false}}}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -210,7 +210,7 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:insert_cell, _client_id, ^section_id, 1, :code, _id,
-                       %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
+                       %{source: "chunk 2", outputs: [{1, {:terminal_text, "Hello", %{}}}]}}}
     end
 
     test "doesn't garbage collect input values" do
@@ -920,8 +920,8 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
-                       %{evaluation_time_ms: _time_ms}}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, text_output, %{}}, %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ "hey"
     end
@@ -944,8 +944,8 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
-                       %{evaluation_time_ms: _time_ms}}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:terminal_text, text_output, %{}}, %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ ":error"
     end
