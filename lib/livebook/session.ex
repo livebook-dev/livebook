@@ -290,18 +290,20 @@ defmodule Livebook.Session do
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
     local_assets_path = local_assets_path(hash)
+    flag_path = Path.join(local_assets_path, ".lb-done")
 
-    if non_empty_dir?(local_assets_path) do
+    if File.exists?(flag_path) do
       :ok
     else
       with {:ok, runtime, archive_path} <-
              GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
-          unless non_empty_dir?(local_assets_path) do
+          unless File.exists?(flag_path) do
             {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
             extract_archive!(archive_binary, local_assets_path)
             gzip_files(local_assets_path)
+            File.touch(flag_path)
           end
         end
 
@@ -313,10 +315,6 @@ defmodule Livebook.Session do
         end
       end
     end
-  end
-
-  defp non_empty_dir?(path) do
-    match?({:ok, [_ | _]}, File.ls(path))
   end
 
   @doc """
