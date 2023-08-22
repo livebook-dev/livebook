@@ -3,8 +3,6 @@ defprotocol Livebook.Hubs.Provider do
 
   alias Livebook.Secrets.Secret
 
-  @type t :: Livebook.Hubs.Personal.t() | Livebook.Hubs.Team.t()
-
   @typedoc """
   An provider-specific map stored as notebook stamp.
 

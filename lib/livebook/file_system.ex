@@ -33,8 +33,6 @@ defprotocol Livebook.FileSystem do
   """
   @type error :: String.t()
 
-  @type t :: Livebook.FileSystem.S3.t()
-
   @type access :: :read | :write | :read_write | :none
 
   @doc """
