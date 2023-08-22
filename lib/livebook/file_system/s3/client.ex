@@ -13,21 +13,10 @@ defmodule Livebook.FileSystem.S3.Client do
     delimiter = opts[:delimiter]
     query = %{"list-type" => "2", "prefix" => prefix, "delimiter" => delimiter}
 
-    map_bucket_keys = fn result, xml_key, map_key ->
-      items =
-        case result do
-          %{^xml_key => item} when is_map(item) -> [item]
-          %{^xml_key => items} when is_list(items) -> items
-          _ -> []
-        end
-
-      Enum.map(items, & &1[map_key])
-    end
-
     case get(file_system, "/", query: query) do
       {:ok, 200, _headers, %{"ListBucketResult" => result}} ->
-        file_keys = map_bucket_keys.(result, "Contents", "Key")
-        prefix_keys = map_bucket_keys.(result, "CommonPrefixes", "Prefix")
+        file_keys = xml_get_list(result, "Contents", "Key")
+        prefix_keys = xml_get_list(result, "CommonPrefixes", "Prefix")
 
         {:ok, %{bucket: result["Name"], keys: file_keys ++ prefix_keys}}
 
@@ -351,5 +340,16 @@ defmodule Livebook.FileSystem.S3.Client do
 
   defp request_response_to_error(_otherwise) do
     {:error, "failed to make an http request"}
+  end
+
+  defp xml_get_list(result, xml_key, map_key) do
+    items =
+      case result do
+        %{^xml_key => item} when is_map(item) -> [item]
+        %{^xml_key => items} when is_list(items) -> items
+        _ -> []
+      end
+
+    Enum.map(items, & &1[map_key])
   end
 end

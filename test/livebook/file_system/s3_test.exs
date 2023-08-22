@@ -11,6 +11,25 @@ defmodule Livebook.FileSystem.S3Test do
     {:ok, bypass: bypass, file_system: file_system}
   end
 
+  describe "new/3" do
+    test "trims trailing slash in bucket URL" do
+      assert %{bucket_url: "https://example.com/mybucket"} =
+               S3.new("https://example.com/mybucket/", "key", "secret")
+    end
+
+    test "determines region based on the URL by default" do
+      assert %{region: "eu-central-1"} =
+               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret")
+    end
+
+    test "accepts explicit region as an option" do
+      assert %{region: "auto"} =
+               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret",
+                 region: "auto"
+               )
+    end
+  end
+
   describe "FileSystem.default_path/1" do
     test "returns the root path" do
       file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket", region: "auto")

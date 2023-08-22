@@ -76,7 +76,7 @@ end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   alias Livebook.FileSystem
-  alias Livebook.FileSystem.S3.Client, as: S3Client
+  alias Livebook.FileSystem.S3
 
   def resource_identifier(file_system) do
     {:s3, file_system.bucket_url}
@@ -96,7 +96,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     delimiter = if recursive, do: nil, else: "/"
     opts = [prefix: dir_key, delimiter: delimiter]
 
-    with {:ok, %{keys: keys}} <- S3Client.list_objects(file_system, opts) do
+    with {:ok, %{keys: keys}} <- S3.Client.list_objects(file_system, opts) do
       if keys == [] and dir_key != "" do
         FileSystem.Utils.posix_error(:enoent)
       else
@@ -110,14 +110,14 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     FileSystem.Utils.assert_regular_path!(path)
     "/" <> key = path
 
-    S3Client.get_object(file_system, key)
+    S3.Client.get_object(file_system, key)
   end
 
   def write(file_system, path, content) do
     FileSystem.Utils.assert_regular_path!(path)
     "/" <> key = path
 
-    S3Client.put_object(file_system, key, content)
+    S3.Client.put_object(file_system, key, content)
   end
 
   def access(_file_system, _path) do
@@ -131,22 +131,22 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     # S3 has no concept of directories, but keys with trailing
     # slash are interpreted as such, so we create an empty
     # object for the given key
-    S3Client.put_object(file_system, key, nil)
+    S3.Client.put_object(file_system, key, nil)
   end
 
   def remove(file_system, path) do
     "/" <> key = path
 
     if FileSystem.Utils.dir_path?(path) do
-      with {:ok, %{keys: keys}} <- S3Client.list_objects(file_system, prefix: key) do
+      with {:ok, %{keys: keys}} <- S3.Client.list_objects(file_system, prefix: key) do
         if keys == [] do
           FileSystem.Utils.posix_error(:enoent)
         else
-          S3Client.delete_objects(file_system, keys)
+          S3.Client.delete_objects(file_system, keys)
         end
       end
     else
-      S3Client.delete_object(file_system, key)
+      S3.Client.delete_object(file_system, key)
     end
   end
 
@@ -157,7 +157,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
     if FileSystem.Utils.dir_path?(source_path) do
       with {:ok, %{bucket: bucket, keys: keys}} <-
-             S3Client.list_objects(file_system, prefix: source_key) do
+             S3.Client.list_objects(file_system, prefix: source_key) do
         if keys == [] do
           FileSystem.Utils.posix_error(:enoent)
         else
@@ -166,7 +166,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
             renamed_key = String.replace_prefix(key, source_key, destination_key)
 
             Task.async(fn ->
-              S3Client.copy_object(file_system, bucket, key, renamed_key)
+              S3.Client.copy_object(file_system, bucket, key, renamed_key)
             end)
           end)
           |> Task.await_many(:infinity)
@@ -178,8 +178,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
         end
       end
     else
-      with {:ok, bucket} <- S3Client.get_bucket_name(file_system) do
-        S3Client.copy_object(file_system, bucket, source_key, destination_key)
+      with {:ok, bucket} <- S3.Client.get_bucket_name(file_system) do
+        S3.Client.copy_object(file_system, bucket, source_key, destination_key)
       end
     end
   end
@@ -188,7 +188,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     FileSystem.Utils.assert_same_type!(source_path, destination_path)
     "/" <> destination_key = destination_path
 
-    with {:ok, destination_exists?} <- S3Client.object_exists(file_system, destination_key) do
+    with {:ok, destination_exists?} <- S3.Client.object_exists(file_system, destination_key) do
       if destination_exists? do
         FileSystem.Utils.posix_error(:eexist)
       else
@@ -205,7 +205,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     FileSystem.Utils.assert_regular_path!(path)
     "/" <> key = path
 
-    with {:ok, %{etag: etag}} <- S3Client.head_object(file_system, key) do
+    with {:ok, %{etag: etag}} <- S3.Client.head_object(file_system, key) do
       {:ok, etag}
     end
   end
@@ -213,7 +213,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   def exists?(file_system, path) do
     "/" <> key = path
 
-    S3Client.object_exists(file_system, key)
+    S3.Client.object_exists(file_system, key)
   end
 
   def resolve_path(_file_system, dir_path, subject) do
@@ -249,7 +249,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
         if state.upload_id do
           {:ok, state}
         else
-          with {:ok, upload_id} <- S3Client.create_multipart_upload(file_system, state.key) do
+          with {:ok, upload_id} <- S3.Client.create_multipart_upload(file_system, state.key) do
             {:ok, %{state | upload_id: upload_id}}
           end
         end
@@ -271,7 +271,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     parts = state.parts + 1
 
     with {:ok, %{etag: etag}} <-
-           S3Client.upload_part(file_system, state.key, state.upload_id, parts, part) do
+           S3.Client.upload_part(file_system, state.key, state.upload_id, parts, part) do
       {:ok,
        %{
          state
@@ -294,7 +294,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
       with {:ok, state} <- maybe_state,
            :ok <-
-             S3Client.complete_multipart_upload(
+             S3.Client.complete_multipart_upload(
                file_system,
                state.key,
                state.upload_id,
@@ -303,18 +303,18 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
         :ok
       else
         {:error, error} ->
-          S3Client.abort_multipart_upload(file_system, state.key, state.upload_id)
+          S3.Client.abort_multipart_upload(file_system, state.key, state.upload_id)
           {:error, error}
       end
     else
       content = state.current_chunks |> Enum.reverse() |> IO.iodata_to_binary()
-      S3Client.put_object(file_system, state.key, content)
+      S3.Client.put_object(file_system, state.key, content)
     end
   end
 
   def write_stream_halt(file_system, state) do
     if state.upload_id do
-      S3Client.abort_multipart_upload(file_system, state.key, state.upload_id)
+      S3.Client.abort_multipart_upload(file_system, state.key, state.upload_id)
     else
       :ok
     end
@@ -324,39 +324,19 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     FileSystem.Utils.assert_regular_path!(path)
     "/" <> key = path
 
-    S3Client.multipart_get_object(file_system, key, collectable)
+    S3.Client.multipart_get_object(file_system, key, collectable)
   end
 
-  def load(file_system, %{"bucket_url" => _} = fields) do
-    load(file_system, %{
-      bucket_url: fields["bucket_url"],
-      region: fields["region"],
-      access_key_id: fields["access_key_id"],
-      secret_access_key: fields["secret_access_key"]
-    })
+  def load(_file_system, %{"bucket_url" => _} = fields) do
+    S3.new(fields["bucket_url"], fields["access_key_id"], fields["secret_access_key"],
+      region: fields["region"]
+    )
   end
 
-  def load(file_system, fields) do
-    bucket_url = String.trim_trailing(fields.bucket_url, "/")
-
-    region_from_url =
-      URI.parse(bucket_url).host
-      |> String.split(".")
-      |> Enum.reverse()
-      |> Enum.at(2, "auto")
-
-    region = fields[:region] || region_from_url
-
-    hash = :crypto.hash(:sha256, bucket_url)
-
-    %{
-      file_system
-      | id: "s3-#{Base.url_encode64(hash, padding: false)}",
-        bucket_url: bucket_url,
-        region: region,
-        access_key_id: fields.access_key_id,
-        secret_access_key: fields.secret_access_key
-    }
+  def load(_file_system, fields) do
+    S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
+      region: fields[:region]
+    )
   end
 
   def dump(file_system) do
