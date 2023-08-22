@@ -8,6 +8,8 @@ import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../../lib/text_utils";
 import { settingsStore } from "../../lib/settings";
 import Doctest from "./live_editor/doctest";
+import { initVimMode } from "monaco-vim";
+import { EmacsExtension, unregisterKey } from "monaco-emacs";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -367,6 +369,18 @@ class LiveEditor {
 
     // Add the widgets that the editor was initialized with
     this._initializeWidgets();
+
+    // Set the editor mode
+    if (settings.editor_mode == "emacs") {
+      this.emacsMode = new EmacsExtension(this.editor);
+      this.emacsMode.start();
+      unregisterKey("Tab");
+    } else if (settings.editor_mode == "vim") {
+      this.vimMode = initVimMode(this.editor);
+      this.vimMode.on("vim-mode-change", ({ mode: mode }) => {
+        this.editor.getDomNode().setAttribute("data-vim-mode", mode);
+      });
+    }
   }
 
   /**

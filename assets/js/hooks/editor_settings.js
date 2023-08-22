@@ -26,6 +26,7 @@ const EditorSettings = {
     const editorMarkdownWordWrapCheckbox = this.el.querySelector(
       `[name="editor_markdown_word_wrap"][value="true"]`
     );
+    const editorMode = this.el.querySelector(`select[name="editor_mode"]`);
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
@@ -34,6 +35,7 @@ const EditorSettings = {
     editorLightThemeCheckbox.checked =
       settings.editor_theme === EDITOR_THEME.light ? true : false;
     editorMarkdownWordWrapCheckbox.checked = settings.editor_markdown_word_wrap;
+    editorMode.value = settings.editor_mode;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ editor_auto_completion: event.target.checked });
@@ -61,6 +63,10 @@ const EditorSettings = {
 
     editorMarkdownWordWrapCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ editor_markdown_word_wrap: event.target.checked });
+    });
+
+    editorMode.addEventListener("change", (event) => {
+      settingsStore.update({ editor_mode: event.target.value });
     });
   },
 };
