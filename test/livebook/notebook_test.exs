@@ -1,6 +1,8 @@
 defmodule Livebook.NotebookTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Notebook
   alias Livebook.Notebook.{Section, Cell}
 
@@ -264,8 +266,7 @@ defmodule Livebook.NotebookTest do
   describe "find_asset_info/2" do
     test "returns asset info matching the given type if found" do
       assets_info = %{archive: "/path/to/archive.tar.gz", hash: "abcd", js_path: "main.js"}
-      js_info = %{js_view: %{assets: assets_info}}
-      output = {:js, js_info}
+      output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
 
       notebook = %{
         Notebook.new()
@@ -293,7 +294,7 @@ defmodule Livebook.NotebookTest do
                   %{
                     Cell.new(:code)
                     | id: "c1",
-                      outputs: [{0, {:terminal_text, "Hola", %{chunk: true}}}]
+                      outputs: [{0, terminal_text("Hola", true)}]
                   }
                 ]
             }
@@ -304,14 +305,14 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:terminal_text, "Hola amigo!", %{chunk: true}}}]}]
+                   cells: [%{outputs: [{0, terminal_text("Hola amigo!", true)}]}]
                  }
                ]
              } =
                Notebook.add_cell_output(
                  notebook,
                  "c1",
-                 {:terminal_text, " amigo!", %{chunk: true}}
+                 terminal_text(" amigo!", true)
                )
     end
 
@@ -326,7 +327,7 @@ defmodule Livebook.NotebookTest do
                   %{
                     Cell.new(:code)
                     | id: "c1",
-                      outputs: [{0, {:terminal_text, "Hola", %{chunk: false}}}]
+                      outputs: [{0, terminal_text("Hola")}]
                   }
                 ]
             }
@@ -340,8 +341,8 @@ defmodule Livebook.NotebookTest do
                    cells: [
                      %{
                        outputs: [
-                         {1, {:terminal_text, " amigo!", %{chunk: true}}},
-                         {0, {:terminal_text, "Hola", %{chunk: false}}}
+                         {1, terminal_text(" amigo!", true)},
+                         {0, terminal_text("Hola")}
                        ]
                      }
                    ]
@@ -351,7 +352,7 @@ defmodule Livebook.NotebookTest do
                Notebook.add_cell_output(
                  notebook,
                  "c1",
-                 {:terminal_text, " amigo!", %{chunk: true}}
+                 terminal_text(" amigo!", true)
                )
     end
 
@@ -373,14 +374,14 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:terminal_text, "Hey", %{chunk: false}}}]}]
+                   cells: [%{outputs: [{0, terminal_text("Hey")}]}]
                  }
                ]
              } =
                Notebook.add_cell_output(
                  notebook,
                  "c1",
-                 {:terminal_text, "Hola\rHey", %{chunk: false}}
+                 terminal_text("Hola\rHey")
                )
     end
 
@@ -395,7 +396,7 @@ defmodule Livebook.NotebookTest do
                   %{
                     Cell.new(:code)
                     | id: "c1",
-                      outputs: [{0, {:terminal_text, "Hola", %{chunk: true}}}]
+                      outputs: [{0, terminal_text("Hola", true)}]
                   }
                 ]
             }
@@ -406,14 +407,14 @@ defmodule Livebook.NotebookTest do
       assert %{
                sections: [
                  %{
-                   cells: [%{outputs: [{0, {:terminal_text, "amigo!\r", %{chunk: true}}}]}]
+                   cells: [%{outputs: [{0, terminal_text("amigo!\r", true)}]}]
                  }
                ]
              } =
                Notebook.add_cell_output(
                  notebook,
                  "c1",
-                 {:terminal_text, "\ramigo!\r", %{chunk: true}}
+                 terminal_text("\ramigo!\r", true)
                )
     end
 
@@ -428,12 +429,12 @@ defmodule Livebook.NotebookTest do
                   %{
                     Cell.new(:code)
                     | id: "c1",
-                      outputs: [{0, {:frame, [], %{ref: "1", type: :default}}}]
+                      outputs: [{0, %{type: :frame, ref: "1", outputs: [], placeholder: true}}]
                   },
                   %{
                     Cell.new(:code)
                     | id: "c2",
-                      outputs: [{1, {:frame, [], %{ref: "1", type: :default}}}]
+                      outputs: [{1, %{type: :frame, ref: "1", outputs: [], placeholder: true}}]
                   }
                 ]
             }
@@ -447,16 +448,12 @@ defmodule Livebook.NotebookTest do
                    cells: [
                      %{
                        outputs: [
-                         {0,
-                          {:frame, [{2, {:terminal_text, "hola", %{chunk: false}}}],
-                           %{ref: "1", type: :default}}}
+                         {0, %{type: :frame, ref: "1", outputs: [{2, terminal_text("hola")}]}}
                        ]
                      },
                      %{
                        outputs: [
-                         {1,
-                          {:frame, [{3, {:terminal_text, "hola", %{chunk: false}}}],
-                           %{ref: "1", type: :default}}}
+                         {1, %{type: :frame, ref: "1", outputs: [{3, terminal_text("hola")}]}}
                        ]
                      }
                    ]
@@ -466,8 +463,7 @@ defmodule Livebook.NotebookTest do
                Notebook.add_cell_output(
                  notebook,
                  "c2",
-                 {:frame, [{:terminal_text, "hola", %{chunk: false}}],
-                  %{ref: "1", type: :replace}}
+                 %{type: :frame_update, ref: "1", update: {:replace, [terminal_text("hola")]}}
                )
     end
 
@@ -491,23 +487,23 @@ defmodule Livebook.NotebookTest do
                      %{
                        outputs: [
                          {2,
-                          {:frame, [{1, {:terminal_text, "hola amigo!", %{chunk: true}}}],
-                           %{ref: "1", type: :default}}}
+                          %{
+                            type: :frame,
+                            ref: "1",
+                            outputs: [{1, terminal_text("hola amigo!", true)}]
+                          }}
                        ]
                      }
                    ]
                  }
                ]
              } =
-               Notebook.add_cell_output(
-                 notebook,
-                 "c1",
-                 {:frame,
-                  [
-                    {:terminal_text, " amigo!", %{chunk: true}},
-                    {:terminal_text, "hola", %{chunk: true}}
-                  ], %{ref: "1", type: :default}}
-               )
+               Notebook.add_cell_output(notebook, "c1", %{
+                 type: :frame,
+                 ref: "1",
+                 outputs: [terminal_text(" amigo!", true), terminal_text("hola", true)],
+                 placeholder: true
+               })
     end
 
     test "skips ignored output" do
@@ -529,43 +525,13 @@ defmodule Livebook.NotebookTest do
                    cells: [%{outputs: []}]
                  }
                ]
-             } = Notebook.add_cell_output(notebook, "c1", :ignored)
-    end
-
-    test "supports legacy text outputs" do
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{
-              Section.new()
-              | id: "s1",
-                cells: [%{Cell.new(:code) | id: "c1", outputs: []}]
-            }
-          ],
-          output_counter: 0
-      }
-
-      assert %{
-               sections: [
-                 %{
-                   cells: [%{outputs: [{0, {:terminal_text, "Hola", %{chunk: false}}}]}]
-                 }
-               ]
-             } = Notebook.add_cell_output(notebook, "c1", {:text, "Hola"})
-
-      assert %{
-               sections: [
-                 %{
-                   cells: [%{outputs: [{0, {:markdown, "Hola", %{chunk: false}}}]}]
-                 }
-               ]
-             } = Notebook.add_cell_output(notebook, "c1", {:markdown, "Hola"})
+             } = Notebook.add_cell_output(notebook, "c1", %{type: :ignored})
     end
   end
 
   describe "find_frame_outputs/2" do
     test "returns frame outputs with matching ref" do
-      frame_output = {0, {:frame, [], %{ref: "1", type: :default}}}
+      frame_output = {0, %{type: :frame, ref: "1", outputs: [], placeholder: true}}
 
       notebook = %{
         Notebook.new()
@@ -576,8 +542,8 @@ defmodule Livebook.NotebookTest do
     end
 
     test "finds a nested frame" do
-      nested_frame_output = {0, {:frame, [], %{ref: "2", type: :default}}}
-      frame_output = {0, {:frame, [nested_frame_output], %{ref: "1", type: :default}}}
+      nested_frame_output = {0, %{type: :frame, ref: "2", outputs: [], placeholder: true}}
+      frame_output = {0, %{type: :frame, ref: "1", outputs: [nested_frame_output]}}
 
       notebook = %{
         Notebook.new()

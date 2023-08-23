@@ -2740,8 +2740,8 @@ defmodule LivebookWeb.SessionLive do
   defp input_views_for_cell(cell, data, changed_input_ids) do
     input_ids =
       for output <- cell.outputs,
-          attrs <- Cell.find_inputs_in_output(output),
-          do: attrs.id
+          input <- Cell.find_inputs_in_output(output),
+          do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
@@ -2770,24 +2770,24 @@ defmodule LivebookWeb.SessionLive do
       # For outputs that update existing outputs we send the update directly
       # to the corresponding component, so the DOM patch is isolated and fast.
       # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_id, _cell_id,
-       {:frame, _outputs, %{type: type, ref: ref}}}
-      when type != :default ->
-        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+      {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
+        %{ref: ref, update: {update_type, _}} = output
+
+        for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
-            outputs: frame_outputs,
-            update_type: type
+            outputs: frame.outputs,
+            update_type: update_type
           )
         end
 
         data_view
 
-      {:add_cell_evaluation_output, _client_id, cell_id, {type, text, %{chunk: true}}}
+      {:add_cell_evaluation_output, _client_id, cell_id, %{type: type, chunk: true} = output}
       when type in [:terminal_text, :plain_text, :markdown] ->
         # Lookup in previous data to see if the output is already there
         case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, {^type, _, %{chunk: true}}} | _]}, _section} ->
+          {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
             module =
               case type do
                 :terminal_text -> LivebookWeb.Output.TerminalTextComponent
@@ -2795,7 +2795,7 @@ defmodule LivebookWeb.SessionLive do
                 :markdown -> LivebookWeb.Output.MarkdownComponent
               end
 
-            send_update(module, id: "output-#{idx}", text: text)
+            send_update(module, id: "output-#{idx}", text: output.text)
             data_view
 
           _ ->

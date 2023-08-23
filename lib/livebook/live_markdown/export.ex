@@ -27,7 +27,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp collect_js_output_data(notebook) do
     for section <- notebook.sections,
         %{outputs: outputs} <- section.cells,
-        {_idx, {:js, %{js_view: %{ref: ref, pid: pid}, export: %{}}}} <- outputs do
+        {_idx, %{type: :js, js_view: %{ref: ref, pid: pid}, export: %{}}} <- outputs do
       Task.async(fn ->
         {ref, get_js_output_data(pid, ref)}
       end)
@@ -212,7 +212,7 @@ defmodule Livebook.LiveMarkdown.Export do
     |> Enum.intersperse("\n\n")
   end
 
-  defp render_output({:terminal_text, text, %{}}, _ctx) do
+  defp render_output(%{type: :terminal_text, text: text}, _ctx) do
     text = String.replace_suffix(text, "\n", "")
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
@@ -222,7 +222,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output(
-         {:js, %{export: %{info_string: info_string, key: key}, js_view: %{ref: ref}}},
+         %{type: :js, export: %{info_string: info_string, key: key}, js_view: %{ref: ref}},
          ctx
        )
        when is_binary(info_string) do
@@ -241,7 +241,7 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp render_output({:tabs, outputs, _info}, ctx) do
+  defp render_output(%{type: :tabs, outputs: outputs}, ctx) do
     Enum.find_value(outputs, :ignored, fn {_idx, output} ->
       case render_output(output, ctx) do
         :ignored -> nil
@@ -250,7 +250,7 @@ defmodule Livebook.LiveMarkdown.Export do
     end)
   end
 
-  defp render_output({:grid, outputs, _info}, ctx) do
+  defp render_output(%{type: :grid, outputs: outputs}, ctx) do
     outputs
     |> Enum.map(fn {_idx, output} -> render_output(output, ctx) end)
     |> Enum.reject(&(&1 == :ignored))

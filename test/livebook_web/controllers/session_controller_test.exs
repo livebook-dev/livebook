@@ -221,7 +221,7 @@ defmodule LivebookWeb.SessionControllerTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
+                      outputs: [{0, %{type: :terminal_text, text: "hey", chunk: true}}]
                   }
                 ]
             }
@@ -373,7 +373,7 @@ defmodule LivebookWeb.SessionControllerTest do
     archive_path = Path.expand("../../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Livebook.Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    output = {:js, %{js_view: %{assets: assets_info}}}
+    output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
 
     notebook = %{
       Notebook.new()

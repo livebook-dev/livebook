@@ -333,9 +333,9 @@ defmodule Livebook.Session.Data do
         cell <- section.cells,
         Cell.evaluable?(cell),
         output <- cell.outputs,
-        attrs <- Cell.find_inputs_in_output(output),
+        input <- Cell.find_inputs_in_output(output),
         into: %{},
-        do: {attrs.id, input_info(attrs.default)}
+        do: {input.id, input_info(input.attrs.default)}
   end
 
   @doc """
@@ -1245,7 +1245,7 @@ defmodule Livebook.Session.Data do
     new_input_infos =
       indexed_output
       |> Cell.find_inputs_in_output()
-      |> Map.new(fn attrs -> {attrs.id, input_info(attrs.default)} end)
+      |> Map.new(fn input -> {input.id, input_info(input.attrs.default)} end)
 
     {data, _} =
       data_actions =

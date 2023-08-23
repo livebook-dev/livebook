@@ -1448,11 +1448,14 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_evaluation_output_to, client_id, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
+
     client_pid =
       Enum.find_value(state.client_pids_with_id, fn {pid, id} ->
         id == client_id && pid
@@ -1483,6 +1486,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     broadcast_operation(state.session_id, operation)
 
@@ -1503,9 +1507,10 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
+  def handle_info({:runtime_evaluation_response, cell_id, output, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
-    operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
+    output = normalize_runtime_output(output)
+    operation = {:add_cell_evaluation_response, @client_id, cell_id, output, metadata}
 
     {:noreply,
      state
@@ -2862,5 +2867,113 @@ defmodule Livebook.Session do
       {:error, message, status} ->
         {:error, "download failed, " <> message, status}
     end
+  end
+
+  # Maps legacy outputs and adds missing attributes
+  defp normalize_runtime_output(output) when is_map(output), do: output
+
+  defp normalize_runtime_output(:ignored) do
+    %{type: :ignored}
+  end
+
+  defp normalize_runtime_output({:text, text}) do
+    %{type: :terminal_text, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:plain_text, text}) do
+    %{type: :plain_text, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:markdown, text}) do
+    %{type: :markdown, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:image, content, mime_type}) do
+    %{type: :image, content: content, mime_type: mime_type}
+  end
+
+  defp normalize_runtime_output({:js, info}) do
+    %{type: :js, js_view: info.js_view, export: info.export}
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :default} = info}) do
+    %{
+      type: :frame,
+      ref: ref,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      placeholder: Map.get(info, :placeholder, true)
+    }
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :replace}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:replace, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :append}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:append, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+  end
+
+  defp normalize_runtime_output({:tabs, outputs, %{labels: labels}}) do
+    %{type: :tabs, outputs: Enum.map(outputs, &normalize_runtime_output/1), labels: labels}
+  end
+
+  defp normalize_runtime_output({:grid, outputs, info}) do
+    %{
+      type: :grid,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      columns: Map.get(info, :columns, 1),
+      gap: Map.get(info, :gap, 8),
+      boxed: Map.get(info, :boxed, false)
+    }
+  end
+
+  defp normalize_runtime_output({:input, attrs}) do
+    {fields, attrs} = Map.split(attrs, [:ref, :id, :destination])
+
+    attrs =
+      case attrs.type do
+        :textarea -> Map.put_new(attrs, :monospace, false)
+        _other -> attrs
+      end
+
+    Map.merge(fields, %{type: :input, attrs: attrs})
+  end
+
+  defp normalize_runtime_output({:control, attrs}) do
+    {fields, attrs} = Map.split(attrs, [:ref, :destination])
+
+    attrs =
+      case attrs.type do
+        :keyboard ->
+          Map.put_new(attrs, :default_handlers, :off)
+
+        :form ->
+          Map.update!(attrs, :fields, fn fields ->
+            Enum.map(fields, fn {field, attrs} ->
+              {field, normalize_runtime_output({:input, attrs})}
+            end)
+          end)
+
+        _other ->
+          attrs
+      end
+
+    Map.merge(fields, %{type: :control, attrs: attrs})
+  end
+
+  defp normalize_runtime_output({:error, message, type}) do
+    %{type: :error, message: message, known_reason: type}
+  end
+
+  defp normalize_runtime_output(other) do
+    %{type: :unknown, output: other}
   end
 end

@@ -641,11 +641,11 @@ defmodule Livebook.Notebook do
 
   defp find_assets_info_in_outputs(outputs, hash) do
     Enum.find_value(outputs, fn
-      {_idx, {:js, %{js_view: %{assets: %{hash: ^hash} = assets_info}}}} ->
+      {_idx, %{type: :js, js_view: %{assets: %{hash: ^hash} = assets_info}}} ->
         assets_info
 
-      {_idx, {type, outputs, _}} when type in [:frame, :tabs, :grid] ->
-        find_assets_info_in_outputs(outputs, hash)
+      {_idx, output} when output.type in [:frame, :tabs, :grid] ->
+        find_assets_info_in_outputs(output.outputs, hash)
 
       _ ->
         nil
@@ -669,28 +669,15 @@ defmodule Livebook.Notebook do
   Automatically merges terminal outputs and updates frames.
   """
   @spec add_cell_output(t(), Cell.id(), Livebook.Runtime.output()) :: t()
-  def add_cell_output(notebook, cell_id, output)
-
-  # Map legacy outputs
-  def add_cell_output(notebook, cell_id, {:text, text}),
-    do: add_cell_output(notebook, cell_id, {:terminal_text, text, %{chunk: false}})
-
-  def add_cell_output(notebook, cell_id, {:plain_text, text}),
-    do: add_cell_output(notebook, cell_id, {:plain_text, text, %{chunk: false}})
-
-  def add_cell_output(notebook, cell_id, {:markdown, text}),
-    do: add_cell_output(notebook, cell_id, {:markdown, text, %{chunk: false}})
-
   def add_cell_output(notebook, cell_id, output) do
     {notebook, counter} = do_add_cell_output(notebook, cell_id, notebook.output_counter, output)
     %{notebook | output_counter: counter}
   end
 
-  defp do_add_cell_output(notebook, _cell_id, counter, {:frame, _outputs, %{type: type}} = frame)
-       when type != :default do
+  defp do_add_cell_output(notebook, _cell_id, counter, %{type: :frame_update} = frame_update) do
     update_reduce_cells(notebook, counter, fn
       %{outputs: _} = cell, counter ->
-        {outputs, counter} = update_frames(cell.outputs, counter, frame)
+        {outputs, counter} = update_frames(cell.outputs, counter, frame_update)
         {%{cell | outputs: outputs}, counter}
 
       cell, counter ->
@@ -709,17 +696,17 @@ defmodule Livebook.Notebook do
     {notebook, counter}
   end
 
-  defp update_frames(outputs, counter, {:frame, new_outputs, %{ref: ref, type: type}} = frame) do
+  defp update_frames(outputs, counter, %{ref: ref} = frame_update) do
     Enum.map_reduce(outputs, counter, fn
-      {idx, {:frame, outputs, %{ref: ^ref} = info}}, counter ->
+      {idx, %{type: :frame, outputs: outputs, ref: ^ref} = frame}, counter ->
+        {update_type, new_outputs} = frame_update.update
         {new_outputs, counter} = index_outputs(new_outputs, counter)
-        output = {idx, {:frame, apply_frame_update(outputs, new_outputs, type), info}}
-        {output, counter}
+        outputs = apply_frame_update(outputs, new_outputs, update_type)
+        {{idx, %{frame | outputs: outputs}}, counter}
 
-      {idx, {type, outputs, info}}, counter when type in [:frame, :tabs, :grid] ->
-        {outputs, counter} = update_frames(outputs, counter, frame)
-        output = {idx, {type, outputs, info}}
-        {output, counter}
+      {idx, output}, counter when output.type in [:frame, :tabs, :grid] ->
+        {outputs, counter} = update_frames(output.outputs, counter, frame_update)
+        {{idx, %{output | outputs: outputs}}, counter}
 
       output, counter ->
         {output, counter}
@@ -734,43 +721,40 @@ defmodule Livebook.Notebook do
     Enum.reduce(Enum.reverse(new_outputs), outputs, &add_output(&2, &1))
   end
 
-  defp add_output(outputs, {_idx, :ignored}), do: outputs
+  defp add_output(outputs, {_idx, %{type: :ignored}}), do: outputs
 
-  # Session clients prune rendered chunks, we only keep add the new one
+  # Session clients prune rendered chunks, we only add the new one
   defp add_output(
-         [{idx, {type, :__pruned__, %{chunk: true} = info}} | tail],
-         {_idx, {type, text, %{chunk: true}}}
+         [{idx, %{type: type, chunk: true, text: :__pruned__} = output} | tail],
+         {_idx, %{type: type, chunk: true, text: text}}
        )
        when type in [:terminal_text, :plain_text, :markdown] do
-    [{idx, {type, text, info}} | tail]
+    [{idx, %{output | text: text}} | tail]
   end
 
   # Session server keeps all outputs, so we merge consecutive chunks
   defp add_output(
-         [{idx, {:terminal_text, text, %{chunk: true} = info}} | tail],
-         {_idx, {:terminal_text, cont, %{chunk: true}}}
+         [{idx, %{type: :terminal_text, chunk: true, text: text} = output} | tail],
+         {_idx, %{type: :terminal_text, chunk: true, text: cont}}
        ) do
-    [{idx, {:terminal_text, normalize_terminal_text(text <> cont), info}} | tail]
+    [{idx, %{output | text: normalize_terminal_text(text <> cont)}} | tail]
   end
 
-  defp add_output(outputs, {idx, {:terminal_text, text, info}}) do
-    [{idx, {:terminal_text, normalize_terminal_text(text), info}} | outputs]
+  defp add_output(outputs, {idx, %{type: :terminal_text, text: text} = output}) do
+    [{idx, %{output | text: normalize_terminal_text(text)}} | outputs]
   end
 
   defp add_output(
-         [{idx, {type, text, %{chunk: true} = info}} | tail],
-         {_idx, {type, cont, %{chunk: true}}}
+         [{idx, %{type: type, chunk: true, text: text} = output} | tail],
+         {_idx, %{type: type, chunk: true, text: cont}}
        )
        when type in [:plain_text, :markdown] do
-    [{idx, {type, normalize_terminal_text(text <> cont), info}} | tail]
+    [{idx, %{output | text: text <> cont}} | tail]
   end
 
-  defp add_output(outputs, {idx, {type, text, info}}) when type in [:plain_text, :markdown] do
-    [{idx, {type, normalize_terminal_text(text), info}} | outputs]
-  end
-
-  defp add_output(outputs, {idx, {type, container_outputs, info}}) when type in [:frame, :grid] do
-    [{idx, {type, merge_chunk_outputs(container_outputs), info}} | outputs]
+  defp add_output(outputs, {idx, output}) when output.type in [:frame, :grid] do
+    output = update_in(output.outputs, &merge_chunk_outputs/1)
+    [{idx, output} | outputs]
   end
 
   defp add_output(outputs, output), do: [output | outputs]
@@ -810,9 +794,9 @@ defmodule Livebook.Notebook do
     Enum.map_reduce(outputs, counter, &index_output/2)
   end
 
-  defp index_output({type, outputs, info}, counter) when type in [:frame, :tabs, :grid] do
-    {outputs, counter} = index_outputs(outputs, counter)
-    {{counter, {type, outputs, info}}, counter + 1}
+  defp index_output(output, counter) when output.type in [:frame, :tabs, :grid] do
+    {outputs, counter} = index_outputs(output.outputs, counter)
+    {{counter, %{output | outputs: outputs}}, counter + 1}
   end
 
   defp index_output(output, counter) do
@@ -831,18 +815,15 @@ defmodule Livebook.Notebook do
         do: frame_output
   end
 
-  defp do_find_frame_outputs({_idx, {:frame, _outputs, %{ref: ref}}} = output, ref) do
+  defp do_find_frame_outputs({_idx, %{type: :frame, ref: ref}} = output, ref) do
     [output]
   end
 
-  defp do_find_frame_outputs({_idx, {type, outputs, _info}}, ref)
-       when type in [:frame, :tabs, :grid] do
-    Enum.flat_map(outputs, &do_find_frame_outputs(&1, ref))
+  defp do_find_frame_outputs({_idx, output}, ref) when output.type in [:frame, :tabs, :grid] do
+    Enum.flat_map(output.outputs, &do_find_frame_outputs(&1, ref))
   end
 
-  defp do_find_frame_outputs(_output, _ref) do
-    []
-  end
+  defp do_find_frame_outputs(_output, _ref), do: []
 
   @doc """
   Removes outputs that get rendered only once.
@@ -864,45 +845,43 @@ defmodule Livebook.Notebook do
   defp do_prune_outputs([], _appendable?, acc), do: acc
 
   # Keep trailing outputs that can be merged with subsequent outputs
-  defp do_prune_outputs([{idx, {type, _, %{chunk: true} = info}}], true = _appendable?, acc)
+  defp do_prune_outputs([{idx, %{type: type, chunk: true} = output}], true = _appendable?, acc)
        when type in [:terminal_text, :plain_text, :markdown] do
-    [{idx, {type, :__pruned__, info}} | acc]
+    [{idx, %{output | text: :__pruned__}} | acc]
   end
 
   # Keep frame and its relevant contents
-  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], appendable?, acc) do
-    do_prune_outputs(
-      outputs,
-      appendable?,
-      [{idx, {:frame, prune_outputs(frame_outputs, true), info}} | acc]
-    )
+  defp do_prune_outputs([{idx, %{type: :frame} = output} | outputs], appendable?, acc) do
+    output = update_in(output.outputs, &prune_outputs(&1, true))
+    do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
   end
 
   # Keep layout output and its relevant contents
-  defp do_prune_outputs([{idx, {:tabs, tabs_outputs, info}} | outputs], appendable?, acc) do
-    case prune_outputs(tabs_outputs, false) do
+  defp do_prune_outputs([{idx, %{type: :tabs} = output} | outputs], appendable?, acc) do
+    case prune_outputs(output.outputs, false) do
       [] ->
         do_prune_outputs(outputs, appendable?, acc)
 
       pruned_tabs_outputs ->
-        info = Map.replace(info, :labels, :__pruned__)
-        do_prune_outputs(outputs, appendable?, [{idx, {:tabs, pruned_tabs_outputs, info}} | acc])
+        output = %{output | outputs: pruned_tabs_outputs, labels: :__pruned__}
+        do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
     end
   end
 
-  defp do_prune_outputs([{idx, {:grid, grid_outputs, info}} | outputs], appendable?, acc) do
-    case prune_outputs(grid_outputs, false) do
+  defp do_prune_outputs([{idx, %{type: :grid} = output} | outputs], appendable?, acc) do
+    case prune_outputs(output.outputs, false) do
       [] ->
         do_prune_outputs(outputs, appendable?, acc)
 
       pruned_grid_outputs ->
-        do_prune_outputs(outputs, appendable?, [{idx, {:grid, pruned_grid_outputs, info}} | acc])
+        output = %{output | outputs: pruned_grid_outputs}
+        do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
     end
   end
 
   # Keep outputs that get re-rendered
   defp do_prune_outputs([{idx, output} | outputs], appendable?, acc)
-       when elem(output, 0) in [:input, :control, :error] do
+       when output.type in [:input, :control, :error] do
     do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
   end
 

@@ -187,7 +187,7 @@ defmodule Livebook.SessionTest do
         | kind: "text",
           source: "chunk 1\n\nchunk 2",
           chunks: [{0, 7}, {9, 7}],
-          outputs: [{1, {:terminal_text, "Hello", %{chunk: false}}}]
+          outputs: [{1, terminal_text("Hello")}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -210,24 +210,23 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:insert_cell, _client_id, ^section_id, 1, :code, _id,
-                       %{source: "chunk 2", outputs: [{1, {:terminal_text, "Hello", %{}}}]}}}
+                       %{source: "chunk 2", outputs: [{1, terminal_text("Hello")}]}}}
     end
 
     test "doesn't garbage collect input values" do
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref",
         id: "input1",
-        type: :text,
-        label: "Name",
-        default: "hey",
-        destination: :noop
+        destination: :noop,
+        attrs: %{type: :text, default: "hey", label: "Name"}
       }
 
       smart_cell = %{
         Notebook.Cell.new(:smart)
         | kind: "text",
           source: "content",
-          outputs: [{1, {:input, input}}]
+          outputs: [{1, input}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -648,16 +647,14 @@ defmodule Livebook.SessionTest do
     test "schedules file for deletion when the corresponding input is removed",
          %{tmp_dir: tmp_dir} do
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref",
         id: "input1",
-        type: :file,
-        label: "File",
-        default: nil,
         destination: :noop,
-        accept: :any
+        attrs: %{type: :file, accept: :any, default: nil, label: "File"}
       }
 
-      cell = %{Notebook.Cell.new(:code) | outputs: [{1, {:input, input}}]}
+      cell = %{Notebook.Cell.new(:code) | outputs: [{1, input}]}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
 
       session = start_session(notebook: notebook, registered_file_deletion_delay: 0)
@@ -882,11 +879,17 @@ defmodule Livebook.SessionTest do
   # between runtime and session
 
   @livebook_put_input_code """
-  input = %{id: "input1", type: :number, label: "Name", default: "hey"}
+  input = %{
+    type: :input,
+    ref: "ref",
+    id: "input1",
+    destination: nil,
+    attrs: %{type: :number, default: "hey", label: "Name"}
+  }
 
   send(
     Process.group_leader(),
-    {:io_request, self(), make_ref(), {:livebook_put_output, {:input, input}}}
+    {:io_request, self(), make_ref(), {:livebook_put_output, input}}
   )
   """
 
@@ -920,8 +923,8 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       {:terminal_text, text_output, %{}}, %{evaluation_time_ms: _time_ms}}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
+                       %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ "hey"
     end
@@ -944,8 +947,8 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       {:terminal_text, text_output, %{}}, %{evaluation_time_ms: _time_ms}}}
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
+                       %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ ":error"
     end
@@ -1242,8 +1245,8 @@ defmodule Livebook.SessionTest do
     archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    js_output = {:js, %{js_view: %{assets: assets_info}}}
-    frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
+    js_output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
+    frame_output = %{type: :frame, ref: "1", outputs: [js_output], placeholder: true}
 
     user = Livebook.Users.User.new()
     {_, client_id} = Session.register_client(session.pid, self(), user)
@@ -1854,6 +1857,53 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
       assert File.read(path) == {:ok, "new content"}
     end
+  end
+
+  test "supports legacy text outputs" do
+    session = start_session()
+
+    Session.subscribe(session.id)
+
+    {_section_id, cell_id} = insert_section_and_cell(session.pid)
+
+    runtime = connected_noop_runtime()
+    Session.set_runtime(session.pid, runtime)
+
+    user = Livebook.Users.User.new()
+    Session.register_client(session.pid, self(), user)
+
+    legacy_output = {:text, "Hola"}
+    expected_output = terminal_text("Hola")
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output = {:markdown, "Hola"}
+    expected_output = %{type: :markdown, text: "Hola", chunk: false}
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output =
+      {:input,
+       %{
+         type: :text,
+         ref: "ref",
+         id: "input1",
+         label: "Name",
+         default: "hey",
+         destination: :noop
+       }}
+
+    expected_output =
+      %{
+        type: :input,
+        ref: "ref",
+        id: "input1",
+        destination: :noop,
+        attrs: %{type: :text, default: "hey", label: "Name"}
+      }
+
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
   end
 
   defp start_session(opts \\ []) do

@@ -7,16 +7,16 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   @impl true
-  def render(%{attrs: %{type: :keyboard}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :keyboard do
     ~H"""
     <div
       class="flex"
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
       data-cell-id={@cell_id}
-      data-default-handlers={Map.get(@attrs, :default_handlers, :off)}
-      data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @attrs.events)}
-      data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @attrs.events)}
+      data-default-handlers={@control.default_handlers.attrs}
+      data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @control.attrs.events)}
+      data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @control.attrs.events)}
       data-target={@myself}
     >
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
@@ -35,7 +35,7 @@ defmodule LivebookWeb.Output.ControlComponent do
     """
   end
 
-  def render(%{attrs: %{type: :button}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :button do
     ~H"""
     <div class="flex">
       <button
@@ -43,19 +43,19 @@ defmodule LivebookWeb.Output.ControlComponent do
         type="button"
         phx-click={JS.push("button_click", target: @myself)}
       >
-        <%= @attrs.label %>
+        <%= @control.attrs.label %>
       </button>
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :form}} = assigns) do
+  def render(assigns) when assigns.control.attrs.type == :form do
     ~H"""
     <div>
       <.live_component
         module={LivebookWeb.Output.ControlFormComponent}
         id={@id}
-        attrs={@attrs}
+        control={@control}
         input_views={@input_views}
         session_pid={@session_pid}
         client_id={@client_id}
@@ -67,7 +67,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown control type <%= @attrs.type %>
+      Unknown control type <%= @control.attrs.type %>
     </div>
     """
   end
@@ -113,8 +113,8 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   defp report_event(socket, attrs) do
-    topic = socket.assigns.attrs.ref
+    topic = socket.assigns.control.ref
     event = Map.merge(%{origin: socket.assigns.client_id}, attrs)
-    send(socket.assigns.attrs.destination, {:event, topic, event})
+    send(socket.assigns.control.destination, {:event, topic, event})
   end
 end

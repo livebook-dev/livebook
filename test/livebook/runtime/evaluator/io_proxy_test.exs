@@ -1,6 +1,8 @@
 defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Runtime.Evaluator
   alias Livebook.Runtime.Evaluator.IOProxy
 
@@ -18,17 +20,17 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   describe ":stdio interoperability" do
     test "IO.puts", %{io: io} do
       IO.puts(io, "hey")
-      assert_receive {:runtime_evaluation_output, :ref, {:terminal_text, "hey\n", %{chunk: true}}}
+      assert_receive {:runtime_evaluation_output, :ref, terminal_text("hey\n", true)}
     end
 
     test "IO.write", %{io: io} do
       IO.write(io, "hey")
-      assert_receive {:runtime_evaluation_output, :ref, {:terminal_text, "hey", %{chunk: true}}}
+      assert_receive {:runtime_evaluation_output, :ref, terminal_text("hey", true)}
     end
 
     test "IO.inspect", %{io: io} do
       IO.inspect(io, %{}, [])
-      assert_receive {:runtime_evaluation_output, :ref, {:terminal_text, "%{}\n", %{chunk: true}}}
+      assert_receive {:runtime_evaluation_output, :ref, terminal_text("%{}\n", true)}
     end
 
     test "IO.read", %{io: io} do
@@ -84,36 +86,32 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
     IO.puts(io, "hey")
     IO.puts(io, "hey")
 
-    assert_receive {:runtime_evaluation_output, :ref,
-                    {:terminal_text, "hey\nhey\n", %{chunk: true}}}
+    assert_receive {:runtime_evaluation_output, :ref, terminal_text("hey\nhey\n", true)}
   end
 
   test "respects CR as line cleaner", %{io: io} do
     IO.write(io, "hey")
     IO.write(io, "\roverride\r")
 
-    assert_receive {:runtime_evaluation_output, :ref,
-                    {:terminal_text, "\roverride\r", %{chunk: true}}}
+    assert_receive {:runtime_evaluation_output, :ref, terminal_text("\roverride\r", true)}
   end
 
   test "after_evaluation/1 synchronously sends buffer contents", %{io: io} do
     IO.puts(io, "hey")
     IOProxy.after_evaluation(io)
-    assert_received {:runtime_evaluation_output, :ref, {:terminal_text, "hey\n", %{chunk: true}}}
+    assert_received {:runtime_evaluation_output, :ref, terminal_text("hey\n", true)}
   end
 
   test "supports direct livebook output forwarding", %{io: io} do
-    livebook_put_output(io, {:terminal_text, "[1, 2, 3]", %{chunk: false}})
+    livebook_put_output(io, terminal_text("[1, 2, 3]"))
 
-    assert_received {:runtime_evaluation_output, :ref,
-                     {:terminal_text, "[1, 2, 3]", %{chunk: false}}}
+    assert_received {:runtime_evaluation_output, :ref, terminal_text("[1, 2, 3]")}
   end
 
   test "supports direct livebook output forwarding for a specific client", %{io: io} do
-    livebook_put_output_to(io, "client1", {:terminal_text, "[1, 2, 3]", %{chunk: false}})
+    livebook_put_output_to(io, "client1", terminal_text("[1, 2, 3]"))
 
-    assert_received {:runtime_evaluation_output_to, "client1", :ref,
-                     {:terminal_text, "[1, 2, 3]", %{chunk: false}}}
+    assert_received {:runtime_evaluation_output_to, "client1", :ref, terminal_text("[1, 2, 3]")}
   end
 
   describe "token requests" do

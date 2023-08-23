@@ -67,37 +67,391 @@ defprotocol Livebook.Runtime do
 
   @typedoc """
   An output emitted during evaluation or as the final result.
-
-  For more details on output types see `t:Kino.Output.t/0`.
   """
   @type output ::
-          :ignored
-          # Text with terminal style and ANSI support
-          | {:terminal_text, text :: String.t(), info :: map()}
-          # Plain text content
-          | {:plain_text, text :: String.t(), info :: map()}
-          # Markdown content
-          | {:markdown, text :: String.t(), info :: map()}
-          # A raw image in the given format
-          | {:image, content :: binary(), mime_type :: binary()}
-          # JavaScript powered output
-          | {:js, info :: map()}
-          # Outputs placeholder
-          | {:frame, outputs :: list(output()), info :: map()}
-          # Outputs in tabs
-          | {:tabs, outputs :: list(output()), info :: map()}
-          # Outputs in grid
-          | {:grid, outputs :: list(output()), info :: map()}
-          # An input field
-          | {:input, attrs :: map()}
-          # A control element
-          | {:control, attrs :: map()}
-          # Internal output format for errors
-          | {:error, message :: String.t(),
-             type ::
-               {:missing_secret, name :: String.t()}
-               | {:interrupt, variant :: :normal | :error, message :: String.t()}
-               | :other}
+          ignored_output()
+          | terminal_text_output()
+          | plain_text_output()
+          | markdown_output()
+          | image_output()
+          | js_output()
+          | frame_output()
+          | frame_update_output()
+          | tabs_output()
+          | grid_output()
+          | input_output()
+          | control_output()
+          | error_output()
+
+  @typedoc """
+  An empty output that should be ignored whenever encountered.
+  """
+  @type ignored_output :: %{type: :ignored}
+
+  @typedoc ~S"""
+  Terminal text content.
+
+  Supports ANSI escape codes and overwriting lines with `\r`.
+
+  Adjacent outputs with `:chunk` set to `true` are merged and rendered
+  as a whole.
+  """
+  @type terminal_text_output :: %{type: :terminal_text, text: String.t(), chunk: boolean()}
+
+  @typedoc """
+  Plain text content.
+
+  Adjacent outputs with `:chunk` set to `true` are merged and rendered
+  as a whole.
+
+  Similar to `t:markdown/0`, but with no special markup.
+  """
+  @type plain_text_output :: %{type: :plain_text, text: String.t(), chunk: boolean()}
+
+  @typedoc """
+  Markdown content.
+
+  Adjacent outputs with `:chunk` set to `true` are merged and rendered
+  as a whole.
+  """
+  @type markdown_output :: %{type: :markdown, text: String.t(), chunk: boolean()}
+
+  @typedoc """
+  A raw image in the given format.
+
+  ## Pixel data
+
+  Note that a special `image/x-pixel` MIME type is supported. The
+  binary consists of the following consecutive parts:
+
+    * height - 32 bits (unsigned big-endian integer)
+    * width - 32 bits (unsigned big-endian integer)
+    * channels - 8 bits (unsigned integer)
+    * data - pixel data in HWC order
+
+  Pixel data consists of 8-bit unsigned integers. The number of channels
+  can be either: 1 (grayscale), 2 (grayscale + alpha), 3 (RGB), or 4
+  (RGB + alpha).
+  """
+  @type image_output :: %{type: :image, content: binary(), mime_type: String.t()}
+
+  @typedoc """
+  JavaScript powered output with dynamic data and events.
+
+  See `Kino.JS` and `Kino.JS.Live` for more details.
+
+  ## Export
+
+  The `:export` map describes how the output should be persisted.
+  The output data is put in a Markdown fenced code block.
+
+    * `:info_string` - used as the info string for the Markdown
+      code block
+
+    * `:key` - in case the data is a map and only a specific part
+      should be exported
+
+  """
+  @type js_output() :: %{
+          type: :js,
+          js_view: js_view(),
+          export:
+            nil
+            | %{
+                info_string: String.t(),
+                key: nil | term()
+              }
+        }
+
+  @typedoc """
+  A JavaScript view definition.
+
+  JS view is a component rendered on the client side and possibly
+  interacting with a server process within the runtime.
+
+    * `:ref` - unique identifier
+
+    * `:pid` - the server process holding the data and handling
+      interactions
+
+  ## Assets
+
+  The `:assets` map includes information about the relevant files.
+
+      * `:archive_path` - an absolute path to a `.tar.gz` archive with
+        all the assets
+
+      * `:hash` - a checksum of all assets in the archive
+
+      * `:js_path` - a relative asset path pointing to the JavaScript
+        entrypoint module
+
+      * `:cdn_url` - an absolute URL to a CDN directory where the asset
+        files can be accessed from. Note that this URL is not guaranteed
+        to be accessible, since it may be pointing to a private package
+
+  ## Communication protocol
+
+  A client process should connect to the server process by sending:
+
+      {:connect, pid(), info :: %{ref: ref(), origin: term()}}
+
+  And expect the following reply:
+
+      {:connect_reply, payload, info :: %{ref: ref()}}
+
+  The server process may then keep sending one of the following events:
+
+      {:event, event :: String.t(), payload, info :: %{ref: ref()}}
+
+  The client process may keep sending one of the following events:
+
+      {:event, event :: String.t(), payload, info :: %{ref: ref(), origin: term()}}
+
+  The client can also send a ping message:
+
+      {:ping, pid(), metadata :: term(), info :: %{ref: ref()}}
+
+  And the server should respond with:
+
+      {:pong, metadata :: term(), info :: %{ref: ref()}}
+
+  """
+  @type js_view :: %{
+          ref: ref(),
+          pid: Process.dest(),
+          assets: %{
+            archive_path: String.t(),
+            hash: String.t(),
+            js_path: String.t(),
+            cdn_url: String.t() | nil
+          }
+        }
+
+  @typedoc """
+  An area to dynamically put outputs into.
+
+  This output includes the initial outputs and can be later updated
+  by sending `t:frame_update_output/0` outputs.
+
+  The outputs order is always reversed, that is, most recent outputs
+  are at the top of the stack.
+  """
+  @type frame_output :: %{
+          type: :frame,
+          ref: frame_ref(),
+          outputs: list(output()),
+          placeholder: boolean()
+        }
+
+  @typedoc """
+  An output emitted to update and existing `t:frame_output/0`.
+  """
+  @type frame_update_output :: %{
+          type: :frame_update,
+          ref: frame_ref(),
+          update: {:replace, list(output())} | {:append, list(output())}
+        }
+
+  @type frame_ref :: String.t()
+
+  @typedoc """
+  Multiple outputs arranged into tabs.
+  """
+  @type tabs_output :: %{type: :tabs, outputs: list(t()), labels: list(String.t())}
+
+  @typedoc """
+  Multiple outputs arranged in a grid.
+  """
+  @type grid_output :: %{
+          type: :grid,
+          outputs: list(t()),
+          columns: pos_integer(),
+          gap: non_neg_integer(),
+          boxed: boolean()
+        }
+
+  @typedoc """
+  An input field.
+
+    * `:ref` - a unique identifier
+
+    * `:id` - a persistent input identifier, the same on every
+      reevaluation
+
+    * `:default` - the initial input value
+
+    * `:destination` - the process to send event messages to
+
+    * `:attrs` - input-specific attributes. The required fields are
+      `:type` and `:default`
+
+  """
+  @type input_output :: %{
+          type: :input,
+          ref: ref(),
+          id: input_id(),
+          destination: Process.dest(),
+          attrs: input_attrs()
+        }
+
+  @type input_id :: String.t()
+
+  @type input_attrs ::
+          %{
+            type: :text,
+            default: String.t(),
+            label: String.t()
+          }
+          | %{
+              type: :textarea,
+              default: String.t(),
+              label: String.t(),
+              monospace: boolean()
+            }
+          | %{
+              type: :password,
+              default: String.t(),
+              label: String.t()
+            }
+          | %{
+              type: :number,
+              default: number() | nil,
+              label: String.t()
+            }
+          | %{
+              type: :url,
+              default: String.t() | nil,
+              label: String.t()
+            }
+          | %{
+              type: :select,
+              default: term(),
+              label: String.t(),
+              options: list({value :: term(), label :: String.t()})
+            }
+          | %{
+              type: :checkbox,
+              default: boolean(),
+              label: String.t()
+            }
+          | %{
+              type: :range,
+              default: number(),
+              label: String.t(),
+              min: number(),
+              max: number(),
+              step: number()
+            }
+          | %{
+              type: :utc_datetime,
+              default: NaiveDateTime.t() | nil,
+              label: String.t(),
+              min: NaiveDateTime.t() | nil,
+              max: NaiveDateTime.t() | nil
+            }
+          | %{
+              type: :utc_time,
+              default: Time.t() | nil,
+              label: String.t(),
+              min: Time.t() | nil,
+              max: Time.t() | nil
+            }
+          | %{
+              type: :date,
+              default: Date.t(),
+              label: String.t(),
+              min: Date.t(),
+              max: Date.t()
+            }
+          | %{
+              type: :color,
+              default: String.t(),
+              label: String.t()
+            }
+          | %{
+              type: :image,
+              default: nil,
+              label: String.t(),
+              format: :rgb | :png | :jpeg,
+              size: {pos_integer(), pos_integer()} | nil,
+              fit: :match | :contain | :pad | :crop
+            }
+          | %{
+              type: :audio,
+              default: nil,
+              label: String.t(),
+              format: :pcm_f32 | :wav,
+              sampling_rate: pos_integer()
+            }
+          | %{
+              type: :file,
+              default: nil,
+              label: String.t(),
+              accept: list(String.t()) | :any
+            }
+
+  @typedoc """
+  A control widget.
+
+    * `:ref` - a unique identifier
+
+    * `:destination` - the process to send event messages to
+
+    * `:attrs` - control-specific attributes. The only required field
+      is `:type`
+
+  ## Events
+
+  All control events are sent to `:destination` as `{:event, id, info}`,
+  where info is a map including additional details. In particular, it
+  always includes `:origin`, which is an opaque identifier of the client
+  that triggered the event.
+  """
+  @type control_output :: %{
+          type: :control,
+          ref: ref(),
+          destination: Process.dest(),
+          attrs: control_attrs()
+        }
+
+  @type control_attrs ::
+          %{
+            type: :keyboard,
+            events: list(:keyup | :keydown | :status),
+            default_handlers: :off | :on | :disable_only
+          }
+          | %{
+              type: :button,
+              label: String.t()
+            }
+          | %{
+              type: :form,
+              fields: list({field :: atom(), input_output()}),
+              submit: String.t() | nil,
+              # Currently we always use true, but we can support
+              # other tracking modes in the future
+              report_changes: %{(field :: atom()) => true},
+              reset_on_submit: list(field :: atom())
+            }
+
+  @type ref :: String.t()
+
+  @typedoc """
+  Error content, usually representing evaluation failure.
+
+  The `:known_reason` field is used by Livebook to suggest a way to fix
+  the error.
+  """
+  @type error_output :: %{
+          type: :error,
+          message: String.t(),
+          known_reason:
+            {:missing_secret, name :: String.t()}
+            | {:interrupt, variant :: :normal | :error, message :: String.t()}
+            | {:file_entry_forbidden, name :: String.t()}
+            | :other
+        }
 
   @typedoc """
   Additional information about a completed evaluation.
@@ -328,22 +682,6 @@ defprotocol Livebook.Runtime do
           description: String.t(),
           source: String.t(),
           packages: list(package())
-        }
-
-  @typedoc """
-  A JavaScript view definition.
-
-  See `t:Kino.Output.js_view/0` for details.
-  """
-  @type js_view :: %{
-          ref: String.t(),
-          pid: Process.dest(),
-          assets: %{
-            archive_path: String.t(),
-            hash: String.t(),
-            js_path: String.t(),
-            cdn_url: String.t() | nil
-          }
         }
 
   @type smart_cell_ref :: String.t()
