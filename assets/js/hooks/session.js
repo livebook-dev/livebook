@@ -469,8 +469,8 @@ const Session = {
       return true;
     }
 
-    // Vim insert mode
-    if (editor.dataset.vimMode == "insert") {
+    // Vim insert or visual mode
+    if (["insert", "visual"].includes(editor.dataset.vimMode)) {
       return true;
     }
 

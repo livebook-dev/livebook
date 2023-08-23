@@ -371,16 +371,7 @@ class LiveEditor {
     this._initializeWidgets();
 
     // Set the editor mode
-    if (settings.editor_mode == "emacs") {
-      this.emacsMode = new EmacsExtension(this.editor);
-      this.emacsMode.start();
-      unregisterKey("Tab");
-    } else if (settings.editor_mode == "vim") {
-      this.vimMode = initVimMode(this.editor);
-      this.vimMode.on("vim-mode-change", ({ mode: mode }) => {
-        this.editor.getDomNode().setAttribute("data-vim-mode", mode);
-      });
-    }
+    this._setEditorMode(settings.editor_mode);
   }
 
   /**
@@ -645,6 +636,22 @@ class LiveEditor {
         }
       );
     });
+  }
+
+  /**
+   * Sets Monaco editor mode via monaco-emacs or monaco-vim packages.
+   */
+  _setEditorMode(editorMode) {
+    if (editorMode == "emacs") {
+      this.emacsMode = new EmacsExtension(this.editor);
+      this.emacsMode.start();
+      unregisterKey("Tab");
+    } else if (editorMode == "vim") {
+      this.vimMode = initVimMode(this.editor);
+      this.vimMode.on("vim-mode-change", ({ mode: mode }) => {
+        this.editor.getDomNode().setAttribute("data-vim-mode", mode);
+      });
+    }
   }
 }
 
