@@ -28,6 +28,7 @@ defmodule LivebookWeb.Hub.EditLive do
       current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
+      default_hub={@default_hub}
     >
       <.hub_component
         type={@type}

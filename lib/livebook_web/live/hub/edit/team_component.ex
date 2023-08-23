@@ -1,4 +1,5 @@
 defmodule LivebookWeb.Hub.Edit.TeamComponent do
+  alias Livebook.Hubs
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs.{Provider, Team}
@@ -14,6 +15,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
     secret_name = assigns.params["secret_name"]
     zta = %{"provider" => "", "key" => ""}
+    is_default? = is_default?(assigns.hub)
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -29,7 +31,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       zta: zta
+       zta: zta,
+       is_default: is_default?
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -114,6 +117,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
                     Save
                   </button>
+                  <%= if @is_default do %>
+                    <span
+                      class="button-base button-blue cursor-pointer"
+                      phx-click={JS.push("remove_as_default")}
+                      phx-target={@myself}
+                    >
+                      Remove as default
+                    </span>
+                  <% else %>
+                    <span
+                      class="button-base button-blue cursor-pointer"
+                      phx-click={JS.push("mark_as_default")}
+                      phx-target={@myself}
+                    >
+                      Mark as default
+                    </span>
+                  <% end %>
                 </div>
               </.form>
             </div>
@@ -447,6 +467,24 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
   end
 
+  def handle_event("mark_as_default", _, socket) do
+    Hubs.mark_as_default(socket.assigns.hub.id)
+
+    {:noreply,
+     socket
+     |> put_flash(:success, "Hub marked as default successfully")
+     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+  end
+
+  def handle_event("remove_as_default", _, socket) do
+    Hubs.remove_as_default(socket.assigns.hub.id)
+
+    {:noreply,
+     socket
+     |> put_flash(:success, "Hub removed as default successfully")
+     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+  end
+
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
   end
@@ -503,5 +541,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
     """
+  end
+
+  defp is_default?(hub) do
+    case Hubs.get_default_hub() do
+      nil -> false
+      default_hub -> default_hub.id == hub.id
+    end
   end
 end

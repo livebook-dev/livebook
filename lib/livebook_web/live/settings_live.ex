@@ -32,6 +32,7 @@ defmodule LivebookWeb.SettingsLive do
       current_page={~p"/settings"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
+      default_hub={@default_hub}
     >
       <div id="settings-page" class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-16">
         <!-- System settings section -->

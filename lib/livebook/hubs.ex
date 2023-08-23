@@ -105,6 +105,38 @@ defmodule Livebook.Hubs do
     :ok
   end
 
+  @spec mark_as_default(String.t()) :: :ok
+  def mark_as_default(id) do
+    with {:ok, hub} <- fetch_hub(id) do
+      true = Provider.type(hub) != "personal"
+      :ok = Broadcasts.default_hub_changed(hub.id)
+      :ok = Storage.insert(:default_hub, "default_hub", [{:default_hub, hub.id}])
+    end
+
+    :ok
+  end
+
+  @spec remove_as_default(String.t()) :: :ok
+  def remove_as_default(id) do
+    with {:ok, hub} <- fetch_hub(id) do
+      true = Provider.type(hub) != "personal"
+      :ok = Broadcasts.default_hub_changed(hub.id)
+      :ok = Storage.delete(:default_hub, "default_hub")
+    end
+
+    :ok
+  end
+
+  @spec get_default_hub() :: Provider.t() | nil
+  def get_default_hub() do
+    with {:ok, %{default_hub: id}} <- Storage.fetch(:default_hub, "default_hub"),
+         {:ok, hub} <- fetch_hub(id) do
+      hub
+    else
+      _ -> nil
+    end
+  end
+
   defp disconnect_hub(hub) do
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
       Process.sleep(30_000)

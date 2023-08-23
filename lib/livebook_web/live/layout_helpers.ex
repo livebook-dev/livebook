@@ -12,6 +12,9 @@ defmodule LivebookWeb.LayoutHelpers do
   attr :current_user, Livebook.Users.User, required: true
   attr :saved_hubs, :list, required: true
 
+  # FIXME: add and type
+  # attr :default_hub, Provider.t(), required: true
+
   slot :inner_block, required: true
   slot :topbar_action
 
@@ -20,7 +23,12 @@ defmodule LivebookWeb.LayoutHelpers do
     <div class="flex grow h-full">
       <div class="absolute md:static h-full z-[600]">
         <.live_region role="alert" />
-        <.sidebar current_page={@current_page} current_user={@current_user} saved_hubs={@saved_hubs} />
+        <.sidebar
+          current_page={@current_page}
+          current_user={@current_user}
+          saved_hubs={@saved_hubs}
+          default_hub={@default_hub}
+        />
       </div>
       <div class="grow overflow-y-auto">
         <div class="md:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
@@ -107,7 +115,7 @@ defmodule LivebookWeb.LayoutHelpers do
               current={@current_page}
             />
           </div>
-          <.hub_section hubs={@saved_hubs} current_page={@current_page} />
+          <.hub_section hubs={@saved_hubs} current_page={@current_page} default_hub={@default_hub} />
         </div>
         <div class="flex flex-col">
           <button
@@ -200,6 +208,11 @@ defmodule LivebookWeb.LayoutHelpers do
       <span class="text-sm font-medium">
         <%= @hub.name %>
       </span>
+      <%= if @hub.id == @default_hub.id do %>
+        <span class="text-sm font-medium ml-2">
+          <%= @hub.name %>
+        </span>
+      <% end %>
     </.link>
     """
   end
@@ -214,7 +227,12 @@ defmodule LivebookWeb.LayoutHelpers do
 
         <%= for hub <- @hubs do %>
           <%= if Provider.connection_spec(hub.provider) do %>
-            <.sidebar_hub_link_with_tooltip hub={hub} to={~p"/hub/#{hub.id}"} current={@current_page} />
+            <.sidebar_hub_link_with_tooltip
+              hub={hub}
+              to={~p"/hub/#{hub.id}"}
+              current={@current_page}
+              default_hub={@default_hub}
+            />
           <% else %>
             <.sidebar_hub_link hub={hub} to={~p"/hub/#{hub.id}"} current={@current_page} />
           <% end %>

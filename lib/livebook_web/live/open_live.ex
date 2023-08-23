@@ -32,7 +32,12 @@ defmodule LivebookWeb.OpenLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout current_page={~p"/"} current_user={@current_user} saved_hubs={@saved_hubs}>
+    <LayoutHelpers.layout
+      current_page={~p"/"}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+      default_hub={@default_hub}
+    >
       <:topbar_action>
         <.link class="button-base button-blue" navigate={~p"/new"}>
           <.remix_icon icon="add-line" class="align-middle mr-1" />
