@@ -440,17 +440,17 @@ defprotocol Livebook.Runtime do
   @typedoc """
   Error content, usually representing evaluation failure.
 
-  The `:known_reason` field is used by Livebook to suggest a way to fix
+  The `:context` field is used by Livebook to suggest a way to fix
   the error.
   """
   @type error_output :: %{
           type: :error,
           message: String.t(),
-          known_reason:
+          context:
             {:missing_secret, name :: String.t()}
             | {:interrupt, variant :: :normal | :error, message :: String.t()}
             | {:file_entry_forbidden, name :: String.t()}
-            | :other
+            | nil
         }
 
   @typedoc """

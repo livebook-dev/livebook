@@ -38,7 +38,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp border?(%{type: type}) when type in [:terminal_text, :plain_text], do: true
-  defp border?(%{type: :error, known_reason: {:interrupt, _, _}}), do: false
+  defp border?(%{type: :error, context: {:interrupt, _, _}}), do: false
   defp border?(%{type: :error}), do: true
   defp border?(%{type: :grid, boxed: boxed}), do: boxed
   defp border?(_output), do: false
@@ -253,7 +253,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output(
-         %{type: :error, known_reason: {:missing_secret, secret_name}} = output,
+         %{type: :error, context: {:missing_secret, secret_name}} = output,
          %{session_id: session_id}
        ) do
     assigns = %{message: output.message, secret_name: secret_name, session_id: session_id}
@@ -281,7 +281,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output(
-         %{type: :error, known_reason: {:file_entry_forbidden, file_entry_name}} = output,
+         %{type: :error, context: {:file_entry_forbidden, file_entry_name}} = output,
          %{session_id: session_id}
        ) do
     assigns = %{message: output.message, file_entry_name: file_entry_name, session_id: session_id}
@@ -309,7 +309,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output(
-         %{type: :error, known_reason: {:interrupt, variant, message}},
+         %{type: :error, context: {:interrupt, variant, message}},
          %{cell_id: cell_id}
        ) do
     assigns = %{variant: variant, message: message, cell_id: cell_id}

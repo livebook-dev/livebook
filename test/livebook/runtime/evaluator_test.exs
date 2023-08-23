@@ -47,7 +47,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
   defmacrop error(message) do
     quote do
-      %{type: :error, message: unquote(message), known_reason: :other}
+      %{type: :error, message: unquote(message), context: nil}
     end
   end
 

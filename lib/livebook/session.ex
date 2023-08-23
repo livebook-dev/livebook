@@ -2970,7 +2970,13 @@ defmodule Livebook.Session do
   end
 
   defp normalize_runtime_output({:error, message, type}) do
-    %{type: :error, message: message, known_reason: type}
+    context =
+      case type do
+        :other -> nil
+        type -> type
+      end
+
+    %{type: :error, message: message, context: context}
   end
 
   defp normalize_runtime_output(other) do

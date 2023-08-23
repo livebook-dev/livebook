@@ -490,7 +490,7 @@ defmodule LivebookWeb.AppSessionLive do
     {idx, %{output | outputs: outputs}}
   end
 
-  defp filter_output({idx, %{type: :error, known_reason: {:interrupt, _, _}} = output}),
+  defp filter_output({idx, %{type: :error, context: {:interrupt, _, _}} = output}),
     do: {idx, output}
 
   defp filter_output(_output), do: nil
