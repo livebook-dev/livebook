@@ -577,7 +577,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        {0, {:terminal_text, "hey", %{chunk: true}}}
+                        {0, terminal_text("hey", true)}
                       ]
                   }
                 ]
@@ -614,7 +614,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
+                      outputs: [{0, terminal_text("hey", true)}]
                   }
                 ]
             }
@@ -657,8 +657,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        {0, {:terminal_text, "\e[34m:ok\e[0m", %{chunk: false}}},
-                        {1, {:terminal_text, "hey", %{chunk: true}}}
+                        {0, terminal_text("\e[34m:ok\e[0m")},
+                        {1, terminal_text("hey", true)}
                       ]
                   }
                 ]
@@ -707,7 +707,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:markdown, "some **Markdown**"}}]
+                      outputs: [{0, %{type: :markdown, text: "some **Markdown**", chunk: false}}]
                   }
                 ]
             }
@@ -788,15 +788,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "mermaid", key: nil}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "mermaid", key: nil}
+                         }}
                       ]
                   }
                 ]
@@ -840,15 +840,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "box", key: nil}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "box", key: nil}
+                         }}
                       ]
                   }
                 ]
@@ -891,19 +891,19 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid:
-                                spawn_widget_with_data("1", %{
-                                  spec: %{"height" => 50, "width" => 50},
-                                  datasets: []
-                                }),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "vega-lite", key: :spec}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid:
+                               spawn_widget_with_data("1", %{
+                                 spec: %{"height" => 50, "width" => 50},
+                                 datasets: []
+                               }),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "vega-lite", key: :spec}
+                         }}
                       ]
                   }
                 ]
@@ -947,12 +947,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: ":ok",
                     outputs: [
                       {0,
-                       {:tabs,
-                        [
-                          {1, {:markdown, "a"}},
-                          {2, {:terminal_text, "b", %{chunk: false}}},
-                          {3, {:terminal_text, "c", %{chunk: false}}}
-                        ], %{labels: ["A", "B", "C"]}}}
+                       %{
+                         type: :tabs,
+                         outputs: [
+                           {1, %{type: :markdown, text: "a", chunk: false}},
+                           {2, terminal_text("b")},
+                           {3, terminal_text("c")}
+                         ],
+                         labels: ["A", "B", "C"]
+                       }}
                     ]
                 }
               ]
@@ -995,12 +998,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: ":ok",
                     outputs: [
                       {0,
-                       {:grid,
-                        [
-                          {1, {:terminal_text, "a", %{chunk: false}}},
-                          {2, {:markdown, "b"}},
-                          {3, {:terminal_text, "c", %{chunk: false}}}
-                        ], %{columns: 2}}}
+                       %{
+                         type: :grid,
+                         outputs: [
+                           {1, terminal_text("a")},
+                           {2, %{type: :markdown, text: "b", chunk: false}},
+                           {3, terminal_text("c")}
+                         ],
+                         columns: 2,
+                         gap: 8,
+                         boxed: false
+                       }}
                     ]
                 }
               ]
@@ -1050,7 +1058,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
+                    outputs: [{0, terminal_text("hey", true)}]
                 }
               ]
           }
@@ -1095,7 +1103,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:terminal_text, "hey", %{chunk: true}}}]
+                    outputs: [{0, terminal_text("hey", true)}]
                 }
               ]
           }

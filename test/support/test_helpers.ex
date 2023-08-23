@@ -112,4 +112,13 @@ defmodule Livebook.TestHelpers do
 
     {code, ack_fun}
   end
+
+  @doc """
+  Builds a terminal output map.
+  """
+  defmacro terminal_text(text, chunk \\ false) do
+    quote do
+      %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
+    end
+  end
 end

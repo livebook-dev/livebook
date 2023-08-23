@@ -384,14 +384,14 @@ defmodule LivebookWeb.AppSessionLive do
   defp update_data_view(data_view, _prev_data, data, operation) do
     case operation do
       # See LivebookWeb.SessionLive for more details
-      {:add_cell_evaluation_output, _client_id, _cell_id,
-       {:frame, _outputs, %{type: type, ref: ref}}}
-      when type != :default ->
-        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+      {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
+        %{ref: ref, update: {update_type, _}} = output
+
+        for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
-            outputs: frame_outputs,
-            update_type: type
+            outputs: frame.outputs,
+            update_type: update_type
           )
         end
 
@@ -438,7 +438,7 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp input_views_for_output(output, data, changed_input_ids) do
-    input_ids = for attrs <- Cell.find_inputs_in_output(output), do: attrs.id
+    input_ids = for input <- Cell.find_inputs_in_output(output), do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
@@ -463,34 +463,34 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp filter_output({idx, output})
-       when elem(output, 0) in [:plain_text, :markdown, :image, :js, :control, :input],
+       when output.type in [:plain_text, :markdown, :image, :js, :control, :input],
        do: {idx, output}
 
-  defp filter_output({idx, {:tabs, outputs, metadata}}) do
+  defp filter_output({idx, %{type: :tabs} = output}) do
     outputs_with_labels =
-      for {output, label} <- Enum.zip(outputs, metadata.labels),
+      for {output, label} <- Enum.zip(output.outputs, output.labels),
           output = filter_output(output),
           do: {output, label}
 
     {outputs, labels} = Enum.unzip(outputs_with_labels)
 
-    {idx, {:tabs, outputs, %{metadata | labels: labels}}}
+    {idx, %{output | outputs: outputs, labels: labels}}
   end
 
-  defp filter_output({idx, {:grid, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
+  defp filter_output({idx, %{type: :grid} = output}) do
+    outputs = rich_outputs(output.outputs)
 
     if outputs != [] do
-      {idx, {:grid, outputs, metadata}}
+      {idx, %{output | outputs: outputs}}
     end
   end
 
-  defp filter_output({idx, {:frame, outputs, metadata}}) do
-    outputs = rich_outputs(outputs)
-    {idx, {:frame, outputs, metadata}}
+  defp filter_output({idx, %{type: :frame} = output}) do
+    outputs = rich_outputs(output.outputs)
+    {idx, %{output | outputs: outputs}}
   end
 
-  defp filter_output({idx, {:error, _message, {:interrupt, _, _}} = output}),
+  defp filter_output({idx, %{type: :error, known_reason: {:interrupt, _, _}} = output}),
     do: {idx, output}
 
   defp filter_output(_output), do: nil

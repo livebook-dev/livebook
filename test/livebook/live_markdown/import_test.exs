@@ -643,8 +643,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                        IO.puts("hey")\
                        """,
                        outputs: [
-                         {0, {:terminal_text, ":ok", %{chunk: false}}},
-                         {1, {:terminal_text, "hey", %{chunk: false}}}
+                         {0, terminal_text(":ok")},
+                         {1, terminal_text("hey")}
                        ]
                      }
                    ]
@@ -886,8 +886,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                        IO.puts("hey")\
                        """,
                        outputs: [
-                         {0, {:terminal_text, ":ok", %{chunk: false}}},
-                         {1, {:terminal_text, "hey", %{chunk: false}}}
+                         {0, terminal_text(":ok")},
+                         {1, terminal_text("hey")}
                        ]
                      }
                    ]

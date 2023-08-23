@@ -207,8 +207,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:terminal_text, output, %{}},
-                       _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       %{type: :terminal_text, text: output}, _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
@@ -272,8 +272,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:terminal_text, output, %{}},
-                       _}}
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       %{type: :terminal_text, text: output}, _}}
 
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end

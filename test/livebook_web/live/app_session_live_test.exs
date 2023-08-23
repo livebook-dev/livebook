@@ -81,11 +81,17 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:terminal_text, "Printed output", %{chunk: false}})
+                  | source:
+                      source_for_output(%{
+                        type: :terminal_text,
+                        text: "Printed output",
+                        chunk: false
+                      })
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:plain_text, "Custom text", %{chunk: false}})
+                  | source:
+                      source_for_output(%{type: :plain_text, text: "Custom text", chunk: false})
                 }
               ]
           }
@@ -121,7 +127,12 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:terminal_text, "Printed output", %{chunk: false}})
+                  | source:
+                      source_for_output(%{
+                        type: :terminal_text,
+                        text: "Printed output",
+                        chunk: false
+                      })
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
@@ -174,12 +185,11 @@ defmodule LivebookWeb.AppSessionLiveTest do
     Process.register(self(), test)
 
     input = %{
-      ref: :input_ref,
+      type: :input,
+      ref: "ref1",
       id: "input1",
-      type: :number,
-      label: "Name",
-      default: 1,
-      destination: test
+      destination: test,
+      attrs: %{type: :number, default: 1, label: "Name"}
     }
 
     notebook = %{
@@ -191,7 +201,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
             | cells: [
                 %{
                   Livebook.Notebook.Cell.new(:code)
-                  | source: source_for_output({:input, input})
+                  | source: source_for_output(input)
                 },
                 %{
                   Livebook.Notebook.Cell.new(:code)
