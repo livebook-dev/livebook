@@ -470,7 +470,7 @@ const Session = {
     }
 
     // Vim insert or visual mode
-    if (["insert", "visual"].indexOf(editor.dataset.vimMode) != -1) {
+    if (["insert", "visual"].includes(editor.dataset.vimMode)) {
       return true;
     }
 

@@ -641,12 +641,12 @@ class LiveEditor {
   /**
    * Sets Monaco editor mode via monaco-emacs or monaco-vim packages.
    */
-  _setEditorMode(settingsMode) {
-    if (settingsMode == "emacs") {
+  _setEditorMode(editorMode) {
+    if (editorMode == "emacs") {
       this.emacsMode = new EmacsExtension(this.editor);
       this.emacsMode.start();
       unregisterKey("Tab");
-    } else if (settingsMode == "vim") {
+    } else if (editorMode == "vim") {
       this.vimMode = initVimMode(this.editor);
       this.vimMode.on("vim-mode-change", ({ mode: mode }) => {
         this.editor.getDomNode().setAttribute("data-vim-mode", mode);
