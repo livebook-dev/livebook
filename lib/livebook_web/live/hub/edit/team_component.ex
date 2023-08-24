@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.Edit.TeamComponent do
-  alias Livebook.Hubs
   use LivebookWeb, :live_component
 
+  alias Livebook.Hubs
   alias Livebook.Hubs.{Provider, Team}
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
@@ -468,12 +468,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   def handle_event("mark_as_default", _, socket) do
-    Hubs.mark_as_default(socket.assigns.hub.id)
+    Hubs.set_default_hub(socket.assigns.hub.id)
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
   def handle_event("remove_as_default", _, socket) do
-    Hubs.remove_as_default(socket.assigns.hub.id)
+    Hubs.remove_default_hub(socket.assigns.hub.id)
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
@@ -536,9 +536,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp is_default?(hub) do
-    case Hubs.get_default_hub() do
-      nil -> false
-      default_hub -> default_hub.id == hub.id
-    end
+    Hubs.get_default_hub().id == hub.id
   end
 end

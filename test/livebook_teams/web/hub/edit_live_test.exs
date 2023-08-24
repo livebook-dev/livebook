@@ -212,7 +212,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     end
 
     test "remove hub as default", %{conn: conn, hub: hub} do
-      Hubs.mark_as_default(hub.id)
+      Hubs.set_default_hub(hub.id)
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
