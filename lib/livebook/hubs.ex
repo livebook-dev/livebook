@@ -108,7 +108,6 @@ defmodule Livebook.Hubs do
   @spec mark_as_default(String.t()) :: :ok
   def mark_as_default(id) do
     with {:ok, hub} <- fetch_hub(id) do
-      true = Provider.type(hub) != "personal"
       :ok = Broadcasts.default_hub_changed(hub.id)
       :ok = Storage.insert(:default_hub, "default_hub", [{:default_hub, hub.id}])
     end
@@ -119,7 +118,6 @@ defmodule Livebook.Hubs do
   @spec remove_as_default(String.t()) :: :ok
   def remove_as_default(id) do
     with {:ok, hub} <- fetch_hub(id) do
-      true = Provider.type(hub) != "personal"
       :ok = Broadcasts.default_hub_changed(hub.id)
       :ok = Storage.delete(:default_hub, "default_hub")
     end

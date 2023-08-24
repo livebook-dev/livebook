@@ -11,9 +11,7 @@ defmodule LivebookWeb.LayoutHelpers do
   attr :current_page, :string, required: true
   attr :current_user, Livebook.Users.User, required: true
   attr :saved_hubs, :list, required: true
-
-  # FIXME: add and type
-  # attr :default_hub, Provider.t(), required: true
+  attr :default_hub, :any, required: true
 
   slot :inner_block, required: true
   slot :topbar_action
@@ -208,9 +206,9 @@ defmodule LivebookWeb.LayoutHelpers do
       <span class="text-sm font-medium">
         <%= @hub.name %>
       </span>
-      <%= if @hub.id == @default_hub.id do %>
-        <span class="text-sm font-medium ml-2">
-          <%= @hub.name %>
+      <%= if @default_hub != nil and @hub.id == @default_hub.id do %>
+        <span class="ml-2 items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-700">
+          default
         </span>
       <% end %>
     </.link>
