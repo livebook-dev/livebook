@@ -85,6 +85,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 >
                   <.remix_icon icon="key-2-fill" /> Display Teams key
                 </a>
+                <%= if @is_default do %>
+                  <a
+                    phx-click={JS.push("remove_as_default")}
+                    phx-target={@myself}
+                    class="hover:text-blue-600 cursor-pointer"
+                  >
+                    <.remix_icon icon="star-fill" /> Remove as default
+                  </a>
+                <% else %>
+                  <a
+                    phx-click={JS.push("mark_as_default")}
+                    phx-target={@myself}
+                    class="hover:text-blue-600 cursor-pointer"
+                  >
+                    <.remix_icon icon="star-line" /> Mark as default
+                  </a>
+                <% end %>
               </p>
             </div>
 
@@ -117,23 +134,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
                     Save
                   </button>
-                  <%= if @is_default do %>
-                    <span
-                      class="button-base button-blue cursor-pointer"
-                      phx-click={JS.push("remove_as_default")}
-                      phx-target={@myself}
-                    >
-                      Remove as default
-                    </span>
-                  <% else %>
-                    <span
-                      class="button-base button-blue cursor-pointer"
-                      phx-click={JS.push("mark_as_default")}
-                      phx-target={@myself}
-                    >
-                      Mark as default
-                    </span>
-                  <% end %>
                 </div>
               </.form>
             </div>

@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :default])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -185,6 +185,60 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_raise LivebookWeb.NotFoundError, fn ->
         live(conn, ~p"/hub/#{hub.id}/secrets/edit/HELLO")
       end
+    end
+
+    test "mark hub as default", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      assert {:ok, view, _html} =
+               view
+               |> element("a", "Mark as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      assert render(view) =~ "Hub marked as default successfully"
+
+      id = hub.id
+      assert_receive {:default_hub_changed, ^id}
+
+      sidebar_hub = element(view, "#hubs #hub-#{id}")
+      assert render(sidebar_hub) =~ "default"
+    end
+
+    test "remove hub as default", %{conn: conn, hub: hub} do
+      Hubs.mark_as_default(hub.id)
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      assert {:ok, view, _html} =
+               view
+               |> element("a", "Remove as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      assert render(view) =~ "Hub removed as default successfully"
+
+      id = hub.id
+      assert_receive {:default_hub_changed, ^id}
+
+      sidebar_hub = element(view, "#hubs #hub-#{id}")
+      refute render(sidebar_hub) =~ "default"
     end
   end
 end
