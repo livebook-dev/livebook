@@ -132,7 +132,7 @@ defmodule Livebook.Hubs do
          {:ok, hub} <- fetch_hub(id) do
       hub
     else
-      _ -> Livebook.Hubs.Personal
+      _ -> fetch_hub!(Personal.id())
     end
   end
 
