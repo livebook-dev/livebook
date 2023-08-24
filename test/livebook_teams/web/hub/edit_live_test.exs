@@ -204,8 +204,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
                |> render_click()
                |> follow_redirect(conn)
 
-      assert render(view) =~ "Hub marked as default successfully"
-
       id = hub.id
       assert_receive {:default_hub_changed, ^id}
 
@@ -231,8 +229,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
                |> element("a", "Remove as default")
                |> render_click()
                |> follow_redirect(conn)
-
-      assert render(view) =~ "Hub removed as default successfully"
 
       id = hub.id
       assert_receive {:default_hub_changed, ^id}

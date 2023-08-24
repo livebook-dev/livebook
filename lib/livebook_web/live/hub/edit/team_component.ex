@@ -469,20 +469,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   def handle_event("mark_as_default", _, socket) do
     Hubs.mark_as_default(socket.assigns.hub.id)
-
-    {:noreply,
-     socket
-     |> put_flash(:success, "Hub marked as default successfully")
-     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
   def handle_event("remove_as_default", _, socket) do
     Hubs.remove_as_default(socket.assigns.hub.id)
-
-    {:noreply,
-     socket
-     |> put_flash(:success, "Hub removed as default successfully")
-     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")}
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
