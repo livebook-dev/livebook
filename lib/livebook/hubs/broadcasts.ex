@@ -67,7 +67,7 @@ defmodule Livebook.Hubs.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@default_topic}` topic when the default hub changed.
+  Broadcasts under `#{@default_topic}` topic when the default hub changes.
   """
   @spec default_hub_changed(String.t()) :: broadcast()
   def default_hub_changed(hub_id) do

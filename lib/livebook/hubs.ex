@@ -165,6 +165,10 @@ defmodule Livebook.Hubs do
     * `{:secret_updated, %Secret{}}`
     * `{:secret_deleted, %Secret{}}`
 
+  Topic `hubs:default`:
+
+    * `{:default_hub_changed, hub_id}`
+
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
   def subscribe(topics) when is_list(topics) do
