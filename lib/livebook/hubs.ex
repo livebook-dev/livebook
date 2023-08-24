@@ -126,7 +126,7 @@ defmodule Livebook.Hubs do
     :ok
   end
 
-  @spec get_default_hub() :: Provider.t() | nil
+  @spec get_default_hub() :: Provider.t()
   def get_default_hub() do
     with {:ok, %{default_hub: id}} <- Storage.fetch(:default_hub, "default_hub"),
          {:ok, hub} <- fetch_hub(id) do
