@@ -473,7 +473,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   def handle_event("remove_as_default", _, socket) do
-    Hubs.remove_default_hub(socket.assigns.hub.id)
+    Hubs.unset_default_hub(socket.assigns.hub.id)
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
