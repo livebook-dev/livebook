@@ -42,7 +42,6 @@ defmodule LivebookWeb.HomeLive do
       current_page={@self_path}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
-      default_hub={@default_hub}
     >
       <:topbar_action>
         <div class="flex space-x-2">

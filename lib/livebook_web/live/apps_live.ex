@@ -25,7 +25,6 @@ defmodule LivebookWeb.AppsLive do
       current_page={~p"/apps"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
-      default_hub={@default_hub}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <LayoutHelpers.title text="Apps" />

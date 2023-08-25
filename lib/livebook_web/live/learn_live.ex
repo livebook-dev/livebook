@@ -27,7 +27,6 @@ defmodule LivebookWeb.LearnLive do
       current_page={~p"/learn"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
-      default_hub={@default_hub}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>

@@ -8,7 +8,6 @@ defmodule Livebook.Hubs.Broadcasts do
   @crud_topic "hubs:crud"
   @connection_topic "hubs:connection"
   @secrets_topic "hubs:secrets"
-  @default_topic "hubs:default"
 
   @doc """
   Broadcasts under `#{@crud_topic}` topic when hubs changed.
@@ -64,14 +63,6 @@ defmodule Livebook.Hubs.Broadcasts do
   @spec secret_deleted(Secret.t()) :: broadcast()
   def secret_deleted(%Secret{} = secret) do
     broadcast(@secrets_topic, {:secret_deleted, secret})
-  end
-
-  @doc """
-  Broadcasts under `#{@default_topic}` topic when the default hub changes.
-  """
-  @spec default_hub_changed(String.t()) :: broadcast()
-  def default_hub_changed(hub_id) do
-    broadcast(@default_topic, {:default_hub_changed, hub_id})
   end
 
   defp broadcast(topic, message) do

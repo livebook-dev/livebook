@@ -7,14 +7,13 @@ defmodule LivebookWeb.SidebarHook do
 
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
-      Livebook.Hubs.subscribe([:crud, :connection, :default])
+      Livebook.Hubs.subscribe([:crud, :connection])
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sidebar")
     end
 
     socket =
       socket
       |> assign(saved_hubs: Livebook.Hubs.get_metadatas())
-      |> assign(default_hub: Livebook.Hubs.get_default_hub())
       |> attach_hook(:hubs, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_event, &handle_event/3)
@@ -41,10 +40,6 @@ defmodule LivebookWeb.SidebarHook do
      socket
      |> assign(saved_hubs: Livebook.Hubs.get_metadatas())
      |> put_flash(:error, error)}
-  end
-
-  defp handle_info({:default_hub_changed, _hub_id}, socket) do
-    {:cont, assign(socket, default_hub: Livebook.Hubs.get_default_hub())}
   end
 
   defp handle_info(_event, socket), do: {:cont, socket}

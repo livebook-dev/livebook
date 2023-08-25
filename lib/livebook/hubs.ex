@@ -109,7 +109,6 @@ defmodule Livebook.Hubs do
   @spec set_default_hub(String.t()) :: :ok
   def set_default_hub(id) do
     with {:ok, hub} <- fetch_hub(id) do
-      :ok = Broadcasts.default_hub_changed(hub.id)
       :ok = Storage.insert(:default_hub, "default_hub", [{:default_hub, hub.id}])
     end
 
@@ -118,8 +117,7 @@ defmodule Livebook.Hubs do
 
   @spec unset_default_hub(String.t()) :: :ok
   def unset_default_hub(id) do
-    with {:ok, hub} <- fetch_hub(id) do
-      :ok = Broadcasts.default_hub_changed(hub.id)
+    with {:ok, _hub} <- fetch_hub(id) do
       :ok = Storage.delete(:default_hub, "default_hub")
     end
 
@@ -169,10 +167,6 @@ defmodule Livebook.Hubs do
     * `{:secret_created, %Secret{}}`
     * `{:secret_updated, %Secret{}}`
     * `{:secret_deleted, %Secret{}}`
-
-  Topic `hubs:default`:
-
-    * `{:default_hub_changed, hub_id}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}

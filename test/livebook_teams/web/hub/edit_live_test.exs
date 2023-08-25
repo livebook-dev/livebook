@@ -198,17 +198,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> element("a", "Remove as default")
              |> has_element?()
 
-      assert {:ok, view, _html} =
+      assert {:ok, _view, _html} =
                view
                |> element("a", "Mark as default")
                |> render_click()
                |> follow_redirect(conn)
-
-      id = hub.id
-      assert_receive {:default_hub_changed, ^id}
-
-      sidebar_hub = element(view, "#hubs #hub-#{id}")
-      assert render(sidebar_hub) =~ "default"
     end
 
     test "remove hub as default", %{conn: conn, hub: hub} do
@@ -224,17 +218,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> element("a", "Mark as default")
              |> has_element?()
 
-      assert {:ok, view, _html} =
+      assert {:ok, _view, _html} =
                view
                |> element("a", "Remove as default")
                |> render_click()
                |> follow_redirect(conn)
-
-      id = hub.id
-      assert_receive {:default_hub_changed, ^id}
-
-      sidebar_hub = element(view, "#hubs #hub-#{id}")
-      refute render(sidebar_hub) =~ "default"
     end
   end
 end
