@@ -150,14 +150,6 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Sets the notebook's hub as the current default hub.
-  """
-  @spec set_default_hub(t()) :: t()
-  def set_default_hub(notebook) do
-    %{notebook | hub_id: Livebook.Hubs.get_default_hub().id}
-  end
-
-  @doc """
   Returns all notebook sections, including the implicit ones.
   """
   @spec all_sections(t()) :: list(Section.t())

@@ -891,8 +891,11 @@ defmodule Livebook.Session do
   """
   @spec default_notebook() :: Notebook.t()
   def default_notebook() do
-    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
-    |> Notebook.set_default_hub()
+    %{
+      Notebook.new()
+      | sections: [%{Section.new() | cells: [Cell.new(:code)]}],
+        hub_id: Livebook.Hubs.get_default_hub().id
+    }
   end
 
   defp schedule_autosave(state) do

@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :default])
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -251,29 +251,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       refute view
              |> element("span", "Default")
              |> has_element?()
-    end
-
-    test "use the default hub as default for new notebooks", %{hub: hub} do
-      Hubs.set_default_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
-
-      assert notebook.hub_id == hub.id
-    end
-
-    test "fallback to personal-hub when there's no default", %{hub: hub} do
-      Hubs.unset_default_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
-
-      assert notebook.hub_id == "personal-hub"
-    end
-
-    test "fallback to personal-hub when the default doesn't exist", %{hub: hub} do
-      Hubs.set_default_hub(hub.id)
-      Hubs.delete_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
-
-      refute Hubs.hub_exists?(hub.id)
-      assert notebook.hub_id == "personal-hub"
     end
   end
 end
