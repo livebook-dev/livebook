@@ -1906,6 +1906,40 @@ defmodule Livebook.SessionTest do
     assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
   end
 
+  defmodule Global do
+    use ExUnit.Case, async: false
+
+    describe "default hub for new notebooks" do
+      test "use the default hub as default for new notebooks" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == hub.id
+        Livebook.Hubs.delete_hub(hub.id)
+      end
+
+      test "fallback to personal-hub when there's no default" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.unset_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == "personal-hub"
+        Livebook.Hubs.delete_hub(hub.id)
+      end
+
+      test "fallback to personal-hub when the default doesn't exist" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.delete_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        refute Livebook.Hubs.hub_exists?(hub.id)
+        assert notebook.hub_id == "personal-hub"
+      end
+    end
+  end
+
   defp start_session(opts \\ []) do
     opts = Keyword.merge([id: Utils.random_id()], opts)
     pid = start_supervised!({Session, opts}, id: opts[:id])

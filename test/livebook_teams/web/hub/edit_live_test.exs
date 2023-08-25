@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :default])
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
     hub = create_team_hub(user, node)
     id = hub.id
 
