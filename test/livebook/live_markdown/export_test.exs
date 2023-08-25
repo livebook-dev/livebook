@@ -642,6 +642,35 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
+    test "does not include setup cell output" do
+      notebook = %{Notebook.new() | name: "My Notebook"}
+
+      notebook =
+        update_in(notebook.setup_section.cells, fn [setup_cell] ->
+          [
+            %{
+              setup_cell
+              | source: """
+                IO.puts("hey")\
+                """,
+                outputs: [{0, terminal_text("hey", true)}]
+            }
+          ]
+        end)
+
+      expected_document = """
+      # My Notebook
+
+      ```elixir
+      IO.puts("hey")
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
     test "removes ANSI escape codes from the output text" do
       notebook = %{
         Notebook.new()

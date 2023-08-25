@@ -62,7 +62,7 @@ defmodule Livebook.LiveMarkdown.Export do
       end)
 
     name = ["# ", notebook.name]
-    setup_cell = render_setup_cell(setup_cell, ctx)
+    setup_cell = render_setup_cell(setup_cell, %{ctx | include_outputs?: false})
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
