@@ -252,5 +252,28 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> element("span", "Default")
              |> has_element?()
     end
+
+    test "use the default hub as default for new notebooks", %{hub: hub} do
+      Hubs.set_default_hub(hub.id)
+      notebook = Livebook.Session.default_notebook()
+
+      assert notebook.hub_id == hub.id
+    end
+
+    test "fallback to personal-hub when there's no default", %{hub: hub} do
+      Hubs.unset_default_hub(hub.id)
+      notebook = Livebook.Session.default_notebook()
+
+      assert notebook.hub_id == "personal-hub"
+    end
+
+    test "fallback to personal-hub when the default doesn't exist", %{hub: hub} do
+      Hubs.set_default_hub(hub.id)
+      Hubs.delete_hub(hub.id)
+      notebook = Livebook.Session.default_notebook()
+
+      refute Hubs.hub_exists?(hub.id)
+      assert notebook.hub_id == "personal-hub"
+    end
   end
 end
