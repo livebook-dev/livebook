@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :default])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -185,6 +185,72 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_raise LivebookWeb.NotFoundError, fn ->
         live(conn, ~p"/hub/#{hub.id}/secrets/edit/HELLO")
       end
+    end
+
+    test "mark hub as default", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      assert {:ok, _view, _html} =
+               view
+               |> element("a", "Mark as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      assert view
+             |> element("span", "Default")
+             |> has_element?()
+    end
+
+    test "remove hub as default", %{conn: conn, hub: hub} do
+      Hubs.set_default_hub(hub.id)
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      assert {:ok, _view, _html} =
+               view
+               |> element("a", "Remove as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert view
+             |> element("a", "Mark as default")
+             |> has_element?()
+
+      refute view
+             |> element("a", "Remove as default")
+             |> has_element?()
+
+      refute view
+             |> element("span", "Default")
+             |> has_element?()
     end
   end
 end
