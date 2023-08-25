@@ -1,5 +1,5 @@
 defmodule Livebook.SessionTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Livebook.TestHelpers
 
@@ -15,19 +15,6 @@ defmodule Livebook.SessionTest do
     identifiers_used: [],
     identifiers_defined: %{},
     code_markers: []
-  }
-
-  @dummy_hub %Livebook.Hubs.Team{
-    id: "team-org-number-1730",
-    org_id: 9,
-    user_id: 1,
-    org_key_id: 9,
-    teams_key: "lb_tk_W8H72aNhQD7cLg9yrFYLZ6AqyoDaulpfiDWuYNAGOjk",
-    org_public_key: "dummy_hub",
-    session_token: "7fZHOvQdXI8y",
-    hub_name: "org-number-1730",
-    hub_emoji: "🏭",
-    offline: nil
   }
 
   describe "file_name_for_download/1" do
@@ -1919,33 +1906,37 @@ defmodule Livebook.SessionTest do
     assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
   end
 
-  describe "default hub for new notebooks" do
-    test "use the default hub as default for new notebooks" do
-      hub = Livebook.Hubs.save_hub(@dummy_hub)
-      Livebook.Hubs.set_default_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
+  defmodule Global do
+    use ExUnit.Case, async: false
 
-      assert notebook.hub_id == hub.id
-      Livebook.Hubs.delete_hub(hub.id)
-    end
+    describe "default hub for new notebooks" do
+      test "use the default hub as default for new notebooks" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
 
-    test "fallback to personal-hub when there's no default" do
-      hub = Livebook.Hubs.save_hub(@dummy_hub)
-      Livebook.Hubs.unset_default_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
+        assert notebook.hub_id == hub.id
+        Livebook.Hubs.delete_hub(hub.id)
+      end
 
-      assert notebook.hub_id == "personal-hub"
-      Livebook.Hubs.delete_hub(hub.id)
-    end
+      test "fallback to personal-hub when there's no default" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.unset_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
 
-    test "fallback to personal-hub when the default doesn't exist" do
-      hub = Livebook.Hubs.save_hub(@dummy_hub)
-      Livebook.Hubs.set_default_hub(hub.id)
-      Livebook.Hubs.delete_hub(hub.id)
-      notebook = Livebook.Session.default_notebook()
+        assert notebook.hub_id == "personal-hub"
+        Livebook.Hubs.delete_hub(hub.id)
+      end
 
-      refute Livebook.Hubs.hub_exists?(hub.id)
-      assert notebook.hub_id == "personal-hub"
+      test "fallback to personal-hub when the default doesn't exist" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.delete_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        refute Livebook.Hubs.hub_exists?(hub.id)
+        assert notebook.hub_id == "personal-hub"
+      end
     end
   end
 
