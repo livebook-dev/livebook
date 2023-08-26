@@ -2896,6 +2896,13 @@ defmodule Livebook.Session do
     %{type: :image, content: content, mime_type: mime_type}
   end
 
+  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
+  defp normalize_runtime_output({:js, %{ref: ref, pid: pid, assets: assets, export: export}}) do
+    normalize_runtime_output(
+      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
+    )
+  end
+
   defp normalize_runtime_output({:js, info}) do
     %{type: :js, js_view: info.js_view, export: info.export}
   end

@@ -758,7 +758,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "does not include js output with no export info" do
+    test "does not include js output with export disabled" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -772,15 +772,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", "data"),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: nil
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", "data"),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: false
+                         }}
                       ]
                   }
                 ]
@@ -803,7 +803,59 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes js output if export info is set" do
+    test "includes js output with export enabled" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: ":ok",
+                      outputs: [
+                        {0,
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_export("1", {"mermaid", "graph TD;\nA-->B;"}),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: true
+                         }}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      :ok
+      ```
+
+      <!-- livebook:{"output":true} -->
+
+      ```mermaid
+      graph TD;
+      A-->B;
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "includes js output with legacy export info" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -1437,6 +1489,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     source = binary_slice(source, 0, offset)
     {:ok, metadata} = Livebook.Hubs.verify_notebook_stamp(hub, source, stamp)
     metadata
+  end
+
+  defp spawn_widget_with_export(ref, export_result) do
+    spawn(fn ->
+      receive do
+        {:export, pid, %{ref: ^ref}} ->
+          send(pid, {:export_reply, export_result, %{ref: ref}})
+      end
+    end)
   end
 
   defp spawn_widget_with_data(ref, data) do
