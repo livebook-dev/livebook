@@ -1226,19 +1226,6 @@ defmodule Livebook.Session.Data do
     |> update_cell_eval_info!(cell.id, &%{&1 | status: :ready})
   end
 
-  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
-  defp add_cell_output(
-         data_actions,
-         cell,
-         {:js, %{ref: ref, pid: pid, assets: assets, export: export}}
-       ) do
-    add_cell_output(
-      data_actions,
-      cell,
-      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
-    )
-  end
-
   defp add_cell_output({data, _} = data_actions, cell, output) do
     {[indexed_output], _counter} = Notebook.index_outputs([output], 0)
 
