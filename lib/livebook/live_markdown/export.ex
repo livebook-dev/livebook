@@ -56,6 +56,7 @@ defmodule Livebook.LiveMarkdown.Export do
     data
   end
 
+  # TODO: remove on Livebook v0.13
   # Handle old flow for backward compatibility with Kino <= 0.10.0
   defp get_js_output_export(pid, ref, %{info_string: info_string, key: key}) do
     send(pid, {:connect, self(), %{origin: inspect(self()), ref: ref}})

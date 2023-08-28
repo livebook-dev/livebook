@@ -2880,6 +2880,7 @@ defmodule Livebook.Session do
     %{type: :ignored}
   end
 
+  # Rewrite tuples to maps for backward compatibility with Kino <= 0.10.0
   defp normalize_runtime_output({:text, text}) do
     %{type: :terminal_text, text: text, chunk: false}
   end
