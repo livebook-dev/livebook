@@ -99,6 +99,16 @@ defmodule Livebook.Runtime.Definitions do
           ]
         },
         %{
+          name: "Snowflake",
+          packages: [
+            kino_db,
+            %{
+              name: "adbc",
+              dependency: %{dep: {:adbc, "~> 0.1.0"}, config: []}
+            }
+          ]
+        },
+        %{
           name: "SQLite",
           packages: [
             kino_db,
