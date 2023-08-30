@@ -170,6 +170,24 @@ defmodule Livebook.Teams do
       any -> any
     end
   end
+
+  @doc """
+  Updates a File System.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec update_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, map()}
+          | {:transport_error, String.t()}
+  def update_file_system(%Team{} = team, file_system) do
+    case Requests.update_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
   @doc """
   Creates a Hub.
 

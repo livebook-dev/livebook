@@ -111,6 +111,32 @@ defmodule Livebook.Teams.Requests do
 
     post("/api/v1/org/file-systems", params, headers)
   end
+
+  @doc """
+  Send a request to Livebook Team API to update a file system.
+  """
+  @spec update_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def update_file_system(team, file_system) do
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+
+    headers = auth_headers(team)
+    {type, name} = FileSystem.resource_identifier(file_system)
+
+    credentials =
+      file_system
+      |> FileSystem.credentials()
+      |> Jason.encode!()
+
+    params = %{
+      id: file_system.external_id,
+      name: name,
+      type: to_string(type),
+      value: Teams.encrypt(credentials, secret_key, sign_secret)
+    }
+
+    put("/api/v1/org/file-systems", params, headers)
+  end
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
 
