@@ -1,6 +1,7 @@
 defmodule Livebook.Teams.Requests do
   @moduledoc false
 
+  alias Livebook.FileSystem
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
@@ -86,6 +87,30 @@ defmodule Livebook.Teams.Requests do
     delete("/api/v1/org/secrets", params, headers)
   end
 
+  @doc """
+  Send a request to Livebook Team API to create a file system.
+  """
+  @spec create_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_file_system(team, file_system) do
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+
+    headers = auth_headers(team)
+    {type, name} = FileSystem.resource_identifier(file_system)
+
+    credentials =
+      file_system
+      |> FileSystem.credentials()
+      |> Jason.encode!()
+
+    params = %{
+      name: name,
+      type: to_string(type),
+      value: Teams.encrypt(credentials, secret_key, sign_secret)
+    }
+
+    post("/api/v1/org/file-systems", params, headers)
+  end
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
 

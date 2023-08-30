@@ -1,7 +1,7 @@
 defmodule Livebook.Teams do
   @moduledoc false
 
-  alias Livebook.Hubs
+  alias Livebook.{FileSystem, Hubs}
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams.{Requests, Org}
@@ -154,6 +154,23 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Creates a File System.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec create_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, map()}
+          | {:transport_error, String.t()}
+  def create_file_system(%Team{} = team, file_system) do
+    case Requests.create_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+  @doc """
   Creates a Hub.
 
   It notifies interested processes about hub metadatas data change.
@@ -225,6 +242,19 @@ defmodule Livebook.Teams do
 
   defp add_secret_errors(%Secret{} = secret, errors_map) do
     add_errors(change(secret), Secret.__schema__(:fields), errors_map)
+  end
+
+  defp add_file_system_errors(%FileSystem.S3{} = file_system, errors_map) do
+    errors_map =
+      for {key, values} <- errors_map, into: %{} do
+        case key do
+          "name" -> {"bucket_url", values}
+          "type" -> {"bucket_url", values}
+          "value" -> {"secret_access_key", values}
+        end
+      end
+
+    add_errors(change(file_system), FileSystem.S3.__schema__(:fields), errors_map)
   end
 
   defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do

@@ -191,4 +191,47 @@ defmodule Livebook.TeamsTest do
       assert "cannot start with the LB_ prefix" in errors_on(changeset).name
     end
   end
+
+  describe "create_file_system/2" do
+    test "creates a new file system", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
+
+      assert Teams.create_file_system(hub, file_system) == :ok
+
+      # Guarantee uniqueness
+      assert {:error, changeset} = Teams.create_file_system(hub, file_system)
+      assert "has already been taken" in errors_on(changeset).bucket_url
+    end
+
+    test "returns changeset errors when data is invalid", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      file_system = build(:fs_s3, bucket_url: nil)
+
+      assert {:error, changeset} = Teams.create_file_system(hub, file_system)
+      assert "can't be blank" in errors_on(changeset).bucket_url
+    end
+  end
 end
