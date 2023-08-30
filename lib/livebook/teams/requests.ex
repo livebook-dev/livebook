@@ -137,6 +137,19 @@ defmodule Livebook.Teams.Requests do
 
     put("/api/v1/org/file-systems", params, headers)
   end
+
+  @doc """
+  Send a request to Livebook Team API to delete a file system.
+  """
+  @spec delete_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_file_system(team, file_system) do
+    headers = auth_headers(team)
+    params = %{id: file_system.external_id}
+
+    delete("/api/v1/org/file-systems", params, headers)
+  end
+
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
 

@@ -188,6 +188,25 @@ defmodule Livebook.Teams do
       any -> any
     end
   end
+
+  @doc """
+  Deletes a File System.
+
+  With success, returns the response from Livebook Teams API.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec delete_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, map()}
+          | {:transport_error, String.t()}
+  def delete_file_system(%Team{} = team, file_system) do
+    case Requests.delete_file_system(team, file_system) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
   @doc """
   Creates a Hub.
 
