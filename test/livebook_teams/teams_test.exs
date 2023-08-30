@@ -192,6 +192,96 @@ defmodule Livebook.TeamsTest do
     end
   end
 
+  describe "update_secret/2" do
+    test "updates a secret", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "UPDATE_ME", value: "BAR")
+      assert Teams.create_secret(hub, secret) == :ok
+
+      update_secret = Map.replace!(secret, :value, "BAZ")
+      assert Teams.update_secret(hub, update_secret) == :ok
+    end
+
+    test "returns changeset errors when data is invalid", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "FIX_ME", value: "BAR")
+      assert Teams.create_secret(hub, secret) == :ok
+
+      update_secret = Map.replace!(secret, :value, "")
+
+      assert {:error, changeset} = Teams.update_secret(hub, update_secret)
+      assert "can't be blank" in errors_on(changeset).value
+    end
+  end
+
+  describe "delete_secret/2" do
+    test "deletes a secret", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "DELETE_ME", value: "BAR")
+      assert Teams.create_secret(hub, secret) == :ok
+      assert Teams.delete_secret(hub, secret) == :ok
+
+      # Guarantee it's been removed and will return HTTP status 404
+      assert Teams.delete_secret(hub, secret) ==
+               {:transport_error,
+                "Something went wrong, try again later or please file a bug if it persists"}
+    end
+
+    test "returns changeset errors when data is invalid", %{user: user, node: node} do
+      org = :erpc.call(node, Hub.Integration, :create_org, [])
+      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
+      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
+
+      hub =
+        build(:team,
+          user_id: user.id,
+          org_id: org.id,
+          org_key_id: org_key.id,
+          session_token: token
+        )
+
+      secret = build(:secret, name: "I_CANT_EXIST", value: "BAR")
+
+      # Guarantee it doesn't exists and will return HTTP status 404
+      assert Teams.delete_secret(hub, secret) ==
+               {:transport_error,
+                "Something went wrong, try again later or please file a bug if it persists"}
+    end
+  end
+
   describe "create_file_system/2" do
     test "creates a new file system", %{user: user, node: node} do
       org = :erpc.call(node, Hub.Integration, :create_org, [])
