@@ -1002,6 +1002,29 @@ defmodule Livebook.FileSystem.S3Test do
       assert FileSystem.load(%S3{}, fields) == %S3{
                id: id,
                bucket_url: fields.bucket_url,
+               external_id: id,
+               region: fields.region,
+               access_key_id: fields.access_key_id,
+               secret_access_key: fields.secret_access_key
+             }
+    end
+
+    test "loads the external id from fields map" do
+      fields = %{
+        bucket_url: "https://mybucket.s3.amazonaws.com",
+        region: "us-east-1",
+        external_id: "123456789",
+        access_key_id: "key",
+        secret_access_key: "secret"
+      }
+
+      hash = :crypto.hash(:sha256, fields.bucket_url)
+      id = "s3-#{Base.url_encode64(hash, padding: false)}"
+
+      assert FileSystem.load(%S3{}, fields) == %S3{
+               id: id,
+               bucket_url: fields.bucket_url,
+               external_id: fields.external_id,
                region: fields.region,
                access_key_id: fields.access_key_id,
                secret_access_key: fields.secret_access_key
@@ -1021,6 +1044,7 @@ defmodule Livebook.FileSystem.S3Test do
       assert FileSystem.load(%S3{}, fields) == %S3{
                id: id,
                bucket_url: fields.bucket_url,
+               external_id: id,
                region: "us-east-1",
                access_key_id: fields.access_key_id,
                secret_access_key: fields.secret_access_key
@@ -1040,6 +1064,7 @@ defmodule Livebook.FileSystem.S3Test do
       assert FileSystem.load(%S3{}, fields) == %S3{
                id: id,
                bucket_url: fields["bucket_url"],
+               external_id: id,
                region: "us-east-1",
                access_key_id: fields["access_key_id"],
                secret_access_key: fields["secret_access_key"]

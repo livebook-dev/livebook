@@ -3,11 +3,12 @@ defmodule Livebook.FileSystem.S3 do
 
   # File system backed by an S3 bucket.
 
-  defstruct [:id, :bucket_url, :region, :access_key_id, :secret_access_key]
+  defstruct [:id, :bucket_url, :external_id, :region, :access_key_id, :secret_access_key]
 
   @type t :: %__MODULE__{
           id: String.t(),
           bucket_url: String.t(),
+          external_id: String.t(),
           region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t()
@@ -22,20 +23,25 @@ defmodule Livebook.FileSystem.S3 do
       to have the format `*.[region].[rootdomain].com` and the region
       is inferred from that URL
 
+    * `:external_id` - the external id from Teams. By default is
+      the same of the hashed ID
+
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region])
+    opts = Keyword.validate!(opts, [:region, :external_id])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
     hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
     id = "s3-#{hash}"
+    external_id = opts[:external_id] || id
 
     %__MODULE__{
       id: id,
       bucket_url: bucket_url,
+      external_id: external_id,
       region: region,
       access_key_id: access_key_id,
       secret_access_key: secret_access_key
@@ -59,7 +65,12 @@ defmodule Livebook.FileSystem.S3 do
         access_key_id: access_key_id,
         secret_access_key: secret_access_key
       } ->
-        file_system = new(bucket_url, access_key_id, secret_access_key, region: config[:region])
+        file_system =
+          new(bucket_url, access_key_id, secret_access_key,
+            region: config[:region],
+            external_id: config[:external_id]
+          )
+
         {:ok, file_system}
 
       _config ->
@@ -327,15 +338,20 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.Client.multipart_get_object(file_system, key, collectable)
   end
 
-  def load(_file_system, %{"bucket_url" => _} = fields) do
-    S3.new(fields["bucket_url"], fields["access_key_id"], fields["secret_access_key"],
-      region: fields["region"]
-    )
+  def load(file_system, %{"bucket_url" => _} = fields) do
+    load(file_system, %{
+      bucket_url: fields["bucket_url"],
+      external_id: fields["external_id"],
+      region: fields["region"],
+      access_key_id: fields["access_key_id"],
+      secret_access_key: fields["secret_access_key"]
+    })
   end
 
   def load(_file_system, fields) do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
-      region: fields[:region]
+      region: fields[:region],
+      external_id: fields[:external_id]
     )
   end
 
