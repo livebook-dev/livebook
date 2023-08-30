@@ -164,7 +164,6 @@ defmodule Livebook.TeamsTest do
         )
 
       secret = build(:secret, name: "FOO", value: "BAR")
-
       assert Teams.create_secret(hub, secret) == :ok
 
       # Guarantee uniqueness
@@ -260,7 +259,7 @@ defmodule Livebook.TeamsTest do
                 "Something went wrong, try again later or please file a bug if it persists"}
     end
 
-    test "returns changeset errors when data is invalid", %{user: user, node: node} do
+    test "returns transport errors when secret doesn't exists", %{user: user, node: node} do
       org = :erpc.call(node, Hub.Integration, :create_org, [])
       org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
       token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
@@ -297,7 +296,6 @@ defmodule Livebook.TeamsTest do
         )
 
       file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
-
       assert Teams.create_file_system(hub, file_system) == :ok
 
       # Guarantee uniqueness
