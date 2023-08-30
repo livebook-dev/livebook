@@ -1,9 +1,9 @@
 defmodule Livebook.FileSystem.S3 do
   @moduledoc false
+  use Ecto.Schema
+  import Ecto.Changeset
 
   # File system backed by an S3 bucket.
-
-  defstruct [:id, :bucket_url, :external_id, :region, :access_key_id, :secret_access_key]
 
   @type t :: %__MODULE__{
           id: String.t(),
@@ -13,6 +13,14 @@ defmodule Livebook.FileSystem.S3 do
           access_key_id: String.t(),
           secret_access_key: String.t()
         }
+
+  embedded_schema do
+    field :bucket_url, :string
+    field :external_id, :string
+    field :region, :string
+    field :access_key_id, :string
+    field :secret_access_key, :string
+  end
 
   @doc """
   Returns a new file system struct.
@@ -82,6 +90,27 @@ defmodule Livebook.FileSystem.S3 do
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
     Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking file system changes.
+  """
+  @spec change_file_system(t(), map()) :: Ecto.Changeset.t()
+  def change_file_system(s3, attrs \\ %{}) do
+    changeset(s3, attrs)
+  end
+
+  defp changeset(s3, attrs) do
+    s3
+    |> cast(attrs, [
+      :bucket_url,
+      :external_id,
+      :region,
+      :access_key_id,
+      :secret_access_key
+    ])
+    |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
+    |> Livebook.Utils.validate_url(:bucket_url)
   end
 end
 
