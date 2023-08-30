@@ -344,4 +344,11 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     |> Map.from_struct()
     |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
   end
+
+  def credentials(file_system) do
+    file_system
+    |> dump()
+    |> Map.take([:region, :access_key_id, :secret_access_key])
+    |> Map.put(:type, "s3")
+  end
 end

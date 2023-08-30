@@ -241,4 +241,10 @@ defprotocol Livebook.FileSystem do
   """
   @spec dump(t()) :: map()
   def dump(file_system)
+
+  @doc """
+  Transforms file system credentials to the attributes map.
+  """
+  @spec credentials(t()) :: map()
+  def credentials(file_system)
 end

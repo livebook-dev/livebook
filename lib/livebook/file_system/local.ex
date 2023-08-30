@@ -302,4 +302,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   def load(_file_system, _fields), do: raise("not implemented")
 
   def dump(_file_system), do: raise("not implemented")
+
+  def credentials(_file_system), do: raise("not implemented")
 end
