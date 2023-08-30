@@ -392,7 +392,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
   def credentials(file_system) do
     file_system
-    |> dump()
+    |> Map.from_struct()
     |> Map.take([:region, :access_key_id, :secret_access_key])
     |> Map.put(:type, "s3")
   end
