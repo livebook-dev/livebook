@@ -112,7 +112,7 @@ defmodule Livebook.Teams do
   def create_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.create_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors_map}} -> {:error, add_secret_errors(secret, errors_map)}
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
       any -> any
     end
   end
