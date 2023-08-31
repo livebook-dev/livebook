@@ -102,6 +102,7 @@ defmodule Livebook.Runtime.Definitions do
           name: "Snowflake",
           packages: [
             kino_db,
+            kino_explorer,
             %{name: "adbc", dependency: %{dep: {:adbc, "~> 0.1.1"}, config: []}}
           ]
         },
