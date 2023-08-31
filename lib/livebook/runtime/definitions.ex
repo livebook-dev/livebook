@@ -13,7 +13,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.1"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.2"}, config: []}
   }
 
   kino_maplibre = %{
@@ -104,7 +104,7 @@ defmodule Livebook.Runtime.Definitions do
             kino_db,
             %{
               name: "adbc",
-              dependency: %{dep: {:adbc, "~> 0.1.0"}, config: []}
+              dependency: %{dep: {:adbc, "~> 0.1.1"}, config: []}
             }
           ]
         },
