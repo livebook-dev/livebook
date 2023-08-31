@@ -43,7 +43,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_explorer = %{
     name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.4"}, config: []}
+    dependency: %{dep: {:kino_explorer, "~> 0.1.9"}, config: []}
   }
 
   jason = %{
@@ -240,7 +240,7 @@ defmodule Livebook.Runtime.Definitions do
       description: "Create a dataframe",
       source: """
       df =
-        Kino.FS.file_path("{{NAME}}")
+        Kino.FS.file_spec("{{NAME}}")
         |> Explorer.DataFrame.from_parquet!()\
       """,
       packages: [kino, kino_explorer]
