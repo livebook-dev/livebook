@@ -13,7 +13,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.1"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.2"}, config: []}
   }
 
   kino_maplibre = %{
@@ -43,7 +43,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_explorer = %{
     name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.4"}, config: []}
+    dependency: %{dep: {:kino_explorer, "~> 0.1.9"}, config: []}
   }
 
   jason = %{
@@ -96,6 +96,14 @@ defmodule Livebook.Runtime.Definitions do
           packages: [
             kino_db,
             %{name: "postgrex", dependency: %{dep: {:postgrex, "~> 0.16.3"}, config: []}}
+          ]
+        },
+        %{
+          name: "Snowflake",
+          packages: [
+            kino_db,
+            kino_explorer,
+            %{name: "adbc", dependency: %{dep: {:adbc, "~> 0.1.1"}, config: []}}
           ]
         },
         %{
