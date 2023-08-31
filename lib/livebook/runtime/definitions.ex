@@ -248,7 +248,7 @@ defmodule Livebook.Runtime.Definitions do
       description: "Create a dataframe",
       source: """
       df =
-        Kino.FS.file_path("{{NAME}}")
+        Kino.FS.file_spec("{{NAME}}")
         |> Explorer.DataFrame.from_parquet!()\
       """,
       packages: [kino, kino_explorer]
