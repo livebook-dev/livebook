@@ -43,7 +43,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_explorer = %{
     name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.4"}, config: []}
+    dependency: %{dep: {:kino_explorer, "~> 0.1.9"}, config: []}
   }
 
   jason = %{

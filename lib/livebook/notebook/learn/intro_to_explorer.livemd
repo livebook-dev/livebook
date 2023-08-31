@@ -3,7 +3,7 @@
 ```elixir
 Mix.install([
   {:explorer, "~> 0.5.5"},
-  {:kino_explorer, "~> 0.1.4"}
+  {:kino_explorer, "~> 0.1.9"}
 ])
 ```
 
