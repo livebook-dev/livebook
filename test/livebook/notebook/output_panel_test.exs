@@ -1,7 +1,6 @@
 defmodule Livebook.Notebook.OutputPanelTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{Notebook, Utils}
   alias Livebook.Notebook.OutputPanel, as: OP
 
   setup do
@@ -108,7 +107,6 @@ defmodule Livebook.Notebook.OutputPanelTest do
 
     test "move item from multi row to mutli row", %{test_panel: panel} do
       item = OP.get_item_by_cell_id(panel, "item2")
-      item1 = OP.get_item_by_cell_id(panel, "item1")
       panel = OP.move_item(panel, item, {2, 2})
       assert OP.get_item_by_cell_id(panel, "item2") |> Map.get(:width) == 25
       assert OP.get_item_by_cell_id(panel, "item1") |> Map.get(:width) == 50
