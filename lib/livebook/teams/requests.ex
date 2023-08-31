@@ -2,6 +2,7 @@ defmodule Livebook.Teams.Requests do
   @moduledoc false
 
   alias Livebook.FileSystem
+  alias Livebook.FileSystems
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
@@ -94,19 +95,17 @@ defmodule Livebook.Teams.Requests do
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_file_system(team, file_system) do
     {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
-
     headers = auth_headers(team)
-    {type, name} = FileSystem.resource_identifier(file_system)
 
-    credentials =
-      file_system
-      |> FileSystem.credentials()
-      |> Jason.encode!()
+    type = FileSystems.type(file_system)
+    %{name: name} = FileSystem.external_metadata(file_system)
+    attrs = FileSystem.dump(file_system)
+    json = Jason.encode!(attrs)
 
     params = %{
       name: name,
       type: to_string(type),
-      value: Teams.encrypt(credentials, secret_key, sign_secret)
+      value: Teams.encrypt(json, secret_key, sign_secret)
     }
 
     post("/api/v1/org/file-systems", params, headers)
@@ -119,20 +118,18 @@ defmodule Livebook.Teams.Requests do
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def update_file_system(team, file_system) do
     {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
-
     headers = auth_headers(team)
-    {type, name} = FileSystem.resource_identifier(file_system)
 
-    credentials =
-      file_system
-      |> FileSystem.credentials()
-      |> Jason.encode!()
+    type = FileSystems.type(file_system)
+    %{name: name} = FileSystem.external_metadata(file_system)
+    attrs = FileSystem.dump(file_system)
+    json = Jason.encode!(attrs)
 
     params = %{
       id: file_system.external_id,
       name: name,
       type: to_string(type),
-      value: Teams.encrypt(credentials, secret_key, sign_secret)
+      value: Teams.encrypt(json, secret_key, sign_secret)
     }
 
     put("/api/v1/org/file-systems", params, headers)

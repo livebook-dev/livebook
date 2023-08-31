@@ -243,8 +243,8 @@ defprotocol Livebook.FileSystem do
   def dump(file_system)
 
   @doc """
-  Transforms file system credentials to the attributes map.
+  Transforms file system to the external metadata map.
   """
-  @spec credentials(t()) :: map()
-  def credentials(file_system)
+  @spec external_metadata(t()) :: %{name: String.t(), error_field: String.t()}
+  def external_metadata(file_system)
 end

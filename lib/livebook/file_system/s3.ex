@@ -31,8 +31,7 @@ defmodule Livebook.FileSystem.S3 do
       to have the format `*.[region].[rootdomain].com` and the region
       is inferred from that URL
 
-    * `:external_id` - the external id from Teams. By default is
-      the same of the hashed ID
+    * `:external_id` - the external id from Teams.
 
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
@@ -44,12 +43,11 @@ defmodule Livebook.FileSystem.S3 do
 
     hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
     id = "s3-#{hash}"
-    external_id = opts[:external_id] || id
 
     %__MODULE__{
       id: id,
       bucket_url: bucket_url,
-      external_id: external_id,
+      external_id: opts[:external_id],
       region: region,
       access_key_id: access_key_id,
       secret_access_key: secret_access_key
@@ -390,10 +388,11 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 
-  def credentials(file_system) do
-    file_system
-    |> Map.from_struct()
-    |> Map.take([:region, :access_key_id, :secret_access_key])
-    |> Map.put(:type, "s3")
+  def metadata(file_system) do
+    %{type: :s3, name: file_system.bucket_url}
+  end
+
+  def external_metadata(file_system) do
+    %{name: file_system.bucket_url, error_field: "bucket_url"}
   end
 end

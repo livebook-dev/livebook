@@ -151,19 +151,9 @@ defmodule Livebook.TeamsTest do
 
   describe "create_secret/2" do
     test "creates a new secret", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "FOO", value: "BAR")
+
       assert Teams.create_secret(hub, secret) == :ok
 
       # Guarantee uniqueness
@@ -172,18 +162,7 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "LB_FOO", value: "BAR")
 
       assert {:error, changeset} = Teams.create_secret(hub, secret)
@@ -193,19 +172,9 @@ defmodule Livebook.TeamsTest do
 
   describe "update_secret/2" do
     test "updates a secret", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "UPDATE_ME", value: "BAR")
+
       assert Teams.create_secret(hub, secret) == :ok
 
       update_secret = Map.replace!(secret, :value, "BAZ")
@@ -213,19 +182,9 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "FIX_ME", value: "BAR")
+
       assert Teams.create_secret(hub, secret) == :ok
 
       update_secret = Map.replace!(secret, :value, "")
@@ -237,19 +196,9 @@ defmodule Livebook.TeamsTest do
 
   describe "delete_secret/2" do
     test "deletes a secret", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "DELETE_ME", value: "BAR")
+
       assert Teams.create_secret(hub, secret) == :ok
       assert Teams.delete_secret(hub, secret) == :ok
 
@@ -260,18 +209,7 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns transport errors when secret doesn't exists", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       secret = build(:secret, name: "I_CANT_EXIST", value: "BAR")
 
       # Guarantee it doesn't exists and will return HTTP status 404
@@ -283,19 +221,9 @@ defmodule Livebook.TeamsTest do
 
   describe "create_file_system/2" do
     test "creates a new file system", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
+
       assert Teams.create_file_system(hub, file_system) == :ok
 
       # Guarantee uniqueness
@@ -304,18 +232,7 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       file_system = build(:fs_s3, bucket_url: nil)
 
       assert {:error, changeset} = Teams.create_file_system(hub, file_system)
@@ -325,20 +242,8 @@ defmodule Livebook.TeamsTest do
 
   describe "update_file_system/2" do
     test "updates a file system", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
-      teams_file_system =
-        :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
+      hub = create_team_hub(user, node)
+      teams_file_system = create_teams_file_system(hub, node)
 
       file_system =
         build(:fs_s3,
@@ -352,20 +257,8 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
-      teams_file_system =
-        :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
+      hub = create_team_hub(user, node)
+      teams_file_system = create_teams_file_system(hub, node)
 
       file_system =
         build(:fs_s3,
@@ -382,20 +275,8 @@ defmodule Livebook.TeamsTest do
 
   describe "delete_file_system/2" do
     test "deletes a file system", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
-      teams_file_system =
-        :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
+      hub = create_team_hub(user, node)
+      teams_file_system = create_teams_file_system(hub, node)
 
       file_system =
         build(:fs_s3,
@@ -413,18 +294,7 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns transport errors when file system doesn't exists", %{user: user, node: node} do
-      org = :erpc.call(node, Hub.Integration, :create_org, [])
-      org_key = :erpc.call(node, Hub.Integration, :create_org_key, [[org: org]])
-      token = :erpc.call(node, Hub.Integration, :associate_user_with_org, [user, org])
-
-      hub =
-        build(:team,
-          user_id: user.id,
-          org_id: org.id,
-          org_key_id: org_key.id,
-          session_token: token
-        )
-
+      hub = create_team_hub(user, node)
       file_system = build(:fs_s3, bucket_url: "https://i_cant_exist.s3.amazonaws.com")
 
       # Guarantee it doesn't exists and will return HTTP status 404
@@ -432,5 +302,11 @@ defmodule Livebook.TeamsTest do
                {:transport_error,
                 "Something went wrong, try again later or please file a bug if it persists"}
     end
+  end
+
+  defp create_teams_file_system(hub, node) do
+    org_key = :erpc.call(node, Hub.Integration, :get_org_key!, [hub.org_key_id])
+
+    :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
   end
 end

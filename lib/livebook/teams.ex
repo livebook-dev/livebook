@@ -101,9 +101,6 @@ defmodule Livebook.Teams do
 
   @doc """
   Creates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec create_secret(Team.t(), Secret.t()) ::
           :ok
@@ -119,9 +116,6 @@ defmodule Livebook.Teams do
 
   @doc """
   Updates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec update_secret(Team.t(), Secret.t()) ::
           :ok
@@ -137,9 +131,6 @@ defmodule Livebook.Teams do
 
   @doc """
   Deletes a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec delete_secret(Team.t(), Secret.t()) ::
           :ok
@@ -155,13 +146,10 @@ defmodule Livebook.Teams do
 
   @doc """
   Creates a File System.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec create_file_system(Team.t(), FileSystem.t()) ::
           :ok
-          | {:error, map()}
+          | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def create_file_system(%Team{} = team, file_system) do
     case Requests.create_file_system(team, file_system) do
@@ -173,13 +161,10 @@ defmodule Livebook.Teams do
 
   @doc """
   Updates a File System.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec update_file_system(Team.t(), FileSystem.t()) ::
           :ok
-          | {:error, map()}
+          | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def update_file_system(%Team{} = team, file_system) do
     case Requests.update_file_system(team, file_system) do
@@ -191,13 +176,10 @@ defmodule Livebook.Teams do
 
   @doc """
   Deletes a File System.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec delete_file_system(Team.t(), FileSystem.t()) ::
           :ok
-          | {:error, map()}
+          | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
   def delete_file_system(%Team{} = team, file_system) do
     case Requests.delete_file_system(team, file_system) do
@@ -281,17 +263,11 @@ defmodule Livebook.Teams do
     add_errors(change(secret), Secret.__schema__(:fields), errors_map)
   end
 
-  defp add_file_system_errors(%FileSystem.S3{} = file_system, errors_map) do
-    errors_map =
-      for {key, values} <- errors_map, into: %{} do
-        case key do
-          "name" -> {"bucket_url", values}
-          "type" -> {"bucket_url", values}
-          "value" -> {"secret_access_key", values}
-        end
-      end
+  defp add_file_system_errors(%struct{} = file_system, errors_map) do
+    %{error_field: field} = FileSystem.external_metadata(file_system)
+    errors_map = for {_key, values} <- errors_map, into: %{}, do: {field, values}
 
-    add_errors(change(file_system), FileSystem.S3.__schema__(:fields), errors_map)
+    add_errors(change(file_system), struct.__schema__(:fields), errors_map)
   end
 
   defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do

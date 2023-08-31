@@ -303,5 +303,5 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
 
   def dump(_file_system), do: raise("not implemented")
 
-  def credentials(_file_system), do: raise("not implemented")
+  def external_metadata(_file_system), do: raise("not implemented")
 end
