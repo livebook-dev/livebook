@@ -7,9 +7,9 @@ defmodule Livebook.LiveMarkdown.Export do
     include_outputs? = Keyword.get(opts, :include_outputs, notebook.persist_outputs)
     include_stamp? = Keyword.get(opts, :include_stamp, true)
 
-    js_ref_with_data = if include_outputs?, do: collect_js_output_data(notebook), else: %{}
+    js_ref_with_export = if include_outputs?, do: collect_js_output_export(notebook), else: %{}
 
-    ctx = %{include_outputs?: include_outputs?, js_ref_with_data: js_ref_with_data}
+    ctx = %{include_outputs?: include_outputs?, js_ref_with_export: js_ref_with_export}
 
     iodata = render_notebook(notebook, ctx)
 
@@ -24,20 +24,42 @@ defmodule Livebook.LiveMarkdown.Export do
     {source, footer_warnings}
   end
 
-  defp collect_js_output_data(notebook) do
-    for section <- notebook.sections,
-        %{outputs: outputs} <- section.cells,
-        {_idx, %{type: :js, js_view: %{ref: ref, pid: pid}, export: %{}}} <- outputs do
-      Task.async(fn ->
-        {ref, get_js_output_data(pid, ref)}
-      end)
-    end
+  defp collect_js_output_export(notebook) do
+    for(
+      section <- notebook.sections,
+      %{outputs: outputs} <- section.cells,
+      {_idx, %{type: :js, js_view: js_view, export: export}} <- outputs,
+      export == true or is_map(export),
+      do: {js_view.ref, js_view.pid, export},
+      uniq: true
+    )
+    |> Enum.map(fn {ref, pid, export} ->
+      Task.async(fn -> {ref, get_js_output_export(pid, ref, export)} end)
+    end)
     |> Task.await_many(:infinity)
     |> Map.new()
   end
 
-  defp get_js_output_data(pid, ref) do
-    send(pid, {:connect, self(), %{origin: self(), ref: ref}})
+  defp get_js_output_export(pid, ref, true) do
+    send(pid, {:export, self(), %{ref: ref}})
+
+    monitor_ref = Process.monitor(pid)
+
+    data =
+      receive do
+        {:export_reply, export_result, %{ref: ^ref}} -> export_result
+        {:DOWN, ^monitor_ref, :process, _pid, _reason} -> nil
+      end
+
+    Process.demonitor(monitor_ref, [:flush])
+
+    data
+  end
+
+  # TODO: remove on Livebook v0.13
+  # Handle old flow for backward compatibility with Kino <= 0.10.0
+  defp get_js_output_export(pid, ref, %{info_string: info_string, key: key}) do
+    send(pid, {:connect, self(), %{origin: inspect(self()), ref: ref}})
 
     monitor_ref = Process.monitor(pid)
 
@@ -49,7 +71,10 @@ defmodule Livebook.LiveMarkdown.Export do
 
     Process.demonitor(monitor_ref, [:flush])
 
-    data
+    if data do
+      payload = if key && is_map(data), do: data[key], else: data
+      {info_string, payload}
+    end
   end
 
   defp render_notebook(notebook, ctx) do
@@ -221,23 +246,15 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(%{output: true})
   end
 
-  defp render_output(
-         %{type: :js, export: %{info_string: info_string, key: key}, js_view: %{ref: ref}},
-         ctx
-       )
-       when is_binary(info_string) do
-    data = ctx.js_ref_with_data[ref]
-    payload = if key && is_map(data), do: data[key], else: data
+  defp render_output(%{type: :js, js_view: %{ref: ref}}, ctx) do
+    with {info_string, payload} <- ctx.js_ref_with_export[ref],
+         {:ok, binary} <- encode_js_data(payload) do
+      delimiter = MarkdownHelpers.code_block_delimiter(binary)
 
-    case encode_js_data(payload) do
-      {:ok, binary} ->
-        delimiter = MarkdownHelpers.code_block_delimiter(binary)
-
-        [delimiter, info_string, "\n", binary, "\n", delimiter]
-        |> prepend_metadata(%{output: true})
-
-      _ ->
-        :ignored
+      [delimiter, info_string, "\n", binary, "\n", delimiter]
+      |> prepend_metadata(%{output: true})
+    else
+      _ -> :ignored
     end
   end
 

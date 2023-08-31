@@ -142,25 +142,24 @@ defprotocol Livebook.Runtime do
 
   ## Export
 
-  The `:export` map describes how the output should be persisted.
-  The output data is put in a Markdown fenced code block.
+  The `:export` specifies whether the given output supports persistence.
+  When enabled, the JS view server should handle the following message:
 
-    * `:info_string` - used as the info string for the Markdown
-      code block
+      {:export, pid(), info :: %{ref: ref()}}
 
-    * `:key` - in case the data is a map and only a specific part
-      should be exported
+  And reply with:
 
+      {:export_reply, export_result, info :: %{ref: ref()}}
+
+  Where `export_result` is a tuple `{info_string, payload}`.
+  `info_string` is used as the info string for the Markdown code block,
+  while `payload` is its content. Payload can be either a string,
+  otherwise it is serialized into JSON.
   """
   @type js_output() :: %{
           type: :js,
           js_view: js_view(),
-          export:
-            nil
-            | %{
-                info_string: String.t(),
-                key: nil | term()
-              }
+          export: boolean()
         }
 
   @typedoc """
