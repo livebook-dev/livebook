@@ -187,7 +187,7 @@ defmodule Livebook.SessionTest do
         | kind: "text",
           source: "chunk 1\n\nchunk 2",
           chunks: [{0, 7}, {9, 7}],
-          outputs: [{1, {:text, "Hello"}}]
+          outputs: [{1, terminal_text("Hello")}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -210,24 +210,23 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:insert_cell, _client_id, ^section_id, 1, :code, _id,
-                       %{source: "chunk 2", outputs: [{1, {:text, "Hello"}}]}}}
+                       %{source: "chunk 2", outputs: [{1, terminal_text("Hello")}]}}}
     end
 
     test "doesn't garbage collect input values" do
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref",
         id: "input1",
-        type: :text,
-        label: "Name",
-        default: "hey",
-        destination: :noop
+        destination: :noop,
+        attrs: %{type: :text, default: "hey", label: "Name"}
       }
 
       smart_cell = %{
         Notebook.Cell.new(:smart)
         | kind: "text",
           source: "content",
-          outputs: [{1, {:input, input}}]
+          outputs: [{1, input}]
       }
 
       section = %{Notebook.Section.new() | cells: [smart_cell]}
@@ -648,16 +647,14 @@ defmodule Livebook.SessionTest do
     test "schedules file for deletion when the corresponding input is removed",
          %{tmp_dir: tmp_dir} do
       input = %{
-        ref: :input_ref,
+        type: :input,
+        ref: "ref",
         id: "input1",
-        type: :file,
-        label: "File",
-        default: nil,
         destination: :noop,
-        accept: :any
+        attrs: %{type: :file, accept: :any, default: nil, label: "File"}
       }
 
-      cell = %{Notebook.Cell.new(:code) | outputs: [{1, {:input, input}}]}
+      cell = %{Notebook.Cell.new(:code) | outputs: [{1, input}]}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
 
       session = start_session(notebook: notebook, registered_file_deletion_delay: 0)
@@ -882,11 +879,17 @@ defmodule Livebook.SessionTest do
   # between runtime and session
 
   @livebook_put_input_code """
-  input = %{id: "input1", type: :number, label: "Name", default: "hey"}
+  input = %{
+    type: :input,
+    ref: "ref",
+    id: "input1",
+    destination: nil,
+    attrs: %{type: :number, default: "hey", label: "Name"}
+  }
 
   send(
     Process.group_leader(),
-    {:io_request, self(), make_ref(), {:livebook_put_output, {:input, input}}}
+    {:io_request, self(), make_ref(), {:livebook_put_output, input}}
   )
   """
 
@@ -920,7 +923,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
                        %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ "hey"
@@ -944,7 +947,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
+                      {:add_cell_evaluation_response, _, ^cell_id, terminal_text(text_output),
                        %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ ":error"
@@ -1242,8 +1245,8 @@ defmodule Livebook.SessionTest do
     archive_path = Path.expand("../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    js_output = {:js, %{js_view: %{assets: assets_info}}}
-    frame_output = {:frame, [js_output], %{ref: "1", type: :replace}}
+    js_output = %{type: :js, js_view: %{assets: assets_info}, export: nil}
+    frame_output = %{type: :frame, ref: "1", outputs: [js_output], placeholder: true}
 
     user = Livebook.Users.User.new()
     {_, client_id} = Session.register_client(session.pid, self(), user)
@@ -1716,6 +1719,33 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_spec_reply, {:ok, %{type: :url, url: ^url}}}
     end
 
+    test "renaming file entry renames the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image.jpg", "image2.jpg")
+
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image2.jpg"})
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path2}}
+
+      refute File.exists?(path)
+      assert File.exists?(path2)
+    end
+
     test "removing file entry removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
@@ -1740,7 +1770,7 @@ defmodule Livebook.SessionTest do
       refute File.exists?(path)
     end
 
-    test "replacing file entry removes the cached file" do
+    test "replacing file entry via add removes the cached file" do
       bypass = Bypass.open()
       url = "http://localhost:#{bypass.port}/image.jpg"
 
@@ -1759,6 +1789,35 @@ defmodule Livebook.SessionTest do
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
 
       Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+      wait_for_session_update(session.pid)
+
+      refute File.exists?(path)
+    end
+
+    test "replacing file entry via rename removes the cached file" do
+      bypass = Bypass.open()
+      url = "http://localhost:#{bypass.port}/image.jpg"
+
+      Bypass.expect_once(bypass, "GET", "/image.jpg", fn conn ->
+        Plug.Conn.resp(conn, 200, "content")
+      end)
+
+      session = start_session()
+
+      Session.add_file_entries(session.pid, [%{type: :url, name: "image.jpg", url: url}])
+
+      %{files_dir: files_dir} = Session.get_by_pid(session.pid)
+      image_file = FileSystem.File.resolve(files_dir, "image2.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image2.jpg"}])
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_file_entry_path_request, self(), "image.jpg"})
+
+      assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
+
+      Session.rename_file_entry(session.pid, "image2.jpg", "image.jpg")
       wait_for_session_update(session.pid)
 
       refute File.exists?(path)
@@ -1797,6 +1856,87 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:runtime_file_entry_path_reply, {:ok, path}}
       assert File.read(path) == {:ok, "new content"}
+    end
+  end
+
+  test "supports legacy text outputs" do
+    session = start_session()
+
+    Session.subscribe(session.id)
+
+    {_section_id, cell_id} = insert_section_and_cell(session.pid)
+
+    runtime = connected_noop_runtime()
+    Session.set_runtime(session.pid, runtime)
+
+    user = Livebook.Users.User.new()
+    Session.register_client(session.pid, self(), user)
+
+    legacy_output = {:text, "Hola"}
+    expected_output = terminal_text("Hola")
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output = {:markdown, "Hola"}
+    expected_output = %{type: :markdown, text: "Hola", chunk: false}
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+
+    legacy_output =
+      {:input,
+       %{
+         type: :text,
+         ref: "ref",
+         id: "input1",
+         label: "Name",
+         default: "hey",
+         destination: :noop
+       }}
+
+    expected_output =
+      %{
+        type: :input,
+        ref: "ref",
+        id: "input1",
+        destination: :noop,
+        attrs: %{type: :text, default: "hey", label: "Name"}
+      }
+
+    send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
+    assert_receive {:operation, {:add_cell_evaluation_output, _, ^cell_id, ^expected_output}}
+  end
+
+  defmodule Global do
+    use ExUnit.Case, async: false
+
+    describe "default hub for new notebooks" do
+      test "use the default hub as default for new notebooks" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == hub.id
+        Livebook.Hubs.delete_hub(hub.id)
+      end
+
+      test "fallback to personal-hub when there's no default" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.unset_default_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        assert notebook.hub_id == "personal-hub"
+        Livebook.Hubs.delete_hub(hub.id)
+      end
+
+      test "fallback to personal-hub when the default doesn't exist" do
+        hub = Livebook.Factory.insert_hub(:team)
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.delete_hub(hub.id)
+        notebook = Livebook.Session.default_notebook()
+
+        refute Livebook.Hubs.hub_exists?(hub.id)
+        assert notebook.hub_id == "personal-hub"
+      end
     end
   end
 

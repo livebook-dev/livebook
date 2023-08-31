@@ -20,7 +20,7 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     # Functions in the `IEx.Helpers` module return this specific value
     # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
-    :ignored
+    %{type: :ignored}
   end
 
   def format_result({:ok, {:module, _, _, _} = value}, :elixir) do
@@ -40,13 +40,13 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
         |> error_color
         |> :erlang.list_to_binary()
 
-      {:error, formatted, error_type(error)}
+      %{type: :error, message: formatted, context: error_context(error)}
     end
   end
 
   def format_result({:error, kind, error, stacktrace}, _language) do
     formatted = format_error(kind, error, stacktrace)
-    {:error, formatted, error_type(error)}
+    %{type: :error, message: formatted, context: error_context(error)}
   end
 
   def format_result({:ok, value}, :erlang) do
@@ -76,11 +76,11 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   defp to_inspect_output(value, opts \\ []) do
     try do
       inspected = inspect(value, inspect_opts(opts))
-      {:text, inspected}
+      %{type: :terminal_text, text: inspected, chunk: false}
     catch
       kind, error ->
         formatted = format_error(kind, error, __STACKTRACE__)
-        {:error, formatted, error_type(error)}
+        %{type: :error, message: formatted, context: error_context(error)}
     end
   end
 
@@ -159,19 +159,19 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
     IO.ANSI.format([:red, string], true)
   end
 
-  defp error_type(%System.EnvError{env: "LB_" <> secret_name}),
+  defp error_context(%System.EnvError{env: "LB_" <> secret_name}),
     do: {:missing_secret, secret_name}
 
-  defp error_type(error) when is_struct(error, Kino.InterruptError),
+  defp error_context(error) when is_struct(error, Kino.InterruptError),
     do: {:interrupt, error.variant, error.message}
 
-  defp error_type(error) when is_struct(error, Kino.FS.ForbiddenError),
+  defp error_context(error) when is_struct(error, Kino.FS.ForbiddenError),
     do: {:file_entry_forbidden, error.name}
 
-  defp error_type(_), do: :other
+  defp error_context(_), do: nil
 
   defp erlang_to_output(value) do
     text = :io_lib.format("~p", [value]) |> IO.iodata_to_binary()
-    {:text, text}
+    %{type: :terminal_text, text: text, chunk: false}
   end
 end

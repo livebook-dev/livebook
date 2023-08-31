@@ -12,7 +12,7 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def update(assigns, socket) do
-    %{value: value, changed: changed} = assigns.input_views[assigns.attrs.id]
+    %{value: value, changed: changed} = assigns.input_views[assigns.input.id]
 
     socket =
       socket
@@ -23,51 +23,51 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
-  def render(%{attrs: %{type: :image}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :image do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.ImageInputComponent}
         id={"#{@id}-input"}
         input_component_id={@id}
         value={@value}
-        height={@attrs.size && elem(@attrs.size, 0)}
-        width={@attrs.size && elem(@attrs.size, 1)}
-        format={@attrs.format}
-        fit={@attrs.fit}
+        height={@input.attrs.size && elem(@input.attrs.size, 0)}
+        width={@input.attrs.size && elem(@input.attrs.size, 1)}
+        format={@input.attrs.format}
+        fit={@input.attrs.fit}
       />
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :audio}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :audio do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.AudioInputComponent}
         id={"#{@id}-input"}
         input_component_id={@id}
         value={@value}
-        format={@attrs.format}
-        sampling_rate={@attrs.sampling_rate}
+        format={@input.attrs.format}
+        sampling_rate={@input.attrs.sampling_rate}
       />
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :file}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :file do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
-      <.input_label label={@attrs.label} changed={@changed} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
       <.live_component
         module={LivebookWeb.Output.FileInputComponent}
         id={"#{@id}-input"}
         input_component_id={@id}
         value={@value}
-        accept={@attrs.accept}
-        input_id={@attrs.id}
+        accept={@input.attrs.accept}
+        input_id={@input.id}
         session_pid={@session_pid}
         client_id={@client_id}
         local={@local}
@@ -76,11 +76,11 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  def render(%{attrs: %{type: :utc_datetime}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :utc_datetime do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
       <.input_label
-        label={@attrs.label}
+        label={@input.attrs.label}
         changed={@changed}
         help="Choose the time in your local time zone"
       />
@@ -94,19 +94,19 @@ defmodule LivebookWeb.Output.InputComponent do
         autocomplete="off"
         phx-hook="UtcDateTimeInput"
         data-utc-value={@value && NaiveDateTime.to_iso8601(@value)}
-        data-utc-min={@attrs.min && NaiveDateTime.to_iso8601(@attrs.min)}
-        data-utc-max={@attrs.max && NaiveDateTime.to_iso8601(@attrs.max)}
+        data-utc-min={@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min)}
+        data-utc-max={@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max)}
         data-phx-target={@myself}
       />
     </div>
     """
   end
 
-  def render(%{attrs: %{type: :utc_time}} = assigns) do
+  def render(assigns) when assigns.input.attrs.type == :utc_time do
     ~H"""
     <div id={"#{@id}-form-#{@counter}"}>
       <.input_label
-        label={@attrs.label}
+        label={@input.attrs.label}
         changed={@changed}
         help="Choose the time in your local time zone"
       />
@@ -120,8 +120,8 @@ defmodule LivebookWeb.Output.InputComponent do
         autocomplete="off"
         phx-hook="UtcTimeInput"
         data-utc-value={@value && Time.to_iso8601(@value)}
-        data-utc-min={@attrs.min && Time.to_iso8601(@attrs.min)}
-        data-utc-max={@attrs.max && Time.to_iso8601(@attrs.max)}
+        data-utc-min={@input.attrs.min && Time.to_iso8601(@input.attrs.min)}
+        data-utc-max={@input.attrs.max && Time.to_iso8601(@input.attrs.max)}
         data-phx-target={@myself}
       />
     </div>
@@ -131,8 +131,8 @@ defmodule LivebookWeb.Output.InputComponent do
   def render(assigns) do
     ~H"""
     <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
-      <.input_label label={@attrs.label} changed={@changed} />
-      <.input_output id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
+      <.input_label label={@input.attrs.label} changed={@changed} />
+      <.input_output id={"#{@id}-input"} attrs={@input.attrs} value={@value} myself={@myself} />
     </form>
     """
   end
@@ -187,7 +187,7 @@ defmodule LivebookWeb.Output.InputComponent do
     <textarea
       id={@id}
       data-el-input
-      class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs[:monospace] && "font-mono"]}
+      class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs.monospace && "font-mono"]}
       name="html_value"
       phx-hook="TextareaAutosize"
       phx-debounce="blur"
@@ -252,7 +252,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input_output(assigns) do
     ~H"""
     <div class="text-red-600">
-      Unknown input type <%= @attrs.type %>
+      Unknown input type <%= @input.attrs.type %>
     </div>
     """
   end
@@ -281,7 +281,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   @impl true
   def handle_event("change", %{"html_value" => html_value}, socket) do
-    case parse(html_value, socket.assigns.attrs) do
+    case parse(html_value, socket.assigns.input.attrs) do
       {:ok, value} ->
         {:noreply, handle_change(socket, value)}
 
@@ -292,10 +292,10 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def handle_event("submit", %{"html_value" => html_value}, socket) do
-    case parse(html_value, socket.assigns.attrs) do
+    case parse(html_value, socket.assigns.input.attrs) do
       {:ok, value} ->
         socket = handle_change(socket, value)
-        send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
+        send(self(), {:queue_bound_cells_evaluation, socket.assigns.input.id})
         {:noreply, socket}
 
       :error ->
@@ -316,7 +316,7 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp report_change(%{assigns: assigns} = socket) do
-    send(self(), {:set_input_values, [{assigns.attrs.id, assigns.value}], assigns.local})
+    send(self(), {:set_input_values, [{assigns.input.id, assigns.value}], assigns.local})
 
     unless assigns.local do
       report_event(socket, assigns.value)
@@ -443,8 +443,8 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp report_event(socket, value) do
-    topic = socket.assigns.attrs.ref
+    topic = socket.assigns.input.ref
     event = %{value: value, origin: socket.assigns.client_id, type: :change}
-    send(socket.assigns.attrs.destination, {:event, topic, event})
+    send(socket.assigns.input.destination, {:event, topic, event})
   end
 end

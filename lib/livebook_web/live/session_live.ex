@@ -499,6 +499,21 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :rename_file_entry}
+      id="rename-file-entry-modal"
+      show
+      width={:big}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.RenameFileEntryComponent}
+        id="rename-file-entry"
+        session={@session}
+        file_entry={@renaming_file_entry}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :shortcuts}
       id="shortcuts-modal"
       show
@@ -741,9 +756,20 @@ defmodule LivebookWeb.SessionLive do
             data-el-client-link
           >
             <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
-            <span class="text-left"><%= user.name || "Anonymous" %></span>
+            <span class="text-left">
+              <%= user.name || "Anonymous" %>
+              <%= if(client_id == @client_id, do: "(you)") %>
+            </span>
           </button>
-          <%= if client_id != @client_id do %>
+          <%= if client_id == @client_id do %>
+            <button
+              class="icon-button"
+              aria-label="edit profile"
+              phx-click={show_current_user_modal()}
+            >
+              <.remix_icon icon="user-settings-line" class="text-lg" />
+            </button>
+          <% else %>
             <span
               class="tooltip left"
               data-tooltip="Follow this user"
@@ -1014,6 +1040,15 @@ defmodule LivebookWeb.SessionLive do
       when socket.assigns.live_action == :insert_file and
              not is_map_key(socket.assigns, :insert_file_metadata) do
     {:noreply, redirect_to_self(socket)}
+  end
+
+  def handle_params(%{"name" => name}, _url, socket)
+      when socket.assigns.live_action == :rename_file_entry do
+    if file_entry = find_file_entry(socket, name) do
+      {:noreply, assign(socket, renaming_file_entry: file_entry)}
+    else
+      {:noreply, redirect_to_self(socket)}
+    end
   end
 
   def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
@@ -2595,7 +2630,7 @@ defmodule LivebookWeb.SessionLive do
       clients:
         data.clients_map
         |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
-        |> Enum.sort_by(fn {_client_id, user} -> user.name end),
+        |> Enum.sort_by(fn {_client_id, user} -> user.name || "Anonymous" end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{
         cell_to_view(hd(data.notebook.setup_section.cells), data, changed_input_ids)
@@ -2775,24 +2810,32 @@ defmodule LivebookWeb.SessionLive do
       # For outputs that update existing outputs we send the update directly
       # to the corresponding component, so the DOM patch is isolated and fast.
       # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_id, _cell_id,
-       {:frame, _outputs, %{type: type, ref: ref}}}
-      when type != :default ->
-        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+      {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
+        %{ref: ref, update: {update_type, _}} = output
+
+        for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
-            outputs: frame_outputs,
-            update_type: type
+            outputs: frame.outputs,
+            update_type: update_type
           )
         end
 
         data_view
 
-      {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
+      {:add_cell_evaluation_output, _client_id, cell_id, %{type: type, chunk: true} = output}
+      when type in [:terminal_text, :plain_text, :markdown] ->
         # Lookup in previous data to see if the output is already there
         case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
-            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
+          {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
+            module =
+              case type do
+                :terminal_text -> LivebookWeb.Output.TerminalTextComponent
+                :plain_text -> LivebookWeb.Output.PlainTextComponent
+                :markdown -> LivebookWeb.Output.MarkdownComponent
+              end
+
+            send_update(module, id: "output-#{idx}", text: output.text)
             data_view
 
           _ ->

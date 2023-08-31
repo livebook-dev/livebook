@@ -1,6 +1,5 @@
 defmodule LivebookProto.Event do
-  @moduledoc false
-  use Protobuf, protoc_gen_elixir_version: "0.11.0", syntax: :proto3
+  use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
 
   oneof :type, 0
 
@@ -22,5 +21,20 @@ defmodule LivebookProto.Event do
   field :user_connected, 4,
     type: LivebookProto.UserConnected,
     json_name: "userConnected",
+    oneof: 0
+
+  field :file_system_created, 5,
+    type: LivebookProto.FileSystemCreated,
+    json_name: "fileSystemCreated",
+    oneof: 0
+
+  field :file_system_updated, 6,
+    type: LivebookProto.FileSystemUpdated,
+    json_name: "fileSystemUpdated",
+    oneof: 0
+
+  field :file_system_deleted, 7,
+    type: LivebookProto.FileSystemDeleted,
+    json_name: "fileSystemDeleted",
     oneof: 0
 end

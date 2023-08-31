@@ -298,4 +298,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
       error in File.Error -> FileSystem.Utils.posix_error(error.reason)
     end
   end
+
+  def load(_file_system, _fields), do: raise("not implemented")
+
+  def dump(_file_system), do: raise("not implemented")
 end

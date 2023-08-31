@@ -69,5 +69,9 @@
       </dict>
     </dict>
   </array>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Allow microphone access for Elixir code</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Allow camera access for Elixir code</string>
 </dict>
 </plist>

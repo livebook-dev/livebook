@@ -577,7 +577,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        {0, {:stdout, "hey"}}
+                        {0, terminal_text("hey", true)}
                       ]
                   }
                 ]
@@ -614,7 +614,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:stdout, "hey"}}]
+                      outputs: [{0, terminal_text("hey", true)}]
                   }
                 ]
             }
@@ -642,6 +642,35 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
+    test "does not include setup cell output" do
+      notebook = %{Notebook.new() | name: "My Notebook"}
+
+      notebook =
+        update_in(notebook.setup_section.cells, fn [setup_cell] ->
+          [
+            %{
+              setup_cell
+              | source: """
+                IO.puts("hey")\
+                """,
+                outputs: [{0, terminal_text("hey", true)}]
+            }
+          ]
+        end)
+
+      expected_document = """
+      # My Notebook
+
+      ```elixir
+      IO.puts("hey")
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
     test "removes ANSI escape codes from the output text" do
       notebook = %{
         Notebook.new()
@@ -656,7 +685,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:text, "\e[34m:ok\e[0m"}}, {1, {:stdout, "hey"}}]
+                      outputs: [
+                        {0, terminal_text("\e[34m:ok\e[0m")},
+                        {1, terminal_text("hey", true)}
+                      ]
                   }
                 ]
             }
@@ -704,7 +736,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:markdown, "some **Markdown**"}}]
+                      outputs: [{0, %{type: :markdown, text: "some **Markdown**", chunk: false}}]
                   }
                 ]
             }
@@ -726,7 +758,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "does not include js output with no export info" do
+    test "does not include js output with export disabled" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -740,15 +772,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", "data"),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: nil
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", "data"),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: false
+                         }}
                       ]
                   }
                 ]
@@ -771,7 +803,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes js output if export info is set" do
+    test "includes js output with export enabled" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -785,15 +817,67 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "mermaid", key: nil}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_export("1", {"mermaid", "graph TD;\nA-->B;"}),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: true
+                         }}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      :ok
+      ```
+
+      <!-- livebook:{"output":true} -->
+
+      ```mermaid
+      graph TD;
+      A-->B;
+      ```
+      """
+
+      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "includes js output with legacy export info" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:code)
+                    | source: ":ok",
+                      outputs: [
+                        {0,
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "mermaid", key: nil}
+                         }}
                       ]
                   }
                 ]
@@ -837,15 +921,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "box", key: nil}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "box", key: nil}
+                         }}
                       ]
                   }
                 ]
@@ -888,19 +972,19 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: ":ok",
                       outputs: [
                         {0,
-                         {:js,
-                          %{
-                            js_view: %{
-                              ref: "1",
-                              pid:
-                                spawn_widget_with_data("1", %{
-                                  spec: %{"height" => 50, "width" => 50},
-                                  datasets: []
-                                }),
-                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                            },
-                            export: %{info_string: "vega-lite", key: :spec}
-                          }}}
+                         %{
+                           type: :js,
+                           js_view: %{
+                             ref: "1",
+                             pid:
+                               spawn_widget_with_data("1", %{
+                                 spec: %{"height" => 50, "width" => 50},
+                                 datasets: []
+                               }),
+                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                           },
+                           export: %{info_string: "vega-lite", key: :spec}
+                         }}
                       ]
                   }
                 ]
@@ -944,12 +1028,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: ":ok",
                     outputs: [
                       {0,
-                       {:tabs,
-                        [
-                          {1, {:markdown, "a"}},
-                          {2, {:text, "b"}},
-                          {3, {:text, "c"}}
-                        ], %{labels: ["A", "B", "C"]}}}
+                       %{
+                         type: :tabs,
+                         outputs: [
+                           {1, %{type: :markdown, text: "a", chunk: false}},
+                           {2, terminal_text("b")},
+                           {3, terminal_text("c")}
+                         ],
+                         labels: ["A", "B", "C"]
+                       }}
                     ]
                 }
               ]
@@ -992,12 +1079,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: ":ok",
                     outputs: [
                       {0,
-                       {:grid,
-                        [
-                          {1, {:text, "a"}},
-                          {2, {:markdown, "b"}},
-                          {3, {:text, "c"}}
-                        ], %{columns: 2}}}
+                       %{
+                         type: :grid,
+                         outputs: [
+                           {1, terminal_text("a")},
+                           {2, %{type: :markdown, text: "b", chunk: false}},
+                           {3, terminal_text("c")}
+                         ],
+                         columns: 2,
+                         gap: 8,
+                         boxed: false
+                       }}
                     ]
                 }
               ]
@@ -1047,7 +1139,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:stdout, "hey"}}]
+                    outputs: [{0, terminal_text("hey", true)}]
                 }
               ]
           }
@@ -1092,7 +1184,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: [{0, {:stdout, "hey"}}]
+                    outputs: [{0, terminal_text("hey", true)}]
                 }
               ]
           }
@@ -1397,6 +1489,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     source = binary_slice(source, 0, offset)
     {:ok, metadata} = Livebook.Hubs.verify_notebook_stamp(hub, source, stamp)
     metadata
+  end
+
+  defp spawn_widget_with_export(ref, export_result) do
+    spawn(fn ->
+      receive do
+        {:export, pid, %{ref: ^ref}} ->
+          send(pid, {:export_reply, export_result, %{ref: ref}})
+      end
+    end)
   end
 
   defp spawn_widget_with_data(ref, data) do

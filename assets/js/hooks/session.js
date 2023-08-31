@@ -503,6 +503,11 @@ const Session = {
       return true;
     }
 
+    // Vim insert or visual mode
+    if (["insert", "visual"].includes(editor.dataset.vimMode)) {
+      return true;
+    }
+
     return false;
   },
 

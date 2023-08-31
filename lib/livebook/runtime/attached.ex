@@ -141,6 +141,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
 
+  def relabel_file(runtime, file_id, new_file_id) do
+    RuntimeServer.relabel_file(runtime.server_pid, file_id, new_file_id)
+  end
+
   def transfer_file(runtime, path, file_id, callback) do
     RuntimeServer.transfer_file(runtime.server_pid, path, file_id, callback)
   end

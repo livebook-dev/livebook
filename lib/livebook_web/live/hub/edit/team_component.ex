@@ -1,6 +1,7 @@
 defmodule LivebookWeb.Hub.Edit.TeamComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Hubs
   alias Livebook.Hubs.{Provider, Team}
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
@@ -14,6 +15,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
     secret_name = assigns.params["secret_name"]
     zta = %{"provider" => "", "key" => ""}
+    is_default? = is_default?(assigns.hub)
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -29,7 +31,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       zta: zta
+       zta: zta,
+       is_default: is_default?
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -63,6 +66,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                     Livebook Teams
                   </span>
+                  <%= if @is_default do %>
+                    <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                      Default
+                    </span>
+                  <% end %>
                 </div>
               </LayoutHelpers.title>
 
@@ -82,6 +90,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 >
                   <.remix_icon icon="key-2-fill" /> Display Teams key
                 </a>
+                <%= if @is_default do %>
+                  <a
+                    phx-click={JS.push("remove_as_default")}
+                    phx-target={@myself}
+                    class="hover:text-blue-600 cursor-pointer"
+                  >
+                    <.remix_icon icon="star-fill" /> Remove as default
+                  </a>
+                <% else %>
+                  <a
+                    phx-click={JS.push("mark_as_default")}
+                    phx-target={@myself}
+                    class="hover:text-blue-600 cursor-pointer"
+                  >
+                    <.remix_icon icon="star-line" /> Mark as default
+                  </a>
+                <% end %>
               </p>
             </div>
 
@@ -447,6 +472,16 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
   end
 
+  def handle_event("mark_as_default", _, socket) do
+    Hubs.set_default_hub(socket.assigns.hub.id)
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
+  end
+
+  def handle_event("remove_as_default", _, socket) do
+    Hubs.unset_default_hub(socket.assigns.hub.id)
+    {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
+  end
+
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
   end
@@ -503,5 +538,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
     """
+  end
+
+  defp is_default?(hub) do
+    Hubs.get_default_hub().id == hub.id
   end
 end

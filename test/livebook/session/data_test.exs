@@ -7,9 +7,19 @@ defmodule Livebook.Session.DataTest do
   alias Livebook.{Delta, Notebook}
   alias Livebook.Users.User
 
-  @eval_resp {:ok, [1, 2, 3]}
+  @eval_resp %{type: :terminal_text, text: ":ok", chunk: false}
   @smart_cell_definitions [%{kind: "text", name: "Text", requirement_presets: []}]
   @cid "__anonymous__"
+
+  @stdout %{type: :terminal_text, text: "Hello!", chunk: true}
+
+  @input %{
+    type: :input,
+    ref: "ref1",
+    id: "i1",
+    destination: nil,
+    attrs: %{type: :text, default: "hey", label: "Text"}
+  }
 
   defp eval_meta(opts \\ []) do
     uses = opts[:uses] || []
@@ -78,13 +88,13 @@ defmodule Livebook.Session.DataTest do
               Notebook.Section.new()
               | id: "s1",
                 cells: [
-                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hello!"}}]}
+                  %{Notebook.Cell.new(:code) | id: "c1", outputs: [{0, @stdout}]}
                 ]
             }
           ]
       }
 
-      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]}]}} =
+      assert %{notebook: %{sections: [%{cells: [%{outputs: [{0, @stdout}]}]}]}} =
                Data.new(notebook: notebook)
 
       assert %{notebook: %{sections: [%{cells: [%{outputs: []}]}]}} =
@@ -862,8 +872,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "garbage collects input values that are no longer used" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -871,7 +879,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"}
         ])
 
@@ -885,8 +893,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "marks cells bound to the deleted input as stale" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -895,7 +901,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}})
         ])
 
@@ -1819,14 +1825,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{1, {:stdout, "Hello!"}}]}]
+                      cells: [%{outputs: [{1, @stdout}]}]
                     }
                   ]
                 }
@@ -1842,14 +1848,14 @@ defmodule Livebook.Session.DataTest do
           evaluate_cells_operations(["setup", "c1"])
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{2, {:stdout, "Hello!"}}, _result]}]
+                      cells: [%{outputs: [{2, @stdout}, _result]}]
                     }
                   ]
                 }
@@ -1868,14 +1874,12 @@ defmodule Livebook.Session.DataTest do
           {:notebook_saved, @cid, []}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:stdout, "Hello!"}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @stdout}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
 
     test "stores default values for new inputs in the pre-evaluation data" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -1885,7 +1889,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, @cid, "c1", {:input, input}}
+      operation = {:add_cell_evaluation_output, @cid, "c1", @input}
 
       assert {:ok,
               %{
@@ -1909,14 +1913,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:ok, [1, 2, 3]}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @eval_resp, eval_meta()}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{1, {:ok, [1, 2, 3]}}]}]
+                      cells: [%{outputs: [{1, @eval_resp}]}]
                     }
                   ]
                 }
@@ -2296,8 +2300,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "if bound input value changes during cell evaluation, the cell is marked as stale afterwards" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2306,7 +2308,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:add_cell_evaluation_response, @cid, "c2", @eval_resp, eval_meta()},
           # Make the code cell evaluating
           {:queue_cells_evaluation, @cid, ["c2"]},
@@ -2364,8 +2366,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "stores default values for new inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2375,15 +2375,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
 
       assert {:ok, %{input_infos: %{"i1" => %{value: "hey"}}}, _} =
                Data.apply_operation(data, operation)
     end
 
     test "stores default values for new nested inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-      output = {:grid, [{:input, input}], %{}}
+      output = %{type: :grid, outputs: [@input], columns: 1, gap: 8, boxed: false}
 
       data =
         data_after_operations!([
@@ -2401,8 +2400,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "keeps input values for inputs that existed" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2410,21 +2407,19 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
 
       # Output the same input again
-      operation = {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+      operation = {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
 
       assert {:ok, %{input_infos: %{"i1" => %{value: "value"}}}, _} =
                Data.apply_operation(data, operation)
     end
 
     test "garbage collects input values that are no longer used" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2432,7 +2427,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
@@ -2448,8 +2443,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not garbage collect inputs if present in another cell" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2458,8 +2451,8 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
-          {:add_cell_evaluation_response, @cid, "c2", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]}
         ])
@@ -2472,8 +2465,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not garbage collect inputs if another evaluation is ongoing" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2486,7 +2477,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:set_input_value, @cid, "i1", "value"},
           {:queue_cells_evaluation, @cid, ["c1"]},
           {:queue_cells_evaluation, @cid, ["c2"]}
@@ -2600,8 +2591,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "updates code cell info with binding to the input cell" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -2610,7 +2599,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           {:queue_cells_evaluation, @cid, ["c2"]}
         ])
 
@@ -3663,8 +3652,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "stores new input value" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -3672,7 +3659,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()}
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()}
         ])
 
       operation = {:set_input_value, @cid, "i1", "stuff"}
@@ -3682,8 +3669,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "given input value change, marks evaluated bound cells and their dependents as stale" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -3695,7 +3680,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3", "c4"],
             bind_inputs: %{"c3" => ["i1"]},
             uses: %{"c2" => ["c1"], "c3" => ["c2"], "c4" => ["c3"]}
@@ -3914,6 +3899,62 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
       assert notebook.quarantine_file_entry_names == MapSet.new()
+    end
+  end
+
+  describe "apply_operation/2 given :rename_file_entry" do
+    test "returns an error if no file entry with the given name exists" do
+      data = Data.new()
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "replaces file entry name" do
+      file_entry = %{type: :attachment, name: "image.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "replaces existing file entry with the same name" do
+      file_entry1 = %{type: :attachment, name: "image.jpg"}
+      file_entry2 = %{type: :attachment, name: "image2.jpg"}
+
+      data =
+        data_after_operations!([
+          {:add_file_entries, @cid, [file_entry1, file_entry2]}
+        ])
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: %{file_entries: [%{type: :attachment, name: "image2.jpg"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "updates matching file entry name in quarantine" do
+      file = Livebook.FileSystem.File.new(Livebook.FileSystem.Local.new(), p("/image.jpg"))
+
+      file_entry = %{type: :file, name: "image.jpg", file: file}
+
+      notebook = %{
+        Notebook.new()
+        | file_entries: [file_entry],
+          quarantine_file_entry_names: MapSet.new(["image.jpg"])
+      }
+
+      data = Data.new(notebook: notebook)
+
+      operation = {:rename_file_entry, @cid, "image.jpg", "image2.jpg"}
+
+      assert {:ok, %{notebook: notebook}, []} = Data.apply_operation(data, operation)
+      assert notebook.quarantine_file_entry_names == MapSet.new(["image2.jpg"])
     end
   end
 
@@ -4205,8 +4246,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not automatically reevaluate" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
@@ -4216,7 +4255,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2"], bind_inputs: %{"c2" => ["i1"]})
         ])
 
@@ -4234,8 +4273,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "returns code cells bound to the given input" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -4246,7 +4283,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3", "c4"], %{
             bind_inputs: %{"c2" => ["i1"], "c4" => ["i1"]}
           })
@@ -4423,8 +4460,21 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "returns inputs which value changed since they have been bound to some cell" do
-      input1 = %{id: "i1", type: :text, label: "Text", default: "hey"}
-      input2 = %{id: "i2", type: :text, label: "Text", default: "hey"}
+      input1 = %{
+        type: :input,
+        ref: "ref1",
+        id: "i1",
+        destination: nil,
+        attrs: %{type: :text, default: "hey", label: "Text"}
+      }
+
+      input2 = %{
+        type: :input,
+        ref: "ref2",
+        id: "i2",
+        destination: nil,
+        attrs: %{type: :text, default: "hey", label: "Text"}
+      }
 
       data =
         data_after_operations!([
@@ -4436,8 +4486,8 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1", "c2"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input1}, eval_meta()},
-          {:add_cell_evaluation_response, @cid, "c2", {:input, input2}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", input1, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c2", input2, eval_meta()},
           evaluate_cells_operations(["c3", "c4"], %{
             bind_inputs: %{"c3" => ["i1"], "c4" => ["i2"]}
           }),
@@ -4448,8 +4498,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "includes an input where one cell is bound with the old value and one with latest" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -4459,7 +4507,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2", "c3"], %{
             bind_inputs: %{"c2" => ["i1"], "c3" => ["i1"]}
           }),
@@ -4472,8 +4520,6 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "does not return removed inputs" do
-      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
-
       data =
         data_after_operations!([
           {:insert_section, @cid, 0, "s1"},
@@ -4482,7 +4528,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, @cid, connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", {:input, input}, eval_meta()},
+          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
           evaluate_cells_operations(["c2"], %{bind_inputs: %{"c2" => ["i1"]}}),
           {:set_input_value, @cid, "i1", "new value"},
           {:delete_cell, @cid, "c1"}

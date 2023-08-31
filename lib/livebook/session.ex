@@ -290,18 +290,20 @@ defmodule Livebook.Session do
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
     local_assets_path = local_assets_path(hash)
+    flag_path = Path.join(local_assets_path, ".lb-done")
 
-    if non_empty_dir?(local_assets_path) do
+    if File.exists?(flag_path) do
       :ok
     else
       with {:ok, runtime, archive_path} <-
              GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
-          unless non_empty_dir?(local_assets_path) do
+          unless File.exists?(flag_path) do
             {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
             extract_archive!(archive_binary, local_assets_path)
             gzip_files(local_assets_path)
+            File.touch(flag_path)
           end
         end
 
@@ -313,10 +315,6 @@ defmodule Livebook.Session do
         end
       end
     end
-  end
-
-  defp non_empty_dir?(path) do
-    match?({:ok, [_ | _]}, File.ls(path))
   end
 
   @doc """
@@ -648,6 +646,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a file entry rename request to the server.
+  """
+  @spec rename_file_entry(pid(), String.t(), String.t()) :: :ok
+  def rename_file_entry(pid, name, new_name) do
+    GenServer.cast(pid, {:rename_file_entry, self(), name, new_name})
+  end
+
+  @doc """
   Sends a file entry deletion request to the server.
   """
   @spec delete_file_entry(pid(), String.t()) :: :ok
@@ -917,7 +923,11 @@ defmodule Livebook.Session do
   """
   @spec default_notebook() :: Notebook.t()
   def default_notebook() do
-    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
+    %{
+      Notebook.new()
+      | sections: [%{Section.new() | cells: [Cell.new(:code)]}],
+        hub_id: Livebook.Hubs.get_default_hub().id
+    }
   end
 
   defp schedule_autosave(state) do
@@ -1439,6 +1449,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:rename_file_entry, client_pid, name, new_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:rename_file_entry, client_id, name, new_name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:delete_file_entry, client_pid, name}, state) do
     client_id = client_id(state, client_pid)
     operation = {:delete_file_entry, client_id, name}
@@ -1495,11 +1511,14 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_evaluation_output_to, client_id, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
+
     client_pid =
       Enum.find_value(state.client_pids_with_id, fn {pid, id} ->
         id == client_id && pid
@@ -1530,6 +1549,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output_to_clients, cell_id, output}, state) do
+    output = normalize_runtime_output(output)
     operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     broadcast_operation(state.session_id, operation)
 
@@ -1550,9 +1570,10 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
+  def handle_info({:runtime_evaluation_response, cell_id, output, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
-    operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
+    output = normalize_runtime_output(output)
+    operation = {:add_cell_evaluation_response, @client_id, cell_id, output, metadata}
 
     {:noreply,
      state
@@ -2195,14 +2216,26 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
-  defp after_operation(state, prev_state, {:add_file_entries, _client_id, _file_entries}) do
+  defp after_operation(state, prev_state, {:add_file_entries, _client_id, file_entries}) do
+    names = for entry <- file_entries, do: entry.name, into: MapSet.new()
+
     replaced_names =
-      Enum.map(
-        prev_state.data.notebook.file_entries -- state.data.notebook.file_entries,
-        & &1.name
-      )
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name in names,
+          do: file_entry.name
 
     cleanup_file_entries(state, replaced_names)
+    state
+  end
+
+  defp after_operation(state, prev_state, {:rename_file_entry, _client_id, name, new_name}) do
+    replaced_names =
+      for file_entry <- prev_state.data.notebook.file_entries,
+          file_entry.name == new_name,
+          do: file_entry.name
+
+    cleanup_file_entries(state, replaced_names)
+    remap_file_entry(state, name, new_name)
     state
   end
 
@@ -2709,6 +2742,27 @@ defmodule Livebook.Session do
     end
   end
 
+  defp remap_file_entry(state, name, new_name) do
+    cache_file = file_entry_cache_file(state.session_id, name)
+    new_cache_file = file_entry_cache_file(state.session_id, new_name)
+    FileSystem.File.rename(cache_file, new_cache_file)
+
+    file_entry = Enum.find(state.data.notebook.file_entries, &(&1.name == new_name))
+
+    if file_entry.type == :attachment do
+      files_dir = files_dir_from_state(state)
+      file = FileSystem.File.resolve(files_dir, name)
+      new_file = FileSystem.File.resolve(files_dir, new_name)
+      FileSystem.File.rename(file, new_file)
+    end
+
+    if Runtime.connected?(state.data.runtime) do
+      file_id = file_entry_file_id(name)
+      new_file_id = file_entry_file_id(new_name)
+      Runtime.relabel_file(state.data.runtime, file_id, new_file_id)
+    end
+  end
+
   defp before_close(state) do
     maybe_save_notebook_sync(state)
     broadcast_message(state.session_id, :session_closed)
@@ -2876,5 +2930,127 @@ defmodule Livebook.Session do
       {:error, message, status} ->
         {:error, "download failed, " <> message, status}
     end
+  end
+
+  # Maps legacy outputs and adds missing attributes
+  defp normalize_runtime_output(output) when is_map(output), do: output
+
+  defp normalize_runtime_output(:ignored) do
+    %{type: :ignored}
+  end
+
+  # Rewrite tuples to maps for backward compatibility with Kino <= 0.10.0
+  defp normalize_runtime_output({:text, text}) do
+    %{type: :terminal_text, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:plain_text, text}) do
+    %{type: :plain_text, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:markdown, text}) do
+    %{type: :markdown, text: text, chunk: false}
+  end
+
+  defp normalize_runtime_output({:image, content, mime_type}) do
+    %{type: :image, content: content, mime_type: mime_type}
+  end
+
+  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
+  defp normalize_runtime_output({:js, %{ref: ref, pid: pid, assets: assets, export: export}}) do
+    normalize_runtime_output(
+      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
+    )
+  end
+
+  defp normalize_runtime_output({:js, info}) do
+    %{type: :js, js_view: info.js_view, export: info.export}
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :default} = info}) do
+    %{
+      type: :frame,
+      ref: ref,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      placeholder: Map.get(info, :placeholder, true)
+    }
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :replace}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:replace, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+  end
+
+  defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :append}}) do
+    %{
+      type: :frame_update,
+      ref: ref,
+      update: {:append, Enum.map(outputs, &normalize_runtime_output/1)}
+    }
+  end
+
+  defp normalize_runtime_output({:tabs, outputs, %{labels: labels}}) do
+    %{type: :tabs, outputs: Enum.map(outputs, &normalize_runtime_output/1), labels: labels}
+  end
+
+  defp normalize_runtime_output({:grid, outputs, info}) do
+    %{
+      type: :grid,
+      outputs: Enum.map(outputs, &normalize_runtime_output/1),
+      columns: Map.get(info, :columns, 1),
+      gap: Map.get(info, :gap, 8),
+      boxed: Map.get(info, :boxed, false)
+    }
+  end
+
+  defp normalize_runtime_output({:input, attrs}) do
+    {fields, attrs} = Map.split(attrs, [:ref, :id, :destination])
+
+    attrs =
+      case attrs.type do
+        :textarea -> Map.put_new(attrs, :monospace, false)
+        _other -> attrs
+      end
+
+    Map.merge(fields, %{type: :input, attrs: attrs})
+  end
+
+  defp normalize_runtime_output({:control, attrs}) do
+    {fields, attrs} = Map.split(attrs, [:ref, :destination])
+
+    attrs =
+      case attrs.type do
+        :keyboard ->
+          Map.put_new(attrs, :default_handlers, :off)
+
+        :form ->
+          Map.update!(attrs, :fields, fn fields ->
+            Enum.map(fields, fn {field, attrs} ->
+              {field, normalize_runtime_output({:input, attrs})}
+            end)
+          end)
+
+        _other ->
+          attrs
+      end
+
+    Map.merge(fields, %{type: :control, attrs: attrs})
+  end
+
+  defp normalize_runtime_output({:error, message, type}) do
+    context =
+      case type do
+        :other -> nil
+        type -> type
+      end
+
+    %{type: :error, message: message, context: context}
+  end
+
+  defp normalize_runtime_output(other) do
+    %{type: :unknown, output: other}
   end
 end

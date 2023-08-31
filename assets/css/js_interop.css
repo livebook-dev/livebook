@@ -81,6 +81,10 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session][data-js-dragging="external"] [data-el-files-add-button] {
+  @apply hidden;
+}
+
 [data-el-cell][data-js-focused] {
   @apply border-blue-300 border-opacity-100;
 }

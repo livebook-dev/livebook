@@ -438,7 +438,8 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.send_to != nil and string != "" do
-      send(state.send_to, {:runtime_evaluation_output, state.ref, {:stdout, string}})
+      output = %{type: :terminal_text, text: string, chunk: true}
+      send(state.send_to, {:runtime_evaluation_output, state.ref, output})
     end
 
     %{state | buffer: []}

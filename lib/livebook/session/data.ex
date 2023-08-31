@@ -225,6 +225,7 @@ defmodule Livebook.Session.Data do
           | {:set_notebook_hub, client_id(), String.t()}
           | {:sync_hub_secrets, client_id()}
           | {:add_file_entries, client_id(), list(Notebook.file_entry())}
+          | {:rename_file_entry, client_id(), name :: String.t(), new_name :: String.t()}
           | {:delete_file_entry, client_id(), String.t()}
           | {:allow_file_entry, client_id(), String.t()}
           | {:set_app_settings, client_id(), AppSettings.t()}
@@ -336,9 +337,9 @@ defmodule Livebook.Session.Data do
         cell <- section.cells,
         Cell.evaluable?(cell),
         output <- cell.outputs,
-        attrs <- Cell.find_inputs_in_output(output),
+        input <- Cell.find_inputs_in_output(output),
         into: %{},
-        do: {attrs.id, input_info(attrs.default)}
+        do: {input.id, input_info(input.attrs.default)}
   end
 
   @doc """
@@ -958,6 +959,19 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
+  def apply_operation(data, {:rename_file_entry, _client_id, name, new_name}) do
+    with {:ok, file_entry} <- fetch_file_entry(data.notebook, name),
+         true <- name != new_name do
+      data
+      |> with_actions()
+      |> rename_file_entry(file_entry, new_name)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:delete_file_entry, _client_id, name}) do
     with {:ok, file_entry} <- fetch_file_entry(data.notebook, name) do
       data
@@ -1280,26 +1294,13 @@ defmodule Livebook.Session.Data do
     |> update_cell_eval_info!(cell.id, &%{&1 | status: :ready})
   end
 
-  # Rewrite older output format for backward compatibility with Kino <= 0.5.2
-  defp add_cell_output(
-         data_actions,
-         cell,
-         {:js, %{ref: ref, pid: pid, assets: assets, export: export}}
-       ) do
-    add_cell_output(
-      data_actions,
-      cell,
-      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
-    )
-  end
-
   defp add_cell_output({data, _} = data_actions, cell, output) do
     {[indexed_output], _counter} = Notebook.index_outputs([output], 0)
 
     new_input_infos =
       indexed_output
       |> Cell.find_inputs_in_output()
-      |> Map.new(fn attrs -> {attrs.id, input_info(attrs.default)} end)
+      |> Map.new(fn input -> {input.id, input_info(input.attrs.default)} end)
 
     {data, _} =
       data_actions =
@@ -1778,6 +1779,38 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: %{data.notebook | file_entries: file_entries ++ kept_file_entries})
+  end
+
+  defp rename_file_entry({data, _} = data_actions, file_entry, new_name) do
+    file_entries =
+      for entry <- data.notebook.file_entries, entry.name != new_name do
+        if entry == file_entry do
+          %{entry | name: new_name}
+        else
+          entry
+        end
+      end
+
+    quarantine_file_entry_names =
+      MapSet.delete(data.notebook.quarantine_file_entry_names, new_name)
+
+    quarantine_file_entry_names =
+      if MapSet.member?(quarantine_file_entry_names, file_entry.name) do
+        quarantine_file_entry_names
+        |> MapSet.delete(file_entry.name)
+        |> MapSet.put(new_name)
+      else
+        quarantine_file_entry_names
+      end
+
+    data_actions
+    |> set!(
+      notebook: %{
+        data.notebook
+        | file_entries: file_entries,
+          quarantine_file_entry_names: quarantine_file_entry_names
+      }
+    )
   end
 
   defp delete_file_entry({data, _} = data_actions, file_entry) do

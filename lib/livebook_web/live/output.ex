@@ -37,61 +37,50 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp border?({:stdout, _text}), do: true
-  defp border?({:text, _text}), do: true
-  defp border?({:error, _message, {:interrupt, _, _}}), do: false
-  defp border?({:error, _message, _type}), do: true
-  defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
+  defp border?(%{type: type}) when type in [:terminal_text, :plain_text], do: true
+  defp border?(%{type: :error, context: {:interrupt, _, _}}), do: false
+  defp border?(%{type: :error}), do: true
+  defp border?(%{type: :grid, boxed: boxed}), do: boxed
   defp border?(_output), do: false
 
-  defp render_output({:stdout, text}, %{id: id}) do
+  defp render_output(%{type: :terminal_text, text: text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.StdoutComponent, id: id, text: text)
+    live_component(Output.TerminalTextComponent, id: id, text: text)
   end
 
-  defp render_output({:text, text}, %{id: id}) do
-    assigns = %{id: id, text: text}
-
-    ~H"""
-    <Output.TextComponent.render id={@id} content={@text} />
-    """
+  defp render_output(%{type: :plain_text, text: text}, %{id: id}) do
+    text = if(text == :__pruned__, do: nil, else: text)
+    live_component(Output.PlainTextComponent, id: id, text: text)
   end
 
-  defp render_output({:plain_text, text}, %{id: id}) do
-    assigns = %{id: id, text: text}
-
-    ~H"""
-    <div id={@id} class="text-gray-700 whitespace-pre-wrap"><%= @text %></div>
-    """
+  defp render_output(%{type: :markdown, text: text}, %{id: id, session_id: session_id}) do
+    text = if(text == :__pruned__, do: nil, else: text)
+    live_component(Output.MarkdownComponent, id: id, session_id: session_id, text: text)
   end
 
-  defp render_output({:markdown, markdown}, %{id: id, session_id: session_id}) do
-    live_component(Output.MarkdownComponent,
-      id: id,
-      session_id: session_id,
-      content: markdown
-    )
-  end
-
-  defp render_output({:image, content, mime_type}, %{id: id}) do
-    assigns = %{id: id, content: content, mime_type: mime_type}
+  defp render_output(%{type: :image} = output, %{id: id}) do
+    assigns = %{id: id, content: output.content, mime_type: output.mime_type}
 
     ~H"""
     <Output.ImageComponent.render id={@id} content={@content} mime_type={@mime_type} />
     """
   end
 
-  defp render_output({:js, js_info}, %{id: id, session_id: session_id, client_id: client_id}) do
+  defp render_output(%{type: :js} = output, %{
+         id: id,
+         session_id: session_id,
+         client_id: client_id
+       }) do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
-      js_view: js_info.js_view,
+      js_view: output.js_view,
       session_id: session_id,
       client_id: client_id,
       timeout_message: "Output data no longer available, please reevaluate this cell"
     )
   end
 
-  defp render_output({:frame, outputs, info}, %{
+  defp render_output(%{type: :frame} = output, %{
          id: id,
          session_id: session_id,
          session_pid: session_pid,
@@ -101,8 +90,8 @@ defmodule LivebookWeb.Output do
        }) do
     live_component(Output.FrameComponent,
       id: id,
-      outputs: outputs,
-      placeholder: Map.get(info, :placeholder, true),
+      outputs: output.outputs,
+      placeholder: output.placeholder,
       session_id: session_id,
       session_pid: session_pid,
       input_views: input_views,
@@ -111,7 +100,7 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:tabs, outputs, info}, %{
+  defp render_output(%{type: :tabs, outputs: outputs, labels: labels}, %{
          id: id,
          session_id: session_id,
          session_pid: session_pid,
@@ -120,11 +109,11 @@ defmodule LivebookWeb.Output do
          cell_id: cell_id
        }) do
     {labels, active_idx} =
-      if info.labels == :__pruned__ do
+      if labels == :__pruned__ do
         {[], nil}
       else
         labels =
-          Enum.zip_with(info.labels, outputs, fn label, {output_idx, _} -> {output_idx, label} end)
+          Enum.zip_with(labels, outputs, fn label, {output_idx, _} -> {output_idx, label} end)
 
         active_idx = get_in(outputs, [Access.at(0), Access.elem(0)])
 
@@ -187,7 +176,7 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:grid, outputs, info}, %{
+  defp render_output(%{type: :grid} = grid, %{
          id: id,
          session_id: session_id,
          session_pid: session_pid,
@@ -195,14 +184,11 @@ defmodule LivebookWeb.Output do
          client_id: client_id,
          cell_id: cell_id
        }) do
-    columns = info[:columns] || 1
-    gap = info[:gap] || 8
-
     assigns = %{
       id: id,
-      columns: columns,
-      gap: gap,
-      outputs: outputs,
+      columns: grid.columns,
+      gap: grid.gap,
+      outputs: grid.outputs,
       session_id: session_id,
       session_pid: session_pid,
       input_views: input_views,
@@ -234,7 +220,7 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:input, attrs}, %{
+  defp render_output(%{type: :input} = input, %{
          id: id,
          input_views: input_views,
          session_pid: session_pid,
@@ -242,14 +228,14 @@ defmodule LivebookWeb.Output do
        }) do
     live_component(Output.InputComponent,
       id: id,
-      attrs: attrs,
+      input: input,
       input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
     )
   end
 
-  defp render_output({:control, attrs}, %{
+  defp render_output(%{type: :control} = control, %{
          id: id,
          input_views: input_views,
          session_pid: session_pid,
@@ -258,7 +244,7 @@ defmodule LivebookWeb.Output do
        }) do
     live_component(Output.ControlComponent,
       id: id,
-      attrs: attrs,
+      control: control,
       input_views: input_views,
       session_pid: session_pid,
       client_id: client_id,
@@ -266,14 +252,11 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted, {:missing_secret, secret_name}}, %{
-         session_id: session_id
-       }) do
-    assigns = %{
-      message: formatted,
-      secret_name: secret_name,
-      session_id: session_id
-    }
+  defp render_output(
+         %{type: :error, context: {:missing_secret, secret_name}} = output,
+         %{session_id: session_id}
+       ) do
+    assigns = %{message: output.message, secret_name: secret_name, session_id: session_id}
 
     ~H"""
     <div class="-m-4 space-x-4 py-4">
@@ -297,14 +280,11 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:error, formatted, {:file_entry_forbidden, file_entry_name}}, %{
-         session_id: session_id
-       }) do
-    assigns = %{
-      message: formatted,
-      file_entry_name: file_entry_name,
-      session_id: session_id
-    }
+  defp render_output(
+         %{type: :error, context: {:file_entry_forbidden, file_entry_name}} = output,
+         %{session_id: session_id}
+       ) do
+    assigns = %{message: output.message, file_entry_name: file_entry_name, session_id: session_id}
 
     ~H"""
     <div class="-m-4 space-x-4 py-4">
@@ -328,7 +308,10 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:error, _formatted, {:interrupt, variant, message}}, %{cell_id: cell_id}) do
+  defp render_output(
+         %{type: :error, context: {:interrupt, variant, message}},
+         %{cell_id: cell_id}
+       ) do
     assigns = %{variant: variant, message: message, cell_id: cell_id}
 
     ~H"""
@@ -360,8 +343,8 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:error, formatted, _type}, %{}) do
-    render_formatted_error_message(formatted)
+  defp render_output(%{type: :error, message: message}, %{}) do
+    render_formatted_error_message(message)
   end
 
   defp render_output(output, %{}) do

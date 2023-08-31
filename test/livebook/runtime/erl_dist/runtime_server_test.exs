@@ -9,6 +9,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     {:ok, %{pid: runtime_server_pid}}
   end
 
+  defmacrop terminal_text(text, chunk \\ false) do
+    quote do
+      %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
+    end
+  end
+
   describe "attach/2" do
     test "starts watching the given process and terminates as soon as it terminates" do
       owner =
@@ -63,7 +69,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
         []
       )
 
-      assert_receive {:runtime_evaluation_output, :e1, {:stdout, output}}
+      assert_receive {:runtime_evaluation_output, :e1, terminal_text(output, true)}
 
       assert output =~ "error to stdout\n"
     end
@@ -77,7 +83,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       RuntimeServer.evaluate_code(pid, :elixir, code, {:c1, :e1}, [])
 
-      assert_receive {:runtime_evaluation_output, :e1, {:stdout, log_message}}
+      assert_receive {:runtime_evaluation_output, :e1, terminal_text(log_message, true)}
+
       assert log_message =~ "[error] hey"
     end
 
@@ -87,7 +94,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       RuntimeServer.evaluate_code(pid, :elixir, "x", {:c2, :e2}, [{:c1, :e1}])
 
-      assert_receive {:runtime_evaluation_response, :e2, {:text, "\e[34m1\e[0m"},
+      assert_receive {:runtime_evaluation_response, :e2, terminal_text("\e[34m1\e[0m"),
                       %{evaluation_time_ms: _time_ms}}
     end
 

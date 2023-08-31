@@ -51,19 +51,19 @@ defmodule Livebook.Notebook.Cell do
   @doc """
   Extracts all inputs from the given indexed output.
   """
-  @spec find_inputs_in_output(indexed_output()) :: list(input_attrs :: map())
+  @spec find_inputs_in_output(indexed_output()) :: list(Livebook.Runtime.input_output())
   def find_inputs_in_output(output)
 
-  def find_inputs_in_output({_idx, {:input, attrs}}) do
-    [attrs]
+  def find_inputs_in_output({_idx, %{type: :input} = input}) do
+    [input]
   end
 
-  def find_inputs_in_output({_idx, {:control, %{type: :form, fields: fields}}}) do
+  def find_inputs_in_output({_idx, %{type: :control, attrs: %{type: :form, fields: fields}}}) do
     Keyword.values(fields)
   end
 
-  def find_inputs_in_output({_idx, {type, outputs, _}}) when type in [:frame, :tabs, :grid] do
-    Enum.flat_map(outputs, &find_inputs_in_output/1)
+  def find_inputs_in_output({_idx, output}) when output.type in [:frame, :tabs, :grid] do
+    Enum.flat_map(output.outputs, &find_inputs_in_output/1)
   end
 
   def find_inputs_in_output(_output), do: []
@@ -74,13 +74,13 @@ defmodule Livebook.Notebook.Cell do
   @spec find_assets_in_output(Livebook.Runtime.output()) :: list(asset_info :: map())
   def find_assets_in_output(output)
 
-  def find_assets_in_output({:js, %{js_view: %{assets: assets_info}}}), do: [assets_info]
+  def find_assets_in_output(%{type: :js} = output), do: [output.js_view.assets]
 
-  def find_assets_in_output({type, outputs, _}) when type in [:frame, :tabs, :grid] do
-    Enum.flat_map(outputs, &find_assets_in_output/1)
+  def find_assets_in_output(output) when output.type in [:frame, :tabs, :grid] do
+    Enum.flat_map(output.outputs, &find_assets_in_output/1)
   end
 
-  def find_assets_in_output(_), do: []
+  def find_assets_in_output(_output), do: []
 
   @setup_cell_id "setup"
 

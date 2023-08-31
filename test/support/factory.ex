@@ -67,6 +67,19 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:fs_s3) do
+    bucket_url = "https://mybucket.s3.amazonaws.com"
+    hash = :crypto.hash(:sha256, bucket_url)
+
+    %Livebook.FileSystem.S3{
+      id: "s3-#{Base.url_encode64(hash, padding: false)}",
+      bucket_url: bucket_url,
+      region: "us-east-1",
+      access_key_id: "key",
+      secret_access_key: "secret"
+    }
+  end
+
   def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end
