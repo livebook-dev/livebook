@@ -249,7 +249,7 @@ defmodule Livebook.Runtime.Definitions do
       source: """
       df =
         Kino.FS.file_spec("{{NAME}}")
-        |> Explorer.DataFrame.from_parquet!()\
+        |> Explorer.DataFrame.from_parquet!(lazy: true)\
       """,
       packages: [kino, kino_explorer]
     },
