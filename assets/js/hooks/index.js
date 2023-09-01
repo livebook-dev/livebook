@@ -16,7 +16,7 @@ import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
 import OutputPanel from "./output_panel";
 import OutputPanelItem from "./output_panel_item";
-import OutputPanelRowDropzone from "./output_panel_row_dropzone";
+import OutputPanelDropzone from "./output_panel_dropzone";
 import ScrollOnUpdate from "./scroll_on_update";
 import Session from "./session";
 import TextareaAutosize from "./textarea_autosize";
@@ -46,7 +46,7 @@ export default {
   MarkdownRenderer,
   OutputPanel,
   OutputPanelItem,
-  OutputPanelRowDropzone,
+  OutputPanelDropzone,
   ScrollOnUpdate,
   Session,
   TextareaAutosize,

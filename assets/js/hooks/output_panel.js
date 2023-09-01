@@ -12,12 +12,31 @@ const OutputPanel = {
     this.props = this.getProps();
     this.isDragging = false;
     this.draggedEl = null;
+    this.dragLabel = this.createDragLabel();
+    this.srcColEl = null;
 
     this.el.addEventListener("dragstart", (event) => {
+      let row = getAttributeOrThrow(
+        event.srcElement,
+        "data-row-index",
+        parseInteger
+      );
+      let col = getAttributeOrThrow(
+        event.srcElement,
+        "data-col-index",
+        parseInteger
+      );
+      this.srcColEl = document.getElementById(`dropzone-row-${row}-col-${col}`);
+      this.srcColEl.classList.add("hidden");
+      event.target.parentNode.classList.add("hidden");
+      event.dataTransfer.setDragImage(this.dragLabel, 10, 10);
+
       this.startDragging(event.target);
     });
 
     this.el.addEventListener("dragend", (event) => {
+      this.srcColEl.classList.remove("hidden");
+      event.target.parentNode.classList.remove("hidden");
       this.stopDragging();
     });
 
@@ -55,11 +74,6 @@ const OutputPanel = {
         );
 
         if (dstCol !== null) {
-          // when dropping on the right side, move element one column to the right
-          if (srcRow !== dstRow && event.layerX > dstEl.offsetWidth / 2)
-            dstCol += 1;
-          if (srcRow === dstRow && srcCol < dstCol) dstCol += 1;
-
           this.pushEventTo(this.props.phxTarget, "handle_move_item", {
             cell_id: cellId,
             row_index: dstRow,
@@ -79,8 +93,11 @@ const OutputPanel = {
       this.stopDragging();
     });
   },
-  update() {
+  updated() {
     this.props = this.getProps();
+  },
+  destroyed() {
+    document.body.removeChild(this.dragLabel);
   },
   getProps() {
     return {
@@ -100,6 +117,17 @@ const OutputPanel = {
       this.isDragging = false;
       this.el.removeAttribute("data-js-dragging");
     }
+  },
+  createDragLabel() {
+    const elem = document.createElement("div");
+    elem.classList.add("w-24", "h-8", "bg-blue-900", "rounded");
+    elem.style.position = "fixed";
+    elem.style.left = "-1000px";
+    elem.style.top = "-1000px";
+
+    // the element must be in the DOM to use it with setDragItem
+    document.body.appendChild(elem);
+    return elem;
   },
 };
 

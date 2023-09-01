@@ -36,7 +36,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       </h1>
       <.row_dropzone row={0} />
       <%= for {output_row, row_index} <- Enum.with_index(@output_views.rows) do %>
-        <div class="flex relative" data-row-index={row_index} data-el-output-panel-row>
+        <div class="flex relative space-y-2" data-row-index={row_index} data-el-output-panel-row>
           <div class="absolute inset-0 flex gap-2" data-el-output-panel-col-drop-area>
             <.col_dropzone
               :for={col_index <- 0..length(output_row.items)}
@@ -47,15 +47,22 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
           <div
             :for={{item, col_index} <- Enum.with_index(output_row.items)}
             id={"output-panel-item-#{row_index}-#{col_index}"}
-            class="relative"
+            class="relative space-x-2"
             style={"width: #{item.width}%"}
             data-cell-id={item.cell_id}
             data-row-index={row_index}
             data-col-index={col_index}
             data-el-output-panel-item
+            phx-hook="OutputPanelItem"
           >
             <% cell_rendered? = item.outputs != [] %>
-            <.output_options cell_id={item.cell_id} cell_rendered={cell_rendered?} myself={@myself} />
+            <.output_options
+              cell_id={item.cell_id}
+              cell_rendered={cell_rendered?}
+              row={row_index}
+              col={col_index}
+              myself={@myself}
+            />
             <%= if cell_rendered? do %>
               <LivebookWeb.Output.outputs
                 outputs={item.outputs}
@@ -83,12 +90,17 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id={"dropzone-row-#{@row}-col-#{@col}"}
-      class="w-full h-full bg-blue rounded-lg border-2 border-dashed border-gray-400"
+      class="flex z-20 w-full h-full justify-center items-center"
+      data-el-output-panel-col-drop-area
       data-row-index={@row}
       data-col-index={@col}
-      phx-hook="OutputPanelColDropzone"
+      phx-hook="OutputPanelDropzone"
       data-js-droppable
-    />
+    >
+      <div class="p-4 text-justify text-center text-sm text-gray-500 font-medium rounded-lg">
+        Add to row
+      </div>
+    </div>
     """
   end
 
@@ -96,27 +108,27 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id={"dropzone-row-#{@row}"}
-      class="w-full h-2 bg-white rounded-lg border-2 border-dashed border-gray-400"
+      class="flex w-full h-2 justify-center items-center"
       data-el-output-panel-row-drop-area
       data-row-index={@row}
-      phx-hook="OutputPanelRowDropzone"
+      phx-hook="OutputPanelDropzone"
       data-js-droppable
-    />
+    >
+      <div class="p-4 text-justify text-center text-sm text-gray-500 font-medium rounded-lg">
+        Add new row
+      </div>
+    </div>
     """
   end
 
   defp output_options(assigns) do
     ~H"""
-    <div class="absolute z-10 top-0 right-2" data-el-output-panel-item-options>
+    <div class="absolute z-10 top-0 right-2 hidden" data-el-output-panel-item-options>
       <div class="flex justify-center items-center shadow-lg border rounded border-gray-300 bg-white">
-        <div class="flex pr-2" draggable="true">
+        <div class="flex pr-2" draggable="true" data-row-index={@row} data-col-index={@col}>
           <div class="cursor-move">
             <.remix_icon icon="draggable" />
           </div>
-          <div
-            class="bg-blue-500 text-white text-sm rounded py-1 px-2 shadow-lg"
-            data-el-output-panel-item-options-drag-label
-          />
         </div>
         <div>
           <div class="cursor-pointer">

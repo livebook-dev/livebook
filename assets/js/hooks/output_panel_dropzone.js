@@ -3,7 +3,7 @@ const DRAGGING_ATTR = "data-js-dragging";
 /**
  * A hook used to highlight drop zone when dragging an item in the output panel over an empty row.
  */
-const OutputPanelRowDropzone = {
+const OutputPanelDropzone = {
   mounted() {
     this.el.addEventListener("dragenter", (event) => {
       this.el.setAttribute(DRAGGING_ATTR, "");
@@ -21,4 +21,4 @@ const OutputPanelRowDropzone = {
   },
 };
 
-export default OutputPanelRowDropzone;
+export default OutputPanelDropzone;
