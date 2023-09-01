@@ -79,10 +79,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.amplify_output_button />
         <.add_output_to_output_panel_button
-          :if={
-            @cell_view.eval.output_location == :notebook &&
-              @cell_view.eval.validity in [:evaluated, :stale]
-          }
+          :if={@cell_view.eval.output_location == :notebook}
           cell_id={@cell_view.id}
         />
         <.remove_output_from_output_panel_button
@@ -185,10 +182,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.convert_smart_cell_button cell_id={@cell_view.id} />
         <.amplify_output_button />
         <.add_output_to_output_panel_button
-          :if={
-            @cell_view.eval.output_location == :notebook &&
-              @cell_view.eval.validity in [:evaluated, :stale]
-          }
+          :if={@cell_view.eval.output_location == :notebook}
           cell_id={@cell_view.id}
         />
         <.remove_output_from_output_panel_button

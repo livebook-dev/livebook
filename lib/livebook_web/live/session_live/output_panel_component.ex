@@ -36,7 +36,14 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       </h1>
       <.row_dropzone row={0} />
       <%= for {output_row, row_index} <- Enum.with_index(@output_views.rows) do %>
-        <div class="flex" data-row-index={row_index} data-el-output-panel-row>
+        <div class="flex relative" data-row-index={row_index} data-el-output-panel-row>
+          <div class="absolute inset-0 flex gap-2" data-el-output-panel-col-drop-area>
+            <.col_dropzone
+              :for={col_index <- 0..length(output_row.items)}
+              row={row_index}
+              col={col_index}
+            />
+          </div>
           <div
             :for={{item, col_index} <- Enum.with_index(output_row.items)}
             id={"output-panel-item-#{row_index}-#{col_index}"}
@@ -46,24 +53,42 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
             data-row-index={row_index}
             data-col-index={col_index}
             data-el-output-panel-item
-            phx-hook="OutputPanelItem"
-            data-js-droppable
           >
-            <.output_options cell_id={item.cell_id} myself={@myself} />
-            <LivebookWeb.Output.outputs
-              outputs={item.outputs}
-              dom_id_map={%{}}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              cell_id={item.cell_id}
-              input_views={item.input_views}
-            />
+            <% cell_rendered? = item.outputs != [] %>
+            <.output_options cell_id={item.cell_id} cell_rendered={cell_rendered?} myself={@myself} />
+            <%= if cell_rendered? do %>
+              <LivebookWeb.Output.outputs
+                outputs={item.outputs}
+                dom_id_map={%{}}
+                session_id={@session.id}
+                session_pid={@session.pid}
+                client_id={@client_id}
+                cell_id={item.cell_id}
+                input_views={item.input_views}
+              />
+            <% else %>
+              <div class="info-box">
+                This cell was not yet rendered
+              </div>
+            <% end %>
           </div>
         </div>
         <.row_dropzone row={row_index + 1} />
       <% end %>
     </div>
+    """
+  end
+
+  defp col_dropzone(assigns) do
+    ~H"""
+    <div
+      id={"dropzone-row-#{@row}-col-#{@col}"}
+      class="w-full h-full bg-blue rounded-lg border-2 border-dashed border-gray-400"
+      data-row-index={@row}
+      data-col-index={@col}
+      phx-hook="OutputPanelColDropzone"
+      data-js-droppable
+    />
     """
   end
 
@@ -82,32 +107,59 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
 
   defp output_options(assigns) do
     ~H"""
-    <div class="absolute z-10 top-0 right-2 hidden" data-el-output-panel-item-options>
-      <div class="justify-center items-center shadow-lg border rounded border-gray-300 bg-white px-2">
-        <div class="flex space-x-4">
-          <div class="flex" draggable="true">
-            <div class="cursor-move">
-              <.remix_icon icon="draggable" />
-            </div>
-            <div
-              class="w-16 bg-blue-500 text-white text-sm rounded py-1 px-2 shadow-lg"
-              data-el-output-panel-item-options-drag-label
-            />
+    <div class="absolute z-10 top-0 right-2" data-el-output-panel-item-options>
+      <div class="flex justify-center items-center shadow-lg border rounded border-gray-300 bg-white">
+        <div class="flex pr-2" draggable="true">
+          <div class="cursor-move">
+            <.remix_icon icon="draggable" />
           </div>
-          <div class="flex" data-el-output-panel-item-options-controls>
-            <div class="cursor-pointer">
-              <span class="tooltip top" data-tooltip="Remove output from Output Panel">
+          <div
+            class="bg-blue-500 text-white text-sm rounded py-1 px-2 shadow-lg"
+            data-el-output-panel-item-options-drag-label
+          />
+        </div>
+        <div>
+          <div class="cursor-pointer">
+            <%= if @cell_rendered do %>
+              <span class="tooltip top" data-tooltip="Reevaluate cell">
                 <button
                   class="icon-button"
-                  aria-label="remove output from output panel"
-                  phx-click="remove_output_from_output_panel"
+                  aria-label="reevaluate cell"
+                  phx-click="queue_cell_evaluation"
                   phx-value-cell_id={@cell_id}
                   phx-target={@myself}
                 >
-                  <.remix_icon icon="delete-bin-line" />
+                  <.remix_icon icon="memories-line" />
                 </button>
               </span>
-            </div>
+            <% else %>
+              <span class="tooltip top" data-tooltip="Evaluate cell">
+                <button
+                  class="icon-button"
+                  aria-label="evaluate cell"
+                  phx-click="queue_cell_evaluation"
+                  phx-value-cell_id={@cell_id}
+                  phx-target={@myself}
+                >
+                  <.remix_icon icon="play-circle-line" />
+                </button>
+              </span>
+            <% end %>
+          </div>
+        </div>
+        <div class="flex" data-el-output-panel-item-options-controls>
+          <div class="cursor-pointer">
+            <span class="tooltip top" data-tooltip="Remove output from Output Panel">
+              <button
+                class="icon-button"
+                aria-label="remove output from output panel"
+                phx-click="remove_output_from_output_panel"
+                phx-value-cell_id={@cell_id}
+                phx-target={@myself}
+              >
+                <.remix_icon icon="logout-box-line" />
+              </button>
+            </span>
           </div>
         </div>
       </div>
@@ -137,6 +189,11 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
 
   def handle_event("remove_output_from_output_panel", %{"cell_id" => cell_id}, socket) do
     Session.remove_output_from_output_panel(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
     {:noreply, socket}
   end
 end
