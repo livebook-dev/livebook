@@ -78,10 +78,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
         <.cell_settings_button cell_id={@cell_view.id} session_id={@session_id} />
         <.amplify_output_button />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
         <.add_output_to_output_panel_button
           :if={
             @cell_view.eval.output_location == :notebook &&
@@ -93,6 +89,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           :if={@cell_view.eval.output_location == :output_panel}
           cell_id={@cell_view.id}
         />
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -184,10 +184,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.toggle_source_button />
         <.convert_smart_cell_button cell_id={@cell_view.id} />
         <.amplify_output_button />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
         <.add_output_to_output_panel_button
           :if={
             @cell_view.eval.output_location == :notebook &&
@@ -199,6 +195,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           :if={@cell_view.eval.output_location == :output_panel}
           cell_id={@cell_view.id}
         />
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
     <.cell_body>
