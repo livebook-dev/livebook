@@ -16,6 +16,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:kino_db, "~> 0.2.2"}, config: []}
   }
 
+  exqlite = %{
+    name: "exqlite",
+    dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}
+  }
+
   kino_maplibre = %{
     name: "kino_maplibre",
     dependency: %{dep: {:kino_maplibre, "~> 0.1.7"}, config: []}
@@ -108,10 +113,7 @@ defmodule Livebook.Runtime.Definitions do
         },
         %{
           name: "SQLite",
-          packages: [
-            kino_db,
-            %{name: "exqlite", dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}}
-          ]
+          packages: [kino_db, exqlite]
         }
       ]
     },
@@ -348,6 +350,18 @@ defmodule Livebook.Runtime.Definitions do
       output = Nx.Serving.run(serving, {:file, path})\
       """,
       packages: [kino_bumblebee, nx_backend_package]
+    },
+    %{
+      type: :file_action,
+      file_types: [".db", ".sqlite"],
+      description: "Describe SQLite database",
+      source: """
+      database_path = Kino.FS.file_path("{{NAME}}")
+      {:ok, conn} = Kino.start_child({Exqlite, database: database_path})
+
+      Exqlite.query!(conn, "PRAGMA table_list", [])\
+      """,
+      packages: [kino_db, exqlite]
     }
   ]
 
