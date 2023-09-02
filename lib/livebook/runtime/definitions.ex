@@ -13,7 +13,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.2"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.3"}, config: []}
   }
 
   exqlite = %{
@@ -114,6 +114,13 @@ defmodule Livebook.Runtime.Definitions do
         %{
           name: "SQLite",
           packages: [kino_db, exqlite]
+        },
+        %{
+          name: "SQLServer",
+          packages: [
+            kino_db,
+            %{name: "tds", dependency: %{dep: {:tds, "~> 2.3.4"}, config: []}}
+          ]
         }
       ]
     },
