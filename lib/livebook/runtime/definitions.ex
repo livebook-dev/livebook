@@ -75,7 +75,7 @@ defmodule Livebook.Runtime.Definitions do
             kino_db,
             %{
               name: "req_athena",
-              dependency: %{dep: {:req_athena, "~> 0.1.3"}, config: []}
+              dependency: %{dep: {:req_athena, ">= 0.0.0"}, config: []}
             }
           ]
         },
@@ -85,7 +85,7 @@ defmodule Livebook.Runtime.Definitions do
             kino_db,
             %{
               name: "req_bigquery",
-              dependency: %{dep: {:req_bigquery, "~> 0.1.1"}, config: []}
+              dependency: %{dep: {:req_bigquery, ">= 0.0.0"}, config: []}
             }
           ]
         },
@@ -93,14 +93,14 @@ defmodule Livebook.Runtime.Definitions do
           name: "MySQL",
           packages: [
             kino_db,
-            %{name: "myxql", dependency: %{dep: {:myxql, "~> 0.6.2"}, config: []}}
+            %{name: "myxql", dependency: %{dep: {:myxql, ">= 0.0.0"}, config: []}}
           ]
         },
         %{
           name: "PostgreSQL",
           packages: [
             kino_db,
-            %{name: "postgrex", dependency: %{dep: {:postgrex, "~> 0.16.3"}, config: []}}
+            %{name: "postgrex", dependency: %{dep: {:postgrex, ">= 0.0.0"}, config: []}}
           ]
         },
         %{
@@ -108,7 +108,7 @@ defmodule Livebook.Runtime.Definitions do
           packages: [
             kino_db,
             kino_explorer,
-            %{name: "adbc", dependency: %{dep: {:adbc, "~> 0.1.1"}, config: []}}
+            %{name: "adbc", dependency: %{dep: {:adbc, ">= 0.0.0"}, config: []}}
           ]
         },
         %{
@@ -119,7 +119,7 @@ defmodule Livebook.Runtime.Definitions do
           name: "SQLServer",
           packages: [
             kino_db,
-            %{name: "tds", dependency: %{dep: {:tds, "~> 2.3.4"}, config: []}}
+            %{name: "tds", dependency: %{dep: {:tds, ">= 0.0.0"}, config: []}}
           ]
         }
       ]
