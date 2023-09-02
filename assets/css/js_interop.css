@@ -419,11 +419,19 @@ solely client-side operations.
 }
 
 [data-el-output-panel-content][data-js-dragging]
-  [data-el-output-panel-col-drop-area][data-js-dragging] {
-  @apply bg-blue-200 rounded-lg border-blue-300 border-2 border-dashed;
+  [data-el-output-panel-col-drop-area]:not([data-js-dragging]) {
+  @apply z-20 opacity-0;
 }
 
 [data-el-output-panel-content][data-js-dragging]
-  [data-el-output-panel-row-drop-area][data-js-dragging] {
-  @apply h-16 bg-blue-200 rounded-lg border-blue-300 border-2 border-dashed;
+  [data-el-output-panel-row-drop-area]:not([data-js-dragging]) {
+  @apply opacity-0;
+}
+
+[data-el-output-panel-col-drop-area][data-js-dragging] {
+  @apply z-20 opacity-100;
+}
+
+[data-el-output-panel-row-drop-area][data-js-dragging] {
+  @apply h-16 opacity-100;
 }

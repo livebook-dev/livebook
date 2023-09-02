@@ -26,7 +26,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id="output-panel"
-      class="h-full w-full"
+      class="h-full w-full overflow-x-hidden overflow-y-scroll"
       phx-hook="OutputPanel"
       data-phx-target={@myself}
       data-el-output-panel-content
@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
       <.row_dropzone row={0} />
       <%= for {output_row, row_index} <- Enum.with_index(@output_views.rows) do %>
         <div class="flex relative space-y-2" data-row-index={row_index} data-el-output-panel-row>
-          <div class="absolute inset-0 flex gap-2" data-el-output-panel-col-drop-area>
+          <div class="absolute inset-0 flex gap-2">
             <.col_dropzone
               :for={col_index <- 0..length(output_row.items)}
               row={row_index}
@@ -90,15 +90,14 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id={"dropzone-row-#{@row}-col-#{@col}"}
-      class="flex z-20 w-full h-full justify-center items-center"
+      class="flex w-full h-full justify-center items-center bg-blue-200 rounded-lg border-blue-300 border-2 border-dashed"
       data-el-output-panel-col-drop-area
       data-row-index={@row}
       data-col-index={@col}
       phx-hook="OutputPanelDropzone"
-      data-js-droppable
     >
       <div class="p-4 text-justify text-center text-sm text-gray-500 font-medium rounded-lg">
-        Add to row
+        Add new column
       </div>
     </div>
     """
@@ -108,11 +107,10 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
     ~H"""
     <div
       id={"dropzone-row-#{@row}"}
-      class="flex w-full h-2 justify-center items-center"
+      class="flex w-full h-2 justify-center items-center bg-blue-200 rounded-lg border-blue-300 border-2 border-dashed"
       data-el-output-panel-row-drop-area
       data-row-index={@row}
       phx-hook="OutputPanelDropzone"
-      data-js-droppable
     >
       <div class="p-4 text-justify text-center text-sm text-gray-500 font-medium rounded-lg">
         Add new row

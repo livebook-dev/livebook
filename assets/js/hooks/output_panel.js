@@ -16,27 +16,31 @@ const OutputPanel = {
     this.srcColEl = null;
 
     this.el.addEventListener("dragstart", (event) => {
-      let row = getAttributeOrThrow(
-        event.srcElement,
-        "data-row-index",
-        parseInteger
-      );
-      let col = getAttributeOrThrow(
-        event.srcElement,
-        "data-col-index",
-        parseInteger
-      );
-      this.srcColEl = document.getElementById(`dropzone-row-${row}-col-${col}`);
-      this.srcColEl.classList.add("hidden");
-      event.target.parentNode.classList.add("hidden");
-      event.dataTransfer.setDragImage(this.dragLabel, 10, 10);
+      if (!this.isDragging) {
+        this.isDragging = true;
+        this.draggedEl = event.target;
+        this.el.setAttribute("data-js-dragging", "");
 
-      this.startDragging(event.target);
+        const row = getAttributeOrThrow(
+          event.target,
+          "data-row-index",
+          parseInteger
+        );
+        const col = getAttributeOrThrow(
+          event.target,
+          "data-col-index",
+          parseInteger
+        );
+        this.srcColEl = document.getElementById(
+          `dropzone-row-${row}-col-${col}`
+        );
+        this.srcColEl.classList.add("hidden");
+        event.dataTransfer.setDragImage(this.dragLabel, 10, 10);
+        event.target.parentNode.classList.add("hidden");
+      }
     });
 
     this.el.addEventListener("dragend", (event) => {
-      this.srcColEl.classList.remove("hidden");
-      event.target.parentNode.classList.remove("hidden");
       this.stopDragging();
     });
 
@@ -49,7 +53,7 @@ const OutputPanel = {
       event.stopPropagation();
       event.preventDefault();
 
-      const dstEl = event.target.closest(`[data-js-droppable]`);
+      const dstEl = event.target.closest(`[phx-hook="OutputPanelDropzone"]`);
 
       const srcEl = this.draggedEl.closest(`[data-el-output-panel-item]`);
 
@@ -104,26 +108,19 @@ const OutputPanel = {
       phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
     };
   },
-  startDragging(element) {
-    if (!this.isDragging) {
-      this.isDragging = true;
-      this.draggedEl = element;
-
-      this.el.setAttribute("data-js-dragging", "");
-    }
-  },
   stopDragging() {
     if (this.isDragging) {
       this.isDragging = false;
       this.el.removeAttribute("data-js-dragging");
+      this.srcColEl.classList.remove("hidden");
+      event.target.parentNode.classList.remove("hidden");
     }
   },
   createDragLabel() {
     const elem = document.createElement("div");
     elem.classList.add("w-24", "h-8", "bg-blue-900", "rounded");
     elem.style.position = "fixed";
-    elem.style.left = "-1000px";
-    elem.style.top = "-1000px";
+    elem.style.left = "-100%";
 
     // the element must be in the DOM to use it with setDragItem
     document.body.appendChild(elem);
