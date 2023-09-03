@@ -53,7 +53,7 @@ defmodule Livebook.Hubs.Personal do
   @doc """
   Updates a Hub.
 
-  With success, notifies interested processes about hub metadatas data change.
+  With success, notifies interested processes about hub metadata data change.
   Otherwise, it will return an error tuple with changeset.
   """
   @spec update_hub(t(), map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}

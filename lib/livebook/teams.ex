@@ -156,7 +156,7 @@ defmodule Livebook.Teams do
   @doc """
   Creates a Hub.
 
-  It notifies interested processes about hub metadatas data change.
+  It notifies interested processes about hub metadata data change.
   """
   @spec create_hub!(map()) :: Team.t()
   def create_hub!(attrs) do
@@ -169,7 +169,7 @@ defmodule Livebook.Teams do
   @doc """
   Updates a Hub.
 
-  With success, notifies interested processes about hub metadatas data change.
+  With success, notifies interested processes about hub metadata data change.
   Otherwise, it will return an error tuple with changeset.
   """
   @spec update_hub(Team.t(), map()) :: {:ok, Team.t()} | {:error, Ecto.Changeset.t()}

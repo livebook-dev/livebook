@@ -27,10 +27,10 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of metadatas from storage.
+  Gets a list of metadata from storage.
   """
-  @spec get_metadatas() :: list(Metadata.t())
-  def get_metadatas do
+  @spec get_metadata() :: list(Metadata.t())
+  def get_metadata do
     for hub <- get_hubs() do
       Provider.to_metadata(hub)
     end

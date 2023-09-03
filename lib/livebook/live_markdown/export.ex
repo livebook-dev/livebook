@@ -107,14 +107,14 @@ defmodule Livebook.LiveMarkdown.Export do
 
     app_settings_metadata = app_settings_metadata(notebook.app_settings)
 
-    file_entry_metadatas =
+    file_entry_metadata =
       notebook.file_entries
       |> Enum.sort_by(& &1.name)
       |> Enum.map(&file_entry_metadata/1)
 
     put_unless_default(
       metadata,
-      %{app_settings: app_settings_metadata, file_entries: file_entry_metadatas},
+      %{app_settings: app_settings_metadata, file_entries: file_entry_metadata},
       %{app_settings: %{}, file_entries: []}
     )
   end
