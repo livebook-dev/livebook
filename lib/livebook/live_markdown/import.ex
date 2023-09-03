@@ -410,10 +410,10 @@ defmodule Livebook.LiveMarkdown.Import do
 
         {Map.put(attrs, :app_settings, app_settings), messages}
 
-      {"file_entries", file_entry_metadatas}, {attrs, messages}
-      when is_list(file_entry_metadatas) ->
+      {"file_entries", file_entry_metadata}, {attrs, messages}
+      when is_list(file_entry_metadata) ->
         file_system_by_id =
-          if Enum.any?(file_entry_metadatas, &(&1["type"] == "file")) do
+          if Enum.any?(file_entry_metadata, &(&1["type"] == "file")) do
             for file_system <- Livebook.Settings.file_systems(),
                 do: {file_system.id, file_system},
                 into: %{}
@@ -422,7 +422,7 @@ defmodule Livebook.LiveMarkdown.Import do
           end
 
         {file_entries, file_entry_messages} =
-          for file_entry_metadata <- file_entry_metadatas, reduce: {[], []} do
+          for file_entry_metadata <- file_entry_metadata, reduce: {[], []} do
             {file_entries, warnings} ->
               case file_entry_metadata_to_attrs(file_entry_metadata, file_system_by_id) do
                 {:ok, file_entry} -> {[file_entry | file_entries], warnings}

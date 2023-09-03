@@ -13,7 +13,7 @@ defmodule LivebookWeb.SidebarHook do
 
     socket =
       socket
-      |> assign(saved_hubs: Livebook.Hubs.get_metadatas())
+      |> assign(saved_hubs: Livebook.Hubs.get_metadata())
       |> attach_hook(:hubs, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_event, &handle_event/3)
@@ -28,17 +28,17 @@ defmodule LivebookWeb.SidebarHook do
   @connection_events ~w(hub_connected hub_changed)a
 
   defp handle_info(event, socket) when elem(event, 0) in @connection_events do
-    {:cont, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
+    {:cont, assign(socket, saved_hubs: Livebook.Hubs.get_metadata())}
   end
 
   defp handle_info({:hub_connection_failed, _hub_id, _reason}, socket) do
-    {:cont, assign(socket, saved_hubs: Livebook.Hubs.get_metadatas())}
+    {:cont, assign(socket, saved_hubs: Livebook.Hubs.get_metadata())}
   end
 
   defp handle_info({:hub_server_error, _hub_id, error}, socket) do
     {:cont,
      socket
-     |> assign(saved_hubs: Livebook.Hubs.get_metadatas())
+     |> assign(saved_hubs: Livebook.Hubs.get_metadata())
      |> put_flash(:error, error)}
   end
 
