@@ -388,10 +388,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 
-  def metadata(file_system) do
-    %{type: :s3, name: file_system.bucket_url}
-  end
-
   def external_metadata(file_system) do
     %{name: file_system.bucket_url, error_field: "bucket_url"}
   end

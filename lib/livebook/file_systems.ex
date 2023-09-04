@@ -4,7 +4,7 @@ defmodule Livebook.FileSystems do
   alias Livebook.FileSystem
 
   @doc """
-  Returns the atom type from given file system.
+  Returns the type identifier for the given file system.
   """
   @spec type(FileSystem.t()) :: String.t()
   def type(%FileSystem.S3{}), do: "s3"
