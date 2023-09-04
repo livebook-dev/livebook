@@ -183,6 +183,21 @@ defmodule Livebook.Runtime.Definitions do
           packages: [kino_explorer]
         }
       ]
+    },
+    %{
+      kind: "Elixir.Kino.RemoteCell",
+      name: "Remote cell",
+      requirement_presets: [
+        %{
+          name: "Default",
+          packages: [
+            %{
+              name: "kino",
+              dependency: %{dep: {:kino, github: "livebook-dev/kino", branch: "main"}, config: []}
+            }
+          ]
+        }
+      ]
     }
   ]
 
