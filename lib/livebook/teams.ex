@@ -265,7 +265,7 @@ defmodule Livebook.Teams do
 
   defp add_file_system_errors(%struct{} = file_system, errors_map) do
     %{error_field: field} = FileSystem.external_metadata(file_system)
-    errors_map = for {_key, values} <- errors_map, into: %{}, do: {field, values}
+    errors_map = Map.new(errors_map, fn {_key, values} -> {field, values} end)
 
     add_errors(change(file_system), struct.__schema__(:fields), errors_map)
   end
