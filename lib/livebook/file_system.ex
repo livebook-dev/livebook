@@ -241,4 +241,10 @@ defprotocol Livebook.FileSystem do
   """
   @spec dump(t()) :: map()
   def dump(file_system)
+
+  @doc """
+  Returns file system metadata for external storages.
+  """
+  @spec external_metadata(t()) :: %{name: String.t(), error_field: String.t()}
+  def external_metadata(file_system)
 end

@@ -1,17 +1,26 @@
 defmodule Livebook.FileSystem.S3 do
   @moduledoc false
+  use Ecto.Schema
+  import Ecto.Changeset
 
   # File system backed by an S3 bucket.
-
-  defstruct [:id, :bucket_url, :region, :access_key_id, :secret_access_key]
 
   @type t :: %__MODULE__{
           id: String.t(),
           bucket_url: String.t(),
+          external_id: String.t(),
           region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t()
         }
+
+  embedded_schema do
+    field :bucket_url, :string
+    field :external_id, :string
+    field :region, :string
+    field :access_key_id, :string
+    field :secret_access_key, :string
+  end
 
   @doc """
   Returns a new file system struct.
@@ -22,10 +31,12 @@ defmodule Livebook.FileSystem.S3 do
       to have the format `*.[region].[rootdomain].com` and the region
       is inferred from that URL
 
+    * `:external_id` - the external id from Teams.
+
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region])
+    opts = Keyword.validate!(opts, [:region, :external_id])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
@@ -36,6 +47,7 @@ defmodule Livebook.FileSystem.S3 do
     %__MODULE__{
       id: id,
       bucket_url: bucket_url,
+      external_id: opts[:external_id],
       region: region,
       access_key_id: access_key_id,
       secret_access_key: secret_access_key
@@ -59,7 +71,12 @@ defmodule Livebook.FileSystem.S3 do
         access_key_id: access_key_id,
         secret_access_key: secret_access_key
       } ->
-        file_system = new(bucket_url, access_key_id, secret_access_key, region: config[:region])
+        file_system =
+          new(bucket_url, access_key_id, secret_access_key,
+            region: config[:region],
+            external_id: config[:external_id]
+          )
+
         {:ok, file_system}
 
       _config ->
@@ -71,6 +88,27 @@ defmodule Livebook.FileSystem.S3 do
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
     Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking file system changes.
+  """
+  @spec change_file_system(t(), map()) :: Ecto.Changeset.t()
+  def change_file_system(s3, attrs \\ %{}) do
+    changeset(s3, attrs)
+  end
+
+  defp changeset(s3, attrs) do
+    s3
+    |> cast(attrs, [
+      :bucket_url,
+      :external_id,
+      :region,
+      :access_key_id,
+      :secret_access_key
+    ])
+    |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
+    |> Livebook.Utils.validate_url(:bucket_url)
   end
 end
 
@@ -327,15 +365,20 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.Client.multipart_get_object(file_system, key, collectable)
   end
 
-  def load(_file_system, %{"bucket_url" => _} = fields) do
-    S3.new(fields["bucket_url"], fields["access_key_id"], fields["secret_access_key"],
-      region: fields["region"]
-    )
+  def load(file_system, %{"bucket_url" => _} = fields) do
+    load(file_system, %{
+      bucket_url: fields["bucket_url"],
+      external_id: fields["external_id"],
+      region: fields["region"],
+      access_key_id: fields["access_key_id"],
+      secret_access_key: fields["secret_access_key"]
+    })
   end
 
   def load(_file_system, fields) do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
-      region: fields[:region]
+      region: fields[:region],
+      external_id: fields[:external_id]
     )
   end
 
@@ -343,5 +386,9 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     file_system
     |> Map.from_struct()
     |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+  end
+
+  def external_metadata(file_system) do
+    %{name: file_system.bucket_url, error_field: "bucket_url"}
   end
 end

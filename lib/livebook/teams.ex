@@ -1,7 +1,7 @@
 defmodule Livebook.Teams do
   @moduledoc false
 
-  alias Livebook.Hubs
+  alias Livebook.{FileSystem, Hubs}
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams.{Requests, Org}
@@ -101,9 +101,6 @@ defmodule Livebook.Teams do
 
   @doc """
   Creates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec create_secret(Team.t(), Secret.t()) ::
           :ok
@@ -112,16 +109,13 @@ defmodule Livebook.Teams do
   def create_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.create_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors_map}} -> {:error, add_secret_errors(secret, errors_map)}
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
       any -> any
     end
   end
 
   @doc """
   Updates a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec update_secret(Team.t(), Secret.t()) ::
           :ok
@@ -137,9 +131,6 @@ defmodule Livebook.Teams do
 
   @doc """
   Deletes a Secret.
-
-  With success, returns the response from Livebook Teams API.
-  Otherwise, it will return an error tuple with changeset.
   """
   @spec delete_secret(Team.t(), Secret.t()) ::
           :ok
@@ -149,6 +140,51 @@ defmodule Livebook.Teams do
     case Requests.delete_secret(team, secret) do
       {:ok, _} -> :ok
       {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
+  Creates a File System.
+  """
+  @spec create_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_file_system(%Team{} = team, file_system) do
+    case Requests.create_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
+  Updates a File System.
+  """
+  @spec update_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def update_file_system(%Team{} = team, file_system) do
+    case Requests.update_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
+  Deletes a File System.
+  """
+  @spec delete_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_file_system(%Team{} = team, file_system) do
+    case Requests.delete_file_system(team, file_system) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
       any -> any
     end
   end
@@ -189,7 +225,9 @@ defmodule Livebook.Teams do
   @doc """
   Encrypts the given value with Teams key derived keys.
   """
-  @spec encrypt(String.t(), bitstring(), bitstring()) :: String.t()
+  @spec encrypt(String.t() | nil, bitstring(), bitstring()) :: String.t()
+  def encrypt(value, _secret, _sign_secret) when value in ["", nil], do: value
+
   def encrypt(value, secret, sign_secret) do
     Plug.Crypto.MessageEncryptor.encrypt(value, secret, sign_secret)
   end
@@ -197,7 +235,9 @@ defmodule Livebook.Teams do
   @doc """
   Decrypts the given encrypted value with Teams key derived keys.
   """
-  @spec decrypt(String.t(), bitstring(), bitstring()) :: {:ok, String.t()} | :error
+  @spec decrypt(String.t() | nil, bitstring(), bitstring()) :: {:ok, String.t()} | :error
+  def decrypt(value, _secret, _sign_secret) when value in ["", nil], do: value
+
   def decrypt(encrypted_value, secret, sign_secret) do
     Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, sign_secret)
   end
@@ -221,6 +261,13 @@ defmodule Livebook.Teams do
 
   defp add_secret_errors(%Secret{} = secret, errors_map) do
     add_errors(change(secret), Secret.__schema__(:fields), errors_map)
+  end
+
+  defp add_file_system_errors(%struct{} = file_system, errors_map) do
+    %{error_field: field} = FileSystem.external_metadata(file_system)
+    errors_map = Map.new(errors_map, fn {_key, values} -> {field, values} end)
+
+    add_errors(change(file_system), struct.__schema__(:fields), errors_map)
   end
 
   defp add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do

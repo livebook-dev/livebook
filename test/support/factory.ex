@@ -70,10 +70,12 @@ defmodule Livebook.Factory do
   def build(:fs_s3) do
     bucket_url = "https://mybucket.s3.amazonaws.com"
     hash = :crypto.hash(:sha256, bucket_url)
+    id = "s3-#{Base.url_encode64(hash, padding: false)}"
 
     %Livebook.FileSystem.S3{
-      id: "s3-#{Base.url_encode64(hash, padding: false)}",
+      id: id,
       bucket_url: bucket_url,
+      external_id: id,
       region: "us-east-1",
       access_key_id: "key",
       secret_access_key: "secret"

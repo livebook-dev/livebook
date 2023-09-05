@@ -1,6 +1,8 @@
 defmodule Livebook.Teams.Requests do
   @moduledoc false
 
+  alias Livebook.FileSystem
+  alias Livebook.FileSystems
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
@@ -84,6 +86,65 @@ defmodule Livebook.Teams.Requests do
     params = %{name: secret.name}
 
     delete("/api/v1/org/secrets", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to create a file system.
+  """
+  @spec create_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_file_system(team, file_system) do
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    headers = auth_headers(team)
+
+    type = FileSystems.type(file_system)
+    %{name: name} = FileSystem.external_metadata(file_system)
+    attrs = FileSystem.dump(file_system)
+    json = Jason.encode!(attrs)
+
+    params = %{
+      name: name,
+      type: to_string(type),
+      value: Teams.encrypt(json, secret_key, sign_secret)
+    }
+
+    post("/api/v1/org/file-systems", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to update a file system.
+  """
+  @spec update_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def update_file_system(team, file_system) do
+    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    headers = auth_headers(team)
+
+    type = FileSystems.type(file_system)
+    %{name: name} = FileSystem.external_metadata(file_system)
+    attrs = FileSystem.dump(file_system)
+    json = Jason.encode!(attrs)
+
+    params = %{
+      id: file_system.external_id,
+      name: name,
+      type: to_string(type),
+      value: Teams.encrypt(json, secret_key, sign_secret)
+    }
+
+    put("/api/v1/org/file-systems", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to delete a file system.
+  """
+  @spec delete_file_system(Team.t(), FileSystem.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_file_system(team, file_system) do
+    headers = auth_headers(team)
+    params = %{id: file_system.external_id}
+
+    delete("/api/v1/org/file-systems", params, headers)
   end
 
   defp auth_headers(team) do

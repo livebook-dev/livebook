@@ -988,10 +988,11 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.load/2" do
-    test "loads the region from fields map" do
+    test "loads region and external id from fields map" do
       fields = %{
         bucket_url: "https://mybucket.s3.amazonaws.com",
         region: "us-east-1",
+        external_id: "123456789",
         access_key_id: "key",
         secret_access_key: "secret"
       }
@@ -1002,13 +1003,14 @@ defmodule Livebook.FileSystem.S3Test do
       assert FileSystem.load(%S3{}, fields) == %S3{
                id: id,
                bucket_url: fields.bucket_url,
+               external_id: fields.external_id,
                region: fields.region,
                access_key_id: fields.access_key_id,
                secret_access_key: fields.secret_access_key
              }
     end
 
-    test "loads the region from bucket url" do
+    test "loads region from bucket url" do
       fields = %{
         bucket_url: "https://mybucket.s3.us-east-1.amazonaws.com",
         access_key_id: "key",
@@ -1016,20 +1018,22 @@ defmodule Livebook.FileSystem.S3Test do
       }
 
       hash = :crypto.hash(:sha256, fields.bucket_url)
-      id = "s3-#{Base.url_encode64(hash, padding: false)}"
 
       assert FileSystem.load(%S3{}, fields) == %S3{
-               id: id,
+               id: "s3-#{Base.url_encode64(hash, padding: false)}",
                bucket_url: fields.bucket_url,
+               external_id: nil,
                region: "us-east-1",
                access_key_id: fields.access_key_id,
                secret_access_key: fields.secret_access_key
              }
     end
 
-    test "loads the file system with string keys" do
+    test "loads from string keys" do
       fields = %{
-        "bucket_url" => "https://mybucket.s3.us-east-1.amazonaws.com",
+        "bucket_url" => "https://mybucket.s3.amazonaws.com",
+        "region" => "us-east-1",
+        "external_id" => "123456789",
         "access_key_id" => "key",
         "secret_access_key" => "secret"
       }
@@ -1040,7 +1044,8 @@ defmodule Livebook.FileSystem.S3Test do
       assert FileSystem.load(%S3{}, fields) == %S3{
                id: id,
                bucket_url: fields["bucket_url"],
-               region: "us-east-1",
+               external_id: fields["external_id"],
+               region: fields["region"],
                access_key_id: fields["access_key_id"],
                secret_access_key: fields["secret_access_key"]
              }
