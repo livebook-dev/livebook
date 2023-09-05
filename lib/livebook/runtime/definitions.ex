@@ -3,7 +3,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino = %{
     name: "kino",
-    dependency: %{dep: {:kino, "~> 0.10.0"}, config: []}
+    dependency: %{dep: {:kino, github: "livebook-dev/kino", override: true}, config: []}
   }
 
   kino_vega_lite = %{
@@ -185,17 +185,12 @@ defmodule Livebook.Runtime.Definitions do
       ]
     },
     %{
-      kind: "Elixir.Kino.RemoteCell",
-      name: "Remote cell",
+      kind: "Elixir.Kino.RemoteExecutionCell",
+      name: "Remote execution",
       requirement_presets: [
         %{
           name: "Default",
-          packages: [
-            %{
-              name: "kino",
-              dependency: %{dep: {:kino, github: "livebook-dev/kino", branch: "main"}, config: []}
-            }
-          ]
+          packages: [kino]
         }
       ]
     }
