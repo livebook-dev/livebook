@@ -23,7 +23,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_maplibre = %{
     name: "kino_maplibre",
-    dependency: %{dep: {:kino_maplibre, "~> 0.1.7"}, config: []}
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.9"}, config: []}
   }
 
   kino_slack = %{
