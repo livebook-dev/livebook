@@ -169,6 +169,35 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp put_file_system(state, file_system) do
+    state = remove_file_system(state, file_system)
+    %{state | file_systems: [file_system | state.file_systems]}
+  end
+
+  defp remove_file_system(state, file_system) do
+    %{
+      state
+      | file_systems:
+          Enum.reject(state.file_systems, &(&1.external_id == file_system.external_id))
+    }
+  end
+
+  defp build_file_system(state, file_system) do
+    {secret_key, sign_secret} = state.derived_keys
+    {:ok, decrypted_credentials} = Teams.decrypt(file_system.value, secret_key, sign_secret)
+
+    case Jason.decode!(decrypted_credentials) do
+      %{"type" => "s3"} = fields ->
+        fields =
+          Map.merge(fields, %{
+            "bucket_url" => file_system.name,
+            "external_id" => file_system.id
+          })
+
+        FileSystem.load(%FileSystem.S3{}, fields)
+    end
+  end
+
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
     Hubs.Broadcasts.secret_created(secret)
 
@@ -198,31 +227,98 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  defp handle_event(:user_connected, %{secrets: secrets}, state) do
+  defp handle_event(:file_system_created, %{value: _} = file_system_created, state) do
+    handle_event(:file_system_created, build_file_system(state, file_system_created), state)
+  end
+
+  defp handle_event(:file_system_created, file_system, state) do
+    Hubs.Broadcasts.file_system_created(file_system)
+
+    put_file_system(state, file_system)
+  end
+
+  defp handle_event(:file_system_updated, %{value: _} = file_system_updated, state) do
+    handle_event(:file_system_updated, build_file_system(state, file_system_updated), state)
+  end
+
+  defp handle_event(:file_system_updated, file_system, state) do
+    Hubs.Broadcasts.file_system_updated(file_system)
+
+    put_file_system(state, file_system)
+  end
+
+  defp handle_event(:file_system_deleted, file_system_deleted, state) do
+    if file_system =
+         Enum.find(state.file_systems, &(&1.external_id == file_system_deleted.external_id)) do
+      Hubs.Broadcasts.file_system_deleted(file_system)
+      remove_file_system(state, file_system)
+    else
+      state
+    end
+  end
+
+  defp handle_event(:user_connected, user_connected, state) do
+    state
+    |> dispatch_secrets(user_connected)
+    |> dispatch_file_systems(user_connected)
+  end
+
+  defp dispatch_secrets(state, %{secrets: secrets}) do
+    decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
+
     created_secrets =
-      Enum.reject(secrets, fn secret ->
+      Enum.reject(decrypted_secrets, fn secret ->
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
       end)
 
     deleted_secrets =
       Enum.reject(state.secrets, fn secret ->
-        Enum.find(secrets, &(&1.name == secret.name))
+        Enum.find(decrypted_secrets, &(&1.name == secret.name))
       end)
 
     updated_secrets =
-      Enum.filter(secrets, fn secret ->
+      Enum.filter(decrypted_secrets, fn secret ->
         Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
       end)
 
-    secrets_by_topic = [
+    dispatch_events(state,
       secret_deleted: deleted_secrets,
       secret_created: created_secrets,
       secret_updated: updated_secrets
-    ]
+    )
+  end
 
-    for {topic, secrets} <- secrets_by_topic,
-        secret <- secrets,
+  defp dispatch_file_systems(state, %{file_systems: file_systems}) do
+    decrypted_file_systems = Enum.map(file_systems, &build_file_system(state, &1))
+
+    created_file_systems =
+      Enum.reject(decrypted_file_systems, fn file_system ->
+        Enum.find(state.file_systems, &(&1.external_id == file_system.external_id))
+      end)
+
+    deleted_file_systems =
+      Enum.reject(state.file_systems, fn file_system ->
+        Enum.find(decrypted_file_systems, &(&1.external_id == file_system.external_id))
+      end)
+
+    updated_file_systems =
+      Enum.filter(decrypted_file_systems, fn file_system ->
+        Enum.find(state.file_systems, &(&1.external_id == file_system.external_id))
+      end)
+
+    dispatch_events(state,
+      file_system_deleted: deleted_file_systems,
+      file_system_created: created_file_systems,
+      file_system_updated: updated_file_systems
+    )
+  end
+
+  defp dispatch_file_systems(state, _), do: state
+
+  defp dispatch_events(state, events_by_topic) do
+    for {topic, events} <- events_by_topic,
+        event <- events,
         reduce: state,
-        do: (acc -> handle_event(topic, secret, acc))
+        do: (acc -> handle_event(topic, event, acc))
   end
 end
