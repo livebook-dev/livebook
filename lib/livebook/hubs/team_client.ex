@@ -3,10 +3,9 @@ defmodule Livebook.Hubs.TeamClient do
   use GenServer
   require Logger
 
-  alias Livebook.Hubs.Broadcasts
-  alias Livebook.Hubs.Team
+  alias Livebook.Hubs
+  alias Livebook.Secrets
   alias Livebook.Teams
-  alias Livebook.Teams.Connection
 
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
@@ -18,8 +17,8 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Connects the Team client with WebSocket server.
   """
-  @spec start_link(Team.t()) :: GenServer.on_start()
-  def start_link(%Team{} = team) do
+  @spec start_link(Hubs.Team.t()) :: GenServer.on_start()
+  def start_link(%Hubs.Team{} = team) do
     GenServer.start_link(__MODULE__, team, name: registry_name(team.id))
   end
 
@@ -38,7 +37,7 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Returns a list of cached secrets.
   """
-  @spec get_secrets(String.t()) :: list(Secret.t())
+  @spec get_secrets(String.t()) :: list(Secrets.Secret.t())
   def get_secrets(id) do
     GenServer.call(registry_name(id), :get_secrets)
   end
@@ -66,7 +65,7 @@ defmodule Livebook.Hubs.TeamClient do
   ## GenServer callbacks
 
   @impl true
-  def init(%Team{offline: nil} = team) do
+  def init(%Hubs.Team{offline: nil} = team) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
     headers = [
@@ -77,11 +76,11 @@ defmodule Livebook.Hubs.TeamClient do
       {"x-session-token", team.session_token}
     ]
 
-    {:ok, _pid} = Connection.start_link(self(), headers)
+    {:ok, _pid} = Teams.Connection.start_link(self(), headers)
     {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
   end
 
-  def init(%Team{} = team) do
+  def init(%Hubs.Team{} = team) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
     {:ok, %__MODULE__{hub: team, secrets: team.offline.secrets, derived_keys: derived_keys}}
@@ -102,18 +101,18 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def handle_info(:connected, state) do
-    Broadcasts.hub_connected(state.hub.id)
+    Hubs.Broadcasts.hub_connected(state.hub.id)
     {:noreply, %{state | connected?: true, connection_error: nil}}
   end
 
   def handle_info({:connection_error, reason}, state) do
-    Broadcasts.hub_connection_failed(state.hub.id, reason)
+    Hubs.Broadcasts.hub_connection_failed(state.hub.id, reason)
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
   def handle_info({:server_error, reason}, state) do
-    Broadcasts.hub_server_error(state.hub.id, "#{state.hub.hub_name}: #{reason}")
-    :ok = Livebook.Hubs.delete_hub(state.hub.id)
+    Hubs.Broadcasts.hub_server_error(state.hub.id, "#{state.hub.hub_name}: #{reason}")
+    :ok = Hubs.delete_hub(state.hub.id)
 
     {:noreply, %{state | connected?: false}}
   end
@@ -143,30 +142,36 @@ defmodule Livebook.Hubs.TeamClient do
     {secret_key, sign_secret} = state.derived_keys
     {:ok, decrypted_value} = Teams.decrypt(value, secret_key, sign_secret)
 
-    %Livebook.Secrets.Secret{
+    %Secrets.Secret{
       name: name,
       value: decrypted_value,
       hub_id: state.hub.id
     }
   end
 
+  defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
+    Hubs.Broadcasts.secret_created(secret)
+
+    put_secret(state, secret)
+  end
+
   defp handle_event(:secret_created, secret_created, state) do
-    secret = build_secret(state, secret_created)
-    Broadcasts.secret_created(secret)
+    handle_event(:secret_created, build_secret(state, secret_created), state)
+  end
+
+  defp handle_event(:secret_updated, %Secrets.Secret{} = secret, state) do
+    Hubs.Broadcasts.secret_updated(secret)
 
     put_secret(state, secret)
   end
 
   defp handle_event(:secret_updated, secret_updated, state) do
-    secret = build_secret(state, secret_updated)
-    Broadcasts.secret_updated(secret)
-
-    put_secret(state, secret)
+    handle_event(:secret_updated, build_secret(state, secret_updated), state)
   end
 
   defp handle_event(:secret_deleted, secret_deleted, state) do
     if secret = Enum.find(state.secrets, &(&1.name == secret_deleted.name)) do
-      Broadcasts.secret_deleted(secret)
+      Hubs.Broadcasts.secret_deleted(secret)
       remove_secret(state, secret)
     else
       state
