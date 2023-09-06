@@ -4,12 +4,15 @@ defmodule Livebook.Hubs.Personal do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Livebook.FileSystem
   alias Livebook.Hubs
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
 
   @secrets_namespace :hub_secrets
   @secret_key_size 64
+
+  @file_systems_namespace :file_systems
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -130,6 +133,56 @@ defmodule Livebook.Hubs.Personal do
   @spec generate_secret_key() :: String.t()
   def generate_secret_key() do
     Base.url_encode64(:crypto.strong_rand_bytes(@secret_key_size), padding: false)
+  end
+
+  @doc """
+  Get the file systems list from storage.
+  """
+  @spec get_file_systems() :: list(FileSystem.t())
+  def get_file_systems() do
+    Storage.all(@file_systems_namespace)
+    |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
+    |> Enum.map(&to_file_system/1)
+  end
+
+  @doc """
+  Gets a file system from storage.
+
+  Raises `RuntimeError` if the secret doesn't exist.
+  """
+  @spec fetch_file_system!(String.t()) :: FileSystem.t()
+  def fetch_file_system!(id) do
+    Storage.fetch!(@file_systems_namespace, id) |> to_file_system()
+  end
+
+  @doc """
+  Saves a new file system to the configured ones.
+  """
+  @spec save_file_system(FileSystem.t()) :: FileSystem.t()
+  def save_file_system(file_system) do
+    attributes = FileSystem.dump(file_system)
+
+    storage_attributes =
+      Map.merge(attributes, %{
+        type: "s3",
+        order: System.os_time()
+      })
+
+    :ok = Storage.insert(@file_systems_namespace, file_system.id, Map.to_list(storage_attributes))
+
+    file_system
+  end
+
+  @doc """
+  Removes the given file system from the configured ones.
+  """
+  @spec remove_file_system(FileSystem.id()) :: :ok
+  def remove_file_system(id) do
+    Storage.delete(@file_systems_namespace, id)
+  end
+
+  defp to_file_system(%{id: "s3-" <> _} = fields) do
+    FileSystem.load(%FileSystem.S3{}, fields)
   end
 end
 
