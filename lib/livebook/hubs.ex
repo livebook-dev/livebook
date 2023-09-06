@@ -1,6 +1,7 @@
 defmodule Livebook.Hubs do
   @moduledoc false
 
+  alias Livebook.FileSystem
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}
   alias Livebook.Secrets.Secret
@@ -293,5 +294,46 @@ defmodule Livebook.Hubs do
           {:ok, metadata :: map()} | :error
   def verify_notebook_stamp(hub, notebook_source, stamp) do
     Provider.verify_notebook_stamp(hub, notebook_source, stamp)
+  end
+
+  @doc """
+  Gets a list of file systems for given hub.
+  """
+  @spec get_file_systems(Provider.t()) :: list(FileSystem.t())
+  def get_file_systems(hub) do
+    hub_file_systems = Provider.get_file_systems(hub)
+    local_file_system = Livebook.Config.local_file_system()
+
+    Enum.sort([local_file_system | hub_file_systems])
+  end
+
+  @doc """
+  Creates a file system for given hub.
+  """
+  @spec create_file_system(Provider.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_file_system(hub, file_system) do
+    Provider.create_file_system(hub, file_system)
+  end
+
+  @doc """
+  Updates a file system for given hub.
+  """
+  @spec update_file_system(Provider.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def update_file_system(hub, file_system) do
+    Provider.update_file_system(hub, file_system)
+  end
+
+  @doc """
+  Deletes a file system for given hub.
+  """
+  @spec delete_file_system(Provider.t(), FileSystem.t()) :: :ok | {:transport_error, String.t()}
+  def delete_file_system(hub, file_system) do
+    Provider.delete_file_system(hub, file_system)
   end
 end
