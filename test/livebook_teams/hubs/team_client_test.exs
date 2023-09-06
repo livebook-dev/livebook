@@ -309,12 +309,10 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       file_system = build(:fs_s3, external_id: "123456")
 
-      credentials =
-        file_system
-        |> Livebook.FileSystem.credentials()
-        |> Jason.encode!()
-
-      {type, name} = Livebook.FileSystem.resource_identifier(file_system)
+      type = Livebook.FileSystems.type(file_system)
+      %{name: name} = Livebook.FileSystem.external_metadata(file_system)
+      attrs = Livebook.FileSystem.dump(file_system)
+      credentials = Jason.encode!(attrs)
 
       {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)
@@ -349,12 +347,10 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       file_system = build(:fs_s3, external_id: "123456")
 
-      credentials =
-        file_system
-        |> Livebook.FileSystem.credentials()
-        |> Jason.encode!()
-
-      {type, name} = Livebook.FileSystem.resource_identifier(file_system)
+      type = Livebook.FileSystems.type(file_system)
+      %{name: name} = Livebook.FileSystem.external_metadata(file_system)
+      attrs = Livebook.FileSystem.dump(file_system)
+      credentials = Jason.encode!(attrs)
 
       {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)
@@ -387,12 +383,16 @@ defmodule Livebook.Hubs.TeamClientTest do
           bucket_url: "https://updated_name.s3.amazonaws.com"
       }
 
+      updated_attrs = Livebook.FileSystem.dump(updated_file_system)
+      updated_credentials = Jason.encode!(updated_attrs)
+      updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key, sign_secret)
+
       updated_livebook_proto_file_system =
         LivebookProto.FileSystem.new!(
-          id: file_system.external_id,
+          id: updated_file_system.external_id,
           name: updated_file_system.bucket_url,
           type: to_string(type),
-          value: value
+          value: updated_value
         )
 
       user_connected =
@@ -413,14 +413,16 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = build_team_hub(user, node)
       id = team.id
 
-      file_system = build(:fs_s3, external_id: "123456")
+      bucket_url = "https://delete_fs_45465641.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      fs_id = "s3-#{Base.url_encode64(hash, padding: false)}"
 
-      credentials =
-        file_system
-        |> Livebook.FileSystem.credentials()
-        |> Jason.encode!()
+      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "45465641")
 
-      {type, name} = Livebook.FileSystem.resource_identifier(file_system)
+      type = Livebook.FileSystems.type(file_system)
+      %{name: name} = Livebook.FileSystem.external_metadata(file_system)
+      attrs = Livebook.FileSystem.dump(file_system)
+      credentials = Jason.encode!(attrs)
 
       {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
       value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)

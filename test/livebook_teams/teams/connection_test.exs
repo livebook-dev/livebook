@@ -61,14 +61,15 @@ defmodule Livebook.Teams.ConnectionTest do
       # creates a new file system
       file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
       assert Livebook.Teams.create_file_system(hub, file_system) == :ok
-      {type, name} = FileSystem.resource_identifier(file_system)
+      type = Livebook.FileSystems.type(file_system)
+      %{name: name} = FileSystem.external_metadata(file_system)
 
       # receives `{:event, :file_system_created, file_system_created}` event
       # without decrypting the value
       assert_receive {:event, :file_system_created, file_system_created}
       assert file_system_created.name == name
       assert file_system_created.type == to_string(type)
-      refute file_system_created.value == FileSystem.credentials(file_system)
+      refute file_system_created.value == FileSystem.dump(file_system)
       assert is_binary(file_system_created.value)
     end
   end

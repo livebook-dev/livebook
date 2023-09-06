@@ -4,6 +4,7 @@ defmodule Livebook.Hubs.TeamClient do
   require Logger
 
   alias Livebook.FileSystem
+  alias Livebook.FileSystems
   alias Livebook.Hubs
   alias Livebook.Secrets
   alias Livebook.Teams
@@ -184,18 +185,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_file_system(state, file_system) do
     {secret_key, sign_secret} = state.derived_keys
-    {:ok, decrypted_credentials} = Teams.decrypt(file_system.value, secret_key, sign_secret)
+    {:ok, decrypted_value} = Teams.decrypt(file_system.value, secret_key, sign_secret)
+    dumped_data = Map.merge(Jason.decode!(decrypted_value), %{"external_id" => file_system.id})
 
-    case Jason.decode!(decrypted_credentials) do
-      %{"type" => "s3"} = fields ->
-        fields =
-          Map.merge(fields, %{
-            "bucket_url" => file_system.name,
-            "external_id" => file_system.id
-          })
-
-        FileSystem.load(%FileSystem.S3{}, fields)
-    end
+    FileSystems.load(file_system.type, dumped_data)
   end
 
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
@@ -227,31 +220,35 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  defp handle_event(:file_system_created, %{value: _} = file_system_created, state) do
-    handle_event(:file_system_created, build_file_system(state, file_system_created), state)
-  end
-
-  defp handle_event(:file_system_created, file_system, state) do
+  defp handle_event(:file_system_created, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_created(file_system)
 
     put_file_system(state, file_system)
   end
 
-  defp handle_event(:file_system_updated, %{value: _} = file_system_updated, state) do
-    handle_event(:file_system_updated, build_file_system(state, file_system_updated), state)
+  defp handle_event(:file_system_created, file_system_created, state) do
+    handle_event(:file_system_created, build_file_system(state, file_system_created), state)
   end
 
-  defp handle_event(:file_system_updated, file_system, state) do
+  defp handle_event(:file_system_updated, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_updated(file_system)
 
     put_file_system(state, file_system)
   end
 
-  defp handle_event(:file_system_deleted, file_system_deleted, state) do
-    if file_system =
-         Enum.find(state.file_systems, &(&1.external_id == file_system_deleted.external_id)) do
-      Hubs.Broadcasts.file_system_deleted(file_system)
-      remove_file_system(state, file_system)
+  defp handle_event(:file_system_updated, file_system_updated, state) do
+    handle_event(:file_system_updated, build_file_system(state, file_system_updated), state)
+  end
+
+  defp handle_event(:file_system_deleted, %{external_id: _} = file_system, state) do
+    Hubs.Broadcasts.file_system_deleted(file_system)
+
+    remove_file_system(state, file_system)
+  end
+
+  defp handle_event(:file_system_deleted, %{id: id}, state) do
+    if file_system = Enum.find(state.file_systems, &(&1.external_id == id)) do
+      handle_event(:file_system_deleted, file_system, state)
     else
       state
     end
