@@ -258,4 +258,23 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   def dump(personal) do
     Map.from_struct(personal)
   end
+
+  def get_file_systems(_personal) do
+    Personal.get_file_systems()
+  end
+
+  def create_file_system(_personal, file_system) do
+    Personal.save_file_system(file_system)
+    :ok = Broadcasts.file_system_created(file_system)
+  end
+
+  def update_file_system(_personal, file_system) do
+    Personal.save_file_system(file_system)
+    :ok = Broadcasts.file_system_updated(file_system)
+  end
+
+  def delete_file_system(_personal, file_system) do
+    :ok = Personal.remove_file_system(file_system.id)
+    :ok = Broadcasts.file_system_deleted(file_system)
+  end
 end

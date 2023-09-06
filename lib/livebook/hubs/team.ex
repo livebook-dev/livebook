@@ -185,4 +185,14 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     |> Map.from_struct()
     |> Map.delete(:offline)
   end
+
+  def get_file_systems(team) do
+    TeamClient.get_file_systems(team.id)
+  end
+
+  def create_file_system(team, file_system), do: Teams.create_file_system(team, file_system)
+
+  def update_file_system(team, file_system), do: Teams.update_file_system(team, file_system)
+
+  def delete_file_system(team, file_system), do: Teams.delete_file_system(team, file_system)
 end
