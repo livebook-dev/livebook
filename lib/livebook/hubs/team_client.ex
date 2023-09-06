@@ -3,6 +3,7 @@ defmodule Livebook.Hubs.TeamClient do
   use GenServer
   require Logger
 
+  alias Livebook.FileSystem
   alias Livebook.Hubs
   alias Livebook.Secrets
   alias Livebook.Teams
@@ -10,7 +11,14 @@ defmodule Livebook.Hubs.TeamClient do
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
 
-  defstruct [:hub, :connection_error, :derived_keys, connected?: false, secrets: []]
+  defstruct [
+    :hub,
+    :connection_error,
+    :derived_keys,
+    connected?: false,
+    secrets: [],
+    file_systems: []
+  ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
 
@@ -40,6 +48,14 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_secrets(String.t()) :: list(Secrets.Secret.t())
   def get_secrets(id) do
     GenServer.call(registry_name(id), :get_secrets)
+  end
+
+  @doc """
+  Returns a list of cached file systems.
+  """
+  @spec get_file_systems(String.t()) :: list(FileSystem.t())
+  def get_file_systems(id) do
+    GenServer.call(registry_name(id), :get_file_systems)
   end
 
   @doc """
@@ -97,6 +113,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_secrets, _caller, state) do
     {:reply, state.secrets, state}
+  end
+
+  def handle_call(:get_file_systems, _caller, state) do
+    {:reply, state.file_systems, state}
   end
 
   @impl true
