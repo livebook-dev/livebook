@@ -304,7 +304,7 @@ defmodule Livebook.Hubs do
     hub_file_systems = Provider.get_file_systems(hub)
     local_file_system = Livebook.Config.local_file_system()
 
-    Enum.sort([local_file_system | hub_file_systems])
+    [local_file_system | Enum.sort_by(hub_file_systems, & &1.id)]
   end
 
   @doc """

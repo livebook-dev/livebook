@@ -5,6 +5,7 @@ defmodule Livebook.Hubs.Personal do
   import Ecto.Changeset
 
   alias Livebook.FileSystem
+  alias Livebook.FileSystems
   alias Livebook.Hubs
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
@@ -141,7 +142,7 @@ defmodule Livebook.Hubs.Personal do
   @spec get_file_systems() :: list(FileSystem.t())
   def get_file_systems() do
     Storage.all(@file_systems_namespace)
-    |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
+    |> Enum.sort_by(& &1.bucket_url)
     |> Enum.map(&to_file_system/1)
   end
 
@@ -161,12 +162,8 @@ defmodule Livebook.Hubs.Personal do
   @spec save_file_system(FileSystem.t()) :: FileSystem.t()
   def save_file_system(file_system) do
     attributes = FileSystem.dump(file_system)
-
-    storage_attributes =
-      Map.merge(attributes, %{
-        type: "s3",
-        order: System.os_time()
-      })
+    type = FileSystems.type(file_system)
+    storage_attributes = Map.put(attributes, :type, type)
 
     :ok = Storage.insert(@file_systems_namespace, file_system.id, Map.to_list(storage_attributes))
 
@@ -181,8 +178,8 @@ defmodule Livebook.Hubs.Personal do
     Storage.delete(@file_systems_namespace, id)
   end
 
-  defp to_file_system(%{id: "s3-" <> _} = fields) do
-    FileSystem.load(%FileSystem.S3{}, fields)
+  defp to_file_system(fields) do
+    FileSystems.load(fields.type, fields)
   end
 end
 

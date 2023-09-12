@@ -263,54 +263,51 @@ defmodule Livebook.Hubs.TeamClient do
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
-    created_secrets =
-      Enum.reject(decrypted_secrets, fn secret ->
-        Enum.find(state.secrets, &(&1.name == secret.name and &1.value == secret.value))
-      end)
-
-    deleted_secrets =
-      Enum.reject(state.secrets, fn secret ->
-        Enum.find(decrypted_secrets, &(&1.name == secret.name))
-      end)
-
-    updated_secrets =
-      Enum.filter(decrypted_secrets, fn secret ->
-        Enum.find(state.secrets, &(&1.name == secret.name and &1.value != secret.value))
-      end)
+    {created, deleted, updated} =
+      diff(
+        state.secrets,
+        decrypted_secrets,
+        &(&1.name == &2.name and &1.value == &2.value),
+        &(&1.name == &2.name),
+        &(&1.name == &2.name and &1.value != &2.value)
+      )
 
     dispatch_events(state,
-      secret_deleted: deleted_secrets,
-      secret_created: created_secrets,
-      secret_updated: updated_secrets
+      secret_deleted: deleted,
+      secret_created: created,
+      secret_updated: updated
     )
   end
 
   defp dispatch_file_systems(state, %{file_systems: file_systems}) do
     decrypted_file_systems = Enum.map(file_systems, &build_file_system(state, &1))
 
-    created_file_systems =
-      Enum.reject(decrypted_file_systems, fn file_system ->
-        Enum.find(state.file_systems, &(&1.external_id == file_system.external_id))
-      end)
-
-    deleted_file_systems =
-      Enum.reject(state.file_systems, fn file_system ->
-        Enum.find(decrypted_file_systems, &(&1.external_id == file_system.external_id))
-      end)
-
-    updated_file_systems =
-      Enum.filter(decrypted_file_systems, fn file_system ->
-        Enum.find(state.file_systems, &(&1.external_id == file_system.external_id))
-      end)
+    {created, deleted, updated} =
+      diff(
+        state.file_systems,
+        decrypted_file_systems,
+        &(&1.external_id == &2.external_id)
+      )
 
     dispatch_events(state,
-      file_system_deleted: deleted_file_systems,
-      file_system_created: created_file_systems,
-      file_system_updated: updated_file_systems
+      file_system_deleted: deleted,
+      file_system_created: created,
+      file_system_updated: updated
     )
   end
 
   defp dispatch_file_systems(state, _), do: state
+
+  defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do
+    deleted_fun = unless deleted_fun, do: fun, else: deleted_fun
+    updated_fun = unless updated_fun, do: fun, else: updated_fun
+
+    created = Enum.reject(new_list, fn item -> Enum.find(old_list, &fun.(&1, item)) end)
+    deleted = Enum.reject(old_list, fn item -> Enum.find(new_list, &deleted_fun.(&1, item)) end)
+    updated = Enum.filter(new_list, fn item -> Enum.find(old_list, &updated_fun.(&1, item)) end)
+
+    {created, deleted, updated}
+  end
 
   defp dispatch_events(state, events_by_topic) do
     for {topic, events} <- events_by_topic,
