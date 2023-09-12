@@ -33,16 +33,22 @@ defmodule Livebook.FileSystem.S3 do
 
     * `:external_id` - the external id from Teams.
 
+    * `:prefix` - the id prefix.
+
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region, :external_id])
+    opts = Keyword.validate!(opts, [:region, :external_id, :prefix])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
     hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
-    id = "s3-#{hash}"
+
+    id =
+      if prefix = opts[:prefix],
+        do: "#{prefix}-s3-#{hash}",
+        else: "s3-#{hash}"
 
     %__MODULE__{
       id: id,
@@ -371,14 +377,16 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       external_id: fields["external_id"],
       region: fields["region"],
       access_key_id: fields["access_key_id"],
-      secret_access_key: fields["secret_access_key"]
+      secret_access_key: fields["secret_access_key"],
+      prefix: fields["prefix"]
     })
   end
 
   def load(_file_system, fields) do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
       region: fields[:region],
-      external_id: fields[:external_id]
+      external_id: fields[:external_id],
+      prefix: fields[:prefix]
     )
   end
 

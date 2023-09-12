@@ -307,7 +307,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = build_team_hub(user, node)
       id = team.id
 
-      file_system = build(:fs_s3, external_id: "123456")
+      bucket_url = "https://mybucket.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
+
+      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456")
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -345,7 +349,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = build_team_hub(user, node)
       id = team.id
 
-      file_system = build(:fs_s3, external_id: "123456")
+      bucket_url = "https://update_fs_994641.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
+
+      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "994641")
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -379,7 +387,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       updated_file_system = %{
         file_system
-        | id: "s3-ATC52Lo7d-bS21OLjPQ8KFBPJN8ku4hCn2nic2jTGeI",
+        | id: "#{id}-s3-ATC52Lo7d-bS21OLjPQ8KFBPJN8ku4hCn2nic2jTGeI",
           bucket_url: "https://updated_name.s3.amazonaws.com"
       }
 
@@ -415,7 +423,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       bucket_url = "https://delete_fs_45465641.s3.amazonaws.com"
       hash = :crypto.hash(:sha256, bucket_url)
-      fs_id = "s3-#{Base.url_encode64(hash, padding: false)}"
+      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
       file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "45465641")
 
