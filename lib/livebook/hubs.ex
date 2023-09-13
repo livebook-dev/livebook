@@ -159,6 +159,12 @@ defmodule Livebook.Hubs do
     * `{:secret_updated, %Secret{}}`
     * `{:secret_deleted, %Secret{}}`
 
+  Topic `hubs:file_systems`:
+
+    * `{:file_system_created, t:FileSystem}`
+    * `{:file_system_updated, t:FileSystem}`
+    * `{:file_system_deleted, t:FileSystem}`
+
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
   def subscribe(topics) when is_list(topics) do
