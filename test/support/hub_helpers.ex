@@ -102,6 +102,12 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
 
+  def create_teams_file_system(hub, node) do
+    org_key = :erpc.call(node, Hub.Integration, :get_org_key!, [hub.org_key_id])
+
+    :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}

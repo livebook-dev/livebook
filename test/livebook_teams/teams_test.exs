@@ -303,10 +303,4 @@ defmodule Livebook.TeamsTest do
                 "Something went wrong, try again later or please file a bug if it persists"}
     end
   end
-
-  defp create_teams_file_system(hub, node) do
-    org_key = :erpc.call(node, Hub.Integration, :get_org_key!, [hub.org_key_id])
-
-    :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
-  end
 end
