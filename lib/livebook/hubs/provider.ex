@@ -1,6 +1,7 @@
 defprotocol Livebook.Hubs.Provider do
   @moduledoc false
 
+  alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
 
   @typedoc """
@@ -109,4 +110,34 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec dump(t()) :: map()
   def dump(hub)
+
+  @doc """
+  Gets the file systems of given hub.
+  """
+  @spec get_file_systems(t()) :: list(FileSystem.t())
+  def get_file_systems(hub)
+
+  @doc """
+  Creates a file system of the given hub.
+  """
+  @spec create_file_system(t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_file_system(hub, file_system)
+
+  @doc """
+  Updates a file system of the given hub.
+  """
+  @spec update_file_system(t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def update_file_system(hub, file_system)
+
+  @doc """
+  Deletes a file system of the given hub.
+  """
+  @spec delete_file_system(t(), FileSystem.t()) :: :ok | {:transport_error, String.t()}
+  def delete_file_system(hub, file_system)
 end

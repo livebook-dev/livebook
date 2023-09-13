@@ -4,12 +4,16 @@ defmodule Livebook.Hubs.Personal do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Livebook.FileSystem
+  alias Livebook.FileSystems
   alias Livebook.Hubs
   alias Livebook.Storage
   alias Livebook.Secrets.Secret
 
   @secrets_namespace :hub_secrets
   @secret_key_size 64
+
+  @file_systems_namespace :file_systems
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -131,6 +135,52 @@ defmodule Livebook.Hubs.Personal do
   def generate_secret_key() do
     Base.url_encode64(:crypto.strong_rand_bytes(@secret_key_size), padding: false)
   end
+
+  @doc """
+  Get the file systems list from storage.
+  """
+  @spec get_file_systems() :: list(FileSystem.t())
+  def get_file_systems() do
+    Storage.all(@file_systems_namespace)
+    |> Enum.sort_by(& &1.bucket_url)
+    |> Enum.map(&to_file_system/1)
+  end
+
+  @doc """
+  Gets a file system from storage.
+
+  Raises `RuntimeError` if the secret doesn't exist.
+  """
+  @spec fetch_file_system!(String.t()) :: FileSystem.t()
+  def fetch_file_system!(id) do
+    Storage.fetch!(@file_systems_namespace, id) |> to_file_system()
+  end
+
+  @doc """
+  Saves a new file system to the configured ones.
+  """
+  @spec save_file_system(FileSystem.t()) :: FileSystem.t()
+  def save_file_system(file_system) do
+    attributes = FileSystem.dump(file_system)
+    type = FileSystems.type(file_system)
+    storage_attributes = Map.put(attributes, :type, type)
+
+    :ok = Storage.insert(@file_systems_namespace, file_system.id, Map.to_list(storage_attributes))
+
+    file_system
+  end
+
+  @doc """
+  Removes the given file system from the configured ones.
+  """
+  @spec remove_file_system(FileSystem.id()) :: :ok
+  def remove_file_system(id) do
+    Storage.delete(@file_systems_namespace, id)
+  end
+
+  defp to_file_system(fields) do
+    FileSystems.load(fields.type, fields)
+  end
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
@@ -204,5 +254,24 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
 
   def dump(personal) do
     Map.from_struct(personal)
+  end
+
+  def get_file_systems(_personal) do
+    Personal.get_file_systems()
+  end
+
+  def create_file_system(_personal, file_system) do
+    Personal.save_file_system(file_system)
+    :ok = Broadcasts.file_system_created(file_system)
+  end
+
+  def update_file_system(_personal, file_system) do
+    Personal.save_file_system(file_system)
+    :ok = Broadcasts.file_system_updated(file_system)
+  end
+
+  def delete_file_system(_personal, file_system) do
+    :ok = Personal.remove_file_system(file_system.id)
+    :ok = Broadcasts.file_system_deleted(file_system)
   end
 end

@@ -1,6 +1,7 @@
 defmodule Livebook.Hubs.Broadcasts do
   @moduledoc false
 
+  alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
 
   @type broadcast :: :ok | {:error, term()}
@@ -8,6 +9,7 @@ defmodule Livebook.Hubs.Broadcasts do
   @crud_topic "hubs:crud"
   @connection_topic "hubs:connection"
   @secrets_topic "hubs:secrets"
+  @file_systems_topic "hubs:file_systems"
 
   @doc """
   Broadcasts under `#{@crud_topic}` topic when hubs changed.
@@ -63,6 +65,32 @@ defmodule Livebook.Hubs.Broadcasts do
   @spec secret_deleted(Secret.t()) :: broadcast()
   def secret_deleted(%Secret{} = secret) do
     broadcast(@secrets_topic, {:secret_deleted, secret})
+  end
+
+  @allowed_file_systems [FileSystem.S3]
+
+  @doc """
+  Broadcasts under `#{@file_systems_topic}` topic when hub received a new file system.
+  """
+  @spec file_system_created(FileSystem.t()) :: broadcast()
+  def file_system_created(%struct{} = file_system) when struct in @allowed_file_systems do
+    broadcast(@file_systems_topic, {:file_system_created, file_system})
+  end
+
+  @doc """
+  Broadcasts under `#{@file_systems_topic}` topic when hub received an updated file system.
+  """
+  @spec file_system_updated(FileSystem.t()) :: broadcast()
+  def file_system_updated(%struct{} = file_system) when struct in @allowed_file_systems do
+    broadcast(@file_systems_topic, {:file_system_updated, file_system})
+  end
+
+  @doc """
+  Broadcasts under `#{@file_systems_topic}` topic when hub received a deleted file system.
+  """
+  @spec file_system_deleted(FileSystem.t()) :: broadcast()
+  def file_system_deleted(%struct{} = file_system) when struct in @allowed_file_systems do
+    broadcast(@file_systems_topic, {:file_system_deleted, file_system})
   end
 
   defp broadcast(topic, message) do

@@ -1,4 +1,5 @@
 defmodule Livebook.Teams.ConnectionTest do
+  alias Livebook.FileSystem
   use Livebook.TeamsIntegrationCase, async: true
 
   @moduletag :capture_log
@@ -49,6 +50,27 @@ defmodule Livebook.Teams.ConnectionTest do
       assert_receive {:event, :secret_created, secret_created}
       assert secret_created.name == secret.name
       refute secret_created.value == secret.value
+    end
+
+    test "receives the file_system_created event", %{user: user, node: node} do
+      {hub, headers} = build_team_headers(user, node)
+
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
+      assert_receive :connected
+
+      # creates a new file system
+      file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
+      assert Livebook.Teams.create_file_system(hub, file_system) == :ok
+      type = Livebook.FileSystems.type(file_system)
+      %{name: name} = FileSystem.external_metadata(file_system)
+
+      # receives `{:event, :file_system_created, file_system_created}` event
+      # without decrypting the value
+      assert_receive {:event, :file_system_created, file_system_created}
+      assert file_system_created.name == name
+      assert file_system_created.type == to_string(type)
+      refute file_system_created.value == FileSystem.dump(file_system)
+      assert is_binary(file_system_created.value)
     end
   end
 end
