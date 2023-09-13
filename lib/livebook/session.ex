@@ -2661,20 +2661,15 @@ defmodule Livebook.Session do
         {:error, "no file exists at path #{inspect(file.path)}"}
       end
     else
-      spec =
-        case file.file_system do
-          %FileSystem.S3{} = file_system ->
-            "/" <> key = file.path
+      type = Livebook.FileSystems.type(file.file_system)
+      dumped_data = FileSystem.dump(file.file_system)
+      "/" <> key = file.path
 
-            %{
-              type: :s3,
-              bucket_url: file_system.bucket_url,
-              region: file_system.region,
-              access_key_id: file_system.access_key_id,
-              secret_access_key: file_system.secret_access_key,
-              key: key
-            }
-        end
+      spec =
+        Map.merge(dumped_data, %{
+          type: String.to_existing_atom(type),
+          key: key
+        })
 
       {:ok, spec}
     end
