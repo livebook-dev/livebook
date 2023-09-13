@@ -70,7 +70,11 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    {:ok, socket}
+    if hub = socket.assigns[:hub] do
+      {:ok, assign(socket, file_systems: Livebook.Hubs.get_file_systems(hub))}
+    else
+      {:ok, assign(socket, file_systems: Livebook.Hubs.get_file_systems())}
+    end
   end
 
   @impl true
