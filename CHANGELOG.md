@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Option to mark a directory as the default file selector location ([#2046](https://github.com/livebook-dev/livebook/pull/2046))
 * Button for reevaluating apps on change ([#2066](https://github.com/livebook-dev/livebook/pull/2066))
 * Button for retrying on app errors ([#2066](https://github.com/livebook-dev/livebook/pull/2066))
-* Drag and drop actions for notebook files ([#2096](https://github.com/livebook-dev/livebook/pull/2096), [#2103](https://github.com/livebook-dev/livebook/pull/2103), [#2192](https://github.com/livebook-dev/kino/pull/2192))
+* Drag and drop actions for notebook files ([#2096](https://github.com/livebook-dev/livebook/pull/2096), [#2103](https://github.com/livebook-dev/livebook/pull/2103), [#2192](https://github.com/livebook-dev/livebook/pull/2192))
 * Support for dropping external files into the notebook ([#2097](https://github.com/livebook-dev/livebook/pull/2097))
 * Notebook custom view ([#2101](https://github.com/livebook-dev/livebook/pull/2101))
 * Automatic runtime setup when creating a new notebook to streamline autocompletion ([#2102](https://github.com/livebook-dev/livebook/pull/2102))
