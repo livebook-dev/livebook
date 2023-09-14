@@ -694,6 +694,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  defp evaluator_tmp_dir(state) do
+    if tmp_dir = state.tmp_dir do
+      Path.join(tmp_dir, "tmp")
+    end
+  end
+
   defp ensure_evaluator(state, container_ref) do
     if Map.has_key?(state.evaluators, container_ref) do
       state
@@ -705,6 +711,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           runtime_broadcast_to: state.runtime_broadcast_to,
           object_tracker: state.object_tracker,
           ebin_path: state.ebin_path,
+          tmp_dir: evaluator_tmp_dir(state),
           io_proxy_registry: state.io_proxy_registry
         )
 

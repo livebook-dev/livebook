@@ -83,6 +83,9 @@ defmodule Livebook.Runtime.Evaluator do
     * `:ebin_path` - a directory to write modules bytecode into. When
       not specified, modules are not written to disk
 
+    * `:tmp_dir` - a temporary directory for arbitrary use during
+      evaluation
+
     * `:io_proxy_registry` - the registry to register IO proxy
       processes in
 
@@ -266,6 +269,7 @@ defmodule Livebook.Runtime.Evaluator do
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     ebin_path = Keyword.get(opts, :ebin_path)
+    tmp_dir = Keyword.get(opts, :tmp_dir)
     io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
 
     {:ok, io_proxy} =
@@ -275,6 +279,7 @@ defmodule Livebook.Runtime.Evaluator do
         runtime_broadcast_to,
         object_tracker,
         ebin_path,
+        tmp_dir,
         io_proxy_registry
       )
 
