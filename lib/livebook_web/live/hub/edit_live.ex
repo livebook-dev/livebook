@@ -14,7 +14,7 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    Hubs.subscribe([:connection, :secrets])
+    Hubs.subscribe([:connection, :secrets, :file_systems])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
@@ -113,6 +113,27 @@ defmodule LivebookWeb.Hub.EditLive do
      socket
      |> push_navigate(to: ~p"/hub/#{id}")
      |> put_flash(:success, "Secret #{name} deleted successfully")}
+  end
+
+  def handle_info({:file_system_created, _}, socket) do
+    {:noreply,
+     socket
+     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
+     |> put_flash(:success, "File storage created successfully")}
+  end
+
+  def handle_info({:file_system_updated, _}, socket) do
+    {:noreply,
+     socket
+     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
+     |> put_flash(:success, "File storage updated successfully")}
+  end
+
+  def handle_info({:file_system_deleted, _}, socket) do
+    {:noreply,
+     socket
+     |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
+     |> put_flash(:success, "File storage deleted successfully")}
   end
 
   def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
