@@ -1,0 +1,118 @@
+defmodule LivebookWeb.Hub.FileSystemFormComponent do
+  use LivebookWeb, :live_component
+
+  alias Livebook.FileSystem
+  alias Livebook.FileSystems
+
+  @impl true
+  def update(%{file_system: file_system} = assigns, socket) do
+    file_system = file_system || %FileSystem.S3{}
+    changeset = FileSystems.change_file_system(file_system)
+    socket = assign(socket, assigns)
+
+    {:ok,
+     assign(socket,
+       file_system: file_system,
+       changeset: changeset,
+       mode: mode(socket),
+       title: title(socket),
+       button: button(socket),
+       error_message: nil
+     )}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="p-6 flex flex-col space-y-5">
+      <h3 class="text-2xl font-semibold text-gray-800">
+        <%= @title %>
+      </h3>
+      <p class="text-gray-700">
+        Configure an AWS S3 bucket as a Livebook file system.
+        Many storage services offer an S3-compatible API and
+        those work as well.
+      </p>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
+      <.form
+        :let={f}
+        id="file-systems-form"
+        for={to_form(@changeset, as: :file_system)}
+        phx-target={@myself}
+        phx-submit="save"
+        phx-change="validate"
+        autocomplete="off"
+        spellcheck="false"
+      >
+        <div class="flex flex-col space-y-4">
+          <.text_field
+            field={f[:bucket_url]}
+            label="Bucket URL"
+            placeholder="https://s3.[region].amazonaws.com/[bucket]"
+          />
+          <.text_field field={f[:region]} label="Region (optional)" />
+          <.password_field field={f[:access_key_id]} label="Access Key ID" />
+          <.password_field field={f[:secret_access_key]} label="Secret Access Key" />
+          <div class="flex space-x-2">
+            <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
+              <.remix_icon icon={@button.icon} class="align-middle mr-1" />
+              <span class="font-normal"><%= @button.label %></span>
+            </button>
+            <.link patch={@return_to} class="button-base button-outlined-gray">
+              Cancel
+            </.link>
+          </div>
+        </div>
+      </.form>
+    </div>
+    """
+  end
+
+  @impl true
+  def handle_event("validate", %{"file_system" => attrs}, socket) do
+    changeset =
+      socket.assigns.file_system
+      |> FileSystems.change_file_system(attrs)
+      |> Map.replace!(:action, :validate)
+
+    {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  def handle_event("save", %{"file_system" => attrs}, socket) do
+    with {:ok, file_system} <- FileSystems.update_file_system(socket.assigns.file_system, attrs),
+         :ok <- check_file_system_conectivity(file_system),
+         :ok <- save_file_system(file_system, socket) do
+      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    else
+      {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
+      {:error, message} -> {:noreply, assign(socket, error_message: message)}
+    end
+  end
+
+  defp check_file_system_conectivity(file_system) do
+    default_dir = FileSystem.File.new(file_system)
+
+    case FileSystem.File.list(default_dir) do
+      {:ok, _} -> :ok
+      {:error, message} -> {:error, "Connection test failed: " <> message}
+    end
+  end
+
+  defp save_file_system(file_system, socket) do
+    case socket.assigns.mode do
+      :new -> Livebook.Hubs.create_file_system(socket.assigns.hub, file_system)
+      :edit -> Livebook.Hubs.update_file_system(socket.assigns.hub, file_system)
+    end
+  end
+
+  defp mode(%{assigns: %{file_system: nil}}), do: :new
+  defp mode(_), do: :edit
+
+  defp title(%{assigns: %{file_system: nil}}), do: "Add file storage"
+  defp title(_), do: "Edit file storage"
+
+  defp button(%{assigns: %{file_system: nil}}), do: %{icon: "add-line", label: "Add"}
+  defp button(_), do: %{icon: "save-line", label: "Save"}
+end
