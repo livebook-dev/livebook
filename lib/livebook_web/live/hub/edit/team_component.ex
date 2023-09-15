@@ -13,7 +13,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     changeset = Team.change_hub(assigns.hub)
     show_key? = assigns.params["show-key"] == "true"
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
+    [_local | file_systems] = Hubs.get_file_systems(assigns.hub)
     secret_name = assigns.params["secret_name"]
+    file_system_id = assigns.params["file_system_id"]
     is_default? = is_default?(assigns.hub)
 
     secret_value =
@@ -22,10 +24,19 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
+    file_system =
+      if assigns.live_action == :edit_file_system do
+        Enum.find_value(file_systems, &(&1.id == file_system_id)) ||
+          raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
+      end
+
     {:ok,
      socket
      |> assign(
        secrets: secrets,
+       file_system: file_system,
+       file_system_id: file_system_id,
+       file_systems: file_systems,
        show_key: show_key?,
        secret_name: secret_name,
        secret_value: secret_value,
@@ -159,6 +170,24 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 id="hub-secrets-list"
                 hub={@hub}
                 secrets={@secrets}
+                target={@myself}
+              />
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                File Storages
+              </h2>
+
+              <p class="text-gray-700">
+                File storages are used to store notebooks.
+              </p>
+
+              <.live_component
+                module={LivebookWeb.Hub.FileSystemListComponent}
+                id="hub-file-systems-list"
+                hub_id={@hub.id}
+                file_systems={@file_systems}
                 target={@myself}
               />
             </div>
@@ -308,6 +337,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               hub={@hub}
               secret_name={@secret_name}
               secret_value={@secret_value}
+              return_to={~p"/hub/#{@hub.id}"}
+            />
+          </.modal>
+
+          <.modal
+            :if={@live_action in [:new_file_system, :edit_file_system]}
+            id="file-systems-modal"
+            show
+            width={:medium}
+            patch={~p"/hub/#{@hub.id}"}
+          >
+            <.live_component
+              module={LivebookWeb.Hub.FileSystemFormComponent}
+              id="file-systems"
+              hub={@hub}
+              file_system={@file_system}
+              file_system_id={@file_system_id}
               return_to={~p"/hub/#{@hub.id}"}
             />
           </.modal>
