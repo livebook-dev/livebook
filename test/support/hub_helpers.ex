@@ -108,6 +108,19 @@ defmodule Livebook.HubHelpers do
     :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
   end
 
+  def build_bypass_file_system(bypass) do
+    bucket_url = "http://localhost:#{bypass.port}"
+    hash = :crypto.hash(:sha256, bucket_url)
+
+    file_system =
+      build(:fs_s3,
+        id: "s3-#{Base.url_encode64(hash, padding: false)}",
+        bucket_url: bucket_url
+      )
+
+    file_system
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}

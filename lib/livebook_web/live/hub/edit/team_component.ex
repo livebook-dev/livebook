@@ -26,7 +26,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     file_system =
       if assigns.live_action == :edit_file_system do
-        Enum.find_value(file_systems, &(&1.id == file_system_id)) ||
+        Enum.find_value(file_systems, &(&1.id == file_system_id && &1)) ||
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
