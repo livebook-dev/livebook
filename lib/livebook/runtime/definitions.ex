@@ -351,20 +351,28 @@ defmodule Livebook.Runtime.Definitions do
 
       #{if windows? do
         """
-        serving = Bumblebee.Audio.speech_to_text(model_info, featurizer, tokenizer, generation_config)\
+        serving = Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
+          chunk_num_seconds: 30,
+          timestamps: :segments,
+          compile: [batch_size: 4]
+        )\
         """
       else
         """
         serving =
-          Bumblebee.Audio.speech_to_text(model_info, featurizer, tokenizer, generation_config,
-            compile: [batch_size: 1],
+          Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
+            chunk_num_seconds: 30,
+            timestamps: :segments,
+            compile: [batch_size: 4],
             defn_options: [compiler: EXLA]
           )\
         """
       end}
 
       path = Kino.FS.file_path("{{NAME}}")
-      output = Nx.Serving.run(serving, {:file, path})\
+      output = Nx.Serving.run(serving, {:file, path})
+
+      # output.chunks |> Enum.map_join(& &1.text) |> String.trim()\
       """,
       packages: [kino_bumblebee, nx_backend_package]
     },
