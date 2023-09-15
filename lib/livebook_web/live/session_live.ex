@@ -1079,6 +1079,19 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("insert_branching_section_below", params, socket) do
+    with {:ok, section, index} <-
+           section_with_next_index(
+             socket.private.data.notebook,
+             params["section_id"],
+             params["cell_id"]
+           ) do
+      Session.insert_branching_section_into(socket.assigns.session.pid, section.id, index)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event(
         "set_section_parent",
         %{"section_id" => section_id, "parent_id" => parent_id},

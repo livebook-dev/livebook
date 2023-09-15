@@ -60,44 +60,24 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
-          <.menu
-            :if={@section_view.valid_parents != [] and not @section_view.has_children?}
-            id={"section-#{@section_view.id}-branch-menu"}
+          <.branching_menu
+            section_view={@section_view}
+            scope="actions"
+            position={:bottom_right}
+            disabled={cannot_branch_out_reason(@section_view) != nil}
           >
-            <:toggle>
-              <span class="tooltip top" data-tooltip="Branch out from">
-                <button class="icon-button" aria-label="branch out from other section">
-                  <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
-                </button>
-              </span>
-            </:toggle>
-            <.menu_item :for={parent <- @section_view.valid_parents}>
-              <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
-                <button
-                  class="text-gray-900"
-                  phx-click="unset_section_parent"
-                  phx-value-section_id={@section_view.id}
-                >
-                  <.remix_icon icon="arrow-right-s-line" />
-                  <span><%= parent.name %></span>
-                </button>
-              <% else %>
-                <button
-                  class="text-gray-500"
-                  phx-click="set_section_parent"
-                  phx-value-section_id={@section_view.id}
-                  phx-value-parent_id={parent.id}
-                >
-                  <.remix_icon
-                    :if={@section_view.parent && @section_view.parent.id}
-                    icon="arrow-right-s-line"
-                    class="invisible"
-                  />
-                  <span><%= parent.name %></span>
-                </button>
-              <% end %>
-            </.menu_item>
-          </.menu>
+            <span
+              class="tooltip top"
+              data-tooltip={cannot_branch_out_reason(@section_view) || "Branch out from"}
+            >
+              <button
+                class={["icon-button", cannot_branch_out_reason(@section_view) && "disabled"]}
+                aria-label="branch out from other section"
+              >
+                <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+              </button>
+            </span>
+          </.branching_menu>
           <span class="tooltip top" data-tooltip="Move up">
             <button
               class="icon-button"
@@ -121,8 +101,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             </button>
           </span>
           <span {if @section_view.has_children?,
-               do: [class: "tooltip left", data_tooltip: "Cannot delete this section because\nother sections branch from it"],
-               else: [class: "tooltip top", data_tooltip: "Delete"]}>
+               do: [class: "tooltip left", "data-tooltip": "Cannot delete this section because\nother sections branch from it"],
+               else: [class: "tooltip top", "data-tooltip": "Delete"]}>
             <button
               class={["icon-button", @section_view.has_children? && "disabled"]}
               aria-label="delete section"
@@ -136,10 +116,10 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       </div>
       <h3
         :if={@section_view.parent}
-        class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800"
+        class="mt-1 flex items-end space-x-1 font-semibold text-gray-800"
         data-el-section-subheadline
       >
-        <span
+        <div
           class="tooltip bottom"
           data-tooltip="This section branches out from the main flow
     and can be evaluated in parallel"
@@ -148,8 +128,12 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             icon="git-branch-line"
             class="text-lg font-normal flip-horizontally leading-none"
           />
-        </span>
-        <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
+        </div>
+        <.branching_menu section_view={@section_view} scope="subheading" position={:bottom_left}>
+          <div class="text-sm leading-none cursor-pointer">
+            from ”<%= @section_view.parent.name %>”
+          </div>
+        </.branching_menu>
       </h3>
 
       <h3
@@ -202,4 +186,61 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
     </section>
     """
   end
+
+  attr :section_view, :map, required: true
+  attr :scope, :string, required: true
+  attr :position, :atom, required: true
+  attr :disabled, :boolean, default: false
+
+  slot :inner_block, required: true
+
+  defp branching_menu(assigns) do
+    ~H"""
+    <.menu
+      id={"section-#{@section_view.id}-branch-menu-#{@scope}"}
+      position={@position}
+      disabled={@disabled}
+    >
+      <:toggle>
+        <%= render_slot(@inner_block) %>
+      </:toggle>
+      <%= if @section_view.parent do %>
+        <.menu_item>
+          <button
+            class="text-gray-500"
+            phx-click="unset_section_parent"
+            phx-value-section_id={@section_view.id}
+          >
+            <.remix_icon icon="close-line" />
+            <span>Clear</span>
+          </button>
+        </.menu_item>
+        <div class="my-1 border-t border-gray-200"></div>
+      <% end %>
+      <.menu_item :for={parent <- @section_view.valid_parents}>
+        <button
+          class="text-gray-500"
+          phx-click="set_section_parent"
+          phx-value-section_id={@section_view.id}
+          phx-value-parent_id={parent.id}
+        >
+          <.remix_icon
+            :if={@section_view.parent}
+            icon="arrow-right-s-line"
+            class={[(@section_view.parent && @section_view.parent.id == parent.id) || "invisible"]}
+          />
+          <span><%= parent.name %></span>
+        </button>
+      </.menu_item>
+    </.menu>
+    """
+  end
+
+  defp cannot_branch_out_reason(%{valid_parents: []}),
+    do: "No section to branch out from"
+
+  defp cannot_branch_out_reason(%{has_children?: true}),
+    do: "Cannot branch out this section because\nother sections branch from it"
+
+  defp cannot_branch_out_reason(_section_view), do: nil
 end

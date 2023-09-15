@@ -184,6 +184,51 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :insert_branching_section_into" do
+    test "returns an error given invalid section id" do
+      data = Data.new()
+      operation = {:insert_branching_section_into, @cid, "nonexistent", 0, "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "sets the insertion section as parent if it is not branching" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"}
+        ])
+
+      operation = {:insert_branching_section_into, @cid, "s1", 0, "s2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1"}, %{id: "s2", parent_id: "s1"}]
+                },
+                section_infos: %{"s2" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "sets the closest regular section as parent" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_section, @cid, 1, "s2"},
+          {:insert_section, @cid, 2, "s3"},
+          {:set_section_parent, @cid, "s3", "s1"}
+        ])
+
+      operation = {:insert_branching_section_into, @cid, "s3", 0, "s4"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1"}, %{id: "s2"}, %{id: "s3"}, %{id: "s4", parent_id: "s2"}]
+                },
+                section_infos: %{"s4" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_section_parent" do
     test "returns an error given invalid section id" do
       data =

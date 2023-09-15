@@ -96,6 +96,17 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <span>Section</span>
             </button>
           </.menu_item>
+          <.menu_item>
+            <button
+              role="menuitem"
+              phx-click="insert_branching_section_below"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}
+            >
+              <.remix_icon icon="git-branch-line" />
+              <span>Branching section</span>
+            </button>
+          </.menu_item>
           <div class="flex items-center mt-4 mb-1 px-5 text-xs text-gray-400 font-light">
             MARKDOWN
           </div>
