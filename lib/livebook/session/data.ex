@@ -177,6 +177,7 @@ defmodule Livebook.Session.Data do
           {:set_notebook_attributes, client_id(), map()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
+          | {:insert_branching_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
           | {:unset_section_parent, client_id(), Section.id()}
           | {:insert_cell, client_id(), Section.id(), index(), Cell.type(), Cell.id(), map()}
@@ -397,6 +398,19 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> insert_section_into(section_id, index, section)
+      |> set_dirty()
+      |> wrap_ok()
+    end
+  end
+
+  def apply_operation(data, {:insert_branching_section_into, _client_id, section_id, index, id}) do
+    with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
+      section = %{Section.new() | id: id}
+
+      data
+      |> with_actions()
+      |> insert_section_into(section_id, index, section)
+      |> set_default_section_parent(section)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -1035,6 +1049,15 @@ defmodule Livebook.Session.Data do
           %{section | parent_id: nil}
         end)
     )
+  end
+
+  def set_default_section_parent({data, _actions} = data_actions, section) do
+    parent =
+      data.notebook
+      |> Notebook.valid_parents_for(section.id)
+      |> List.last()
+
+    set_section_parent(data_actions, section, parent)
   end
 
   defp insert_cell({data, _} = data_actions, section_id, index, cell) do

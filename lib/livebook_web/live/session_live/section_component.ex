@@ -60,44 +60,13 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
-          <.menu
-            :if={@section_view.valid_parents != [] and not @section_view.has_children?}
-            id={"section-#{@section_view.id}-branch-menu"}
-          >
-            <:toggle>
-              <span class="tooltip top" data-tooltip="Branch out from">
-                <button class="icon-button" aria-label="branch out from other section">
-                  <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
-                </button>
-              </span>
-            </:toggle>
-            <.menu_item :for={parent <- @section_view.valid_parents}>
-              <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
-                <button
-                  class="text-gray-900"
-                  phx-click="unset_section_parent"
-                  phx-value-section_id={@section_view.id}
-                >
-                  <.remix_icon icon="arrow-right-s-line" />
-                  <span><%= parent.name %></span>
-                </button>
-              <% else %>
-                <button
-                  class="text-gray-500"
-                  phx-click="set_section_parent"
-                  phx-value-section_id={@section_view.id}
-                  phx-value-parent_id={parent.id}
-                >
-                  <.remix_icon
-                    :if={@section_view.parent && @section_view.parent.id}
-                    icon="arrow-right-s-line"
-                    class="invisible"
-                  />
-                  <span><%= parent.name %></span>
-                </button>
-              <% end %>
-            </.menu_item>
-          </.menu>
+          <.branching_menu section_view={@section_view} scope="actions" position={:bottom_right}>
+            <span class="tooltip top" data-tooltip="Branch out from">
+              <button class="icon-button" aria-label="branch out from other section">
+                <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+              </button>
+            </span>
+          </.branching_menu>
           <span class="tooltip top" data-tooltip="Move up">
             <button
               class="icon-button"
@@ -136,10 +105,10 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       </div>
       <h3
         :if={@section_view.parent}
-        class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800"
+        class="mt-1 flex items-end space-x-1 font-semibold text-gray-800"
         data-el-section-subheadline
       >
-        <span
+        <div
           class="tooltip bottom"
           data-tooltip="This section branches out from the main flow
     and can be evaluated in parallel"
@@ -148,8 +117,12 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             icon="git-branch-line"
             class="text-lg font-normal flip-horizontally leading-none"
           />
-        </span>
-        <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
+        </div>
+        <.branching_menu section_view={@section_view} scope="subheading" position={:bottom_left}>
+          <div class="text-sm leading-none cursor-pointer">
+            from ”<%= @section_view.parent.name %>”
+          </div>
+        </.branching_menu>
       </h3>
 
       <h3
@@ -200,6 +173,45 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         </div>
       </div>
     </section>
+    """
+  end
+
+  defp branching_menu(assigns) do
+    ~H"""
+    <.menu
+      :if={@section_view.valid_parents != [] and not @section_view.has_children?}
+      id={"section-#{@section_view.id}-branch-menu-#{@scope}"}
+      position={@position}
+    >
+      <:toggle>
+        <%= render_slot(@inner_block) %>
+      </:toggle>
+      <.menu_item>
+        <button
+          class="text-gray-500"
+          phx-click="unset_section_parent"
+          phx-value-section_id={@section_view.id}
+        >
+          <.remix_icon icon="close-line" />
+          <span>Clear</span>
+        </button>
+      </.menu_item>
+      <div class="my-1 border-t border-gray-200"></div>
+      <.menu_item :for={parent <- @section_view.valid_parents}>
+        <button
+          class="text-gray-500"
+          phx-click="set_section_parent"
+          phx-value-section_id={@section_view.id}
+          phx-value-parent_id={parent.id}
+        >
+          <.remix_icon
+            icon="arrow-right-s-line"
+            class={[!(@section_view.parent && @section_view.parent.id == parent.id) && "invisible"]}
+          />
+          <span><%= parent.name %></span>
+        </button>
+      </.menu_item>
+    </.menu>
     """
   end
 end

@@ -342,6 +342,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends branching section insertion request to the server.
+  """
+  @spec insert_branching_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
+  def insert_branching_section_into(pid, section_id, index) do
+    GenServer.cast(pid, {:insert_branching_section_into, self(), section_id, index})
+  end
+
+  @doc """
   Sends parent update request to the server.
   """
   @spec set_section_parent(pid(), Section.id(), Section.id()) :: :ok
@@ -1063,6 +1071,13 @@ defmodule Livebook.Session do
     client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section_into, client_id, section_id, index, Utils.random_id()}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:insert_branching_section_into, client_pid, section_id, index}, state) do
+    client_id = client_id(state, client_pid)
+    # Include new id in the operation, so it's reproducible
+    operation = {:insert_branching_section_into, client_id, section_id, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
