@@ -89,7 +89,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
   def handle_event("delete_hub_secret", attrs, socket) do
     on_confirm = fn socket ->
       {:ok, secret} = Secrets.update_secret(%Secret{}, attrs)
-      hub = Livebook.Hubs.fetch_hub!(secret.hub_id)
+      hub = Hubs.fetch_hub!(secret.hub_id)
 
       case Hubs.delete_secret(hub, secret) do
         :ok -> socket
