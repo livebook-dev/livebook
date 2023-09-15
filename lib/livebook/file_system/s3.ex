@@ -115,6 +115,18 @@ defmodule Livebook.FileSystem.S3 do
     ])
     |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
     |> Livebook.Utils.validate_url(:bucket_url)
+    |> put_id()
+  end
+
+  defp put_id(changeset) do
+    if bucket_url = get_field(changeset, :bucket_url) do
+      hash = :crypto.hash(:sha256, bucket_url)
+      encrypted_hash = Base.url_encode64(hash, padding: false)
+
+      put_change(changeset, :id, "s3-#{encrypted_hash}")
+    else
+      changeset
+    end
   end
 end
 
