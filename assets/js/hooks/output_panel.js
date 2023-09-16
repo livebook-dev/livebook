@@ -12,31 +12,37 @@ const OutputPanel = {
     this.props = this.getProps();
     this.isDragging = false;
     this.draggedEl = null;
+    this.srcDropzoneRow = null;
+    this.srcDropzoneEl = null;
     this.dragLabel = this.createDragLabel();
-    this.srcColEl = null;
 
     this.el.addEventListener("dragstart", (event) => {
       if (!this.isDragging) {
         this.isDragging = true;
-        this.draggedEl = event.target;
-        this.el.setAttribute("data-js-dragging", "");
-
-        const row = getAttributeOrThrow(
+        this.draggedEl = event.target.closest(`[data-el-output-panel-item]`);
+        const elRowIndex = getAttributeOrThrow(
           event.target,
           "data-row-index",
           parseInteger
         );
-        const col = getAttributeOrThrow(
+        const elColIndex = getAttributeOrThrow(
           event.target,
           "data-col-index",
           parseInteger
         );
-        this.srcColEl = document.getElementById(
-          `dropzone-row-${row}-col-${col}`
+        this.srcDropzoneRow = document.querySelector(
+          `[data-el-output-panel-row][data-row-index="${elRowIndex}"]`
         );
-        this.srcColEl.classList.add("hidden");
+        this.srcDropzoneEl = document.getElementById(
+          `dropzone-row-${elRowIndex}-col-${elColIndex}`
+        );
+        this.el.setAttribute("data-js-dragging", "");
+        console.log(this.srcDropzoneRow);
+        console.log(this.srcDropzoneEl);
+        this.srcDropzoneRow.setAttribute("data-js-dragging-source", "");
+        this.srcDropzoneEl.setAttribute("data-js-dragging-source", "");
+
         event.dataTransfer.setDragImage(this.dragLabel, 10, 10);
-        event.target.parentNode.classList.add("hidden");
       }
     });
 
@@ -55,7 +61,7 @@ const OutputPanel = {
 
       const dstEl = event.target.closest(`[phx-hook="OutputPanelDropzone"]`);
 
-      const srcEl = this.draggedEl.closest(`[data-el-output-panel-item]`);
+      const srcEl = this.draggedEl;
 
       if (dstEl && srcEl) {
         const cellId = getAttributeOrThrow(srcEl, "data-cell-id");
@@ -112,13 +118,13 @@ const OutputPanel = {
     if (this.isDragging) {
       this.isDragging = false;
       this.el.removeAttribute("data-js-dragging");
-      this.srcColEl.classList.remove("hidden");
-      event.target.parentNode.classList.remove("hidden");
+      this.srcDropzoneRow.removeAttribute("data-js-dragging-source");
+      this.srcDropzoneEl.removeAttribute("data-js-dragging-source");
     }
   },
   createDragLabel() {
     const elem = document.createElement("div");
-    elem.classList.add("w-24", "h-8", "bg-blue-900", "rounded");
+    elem.classList.add("z-50", "w-24", "h-8", "bg-blue-900", "rounded");
     elem.style.position = "fixed";
     elem.style.left = "-100%";
 

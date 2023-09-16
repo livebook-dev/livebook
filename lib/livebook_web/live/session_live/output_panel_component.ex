@@ -121,7 +121,7 @@ defmodule LivebookWeb.SessionLive.OutputPanelComponent do
 
   defp output_options(assigns) do
     ~H"""
-    <div class="absolute z-10 top-0 right-2 hidden" data-el-output-panel-item-options>
+    <div class="absolute z-30 top-0 right-2 hidden" data-el-output-panel-item-options>
       <div class="flex justify-center items-center shadow-lg border rounded border-gray-300 bg-white">
         <div class="flex pr-2" draggable="true" data-row-index={@row} data-col-index={@col}>
           <div class="cursor-move">

@@ -415,17 +415,14 @@ solely client-side operations.
   [data-el-output-panel-col-drop-area],
 [data-el-output-panel-content]:not([data-js-dragging])
   [data-el-output-panel-row-drop-area] {
-  @apply hidden;
+  @apply opacity-0;
 }
 
 [data-el-output-panel-content][data-js-dragging]
-  [data-el-output-panel-col-drop-area]:not([data-js-dragging]) {
-  @apply z-20 opacity-0;
-}
-
+  [data-el-output-panel-col-drop-area]:not([data-js-dragging]),
 [data-el-output-panel-content][data-js-dragging]
   [data-el-output-panel-row-drop-area]:not([data-js-dragging]) {
-  @apply opacity-0;
+  @apply z-20 opacity-0;
 }
 
 [data-el-output-panel-col-drop-area][data-js-dragging] {
@@ -433,5 +430,12 @@ solely client-side operations.
 }
 
 [data-el-output-panel-row-drop-area][data-js-dragging] {
-  @apply h-16 opacity-100;
+  @apply z-20 h-16 opacity-100;
+}
+
+[data-el-output-panel-col-drop-area][data-js-dragging-source],
+[data-el-output-panel-row][data-js-dragging-source]
+  [data-el-output-panel-col-drop-area]
+  div {
+  @apply hidden;
 }
