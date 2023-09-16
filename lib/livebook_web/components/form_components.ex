@@ -408,6 +408,7 @@ defmodule LivebookWeb.FormComponents do
   attr :label, :string, default: nil
   attr :value, :any
   attr :errors, :list, default: []
+  attr :class, :string, default: ""
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
 
@@ -421,7 +422,7 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <select id={@id} name={@name} class="input" {@rest}>
+      <select id={@id} name={@name} class={["input", @class]} {@rest}>
         <option :if={@prompt} value="" disabled selected><%= @prompt %></option>
         <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
       </select>
