@@ -32,8 +32,8 @@ defmodule Livebook.ZTA.GoogleIAP do
 
   def authenticate(name, conn, fields: fields) do
     token = get_req_header(conn, @assertion)
-    user = GenServer.call(name, {:authenticate, token, fields})
-    {conn, user}
+    {identity, keys} = GenServer.call(name, :info, :infinity)
+    {conn, authenticate_user(token, fields, identity, keys)}
   end
 
   @impl true
@@ -43,9 +43,8 @@ defmodule Livebook.ZTA.GoogleIAP do
   end
 
   @impl true
-  def handle_call({:authenticate, token, fields}, _from, state) do
-    user = authenticated_user(token, fields, state.identity, state.keys)
-    {:reply, user, state}
+  def handle_call(:info, _from, state) do
+    {:reply, {state.identity, state.keys}, state}
   end
 
   @impl true
@@ -60,7 +59,7 @@ defmodule Livebook.ZTA.GoogleIAP do
     keys
   end
 
-  defp authenticated_user(token, _fields, identity, keys) do
+  defp authenticate_user(token, _fields, identity, keys) do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss, identity.key) do
