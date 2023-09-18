@@ -45,6 +45,7 @@ defmodule LivebookWeb.FileSelectComponent do
        renaming_file: nil,
        renamed_name: nil,
        error_message: nil,
+       configure_path: nil,
        file_systems: []
      )
      |> allow_upload(:folder,
@@ -70,11 +71,14 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    if hub = socket.assigns[:hub] do
-      {:ok, assign(socket, file_systems: Livebook.Hubs.get_file_systems(hub))}
-    else
-      {:ok, assign(socket, file_systems: Livebook.Hubs.get_file_systems())}
-    end
+    configure_path = ~p"/hub/#{Livebook.Hubs.Personal.id()}/file-systems/new"
+
+    {file_systems, configure_path} =
+      if hub = socket.assigns[:hub],
+        do: {Livebook.Hubs.get_file_systems(hub), ~p"/hub/#{hub.id}/file-systems/new"},
+        else: {Livebook.Hubs.get_file_systems(), configure_path}
+
+    {:ok, assign(socket, file_systems: file_systems, configure_path: configure_path)}
   end
 
   @impl true
@@ -87,6 +91,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.file_system_menu_button
             file={@file}
             file_systems={@file_systems}
+            configure_path={@configure_path}
             file_system_select_disabled={@file_system_select_disabled}
             myself={@myself}
           />
@@ -306,7 +311,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
       <% end %>
       <.menu_item>
-        <.link navigate={~p"/settings"} class="border-t border-gray-200" role="menuitem">
+        <.link navigate={@configure_path} class="border-t border-gray-200" role="menuitem">
           <.remix_icon icon="settings-3-line" />
           <span>Configure</span>
         </.link>
