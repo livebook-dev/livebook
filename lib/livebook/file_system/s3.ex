@@ -65,7 +65,7 @@ defmodule Livebook.FileSystem.S3 do
     %{host: host} = URI.parse(uri)
     splitted_host = host |> String.split(".") |> Enum.reverse()
 
-    case Enum.at(splitted_host, 2) do
+    case Enum.at(splitted_host, 2, "auto") do
       "s3" -> "us-east-1"
       "r2" -> "auto"
       region -> region

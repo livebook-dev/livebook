@@ -115,7 +115,8 @@ defmodule Livebook.HubHelpers do
     file_system =
       build(:fs_s3,
         id: "s3-#{Base.url_encode64(hash, padding: false)}",
-        bucket_url: bucket_url
+        bucket_url: bucket_url,
+        region: "auto"
       )
 
     file_system
