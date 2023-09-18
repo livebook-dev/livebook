@@ -1,5 +1,5 @@
 defmodule Livebook.ZTA.Cloudflare do
-  @doc """
+  @moduledoc """
   To integrate your Cloudflare Zero Trust authentication with Livebook,
   set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `cloudflare:<your-team-name>`
 
