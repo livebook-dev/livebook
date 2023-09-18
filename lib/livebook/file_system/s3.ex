@@ -8,7 +8,7 @@ defmodule Livebook.FileSystem.S3 do
   @type t :: %__MODULE__{
           id: String.t(),
           bucket_url: String.t(),
-          external_id: String.t(),
+          external_id: String.t() | nil,
           region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t()
