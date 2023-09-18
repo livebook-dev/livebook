@@ -40,19 +40,19 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
               </.menu_item>
               <.menu_item variant={:danger}>
                 <button
-                  id={"hub-file-system-#{file_system.id}-delete"}
+                  id={"hub-file-system-#{file_system.id}-detach"}
                   type="button"
                   role="menuitem"
                   class="text-red-600"
                   phx-click={
-                    JS.push("delete_file_system",
+                    JS.push("detach_file_system",
                       value: %{id: file_system.id, name: name(file_system)}
                     )
                   }
                   phx-target={@myself}
                 >
                   <.remix_icon icon="delete-bin-line" />
-                  <span>Delete</span>
+                  <span>Detach</span>
                 </button>
               </.menu_item>
             </.menu>
@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
   end
 
   @impl true
-  def handle_event("delete_file_system", %{"id" => id, "name" => name}, socket) do
+  def handle_event("detach_file_system", %{"id" => id, "name" => name}, socket) do
     on_confirm = fn socket ->
       hub = Livebook.Hubs.fetch_hub!(socket.assigns.hub.id)
       file_systems = Livebook.Hubs.get_file_systems(hub)
@@ -87,9 +87,9 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete hub file storage",
-       description: "Are you sure you want to delete #{name}?",
-       confirm_text: "Delete",
+       title: "Detach hub file storage",
+       description: "Are you sure you want to detach #{name}?",
+       confirm_text: "Detach",
        confirm_icon: "delete-bin-6-line"
      )}
   end

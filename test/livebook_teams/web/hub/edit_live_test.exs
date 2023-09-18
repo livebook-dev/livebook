@@ -356,7 +356,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
     end
 
-    test "deletes existing file system", %{conn: conn, hub: hub} do
+    test "detaches existing file system", %{conn: conn, hub: hub} do
       bypass = Bypass.open()
       file_system = build_bypass_file_system(bypass)
       id = "#{hub.id}-#{file_system.id}"
@@ -371,7 +371,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> element("#hub-file-system-#{file_system.id}-delete", "Delete")
+      |> element("#hub-file-system-#{file_system.id}-detach", "Detach")
       |> render_click()
 
       render_confirm(view)
