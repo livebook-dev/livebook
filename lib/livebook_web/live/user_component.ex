@@ -39,7 +39,7 @@ defmodule LivebookWeb.UserComponent do
             field={f[:name]}
             label="Display name"
             spellcheck="false"
-            disabled={Livebook.Config.identity_readonly?()}
+            disabled={Livebook.Config.identity_provider_read_only?()}
           />
           <%= if @user.email do %>
             <.text_field field={f[:email]} label="email" spellcheck="false" disabled="true" />

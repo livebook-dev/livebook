@@ -1,9 +1,9 @@
 defmodule Livebook.ZTA.TailscaleTest do
   use ExUnit.Case, async: true
   use Plug.Test
-
   alias Livebook.ZTA.Tailscale
 
+  @moduletag unix: true
   @fields [:id, :name, :email]
   @name Context.Test.Tailscale
   @path "/localapi/v0/whois"
@@ -64,12 +64,13 @@ defmodule Livebook.ZTA.TailscaleTest do
     assert %{id: "1234567890", email: "john@example.org", name: "John"} = user
   end
 
-  test "raises when configured with missing unix socket", %{options: options, conn: conn} do
+  test "raises when configured with missing unix socket", %{options: options} do
+    Process.flag(:trap_exit, true)
     options = Keyword.put(options, :identity, key: "./invalid-socket.sock")
-    start_supervised!({Tailscale, options})
-    assert_raise RuntimeError, fn ->
-      {_conn, user} = Tailscale.authenticate(@name, conn, @fields)
-    end
+
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             {:error, _} = start_supervised({Tailscale, options})
+           end) =~ "Tailscale socket does not exist"
   end
 
   test "returns nil when it's invalid", %{bypass: bypass, options: options} do
