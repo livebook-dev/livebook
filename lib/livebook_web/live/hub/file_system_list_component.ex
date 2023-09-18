@@ -87,8 +87,8 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete hub file system - #{name}",
-       description: "Are you sure you want to delete this hub file system?",
+       title: "Delete hub file storage",
+       description: "Are you sure you want to delete #{name}?",
        confirm_text: "Delete",
        confirm_icon: "delete-bin-6-line"
      )}
