@@ -1,9 +1,9 @@
 defmodule Livebook.ZTA.TailscaleTest do
   use ExUnit.Case, async: true
   use Plug.Test
-
   alias Livebook.ZTA.Tailscale
 
+  @moduletag unix: true
   @fields [:id, :name, :email]
   @name Context.Test.Tailscale
   @path "/localapi/v0/whois"
