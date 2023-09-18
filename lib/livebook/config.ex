@@ -5,20 +5,52 @@ defmodule Livebook.Config do
 
   @type auth_mode() :: :token | :password | :disabled
 
-  identity_providers = %{
-    session: LivebookWeb.SessionIdentity,
-    cloudflare: Livebook.ZTA.Cloudflare,
-    google_iap: Livebook.ZTA.GoogleIAP,
-    tailscale: Livebook.ZTA.Tailscale
-  }
+  @identity_providers [
+    %{
+      type: :session,
+      name: "Session",
+      value: "Cookie value",
+      module: LivebookWeb.SessionIdentity,
+      read_only: true,
+      link: "https://livebook.dev/",
+      commands: []
+    },
+    %{
+      type: :cloudflare,
+      name: "Cloudflare",
+      value: "Team name (domain)",
+      module: Livebook.ZTA.Cloudflare,
+      read_only: false,
+      link: "https://developers.cloudflare.com/cloudflare-one/",
+      commands: []
+    },
+    %{
+      type: :google_iap,
+      name: "Google IAP",
+      value: "Audience (aud)",
+      module: Livebook.ZTA.GoogleIAP,
+      read_only: false,
+      link: "https://cloud.google.com/iap/docs/concepts-overview"
+    },
+    %{
+      type: :tailscale,
+      name: "Tailscale",
+      value: "Tailscale CLI socket path",
+      module: Livebook.ZTA.Tailscale,
+      read_only: false,
+      link: "https://hexdocs.pm/livebook/Livebook.ZTA.Tailscale.html"
+    }
+  ]
 
-  @identity_provider_type_to_module Map.new(identity_providers, fn {key, value} ->
-                                      {Atom.to_string(key), value}
+  @identity_provider_type_to_module Map.new(@identity_providers, fn provider ->
+                                      {Atom.to_string(provider.type), provider.module}
                                     end)
 
-  @identity_provider_module_to_type Map.new(identity_providers, fn {key, value} ->
-                                      {value, key}
+  @identity_provider_module_to_type Map.new(@identity_providers, fn provider ->
+                                      {provider.module, provider.type}
                                     end)
+
+  @identity_provider_read_only Enum.filter(@identity_providers, & &1.read_only)
 
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
@@ -209,9 +241,16 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns all identity providers.
+  """
+  def identity_providers do
+    @identity_providers
+  end
+
+  @doc """
   Returns the identity provider.
   """
-  @spec identity_provider() :: tuple()
+  @spec identity_provider() :: {module, binary}
   def identity_provider() do
     Application.fetch_env!(:livebook, :identity_provider)
   end
@@ -219,18 +258,19 @@ defmodule Livebook.Config do
   @doc """
   Returns if the identity data is readonly.
   """
-  @spec identity_readonly?() :: boolean()
-  def identity_readonly?() do
-    not match?({LivebookWeb.SessionIdentity, _}, Livebook.Config.identity_provider())
+  @spec identity_provider_read_only?() :: boolean()
+  def identity_provider_read_only?() do
+    {module, _} = Livebook.Config.identity_provider()
+    module in @identity_provider_read_only
   end
 
   @doc """
-  Returns identity source as a friendly atom.
+  Returns identity provider type.
   """
-  @spec identity_source() :: atom()
-  def identity_source() do
+  @spec identity_provider_type() :: atom()
+  def identity_provider_type() do
     {module, _} = identity_provider()
-    @identity_provider_module_to_type[module]
+    Map.fetch!(@identity_provider_module_to_type, module)
   end
 
   @doc """
@@ -612,7 +652,7 @@ defmodule Livebook.Config do
   """
   def identity_provider!(context, provider) do
     with [type, key] <- String.split(provider, ":", parts: 2),
-         {:ok, module} <- Map.fetch(@identity_provider_type_to_module, type) do
+         %{^type => module} <- @identity_provider_type_to_module do
       {module, key}
     else
       _ -> abort!("invalid configuration for identity provider given in #{context}")

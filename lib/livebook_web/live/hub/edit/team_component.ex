@@ -14,7 +14,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     show_key? = assigns.params["show-key"] == "true"
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
     secret_name = assigns.params["secret_name"]
-    zta = %{"provider" => "", "key" => ""}
     is_default? = is_default?(assigns.hub)
 
     secret_value =
@@ -31,8 +30,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       zta: zta,
-       is_default: is_default?
+       is_default: is_default?,
+       zta: %{"provider" => "", "key" => ""},
+       zta_metadata: nil
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -181,41 +181,24 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     label="Zero Trust Authentication provider"
                     value={@zta["provider"]}
                     help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
-                    options={[
-                      {"None", ""},
-                      {"Cloudflare", "cloudflare"},
-                      {"Google IAP", "google_iap"}
-                    ]}
+                    prompt="None"
+                    options={zta_options()}
                   />
                   <.text_field
-                    :if={@zta["provider"] != ""}
+                    :if={@zta_metadata}
                     field={f[:key]}
-                    label={zta_key_label(@zta["provider"])}
+                    label={@zta_metadata.value}
                     phx-debounce
                   />
                 </div>
 
                 <div class="text-sm mt-2">
-                  <span :if={@zta["provider"] == "cloudflare"}>
-                    See the
-                    <a
-                      class="text-blue-800 hover:text-blue-600"
-                      href="https://developers.cloudflare.com/cloudflare-one/"
-                    >
-                      CloudFlare docs
+                  <span :if={@zta_metadata}>
+                    See
+                    <a class="text-blue-800 hover:text-blue-600" href={@zta_metadata.link}>
+                      <%= @zta_metadata.name %> docs
                     </a>
-                    for more information about Cloudflare Zero Trust.
-                  </span>
-
-                  <span :if={@zta["provider"] == "google_iap"}>
-                    See the
-                    <a
-                      class="text-blue-800 hover:text-blue-600"
-                      href="https://cloud.google.com/iap/docs/concepts-overview"
-                    >
-                      Google docs
-                    </a>
-                    for more information about Google Identity-Aware Proxy (IAP).
+                    for more information.
                   </span>
                 </div>
               </.form>
@@ -333,9 +316,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     </div>
     """
   end
-
-  defp zta_key_label("cloudflare"), do: "Team name (domain)"
-  defp zta_key_label("google_iap"), do: "Audience (aud)"
 
   defp org_url(hub, path) do
     Livebook.Config.teams_url() <> "/orgs/#{hub.org_id}" <> path
@@ -469,7 +449,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   def handle_event("change_zta", %{"provider" => provider} = params, socket) do
     zta = %{"provider" => provider, "key" => params["key"]}
-    {:noreply, assign(socket, zta: zta) |> assign_dockerfile()}
+
+    meta =
+      Enum.find(Livebook.Config.identity_providers(), fn meta ->
+        Atom.to_string(meta.type) == provider
+      end)
+
+    {:noreply, assign(socket, zta: zta, zta_metadata: meta) |> assign_dockerfile()}
   end
 
   def handle_event("mark_as_default", _, socket) do
@@ -480,6 +466,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def handle_event("remove_as_default", _, socket) do
     Hubs.unset_default_hub(socket.assigns.hub.id)
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
+  end
+
+  defp is_default?(hub) do
+    Hubs.get_default_hub().id == hub.id
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
@@ -514,7 +504,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
     zta = zta_env(socket.assigns.zta)
     dockerfile = if zta, do: base <> zta <> apps, else: base <> apps
-
     assign(socket, :dockerfile, dockerfile)
   end
 
@@ -531,6 +520,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
   end
 
+  @zta_options for provider <- Livebook.Config.identity_providers(),
+                   not provider.read_only,
+                   do: {provider.name, provider.type}
+
+  defp zta_options, do: @zta_options
+
   defp zta_env(%{"provider" => ""}), do: nil
   defp zta_env(%{"key" => ""}), do: nil
 
@@ -538,9 +533,5 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
     """
-  end
-
-  defp is_default?(hub) do
-    Hubs.get_default_hub().id == hub.id
   end
 end

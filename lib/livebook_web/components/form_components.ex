@@ -423,7 +423,7 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <select id={@id} name={@name} class={["input", @class]} {@rest}>
-        <option :if={@prompt} value="" disabled selected><%= @prompt %></option>
+        <option :if={@prompt} value=""><%= @prompt %></option>
         <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
       </select>
     </.field_wrapper>
