@@ -63,7 +63,13 @@ defmodule Livebook.FileSystem.S3 do
   defp region_from_uri(uri) do
     # For many services the API host is of the form *.[region].[rootdomain].com
     %{host: host} = URI.parse(uri)
-    host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
+    splitted_host = host |> String.split(".") |> Enum.reverse()
+
+    case Enum.at(splitted_host, 2) do
+      "s3" -> "us-east-1"
+      "r2" -> "auto"
+      region -> region
+    end
   end
 
   @doc """
@@ -113,9 +119,17 @@ defmodule Livebook.FileSystem.S3 do
       :access_key_id,
       :secret_access_key
     ])
+    |> put_region_from_uri()
     |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
     |> Livebook.Utils.validate_url(:bucket_url)
     |> put_id()
+  end
+
+  defp put_region_from_uri(changeset) do
+    case get_field(changeset, :bucket_url) do
+      nil -> changeset
+      bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
+    end
   end
 
   defp put_id(changeset) do
