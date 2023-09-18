@@ -7,8 +7,9 @@ defmodule Livebook.Config do
 
   identity_providers = %{
     session: LivebookWeb.SessionIdentity,
+    cloudflare: Livebook.ZTA.Cloudflare,
     google_iap: Livebook.ZTA.GoogleIAP,
-    cloudflare: Livebook.ZTA.Cloudflare
+    tailscale: Livebook.ZTA.Tailscale
   }
 
   @identity_provider_type_to_module Map.new(identity_providers, fn {key, value} ->
