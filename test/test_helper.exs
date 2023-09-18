@@ -53,14 +53,15 @@ Livebook.HubHelpers.set_offline_hub()
 # Compile anything pending on TeamsServer
 Livebook.TeamsServer.setup()
 
-erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
+erl_docs_missing? =
+  match?({:error, _}, Code.fetch_docs(:gen_server)) or match?({:error, _}, Code.fetch_docs(:odbc))
 
 windows? = match?({:win32, _}, :os.type())
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
   exclude: [
-    erl_docs: erl_docs_available?,
+    erl_docs: erl_docs_missing?,
     unix: windows?,
     teams_integration: not Livebook.TeamsServer.available?()
   ]
