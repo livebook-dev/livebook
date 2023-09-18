@@ -49,6 +49,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     socket =
       socket
       |> assign(assigns)
+      |> assign_new(:hub, fn -> nil end)
       |> assign_new(:attrs, fn -> attrs end)
       |> assign_new(:new_attrs, fn -> attrs end)
       |> assign_new(:draft_file, fn ->
@@ -77,6 +78,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             module={LivebookWeb.FileSelectComponent}
             id="persistence_file_select"
             file={@draft_file}
+            hub={@hub}
             extnames={[LiveMarkdown.extension()]}
             running_files={@running_files}
             submit_event={:confirm_file}

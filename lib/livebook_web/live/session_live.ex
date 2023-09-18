@@ -461,6 +461,7 @@ defmodule LivebookWeb.SessionLive do
         id="persistence"
         session={@session}
         file={@data_view.file}
+        hub={@data_view.hub}
         persist_outputs={@data_view.persist_outputs}
         autosave_interval_s={@data_view.autosave_interval_s}
       />
