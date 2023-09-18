@@ -92,7 +92,7 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply,
      socket
      |> push_navigate(to: ~p"/hub/#{id}")
-     |> put_flash(:success, "Secret #{name} created successfully")}
+     |> put_flash(:success, "Secret #{name} added successfully")}
   end
 
   def handle_info(
@@ -119,7 +119,7 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply,
      socket
      |> push_navigate(to: ~p"/hub/#{socket.assigns.hub.id}")
-     |> put_flash(:success, "File storage created successfully")}
+     |> put_flash(:success, "File storage added successfully")}
   end
 
   def handle_info({:file_system_updated, _}, socket) do

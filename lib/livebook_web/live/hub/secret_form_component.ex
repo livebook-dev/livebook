@@ -80,7 +80,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
       message =
         if socket.assigns.secret_name,
           do: "Secret #{secret.name} updated successfully",
-          else: "Secret #{secret.name} created successfully"
+          else: "Secret #{secret.name} added successfully"
 
       {:noreply,
        socket

@@ -99,7 +99,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:secret_created, ^secret}
 
-      %{"success" => "Secret TEAM_ADD_SECRET created successfully"} =
+      %{"success" => "Secret TEAM_ADD_SECRET added successfully"} =
         assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
@@ -294,7 +294,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:file_system_created, %{id: ^id} = file_system}
 
-      %{"success" => "File storage created successfully"} =
+      %{"success" => "File storage added successfully"} =
         assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
