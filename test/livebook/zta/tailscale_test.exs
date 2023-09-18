@@ -67,6 +67,7 @@ defmodule Livebook.ZTA.TailscaleTest do
   test "raises when configured with missing unix socket", %{options: options, conn: conn} do
     options = Keyword.put(options, :identity, key: "./invalid-socket.sock")
     start_supervised!({Tailscale, options})
+
     assert_raise RuntimeError, fn ->
       {_conn, user} = Tailscale.authenticate(@name, conn, @fields)
     end
