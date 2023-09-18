@@ -50,7 +50,14 @@ defmodule Livebook.ZTA.Tailscale do
 
   @impl true
   def init(options) do
-    state = struct!(__MODULE__, options)
+    %{address: address} = state = struct!(__MODULE__, options)
+
+    if not String.starts_with?(state.address, "http") and
+         not File.exists?(address) do
+      Logger.error("Tailscale socket does not exist: #{inspect(address)}")
+      raise "invalid Tailscale ZTA configuration"
+    end
+
     {:ok, state}
   end
 
@@ -76,11 +83,6 @@ defmodule Livebook.ZTA.Tailscale do
 
         {url, options}
       else
-        # Assume address not starting with http is a Unix socket
-        unless File.exists?(address) do
-          raise "Tailscale socket does not exist: #{inspect(address)}"
-        end
-
         {
           "http://local-tailscaled.sock/localapi/v0/whois?addr=#{remote_ip}:1",
           [
