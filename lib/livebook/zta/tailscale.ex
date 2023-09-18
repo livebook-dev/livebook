@@ -1,5 +1,5 @@
 defmodule Livebook.ZTA.Tailscale do
-  @doc """
+  @moduledoc """
   To integrate Tailscale authentication with Livebook,
   set the `LIVEBOOK_IDENTITY_PROVIDER` environment variable to `tailscale:tailscale-socket-path`.
 
