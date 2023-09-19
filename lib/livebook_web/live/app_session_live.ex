@@ -386,11 +386,15 @@ defmodule LivebookWeb.AppSessionLive do
       # See LivebookWeb.SessionLive for more details
       {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
         %{ref: ref, update: {update_type, _}} = output
+        changed_input_ids = Session.Data.changed_input_ids(data)
 
         for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
+          input_views = input_views_for_outputs(frame.outputs, data, changed_input_ids)
+
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
             outputs: frame.outputs,
+            input_views: input_views,
             update_type: update_type
           )
         end
@@ -412,7 +416,7 @@ defmodule LivebookWeb.AppSessionLive do
           {cell_id, output} <- visible_outputs(data.notebook),
           do: %{
             output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
+            input_views: input_views_for_outputs([output], data, changed_input_ids),
             cell_id: cell_id
           }
         ),
@@ -437,8 +441,11 @@ defmodule LivebookWeb.AppSessionLive do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
   end
 
-  defp input_views_for_output(output, data, changed_input_ids) do
-    input_ids = for input <- Cell.find_inputs_in_output(output), do: input.id
+  defp input_views_for_outputs(outputs, data, changed_input_ids) do
+    input_ids =
+      for output <- outputs,
+          input <- Cell.find_inputs_in_output(output),
+          do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
