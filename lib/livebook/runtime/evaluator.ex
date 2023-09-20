@@ -188,7 +188,7 @@ defmodule Livebook.Runtime.Evaluator do
   def intellisense_context() do
     env = Code.env_for_eval([])
     map_binding = fn fun -> fun.([]) end
-    %{env: env, map_binding: map_binding}
+    %{env: env, map_binding: map_binding, node: node()}
   end
 
   @doc """
@@ -211,7 +211,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     map_binding = fn fun -> map_binding(evaluator, parent_refs, fun) end
 
-    %{env: env, map_binding: map_binding}
+    %{env: env, map_binding: map_binding, node: node()}
   end
 
   defp find_in_dictionary(dictionary, key) do

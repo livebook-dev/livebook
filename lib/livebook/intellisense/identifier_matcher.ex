@@ -493,6 +493,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_erlang_module(hint, ctx) do
+    node = ctx.intellisense_context.node
+
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
@@ -500,7 +502,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, node)
         }
   end
 
@@ -521,6 +523,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_env_alias(hint, ctx) do
+    node = ctx.intellisense_context.node
+
     for {alias, mod} <- ctx.intellisense_context.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
@@ -528,7 +532,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, node)
         }
   end
 
@@ -564,6 +568,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
     match_prefix = "#{base_mod}.#{hint}"
     depth = match_prefix |> Module.split() |> length()
+    node = ctx.intellisense_context.node
 
     for mod <- get_matching_modules(match_prefix, ctx),
         parts = Module.split(mod),
@@ -582,7 +587,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, node)
         }
   end
 
@@ -606,13 +611,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp get_matching_modules(hint, ctx) do
-    get_modules()
+    ctx.intellisense_context.node
+    |> get_modules()
     |> Enum.filter(&ctx.matcher.(Atom.to_string(&1), hint))
     |> Enum.uniq()
   end
 
-  defp get_modules() do
-    modules = Enum.map(:code.all_loaded(), &elem(&1, 0))
+  defp get_modules(node) do
+    modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()

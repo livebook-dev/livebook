@@ -39,9 +39,9 @@ defmodule Livebook.Intellisense.Docs do
   @doc """
   Fetches documentation for the given module if available.
   """
-  @spec get_module_documentation(module()) :: documentation()
-  def get_module_documentation(module) do
-    case Code.fetch_docs(module) do
+  @spec get_module_documentation(module(), node()) :: documentation()
+  def get_module_documentation(module, node) do
+    case :erpc.call(node, :"Elixir.Code", :fetch_docs, [module]) do
       {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
         {format, docstring}
 

@@ -14,7 +14,8 @@ defmodule Livebook.IntellisenseTest do
 
       %{
         env: env,
-        map_binding: fn fun -> fun.(binding) end
+        map_binding: fn fun -> fun.(binding) end,
+        node: node()
       }
     end
   end

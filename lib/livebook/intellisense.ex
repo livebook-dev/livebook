@@ -22,7 +22,8 @@ defmodule Livebook.Intellisense do
   """
   @type context :: %{
           env: Macro.Env.t(),
-          map_binding: (Code.binding() -> any())
+          map_binding: (Code.binding() -> any()),
+          node: node()
         }
 
   @doc """
