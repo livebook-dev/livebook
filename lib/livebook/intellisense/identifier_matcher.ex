@@ -643,8 +643,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
-    if ensure_loaded?(mod) do
-      funs = funs || exports(mod)
+    node = ctx.intellisense_context.node
+
+    if :erpc.call(node, :"Elixir.Code", :ensure_loaded?, [mod]) do
+      funs = funs || exports(mod, node)
 
       matching_funs =
         Enum.filter(funs, fn {name, _arity, _type} ->
@@ -656,6 +658,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         Intellisense.Docs.lookup_module_members(
           mod,
           Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
+          node,
           kinds: [:function, :macro]
         )
 
@@ -688,13 +691,18 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp exports(mod) do
-    if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
-      macros = mod.__info__(:macros)
-      functions = mod.__info__(:functions) -- [__info__: 1]
+  defp exports(mod, node) do
+    loaded = :erpc.call(node, :"Elixir.Code", :ensure_loaded?, [mod])
+    exported = :erpc.call(node, :"Elixir.Kernel", :function_exported?, [mod, :__info__, 1])
+
+    if loaded and exported do
+      macros = :erpc.call(node, mod, :__info__, [:macros])
+      functions = :erpc.call(node, mod, :__info__, [:functions]) -- [__info__: 1]
       append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
     else
-      functions = mod.module_info(:exports) -- [module_info: 0, module_info: 1]
+      functions =
+        :erpc.call(node, mod, :module_info, [:exports]) -- [module_info: 0, module_info: 1]
+
       append_funs_type(functions, :function)
     end
   end
@@ -705,6 +713,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp match_module_type(mod, hint, ctx) do
     types = get_module_types(mod)
+    node = ctx.intellisense_context.node
 
     matching_types =
       Enum.filter(types, fn {name, _arity} ->
@@ -712,7 +721,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         ctx.matcher.(name, hint)
       end)
 
-    doc_items = Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
+    doc_items = Intellisense.Docs.lookup_module_members(mod, matching_types, node, kinds: [:type])
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =

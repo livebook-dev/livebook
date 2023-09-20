@@ -20,7 +20,7 @@ defmodule Livebook.RemoteIntellisenseTest do
         """
 
         @doc """
-        Hello
+        Hello doc
         """
         def hello(message) do
           message
@@ -73,5 +73,17 @@ defmodule Livebook.RemoteIntellisenseTest do
              documentation: "Remote module docs",
              insert_text: "RemoteModule"
            } in Intellisense.get_completion_items("RemoteModule", context)
+  end
+
+  test "find RemoteModule exported functions", %{node: node} do
+    context = eval(node, do: nil)
+
+    assert %{
+             label: "hello/1",
+             kind: :function,
+             detail: "RemoteModule.hello(message)",
+             documentation: "Hello doc",
+             insert_text: "hello($0)"
+           } in Intellisense.get_completion_items("RemoteModule.hel", context)
   end
 end

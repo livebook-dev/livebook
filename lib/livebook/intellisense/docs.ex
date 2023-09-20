@@ -74,15 +74,16 @@ defmodule Livebook.Intellisense.Docs do
   @spec lookup_module_members(
           module(),
           list({name :: atom(), arity :: non_neg_integer() | :any}),
+          node(),
           keyword()
         ) :: list(member_info())
-  def lookup_module_members(module, members, opts \\ []) do
+  def lookup_module_members(module, members, node, opts \\ []) do
     members = MapSet.new(members)
     kinds = opts[:kinds] || [:function, :macro, :type]
 
     specs =
       with true <- :function in kinds or :macro in kinds,
-           {:ok, specs} <- Code.Typespec.fetch_specs(module) do
+           {:ok, specs} <- :erpc.call(node, :"Elixir.Code.Typespec", :fetch_specs, [module]) do
         Map.new(specs)
       else
         _ -> %{}
@@ -90,7 +91,7 @@ defmodule Livebook.Intellisense.Docs do
 
     type_specs =
       with true <- :type in kinds,
-           {:ok, types} <- Code.Typespec.fetch_types(module) do
+           {:ok, types} <- :erpc.call(node, :"Elixir.Code.Typespec", :fetch_types, [module]) do
         for {type_kind, {name, _defs, vars}} = type <- types,
             type_kind in [:type, :opaque],
             into: Map.new(),
@@ -99,7 +100,7 @@ defmodule Livebook.Intellisense.Docs do
         _ -> %{}
       end
 
-    case Code.fetch_docs(module) do
+    case :erpc.call(node, :"Elixir.Code", :fetch_docs, [module]) do
       {:docs_v1, _, _, format, _, _, docs} ->
         for {{kind, name, base_arity}, _line, signatures, doc, meta} <- docs,
             kind in kinds,
