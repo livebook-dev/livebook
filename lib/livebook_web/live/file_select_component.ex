@@ -128,7 +128,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.menu_item>
             <button role="menuitem" phx-click="set_default_directory" phx-target={@myself}>
               <.remix_icon icon="home-6-line" />
-              <span>Use as default directory</span>
+              <span>Set as default directory</span>
             </button>
           </.menu_item>
         </.menu>
