@@ -11,34 +11,28 @@ defmodule Livebook.Config do
       name: "Session",
       value: "Cookie value",
       module: LivebookWeb.SessionIdentity,
-      read_only: true,
-      link: "https://livebook.dev/",
-      commands: []
+      read_only: true
     },
     %{
       type: :cloudflare,
       name: "Cloudflare",
       value: "Team name (domain)",
       module: Livebook.ZTA.Cloudflare,
-      read_only: false,
-      link: "https://developers.cloudflare.com/cloudflare-one/",
-      commands: []
+      read_only: false
     },
     %{
       type: :google_iap,
       name: "Google IAP",
       value: "Audience (aud)",
       module: Livebook.ZTA.GoogleIAP,
-      read_only: false,
-      link: "https://cloud.google.com/iap/docs/concepts-overview"
+      read_only: false
     },
     %{
       type: :tailscale,
       name: "Tailscale",
       value: "Tailscale CLI socket path",
       module: Livebook.ZTA.Tailscale,
-      read_only: false,
-      link: "https://hexdocs.pm/livebook/Livebook.ZTA.Tailscale.html"
+      read_only: false
     }
   ]
 

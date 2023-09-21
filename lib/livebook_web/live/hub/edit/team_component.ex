@@ -194,9 +194,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
                 <div class="text-sm mt-2">
                   <span :if={@zta_metadata}>
-                    See
-                    <a class="text-blue-800 hover:text-blue-600" href={@zta_metadata.link}>
-                      <%= @zta_metadata.name %> docs
+                    See the
+                    <a
+                      class="text-blue-800 hover:text-blue-600"
+                      href={"https://hexdocs.pm/livebook/#{@zta_metadata.type}"}
+                    >
+                      Authentication with <%= @zta_metadata.name %> docs
                     </a>
                     for more information.
                   </span>

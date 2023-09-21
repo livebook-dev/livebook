@@ -188,22 +188,24 @@ defmodule Livebook.MixProject do
   defp docs() do
     [
       logo: "static/images/logo.png",
-      main: "token_authentication",
+      main: "readme",
       api_reference: false,
       extra_section: "Docs",
       extras: extras(),
       groups_for_extras: [
-        Authentication: Path.wildcard("docs/authentication/*")
+        Deployment: Path.wildcard("docs/deployment/*")
       ]
     ]
   end
 
   defp extras() do
     [
-      "docs/authentication/token_authentication.md",
-      "docs/authentication/google_iap.md",
-      "docs/authentication/cloudflare.md",
-      "docs/authentication/tailscale.md"
+      "README.md",
+      "docs/authentication.md",
+      "docs/deployment/docker.md",
+      "docs/deployment/cloudflare.md",
+      "docs/deployment/google_iap.md",
+      "docs/deployment/tailscale.md"
     ]
   end
 end
