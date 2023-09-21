@@ -2784,13 +2784,19 @@ defmodule LivebookWeb.SessionLive do
       # to the corresponding component, so the DOM patch is isolated and fast.
       # This is important for intensive output updates
       {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
-        %{ref: ref, update: {update_type, _}} = output
+        %{ref: ref, update: {update_type, _new_outputs}} = output
 
-        for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
+        changed_input_ids = Session.Data.changed_input_ids(data)
+
+        for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
             outputs: frame.outputs,
-            update_type: update_type
+            update_type: update_type,
+            # Note that we are not updating data_view to avoid re-render,
+            # but any change that causes frame to re-render will update
+            # data_view first
+            input_views: input_views_for_cell(cell, data, changed_input_ids)
           )
         end
 

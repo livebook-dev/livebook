@@ -387,11 +387,14 @@ defmodule LivebookWeb.AppSessionLive do
       {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
         %{ref: ref, update: {update_type, _}} = output
 
-        for {idx, frame} <- Notebook.find_frame_outputs(data.notebook, ref) do
+        changed_input_ids = Session.Data.changed_input_ids(data)
+
+        for {{idx, frame} = output, _cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
             outputs: frame.outputs,
-            update_type: update_type
+            update_type: update_type,
+            input_views: input_views_for_output(output, data, changed_input_ids)
           )
         end
 
