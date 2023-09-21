@@ -20,7 +20,11 @@ defmodule Livebook.MixProject do
       escript: escript(),
       package: package(),
       default_release: :livebook,
-      releases: releases()
+      releases: releases(),
+
+      # Docs
+      homepage_url: "https://livebook.dev",
+      docs: docs()
     ]
   end
 
@@ -112,7 +116,9 @@ defmodule Livebook.MixProject do
       # ZTA deps
       {:jose, "~> 1.11.5"},
       {:req, "~> 0.3.8"},
-      {:bandit, "~> 0.7", only: :test}
+      {:bandit, "~> 0.7", only: :test},
+      # Docs
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
   end
 
@@ -177,5 +183,27 @@ defmodule Livebook.MixProject do
     |> Standalone.copy_elixir(elixir_version)
     |> Standalone.copy_hex()
     |> Standalone.copy_rebar3(rebar3_version)
+  end
+
+  defp docs() do
+    [
+      logo: "static/images/logo.png",
+      main: "token_authentication",
+      api_reference: false,
+      extra_section: "Docs",
+      extras: extras(),
+      groups_for_extras: [
+        Authentication: Path.wildcard("docs/authentication/*")
+      ]
+    ]
+  end
+
+  defp extras() do
+    [
+      "docs/authentication/token_authentication.md",
+      "docs/authentication/google_iap.md",
+      "docs/authentication/cloudflare.md",
+      "docs/authentication/tailscale.md"
+    ]
   end
 end
