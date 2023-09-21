@@ -18,7 +18,7 @@ RUN mkdir -p /data
 RUN chmod 777 /data
 ```
 
-You can consult our [README](../../README.md#environment-variables) for a complete list of environment variables and configuration.
+To configure your Livebook instance, you can use [these environment variables](../../README.md#environment-variables).
 
 If you plan to limit access to your Livebook via a proxy, we recommend leaving the "/public" route of your instances still public. This route is used for integration with the [Livebook Badge](https://livebook.dev/badge/) and other conveniences.
 
