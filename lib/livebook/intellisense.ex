@@ -22,8 +22,7 @@ defmodule Livebook.Intellisense do
   """
   @type context :: %{
           env: Macro.Env.t(),
-          map_binding: (Code.binding() -> any()),
-          node: node()
+          map_binding: (Code.binding() -> any())
         }
 
   @doc """
@@ -34,24 +33,25 @@ defmodule Livebook.Intellisense do
   """
   @spec handle_request(
           Runtime.intellisense_request(),
-          context()
+          context(),
+          node()
         ) :: Runtime.intellisense_response()
-  def handle_request(request, context)
+  def handle_request(request, context, node)
 
-  def handle_request({:completion, hint}, context) do
-    items = get_completion_items(hint, context)
+  def handle_request({:completion, hint}, context, node) do
+    items = get_completion_items(hint, context, node)
     %{items: items}
   end
 
-  def handle_request({:details, line, column}, context) do
+  def handle_request({:details, line, column}, context, _node) do
     get_details(line, column, context)
   end
 
-  def handle_request({:signature, hint}, context) do
-    get_signature_items(hint, context)
+  def handle_request({:signature, hint}, context, node) do
+    get_signature_items(hint, context, node)
   end
 
-  def handle_request({:format, code}, _context) do
+  def handle_request({:format, code}, _context, _node) do
     format_code(code)
   end
 
@@ -77,9 +77,9 @@ defmodule Livebook.Intellisense do
   @doc """
   Returns information about signatures matching the given `hint`.
   """
-  @spec get_signature_items(String.t(), context()) :: Runtime.signature_response() | nil
-  def get_signature_items(hint, context) do
-    case SignatureMatcher.get_matching_signatures(hint, context) do
+  @spec get_signature_items(String.t(), context(), node()) :: Runtime.signature_response() | nil
+  def get_signature_items(hint, context, node) do
+    case SignatureMatcher.get_matching_signatures(hint, context, node) do
       {:ok, [], _active_argument} ->
         nil
 
@@ -118,9 +118,9 @@ defmodule Livebook.Intellisense do
   @doc """
   Returns a list of completion suggestions for the given `hint`.
   """
-  @spec get_completion_items(String.t(), context()) :: list(Runtime.completion_item())
-  def get_completion_items(hint, context) do
-    IdentifierMatcher.completion_identifiers(hint, context)
+  @spec get_completion_items(String.t(), context(), node()) :: list(Runtime.completion_item())
+  def get_completion_items(hint, context, node) do
+    IdentifierMatcher.completion_identifiers(hint, context, node)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.concat(extra_completion_items(hint))

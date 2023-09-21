@@ -527,7 +527,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       end
 
     Task.Supervisor.start_child(state.task_supervisor, fn ->
-      response = Livebook.Intellisense.handle_request(request, intellisense_context)
+      response = Livebook.Intellisense.handle_request(request, intellisense_context, node())
       send(send_to, {:runtime_intellisense_response, ref, request, response})
     end)
 

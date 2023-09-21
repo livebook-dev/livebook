@@ -41,7 +41,7 @@ defmodule Livebook.Intellisense.Docs do
   """
   @spec get_module_documentation(module(), node()) :: documentation()
   def get_module_documentation(module, node) do
-    case :erpc.call(node, :"Elixir.Code", :fetch_docs, [module]) do
+    case :erpc.call(node, Code, :fetch_docs, [module]) do
       {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
         {format, docstring}
 
@@ -83,7 +83,7 @@ defmodule Livebook.Intellisense.Docs do
 
     specs =
       with true <- :function in kinds or :macro in kinds,
-           {:ok, specs} <- :erpc.call(node, :"Elixir.Code.Typespec", :fetch_specs, [module]) do
+           {:ok, specs} <- :erpc.call(node, Code.Typespec, :fetch_specs, [module]) do
         Map.new(specs)
       else
         _ -> %{}
@@ -91,7 +91,7 @@ defmodule Livebook.Intellisense.Docs do
 
     type_specs =
       with true <- :type in kinds,
-           {:ok, types} <- :erpc.call(node, :"Elixir.Code.Typespec", :fetch_types, [module]) do
+           {:ok, types} <- :erpc.call(node, Code.Typespec, :fetch_types, [module]) do
         for {type_kind, {name, _defs, vars}} = type <- types,
             type_kind in [:type, :opaque],
             into: Map.new(),
@@ -100,7 +100,7 @@ defmodule Livebook.Intellisense.Docs do
         _ -> %{}
       end
 
-    case :erpc.call(node, :"Elixir.Code", :fetch_docs, [module]) do
+    case :erpc.call(node, Elixir.Code, :fetch_docs, [module]) do
       {:docs_v1, _, _, format, _, _, docs} ->
         for {{kind, name, base_arity}, _line, signatures, doc, meta} <- docs,
             kind in kinds,
