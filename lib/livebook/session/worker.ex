@@ -1,6 +1,4 @@
 defmodule Livebook.Session.Worker do
-  @moduledoc false
-
   # A dedicated process for offloading the session process,
   # when the session state is not necessary.
   #

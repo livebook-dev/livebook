@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.NoopRuntime do
-  @moduledoc false
-
   # A runtime that doesn't do any actual evaluation,
   # thus not requiring any underlying resources.
 

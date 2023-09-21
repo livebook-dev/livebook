@@ -1,6 +1,4 @@
 defmodule Livebook.Delta.Transformation do
-  @moduledoc false
-
   # Implementation of the Operational Transformation algorithm for
   # deltas.
   #

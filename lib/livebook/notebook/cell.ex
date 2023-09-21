@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.Cell do
-  @moduledoc false
-
   # Data structure representing a single cell in a notebook.
   #
   # Cell is the smallest structural unit in a notebook, in other words

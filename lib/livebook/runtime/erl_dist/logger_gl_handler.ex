@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.LoggerGLHandler do
-  @moduledoc false
-
   @doc false
   def log(%{meta: meta} = event, %{formatter: {formatter_module, formatter_config}}) do
     message = apply(formatter_module, :format, [event, formatter_config])

@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.Sink do
-  @moduledoc false
-
   # An idle process that ignores all incoming messages.
 
   use GenServer

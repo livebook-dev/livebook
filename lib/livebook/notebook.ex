@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook do
-  @moduledoc false
-
   # Data structure representing a notebook.
   #
   # A notebook is just a document and roughly maps to a plain file

@@ -1,6 +1,4 @@
 defmodule Livebook.Intellisense.IdentifierMatcher do
-  @moduledoc false
-
   # This module allows for extracting information about identifiers
   # based on code and runtime information (binding, environment).
   #

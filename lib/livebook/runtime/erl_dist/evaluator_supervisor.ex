@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
-  @moduledoc false
-
   # Supervisor responsible for dynamically spawning
   # and terminating evaluator server processes.
 

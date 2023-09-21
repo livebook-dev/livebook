@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.StandaloneInit do
-  @moduledoc false
-
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by ElixirStandalone.
 

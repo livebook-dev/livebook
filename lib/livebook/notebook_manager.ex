@@ -1,6 +1,4 @@
 defmodule Livebook.NotebookManager do
-  @moduledoc false
-
   use GenServer
 
   alias Livebook.Storage

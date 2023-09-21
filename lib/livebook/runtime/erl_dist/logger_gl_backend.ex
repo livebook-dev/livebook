@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
-  @moduledoc false
-
   # A logger backend used to forward logs to Livebook,
   # as with regular output.
   #

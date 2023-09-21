@@ -1,6 +1,4 @@
 defmodule Livebook.SessionHelpers do
-  @moduledoc false
-
   alias Livebook.{Hubs, Session, Sessions}
   alias Livebook.Secrets.Secret
 

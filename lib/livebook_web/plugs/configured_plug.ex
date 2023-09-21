@@ -1,6 +1,4 @@
 defmodule LivebookWeb.ConfiguredPlug do
-  @moduledoc false
-
   # Runs plugs configured for the :livebook application
 
   @behaviour Plug

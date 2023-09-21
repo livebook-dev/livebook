@@ -1,6 +1,4 @@
 defmodule LivebookCLI do
-  @moduledoc false
-
   def usage() do
     """
     Usage: livebook [command] [options]

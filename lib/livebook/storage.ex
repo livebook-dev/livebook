@@ -1,6 +1,4 @@
 defmodule Livebook.Storage do
-  @moduledoc false
-
   # Storage for arbitrary data in [Entity-Attribute-Value](https://en.wikipedia.org/wiki/Entity%E2%80%93attribute%E2%80%93value_model)
   # fashion.
   #
@@ -22,8 +20,6 @@ defmodule Livebook.Storage do
   @type entity :: %{required(:id) => entity_id(), optional(attribute()) => value()}
 
   defmodule NotFoundError do
-    @moduledoc false
-
     defexception [:id, :namespace, plug_status: 404]
 
     def message(%{namespace: namespace, id: id}) do

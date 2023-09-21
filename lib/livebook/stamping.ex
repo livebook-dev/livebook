@@ -1,6 +1,4 @@
 defmodule Livebook.Stamping do
-  @moduledoc false
-
   # Cryptographic functions used to implement notebook stamping.
 
   @doc """

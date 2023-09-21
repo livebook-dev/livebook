@@ -1,6 +1,4 @@
 defmodule Livebook.Session do
-  @moduledoc false
-
   # Server process representing a single notebook session.
   #
   # Session keeps a notebook document, as well as additional ephemeral

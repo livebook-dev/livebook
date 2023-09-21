@@ -1,6 +1,4 @@
 defmodule Livebook.Release do
-  @moduledoc false
-
   @doc """
   Runs the setup for all apps deployed from directory on startup.
   """

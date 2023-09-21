@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Definitions do
-  @moduledoc false
-
   kino = %{
     name: "kino",
     dependency: %{dep: {:kino, github: "livebook-dev/kino", override: true}, config: []}

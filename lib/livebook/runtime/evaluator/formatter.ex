@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.Formatter do
-  @moduledoc false
-
   require Logger
 
   @doc """

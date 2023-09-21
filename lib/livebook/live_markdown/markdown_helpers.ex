@@ -1,6 +1,4 @@
 defmodule Livebook.LiveMarkdown.MarkdownHelpers do
-  @moduledoc false
-
   @doc """
   Wraps `EarmarkParser.as_ast/2`.
   """

@@ -1,9 +1,5 @@
 defmodule Livebook.Notebook.Learn do
-  @moduledoc false
-
   defmodule NotFoundError do
-    @moduledoc false
-
     defexception [:slug, plug_status: 404]
 
     def message(%{slug: slug}) do

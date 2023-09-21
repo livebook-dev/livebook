@@ -1,6 +1,4 @@
 defmodule Livebook.App do
-  @moduledoc false
-
   # Process corresponding to a deployed app, orchestrating app sessions.
   #
   # An app process is identified by a user-defined slug, which also

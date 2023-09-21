@@ -1,6 +1,4 @@
 defmodule Livebook.Teams.Org do
-  @moduledoc false
-
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -1,6 +1,4 @@
 defmodule Livebook.Apps do
-  @moduledoc false
-
   # This module is responsible for starting and discovering apps.
   #
   # App processes are tracked using `Livebook.Tracker` in the same way

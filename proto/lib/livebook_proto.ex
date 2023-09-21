@@ -1,6 +1,4 @@
 defmodule LivebookProto do
-  @moduledoc false
-
   alias LivebookProto.{
     Event,
     FileSystemCreated,

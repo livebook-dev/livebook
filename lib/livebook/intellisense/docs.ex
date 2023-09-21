@@ -1,6 +1,4 @@
 defmodule Livebook.Intellisense.Docs do
-  @moduledoc false
-
   # This module is responsible for extracting and normalizing
   # information like documentation, signatures and specs.
 

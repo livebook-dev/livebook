@@ -1,8 +1,6 @@
 defmodule Livebook do
   @moduledoc """
-  Livebook is an interactive notebook system for Elixir.
-
-  This module includes the public API.
+  This module provides a public Elixir API for integrating with Livebook.
 
   ## Configuration
 

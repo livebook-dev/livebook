@@ -1,5 +1,4 @@
 defmodule LivebookSpace.Application do
-  @moduledoc false
 
   use Application
 

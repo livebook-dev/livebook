@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystem.S3.XML do
-  @moduledoc false
-
   # Adapted from https://github.com/aws-beam/aws-elixir/blob/v0.8.0/lib/aws/xml.ex
 
   import Record

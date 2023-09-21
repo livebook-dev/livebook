@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystems do
-  @moduledoc false
-
   alias Livebook.FileSystem
 
   @doc """

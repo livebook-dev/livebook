@@ -190,8 +190,9 @@ defmodule Livebook.MixProject do
       logo: "static/images/logo.png",
       main: "readme",
       api_reference: false,
-      extra_section: "Docs",
+      extra_section: "Guides",
       extras: extras(),
+      filter_modules: fn mod, _ -> mod in [Livebook] end,
       groups_for_extras: [
         Deployment: Path.wildcard("docs/deployment/*")
       ]
@@ -200,7 +201,7 @@ defmodule Livebook.MixProject do
 
   defp extras() do
     [
-      "README.md",
+      {:"README.md", title: "Welcome to Livebook"},
       "docs/authentication.md",
       "docs/deployment/docker.md",
       "docs/deployment/cloudflare.md",

@@ -1,6 +1,4 @@
 defmodule LivebookWeb.Helpers.ANSI do
-  @moduledoc false
-
   @doc """
   Takes a string with ANSI escape codes and build a HTML safe string
   with `span` tags having classes corresponding to the escape codes.

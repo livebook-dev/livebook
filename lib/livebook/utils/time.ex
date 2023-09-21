@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.Time do
-  @moduledoc false
-
   # A simplified version of https://gist.github.com/tlemens/88e9b08f62150ba6082f478a4a03ac52
 
   @doc """

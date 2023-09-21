@@ -1,6 +1,4 @@
 defmodule Livebook.Session.Data do
-  @moduledoc false
-
   # Session data is a state shared across all of the clients.
   #
   # In practice this structure is a `Notebook` decorated with all the

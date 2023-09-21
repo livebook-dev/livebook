@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.Section do
-  @moduledoc false
-
   # Data structure representing a single section in a notebook.
   #
   # Section can contains a number of cells and serves as a way of

@@ -1,6 +1,4 @@
 defmodule LivebookWeb.UserPlug do
-  @moduledoc false
-
   # Initializes the session and cookies with user-related info.
   #
   # The first time someone visits Livebook

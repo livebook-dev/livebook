@@ -1,6 +1,4 @@
 defmodule Livebook.HubHelpers do
-  @moduledoc false
-
   import ExUnit.Assertions
   import Livebook.Factory
   import Phoenix.LiveViewTest

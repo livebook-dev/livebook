@@ -1,6 +1,4 @@
 defmodule LivebookWeb do
-  @moduledoc false
-
   def static_paths, do: ~w(assets images favicon.svg favicon.png robots.txt)
 
   def controller do

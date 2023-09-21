@@ -1,6 +1,4 @@
 defmodule Livebook.Sessions do
-  @moduledoc false
-
   # This module is responsible for starting and discovering sessions.
   #
   # Every session has a server process and is described by a `%Session{}`

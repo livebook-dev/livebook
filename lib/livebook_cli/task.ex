@@ -1,6 +1,4 @@
 defmodule LivebookCLI.Task do
-  @moduledoc false
-
   @doc """
   Returns a description of the task usage.
   """

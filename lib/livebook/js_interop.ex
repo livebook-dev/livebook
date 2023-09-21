@@ -1,6 +1,4 @@
 defmodule Livebook.JSInterop do
-  @moduledoc false
-
   alias Livebook.Delta
 
   @doc """

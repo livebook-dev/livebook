@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.Cell.Markdown do
-  @moduledoc false
-
   # Notebook cell with Markdown text content.
   #
   # It consists of text content that the user can edit and which is

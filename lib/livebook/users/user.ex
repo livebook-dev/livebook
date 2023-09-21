@@ -1,6 +1,4 @@
 defmodule Livebook.Users.User do
-  @moduledoc false
-
   # Represents a Livebook user.
   #
   # Livebook users are not regular web app accounts,

@@ -1,6 +1,4 @@
 defmodule Livebook.Teams.WebSocket do
-  @moduledoc false
-
   alias Mint.WebSocket.UpgradeFailureError
 
   @ws_path "/user/websocket"

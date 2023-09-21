@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.Graph do
-  @moduledoc false
-
   @typedoc """
   A bottom-up graph representation encoded as a map of child-to-parent
   entries.

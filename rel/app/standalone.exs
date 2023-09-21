@@ -1,5 +1,4 @@
 defmodule Standalone do
-  @moduledoc false
   require Logger
 
   @doc """

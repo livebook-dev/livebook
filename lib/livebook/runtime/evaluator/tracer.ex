@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.Tracer do
-  @moduledoc false
-
   # Compilation tracer used by the evaluator.
   #
   # Events are pre-processed and sent to the group leader, where the

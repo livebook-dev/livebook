@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.IOProxy do
-  @moduledoc false
-
   # An IO device process used by `Evaluator` as the group leader.
   #
   # The process implements [the Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)

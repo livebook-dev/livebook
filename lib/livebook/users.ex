@@ -1,6 +1,4 @@
 defmodule Livebook.Users do
-  @moduledoc false
-
   alias Livebook.Users.User
 
   @doc """

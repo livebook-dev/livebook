@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Attached do
-  @moduledoc false
-
   # A runtime backed by an Elixir node managed externally.
   #
   # Such node must be already started and available, Livebook doesn't

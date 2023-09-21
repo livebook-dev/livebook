@@ -1,6 +1,4 @@
 defmodule Livebook.Settings do
-  @moduledoc false
-
   # Keeps all Livebook settings that are backed by storage.
 
   import Ecto.Changeset, only: [apply_action: 2]
