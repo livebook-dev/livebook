@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystem.Local do
-  @moduledoc false
-
   # File system backed by local disk.
 
   defstruct [:origin_pid, :default_path, id: "local"]

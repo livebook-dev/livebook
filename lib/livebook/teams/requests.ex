@@ -1,6 +1,4 @@
 defmodule Livebook.Teams.Requests do
-  @moduledoc false
-
   alias Livebook.FileSystem
   alias Livebook.FileSystems
   alias Livebook.Hubs.Team

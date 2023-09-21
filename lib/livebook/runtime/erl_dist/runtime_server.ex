@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.RuntimeServer do
-  @moduledoc false
-
   # A server process backing a specific runtime.
   #
   # This process handles `Livebook.Runtime` operations,

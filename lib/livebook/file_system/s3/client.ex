@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystem.S3.Client do
-  @moduledoc false
-
   alias Livebook.FileSystem
   alias Livebook.FileSystem.S3
 

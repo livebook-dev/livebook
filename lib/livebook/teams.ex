@@ -1,6 +1,4 @@
 defmodule Livebook.Teams do
-  @moduledoc false
-
   alias Livebook.{FileSystem, Hubs}
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret

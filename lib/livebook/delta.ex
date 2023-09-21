@@ -1,6 +1,4 @@
 defmodule Livebook.Delta do
-  @moduledoc false
-
   # Delta is a format used to represent a set of changes introduced
   # to a text document.
   #

@@ -1,14 +1,10 @@
 defmodule LivebookWeb.StaticPlug.File do
-  @moduledoc false
-
   defstruct [:content, :digest]
 
   @type t :: %__MODULE__{content: binary(), digest: String.t()}
 end
 
 defmodule LivebookWeb.StaticPlug.Provider do
-  @moduledoc false
-
   @type segments :: list(String.t())
   @type compression :: :gzip | nil
 
@@ -35,8 +31,6 @@ defmodule LivebookWeb.StaticPlug.Provider do
 end
 
 defmodule LivebookWeb.StaticPlug do
-  @moduledoc false
-
   # This is a simplified version of `Plug.Static` meant
   # to serve static files using the given provider.
   #

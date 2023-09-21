@@ -1,6 +1,4 @@
 defmodule LivebookWeb.FileSystemWriter do
-  @moduledoc false
-
   # Custom writer for live uploads, uploading directly using the
   # `Livebook.FileSystem` abstraction.
   #

@@ -1,5 +1,4 @@
 defmodule LivebookWeb.SessionIdentity do
-  @moduledoc false
   # This module implements the ZTA contract specific to Livebook cookies
 
   import Plug.Conn

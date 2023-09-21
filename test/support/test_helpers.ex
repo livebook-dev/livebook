@@ -1,6 +1,4 @@
 defmodule Livebook.TestHelpers do
-  @moduledoc false
-
   import Phoenix.LiveViewTest
 
   alias Livebook.Session.Data

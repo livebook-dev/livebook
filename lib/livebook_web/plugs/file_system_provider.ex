@@ -1,6 +1,4 @@
 defmodule LivebookWeb.FileSystemProvider do
-  @moduledoc false
-
   # Configurable implementation of `LivebookWeb.StaticPlug.Provider` behaviour,
   # that loads files directly from the file system.
   #

@@ -1,5 +1,4 @@
 defmodule Livebook.FileSystem.S3 do
-  @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
 

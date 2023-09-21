@@ -1,8 +1,6 @@
 defmodule Livebook.Runtime.NodePool do
   use GenServer
 
-  @moduledoc false
-
   # A pool with generated node names.
   #
   # The names are randomly generated, however to avoid atom exhaustion

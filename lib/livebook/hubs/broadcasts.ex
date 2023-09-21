@@ -1,6 +1,4 @@
 defmodule Livebook.Hubs.Broadcasts do
-  @moduledoc false
-
   alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
 

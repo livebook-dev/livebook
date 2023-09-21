@@ -1,5 +1,4 @@
 defmodule Livebook.TeamsServer do
-  @moduledoc false
   use GenServer
 
   defstruct [:node, :token, :user, :org, :teams_key, :port, :app_port, :url, :env]

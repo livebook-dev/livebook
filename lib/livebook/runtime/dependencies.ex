@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Dependencies do
-  @moduledoc false
-
   @doc """
   Adds the given list of dependencies to the setup code.
   """

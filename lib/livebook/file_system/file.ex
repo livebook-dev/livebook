@@ -1,6 +1,4 @@
 defmodule Livebook.FileSystem.File do
-  @moduledoc false
-
   # A file points to a specific location in the given file system.
   #
   # This module provides a number of high-level functions similar to

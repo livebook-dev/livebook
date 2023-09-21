@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator.Doctests do
-  @moduledoc false
-
   @test_timeout 5_000
   @line_width 80
   @pad_size 3

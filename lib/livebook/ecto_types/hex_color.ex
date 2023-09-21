@@ -1,6 +1,4 @@
 defmodule Livebook.EctoTypes.HexColor do
-  @moduledoc false
-
   use Ecto.Type
 
   @impl true

@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.ANSI do
-  @moduledoc false
-
   @type modifiers :: list(modifier())
 
   @type modifier ::

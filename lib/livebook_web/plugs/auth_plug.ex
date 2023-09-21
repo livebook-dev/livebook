@@ -1,6 +1,4 @@
 defmodule LivebookWeb.AuthPlug do
-  @moduledoc false
-
   @behaviour Plug
 
   import Plug.Conn

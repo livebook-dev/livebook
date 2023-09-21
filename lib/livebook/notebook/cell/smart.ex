@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.Cell.Smart do
-  @moduledoc false
-
   # A cell with evaluable code that is edited through a dedicated UI.
   #
   # Smart cell is supposed to provide the user with an easy, code-free

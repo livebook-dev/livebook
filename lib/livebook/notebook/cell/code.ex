@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.Cell.Code do
-  @moduledoc false
-
   # Notebook cell with evaluable code.
   #
   # It consists of text content that the user can edit and produces

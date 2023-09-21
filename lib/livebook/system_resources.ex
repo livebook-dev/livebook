@@ -1,6 +1,4 @@
 defmodule Livebook.SystemResources do
-  @moduledoc false
-
   # Periodically computes system resource usage.
 
   @type memory :: %{total: non_neg_integer(), free: non_neg_integer()}

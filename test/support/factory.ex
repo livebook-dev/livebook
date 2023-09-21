@@ -1,6 +1,4 @@
 defmodule Livebook.Factory do
-  @moduledoc false
-
   def build(:user) do
     %Livebook.Users.User{
       id: Livebook.Utils.random_id(),

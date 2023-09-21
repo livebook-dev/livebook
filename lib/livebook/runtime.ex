@@ -1,6 +1,4 @@
 defprotocol Livebook.Runtime do
-  @moduledoc false
-
   # This protocol defines an interface for code evaluation backends.
   #
   # Usually a runtime involves a set of processes responsible for

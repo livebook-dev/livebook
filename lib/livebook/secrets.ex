@@ -1,6 +1,5 @@
 defmodule Livebook.Secrets do
   # Shared secret functionality across all hubs.
-  @moduledoc false
 
   alias Livebook.Secrets.Secret
 

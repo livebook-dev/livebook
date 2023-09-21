@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Evaluator do
-  @moduledoc false
-
   # A process responsible for evaluating notebook code.
   #
   # When evaluator receives an evaluation request, it synchronously

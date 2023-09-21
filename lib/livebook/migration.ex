@@ -1,6 +1,4 @@
 defmodule Livebook.Migration do
-  @moduledoc false
-
   @doc """
   Runs all migrations.
   """

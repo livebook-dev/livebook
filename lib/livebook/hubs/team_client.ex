@@ -1,5 +1,4 @@
 defmodule Livebook.Hubs.TeamClient do
-  @moduledoc false
   use GenServer
   require Logger
 

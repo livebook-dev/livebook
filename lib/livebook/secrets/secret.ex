@@ -1,5 +1,4 @@
 defmodule Livebook.Secrets.Secret do
-  @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
 

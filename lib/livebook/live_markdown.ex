@@ -1,6 +1,4 @@
 defmodule Livebook.LiveMarkdown do
-  @moduledoc false
-
   # File format used to store Livebook notebooks.
   #
   # The format is a subset of Markdown, which means that every Live

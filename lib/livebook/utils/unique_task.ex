@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.UniqueTask.Task do
-  @moduledoc false
-
   use GenServer, restart: :temporary
 
   @registry Livebook.Utils.UniqueTask.Registry
@@ -22,8 +20,6 @@ defmodule Livebook.Utils.UniqueTask.Task do
 end
 
 defmodule Livebook.Utils.UniqueTask do
-  @moduledoc false
-
   use Supervisor
 
   @registry Livebook.Utils.UniqueTask.Registry

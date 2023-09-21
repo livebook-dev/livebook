@@ -1,6 +1,4 @@
 defprotocol Livebook.Hubs.Provider do
-  @moduledoc false
-
   alias Livebook.FileSystem
   alias Livebook.Secrets.Secret
 

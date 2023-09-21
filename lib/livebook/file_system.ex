@@ -1,6 +1,4 @@
 defprotocol Livebook.FileSystem do
-  @moduledoc false
-
   # This protocol defines an interface for a virtual file system that
   # can be plugged into Livebook.
 

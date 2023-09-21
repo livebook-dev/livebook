@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist.NodeManager do
-  @moduledoc false
-
   # The primary Livebook process started on a remote node.
   #
   # This process is responsible for initializing the node with necessary

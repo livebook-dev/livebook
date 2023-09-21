@@ -1,6 +1,4 @@
 defmodule Livebook.Hubs do
-  @moduledoc false
-
   alias Livebook.FileSystem
   alias Livebook.Storage
   alias Livebook.Hubs.{Broadcasts, Metadata, Personal, Provider, Team}

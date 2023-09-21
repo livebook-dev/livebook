@@ -1,6 +1,4 @@
 defmodule Livebook.Utils.HTTP do
-  @moduledoc false
-
   @type status :: non_neg_integer()
   @type headers :: list(header())
   @type header :: {String.t(), String.t()}

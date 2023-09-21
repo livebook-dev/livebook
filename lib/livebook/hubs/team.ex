@@ -1,11 +1,8 @@
 defmodule Livebook.Hubs.Team do
-  @moduledoc false
-
   use Ecto.Schema
   import Ecto.Changeset
 
   defmodule Offline do
-    @moduledoc false
     use Ecto.Schema
 
     alias Livebook.Secrets.Secret

@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.ErlDist do
-  @moduledoc false
-
   # This module allows for initializing connected runtime nodes with
   # modules and processes necessary for evaluation.
   #

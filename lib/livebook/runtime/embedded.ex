@@ -1,6 +1,4 @@
 defmodule Livebook.Runtime.Embedded do
-  @moduledoc false
-
   # A runtime backed by the same node Livebook is running in.
   #
   # This runtime is reserved for specific use cases, where there is

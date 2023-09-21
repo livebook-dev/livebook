@@ -1,6 +1,4 @@
 defmodule Livebook.Notebook.AppSettings do
-  @moduledoc false
-
   # Data structure configuring how notebook gets deployed as an app.
 
   use Ecto.Schema

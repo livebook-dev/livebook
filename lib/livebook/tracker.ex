@@ -1,6 +1,4 @@
 defmodule Livebook.Tracker do
-  @moduledoc false
-
   use Phoenix.Tracker
 
   alias Livebook.Session

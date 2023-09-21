@@ -1,6 +1,4 @@
 defmodule Livebook.Config do
-  @moduledoc false
-
   alias Livebook.FileSystem
 
   @type auth_mode() :: :token | :password | :disabled

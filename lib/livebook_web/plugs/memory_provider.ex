@@ -1,6 +1,4 @@
 defmodule LivebookWeb.MemoryProvider do
-  @moduledoc false
-
   @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
 
   # Configurable implementation of `LivebookWeb.StaticPlug.Provider` behaviour,

@@ -1,6 +1,4 @@
 defmodule Livebook.UpdateCheck do
-  @moduledoc false
-
   # Periodically checks for available Livebook update.
 
   use GenServer

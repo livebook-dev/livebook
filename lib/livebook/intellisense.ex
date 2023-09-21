@@ -1,6 +1,4 @@
 defmodule Livebook.Intellisense do
-  @moduledoc false
-
   # This module provides intellisense related operations suitable for
   # integration with a text editor.
   #

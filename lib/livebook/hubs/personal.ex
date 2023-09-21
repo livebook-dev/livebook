@@ -1,6 +1,4 @@
 defmodule Livebook.Hubs.Personal do
-  @moduledoc false
-
   use Ecto.Schema
   import Ecto.Changeset
 
