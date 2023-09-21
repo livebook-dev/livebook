@@ -13,15 +13,15 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   Evaluation binding and environment is used to expand aliases,
   imports, access variable values, etc.
   """
-  @spec get_matching_signatures(String.t(), Livebook.Intellisense.intellisense_context()) ::
+  @spec get_matching_signatures(String.t(), Livebook.Intellisense.intellisense_context(), node()) ::
           {:ok, list(signature_info()), active_argument :: non_neg_integer()} | :error
-  def get_matching_signatures(hint, intellisense_context) do
+  def get_matching_signatures(hint, intellisense_context, node) do
     %{env: env} = intellisense_context
 
     case matching_call(hint, intellisense_context) do
       {:ok, {:remote, mod, fun}, maybe_arity, active_argument} ->
         funs = [{fun, maybe_arity || :any}]
-        signature_infos = signature_infos_for_members(mod, funs, active_argument)
+        signature_infos = signature_infos_for_members(mod, funs, active_argument, node)
         {:ok, signature_infos, active_argument}
 
       {:ok, {:local, name}, nil, active_argument} ->
@@ -35,7 +35,7 @@ defmodule Livebook.Intellisense.SignatureMatcher do
           end)
           |> Enum.reject(fn {_mod, matching_funs} -> matching_funs == [] end)
           |> Enum.flat_map(fn {mod, matching_funs} ->
-            signature_infos_for_members(mod, matching_funs, active_argument)
+            signature_infos_for_members(mod, matching_funs, active_argument, node)
           end)
 
         {:ok, signature_infos, active_argument}
@@ -50,9 +50,11 @@ defmodule Livebook.Intellisense.SignatureMatcher do
     end
   end
 
-  defp signature_infos_for_members(mod, funs, active_argument) do
+  defp signature_infos_for_members(mod, funs, active_argument, node) do
     infos =
-      Livebook.Intellisense.Docs.lookup_module_members(mod, funs, kinds: [:function, :macro])
+      Livebook.Intellisense.Docs.lookup_module_members(mod, funs, node,
+        kinds: [:function, :macro]
+      )
 
     for info <- infos,
         info.arity >= active_argument + 1 do

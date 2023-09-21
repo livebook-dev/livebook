@@ -108,15 +108,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   `hint` may be a single token or line fragment like `if Enum.m`.
   """
-  @spec completion_identifiers(String.t(), Intellisense.context()) :: list(identifier_item())
-  def completion_identifiers(hint, intellisense_context) do
+  @spec completion_identifiers(String.t(), Intellisense.context(), node()) ::
+          list(identifier_item())
+  def completion_identifiers(hint, intellisense_context, node) do
     context = Code.Fragment.cursor_context(hint)
 
     ctx = %{
       fragment: hint,
       intellisense_context: intellisense_context,
       matcher: @prefix_matcher,
-      type: :completion
+      type: :completion,
+      node: node
     }
 
     context_to_matches(context, ctx)
@@ -143,7 +145,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           fragment: fragment,
           intellisense_context: intellisense_context,
           matcher: @exact_matcher,
-          type: :locate
+          type: :locate,
+          node: node()
         }
 
         matches = context_to_matches(context, ctx)
@@ -498,7 +501,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -526,7 +529,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -580,7 +583,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           kind: :module,
           module: mod,
           display_name: name,
-          documentation: Intellisense.Docs.get_module_documentation(mod)
+          documentation: Intellisense.Docs.get_module_documentation(mod, ctx.node)
         }
   end
 
@@ -604,13 +607,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp get_matching_modules(hint, ctx) do
-    get_modules()
+    ctx.node
+    |> get_modules()
     |> Enum.filter(&ctx.matcher.(Atom.to_string(&1), hint))
     |> Enum.uniq()
   end
 
-  defp get_modules() do
-    modules = Enum.map(:code.all_loaded(), &elem(&1, 0))
+  defp get_modules(node) do
+    modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()
@@ -635,8 +639,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
-    if ensure_loaded?(mod) do
-      funs = funs || exports(mod)
+    if :erpc.call(ctx.node, Code, :ensure_loaded?, [mod]) do
+      funs = funs || exports(mod, ctx.node)
 
       matching_funs =
         Enum.filter(funs, fn {name, _arity, _type} ->
@@ -648,6 +652,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         Intellisense.Docs.lookup_module_members(
           mod,
           Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
+          ctx.node,
           kinds: [:function, :macro]
         )
 
@@ -680,13 +685,18 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp exports(mod) do
-    if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
-      macros = mod.__info__(:macros)
-      functions = mod.__info__(:functions) -- [__info__: 1]
+  defp exports(mod, node) do
+    loaded = :erpc.call(node, Code, :ensure_loaded?, [mod])
+    exported = :erpc.call(node, :erlang, :function_exported, [mod, :__info__, 1])
+
+    if loaded and exported do
+      macros = :erpc.call(node, mod, :__info__, [:macros])
+      functions = :erpc.call(node, mod, :__info__, [:functions]) -- [__info__: 1]
       append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
     else
-      functions = mod.module_info(:exports) -- [module_info: 0, module_info: 1]
+      functions =
+        :erpc.call(node, mod, :module_info, [:exports]) -- [module_info: 0, module_info: 1]
+
       append_funs_type(functions, :function)
     end
   end
@@ -704,7 +714,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         ctx.matcher.(name, hint)
       end)
 
-    doc_items = Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
+    doc_items =
+      Intellisense.Docs.lookup_module_members(mod, matching_types, ctx.node, kinds: [:type])
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =

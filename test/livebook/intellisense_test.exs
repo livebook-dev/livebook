@@ -56,9 +56,9 @@ defmodule Livebook.IntellisenseTest do
         insert_text: "length($0)"
       }
 
-      assert length_item in Intellisense.get_completion_items("", context)
-      assert length_item in Intellisense.get_completion_items("to_string(", context)
-      assert length_item in Intellisense.get_completion_items("Enum.map(list, ", context)
+      assert length_item in Intellisense.get_completion_items("", context, node())
+      assert length_item in Intellisense.get_completion_items("to_string(", context, node())
+      assert length_item in Intellisense.get_completion_items("Enum.map(list, ", context, node())
     end
 
     @tag :erl_docs
@@ -74,13 +74,13 @@ defmodule Livebook.IntellisenseTest do
                    "This module provides an API for the zlib library ([www.zlib.net](http://www.zlib.net)). It is used to compress and decompress data. The data format is described by [RFC 1950](https://www.ietf.org/rfc/rfc1950.txt), [RFC 1951](https://www.ietf.org/rfc/rfc1951.txt), and [RFC 1952](https://www.ietf.org/rfc/rfc1952.txt).",
                  insert_text: "zlib"
                }
-             ] = Intellisense.get_completion_items(":zl", context)
+             ] = Intellisense.get_completion_items(":zl", context, node())
     end
 
     test "Erlang module no completion" do
       context = eval(do: nil)
 
-      assert [] = Intellisense.get_completion_items(":unknown", context)
+      assert [] = Intellisense.get_completion_items(":unknown", context, node())
     end
 
     test "Erlang module multiple values completion" do
@@ -101,7 +101,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: _ordsets_doc,
                  insert_text: "ordsets"
                }
-             ] = Intellisense.get_completion_items(":ord", context)
+             ] = Intellisense.get_completion_items(":ord", context, node())
     end
 
     @tag :erl_docs
@@ -116,15 +116,15 @@ defmodule Livebook.IntellisenseTest do
         insert_text: "lists"
       }
 
-      assert lists_item in Intellisense.get_completion_items(":", context)
-      assert lists_item in Intellisense.get_completion_items("  :", context)
+      assert lists_item in Intellisense.get_completion_items(":", context, node())
+      assert lists_item in Intellisense.get_completion_items("  :", context, node())
     end
 
     @tag :erl_docs
     test "Erlang completion doesn't include quoted atoms" do
       context = eval(do: nil)
 
-      assert [] = Intellisense.get_completion_items(~s{:Elixir}, context)
+      assert [] = Intellisense.get_completion_items(~s{:Elixir}, context, node())
     end
 
     @tag :erl_docs
@@ -139,14 +139,14 @@ defmodule Livebook.IntellisenseTest do
                  documentation: _open_port_doc,
                  insert_text: "open_port($0)"
                }
-             ] = Intellisense.get_completion_items(":erlang.open_por", context)
+             ] = Intellisense.get_completion_items(":erlang.open_por", context, node())
     end
 
     @tag :erl_docs
     test "Erlang type completion" do
       context = eval(do: nil)
 
-      items = Intellisense.get_completion_items(":maps.iterator", context)
+      items = Intellisense.get_completion_items(":maps.iterator", context, node())
 
       assert %{
                label: "iterator/0",
@@ -186,7 +186,7 @@ defmodule Livebook.IntellisenseTest do
                detail: "module",
                documentation: "No documentation available",
                insert_text: "Elixir"
-             } in Intellisense.get_completion_items("Eli", context)
+             } in Intellisense.get_completion_items("Eli", context, node())
     end
 
     test "Elixir module completion" do
@@ -207,7 +207,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
-             ] = Intellisense.get_completion_items("En", context)
+             ] = Intellisense.get_completion_items("En", context, node())
 
       assert [
                %{
@@ -217,7 +217,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
-             ] = Intellisense.get_completion_items("Enumera", context)
+             ] = Intellisense.get_completion_items("Enumera", context, node())
 
       assert [
                %{
@@ -227,7 +227,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "No documentation available",
                  insert_text: "RuntimeError"
                }
-             ] = Intellisense.get_completion_items("RuntimeE", context)
+             ] = Intellisense.get_completion_items("RuntimeE", context, node())
     end
 
     test "Elixir struct completion lists nested options" do
@@ -239,7 +239,7 @@ defmodule Livebook.IntellisenseTest do
                detail: "struct",
                documentation: "A struct that holds file information.",
                insert_text: "File.Stat"
-             } in Intellisense.get_completion_items("%Fi", context)
+             } in Intellisense.get_completion_items("%Fi", context, node())
     end
 
     test "Elixir type completion" do
@@ -259,7 +259,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "from()"
                }
-             ] = Intellisense.get_completion_items("GenServer.fr", context)
+             ] = Intellisense.get_completion_items("GenServer.fr", context, node())
 
       assert [
                %{
@@ -275,7 +275,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "internal($0)"
                }
-             ] = Intellisense.get_completion_items("MapSet.intern", context)
+             ] = Intellisense.get_completion_items("MapSet.intern", context, node())
     end
 
     test "Elixir module completion with self" do
@@ -289,7 +289,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
-             ] = Intellisense.get_completion_items("Enumerable", context)
+             ] = Intellisense.get_completion_items("Enumerable", context, node())
     end
 
     test "Elixir completion on modules from load path" do
@@ -301,22 +301,22 @@ defmodule Livebook.IntellisenseTest do
                detail: "module",
                documentation: "A blazing fast JSON parser and generator in pure Elixir.",
                insert_text: "Jason"
-             } in Intellisense.get_completion_items("Jas", context)
+             } in Intellisense.get_completion_items("Jas", context, node())
     end
 
     test "Elixir no completion" do
       context = eval(do: nil)
 
-      assert [] = Intellisense.get_completion_items(".", context)
-      assert [] = Intellisense.get_completion_items("Xyz", context)
-      assert [] = Intellisense.get_completion_items("x.Foo", context)
-      assert [] = Intellisense.get_completion_items("x.Foo.get_by", context)
+      assert [] = Intellisense.get_completion_items(".", context, node())
+      assert [] = Intellisense.get_completion_items("Xyz", context, node())
+      assert [] = Intellisense.get_completion_items("x.Foo", context, node())
+      assert [] = Intellisense.get_completion_items("x.Foo.get_by", context, node())
     end
 
     test "Elixir private module no completion" do
       context = eval(do: nil)
 
-      assert [] = Intellisense.get_completion_items("Livebook.TestModules.Hidd", context)
+      assert [] = Intellisense.get_completion_items("Livebook.TestModules.Hidd", context, node())
     end
 
     test "Elixir private module members completion" do
@@ -330,7 +330,8 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  label: "visible/0"
                }
-             ] = Intellisense.get_completion_items("Livebook.TestModules.Hidden.", context)
+             ] =
+               Intellisense.get_completion_items("Livebook.TestModules.Hidden.", context, node())
     end
 
     test "Elixir root submodule completion" do
@@ -344,7 +345,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Key-based access to data structures.",
                  insert_text: "Access"
                }
-             ] = Intellisense.get_completion_items("Elixir.Acce", context)
+             ] = Intellisense.get_completion_items("Elixir.Acce", context, node())
     end
 
     test "Elixir submodule completion" do
@@ -358,13 +359,13 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Functionality to render ANSI escape sequences.",
                  insert_text: "ANSI"
                }
-             ] = Intellisense.get_completion_items("IO.AN", context)
+             ] = Intellisense.get_completion_items("IO.AN", context, node())
     end
 
     test "Elixir submodule no completion" do
       context = eval(do: nil)
 
-      assert [] = Intellisense.get_completion_items("IEx.Xyz", context)
+      assert [] = Intellisense.get_completion_items("IEx.Xyz", context, node())
     end
 
     test "Elixir function completion" do
@@ -384,7 +385,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "version()"
                }
-             ] = Intellisense.get_completion_items("System.ve", context)
+             ] = Intellisense.get_completion_items("System.ve", context, node())
     end
 
     test "Elixir sigil completion" do
@@ -398,9 +399,9 @@ defmodule Livebook.IntellisenseTest do
         insert_text: "~r"
       }
 
-      assert regex_item in Intellisense.get_completion_items("~", context)
+      assert regex_item in Intellisense.get_completion_items("~", context, node())
 
-      assert [^regex_item] = Intellisense.get_completion_items("~r", context)
+      assert [^regex_item] = Intellisense.get_completion_items("~r", context, node())
     end
 
     @tag :erl_docs
@@ -421,7 +422,7 @@ defmodule Livebook.IntellisenseTest do
                ```\
                """,
                insert_text: "gzip($0)"
-             } in Intellisense.get_completion_items(":zlib.gz", context)
+             } in Intellisense.get_completion_items(":zlib.gz", context, node())
     end
 
     test "function completion with arity" do
@@ -440,12 +441,12 @@ defmodule Livebook.IntellisenseTest do
                ```\
                """,
                insert_text: "concat($0)"
-             } in Intellisense.get_completion_items("Enum.concat/", context)
+             } in Intellisense.get_completion_items("Enum.concat/", context, node())
 
       assert [
                %{label: "count/1"},
                %{label: "count/2"}
-             ] = Intellisense.get_completion_items("Enum.count/", context)
+             ] = Intellisense.get_completion_items("Enum.count/", context, node())
     end
 
     test "function completion same name with different arities" do
@@ -480,7 +481,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "concat($0)"
                }
-             ] = Intellisense.get_completion_items("Enum.concat", context)
+             ] = Intellisense.get_completion_items("Enum.concat", context, node())
     end
 
     test "function completion when has default args then documentation all arities have docs" do
@@ -515,7 +516,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "join($0)"
                }
-             ] = Intellisense.get_completion_items("Enum.jo", context)
+             ] = Intellisense.get_completion_items("Enum.jo", context, node())
     end
 
     test "function completion using a variable bound to a module" do
@@ -538,7 +539,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "version()"
                }
-             ] = Intellisense.get_completion_items("mod.ve", context)
+             ] = Intellisense.get_completion_items("mod.ve", context, node())
     end
 
     test "operator completion" do
@@ -589,16 +590,16 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "+"
                }
-             ] = Intellisense.get_completion_items("+", context)
+             ] = Intellisense.get_completion_items("+", context, node())
 
       assert [
                %{label: "+/1"},
                %{label: "+/2"}
-             ] = Intellisense.get_completion_items("+/", context)
+             ] = Intellisense.get_completion_items("+/", context, node())
 
       assert [
                %{label: "++/2"}
-             ] = Intellisense.get_completion_items("++/", context)
+             ] = Intellisense.get_completion_items("++/", context, node())
     end
 
     test "map atom key completion" do
@@ -633,7 +634,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "foo"
                }
-             ] = Intellisense.get_completion_items("map.", context)
+             ] = Intellisense.get_completion_items("map.", context, node())
 
       assert [
                %{
@@ -643,7 +644,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "foo"
                }
-             ] = Intellisense.get_completion_items("map.f", context)
+             ] = Intellisense.get_completion_items("map.f", context, node())
     end
 
     test "nested map atom key completion" do
@@ -669,7 +670,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "nested"
                }
-             ] = Intellisense.get_completion_items("map.nest", context)
+             ] = Intellisense.get_completion_items("map.nest", context, node())
 
       assert [
                %{
@@ -679,7 +680,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "foo"
                }
-             ] = Intellisense.get_completion_items("map.nested.deeply.f", context)
+             ] = Intellisense.get_completion_items("map.nested.deeply.f", context, node())
 
       assert [
                %{
@@ -695,9 +696,9 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "version()"
                }
-             ] = Intellisense.get_completion_items("map.nested.deeply.mod.ve", context)
+             ] = Intellisense.get_completion_items("map.nested.deeply.mod.ve", context, node())
 
-      assert [] = Intellisense.get_completion_items("map.non.existent", context)
+      assert [] = Intellisense.get_completion_items("map.non.existent", context, node())
     end
 
     test "map string key completion is not supported" do
@@ -706,7 +707,7 @@ defmodule Livebook.IntellisenseTest do
           map = %{"foo" => 1}
         end
 
-      assert [] = Intellisense.get_completion_items("map.f", context)
+      assert [] = Intellisense.get_completion_items("map.f", context, node())
     end
 
     test "autocompletion off a bound variable only works for modules and maps" do
@@ -716,8 +717,8 @@ defmodule Livebook.IntellisenseTest do
           map = %{nested: %{num: 23}}
         end
 
-      assert [] = Intellisense.get_completion_items("num.print", context)
-      assert [] = Intellisense.get_completion_items("map.nested.num.f", context)
+      assert [] = Intellisense.get_completion_items("num.print", context, node())
+      assert [] = Intellisense.get_completion_items("map.nested.num.f", context, node())
     end
 
     test "autocompletion using access syntax does is not supported" do
@@ -726,9 +727,9 @@ defmodule Livebook.IntellisenseTest do
           map = %{nested: %{deeply: %{num: 23}}}
         end
 
-      assert [] = Intellisense.get_completion_items("map[:nested][:deeply].n", context)
-      assert [] = Intellisense.get_completion_items("map[:nested].deeply.n", context)
-      assert [] = Intellisense.get_completion_items("map.nested.[:deeply].n", context)
+      assert [] = Intellisense.get_completion_items("map[:nested][:deeply].n", context, node())
+      assert [] = Intellisense.get_completion_items("map[:nested].deeply.n", context, node())
+      assert [] = Intellisense.get_completion_items("map.nested.[:deeply].n", context, node())
     end
 
     test "macro completion" do
@@ -742,7 +743,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Returns `true` if `term` is `nil`, `false` otherwise.",
                  insert_text: "is_nil($0)"
                }
-             ] = Intellisense.get_completion_items("Kernel.is_ni", context)
+             ] = Intellisense.get_completion_items("Kernel.is_ni", context, node())
     end
 
     test "special forms completion" do
@@ -756,7 +757,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Gets the representation of any expression.",
                  insert_text: "quote "
                }
-             ] = Intellisense.get_completion_items("quot", context)
+             ] = Intellisense.get_completion_items("quot", context, node())
     end
 
     test "kernel import completion" do
@@ -787,7 +788,7 @@ defmodule Livebook.IntellisenseTest do
                  """,
                  insert_text: "put_in($0)"
                }
-             ] = Intellisense.get_completion_items("put_i", context)
+             ] = Intellisense.get_completion_items("put_i", context, node())
     end
 
     test "variable name completion" do
@@ -806,7 +807,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "numbats"
                }
-             ] = Intellisense.get_completion_items("numba", context)
+             ] = Intellisense.get_completion_items("numba", context, node())
 
       assert [
                %{
@@ -823,7 +824,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "number"
                }
-             ] = Intellisense.get_completion_items("num", context)
+             ] = Intellisense.get_completion_items("num", context, node())
 
       assert [
                %{
@@ -836,7 +837,7 @@ defmodule Livebook.IntellisenseTest do
                %{label: "node/0"},
                %{label: "node/1"},
                %{label: "not/1"}
-             ] = Intellisense.get_completion_items("no", context)
+             ] = Intellisense.get_completion_items("no", context, node())
     end
 
     test "completion of manually imported functions and macros" do
@@ -852,7 +853,7 @@ defmodule Livebook.IntellisenseTest do
                %{label: "take_every/2"},
                %{label: "take_random/2"},
                %{label: "take_while/2"}
-             ] = Intellisense.get_completion_items("take", context)
+             ] = Intellisense.get_completion_items("take", context, node())
 
       assert %{
                label: "version/0",
@@ -866,17 +867,17 @@ defmodule Livebook.IntellisenseTest do
                ```\
                """,
                insert_text: "version()"
-             } in Intellisense.get_completion_items("v", context)
+             } in Intellisense.get_completion_items("v", context, node())
 
       assert [
                %{label: "derive/2"},
                %{label: "derive/3"}
-             ] = Intellisense.get_completion_items("der", context)
+             ] = Intellisense.get_completion_items("der", context, node())
 
       assert [
                %{label: "count/1"},
                %{label: "count/2"}
-             ] = Intellisense.get_completion_items("count/", context)
+             ] = Intellisense.get_completion_items("count/", context, node())
     end
 
     test "ignores quoted variables when performing variable completion" do
@@ -891,7 +892,7 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "my_var_2"}
-             ] = Intellisense.get_completion_items("my_var", context)
+             ] = Intellisense.get_completion_items("my_var", context, node())
     end
 
     test "completion inside expression" do
@@ -900,32 +901,32 @@ defmodule Livebook.IntellisenseTest do
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("1 En", context)
+             ] = Intellisense.get_completion_items("1 En", context, node())
 
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("foo(En", context)
+             ] = Intellisense.get_completion_items("foo(En", context, node())
 
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("Test En", context)
+             ] = Intellisense.get_completion_items("Test En", context, node())
 
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("foo(x,En", context)
+             ] = Intellisense.get_completion_items("foo(x,En", context, node())
 
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("[En", context)
+             ] = Intellisense.get_completion_items("[En", context, node())
 
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("{En", context)
+             ] = Intellisense.get_completion_items("{En", context, node())
     end
 
     test "ampersand completion" do
@@ -934,17 +935,17 @@ defmodule Livebook.IntellisenseTest do
       assert [
                %{label: "Enum"},
                %{label: "Enumerable"}
-             ] = Intellisense.get_completion_items("&En", context)
+             ] = Intellisense.get_completion_items("&En", context, node())
 
       assert [
                %{label: "all?/1"},
                %{label: "all?/2"}
-             ] = Intellisense.get_completion_items("&Enum.al", context)
+             ] = Intellisense.get_completion_items("&Enum.al", context, node())
 
       assert [
                %{label: "all?/1"},
                %{label: "all?/2"}
-             ] = Intellisense.get_completion_items("f = &Enum.al", context)
+             ] = Intellisense.get_completion_items("f = &Enum.al", context, node())
     end
 
     test "negation operator completion" do
@@ -952,7 +953,7 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "is_binary/1"}
-             ] = Intellisense.get_completion_items("!is_bin", context)
+             ] = Intellisense.get_completion_items("!is_bin", context, node())
     end
 
     test "pin operator completion" do
@@ -963,7 +964,7 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "my_variable"}
-             ] = Intellisense.get_completion_items("^my_va", context)
+             ] = Intellisense.get_completion_items("^my_va", context, node())
     end
 
     defmodule SublevelTest.LevelA.LevelB do
@@ -975,7 +976,8 @@ defmodule Livebook.IntellisenseTest do
       assert [%{label: "LevelA"}] =
                Intellisense.get_completion_items(
                  "Livebook.IntellisenseTest.SublevelTest.",
-                 context
+                 context,
+                 node()
                )
     end
 
@@ -987,12 +989,12 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "MyList"}
-             ] = Intellisense.get_completion_items("MyL", context)
+             ] = Intellisense.get_completion_items("MyL", context, node())
 
       assert [
                %{label: "to_integer/1"},
                %{label: "to_integer/2"}
-             ] = Intellisense.get_completion_items("MyList.to_integ", context)
+             ] = Intellisense.get_completion_items("MyList.to_integ", context, node())
     end
 
     @tag :erl_docs
@@ -1004,13 +1006,13 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "EList"}
-             ] = Intellisense.get_completion_items("EL", context)
+             ] = Intellisense.get_completion_items("EL", context, node())
 
       assert [
                %{label: "map/2"},
                %{label: "mapfoldl/3"},
                %{label: "mapfoldr/3"}
-             ] = Intellisense.get_completion_items("EList.map", context)
+             ] = Intellisense.get_completion_items("EList.map", context, node())
 
       assert %{
                label: "max/1",
@@ -1025,9 +1027,9 @@ defmodule Livebook.IntellisenseTest do
                ```\
                """,
                insert_text: "max($0)"
-             } in Intellisense.get_completion_items("EList.", context)
+             } in Intellisense.get_completion_items("EList.", context, node())
 
-      assert [] = Intellisense.get_completion_items("EList.Invalid", context)
+      assert [] = Intellisense.get_completion_items("EList.Invalid", context, node())
     end
 
     test "completion for functions added when compiled module is reloaded" do
@@ -1039,7 +1041,11 @@ defmodule Livebook.IntellisenseTest do
         end
 
       assert [%{label: "foo/0"}] =
-               Intellisense.get_completion_items("Livebook.IntellisenseTest.Sample.foo", context)
+               Intellisense.get_completion_items(
+                 "Livebook.IntellisenseTest.Sample.foo",
+                 context,
+                 node()
+               )
 
       Code.compiler_options(ignore_module_conflict: true)
 
@@ -1054,7 +1060,8 @@ defmodule Livebook.IntellisenseTest do
              ] =
                Intellisense.get_completion_items(
                  "Livebook.IntellisenseTest.Sample.foo",
-                 context
+                 context,
+                 node()
                )
     after
       Code.compiler_options(ignore_module_conflict: false)
@@ -1071,7 +1078,12 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "MyStruct"}
-             ] = Intellisense.get_completion_items("Livebook.IntellisenseTest.MyStr", context)
+             ] =
+               Intellisense.get_completion_items(
+                 "Livebook.IntellisenseTest.MyStr",
+                 context,
+                 node()
+               )
     end
 
     test "completion for struct keys" do
@@ -1082,7 +1094,7 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{label: "my_val"}
-             ] = Intellisense.get_completion_items("struct.my", context)
+             ] = Intellisense.get_completion_items("struct.my", context, node())
     end
 
     test "completion for struct keys inside struct" do
@@ -1099,7 +1111,8 @@ defmodule Livebook.IntellisenseTest do
              ] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{my",
-                 context
+                 context,
+                 node()
                )
     end
 
@@ -1109,14 +1122,15 @@ defmodule Livebook.IntellisenseTest do
       assert [] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{my_val: 123, ",
-                 context
+                 context,
+                 node()
                )
     end
 
     test "completion for struct keys inside struct ignores `__exception__`" do
       context = eval(do: nil)
 
-      completions = Intellisense.get_completion_items("%ArgumentError{", context)
+      completions = Intellisense.get_completion_items("%ArgumentError{", context, node())
 
       refute Enum.find(completions, &match?(%{label: "__exception__"}, &1))
     end
@@ -1135,7 +1149,8 @@ defmodule Livebook.IntellisenseTest do
              ] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{struct | ",
-                 context
+                 context,
+                 node()
                )
 
       assert [
@@ -1149,13 +1164,15 @@ defmodule Livebook.IntellisenseTest do
              ] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{struct | my_v",
-                 context
+                 context,
+                 node()
                )
 
       assert [] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{struct | my_val: 123, ",
-                 context
+                 context,
+                 node()
                )
     end
 
@@ -1173,7 +1190,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "foo: "
                }
-             ] = Intellisense.get_completion_items("%{map | ", context)
+             ] = Intellisense.get_completion_items("%{map | ", context, node())
 
       assert [
                %{
@@ -1183,9 +1200,9 @@ defmodule Livebook.IntellisenseTest do
                  documentation: nil,
                  insert_text: "foo: "
                }
-             ] = Intellisense.get_completion_items("%{map | fo", context)
+             ] = Intellisense.get_completion_items("%{map | fo", context, node())
 
-      assert [] = Intellisense.get_completion_items("%{map | foo: 2, ", context)
+      assert [] = Intellisense.get_completion_items("%{map | foo: 2, ", context, node())
     end
 
     test "ignore invalid Elixir module literals" do
@@ -1193,7 +1210,12 @@ defmodule Livebook.IntellisenseTest do
 
       defmodule(:"Elixir.Livebook.IntellisenseTest.Unicodé", do: nil)
 
-      assert [] = Intellisense.get_completion_items("Livebook.IntellisenseTest.Unicod", context)
+      assert [] =
+               Intellisense.get_completion_items(
+                 "Livebook.IntellisenseTest.Unicod",
+                 context,
+                 node()
+               )
     after
       :code.purge(:"Elixir.Livebook.IntellisenseTest.Unicodé")
       :code.delete(:"Elixir.Livebook.IntellisenseTest.Unicodé")
@@ -1210,12 +1232,12 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Provides documentation for the current module.",
                  insert_text: "moduledoc"
                }
-             ] = Intellisense.get_completion_items("@modu", context)
+             ] = Intellisense.get_completion_items("@modu", context, node())
     end
 
     test "handles calls on module attribute" do
       context = eval(do: nil)
-      assert [] = Intellisense.get_completion_items("@attr.value", context)
+      assert [] = Intellisense.get_completion_items("@attr.value", context, node())
     end
 
     test "includes language keywords" do
@@ -1230,7 +1252,7 @@ defmodule Livebook.IntellisenseTest do
                  insert_text: "do\n  $0\nend"
                }
                | _
-             ] = Intellisense.get_completion_items("do", context)
+             ] = Intellisense.get_completion_items("do", context, node())
     end
 
     test "includes space instead of parentheses for def* macros" do
@@ -1241,7 +1263,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "defmodule/2",
                  insert_text: "defmodule "
                }
-             ] = Intellisense.get_completion_items("defmodu", context)
+             ] = Intellisense.get_completion_items("defmodu", context, node())
     end
 
     test "includes space instead of parentheses for keyword macros" do
@@ -1252,7 +1274,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "import/2",
                  insert_text: "import "
                }
-             ] = Intellisense.get_completion_items("impor", context)
+             ] = Intellisense.get_completion_items("impor", context, node())
     end
 
     test "includes doesn't include space nor parentheses for macros like __ENV__" do
@@ -1263,7 +1285,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "__ENV__/0",
                  insert_text: "__ENV__"
                }
-             ] = Intellisense.get_completion_items("__EN", context)
+             ] = Intellisense.get_completion_items("__EN", context, node())
     end
 
     test "Elixir bitstring modifiers" do
@@ -1277,7 +1299,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :bitstring_option,
                  label: "integer"
                }
-             ] = Intellisense.get_completion_items("<<a::intege", context)
+             ] = Intellisense.get_completion_items("<<a::intege", context, node())
 
       assert [
                %{
@@ -1287,7 +1309,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :bitstring_option,
                  label: "size"
                }
-             ] = Intellisense.get_completion_items("<<a::siz", context)
+             ] = Intellisense.get_completion_items("<<a::siz", context, node())
 
       assert %{
                detail: "bitstring option",
@@ -1295,7 +1317,7 @@ defmodule Livebook.IntellisenseTest do
                insert_text: "integer",
                kind: :bitstring_option,
                label: "integer"
-             } in Intellisense.get_completion_items("<<a::", context)
+             } in Intellisense.get_completion_items("<<a::", context, node())
     end
 
     test "completion for aliases in special forms" do
@@ -1309,7 +1331,7 @@ defmodule Livebook.IntellisenseTest do
                  documentation: "Returns an inclusive range between dates.",
                  insert_text: "Range"
                }
-             ] = Intellisense.get_completion_items("alias Date.", context)
+             ] = Intellisense.get_completion_items("alias Date.", context, node())
 
       assert %{
                label: "Atom",
@@ -1317,9 +1339,9 @@ defmodule Livebook.IntellisenseTest do
                detail: "module",
                documentation: "Atoms are constants whose values are their own name.",
                insert_text: "Atom"
-             } in Intellisense.get_completion_items("alias ", context)
+             } in Intellisense.get_completion_items("alias ", context, node())
 
-      refute Intellisense.get_completion_items("alias ", context)
+      refute Intellisense.get_completion_items("alias ", context, node())
              |> Enum.any?(&(&1.kind == :function))
     end
   end
@@ -1495,14 +1517,14 @@ defmodule Livebook.IntellisenseTest do
     test "returns nil when outside call" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_signature_items("length()", context)
+      assert nil == Intellisense.get_signature_items("length()", context, node())
     end
 
     test "returns nil if there are no matches" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_signature_items("Unknown.unknown(", context)
-      assert nil == Intellisense.get_signature_items("Enum.concat(x, y,", context)
+      assert nil == Intellisense.get_signature_items("Unknown.unknown(", context, node())
+      assert nil == Intellisense.get_signature_items("Enum.concat(x, y,", context, node())
     end
 
     test "supports remote function calls" do
@@ -1527,7 +1549,7 @@ defmodule Livebook.IntellisenseTest do
                    """
                  }
                ]
-             } = Intellisense.get_signature_items("Enum.map(", context)
+             } = Intellisense.get_signature_items("Enum.map(", context, node())
     end
 
     test "supports local function calls" do
@@ -1550,7 +1572,7 @@ defmodule Livebook.IntellisenseTest do
                    """
                  }
                ]
-             } = Intellisense.get_signature_items("length(", context)
+             } = Intellisense.get_signature_items("length(", context, node())
     end
 
     test "supports manually imported functions and macros" do
@@ -1569,7 +1591,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _map_doc
                  }
                ]
-             } = Intellisense.get_signature_items("map(", context)
+             } = Intellisense.get_signature_items("map(", context, node())
 
       assert %{
                active_argument: 0,
@@ -1580,7 +1602,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _derive_doc
                  }
                ]
-             } = Intellisense.get_signature_items("derive(", context)
+             } = Intellisense.get_signature_items("derive(", context, node())
     end
 
     test "supports remote function calls on aliases" do
@@ -1598,7 +1620,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _map_doc
                  }
                ]
-             } = Intellisense.get_signature_items("MyEnum.map(", context)
+             } = Intellisense.get_signature_items("MyEnum.map(", context, node())
     end
 
     test "supports anonymous function calls" do
@@ -1618,7 +1640,7 @@ defmodule Livebook.IntellisenseTest do
                    """
                  }
                ]
-             } = Intellisense.get_signature_items("add.(", context)
+             } = Intellisense.get_signature_items("add.(", context, node())
     end
 
     test "supports captured remote function calls" do
@@ -1636,7 +1658,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _map_doc
                  }
                ]
-             } = Intellisense.get_signature_items("map.(", context)
+             } = Intellisense.get_signature_items("map.(", context, node())
     end
 
     @tag :erl_docs
@@ -1652,7 +1674,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _map_doc
                  }
                ]
-             } = Intellisense.get_signature_items(":lists.map(", context)
+             } = Intellisense.get_signature_items(":lists.map(", context, node())
     end
 
     @tag :erl_docs
@@ -1668,45 +1690,53 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _connect_doc
                  }
                ]
-             } = Intellisense.get_signature_items(":odbc.connect(", context)
+             } = Intellisense.get_signature_items(":odbc.connect(", context, node())
     end
 
     test "returns call active argument" do
       context = eval(do: nil)
 
       assert %{active_argument: 0, signature_items: [_item]} =
-               Intellisense.get_signature_items("Enum.map([1, ", context)
+               Intellisense.get_signature_items("Enum.map([1, ", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("Enum.map([1, 2], ", context)
+               Intellisense.get_signature_items("Enum.map([1, 2], ", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("Enum.map([1, 2], fn", context)
+               Intellisense.get_signature_items("Enum.map([1, 2], fn", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("Enum.map([1, 2], fn x -> x * x end", context)
+               Intellisense.get_signature_items(
+                 "Enum.map([1, 2], fn x -> x * x end",
+                 context,
+                 node()
+               )
 
       assert %{active_argument: 2, signature_items: [_item]} =
-               Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", context)
+               Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("elem(x, 1 + ", context)
+               Intellisense.get_signature_items("elem(x, 1 + ", context, node())
     end
 
     test "returns correct active argument when using pipe operator" do
       context = eval(do: nil)
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("[1, 2] |> Enum.map(", context)
+               Intellisense.get_signature_items("[1, 2] |> Enum.map(", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("[1, 2] |> Enum.map(fn", context)
+               Intellisense.get_signature_items("[1, 2] |> Enum.map(fn", context, node())
 
       assert %{active_argument: 1, signature_items: [_item]} =
-               Intellisense.get_signature_items("[1, 2] |> Enum.map(fn x -> x * x end", context)
+               Intellisense.get_signature_items(
+                 "[1, 2] |> Enum.map(fn x -> x * x end",
+                 context,
+                 node()
+               )
 
       assert %{active_argument: 2, signature_items: [_item]} =
-               Intellisense.get_signature_items("1 |> IO.ANSI.color(2, 3", context)
+               Intellisense.get_signature_items("1 |> IO.ANSI.color(2, 3", context, node())
     end
 
     test "returns a single signature for fnuctions with default arguments" do
@@ -1731,7 +1761,7 @@ defmodule Livebook.IntellisenseTest do
                    """
                  }
                ]
-             } = Intellisense.get_signature_items("Integer.to_string(", context)
+             } = Intellisense.get_signature_items("Integer.to_string(", context, node())
     end
 
     test "returns multiple signatures for function with multiple arities" do
@@ -1751,7 +1781,7 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _concat_2_docs
                  }
                ]
-             } = Intellisense.get_signature_items("Enum.concat(", context)
+             } = Intellisense.get_signature_items("Enum.concat(", context, node())
     end
 
     test "returns only signatures where active argument is at valid position" do
@@ -1766,19 +1796,19 @@ defmodule Livebook.IntellisenseTest do
                    documentation: _concat_1_docs
                  }
                ]
-             } = Intellisense.get_signature_items("Enum.concat([1, 2], ", context)
+             } = Intellisense.get_signature_items("Enum.concat([1, 2], ", context, node())
     end
 
     test "does not return any signatures when in do-end block" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_signature_items("if true do ", context)
+      assert nil == Intellisense.get_signature_items("if true do ", context, node())
     end
 
     test "does not return any signatures for module attributes" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_signature_items("@length(", context)
+      assert nil == Intellisense.get_signature_items("@length(", context, node())
     end
 
     test "does not returns signatures for calls in attribute value" do
@@ -1793,7 +1823,7 @@ defmodule Livebook.IntellisenseTest do
                    signature: "length(list)"
                  }
                ]
-             } = Intellisense.get_signature_items("@attr length(", context)
+             } = Intellisense.get_signature_items("@attr length(", context, node())
     end
   end
 end
