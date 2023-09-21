@@ -64,6 +64,10 @@ defmodule Livebook.Notebook.Cell do
     Enum.flat_map(output.outputs, &find_inputs_in_output/1)
   end
 
+  def find_inputs_in_output({_idx, %{type: :frame_update, update: {_update_type, new_outputs}}}) do
+    Enum.flat_map(new_outputs, &find_inputs_in_output/1)
+  end
+
   def find_inputs_in_output(_output), do: []
 
   @doc """
@@ -76,6 +80,10 @@ defmodule Livebook.Notebook.Cell do
 
   def find_assets_in_output(output) when output.type in [:frame, :tabs, :grid] do
     Enum.flat_map(output.outputs, &find_assets_in_output/1)
+  end
+
+  def find_assets_in_output(%{type: :frame_update, update: {_update_type, new_outputs}}) do
+    Enum.flat_map(new_outputs, &find_assets_in_output/1)
   end
 
   def find_assets_in_output(_output), do: []

@@ -797,6 +797,12 @@ defmodule Livebook.Notebook do
     {{counter, %{output | outputs: outputs}}, counter + 1}
   end
 
+  defp index_output(%{type: :frame_update} = output, counter) do
+    {update_type, new_outputs} = output.update
+    {new_outputs, counter} = index_outputs(new_outputs, counter)
+    {{counter, %{output | update: {update_type, new_outputs}}}, counter + 1}
+  end
+
   defp index_output(output, counter) do
     {{counter, output}, counter + 1}
   end
@@ -804,13 +810,13 @@ defmodule Livebook.Notebook do
   @doc """
   Finds frame outputs matching the given ref.
   """
-  @spec find_frame_outputs(t(), String.t()) :: list(Cell.indexed_output())
+  @spec find_frame_outputs(t(), String.t()) :: list({Cell.indexed_output(), Cell.t()})
   def find_frame_outputs(notebook, frame_ref) do
     for section <- all_sections(notebook),
-        %{outputs: outputs} <- section.cells,
+        %{outputs: outputs} = cell <- section.cells,
         output <- outputs,
         frame_output <- do_find_frame_outputs(output, frame_ref),
-        do: frame_output
+        do: {frame_output, cell}
   end
 
   defp do_find_frame_outputs({_idx, %{type: :frame, ref: ref}} = output, ref) do

@@ -533,24 +533,20 @@ defmodule Livebook.NotebookTest do
     test "returns frame outputs with matching ref" do
       frame_output = {0, %{type: :frame, ref: "1", outputs: [], placeholder: true}}
 
-      notebook = %{
-        Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
-      }
+      cell = %{Cell.new(:code) | outputs: [frame_output]}
+      notebook = %{Notebook.new() | sections: [%{Section.new() | cells: [cell]}]}
 
-      assert [^frame_output] = Notebook.find_frame_outputs(notebook, "1")
+      assert [{^frame_output, ^cell}] = Notebook.find_frame_outputs(notebook, "1")
     end
 
     test "finds a nested frame" do
       nested_frame_output = {0, %{type: :frame, ref: "2", outputs: [], placeholder: true}}
       frame_output = {0, %{type: :frame, ref: "1", outputs: [nested_frame_output]}}
 
-      notebook = %{
-        Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
-      }
+      cell = %{Cell.new(:code) | outputs: [frame_output]}
+      notebook = %{Notebook.new() | sections: [%{Section.new() | cells: [cell]}]}
 
-      assert [^nested_frame_output] = Notebook.find_frame_outputs(notebook, "2")
+      assert [{^nested_frame_output, ^cell}] = Notebook.find_frame_outputs(notebook, "2")
     end
   end
 end

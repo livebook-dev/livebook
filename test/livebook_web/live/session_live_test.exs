@@ -761,6 +761,46 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "This input has changed."
     end
+
+    test "frame output update with input", %{conn: conn, session: session, test: test} do
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      frame = %{type: :frame, ref: "1", outputs: [], placeholder: true}
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      input = %{
+        type: :input,
+        ref: "ref1",
+        id: "input1",
+        destination: test,
+        attrs: %{type: :number, default: 1, label: "Input inside frame"}
+      }
+
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:replace, [input]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
+
+      wait_for_session_update(session.pid)
+
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "Input inside frame"
+      assert has_element?(view, ~s/input[value="1"]/)
+    end
   end
 
   describe "smart cells" do
