@@ -77,7 +77,8 @@ defmodule Livebook.Factory do
       external_id: nil,
       region: "us-east-1",
       access_key_id: "key",
-      secret_access_key: "secret"
+      secret_access_key: "secret",
+      hub_id: nil
     }
   end
 

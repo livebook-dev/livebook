@@ -11,7 +11,8 @@ defmodule Livebook.FileSystem.S3 do
           external_id: String.t() | nil,
           region: String.t(),
           access_key_id: String.t(),
-          secret_access_key: String.t()
+          secret_access_key: String.t(),
+          hub_id: String.t() | nil
         }
 
   embedded_schema do
@@ -20,6 +21,7 @@ defmodule Livebook.FileSystem.S3 do
     field :region, :string
     field :access_key_id, :string
     field :secret_access_key, :string
+    field :hub_id, :string, virtual: true
   end
 
   @doc """
@@ -33,28 +35,24 @@ defmodule Livebook.FileSystem.S3 do
 
     * `:external_id` - the external id from Teams.
 
-    * `:prefix` - the id prefix.
+    * `:hub_id` - the hub id.
 
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region, :external_id, :prefix])
+    opts = Keyword.validate!(opts, [:region, :external_id, :hub_id])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
-    id =
-      if prefix = opts[:prefix],
-        do: "#{prefix}-#{id(bucket_url)}",
-        else: id(bucket_url)
-
     %__MODULE__{
-      id: id,
+      id: id(opts[:hub_id], bucket_url),
       bucket_url: bucket_url,
       external_id: opts[:external_id],
       region: region,
       access_key_id: access_key_id,
-      secret_access_key: secret_access_key
+      secret_access_key: secret_access_key,
+      hub_id: opts[:hub_id]
     }
   end
 
@@ -115,7 +113,8 @@ defmodule Livebook.FileSystem.S3 do
       :external_id,
       :region,
       :access_key_id,
-      :secret_access_key
+      :secret_access_key,
+      :hub_id
     ])
     |> put_region_from_uri()
     |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
@@ -131,14 +130,21 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   defp put_id(changeset) do
-    if bucket_url = get_field(changeset, :bucket_url) do
-      put_change(changeset, :id, id(bucket_url))
-    else
+    hub_id = get_field(changeset, :hub_id)
+    bucket_url = get_field(changeset, :bucket_url)
+
+    if get_field(changeset, :id) do
       changeset
+    else
+      put_change(changeset, :id, id(hub_id, bucket_url))
     end
   end
 
-  defp id(bucket_url) do
+  defp id(nil, nil), do: nil
+  defp id(nil, bucket_url), do: hashed_id(bucket_url)
+  defp id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
+
+  defp hashed_id(bucket_url) do
     hash = :crypto.hash(:sha256, bucket_url)
     encrypted_hash = Base.url_encode64(hash, padding: false)
 
@@ -406,7 +412,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       region: fields["region"],
       access_key_id: fields["access_key_id"],
       secret_access_key: fields["secret_access_key"],
-      prefix: fields["prefix"]
+      hub_id: fields["hub_id"]
     })
   end
 
@@ -414,7 +420,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
       region: fields[:region],
       external_id: fields[:external_id],
-      prefix: fields[:prefix]
+      hub_id: fields[:hub_id]
     )
   end
 

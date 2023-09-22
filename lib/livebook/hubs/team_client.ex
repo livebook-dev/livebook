@@ -190,7 +190,7 @@ defmodule Livebook.Hubs.TeamClient do
     dumped_data =
       Map.merge(Jason.decode!(decrypted_value), %{
         "external_id" => file_system.id,
-        "prefix" => state.hub.id
+        "hub_id" => state.hub.id
       })
 
     FileSystems.load(file_system.type, dumped_data)

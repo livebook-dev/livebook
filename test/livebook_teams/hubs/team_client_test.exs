@@ -311,7 +311,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       hash = :crypto.hash(:sha256, bucket_url)
       fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
-      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456")
+      file_system =
+        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456", hub_id: id)
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -353,7 +354,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       hash = :crypto.hash(:sha256, bucket_url)
       fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
-      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "994641")
+      file_system =
+        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "994641", hub_id: id)
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -425,7 +427,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       hash = :crypto.hash(:sha256, bucket_url)
       fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
-      file_system = build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "45465641")
+      file_system =
+        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "45465641", hub_id: id)
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)

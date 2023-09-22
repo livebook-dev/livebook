@@ -103,9 +103,8 @@ defmodule Livebook.HubHelpers do
   end
 
   def create_teams_file_system(hub, node) do
-    org_key = :erpc.call(node, Hub.Integration, :get_org_key!, [hub.org_key_id])
-
-    :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
+    org_key = erpc_call(node, :get_org_key!, [hub.org_key_id])
+    erpc_call(node, :create_file_system, [[org_key: org_key]])
   end
 
   def build_bypass_file_system(bypass) do
