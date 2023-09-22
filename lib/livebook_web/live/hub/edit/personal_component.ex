@@ -11,7 +11,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     socket = assign(socket, assigns)
     changeset = Personal.change_hub(assigns.hub)
     secrets = Hubs.get_secrets(assigns.hub)
-    [_local | file_systems] = Hubs.get_file_systems(assigns.hub)
+    file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
 
@@ -101,7 +101,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-secrets-list"
               hub={@hub}
               secrets={@secrets}
-              target={@myself}
             />
           </div>
 
@@ -119,7 +118,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-file-systems-list"
               hub_id={@hub.id}
               file_systems={@file_systems}
-              target={@myself}
             />
           </div>
 
@@ -237,25 +235,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   def handle_event("generate_secret_key", %{}, socket) do
     params = %{"secret_key" => Personal.generate_secret_key()}
     {:noreply, validate(params, :stamp_changeset, socket)}
-  end
-
-  def handle_event("delete_hub_secret", attrs, socket) do
-    %{hub: hub} = socket.assigns
-
-    on_confirm = fn socket ->
-      {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-      _ = Livebook.Hubs.delete_secret(hub, secret)
-
-      socket
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Delete hub secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this hub secret?",
-       confirm_text: "Delete",
-       confirm_icon: "delete-bin-6-line"
-     )}
   end
 
   defp save(params, changeset_name, socket) do

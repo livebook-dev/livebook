@@ -5,7 +5,13 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   alias Livebook.FileSystems
 
   @impl true
-  def update(%{file_system: file_system} = assigns, socket) do
+  def update(assigns, socket) do
+    {file_system, assigns} = Map.pop!(assigns, :file_system)
+
+    mode = mode(file_system)
+    button = button(file_system)
+    title = title(file_system)
+
     file_system = file_system || %FileSystem.S3{}
     changeset = FileSystems.change_file_system(file_system)
     socket = assign(socket, assigns)
@@ -14,9 +20,9 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
      assign(socket,
        file_system: file_system,
        changeset: changeset,
-       mode: mode(socket),
-       title: title(socket),
-       button: button(socket),
+       mode: mode,
+       title: title,
+       button: button,
        error_message: nil
      )}
   end
@@ -84,9 +90,19 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     with {:ok, file_system} <- FileSystems.update_file_system(socket.assigns.file_system, attrs),
          :ok <- check_file_system_conectivity(file_system),
          :ok <- save_file_system(file_system, socket) do
-      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+      message =
+        case socket.assigns.mode do
+          :new -> "File storage added successfully"
+          :edit -> "File storage updated successfully"
+        end
+
+      {:noreply,
+       socket
+       |> put_flash(:success, message)
+       |> push_redirect(to: socket.assigns.return_to)}
     else
       {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
+      {:transport_error, message} -> {:noreply, put_flash(socket, :error, message)}
       {:error, message} -> {:noreply, assign(socket, error_message: message)}
     end
   end
@@ -107,12 +123,12 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     end
   end
 
-  defp mode(%{assigns: %{file_system: nil}}), do: :new
+  defp mode(nil), do: :new
   defp mode(_), do: :edit
 
-  defp title(%{assigns: %{file_system: nil}}), do: "Add file storage"
+  defp title(nil), do: "Add file storage"
   defp title(_), do: "Edit file storage"
 
-  defp button(%{assigns: %{file_system: nil}}), do: %{icon: "add-line", label: "Add"}
+  defp button(nil), do: %{icon: "add-line", label: "Add"}
   defp button(_), do: %{icon: "save-line", label: "Save"}
 end

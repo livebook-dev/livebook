@@ -43,12 +43,10 @@ defmodule Livebook.FileSystem.S3 do
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
-    hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
-
     id =
       if prefix = opts[:prefix],
-        do: "#{prefix}-s3-#{hash}",
-        else: "s3-#{hash}"
+        do: "#{prefix}-#{id(bucket_url)}",
+        else: id(bucket_url)
 
     %__MODULE__{
       id: id,
@@ -134,13 +132,17 @@ defmodule Livebook.FileSystem.S3 do
 
   defp put_id(changeset) do
     if bucket_url = get_field(changeset, :bucket_url) do
-      hash = :crypto.hash(:sha256, bucket_url)
-      encrypted_hash = Base.url_encode64(hash, padding: false)
-
-      put_change(changeset, :id, "s3-#{encrypted_hash}")
+      put_change(changeset, :id, id(bucket_url))
     else
       changeset
     end
+  end
+
+  defp id(bucket_url) do
+    hash = :crypto.hash(:sha256, bucket_url)
+    encrypted_hash = Base.url_encode64(hash, padding: false)
+
+    "s3-#{encrypted_hash}"
   end
 end
 

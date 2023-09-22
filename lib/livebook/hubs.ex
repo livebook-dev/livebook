@@ -161,9 +161,9 @@ defmodule Livebook.Hubs do
 
   Topic `hubs:file_systems`:
 
-    * `{:file_system_created, t:FileSystem}`
-    * `{:file_system_updated, t:FileSystem}`
-    * `{:file_system_deleted, t:FileSystem}`
+    * `{:file_system_created, FileSystem.t()}`
+    * `{:file_system_updated, FileSystem.t()}`
+    * `{:file_system_deleted, FileSystem.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -316,12 +316,14 @@ defmodule Livebook.Hubs do
   @doc """
   Gets a list of file systems for given hub.
   """
-  @spec get_file_systems(Provider.t()) :: list(FileSystem.t())
-  def get_file_systems(hub) do
+  @spec get_file_systems(Provider.t(), keyword()) :: list(FileSystem.t())
+  def get_file_systems(hub, opts \\ []) do
     hub_file_systems = Provider.get_file_systems(hub)
-    local_file_system = Livebook.Config.local_file_system()
+    sorted_hub_file_systems = Enum.sort_by(hub_file_systems, & &1.id)
 
-    [local_file_system | Enum.sort_by(hub_file_systems, & &1.id)]
+    if opts[:hub_only],
+      do: sorted_hub_file_systems,
+      else: [Livebook.Config.local_file_system() | sorted_hub_file_systems]
   end
 
   @doc """

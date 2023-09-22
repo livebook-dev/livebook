@@ -80,8 +80,12 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
       file_system = Enum.find(file_systems, &(&1.id == id))
 
       case Livebook.Hubs.delete_file_system(hub, file_system) do
-        :ok -> socket
-        {:transport_error, reason} -> put_flash(socket, :error, reason)
+        :ok ->
+          send(self(), {:redirect, hub.id, "File storage deleted successfully"})
+          socket
+
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
       end
     end
 

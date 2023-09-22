@@ -64,7 +64,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                         }
                       )
                     }
-                    phx-target={@target}
+                    phx-target={@myself}
                     role="menuitem"
                   >
                     <.remix_icon icon="delete-bin-line" />
@@ -92,8 +92,12 @@ defmodule LivebookWeb.Hub.SecretListComponent do
       hub = Hubs.fetch_hub!(secret.hub_id)
 
       case Hubs.delete_secret(hub, secret) do
-        :ok -> socket
-        {:transport_error, reason} -> put_flash(socket, :error, reason)
+        :ok ->
+          send(self(), {:redirect, hub.id, "Secret #{secret.name} deleted successfully"})
+          socket
+
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
       end
     end
 

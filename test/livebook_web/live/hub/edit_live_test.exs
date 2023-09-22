@@ -170,15 +170,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
-      Bypass.expect_once(bypass, "GET", "/", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/xml")
-        |> Plug.Conn.resp(200, """
-        <ListBucketResult>
-          <Name>mybucket</Name>
-        </ListBucketResult>
-        """)
-      end)
+      expect_s3_listing(bypass)
 
       refute render(view) =~ file_system.bucket_url
 
@@ -221,15 +213,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
-      Bypass.expect_once(bypass, "GET", "/", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/xml")
-        |> Plug.Conn.resp(200, """
-        <ListBucketResult>
-          <Name>mybucket</Name>
-        </ListBucketResult>
-        """)
-      end)
+      expect_s3_listing(bypass)
 
       view
       |> element("#hub-file-system-#{file_system.id}-edit")
@@ -289,5 +273,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       refute file_system in Livebook.Hubs.get_file_systems(hub)
     end
+  end
+
+  defp expect_s3_listing(bypass) do
+    Bypass.expect_once(bypass, "GET", "/", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/xml")
+      |> Plug.Conn.resp(200, """
+      <ListBucketResult>
+        <Name>mybucket</Name>
+      </ListBucketResult>
+      """)
+    end)
   end
 end

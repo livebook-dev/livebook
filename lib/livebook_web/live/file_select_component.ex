@@ -71,12 +71,12 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    configure_path = ~p"/hub/#{Livebook.Hubs.Personal.id()}/file-systems/new"
-
-    {file_systems, configure_path} =
+    {file_systems, configure_hub_id} =
       if hub = socket.assigns[:hub],
-        do: {Livebook.Hubs.get_file_systems(hub), ~p"/hub/#{hub.id}/file-systems/new"},
-        else: {Livebook.Hubs.get_file_systems(), configure_path}
+        do: {Livebook.Hubs.get_file_systems(hub), hub.id},
+        else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+
+    configure_path = ~p"/hub/#{configure_hub_id}/file-systems/new"
 
     {:ok, assign(socket, file_systems: file_systems, configure_path: configure_path)}
   end

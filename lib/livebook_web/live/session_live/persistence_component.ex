@@ -49,7 +49,6 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign_new(:hub, fn -> nil end)
       |> assign_new(:attrs, fn -> attrs end)
       |> assign_new(:new_attrs, fn -> attrs end)
       |> assign_new(:draft_file, fn ->

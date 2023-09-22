@@ -13,7 +13,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     changeset = Team.change_hub(assigns.hub)
     show_key? = assigns.params["show-key"] == "true"
     secrets = Livebook.Hubs.get_secrets(assigns.hub)
-    [_local | file_systems] = Hubs.get_file_systems(assigns.hub)
+    file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     is_default? = is_default?(assigns.hub)
