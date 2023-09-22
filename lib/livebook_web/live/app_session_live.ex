@@ -40,7 +40,8 @@ defmodule LivebookWeb.AppSessionLive do
          client_id: client_id,
          data_view: data_to_view(data)
        )
-       |> assign_private(data: data)}
+       |> assign_private(data: data)
+       |> prune_outputs()}
     else
       {:ok,
        assign(socket,
@@ -138,16 +139,21 @@ defmodule LivebookWeb.AppSessionLive do
             <%= @data_view.notebook_name %>
           </h1>
         </div>
-        <div class="pt-4 flex flex-col space-y-6" data-el-outputs-container id="outputs">
-          <div :for={output_view <- Enum.reverse(@data_view.output_views)}>
+        <div class="pt-4 flex flex-col gap-6">
+          <div
+            :for={cell_view <- @data_view.cell_views}
+            class="empty:hidden"
+            id={"outputs-#{cell_view.id}-#{cell_view.outputs_batch_number}"}
+            phx-update="append"
+          >
             <LivebookWeb.Output.outputs
-              outputs={[output_view.output]}
+              outputs={cell_view.outputs}
               dom_id_map={%{}}
               session_id={@session.id}
               session_pid={@session.pid}
               client_id={@client_id}
-              cell_id={output_view.cell_id}
-              input_views={output_view.input_views}
+              cell_id={cell_view.id}
+              input_views={cell_view.input_views}
             />
           </div>
           <%= if @data_view.app_status.execution == :error do %>
@@ -361,6 +367,22 @@ defmodule LivebookWeb.AppSessionLive do
     end
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_output, _client_id, _cell_id, _output}
+       ) do
+    prune_outputs(socket)
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_id, _cell_id, _output, _metadata}
+       ) do
+    prune_outputs(socket)
+  end
+
   defp after_operation(socket, _prev_socket, {:app_deactivate, _client_id}) do
     redirect_on_closed(socket)
   end
@@ -381,7 +403,7 @@ defmodule LivebookWeb.AppSessionLive do
     |> push_navigate(to: ~p"/")
   end
 
-  defp update_data_view(data_view, _prev_data, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       # See LivebookWeb.SessionLive for more details
       {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
@@ -389,20 +411,46 @@ defmodule LivebookWeb.AppSessionLive do
 
         changed_input_ids = Session.Data.changed_input_ids(data)
 
-        for {{idx, frame} = output, _cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
+        for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
             id: "output-#{idx}",
             outputs: frame.outputs,
             update_type: update_type,
-            input_views: input_views_for_output(output, data, changed_input_ids)
+            input_views: input_views_for_cell(cell, data, changed_input_ids)
           )
         end
 
         data_view
 
+      {:add_cell_evaluation_output, _client_id, cell_id, %{type: type, chunk: true} = output}
+      when type in [:terminal_text, :plain_text, :markdown] ->
+        # Lookup in previous data to see if the output is already there
+        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+          {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
+            module =
+              case type do
+                :terminal_text -> LivebookWeb.Output.TerminalTextComponent
+                :plain_text -> LivebookWeb.Output.PlainTextComponent
+                :markdown -> LivebookWeb.Output.MarkdownComponent
+              end
+
+            send_update(module, id: "output-#{idx}", text: output.text)
+            data_view
+
+          _ ->
+            data_to_view(data)
+        end
+
       _ ->
         data_to_view(data)
     end
+  end
+
+  defp prune_outputs(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data: update_in(data.notebook, &Notebook.prune_cell_outputs/1)
+    )
   end
 
   defp data_to_view(data) do
@@ -410,15 +458,15 @@ defmodule LivebookWeb.AppSessionLive do
 
     %{
       notebook_name: data.notebook.name,
-      output_views:
-        for(
-          {cell_id, output} <- visible_outputs(data.notebook),
-          do: %{
-            output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
-            cell_id: cell_id
+      cell_views:
+        for {cell, _section} <- Notebook.evaluable_cells_with_section(data.notebook) do
+          %{
+            id: cell.id,
+            input_views: input_views_for_cell(cell, data, changed_input_ids),
+            outputs: filter_outputs(cell.outputs, data.notebook.app_settings.output_type),
+            outputs_batch_number: data.cell_infos[cell.id].eval.outputs_batch_number
           }
-        ),
+        end,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -440,22 +488,17 @@ defmodule LivebookWeb.AppSessionLive do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
   end
 
-  defp input_views_for_output(output, data, changed_input_ids) do
-    input_ids = for input <- Cell.find_inputs_in_output(output), do: input.id
+  defp input_views_for_cell(cell, data, changed_input_ids) do
+    input_ids =
+      for output <- cell.outputs,
+          input <- Cell.find_inputs_in_output(output),
+          do: input.id
 
     data.input_infos
     |> Map.take(input_ids)
     |> Map.new(fn {input_id, %{value: value}} ->
       {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
     end)
-  end
-
-  defp visible_outputs(notebook) do
-    for section <- Enum.reverse(notebook.sections),
-        cell <- Enum.reverse(section.cells),
-        Cell.evaluable?(cell),
-        output <- filter_outputs(cell.outputs, notebook.app_settings.output_type),
-        do: {cell.id, output}
   end
 
   defp filter_outputs(outputs, :all), do: outputs
