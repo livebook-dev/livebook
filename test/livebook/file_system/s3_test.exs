@@ -1057,12 +1057,12 @@ defmodule Livebook.FileSystem.S3Test do
       file_system = build(:fs_s3)
 
       assert FileSystem.dump(file_system) == %{
-               id: "s3-86IzUeRugmgK2-X2FmlkurFD0UPsr4Qs1IwieDqfQpA",
+               id: "personal-hub-s3-86IzUeRugmgK2-X2FmlkurFD0UPsr4Qs1IwieDqfQpA",
                bucket_url: "https://mybucket.s3.amazonaws.com",
                region: "us-east-1",
                access_key_id: "key",
                secret_access_key: "secret",
-               hub_id: nil
+               hub_id: "personal-hub"
              }
     end
   end

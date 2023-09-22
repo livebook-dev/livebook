@@ -12,7 +12,7 @@ defmodule Livebook.FileSystem.S3 do
           region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t(),
-          hub_id: String.t() | nil
+          hub_id: String.t()
         }
 
   embedded_schema do
@@ -47,7 +47,7 @@ defmodule Livebook.FileSystem.S3 do
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
-    hub_id = opts[:hub_id]
+    hub_id = Keyword.get(opts, :hub_id, Livebook.Hubs.Personal.id())
     id = opts[:id] || id(hub_id, bucket_url)
 
     %__MODULE__{
