@@ -286,11 +286,20 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Livebook.Hubs.subscribe([:file_systems])
 
       personal_id = Livebook.Hubs.Personal.id()
-      file_system = build(:fs_s3)
-      Livebook.Hubs.Personal.save_file_system(file_system)
+      personal_file_system = build(:fs_s3)
+      Livebook.Hubs.Personal.save_file_system(personal_file_system)
 
       team = create_team_hub(user, node)
       team_id = team.id
+
+      bucket_url = "https://my-own-bucket.s3.amazonaws.com"
+
+      file_system =
+        build(:fs_s3,
+          id: Livebook.FileSystem.S3.id(team_id, bucket_url),
+          bucket_url: bucket_url,
+          hub_id: team_id
+        )
 
       Livebook.Hubs.create_file_system(team, file_system)
       assert_receive {:file_system_created, team_file_system}
@@ -308,7 +317,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # checks the file systems from Personal
       assert has_element?(file_system_menu, "#file-system-local")
-      assert has_element?(file_system_menu, "#file-system-#{file_system.id}")
+      assert has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
       refute has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
 
       # change the hub to Team
@@ -320,7 +329,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       file_system_menu = with_target(view, "#file-system-menu")
 
       assert has_element?(file_system_menu, "#file-system-local")
-      refute has_element?(file_system_menu, "#file-system-#{file_system.id}")
+      refute has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
       assert has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
     end
   end

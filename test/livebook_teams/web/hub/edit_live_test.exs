@@ -257,8 +257,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       bypass = Bypass.open()
-      file_system = build_bypass_file_system(bypass)
-      id = "#{hub.id}-#{file_system.id}"
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       expect_s3_listing(bypass)
@@ -297,8 +297,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "updates existing file system", %{conn: conn, hub: hub} do
       bypass = Bypass.open()
-      file_system = build_bypass_file_system(bypass)
-      id = "#{hub.id}-#{file_system.id}"
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
 
       :ok = Hubs.create_file_system(hub, file_system)
       assert_receive {:file_system_created, %{id: ^id} = file_system}
@@ -342,8 +342,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "detaches existing file system", %{conn: conn, hub: hub} do
       bypass = Bypass.open()
-      file_system = build_bypass_file_system(bypass)
-      id = "#{hub.id}-#{file_system.id}"
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
 
       :ok = Hubs.create_file_system(hub, file_system)
       assert_receive {:file_system_created, %{id: ^id} = file_system}

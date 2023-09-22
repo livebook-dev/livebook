@@ -35,24 +35,29 @@ defmodule Livebook.FileSystem.S3 do
 
     * `:external_id` - the external id from Teams.
 
-    * `:hub_id` - the hub id.
+    * `:hub_id` - the Hub id.
+
+    * `:id` - the file system id.
 
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region, :external_id, :hub_id])
+    opts = Keyword.validate!(opts, [:region, :external_id, :hub_id, :id])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
+    hub_id = opts[:hub_id]
+    id = opts[:id] || id(hub_id, bucket_url)
+
     %__MODULE__{
-      id: id(opts[:hub_id], bucket_url),
+      id: id,
       bucket_url: bucket_url,
       external_id: opts[:external_id],
       region: region,
       access_key_id: access_key_id,
       secret_access_key: secret_access_key,
-      hub_id: opts[:hub_id]
+      hub_id: hub_id
     }
   end
 
@@ -140,9 +145,9 @@ defmodule Livebook.FileSystem.S3 do
     end
   end
 
-  defp id(nil, nil), do: nil
-  defp id(nil, bucket_url), do: hashed_id(bucket_url)
-  defp id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
+  def id(nil, nil), do: nil
+  def id(nil, bucket_url), do: hashed_id(bucket_url)
+  def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
 
   defp hashed_id(bucket_url) do
     hash = :crypto.hash(:sha256, bucket_url)
@@ -412,6 +417,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       region: fields["region"],
       access_key_id: fields["access_key_id"],
       secret_access_key: fields["secret_access_key"],
+      id: fields["id"],
       hub_id: fields["hub_id"]
     })
   end
@@ -420,6 +426,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
       region: fields[:region],
       external_id: fields[:external_id],
+      id: fields[:id],
       hub_id: fields[:hub_id]
     )
   end
@@ -427,7 +434,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   def dump(file_system) do
     file_system
     |> Map.from_struct()
-    |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+    |> Map.take([:id, :bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
   end
 
   def external_metadata(file_system) do

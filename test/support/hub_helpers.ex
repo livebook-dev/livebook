@@ -107,15 +107,15 @@ defmodule Livebook.HubHelpers do
     erpc_call(node, :create_file_system, [[org_key: org_key]])
   end
 
-  def build_bypass_file_system(bypass) do
+  def build_bypass_file_system(bypass, hub_id \\ nil) do
     bucket_url = "http://localhost:#{bypass.port}"
-    hash = :crypto.hash(:sha256, bucket_url)
 
     file_system =
       build(:fs_s3,
-        id: "s3-#{Base.url_encode64(hash, padding: false)}",
+        id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
         bucket_url: bucket_url,
-        region: "auto"
+        region: "auto",
+        hub_id: hub_id
       )
 
     file_system
