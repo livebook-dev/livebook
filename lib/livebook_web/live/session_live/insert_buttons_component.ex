@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         data-section-id={@section_id}
         data-cell-id={@cell_id}
         id={"cell-#{@id}-dropzone"}
-        phx-hook="Dropzone"
+        phx-hook="FileDropzone"
       >
       </div>
       <div class={

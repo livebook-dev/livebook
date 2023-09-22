@@ -76,6 +76,10 @@ const Session = {
     this.clientsMap = {};
     this.lastLocationReportByClientId = {};
     this.followedClientId = null;
+    this.outputPanelWindow = null;
+
+    this.handleExternalWindowMessage =
+      this.handleExternalWindowMessage.bind(this);
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -87,6 +91,16 @@ const Session = {
     this._handleDocumentMouseDown = this.handleDocumentMouseDown.bind(this);
     this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
     this._handleDocumentClick = this.handleDocumentClick.bind(this);
+
+    this.el.addEventListener("output_panel:activate", (event) => {
+      if (this.el.getAttribute("data-js-view") != "output-panel-popped-out") {
+        this.el.setAttribute("data-js-view", "output-panel");
+      }
+    });
+
+    this.el.addEventListener("output_panel:popin", (event) => {
+      this.handleOutputPanelPopinClick();
+    });
 
     document.addEventListener("keydown", this._handleDocumentKeyDown, true);
     document.addEventListener("mousedown", this._handleDocumentMouseDown);
@@ -135,9 +149,29 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("views").addEventListener("click", (event) => {
-      this.handleViewsClick(event);
-    });
+    this.getElement("views").addEventListener("click", (event) =>
+      this.handleActivateViewClick(event)
+    );
+
+    this.getElement("view-deactivate-button").addEventListener(
+      "click",
+      (event) => this.handleDeactivateViewClick()
+    );
+
+    this.getElement("output-panel-close-button").addEventListener(
+      "click",
+      (event) => this.handleOutputPanelCloseClick()
+    );
+
+    this.getElement("output-panel-popout-button").addEventListener(
+      "click",
+      (event) => this.handleOutputPanelPopoutClick()
+    );
+
+    this.getElement("view-output-panel-popin-button").addEventListener(
+      "click",
+      (event) => this.handleOutputPanelPopinClick()
+    );
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
@@ -668,6 +702,26 @@ const Session = {
     }
   },
 
+  handleOutputPanelCloseClick() {
+    this.closeOutputPanelWindow();
+    this.el.removeAttribute("data-js-view");
+  },
+
+  handleOutputPanelPopoutClick() {
+    this.outputPanelWindow = window.open(
+      window.location.pathname + `/external-window?type=output_panel`,
+      "_blank",
+      "toolbar=no, location=no, directories=no, titlebar=no, toolbar=0, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=yes, width=600, height=600"
+    );
+    window.addEventListener("message", this.handleExternalWindowMessage);
+    this.el.setAttribute("data-js-view", "output-panel-popped-out");
+  },
+
+  handleOutputPanelPopinClick() {
+    this.closeOutputPanelWindow();
+    this.el.setAttribute("data-js-view", "output-panel");
+  },
+
   /**
    * Focuses cell or any other element based on the current
    * URL and hook attributes.
@@ -1096,22 +1150,35 @@ const Session = {
     });
   },
 
-  handleViewsClick(event) {
-    const button = event.target.closest(`[data-el-view-toggle]`);
+  handleActivateViewClick(event) {
+    const button = event.target.closest(`[data-el-view-activate]`);
 
     if (button) {
-      const view = button.getAttribute("data-el-view-toggle");
-      this.toggleView(view);
+      const view = button.getAttribute("data-el-view-activate");
+      this.activateView(view);
     }
   },
 
-  toggleView(view) {
-    if (view === this.view) {
-      this.unsetView();
+  handleDeactivateViewClick() {
+    this.deactivateView();
+  },
 
-      if (view === "custom") {
-        this.unsubscribeCustomViewFromSettings();
-      }
+  toggleView(view) {
+    if (this.view) {
+      this.deactivateView();
+    } else {
+      this.activateView(view);
+    }
+  },
+
+  activateView(view) {
+    if (view === "output-panel") {
+      this.setView(view, {
+        showSection: true,
+        showMarkdown: false,
+        showOutput: true,
+        spotlight: false,
+      });
     } else if (view === "code-zen") {
       this.setView(view, {
         showSection: false,
@@ -1154,6 +1221,14 @@ const Session = {
       if (visibleId) {
         this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
       }
+    }
+  },
+
+  deactivateView() {
+    this.unsetView();
+
+    if (this.view === "custom") {
+      this.unsubscribeCustomViewFromSettings();
     }
   },
 
@@ -1512,6 +1587,21 @@ const Session = {
 
   getElement(name) {
     return this.el.querySelector(`[data-el-${name}]`);
+  },
+
+  closeOutputPanelWindow() {
+    window.removeEventListener("message", this.handleExternalWindowMessage);
+    this.outputPanelWindow && this.outputPanelWindow.close();
+    this.outputPanelWindow = null;
+  },
+
+  handleExternalWindowMessage(event) {
+    if (event.origin != window.location.origin) return;
+    if (event.data === "external_window_popin_clicked") {
+      this.handleOutputPanelPopinClick();
+    } else if (event.data === "external_window_close_clicked") {
+      this.handleOutputPanelCloseClick();
+    }
   },
 };
 

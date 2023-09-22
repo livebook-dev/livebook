@@ -1,9 +1,9 @@
 const DRAGGING_ATTR = "data-js-dragging";
 
 /**
- * A hook used to highlight drop zone when dragging a file.
+ * A hook used to highlight drop zone when dragging an item in the output panel over a valid area.
  */
-const Dropzone = {
+const OutputPanelDropzone = {
   mounted() {
     this.el.addEventListener("dragenter", (event) => {
       this.el.setAttribute(DRAGGING_ATTR, "");
@@ -21,4 +21,4 @@ const Dropzone = {
   },
 };
 
-export default Dropzone;
+export default OutputPanelDropzone;

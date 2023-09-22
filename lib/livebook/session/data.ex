@@ -173,6 +173,10 @@ defmodule Livebook.Session.Data do
 
   @type operation ::
           {:set_notebook_attributes, client_id(), map()}
+          | {:add_output_to_output_panel, client_id(), Cell.id()}
+          | {:remove_output_from_output_panel, client_id(), Cell.id()}
+          | {:move_output_to_new_location, client_id(), Cell.id(), integer(), integer()}
+          | {:move_output_to_new_row, client_id(), Cell.id(), integer()}
           | {:insert_section, client_id(), index(), Section.id()}
           | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
           | {:insert_branching_section_into, client_id(), Section.id(), index(), Section.id()}
@@ -377,6 +381,45 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:add_output_to_output_panel, _client_id, cell_id}) do
+    with false <- cell_id in Notebook.output_panel_ids(data.notebook) do
+      data
+      |> with_actions()
+      |> add_output_to_output_panel(cell_id)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:remove_output_from_output_panel, _client_id, cell_id}) do
+    data
+    |> with_actions()
+    |> remove_output_from_output_panel(cell_id)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(
+        data,
+        {:move_output_to_new_location, _client_id, cell_id, row_index, col_index}
+      ) do
+    data
+    |> with_actions()
+    |> move_output_to_new_location(cell_id, row_index, col_index)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:move_output_to_new_row, _client_id, cell_id, row_index}) do
+    data
+    |> with_actions()
+    |> move_output_to_new_row(cell_id, row_index)
+    |> set_dirty()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:insert_section, _client_id, index, id}) do
@@ -1013,6 +1056,28 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Map.merge(data.notebook, attrs))
   end
 
+  defp add_output_to_output_panel({data, _} = data_actions, cell_id) do
+    data_actions
+    |> set!(notebook: Notebook.add_output_to_output_panel(data.notebook, cell_id))
+  end
+
+  defp remove_output_from_output_panel({data, _} = data_actions, cell_id) do
+    data_actions
+    |> set!(notebook: Notebook.remove_output_from_output_panel(data.notebook, cell_id))
+  end
+
+  defp move_output_to_new_location({data, _} = data_actions, cell_id, row_index, col_index) do
+    data_actions
+    |> set!(
+      notebook: Notebook.move_output_to_new_location(data.notebook, cell_id, row_index, col_index)
+    )
+  end
+
+  defp move_output_to_new_row({data, _} = data_actions, cell_id, row_index) do
+    data_actions
+    |> set!(notebook: Notebook.move_output_to_new_row(data.notebook, cell_id, row_index))
+  end
+
   defp insert_section({data, _} = data_actions, index, section) do
     data_actions
     |> set!(
@@ -1117,6 +1182,7 @@ defmodule Livebook.Session.Data do
       ]
     )
     |> delete_cell_info(cell)
+    |> remove_output_from_output_panel(cell.id)
   end
 
   defp pristine_evaluation?(eval_info) do

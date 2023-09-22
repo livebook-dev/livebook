@@ -74,21 +74,43 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </button>
         </:toggle>
         <.menu_item>
-          <button role="menuitem" data-el-view-toggle="code-zen">
+          <button role="menuitem" data-el-view-activate="output-panel">
+            <.remix_icon icon="dashboard-line" />
+            <span>Output Panel</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-view-output-panel-popin-button>
+            <.remix_icon icon="dashboard-line" />
+            <span>Output Panel (popped-out)</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button role="menuitem" data-el-view-activate="code-zen">
             <.remix_icon icon="code-line" />
             <span>Code zen</span>
           </button>
         </.menu_item>
         <.menu_item>
-          <button role="menuitem" data-el-view-toggle="presentation">
+          <button role="menuitem" data-el-view-activate="presentation">
             <.remix_icon icon="slideshow-2-line" />
             <span>Presentation</span>
           </button>
         </.menu_item>
         <.menu_item>
-          <button role="menuitem" data-el-view-toggle="custom">
+          <button role="menuitem" data-el-view-activate="custom">
             <.remix_icon icon="settings-5-line" />
             <span>Custom</span>
+          </button>
+        </.menu_item>
+        <.menu_item>
+          <button
+            class="border-t-2 border-gray-200 py-2 px-4"
+            role="menuitem"
+            data-el-view-deactivate-button
+          >
+            <.remix_icon icon="close-fill" />
+            <span>Turn off</span>
           </button>
         </.menu_item>
       </.menu>

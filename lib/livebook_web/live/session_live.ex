@@ -262,7 +262,7 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} />
         </div>
       </div>
-      <div class="grow overflow-y-auto relative" data-el-notebook>
+      <div class="flex-1 overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <LivebookWeb.SessionLive.IndicatorsComponent.render
           session_id={@session.id}
@@ -429,6 +429,13 @@ defmodule LivebookWeb.SessionLive do
             <div style="height: 80vh"></div>
           </div>
         </div>
+      </div>
+      <div class="flex-1" data-el-output-panel-embedded>
+        <iframe
+          class="h-full w-full"
+          src={~p"/sessions/#{@session.id}/external-window?type=output_panel&embedded=true"}
+        />
+        <.output_panel_menu />
       </div>
     </div>
 
@@ -973,6 +980,37 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
+  defp output_panel_menu(assigns) do
+    ~H"""
+    <div class="fixed top-[1rem] right-[1.5rem] z-[500]">
+      <div class="tooltip left" data-tooltip="Output Panel Menu" data-el-output-panel-menu>
+        <.menu id="output-panel-menu" position={:bottom_right}>
+          <:toggle>
+            <button
+              class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+              aria-label="output panel menu"
+            >
+              <.remix_icon icon="more-2-fill" class="text-xl text-gray-400" />
+            </button>
+          </:toggle>
+          <.menu_item>
+            <button role="menuitem" data-el-output-panel-popout-button>
+              <.remix_icon icon="external-link-line" />
+              <span>Pop-Out</span>
+            </button>
+          </.menu_item>
+          <.menu_item>
+            <button role="menuitem" data-el-output-panel-close-button>
+              <.remix_icon icon="close-fill" />
+              <span>Close</span>
+            </button>
+          </.menu_item>
+        </.menu>
+      </div>
+    </div>
+    """
+  end
+
   defp settings_component_for(%Cell.Code{}),
     do: LivebookWeb.SessionLive.CodeCellSettingsComponent
 
@@ -1177,6 +1215,16 @@ defmodule LivebookWeb.SessionLive do
     language = String.to_atom(language)
     Session.set_notebook_attributes(socket.assigns.session.pid, %{default_language: language})
     {:noreply, insert_cell_below(socket, params)}
+  end
+
+  def handle_event("add_output_to_output_panel", %{"cell_id" => cell_id}, socket) do
+    Session.add_output_to_output_panel(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
+  end
+
+  def handle_event("remove_output_from_output_panel", %{"cell_id" => cell_id}, socket) do
+    Session.remove_output_from_output_panel(socket.assigns.session.pid, cell_id)
+    {:noreply, socket}
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
@@ -2726,6 +2774,11 @@ defmodule LivebookWeb.SessionLive do
   defp eval_info_to_view(cell, eval_info, data, changed_input_ids) do
     %{
       outputs: cell.outputs,
+      output_location:
+        if(cell.id in Notebook.output_panel_ids(data.notebook),
+          do: :output_panel,
+          else: :notebook
+        ),
       doctest_summary: doctest_summary(eval_info.doctest_reports),
       validity: eval_info.validity,
       status: eval_info.status,
@@ -2748,19 +2801,6 @@ defmodule LivebookWeb.SessionLive do
       end)
 
     %{doctests_count: doctests_count, failures_count: failures_count}
-  end
-
-  defp input_views_for_cell(cell, data, changed_input_ids) do
-    input_ids =
-      for output <- cell.outputs,
-          input <- Cell.find_inputs_in_output(output),
-          do: input.id
-
-    data.input_infos
-    |> Map.take(input_ids)
-    |> Map.new(fn {input_id, %{value: value}} ->
-      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
-    end)
   end
 
   def app_status(%{sessions: [app_session | _]}), do: app_session.app_status

@@ -25,10 +25,11 @@ defmodule Livebook.Notebook do
     :hub_secret_names,
     :file_entries,
     :quarantine_file_entry_names,
-    :teams_enabled
+    :teams_enabled,
+    :output_panel
   ]
 
-  alias Livebook.Notebook.{Section, Cell, AppSettings}
+  alias Livebook.Notebook.{Section, Cell, AppSettings, OutputPanel}
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
@@ -46,7 +47,8 @@ defmodule Livebook.Notebook do
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
           quarantine_file_entry_names: MapSet.new(String.t()),
-          teams_enabled: boolean()
+          teams_enabled: boolean(),
+          output_panel: %{rows: list(output_panel_row())}
         }
 
   @typedoc """
@@ -91,6 +93,15 @@ defmodule Livebook.Notebook do
               url: String.t()
             }
 
+  @type output_panel_row :: %{items: list(output_panel_item)}
+
+  @type output_panel_item :: %{
+          cell_id: Livebook.Utils.id(),
+          width: output_width()
+        }
+
+  @type output_width :: 0..100
+
   @doc """
   Returns a blank notebook.
   """
@@ -110,9 +121,66 @@ defmodule Livebook.Notebook do
       hub_secret_names: [],
       file_entries: [],
       quarantine_file_entry_names: MapSet.new(),
-      teams_enabled: false
+      teams_enabled: false,
+      output_panel: OutputPanel.new()
     }
     |> put_setup_cell(Cell.new(:code))
+  end
+
+  @doc """
+  Adds the output of the given cell_id to the end of the output panel.
+  """
+  @spec add_output_to_output_panel(t(), Cell.id()) :: t()
+  def add_output_to_output_panel(notebook, cell_id) do
+    item = OutputPanel.new_item(cell_id)
+    output_panel = OutputPanel.move_item_to_new_row(notebook.output_panel, item)
+    %{notebook | output_panel: output_panel}
+  end
+
+  @doc """
+  Moves the output to a new row in the output panel.
+  """
+  @spec move_output_to_new_row(t(), Cell.id(), integer()) :: t()
+  def move_output_to_new_row(notebook, cell_id, row_index) do
+    item = OutputPanel.get_item_by_cell_id(notebook.output_panel, cell_id)
+    output_panel = OutputPanel.move_item_to_new_row(notebook.output_panel, item, row_index)
+    %{notebook | output_panel: output_panel}
+  end
+
+  @doc """
+  Move output to new location in output panel.
+  """
+  @spec move_output_to_new_location(t(), Cell.id(), integer(), integer()) :: t()
+  def move_output_to_new_location(notebook, cell_id, row_index, col_index) do
+    item = OutputPanel.get_item_by_cell_id(notebook.output_panel, cell_id)
+    output_panel = OutputPanel.move_item(notebook.output_panel, item, {row_index, col_index})
+    %{notebook | output_panel: output_panel}
+  end
+
+  @doc """
+  Removes the output of the given cell_id from the output panel.
+  """
+  @spec remove_output_from_output_panel(t(), Cell.id()) :: t()
+  def remove_output_from_output_panel(notebook, cell_id) do
+    item = OutputPanel.get_item_by_cell_id(notebook.output_panel, cell_id)
+    output_panel = OutputPanel.remove_item(notebook.output_panel, item)
+    %{notebook | output_panel: output_panel}
+  end
+
+  @doc """
+  Returns all output ids already added to the output panel.
+  """
+  @spec output_panel_ids(t()) :: list(Cell.id())
+  def output_panel_ids(notebook) do
+    get_in(notebook, [
+      Access.key(:output_panel),
+      Access.key(:rows),
+      Access.all(),
+      Access.key(:items),
+      Access.all(),
+      Access.key(:cell_id)
+    ])
+    |> List.flatten()
   end
 
   @doc """

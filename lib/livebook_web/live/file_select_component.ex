@@ -175,7 +175,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <div
         class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
         tabindex="-1"
-        phx-hook="Dropzone"
+        phx-hook="FileDropzone"
         id="file-select-upload-dropzone"
       >
         <form phx-change="file_validate" phx-drop-target={@uploads.folder.ref} phx-target={@myself}>

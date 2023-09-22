@@ -94,44 +94,60 @@ defmodule LivebookWeb.AppSessionLive do
     """
   end
 
+  def render(%{data_view: %{output_type: :output_panel}} = assigns)
+      when assigns.app_authenticated? do
+    ~H"""
+    <div class="h-full w-full" data-el-output-panel>
+      <.app_menu
+        session={@session}
+        data_view={@data_view}
+        livebook_authenticated?={@livebook_authenticated?}
+      />
+      <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+      <div class="flex justify-center items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
+        <h1 class="pt-4 text-3xl font-semibold text-gray-800">
+          <%= @data_view.notebook_name %>
+        </h1>
+      </div>
+      <div id="output-panel" class="flex flex-col" data-el-output-panel-content>
+        <%= for {output_row, row_index} <- Enum.with_index(@data_view.output_views.rows) do %>
+          <div class="flex flex-grow" data-row-index={row_index} data-el-output-panel-row>
+            <div
+              :for={{item, col_index} <- Enum.with_index(output_row.items)}
+              id={"output-panel-item-#{row_index}-#{col_index}"}
+              class="relative group"
+              style={"width: #{item.width}%"}
+              data-cell-id={item.cell_id}
+              data-row-index={row_index}
+              data-col-index={col_index}
+              data-el-output-panel-item
+            >
+              <LivebookWeb.Output.outputs
+                outputs={item.outputs}
+                dom_id_map={%{}}
+                session_id={@session.id}
+                session_pid={@session.pid}
+                client_id={@client_id}
+                cell_id={item.cell_id}
+                input_views={item.input_views}
+              />
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   def render(assigns) when assigns.app_authenticated? do
     ~H"""
     <div class="h-full relative overflow-y-auto px-4 md:px-20" data-el-notebook>
       <div class="w-full max-w-screen-lg py-4 mx-auto" data-el-notebook-content>
-        <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3">
-          <.menu id="app-menu" position={:bottom_right} md_position={:bottom_left}>
-            <:toggle>
-              <button class="flex items-center text-gray-900">
-                <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
-                <.remix_icon icon="arrow-down-s-line" />
-              </button>
-            </:toggle>
-            <.menu_item>
-              <.link navigate={~p"/"} role="menuitem">
-                <.remix_icon icon="home-6-line" />
-                <span>Home</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@data_view.multi_session}>
-              <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
-                <.remix_icon icon="play-list-add-line" />
-                <span>Sessions</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@data_view.show_source}>
-              <.link patch={~p"/apps/#{@data_view.slug}/#{@session.id}/source"} role="menuitem">
-                <.remix_icon icon="code-line" />
-                <span>View source</span>
-              </.link>
-            </.menu_item>
-            <.menu_item :if={@livebook_authenticated?}>
-              <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
-                <.remix_icon icon="terminal-line" />
-                <span>Debug</span>
-              </.link>
-            </.menu_item>
-          </.menu>
-        </div>
+        <.app_menu
+          session={@session}
+          data_view={@data_view}
+          livebook_authenticated?={@livebook_authenticated?}
+        />
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200 pr-20 md:pr-0">
           <h1 class="text-3xl font-semibold text-gray-800">
@@ -222,6 +238,45 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   def render(assigns), do: auth_placeholder(assigns)
+
+  defp app_menu(assigns) do
+    ~H"""
+    <div class="absolute md:fixed right-4 md:left-4 md:right-auto top-3 z-10">
+      <.menu id="app-menu" position={:bottom_right} md_position={:bottom_left}>
+        <:toggle>
+          <button class="flex items-center text-gray-900">
+            <img src={~p"/images/logo.png"} height="40" width="40" alt="logo livebook" />
+            <.remix_icon icon="arrow-down-s-line" />
+          </button>
+        </:toggle>
+        <.menu_item>
+          <.link navigate={~p"/"} role="menuitem">
+            <.remix_icon icon="home-6-line" />
+            <span>Home</span>
+          </.link>
+        </.menu_item>
+        <.menu_item :if={@data_view.multi_session}>
+          <.link navigate={~p"/apps/#{@data_view.slug}"} role="menuitem">
+            <.remix_icon icon="play-list-add-line" />
+            <span>Sessions</span>
+          </.link>
+        </.menu_item>
+        <.menu_item :if={@data_view.show_source}>
+          <.link patch={~p"/apps/#{@data_view.slug}/#{@session.id}/source"} role="menuitem">
+            <.remix_icon icon="code-line" />
+            <span>View source</span>
+          </.link>
+        </.menu_item>
+        <.menu_item :if={@livebook_authenticated?}>
+          <.link patch={~p"/sessions/#{@session.id}"} role="menuitem">
+            <.remix_icon icon="terminal-line" />
+            <span>Debug</span>
+          </.link>
+        </.menu_item>
+      </.menu>
+    </div>
+    """
+  end
 
   attr :status, :map, required: true
 
@@ -406,19 +461,9 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   defp data_to_view(data) do
-    changed_input_ids = Session.Data.changed_input_ids(data)
-
     %{
       notebook_name: data.notebook.name,
-      output_views:
-        for(
-          {cell_id, output} <- visible_outputs(data.notebook),
-          do: %{
-            output: output,
-            input_views: input_views_for_output(output, data, changed_input_ids),
-            cell_id: cell_id
-          }
-        ),
+      output_type: data.notebook.app_settings.output_type,
       app_status: data.app_data.status,
       show_source: data.notebook.app_settings.show_source,
       slug: data.notebook.app_settings.slug,
@@ -426,6 +471,13 @@ defmodule LivebookWeb.AppSessionLive do
       errored_cell_id: errored_cell_id(data),
       any_stale?: any_stale?(data)
     }
+    |> Map.put(
+      :output_views,
+      case data.notebook.app_settings.output_type do
+        :output_panel -> enrich_output_panel_data(data)
+        _ -> get_output_views(data)
+      end
+    )
   end
 
   defp errored_cell_id(data) do
@@ -438,6 +490,19 @@ defmodule LivebookWeb.AppSessionLive do
 
   defp any_stale?(data) do
     Enum.any?(data.cell_infos, &match?({_, %{eval: %{validity: :stale}}}, &1))
+  end
+
+  defp get_output_views(data) do
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
+    for(
+      {cell_id, output} <- visible_outputs(data.notebook),
+      do: %{
+        output: output,
+        input_views: input_views_for_output(output, data, changed_input_ids),
+        cell_id: cell_id
+      }
+    )
   end
 
   defp input_views_for_output(output, data, changed_input_ids) do

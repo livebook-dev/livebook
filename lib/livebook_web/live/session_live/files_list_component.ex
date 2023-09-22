@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         class="mt-5 h-20 rounded-lg border-2 border-dashed border-gray-400 flex items-center justify-center"
         data-el-files-drop-area
         id="files-dropzone"
-        phx-hook="Dropzone"
+        phx-hook="FileDropzone"
       >
         <span class="font-medium text-gray-400">
           Add file

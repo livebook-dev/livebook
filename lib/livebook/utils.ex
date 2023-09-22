@@ -116,17 +116,17 @@ defmodule Livebook.Utils do
       ** (RuntimeError) Livebook.Utils.access_by_id/1 expected a list, got: %{}
 
   """
-  @spec access_by_id(term()) ::
+  @spec access_by_id(term(), atom()) ::
           Access.access_fun(data :: struct() | map(), current_value :: term())
-  def access_by_id(id) do
+  def access_by_id(id, field \\ :id) do
     fn
       :get, data, next when is_list(data) ->
         data
-        |> Enum.find(fn item -> item.id == id end)
+        |> Enum.find(fn item -> Map.fetch!(item, field) == id end)
         |> next.()
 
       :get_and_update, data, next when is_list(data) ->
-        case Enum.split_while(data, fn item -> item.id != id end) do
+        case Enum.split_while(data, fn item -> Map.fetch!(item, field) != id end) do
           {prev, [item | cons]} ->
             case next.(item) do
               {get, update} ->

@@ -67,6 +67,36 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               '''
             }
           />
+          <.select_field
+            field={f[:output_type]}
+            label="Output type"
+            options={[
+              {"All outputs", :all},
+              {"Rich outputs only", :rich},
+              {"Output Panel", :output_panel}
+            ]}
+            help={
+              ~S'''
+              TODO
+              '''
+            }
+          />
+          <div :if={@changeset.data.output_type == :output_panel} class="text-sm text-green-400">
+            <.link
+              data-el-app-settings-enable-output-panel-button
+              phx-click={JS.dispatch("output_panel:activate", to: "[data-el-session]")}
+            >
+              <.remix_icon icon="arrow-right-line" class="text-sm" />
+              <span>Enable the Output Panel view</span>
+            </.link>
+            <.link
+              data-el-app-settings-popin-output-panel-button
+              phx-click={JS.dispatch("output_panel:popin", to: "[data-el-session]")}
+            >
+              <.remix_icon icon="arrow-right-line" />
+              <span>Bring Output Panel to front</span>
+            </.link>
+          </div>
           <.checkbox_field
             field={f[:show_source]}
             label="Show source"
@@ -74,19 +104,6 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
               ~S'''
               When enabled, it makes notebook source
               accessible in the app menu.
-              '''
-            }
-          />
-          <.checkbox_field
-            field={f[:output_type]}
-            label="Only render rich outputs"
-            checked_value="rich"
-            unchecked_value="all"
-            help={
-              ~S'''
-              When enabled, hides simple outputs
-              and only shows rich elements, such
-              as inputs, frames, tables, etc.
               '''
             }
           />

@@ -3,6 +3,10 @@ defmodule LivebookWeb.Helpers do
 
   use LivebookWeb, :verified_routes
 
+  alias Livebook.Notebook
+  alias Livebook.Session.Data
+  alias Livebook.Notebook.Cell
+
   @doc """
   Determines user platform based on the given *User-Agent* header.
   """
@@ -81,6 +85,49 @@ defmodule LivebookWeb.Helpers do
   @spec format_datetime_relatively(DateTime.t()) :: String.t()
   def format_datetime_relatively(date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+  end
+
+  @doc """
+  Enhance the output_panel data with outputs and input_views.
+  """
+  @spec enrich_output_panel_data(Data.t()) :: map()
+  def enrich_output_panel_data(data) do
+    changed_input_ids = Data.changed_input_ids(data)
+
+    data.notebook.output_panel
+    |> Map.from_struct()
+    |> update_in(
+      [
+        Access.key(:rows),
+        Access.all(),
+        Access.key(:items),
+        Access.all()
+      ],
+      fn item ->
+        {:ok, cell, _section} = Notebook.fetch_cell_and_section(data.notebook, item.cell_id)
+
+        item
+        |> Map.put(:outputs, cell.outputs)
+        |> Map.put(:input_views, input_views_for_cell(cell, data, changed_input_ids))
+      end
+    )
+  end
+
+  @doc """
+  Returns input_views for the given cell.
+  """
+  @spec input_views_for_cell(Cell.t(), Data.t(), MapSet.t(Data.input_id())) :: map()
+  def input_views_for_cell(cell, data, changed_input_ids) do
+    input_ids =
+      for output <- cell.outputs,
+          attrs <- Cell.find_inputs_in_output(output),
+          do: attrs.id
+
+    data.input_infos
+    |> Map.take(input_ids)
+    |> Map.new(fn {input_id, %{value: value}} ->
+      {input_id, %{value: value, changed: MapSet.member?(changed_input_ids, input_id)}}
+    end)
   end
 
   @doc """
