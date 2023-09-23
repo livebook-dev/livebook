@@ -156,11 +156,12 @@ class LivebookApp : ApplicationContext
         {
             File.WriteAllText(path, @"@echo off
 rem This file is used to configure Livebook before booting.
-rem
+rem If you change this file, you must restart Livebook for your changes to take place.
 rem See https://hexdocs.pm/livebook/readme.html#environment-variables for all available enviornment variables.
 
-rem Run Livebook on port 9999
-rem set LIVEBOOK_PORT=9999
+rem Allow Livebook to connect to remote machines over IPv6
+rem set LIVEBOOK_DISTRIBUTION=name
+rem set ERL_AFLAGS="-proto_dist inet6_tcp"
 
 rem Add directory to PATH
 rem set PATH=C:\bin;%PATH%

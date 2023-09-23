@@ -140,11 +140,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !fm.fileExists(atPath: bootScriptURL.path) {
             let data = """
             # This file is used to configure Livebook before booting.
-            #
+            # If you change this file, you must restart Livebook for your changes to take place.
             # See https://hexdocs.pm/livebook/readme.html#environment-variables for all available environment variables.
 
-            # # Run Livebook on port 9999
-            # export LIVEBOOK_PORT=9999
+            # # Allow Livebook to connect to remote machines over IPv6
+            # export LIVEBOOK_DISTRIBUTION=name
+            # export ERL_AFLAGS="-proto_dist inet6_tcp"
 
             # # Add Homebrew to PATH
             # export PATH=/opt/homebrew/bin:$PATH
