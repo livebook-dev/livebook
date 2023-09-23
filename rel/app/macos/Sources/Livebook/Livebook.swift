@@ -17,9 +17,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var launchedByOpenURL = false
     private var initialURLs: [URL] = []
     private var url: String?
+    private var bootScriptURL: URL!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         logPath = "\(NSHomeDirectory())/Library/Logs/Livebook.log"
+        bootScriptURL = NSURL.fileURL(withPath: "\(NSHomeDirectory())/.livebookdesktop.sh")
 
         ElixirKit.API.start(
             name: "app",
@@ -72,6 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSMenuItem(title: "Open", action: #selector(open), keyEquivalent: "o"),
             copyURLItem,
             NSMenuItem(title: "View Logs", action: #selector(viewLogs), keyEquivalent: "l"),
+            NSMenuItem(title: "Open .livebookdesktop.sh", action: #selector(openBootScript), keyEquivalent: ""),
             NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","),
             NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         ]
@@ -128,5 +131,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     func openSettings() {
         ElixirKit.API.publish("open", "/settings")
+    }
+
+    @objc
+    func openBootScript() {
+        let fm = FileManager.default
+
+        if !fm.fileExists(atPath: bootScriptURL.path) {
+            let data = """
+            # This file is used to configure Livebook before booting.
+            # If you change this file, you must restart Livebook for your changes to take place.
+            # See https://hexdocs.pm/livebook/readme.html#environment-variables for all available environment variables.
+
+            # # Allow Livebook to connect to remote machines over IPv6
+            # export LIVEBOOK_DISTRIBUTION=name
+            # export ERL_AFLAGS="-proto_dist inet6_tcp"
+
+            # # Add Homebrew to PATH
+            # export PATH=/opt/homebrew/bin:$PATH
+            """.data(using: .utf8)
+
+            fm.createFile(atPath: bootScriptURL.path, contents: data)
+        }
+
+        NSWorkspace.shared.open(bootScriptURL)
     }
 }
