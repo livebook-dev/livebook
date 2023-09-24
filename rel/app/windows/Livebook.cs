@@ -161,7 +161,7 @@ rem See https://hexdocs.pm/livebook/readme.html#environment-variables for all av
 
 rem Allow Livebook to connect to remote machines over IPv6
 rem set LIVEBOOK_DISTRIBUTION=name
-rem set ERL_AFLAGS="-proto_dist inet6_tcp"
+rem set ERL_AFLAGS=-proto_dist inet6_tcp
 
 rem Add directory to PATH
 rem set PATH=C:\bin;%PATH%
