@@ -351,12 +351,13 @@ defmodule Livebook.Runtime.Definitions do
         """ <>
           if windows? do
             """
-            serving = Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
-              chunk_num_seconds: 30,
-              timestamps: :segments,
-              stream: true,
-              compile: [batch_size: 4]
-            )
+            serving =
+              Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
+                chunk_num_seconds: 30,
+                timestamps: :segments,
+                stream: true,
+                compile: [batch_size: 4]
+              )
             """
           else
             """
