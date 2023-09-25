@@ -24,6 +24,23 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
+  Returns the region from given uri.
+  """
+  @spec region_from_uri(String.t()) :: String.t()
+  # TODO: make it private again on Livebook v0.12
+  def region_from_uri(uri) do
+    # For many services the API host is of the form *.[region].[rootdomain].com
+    %{host: host} = URI.parse(uri)
+    splitted_host = host |> String.split(".") |> Enum.reverse()
+
+    case Enum.at(splitted_host, 2, "auto") do
+      "s3" -> "us-east-1"
+      "r2" -> "auto"
+      region -> region
+    end
+  end
+
+  @doc """
   Returns an `%Ecto.Changeset{}` for tracking file system changes.
   """
   @spec change_file_system(t(), map()) :: Ecto.Changeset.t()
@@ -51,18 +68,6 @@ defmodule Livebook.FileSystem.S3 do
     case get_field(changeset, :bucket_url) do
       nil -> changeset
       bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
-    end
-  end
-
-  defp region_from_uri(uri) do
-    # For many services the API host is of the form *.[region].[rootdomain].com
-    %{host: host} = URI.parse(uri)
-    splitted_host = host |> String.split(".") |> Enum.reverse()
-
-    case Enum.at(splitted_host, 2, "auto") do
-      "s3" -> "us-east-1"
-      "r2" -> "auto"
-      region -> region
     end
   end
 
