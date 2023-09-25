@@ -64,6 +64,16 @@ defmodule Livebook.Migration do
         id_mapping =
           for config <- configs, into: %{} do
             old_id = config.id
+
+            # Ensure new file system fields
+            new_fields = %{
+              hub_id: Livebook.Hubs.Personal.id(),
+              external_id: nil,
+              region: Livebook.FileSystem.S3.region_from_uri(config.bucket_url)
+            }
+
+            config = Map.merge(new_fields, config)
+
             # At this point S3 is the only file system we store
             file_system = Livebook.FileSystems.load("s3", config)
             Livebook.Hubs.Personal.save_file_system(file_system)
