@@ -65,8 +65,8 @@ defmodule Livebook.Migration do
           for config <- configs, into: %{} do
             old_id = config.id
             # At this point S3 is the only file system we store
-            {:ok, file_system} = Livebook.FileSystem.S3.from_config(config)
-            Livebook.Settings.save_file_system(file_system)
+            file_system = Livebook.FileSystems.load("s3", config)
+            Livebook.Hubs.Personal.save_file_system(file_system)
             Livebook.Storage.delete(:filesystem, old_id)
             {old_id, file_system.id}
           end
