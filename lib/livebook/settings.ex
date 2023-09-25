@@ -182,9 +182,10 @@ defmodule Livebook.Settings do
   @spec default_dir() :: FileSystem.File.t()
   def default_dir() do
     with {:ok, %{file_system_id: file_system_id, path: path}} <-
-           Storage.fetch_key(:settings, "global", :default_dir),
-         {:ok, file_system} <- fetch_file_system(file_system_id) do
-      FileSystem.File.new(file_system, path)
+           Storage.fetch_key(:settings, "global", :default_dir) do
+      Livebook.Hubs.get_file_systems()
+      |> Enum.find(&(&1.id == file_system_id))
+      |> FileSystem.File.new(path)
     else
       _ -> FileSystem.File.new(Livebook.Config.local_file_system())
     end

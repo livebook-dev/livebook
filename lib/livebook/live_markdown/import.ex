@@ -414,7 +414,7 @@ defmodule Livebook.LiveMarkdown.Import do
       when is_list(file_entry_metadata) ->
         file_system_by_id =
           if Enum.any?(file_entry_metadata, &(&1["type"] == "file")) do
-            for file_system <- Livebook.Settings.file_systems(),
+            for file_system <- Livebook.Hubs.get_file_systems(),
                 do: {file_system.id, file_system},
                 into: %{}
           else

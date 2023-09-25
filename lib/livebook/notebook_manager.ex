@@ -244,7 +244,7 @@ defmodule Livebook.NotebookManager do
       end
 
     file_system_by_id =
-      for file_system <- Livebook.Settings.file_systems(),
+      for file_system <- Livebook.Hubs.get_file_systems(),
           do: {file_system.id, file_system},
           into: %{}
 
