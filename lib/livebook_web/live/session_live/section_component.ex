@@ -55,11 +55,6 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           role="toolbar"
           aria-label="section actions"
         >
-          <span class="tooltip top" data-tooltip="Link">
-            <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
-              <.remix_icon icon="link" class="text-xl" />
-            </a>
-          </span>
           <.branching_menu
             section_view={@section_view}
             scope="actions"
@@ -78,6 +73,11 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               </button>
             </span>
           </.branching_menu>
+          <span class="tooltip top" data-tooltip="Link">
+            <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
+              <.remix_icon icon="link" class="text-xl" />
+            </a>
+          </span>
           <span class="tooltip top" data-tooltip="Move up">
             <button
               class="icon-button"
