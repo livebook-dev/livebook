@@ -6,7 +6,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_vega_lite = %{
     name: "kino_vega_lite",
-    dependency: %{dep: {:kino_vega_lite, "~> 0.1.7"}, config: []}
+    dependency: %{dep: {:kino_vega_lite, "~> 0.1.10"}, config: []}
   }
 
   kino_db = %{
@@ -21,7 +21,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_maplibre = %{
     name: "kino_maplibre",
-    dependency: %{dep: {:kino_maplibre, "~> 0.1.9"}, config: []}
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.10"}, config: []}
   }
 
   kino_slack = %{
