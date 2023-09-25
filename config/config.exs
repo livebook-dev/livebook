@@ -16,8 +16,9 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Add mime type to upload notebooks with `Phoenix.LiveView.Upload`
+# Additional mime types
 config :mime, :types, %{
+  "audio/m4a" => ["m4a"],
   "text/plain" => ["livemd"]
 }
 

@@ -31,12 +31,12 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_bumblebee = %{
     name: "kino_bumblebee",
-    dependency: %{dep: {:kino_bumblebee, "~> 0.3.0"}, config: []}
+    dependency: %{dep: {:kino_bumblebee, github: "livebook-dev/kino_bumblebee"}, config: []}
   }
 
   exla = %{
     name: "exla",
-    dependency: %{dep: {:exla, "~> 0.5.1"}, config: [nx: [default_backend: EXLA.Backend]]}
+    dependency: %{dep: {:exla, ">= 0.0.0"}, config: [nx: [default_backend: EXLA.Backend]]}
   }
 
   torchx = %{
@@ -338,40 +338,59 @@ defmodule Livebook.Runtime.Definitions do
       type: :file_action,
       file_types: ["audio/*"],
       description: "Transcribe speech",
-      source: """
-      # To explore more models, see "+ Smart" > "Neural Network task"
-
-      {:ok, model_info} = Bumblebee.load_model({:hf, "openai/whisper-tiny"})
-      {:ok, featurizer} = Bumblebee.load_featurizer({:hf, "openai/whisper-tiny"})
-      {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "openai/whisper-tiny"})
-      {:ok, generation_config} = Bumblebee.load_generation_config({:hf, "openai/whisper-tiny"})
-      generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
-
-      #{if windows? do
+      source:
         """
-        serving = Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
-          chunk_num_seconds: 30,
-          timestamps: :segments,
-          compile: [batch_size: 4]
-        )\
-        """
-      else
-        """
-        serving =
-          Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
-            chunk_num_seconds: 30,
-            timestamps: :segments,
-            compile: [batch_size: 4],
-            defn_options: [compiler: EXLA]
-          )\
-        """
-      end}
+        # To explore more models, see "+ Smart" > "Neural Network task"
 
-      path = Kino.FS.file_path("{{NAME}}")
-      output = Nx.Serving.run(serving, {:file, path})
+        {:ok, model_info} = Bumblebee.load_model({:hf, "openai/whisper-tiny"})
+        {:ok, featurizer} = Bumblebee.load_featurizer({:hf, "openai/whisper-tiny"})
+        {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "openai/whisper-tiny"})
+        {:ok, generation_config} = Bumblebee.load_generation_config({:hf, "openai/whisper-tiny"})
+        generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
 
-      # output.chunks |> Enum.map_join(& &1.text) |> String.trim()\
-      """,
+        """ <>
+          if windows? do
+            """
+            serving = Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
+              chunk_num_seconds: 30,
+              timestamps: :segments,
+              stream: true,
+              compile: [batch_size: 4]
+            )
+            """
+          else
+            """
+            serving =
+              Bumblebee.Audio.speech_to_text_whisper(model_info, featurizer, tokenizer, generation_config,
+                chunk_num_seconds: 30,
+                timestamps: :segments,
+                stream: true,
+                compile: [batch_size: 4],
+                defn_options: [compiler: EXLA]
+              )
+            """
+          end <>
+          ~S"""
+
+          path = Kino.FS.file_path("{{NAME}}")
+          Kino.render(Kino.Text.new("(Start of transcription)", chunk: true))
+
+          for chunk <- Nx.Serving.run(serving, {:file, path}) do
+            [start_mark, end_mark] =
+              for seconds <- [chunk.start_timestamp_seconds, chunk.end_timestamp_seconds] do
+                seconds
+                |> round()
+                |> Time.from_seconds_after_midnight()
+                |> Time.to_string()
+              end
+
+            text = "\n#{start_mark}-#{end_mark}: #{chunk.text}"
+            Kino.render(Kino.Text.new(text, chunk: true))
+          end
+
+          Kino.render(Kino.Text.new("\n(End of transcription)", chunk: true))
+          :ok
+          """,
       packages: [kino_bumblebee, nx_backend_package]
     },
     %{
