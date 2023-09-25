@@ -9,12 +9,13 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    Hubs.subscribe([:connection])
+
     {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    Hubs.subscribe([:connection, :secrets])
     hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
@@ -85,36 +86,6 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info(
-        {:secret_created, %{name: name, hub_id: id}},
-        %{assigns: %{hub: %{id: id}}} = socket
-      ) do
-    {:noreply,
-     socket
-     |> push_navigate(to: ~p"/hub/#{id}")
-     |> put_flash(:success, "Secret #{name} created successfully")}
-  end
-
-  def handle_info(
-        {:secret_updated, %{name: name, hub_id: id}},
-        %{assigns: %{hub: %{id: id}}} = socket
-      ) do
-    {:noreply,
-     socket
-     |> push_navigate(to: ~p"/hub/#{id}")
-     |> put_flash(:success, "Secret #{name} updated successfully")}
-  end
-
-  def handle_info(
-        {:secret_deleted, %{name: name, hub_id: id}},
-        %{assigns: %{hub: %{id: id}}} = socket
-      ) do
-    {:noreply,
-     socket
-     |> push_navigate(to: ~p"/hub/#{id}")
-     |> put_flash(:success, "Secret #{name} deleted successfully")}
-  end
-
   def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
   end

@@ -157,6 +157,12 @@ defmodule Livebook.Hubs do
     * `{:secret_updated, %Secret{}}`
     * `{:secret_deleted, %Secret{}}`
 
+  Topic `hubs:file_systems`:
+
+    * `{:file_system_created, FileSystem.t()}`
+    * `{:file_system_updated, FileSystem.t()}`
+    * `{:file_system_deleted, FileSystem.t()}`
+
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
   def subscribe(topics) when is_list(topics) do
@@ -295,14 +301,27 @@ defmodule Livebook.Hubs do
   end
 
   @doc """
-  Gets a list of file systems for given hub.
+  Gets a list of file systems from all hubs.
   """
-  @spec get_file_systems(Provider.t()) :: list(FileSystem.t())
-  def get_file_systems(hub) do
-    hub_file_systems = Provider.get_file_systems(hub)
+  @spec get_file_systems() :: list(FileSystem.t())
+  def get_file_systems() do
+    file_systems = Enum.flat_map(get_hubs(), &Provider.get_file_systems/1)
     local_file_system = Livebook.Config.local_file_system()
 
-    [local_file_system | Enum.sort_by(hub_file_systems, & &1.id)]
+    [local_file_system | Enum.sort_by(file_systems, & &1.id)]
+  end
+
+  @doc """
+  Gets a list of file systems for given hub.
+  """
+  @spec get_file_systems(Provider.t(), keyword()) :: list(FileSystem.t())
+  def get_file_systems(hub, opts \\ []) do
+    hub_file_systems = Provider.get_file_systems(hub)
+    sorted_hub_file_systems = Enum.sort_by(hub_file_systems, & &1.id)
+
+    if opts[:hub_only],
+      do: sorted_hub_file_systems,
+      else: [Livebook.Config.local_file_system() | sorted_hub_file_systems]
   end
 
   @doc """

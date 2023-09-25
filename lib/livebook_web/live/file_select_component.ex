@@ -45,7 +45,8 @@ defmodule LivebookWeb.FileSelectComponent do
        renaming_file: nil,
        renamed_name: nil,
        error_message: nil,
-       file_systems: Livebook.Settings.file_systems()
+       configure_path: nil,
+       file_systems: []
      )
      |> allow_upload(:folder,
        accept: :any,
@@ -70,7 +71,14 @@ defmodule LivebookWeb.FileSelectComponent do
       |> assign(assigns)
       |> update_file_infos(force_reload? or running_files_changed?)
 
-    {:ok, socket}
+    {file_systems, configure_hub_id} =
+      if hub = socket.assigns[:hub],
+        do: {Livebook.Hubs.get_file_systems(hub), hub.id},
+        else: {Livebook.Hubs.get_file_systems(), Livebook.Hubs.Personal.id()}
+
+    configure_path = ~p"/hub/#{configure_hub_id}/file-systems/new"
+
+    {:ok, assign(socket, file_systems: file_systems, configure_path: configure_path)}
   end
 
   @impl true
@@ -83,6 +91,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <.file_system_menu_button
             file={@file}
             file_systems={@file_systems}
+            configure_path={@configure_path}
             file_system_select_disabled={@file_system_select_disabled}
             myself={@myself}
           />
@@ -281,7 +290,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <%= for file_system <- @file_systems do %>
         <%= if file_system == @file.file_system do %>
           <.menu_item variant={:selected}>
-            <button role="menuitem">
+            <button id={"file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
               <span><%= file_system_label(file_system) %></span>
             </button>
@@ -289,6 +298,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% else %>
           <.menu_item>
             <button
+              id={"file-system-#{file_system.id}"}
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
@@ -301,7 +311,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
       <% end %>
       <.menu_item>
-        <.link navigate={~p"/settings"} class="border-t border-gray-200" role="menuitem">
+        <.link navigate={@configure_path} class="border-t border-gray-200" role="menuitem">
           <.remix_icon icon="settings-3-line" />
           <span>Configure</span>
         </.link>

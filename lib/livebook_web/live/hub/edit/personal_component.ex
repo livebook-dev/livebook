@@ -11,7 +11,9 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     socket = assign(socket, assigns)
     changeset = Personal.change_hub(assigns.hub)
     secrets = Hubs.get_secrets(assigns.hub)
+    file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     secret_name = assigns.params["secret_name"]
+    file_system_id = assigns.params["file_system_id"]
 
     secret_value =
       if assigns.live_action == :edit_secret do
@@ -19,9 +21,18 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           raise(NotFoundError, "could not find secret matching #{inspect(secret_name)}")
       end
 
+    file_system =
+      if assigns.live_action == :edit_file_system do
+        Enum.find_value(file_systems, &(&1.id == file_system_id && &1)) ||
+          raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
+      end
+
     {:ok,
      assign(socket,
        secrets: secrets,
+       file_system: file_system,
+       file_system_id: file_system_id,
+       file_systems: file_systems,
        changeset: changeset,
        stamp_changeset: changeset,
        secret_name: secret_name,
@@ -90,7 +101,23 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-secrets-list"
               hub={@hub}
               secrets={@secrets}
-              target={@myself}
+            />
+          </div>
+
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+              File Storages
+            </h2>
+
+            <p class="text-gray-700">
+              File storages are used to store notebooks and their files.
+            </p>
+
+            <.live_component
+              module={LivebookWeb.Hub.FileSystemListComponent}
+              id="hub-file-systems-list"
+              hub_id={@hub.id}
+              file_systems={@file_systems}
             />
           </div>
 
@@ -167,6 +194,23 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           return_to={~p"/hub/#{@hub.id}"}
         />
       </.modal>
+
+      <.modal
+        :if={@live_action in [:new_file_system, :edit_file_system]}
+        id="file-systems-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.FileSystemFormComponent}
+          id="file-systems"
+          hub={@hub}
+          file_system={@file_system}
+          file_system_id={@file_system_id}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
     </div>
     """
   end
@@ -191,25 +235,6 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
   def handle_event("generate_secret_key", %{}, socket) do
     params = %{"secret_key" => Personal.generate_secret_key()}
     {:noreply, validate(params, :stamp_changeset, socket)}
-  end
-
-  def handle_event("delete_hub_secret", attrs, socket) do
-    %{hub: hub} = socket.assigns
-
-    on_confirm = fn socket ->
-      {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-      _ = Livebook.Hubs.delete_secret(hub, secret)
-
-      socket
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Delete hub secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this hub secret?",
-       confirm_text: "Delete",
-       confirm_icon: "delete-bin-6-line"
-     )}
   end
 
   defp save(params, changeset_name, socket) do

@@ -63,6 +63,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
           module={LivebookWeb.FileSelectComponent}
           id="add-file-entry-select"
           file={@file}
+          hub={@hub}
           extnames={:any}
           running_files={[]}
           target={{__MODULE__, @id}}

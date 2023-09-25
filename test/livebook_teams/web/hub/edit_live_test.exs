@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets])
+    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :file_systems])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -99,7 +99,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:secret_created, ^secret}
 
-      %{"success" => "Secret TEAM_ADD_SECRET created successfully"} =
+      %{"success" => "Secret TEAM_ADD_SECRET added successfully"} =
         assert_redirect(view, "/hub/#{hub.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
@@ -252,5 +252,135 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> element("span", "Default")
              |> has_element?()
     end
+
+    test "creates a file system", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      bypass = Bypass.open()
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
+      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      expect_s3_listing(bypass)
+
+      refute render(view) =~ file_system.bucket_url
+
+      view
+      |> element("#add-file-system")
+      |> render_click(%{})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/file-systems/new")
+      assert render(view) =~ "Add file storage"
+
+      view
+      |> element("#file-systems-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#file-systems-form")
+      |> render_submit(attrs)
+
+      assert_receive {:file_system_created, %{id: ^id} = file_system}
+
+      %{"success" => "File storage added successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
+      assert file_system in Livebook.Hubs.get_file_systems(hub)
+    end
+
+    test "updates existing file system", %{conn: conn, hub: hub} do
+      bypass = Bypass.open()
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
+
+      :ok = Hubs.create_file_system(hub, file_system)
+      assert_receive {:file_system_created, %{id: ^id} = file_system}
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      expect_s3_listing(bypass)
+
+      view
+      |> element("#hub-file-system-#{file_system.id}-edit")
+      |> render_click(%{"file_system" => file_system})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/file-systems/edit/#{file_system.id}")
+      assert render(view) =~ "Edit file storage"
+
+      view
+      |> element("#file-systems-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#file-systems-form")
+      |> render_submit(put_in(attrs.file_system.access_key_id, "new key"))
+
+      updated_file_system = %{file_system | access_key_id: "new key"}
+      assert_receive {:file_system_updated, ^updated_file_system}
+
+      %{"success" => "File storage updated successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
+      assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
+    end
+
+    test "detaches existing file system", %{conn: conn, hub: hub} do
+      bypass = Bypass.open()
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
+
+      :ok = Hubs.create_file_system(hub, file_system)
+      assert_receive {:file_system_created, %{id: ^id} = file_system}
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#hub-file-system-#{file_system.id}-detach", "Detach")
+      |> render_click()
+
+      render_confirm(view)
+
+      assert_receive {:file_system_deleted, ^file_system}
+
+      %{"success" => "File storage deleted successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
+      refute file_system in Livebook.Hubs.get_file_systems(hub)
+    end
+  end
+
+  defp expect_s3_listing(bypass) do
+    Bypass.expect_once(bypass, "GET", "/", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/xml")
+      |> Plug.Conn.resp(200, """
+      <ListBucketResult>
+        <Name>mybucket</Name>
+      </ListBucketResult>
+      """)
+    end)
   end
 end

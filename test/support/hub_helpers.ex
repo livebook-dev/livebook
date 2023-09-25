@@ -100,6 +100,25 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
 
+  def create_teams_file_system(hub, node) do
+    org_key = erpc_call(node, :get_org_key!, [hub.org_key_id])
+    erpc_call(node, :create_file_system, [[org_key: org_key]])
+  end
+
+  def build_bypass_file_system(bypass, hub_id \\ nil) do
+    bucket_url = "http://localhost:#{bypass.port}"
+
+    file_system =
+      build(:fs_s3,
+        id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
+        bucket_url: bucket_url,
+        region: "auto",
+        hub_id: hub_id
+      )
+
+    file_system
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}

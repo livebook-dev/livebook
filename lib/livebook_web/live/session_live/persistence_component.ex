@@ -77,6 +77,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             module={LivebookWeb.FileSelectComponent}
             id="persistence_file_select"
             file={@draft_file}
+            hub={@hub}
             extnames={[LiveMarkdown.extension()]}
             running_files={@running_files}
             submit_event={:confirm_file}

@@ -7,10 +7,11 @@ defmodule Livebook.FileSystem.S3 do
   @type t :: %__MODULE__{
           id: String.t(),
           bucket_url: String.t(),
-          external_id: String.t(),
+          external_id: String.t() | nil,
           region: String.t(),
           access_key_id: String.t(),
-          secret_access_key: String.t()
+          secret_access_key: String.t(),
+          hub_id: String.t()
         }
 
   embedded_schema do
@@ -19,6 +20,7 @@ defmodule Livebook.FileSystem.S3 do
     field :region, :string
     field :access_key_id, :string
     field :secret_access_key, :string
+    field :hub_id, :string
   end
 
   @doc """
@@ -32,22 +34,20 @@ defmodule Livebook.FileSystem.S3 do
 
     * `:external_id` - the external id from Teams.
 
-    * `:prefix` - the id prefix.
+    * `:hub_id` - the Hub id.
+
+    * `:id` - the file system id.
 
   """
   @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
   def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region, :external_id, :prefix])
+    opts = Keyword.validate!(opts, [:region, :external_id, :hub_id, :id])
 
     bucket_url = String.trim_trailing(bucket_url, "/")
     region = opts[:region] || region_from_uri(bucket_url)
 
-    hash = :crypto.hash(:sha256, bucket_url) |> Base.url_encode64(padding: false)
-
-    id =
-      if prefix = opts[:prefix],
-        do: "#{prefix}-s3-#{hash}",
-        else: "s3-#{hash}"
+    hub_id = Keyword.get(opts, :hub_id, Livebook.Hubs.Personal.id())
+    id = opts[:id] || id(hub_id, bucket_url)
 
     %__MODULE__{
       id: id,
@@ -55,14 +55,21 @@ defmodule Livebook.FileSystem.S3 do
       external_id: opts[:external_id],
       region: region,
       access_key_id: access_key_id,
-      secret_access_key: secret_access_key
+      secret_access_key: secret_access_key,
+      hub_id: hub_id
     }
   end
 
   defp region_from_uri(uri) do
     # For many services the API host is of the form *.[region].[rootdomain].com
     %{host: host} = URI.parse(uri)
-    host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
+    splitted_host = host |> String.split(".") |> Enum.reverse()
+
+    case Enum.at(splitted_host, 2, "auto") do
+      "s3" -> "us-east-1"
+      "r2" -> "auto"
+      region -> region
+    end
   end
 
   @doc """
@@ -110,10 +117,42 @@ defmodule Livebook.FileSystem.S3 do
       :external_id,
       :region,
       :access_key_id,
-      :secret_access_key
+      :secret_access_key,
+      :hub_id
     ])
+    |> put_region_from_uri()
     |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
     |> Livebook.Utils.validate_url(:bucket_url)
+    |> put_id()
+  end
+
+  defp put_region_from_uri(changeset) do
+    case get_field(changeset, :bucket_url) do
+      nil -> changeset
+      bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
+    end
+  end
+
+  defp put_id(changeset) do
+    hub_id = get_field(changeset, :hub_id)
+    bucket_url = get_field(changeset, :bucket_url)
+
+    if get_field(changeset, :id) do
+      changeset
+    else
+      put_change(changeset, :id, id(hub_id, bucket_url))
+    end
+  end
+
+  def id(_, nil), do: nil
+  def id(nil, bucket_url), do: hashed_id(bucket_url)
+  def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
+
+  defp hashed_id(bucket_url) do
+    hash = :crypto.hash(:sha256, bucket_url)
+    encrypted_hash = Base.url_encode64(hash, padding: false)
+
+    "s3-#{encrypted_hash}"
   end
 end
 
@@ -377,7 +416,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       region: fields["region"],
       access_key_id: fields["access_key_id"],
       secret_access_key: fields["secret_access_key"],
-      prefix: fields["prefix"]
+      id: fields["id"],
+      hub_id: fields["hub_id"]
     })
   end
 
@@ -385,14 +425,15 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
       region: fields[:region],
       external_id: fields[:external_id],
-      prefix: fields[:prefix]
+      id: fields[:id],
+      hub_id: fields[:hub_id]
     )
   end
 
   def dump(file_system) do
     file_system
     |> Map.from_struct()
-    |> Map.take([:bucket_url, :region, :access_key_id, :secret_access_key])
+    |> Map.take([:id, :bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
   end
 
   def external_metadata(file_system) do

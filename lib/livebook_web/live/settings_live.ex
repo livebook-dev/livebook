@@ -13,7 +13,6 @@ defmodule LivebookWeb.SettingsLive do
 
     {:ok,
      assign(socket,
-       file_systems: Livebook.Settings.file_systems(),
        env_vars: Livebook.Settings.fetch_env_vars() |> Enum.sort(),
        env_var: nil,
        autosave_path_state: %{
@@ -99,18 +98,6 @@ defmodule LivebookWeb.SettingsLive do
             </p>
             <.autosave_path_select state={@autosave_path_state} />
           </div>
-          <!-- File systems configuration -->
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-              File systems
-            </h2>
-            <p class="mt-4 text-gray-700">
-              File systems are used to store notebooks. The local disk file system
-              is visible only to the current machine, but alternative file systems
-              are available, such as S3-based storages.
-            </p>
-            <LivebookWeb.SettingsLive.FileSystemsComponent.render file_systems={@file_systems} />
-          </div>
           <!-- Environment variables configuration -->
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
@@ -191,20 +178,6 @@ defmodule LivebookWeb.SettingsLive do
     </LayoutHelpers.layout>
 
     <.modal
-      :if={@live_action == :add_file_system}
-      id="add-file-system-modal"
-      show
-      width={:medium}
-      patch={~p"/settings"}
-    >
-      <.live_component
-        module={LivebookWeb.SettingsLive.AddFileSystemComponent}
-        id="add-file-system"
-        return_to={~p"/settings"}
-      />
-    </.modal>
-
-    <.modal
       :if={@live_action in [:add_env_var, :edit_env_var]}
       id="env-var-modal"
       show
@@ -273,10 +246,6 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, env_var: env_var)}
   end
 
-  def handle_params(%{"file_system_id" => file_system_id}, _url, socket) do
-    {:noreply, assign(socket, file_system_id: file_system_id)}
-  end
-
   def handle_params(_params, _url, socket), do: {:noreply, assign(socket, env_var: nil)}
 
   @impl true
@@ -314,23 +283,6 @@ defmodule LivebookWeb.SettingsLive do
 
   def handle_event("open_autosave_path_select", %{}, socket) do
     {:noreply, update(socket, :autosave_path_state, &%{&1 | dialog_opened?: true})}
-  end
-
-  def handle_event("detach_file_system", %{"id" => file_system_id}, socket) do
-    on_confirm = fn socket ->
-      Livebook.Settings.remove_file_system(file_system_id)
-      file_systems = Livebook.Settings.file_systems()
-      assign(socket, file_systems: file_systems)
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Detach file system",
-       description:
-         "Are you sure you want to detach this file system? Any sessions using it will keep the access until they get closed.",
-       confirm_text: "Detach",
-       confirm_icon: "close-circle-line"
-     )}
   end
 
   def handle_event("save", %{"update_check_enabled" => enabled}, socket) do
@@ -371,10 +323,6 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   @impl true
-  def handle_info({:file_systems_updated, file_systems}, socket) do
-    {:noreply, assign(socket, file_systems: file_systems)}
-  end
-
   def handle_info({:set_file, file, _info}, socket) do
     {:noreply, update(socket, :autosave_path_state, &%{&1 | file: file})}
   end

@@ -295,18 +295,17 @@ defmodule Livebook.TeamsTest do
 
     test "returns transport errors when file system doesn't exists", %{user: user, node: node} do
       hub = create_team_hub(user, node)
-      file_system = build(:fs_s3, bucket_url: "https://i_cant_exist.s3.amazonaws.com")
+
+      file_system =
+        build(:fs_s3,
+          bucket_url: "https://i_cant_exist.s3.amazonaws.com",
+          external_id: "123456789"
+        )
 
       # Guarantee it doesn't exists and will return HTTP status 404
       assert Teams.delete_file_system(hub, file_system) ==
                {:transport_error,
                 "Something went wrong, try again later or please file a bug if it persists"}
     end
-  end
-
-  defp create_teams_file_system(hub, node) do
-    org_key = :erpc.call(node, Hub.Integration, :get_org_key!, [hub.org_key_id])
-
-    :erpc.call(node, Hub.Integration, :create_file_system, [[org_key: org_key]])
   end
 end

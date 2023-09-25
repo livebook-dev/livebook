@@ -278,4 +278,59 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert output == "\e[32m\"#{secret.value}\"\e[0m"
     end
   end
+
+  describe "files" do
+    test "shows only hub's file systems",
+         %{conn: conn, user: user, node: node, session: session} do
+      Session.subscribe(session.id)
+      Livebook.Hubs.subscribe([:file_systems])
+
+      personal_id = Livebook.Hubs.Personal.id()
+      personal_file_system = build(:fs_s3)
+      Livebook.Hubs.Personal.save_file_system(personal_file_system)
+
+      team = create_team_hub(user, node)
+      team_id = team.id
+
+      bucket_url = "https://my-own-bucket.s3.amazonaws.com"
+
+      file_system =
+        build(:fs_s3,
+          id: Livebook.FileSystem.S3.id(team_id, bucket_url),
+          bucket_url: bucket_url,
+          hub_id: team_id
+        )
+
+      Livebook.Hubs.create_file_system(team, file_system)
+      assert_receive {:file_system_created, team_file_system}
+
+      # loads the session page
+      {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
+
+      # change the hub to Personal
+      # and checks the file systems from Personal
+      Session.set_notebook_hub(session.pid, personal_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^personal_id}}
+
+      # targets the file system dropdown menu
+      file_system_menu = with_target(view, "#add-file-entry-select #file-system-menu-content")
+
+      # checks the file systems from Personal
+      assert has_element?(file_system_menu, "#file-system-local")
+      assert has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
+      refute has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
+
+      # change the hub to Team
+      # and checks the file systems from Team
+      Session.set_notebook_hub(session.pid, team.id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+
+      # targets the file system dropdown menu
+      file_system_menu = with_target(view, "#file-system-menu")
+
+      assert has_element?(file_system_menu, "#file-system-local")
+      refute has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
+      assert has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
+    end
+  end
 end
