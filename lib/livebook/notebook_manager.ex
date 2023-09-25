@@ -121,14 +121,12 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def init(_opts) do
-    {:ok, nil, {:continue, :load_state}}
+    Livebook.Hubs.subscribe([:connection, :file_systems])
+
+    {:ok, %{recent_notebooks: [], starred_notebooks: []}}
   end
 
   @impl true
-  def handle_continue(:load_state, nil) do
-    {:noreply, load_state()}
-  end
-
   def handle_continue(:dump_state, state) do
     dump_state(state)
     {:noreply, state}
@@ -205,6 +203,16 @@ defmodule Livebook.NotebookManager do
     state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}
+  end
+
+  @impl true
+  def handle_info({event, _file_system}, _state)
+      when event in [:file_system_created, :file_system_updated, :file_system_deleted] do
+    {:noreply, load_state()}
+  end
+
+  def handle_info({:hub_connected, _id}, _state) do
+    {:noreply, load_state()}
   end
 
   defp remove_notebooks_on_file_system(notebook_infos, file_system_id) do
