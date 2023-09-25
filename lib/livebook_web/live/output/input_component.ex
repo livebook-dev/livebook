@@ -223,7 +223,7 @@ defmodule LivebookWeb.Output.InputComponent do
       class="input w-auto invalid:input--error"
       name="html_value"
       value={@value}
-      phx-debounce={@attrs[:debounce] || "blur"}
+      phx-debounce="blur"
       phx-target={@myself}
       min={@attrs.min}
       max={@attrs.max}
