@@ -200,6 +200,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 empty={@cell_view.editor.empty}
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
+                intellisense={@cell_view.editor.language == "elixir"}
               />
             </div>
           <% :dead -> %>
