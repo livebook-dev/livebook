@@ -1,4 +1,5 @@
 defmodule LivebookWeb.SessionLive do
+  alias LivebookWeb.SessionLive.InlineAIComponent
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
@@ -402,6 +403,7 @@ defmodule LivebookWeb.SessionLive do
               installing?={@data_view.installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={@data_view.setup_cell_view}
+              show_inline_ai={false}
             />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
@@ -1059,6 +1061,16 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
+  def handle_event(
+        "toggle_inline_ai_component",
+        %{"visible" => visible, "cell_id" => cell_id},
+        socket
+      ) do
+    send_update(LivebookWeb.SessionLive.CellComponent, id: cell_id, show_inline_ai: visible)
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("append_section", %{}, socket) do
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)
@@ -1443,6 +1455,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  # def handle_event(
+  #       "inline_ai_request",
+  #       %{"cell_id" => cell_id, "prompt" => prompt, "selection" => selection} = params,
+  #       socket
+  #     ) do
+  # end
+
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
     request =
       case params do
@@ -1689,6 +1708,12 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("open_custom_view_settings", %{}, socket) do
     {:noreply,
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
+  end
+
+  # These messages are sent by InlineAiComponent and need to be forwarded to the inline_ai_component.js hook
+  @impl true
+  def handle_info({:inline_ai_response_chunk, id, _text, chunk}, socket) do
+    {:noreply, push_event(socket, "inline_ai_token_received:#{id}", %{chunk: chunk})}
   end
 
   @impl true

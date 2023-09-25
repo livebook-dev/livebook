@@ -324,6 +324,21 @@ class LiveEditor {
     });
 
     this.editor.addAction({
+      contextMenuGroupId: "1_modification",
+      id: "chat-with-ai",
+      label: "Code with AI",
+      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
+      run: (editor) => {
+        // TODO should this be pushEventTo to the cell component?
+        this.hook.pushEvent(
+          "toggle_inline_ai_component",
+          { visible: true, cell_id: this.cellId },
+          () => {}
+        );
+      },
+    });
+
+    this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
       id: "disable-word-wrapping",
       label: "Disable word wrapping",
@@ -679,9 +694,9 @@ function parseItem(item, settings) {
       monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
     command: settings.editor_auto_signature
       ? {
-          title: "Trigger Parameter Hint",
-          id: "editor.action.triggerParameterHints",
-        }
+        title: "Trigger Parameter Hint",
+        id: "editor.action.triggerParameterHints",
+      }
       : null,
   };
 }

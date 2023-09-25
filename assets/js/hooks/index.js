@@ -10,6 +10,7 @@ import Headline from "./headline";
 import Highlight from "./highlight";
 import ImageInput from "./image_input";
 import ImageOutput from "./image_output";
+import InlineAIComponent from "./inline_ai_component";
 import JSView from "./js_view";
 import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
@@ -36,6 +37,7 @@ export default {
   Highlight,
   ImageInput,
   ImageOutput,
+  InlineAIComponent,
   JSView,
   KeyboardControl,
   MarkdownRenderer,

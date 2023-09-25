@@ -1,0 +1,469 @@
+# Anthropic API client
+
+```elixir
+Mix.install([
+  {:finch, "~> 0.16.0"},
+  {:jason, "~> 1.4"},
+  {:kino, "~> 0.10.0"}
+])
+
+alias AnthropicEx
+alias AnthropicEx.ChatCompletion
+alias AnthropicEx.ChatMessage
+```
+
+## Section
+
+```elixir
+defmodule AnthropicEx do
+  @enforce_keys [:api_key]
+  defstruct api_key: nil
+
+  def new(api_key) do
+    %AnthropicEx{
+      api_key: api_key
+    }
+  end
+end
+```
+
+```elixir
+defmodule AnthropicEx.ChatMessage do
+  @moduledoc """
+  Used to produce an Anthropic prompt later
+
+  ## API Fields
+
+  The following fields can be used as parameters when creating a new chat message:
+
+  - `:content`
+  - `:role`
+  """
+
+  defp new(role, content) do
+    %{
+      role: role,
+      content: content
+    }
+  end
+
+  @doc """
+  Create a `ChatMessage` map with role `human`.
+
+  Example usage:
+
+      iex> _message = AnthropicEx.ChatMessage.human("Hello, world!")
+      %{content: "Hello, world!", role: "Human"}
+  """
+  def human(content), do: new("Human", content)
+
+  @doc """
+  Create a `ChatMessage` map with role `assistant`.
+
+  Example usage:
+
+      iex> _message = AnthropicEx.ChatMessage.assistant("Hello, world!")
+      %{content: "Hello, world!", role: "Assistant"}
+  """
+  def assistant(content), do: new("Assistant", content)
+end
+```
+
+```elixir
+defmodule AnthropicEx.Http do
+  @moduledoc false
+
+  @base_url "https://api.anthropic.com/v1"
+
+  @doc false
+  def headers(anthropic = %AnthropicEx{}) do
+    [{"x-api-key", anthropic.api_key}]
+  end
+
+  @doc false
+  def post(anthropic = %AnthropicEx{}, url, multipart: multipart) do
+    :post
+    |> Finch.build(
+      @base_url <> url,
+      headers(anthropic) ++
+        [
+          {"Content-Type", Multipart.content_type(multipart, "multipart/form-data")},
+          {"Content-Length", to_string(Multipart.content_length(multipart))}
+        ],
+      {:stream, Multipart.body_stream(multipart)}
+    )
+    |> finch_run()
+  end
+
+  @doc false
+  def post(anthropic = %AnthropicEx{}, url, json: json) do
+    build_post(anthropic, url, json: json)
+    |> finch_run()
+  end
+
+  @doc false
+  def build_post(anthropic = %AnthropicEx{}, url, json: json) do
+    IO.inspect(json)
+
+    :post
+    |> Finch.build(
+      @base_url <> url,
+      headers(anthropic) ++ [{"Content-Type", "application/json"}],
+      Jason.encode_to_iodata!(json)
+    )
+  end
+
+  @doc false
+  def get(anthropic = %AnthropicEx{}, url) do
+    :get
+    |> Finch.build(@base_url <> url, headers(anthropic))
+    |> finch_run()
+  end
+
+  @doc false
+  def delete(anthropic = %AnthropicEx{}, url) do
+    :delete
+    |> Finch.build(@base_url <> url, headers(anthropic))
+    |> finch_run()
+  end
+
+  @doc false
+  def finch_run(finch_request) do
+    finch_request
+    |> Finch.request!(AnthropicEx.Finch, receive_timeout: 45_000)
+    |> Map.get(:body)
+    |> Jason.decode!()
+  end
+
+  @doc false
+  def to_multi_part_form_data(req, file_fields) do
+    mp =
+      req
+      |> Map.drop(file_fields)
+      |> Enum.reduce(Multipart.new(), fn {k, v}, acc ->
+        acc |> Multipart.add_part(Multipart.Part.text_field(v, k))
+      end)
+
+    req
+    |> Map.take(file_fields)
+    |> Enum.reduce(mp, fn {k, v}, acc ->
+      acc |> Multipart.add_part(to_file_field_part(k, v))
+    end)
+  end
+
+  @doc false
+  defp to_file_field_part(k, v) do
+    case v do
+      {path} ->
+        Multipart.Part.file_field(path, k)
+
+      {filename, content} ->
+        Multipart.Part.file_content_field(filename, content, k, filename: filename)
+
+      content ->
+        Multipart.Part.file_content_field("", content, k, filename: "")
+    end
+  end
+end
+```
+
+```elixir
+defmodule AnthropicEx.HttpSse do
+  @moduledoc false
+  require Logger
+
+  # based on
+  # https://gist.github.com/zachallaun/88aed2a0cef0aed6d68dcc7c12531649
+
+  @doc false
+  def post(openai = %AnthropicEx{}, url, json: json) do
+    request = AnthropicEx.Http.build_post(openai, url, json: json)
+
+    me = self()
+    ref = make_ref()
+
+    task =
+      Task.async(fn ->
+        on_chunk = fn chunk, _acc -> send(me, {:chunk, chunk, ref}) end
+        request |> Finch.stream(AnthropicEx.Finch, nil, on_chunk)
+        send(me, {:done, ref})
+      end)
+
+    _status = receive(do: ({:chunk, {:status, status}, ^ref} -> status))
+    _headers = receive(do: ({:chunk, {:headers, headers}, ^ref} -> headers))
+
+    Stream.resource(fn -> {"", ref, task} end, &next_sse/1, fn {_data, _ref, task} ->
+      Task.shutdown(task)
+    end)
+  end
+
+  @doc false
+  defp next_sse({acc, ref, task}) do
+    receive do
+      {:chunk, {:data, evt_data}, ^ref} ->
+        {tokens, next_acc} = tokenize_data(evt_data, acc)
+        {[tokens], {next_acc, ref, task}}
+
+      {:done, ^ref} ->
+        if acc != "" do
+          Logger.warning(inspect(Jason.decode!(acc)))
+        end
+
+        {:halt, {acc, ref, task}}
+    end
+  end
+
+  @doc false
+  defp tokenize_data(evt_data, acc) do
+    if String.contains?(evt_data, "\n\n") do
+      {remaining, token_chunks} = (acc <> evt_data) |> String.split("\n\n") |> List.pop_at(-1)
+
+      tokens =
+        token_chunks
+        |> Enum.map(fn chunk -> extract_token(chunk) end)
+        |> Enum.filter(fn %{data: data} -> data != "[DONE]" end)
+        |> Enum.map(fn %{data: data} -> %{data: Jason.decode!(data)} end)
+
+      {tokens, remaining}
+    else
+      {[], acc <> evt_data}
+    end
+  end
+
+  @doc false
+  defp extract_token(line) do
+    [field | rest] = String.split(line, ": ", parts: 2)
+
+    case field do
+      "data" -> %{data: Enum.join(rest, "") |> String.replace_prefix(" ", "")}
+    end
+  end
+end
+```
+
+```elixir
+defmodule AnthropicEx.ChatCompletion do
+  @moduledoc """
+  This module provides an implementation of the OpenAI chat completions API. The API reference can be found at https://platform.openai.com/docs/api-reference/chat/completions.
+
+  ## API Fields
+
+  The following fields can be used as parameters when creating a new chat completion:
+
+    `:model`
+    `:messages`
+    `:max_tokens_to_sample`
+    `:temperature`
+    `:top_p`
+    `:top_k`
+    `:metadata`
+    `:stream`
+
+
+  """
+  @api_fields [
+    :model,
+    :messages,
+    :max_tokens_to_sample,
+    :temperature,
+    :top_p,
+    :top_k,
+    :metadata,
+    :stream
+  ]
+
+  @doc """
+  Creates a new chat completion request with the given arguments.
+
+  ## Arguments
+
+  - `args`: A list of key-value pairs, or a map, representing the fields of the chat completion request.
+
+  ## Returns
+
+  A map containing the fields of the chat completion request.
+
+  The `:model` and `:prompt` fields are required. The `:messages` field should be a list of maps with the `OpenaiEx.ChatMessage` structure.
+
+  Example usage:
+
+      iex> _request = AnthropicEx.ChatCompletion.new(model: "davinci", messages: [AnthropicEx.ChatMessage.human("Hello, world!")])
+      %{messages: [%{content: "Hello, world!", role: "Human"}], model: "davinci"}
+
+      iex> _request = AnthropicEx.ChatCompletion.new(%{model: "davinci", messages: [AnthropicEx.ChatMessage.human("Hello, world!")]})
+      %{messages: [%{content: "Hello, world!", role: "Human"}], model: "davinci"}
+  """
+
+  def new(args = [_ | _]) do
+    args |> Enum.into(%{}) |> new()
+  end
+
+  def new(args = %{model: model, messages: messages}) do
+    %{
+      model: model,
+      messages: messages
+    }
+    |> Map.merge(args)
+    |> Map.take(@api_fields)
+  end
+
+  @completion_url "/complete"
+
+  @doc """
+  Calls the chat completion 'create' endpoint.
+
+  ## Arguments
+
+  - `anthropic`: The OpenAI configuration.
+  - `chat_completion`: The chat completion request, as a map with keys corresponding to the API fields.
+
+  ## Returns
+
+  A map containing the API response.
+
+  See https://platform.openai.com/docs/api-reference/chat/completions/create for more information.
+  """
+  def create(anthropic = %AnthropicEx{}, chat_completion = %{}, stream: true) do
+    anthropic
+    |> AnthropicEx.HttpSse.post(@completion_url,
+      json:
+        chat_completion
+        |> Map.put(:prompt, generate_prompt(chat_completion.messages))
+        |> Map.take(@api_fields)
+        |> Map.put(:stream, true)
+    )
+  end
+
+  def generate_prompt(messages) do
+    prompt = messages |> Enum.map(&"\n\n#{&1.role}: #{&1.content}") |> Enum.join("")
+    prompt <> "\n\nAssistant: "
+  end
+
+  def create(anthropic = %AnthropicEx{}, chat_completion = %{}) do
+    anthropic
+    |> AnthropicEx.Http.post(@completion_url,
+      json:
+        chat_completion
+        |> Map.put(:prompt, generate_prompt(chat_completion.messages))
+        |> Map.take(@api_fields)
+    )
+  end
+end
+```
+
+```elixir
+anthropic =
+  "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"
+  |> AnthropicEx.new()
+```
+
+```elixir
+anthropic
+|> ChatCompletion.create(%{
+  model: "claude-2",
+  messages: [ChatMessage.human("Hi there, please respond")]
+})
+```
+
+```elixir
+defmodule AnthropicEx.Notebooks.StreamingOrderbot do
+  alias AnthropicEx
+  alias AnthropicEx.ChatCompletion
+  alias AnthropicEx.ChatMessage
+
+  def create_chat_req(args = [_ | _]) do
+    args
+    |> Enum.into(%{
+      model: "claude2",
+      temperature: 0
+    })
+    |> ChatCompletion.new()
+  end
+
+  def get_completion_stream(anthropic = %AnthropicEx{}, cc_req = %{}) do
+    anthropic
+    |> ChatCompletion.create(cc_req, stream: true)
+    |> Stream.flat_map(& &1)
+    |> Stream.map(fn %{data: d} -> d |> Map.get("choices") |> Enum.at(0) |> Map.get("delta") end)
+    |> Stream.filter(fn map -> map |> Map.has_key?("content") end)
+    |> Stream.map(fn map -> map |> Map.get("content") end)
+  end
+
+  def stream_completion_to_frame(anthropic = %AnthropicEx{}, messages, frame) do
+    anthropic
+    |> get_completion_stream(create_chat_req(messages: messages))
+    |> Enum.reduce("", fn token, text ->
+      next = text <> token
+      Kino.Frame.render(frame, Kino.Text.new(next))
+      next
+    end)
+  end
+
+  def create_orderbot(anthropic = %AnthropicEx{}, context) do
+    chat_frame = Kino.Frame.new()
+    last_frame = Kino.Frame.new()
+    inputs = [prompt: Kino.Input.textarea("You")]
+    form = Kino.Control.form(inputs, submit: "Send", reset_on_submit: [:prompt])
+    Kino.Frame.render(chat_frame, Kino.Markdown.new("### Orderbot Chat"))
+    Kino.Layout.grid([chat_frame, last_frame, form], boxed: true, gap: 16) |> Kino.render()
+
+    bot_says = anthropic |> stream_completion_to_frame(context, last_frame)
+
+    Kino.listen(
+      form,
+      context ++ [ChatMessage.assistant(bot_says)],
+      fn %{data: %{prompt: you_say}}, history ->
+        Kino.Frame.render(last_frame, Kino.Text.new(""))
+        Kino.Frame.append(chat_frame, Kino.Text.new(List.last(history).content))
+        Kino.Frame.append(chat_frame, Kino.Markdown.new("**You** #{you_say}"))
+
+        bot_says =
+          anthropic
+          |> stream_completion_to_frame(history ++ [ChatMessage.human(you_say)], last_frame)
+
+        {:cont, history ++ [ChatMessage.human(you_say), ChatMessage.assistant(bot_says)]}
+      end
+    )
+  end
+end
+
+alias AnthropicEx.Notebooks.StreamingOrderbot
+```
+
+```elixir
+context = [
+  ChatMessage.human("""
+  You are OrderBot, an automated service to collect orders for a pizza restaurant. \
+  You first greet the customer, then collects the order, \
+  and then asks if it's a pickup or delivery. \
+  You wait to collect the entire order, then summarize it and check for a final \
+  time if the customer wants to add anything else. \
+  If it's a delivery, you ask for an address. \
+  Finally you collect the payment.\
+  Make sure to clarify all options, extras and sizes to uniquely \
+  identify the item from the menu.\
+  You respond in a short, very conversational friendly style. \
+  The menu includes \
+  pepperoni pizza  12.95, 10.00, 7.00 \
+  cheese pizza   10.95, 9.25, 6.50 \
+  eggplant pizza   11.95, 9.75, 6.75 \
+  fries 4.50, 3.50 \
+  greek salad 7.25 \
+  Toppings: \
+  extra cheese 2.00, \
+  mushrooms 1.50 \
+  sausage 3.00 \
+  canadian bacon 3.50 \
+  AI sauce 1.50 \
+  peppers 1.00 \
+  Drinks: \
+  coke 3.00, 2.00, 1.00 \
+  sprite 3.00, 2.00, 1.00 \
+  bottled water 5.00 \
+  """)
+]
+```
+
+```elixir
+anthropic |> StreamingOrderbot.create_orderbot(context)
+```

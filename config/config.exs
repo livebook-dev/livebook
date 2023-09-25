@@ -38,6 +38,14 @@ config :livebook,
   within_iframe: false,
   allowed_uri_schemes: []
 
+config :livebook,
+       :anthropic_api_key,
+       System.get_env("ANTHROPIC_API_KEY")
+
+config :livebook,
+       :openai_api_key,
+       System.get_env("OPENAI_API_KEY")
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

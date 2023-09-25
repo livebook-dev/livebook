@@ -78,6 +78,12 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq_mac: ["⌥", "→"],
         press_all: true,
         desc: "Cursor skip word right"
+      },
+      %{
+        seq: ["ctrl", "k"],
+        seq_mac: ["⌘", "k"],
+        press_all: true,
+        desc: "Write code with AI"
       }
     ],
     navigation_mode: [
