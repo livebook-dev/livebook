@@ -215,6 +215,10 @@ defmodule Livebook.NotebookManager do
     {:noreply, load_state()}
   end
 
+  def handle_info(_message, state) do
+    {:noreply, state}
+  end
+
   defp remove_notebooks_on_file_system(notebook_infos, file_system_id) do
     Enum.reject(notebook_infos, &(&1.file.file_system.id == file_system_id))
   end
