@@ -1,6 +1,8 @@
 defmodule Livebook.FileSystem.FileTest do
   use ExUnit.Case, async: true
 
+  import Livebook.Factory
+  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.FileSystem
@@ -271,7 +273,7 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports regular files from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -295,7 +297,7 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports directories from different file systems via stream read and write",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -329,7 +331,7 @@ defmodule Livebook.FileSystem.FileTest do
     @tag :tmp_dir
     test "returns an error when files from different file systems are given and the destination file exists",
          %{tmp_dir: tmp_dir} do
-      s3_fs = FileSystem.S3.new("https://example.com/mybucket", "key", "secret")
+      s3_fs = build(:fs_s3, bucket_url: "https://example.com/mybucket")
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -349,7 +351,7 @@ defmodule Livebook.FileSystem.FileTest do
     test "supports regular files from different file systems via explicit read, write, delete",
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
-      s3_fs = FileSystem.S3.new("http://localhost:#{bypass.port}/mybucket", "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
