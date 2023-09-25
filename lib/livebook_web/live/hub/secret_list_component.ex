@@ -93,8 +93,9 @@ defmodule LivebookWeb.Hub.SecretListComponent do
 
       case Hubs.delete_secret(hub, secret) do
         :ok ->
-          send(self(), {:redirect, hub.id, "Secret #{secret.name} deleted successfully"})
           socket
+          |> put_flash(:success, "Secret #{secret.name} deleted successfully")
+          |> push_navigate(to: ~p"/hub/#{hub.id}")
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)

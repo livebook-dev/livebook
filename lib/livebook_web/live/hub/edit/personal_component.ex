@@ -110,7 +110,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             </h2>
 
             <p class="text-gray-700">
-              File storages are used to store notebooks.
+              File storages are used to store notebooks and their files.
             </p>
 
             <.live_component

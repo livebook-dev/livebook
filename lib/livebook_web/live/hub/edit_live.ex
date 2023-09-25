@@ -86,10 +86,6 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info({:redirect, id, flash}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply, socket |> push_navigate(to: ~p"/hub/#{id}") |> put_flash(:success, flash)}
-  end
-
   def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
     {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
   end

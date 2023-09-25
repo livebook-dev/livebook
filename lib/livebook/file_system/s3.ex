@@ -21,7 +21,7 @@ defmodule Livebook.FileSystem.S3 do
     field :region, :string
     field :access_key_id, :string
     field :secret_access_key, :string
-    field :hub_id, :string, virtual: true
+    field :hub_id, :string
   end
 
   @doc """
@@ -145,7 +145,7 @@ defmodule Livebook.FileSystem.S3 do
     end
   end
 
-  def id(nil, nil), do: nil
+  def id(_, nil), do: nil
   def id(nil, bucket_url), do: hashed_id(bucket_url)
   def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
 
