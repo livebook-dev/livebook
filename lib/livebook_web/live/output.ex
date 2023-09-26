@@ -37,7 +37,7 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp border?(%{type: type}) when type in [:terminal_text, :plain_text], do: true
+  defp border?(%{type: :terminal_text}), do: true
   defp border?(%{type: :error, context: {:interrupt, _, _}}), do: false
   defp border?(%{type: :error}), do: true
   defp border?(%{type: :grid, boxed: boxed}), do: boxed
