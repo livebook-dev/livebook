@@ -298,28 +298,33 @@ defprotocol Livebook.Runtime do
           %{
             type: :text,
             default: String.t(),
-            label: String.t()
+            label: String.t(),
+            debounce: :blur | non_neg_integer()
           }
           | %{
               type: :textarea,
               default: String.t(),
               label: String.t(),
+              debounce: :blur | non_neg_integer(),
               monospace: boolean()
             }
           | %{
               type: :password,
               default: String.t(),
-              label: String.t()
+              label: String.t(),
+              debounce: :blur | non_neg_integer()
             }
           | %{
               type: :number,
               default: number() | nil,
-              label: String.t()
+              label: String.t(),
+              debounce: :blur | non_neg_integer()
             }
           | %{
               type: :url,
               default: String.t() | nil,
-              label: String.t()
+              label: String.t(),
+              debounce: :blur | non_neg_integer()
             }
           | %{
               type: :select,
@@ -336,6 +341,7 @@ defprotocol Livebook.Runtime do
               type: :range,
               default: number(),
               label: String.t(),
+              debounce: :blur | non_neg_integer(),
               min: number(),
               max: number(),
               step: number()
@@ -364,7 +370,8 @@ defprotocol Livebook.Runtime do
           | %{
               type: :color,
               default: String.t(),
-              label: String.t()
+              label: String.t(),
+              debounce: :blur | non_neg_integer()
             }
           | %{
               type: :image,
