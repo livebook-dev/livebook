@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <base target="_parent">
+    <base target="_parent" />
     <title>Output</title>
     <style>
       html,
@@ -101,6 +101,14 @@
           selectSecret(callback, preselectName, options = {}) {
             state.secretHandler = callback;
             postMessage({ type: "selectSecret", preselectName, options });
+          },
+
+          setSmartCellEditorIntellisenseNode(node, cookie) {
+            postMessage({
+              type: "setSmartCellEditorIntellisenseNode",
+              node,
+              cookie,
+            });
           },
         };
 

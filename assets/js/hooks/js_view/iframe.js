@@ -26,7 +26,7 @@ import { sha256Base64 } from "../../lib/utils";
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 // (3): https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
 
-const IFRAME_SHA256 = "48LZtKkFYMd+4gsmVvbhvw9mTpJPw+ItRdGxPPs+5xw=";
+const IFRAME_SHA256 = "wcqj5QWCo66osdAWDnEgPRFyL7nfe8oNqNggnw4vvW8=";
 
 export function initializeIframeSource(iframe, iframePort, iframeUrl) {
   const url = getIframeUrl(iframePort, iframeUrl);
