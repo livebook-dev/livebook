@@ -169,7 +169,7 @@ defmodule LivebookWeb.Output.InputComponent do
         class="input-range"
         name="html_value"
         value={@value}
-        phx-debounce={@attrs[:debounce] || "blur"}
+        phx-debounce={@attrs.debounce}
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
@@ -190,7 +190,7 @@ defmodule LivebookWeb.Output.InputComponent do
       class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs.monospace && "font-mono"]}
       name="html_value"
       phx-hook="TextareaAutosize"
-      phx-debounce={@attrs[:debounce] || "blur"}
+      phx-debounce={@attrs.debounce}
       phx-target={@myself}
       spellcheck="false"
     ><%= [?\n, @value] %></textarea>
@@ -206,7 +206,7 @@ defmodule LivebookWeb.Output.InputComponent do
         class="input w-auto bg-gray-50"
         name="html_value"
         value={@value}
-        phx-debounce={@attrs[:debounce] || "blur"}
+        phx-debounce={@attrs.debounce}
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
@@ -241,7 +241,7 @@ defmodule LivebookWeb.Output.InputComponent do
       class="input w-auto invalid:input--error"
       name="html_value"
       value={to_string(@value)}
-      phx-debounce={@attrs[:debounce] || "blur"}
+      phx-debounce={@attrs.debounce}
       phx-target={@myself}
       spellcheck="false"
       autocomplete="off"

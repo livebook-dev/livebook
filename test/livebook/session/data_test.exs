@@ -18,7 +18,7 @@ defmodule Livebook.Session.DataTest do
     ref: "ref1",
     id: "i1",
     destination: nil,
-    attrs: %{type: :text, default: "hey", label: "Text"}
+    attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
   }
 
   defp eval_meta(opts \\ []) do
@@ -4510,7 +4510,7 @@ defmodule Livebook.Session.DataTest do
         ref: "ref1",
         id: "i1",
         destination: nil,
-        attrs: %{type: :text, default: "hey", label: "Text"}
+        attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
       }
 
       input2 = %{
@@ -4518,7 +4518,7 @@ defmodule Livebook.Session.DataTest do
         ref: "ref2",
         id: "i2",
         destination: nil,
-        attrs: %{type: :text, default: "hey", label: "Text"}
+        attrs: %{type: :text, default: "hey", label: "Text", debounce: :blur}
       }
 
       data =

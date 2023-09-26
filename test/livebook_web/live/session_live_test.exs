@@ -518,7 +518,13 @@ defmodule LivebookWeb.SessionLiveTest do
         ref: "ref1",
         id: "input1",
         destination: test,
-        attrs: %{type: :textarea, default: "hey", label: "Name", monospace: false}
+        attrs: %{
+          type: :textarea,
+          default: "hey",
+          label: "Name",
+          debounce: :blur,
+          monospace: false
+        }
       }
 
       Session.subscribe(session.id)
@@ -552,7 +558,7 @@ defmodule LivebookWeb.SessionLiveTest do
               ref: "input_ref1",
               id: "input1",
               destination: test,
-              attrs: %{type: :text, default: "initial", label: "Name"}
+              attrs: %{type: :text, default: "initial", label: "Name", debounce: :blur}
             }
           ],
           submit: "Send",
@@ -781,7 +787,7 @@ defmodule LivebookWeb.SessionLiveTest do
         ref: "ref1",
         id: "input1",
         destination: test,
-        attrs: %{type: :number, default: 1, label: "Input inside frame"}
+        attrs: %{type: :number, default: 1, label: "Input inside frame", debounce: :blur}
       }
 
       frame_update = %{

@@ -2886,39 +2886,70 @@ defmodule Livebook.Session do
     end
   end
 
-  # Maps legacy outputs and adds missing attributes
+  # Normalizes output to match the most recent specification.
+  #
+  # Rewrites legacy output formats and adds defaults for newly introduced
+  # attributes that are missing.
+  defp normalize_runtime_output(output)
+
+  defp normalize_runtime_output(%{type: :input, attrs: attrs} = output)
+       when attrs.type in [:text, :textarea, :password, :number, :url, :range, :color] and
+              not is_map_key(attrs, :debounce) do
+    put_in(output.attrs[:debounce], :blur)
+    |> normalize_runtime_output()
+  end
+
+  # Traverse composite outputs
+
+  defp normalize_runtime_output(output) when output.type in [:frame, :tabs, :grid] do
+    outputs = Enum.map(output.outputs, &normalize_runtime_output/1)
+    %{output | outputs: outputs}
+  end
+
+  defp normalize_runtime_output(%{type: :frame_update} = output) do
+    {update_type, new_outputs} = output.update
+    new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
+    %{output | update: {update_type, new_outputs}}
+  end
+
   defp normalize_runtime_output(output) when is_map(output), do: output
+
+  # Rewrite tuples to maps for backward compatibility with Kino <= 0.10.0
 
   defp normalize_runtime_output(:ignored) do
     %{type: :ignored}
+    |> normalize_runtime_output()
   end
 
-  # Rewrite tuples to maps for backward compatibility with Kino <= 0.10.0
   defp normalize_runtime_output({:text, text}) do
     %{type: :terminal_text, text: text, chunk: false}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:plain_text, text}) do
     %{type: :plain_text, text: text, chunk: false}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:markdown, text}) do
     %{type: :markdown, text: text, chunk: false}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:image, content, mime_type}) do
     %{type: :image, content: content, mime_type: mime_type}
+    |> normalize_runtime_output()
   end
 
   # Rewrite older output format for backward compatibility with Kino <= 0.5.2
   defp normalize_runtime_output({:js, %{ref: ref, pid: pid, assets: assets, export: export}}) do
-    normalize_runtime_output(
-      {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
-    )
+    {:js, %{js_view: %{ref: ref, pid: pid, assets: assets}, export: export}}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:js, info}) do
     %{type: :js, js_view: info.js_view, export: info.export}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :default} = info}) do
@@ -2928,6 +2959,7 @@ defmodule Livebook.Session do
       outputs: Enum.map(outputs, &normalize_runtime_output/1),
       placeholder: Map.get(info, :placeholder, true)
     }
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :replace}}) do
@@ -2936,6 +2968,7 @@ defmodule Livebook.Session do
       ref: ref,
       update: {:replace, Enum.map(outputs, &normalize_runtime_output/1)}
     }
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:frame, outputs, %{ref: ref, type: :append}}) do
@@ -2944,10 +2977,12 @@ defmodule Livebook.Session do
       ref: ref,
       update: {:append, Enum.map(outputs, &normalize_runtime_output/1)}
     }
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:tabs, outputs, %{labels: labels}}) do
     %{type: :tabs, outputs: Enum.map(outputs, &normalize_runtime_output/1), labels: labels}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:grid, outputs, info}) do
@@ -2958,6 +2993,7 @@ defmodule Livebook.Session do
       gap: Map.get(info, :gap, 8),
       boxed: Map.get(info, :boxed, false)
     }
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:input, attrs}) do
@@ -2970,6 +3006,7 @@ defmodule Livebook.Session do
       end
 
     Map.merge(fields, %{type: :input, attrs: attrs})
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:control, attrs}) do
@@ -2992,6 +3029,7 @@ defmodule Livebook.Session do
       end
 
     Map.merge(fields, %{type: :control, attrs: attrs})
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output({:error, message, type}) do
@@ -3002,9 +3040,11 @@ defmodule Livebook.Session do
       end
 
     %{type: :error, message: message, context: context}
+    |> normalize_runtime_output()
   end
 
   defp normalize_runtime_output(other) do
     %{type: :unknown, output: other}
+    |> normalize_runtime_output()
   end
 end

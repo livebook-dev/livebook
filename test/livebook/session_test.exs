@@ -219,7 +219,7 @@ defmodule Livebook.SessionTest do
         ref: "ref",
         id: "input1",
         destination: :noop,
-        attrs: %{type: :text, default: "hey", label: "Name"}
+        attrs: %{type: :text, default: "hey", label: "Name", debounce: :blur}
       }
 
       smart_cell = %{
@@ -1899,7 +1899,7 @@ defmodule Livebook.SessionTest do
         ref: "ref",
         id: "input1",
         destination: :noop,
-        attrs: %{type: :text, default: "hey", label: "Name"}
+        attrs: %{type: :text, default: "hey", label: "Name", debounce: :blur}
       }
 
     send(session.pid, {:runtime_evaluation_output, cell_id, legacy_output})
