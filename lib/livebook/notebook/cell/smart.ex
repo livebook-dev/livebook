@@ -10,7 +10,17 @@ defmodule Livebook.Notebook.Cell.Smart do
   # The available smart cells come from the runtime, therefore they
   # are one Livebook's extension points.
 
-  defstruct [:id, :source, :chunks, :outputs, :kind, :attrs, :js_view, :editor]
+  defstruct [
+    :id,
+    :source,
+    :chunks,
+    :outputs,
+    :kind,
+    :attrs,
+    :js_view,
+    :editor,
+    :editor_intellisense_node
+  ]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -23,7 +33,8 @@ defmodule Livebook.Notebook.Cell.Smart do
           kind: String.t() | nil,
           attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,
-          editor: Livebook.Runtime.editor() | nil
+          editor: Livebook.Runtime.editor() | nil,
+          editor_intellisense_node: node() | nil
         }
 
   @type attrs :: map()
@@ -41,7 +52,8 @@ defmodule Livebook.Notebook.Cell.Smart do
       kind: nil,
       attrs: %{},
       js_view: nil,
-      editor: nil
+      editor: nil,
+      editor_intellisense_node: nil
     }
   end
 end

@@ -1475,6 +1475,7 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if Runtime.connected?(data.runtime) do
         parent_locators = Session.parent_locators_for_cell(data, cell)
+        intellisense_node = intellisense_node(cell)
         ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
@@ -1699,6 +1700,18 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("open_custom_view_settings", %{}, socket) do
     {:noreply,
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
+  end
+
+  def handle_event(
+        "set_smart_cell_editor_intellisense_node",
+        %{"js_view_ref" => cell_id, "node" => node, "cookie" => _cookie},
+        socket
+      ) do
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
+      editor_intellisense_node: node
+    })
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -2909,4 +2922,8 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
   defp app_status_color(%{execution: :error}), do: "bg-red-400"
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
+
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: node()
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: node
+  defp intellisense_node(_), do: node()
 end
