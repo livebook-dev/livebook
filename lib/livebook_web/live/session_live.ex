@@ -1708,7 +1708,7 @@ defmodule LivebookWeb.SessionLive do
         socket
       ) do
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
-      editor_intellisense_node: node
+      editor_intellisense_node: if(node != "", do: String.to_atom(node))
     })
 
     {:noreply, socket}
@@ -2924,6 +2924,6 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: node()
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: String.to_atom(node)
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: node
   defp intellisense_node(_), do: node()
 end
