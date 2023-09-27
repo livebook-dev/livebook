@@ -1708,7 +1708,7 @@ defmodule LivebookWeb.SessionLive do
         socket
       ) do
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
-      editor_intellisense_node: if(node != "", do: String.to_atom(node))
+      editor_intellisense_node: parse_node(node)
     })
 
     {:noreply, socket}
@@ -2926,4 +2926,15 @@ defmodule LivebookWeb.SessionLive do
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: node()
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: node
   defp intellisense_node(_), do: node()
+
+  defp parse_node(nil), do: nil
+  defp parse_node(""), do: nil
+
+  defp parse_node(node) do
+    try do
+      String.to_atom(node)
+    rescue
+      _ -> nil
+    end
+  end
 end
