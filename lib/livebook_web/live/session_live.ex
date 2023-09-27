@@ -1475,8 +1475,8 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if Runtime.connected?(data.runtime) do
         parent_locators = Session.parent_locators_for_cell(data, cell)
-        intellisense_node = intellisense_node(cell)
-        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators)
+        node = intellisense_node(cell)
+        ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators, node)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
@@ -2924,6 +2924,6 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: node()
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: node
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: String.to_atom(node)
   defp intellisense_node(_), do: node()
 end
