@@ -969,7 +969,7 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.load/2" do
-    test "loads region and external id from fields map" do
+    test "loads from atom keys" do
       bucket_url = "https://mybucket.s3.amazonaws.com"
       hash = :crypto.hash(:sha256, bucket_url)
       encrypted_hash = Base.url_encode64(hash, padding: false)
@@ -989,31 +989,6 @@ defmodule Livebook.FileSystem.S3Test do
                bucket_url: fields.bucket_url,
                external_id: fields.external_id,
                region: fields.region,
-               access_key_id: fields.access_key_id,
-               secret_access_key: fields.secret_access_key,
-               hub_id: fields.hub_id
-             }
-    end
-
-    test "loads region from bucket url" do
-      bucket_url = "https://mybucket.s3.us-east-1.amazonaws.com"
-      hash = :crypto.hash(:sha256, bucket_url)
-      encrypted_hash = Base.url_encode64(hash, padding: false)
-
-      fields = %{
-        id: "s3-#{encrypted_hash}",
-        bucket_url: bucket_url,
-        external_id: nil,
-        access_key_id: "key",
-        secret_access_key: "secret",
-        hub_id: "personal-hub"
-      }
-
-      assert FileSystem.load(%S3{}, fields) == %S3{
-               id: fields.id,
-               bucket_url: fields.bucket_url,
-               external_id: nil,
-               region: "us-east-1",
                access_key_id: fields.access_key_id,
                secret_access_key: fields.secret_access_key,
                hub_id: fields.hub_id
@@ -1057,7 +1032,8 @@ defmodule Livebook.FileSystem.S3Test do
                region: "us-east-1",
                access_key_id: "key",
                secret_access_key: "secret",
-               hub_id: "personal-hub"
+               hub_id: "personal-hub",
+               external_id: nil
              }
     end
   end

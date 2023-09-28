@@ -243,11 +243,13 @@ defmodule Livebook.NotebookManager do
         _ -> %{}
       end
 
-    # TODO: Load file system from all hubs
-    personal = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
+    file_systems =
+      Livebook.Storage.all(:file_systems)
+      |> Enum.sort_by(& &1.bucket_url)
+      |> Enum.map(fn fields -> Livebook.FileSystems.load(fields.type, fields) end)
 
     file_system_by_id =
-      for file_system <- Livebook.Hubs.get_file_systems(personal),
+      for file_system <- file_systems,
           do: {file_system.id, file_system},
           into: %{}
 

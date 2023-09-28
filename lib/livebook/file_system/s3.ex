@@ -375,7 +375,15 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   def dump(file_system) do
     file_system
     |> Map.from_struct()
-    |> Map.take([:id, :bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
+    |> Map.take([
+      :id,
+      :bucket_url,
+      :region,
+      :access_key_id,
+      :secret_access_key,
+      :hub_id,
+      :external_id
+    ])
   end
 
   def external_metadata(file_system) do
