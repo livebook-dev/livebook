@@ -2927,7 +2927,6 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :error}), do: "bg-red-400"
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: nil
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: node_cookie}), do: node_cookie
   defp intellisense_node(_), do: nil
 end
