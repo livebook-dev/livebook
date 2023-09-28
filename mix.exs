@@ -114,7 +114,8 @@ defmodule Livebook.MixProject do
       {:req, "~> 0.3.8"},
       {:bandit, "~> 0.7", only: :test},
       {:openai_ex, "~> 0.2.3"},
-      {:anthropic_ex, "~> 0.0.1", path: "../anthropic_ex"}
+      # {:anthropic_ex, "~> 0.0.1", path: "../anthropic_ex"}
+      {:anthropic_ex, "~> 0.0.1", git: "https://github.com/jonastemplestein/anthropic_ex.git"}
     ]
   end
 

@@ -3,9 +3,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   import LivebookWeb.SessionHelpers
 
-  # TODO why is this needed? why are there no corresponding lines for e.g. @installing?
-  attr :show_inline_ai, :boolean, default: false
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -95,7 +92,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           empty={@cell_view.empty}
           language={@cell_view.language}
           intellisense
-          show_inline_ai={@show_inline_ai}
         />
         <div class="absolute bottom-2 right-2">
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
@@ -144,7 +140,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             empty={@cell_view.empty}
             language="elixir"
             intellisense
-            show_inline_ai={@show_inline_ai}
           />
           <div class="absolute bottom-2 right-2">
             <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
@@ -205,7 +200,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 empty={@cell_view.editor.empty}
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
-                show_inline_ai={@show_inline_ai}
               />
             </div>
           <% :dead -> %>
@@ -247,7 +241,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             language="elixir"
             intellisense
             read_only
-            show_inline_ai={@show_inline_ai}
           />
           <div class="absolute bottom-2 right-2">
             <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
@@ -591,16 +584,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   attr :intellisense, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :rounded, :atom, default: :both
-  attr :show_inline_ai, :boolean, default: false
 
   defp cell_editor(assigns) do
     ~H"""
-    <.live_component
-        module={LivebookWeb.SessionLive.InlineAIComponent}
-        id={@cell_id}
-        :if={@show_inline_ai}
-      />
-
     <div
       id={"cell-editor-#{@cell_id}-#{@tag}"}
       phx-update="ignore"

@@ -1,5 +1,5 @@
 defmodule LivebookWeb.SessionLive do
-  alias LivebookWeb.SessionLive.InlineAIComponent
+  alias Livebook.AiHelper
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
@@ -12,6 +12,9 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.JSInterop
 
   on_mount LivebookWeb.SidebarHook
+
+  # TODO I noticed Logger isn't really used anywhere in session_live - should I avoid using it?
+  require Logger
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -403,7 +406,6 @@ defmodule LivebookWeb.SessionLive do
               installing?={@data_view.installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={@data_view.setup_cell_view}
-              show_inline_ai={false}
             />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
@@ -1062,11 +1064,39 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event(
-        "toggle_inline_ai_component",
-        %{"visible" => visible, "cell_id" => cell_id},
+        "ai_helper.request_completion",
+        %{
+          "cell_id" => cell_id,
+          "code_before_selection" => code_before_selection,
+          "code_after_selection" => code_after_selection,
+          "selected_code" => selected_code,
+          "prompt" => prompt
+        },
         socket
       ) do
-    send_update(LivebookWeb.SessionLive.CellComponent, id: cell_id, show_inline_ai: visible)
+    parent = self()
+
+    # TODO I'm not handling errors here and haven't thought
+    # much about what happens if the liveview process dies and this
+    # is still running
+    Task.async(fn ->
+      Livebook.AiHelper.stream_completion(
+        "openai",
+        # "anthropic",
+        prompt,
+        code_before_selection,
+        selected_code,
+        code_after_selection
+      )
+      |> AiHelper.filter_code_tokens()
+      |> Enum.each(fn token ->
+        send(parent, {:ai_helper_token_stream, cell_id, token})
+
+        # TODO understand why I can't just call push_event from here
+        # push_event(socket, "ai_helper_token_stream:#{cell_id}", %{token: token})
+      end)
+    end)
+
     {:noreply, socket}
   end
 
@@ -1455,13 +1485,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  # def handle_event(
-  #       "inline_ai_request",
-  #       %{"cell_id" => cell_id, "prompt" => prompt, "selection" => selection} = params,
-  #       socket
-  #     ) do
-  # end
-
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
     request =
       case params do
@@ -1710,10 +1733,9 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
   end
 
-  # These messages are sent by InlineAiComponent and need to be forwarded to the inline_ai_component.js hook
   @impl true
-  def handle_info({:inline_ai_response_chunk, id, _text, chunk}, socket) do
-    {:noreply, push_event(socket, "inline_ai_token_received:#{id}", %{chunk: chunk})}
+  def handle_info({:ai_helper_token_stream, cell_id, token}, socket) do
+    {:noreply, push_event(socket, "ai_helper_token_stream:#{cell_id}", %{token: token})}
   end
 
   @impl true
