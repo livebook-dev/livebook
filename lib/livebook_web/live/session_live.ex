@@ -1708,11 +1708,13 @@ defmodule LivebookWeb.SessionLive do
         %{"js_view_ref" => cell_id, "node" => node, "cookie" => cookie},
         socket
       ) do
+    node =
+      if is_binary(node) and node =~ "@" and is_binary(cookie) and cookie != "" do
+        {node, cookie}
+      end
+
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
-      editor_intellisense_node:
-        if is_binary(node) and node =~ "@" and is_binary(cookie) and cookie != "" do
-          {node, cookie}
-        end
+      editor_intellisense_node: node
     })
 
     {:noreply, socket}

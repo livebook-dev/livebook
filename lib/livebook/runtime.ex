@@ -877,8 +877,7 @@ defprotocol Livebook.Runtime do
           intellisense_request(),
           parent_locators(),
           {String.t(), String.t()} | nil
-        ) ::
-          reference()
+        ) :: reference()
   def handle_intellisense(runtime, send_to, request, parent_locators, node)
 
   @doc """
