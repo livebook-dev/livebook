@@ -364,11 +364,11 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       file_system
       | id: fields.id,
         bucket_url: fields.bucket_url,
-        external_id: fields[:external_id],
-        region: fields[:region],
+        external_id: fields.external_id,
+        region: fields.region,
         access_key_id: fields.access_key_id,
         secret_access_key: fields.secret_access_key,
-        hub_id: fields[:hub_id]
+        hub_id: fields.hub_id
     }
   end
 
