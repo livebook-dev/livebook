@@ -24,7 +24,7 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
-  Returns the region from given uri.
+  Infers region from the given bucket URL.
   """
   @spec region_from_uri(String.t()) :: String.t()
   # TODO: make it private again on Livebook v0.12
@@ -360,18 +360,15 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def load(file_system, fields) do
-    hub_id = fields[:hub_id] || Livebook.Hubs.Personal.id()
-    region = fields[:region] || S3.region_from_uri(fields.bucket_url)
-
     %{
       file_system
       | id: fields.id,
         bucket_url: fields.bucket_url,
         external_id: fields[:external_id],
-        region: region,
+        region: fields[:region],
         access_key_id: fields.access_key_id,
         secret_access_key: fields.secret_access_key,
-        hub_id: hub_id
+        hub_id: fields[:hub_id]
     }
   end
 
