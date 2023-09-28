@@ -175,8 +175,10 @@ defmodule Livebook.Application do
                 """
 
               true ->
+                path = Path.join(System.get_env("HOME", "~"), ".livebookdesktop.sh")
+
                 """
-                  * Configure your Livebook Desktop to use long names by creating a file at ~/.livebookdesktop.bat with:
+                  * Configure your Livebook Desktop to use long names by creating a file at #{path} with:
 
                         export LIVEBOOK_DISTRIBUTION=name
                         export LIVEBOOK_NODE=livebook@127.0.0.1
