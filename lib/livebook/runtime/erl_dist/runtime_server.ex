@@ -129,11 +129,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           pid(),
           pid(),
           Runtime.intellisense_request(),
-          Runtime.Runtime.parent_locators()
+          Runtime.Runtime.parent_locators(),
+          {String.t(), String.t()} | nil
         ) :: reference()
-  def handle_intellisense(pid, send_to, request, parent_locators) do
+  def handle_intellisense(pid, send_to, request, parent_locators, node) do
     ref = make_ref()
-    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, parent_locators})
+    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, parent_locators, node})
     ref
   end
 
@@ -497,7 +498,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:handle_intellisense, send_to, ref, request, parent_locators}, state) do
+  def handle_cast(
+        {:handle_intellisense, send_to, ref, request, parent_locators, node},
+        state
+      ) do
     {container_ref, parent_evaluation_refs} =
       case parent_locators do
         [] ->
@@ -525,7 +529,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       end
 
     Task.Supervisor.start_child(state.task_supervisor, fn ->
-      response = Livebook.Intellisense.handle_request(request, intellisense_context, node())
+      node = intellisense_node(node)
+      response = Livebook.Intellisense.handle_request(request, intellisense_context, node)
       send(send_to, {:runtime_intellisense_response, ref, request, response})
     end)
 
@@ -907,4 +912,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     name = elem(dependency.dep, 0)
     Application.spec(name) != nil
   end
+
+  defp intellisense_node({node, cookie}) do
+    {node, cookie} = {String.to_atom(node), String.to_atom(cookie)}
+    Node.set_cookie(node, cookie)
+    if Node.connect(node), do: node, else: node()
+  end
+
+  defp intellisense_node(_node), do: node()
 end

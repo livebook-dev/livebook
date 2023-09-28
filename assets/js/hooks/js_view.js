@@ -381,11 +381,17 @@ const JSView = {
       } else if (message.type === "syncReply") {
         this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
         this.channel.push("ping", { ref: this.props.ref });
-      } else if (message.type == "selectSecret") {
+      } else if (message.type === "selectSecret") {
         this.pushEvent("select_secret", {
           js_view_ref: this.props.ref,
           preselect_name: message.preselectName,
           options: message.options,
+        });
+      } else if (message.type === "setSmartCellEditorIntellisenseNode") {
+        this.pushEvent("set_smart_cell_editor_intellisense_node", {
+          js_view_ref: this.props.ref,
+          node: message.node,
+          cookie: message.cookie,
         });
       }
     }
