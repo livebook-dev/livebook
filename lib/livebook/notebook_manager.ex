@@ -243,8 +243,11 @@ defmodule Livebook.NotebookManager do
         _ -> %{}
       end
 
+    # TODO: Load file system from all hubs
+    personal = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
+
     file_system_by_id =
-      for file_system <- Livebook.Hubs.get_file_systems(),
+      for file_system <- Livebook.Hubs.get_file_systems(personal),
           do: {file_system.id, file_system},
           into: %{}
 
