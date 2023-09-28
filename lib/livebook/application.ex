@@ -150,6 +150,39 @@ defmodule Livebook.Application do
         :ok
       else
         _ ->
+          hint =
+            cond do
+              is_nil(System.get_env("LIVEBOOK_DESKTOP")) ->
+                """
+                  * If you are using Livebook's CLI or from source, consider using longnames:
+
+                        livebook server --name livebook@127.0.0.1
+                        elixir --name livebook@127.0.0.1 -S mix phx.server
+                """
+
+              match?({:win32, _}, :os.type()) ->
+                path =
+                  Path.join(
+                    System.get_env("USERPROFILE", "%USERPROFILE%"),
+                    ".livebookdesktop.bat"
+                  )
+
+                """
+                  * Configure your Livebook Desktop to use long names by creating a file at #{path} with:
+
+                        set LIVEBOOK_DISTRIBUTION=name
+                        set LIVEBOOK_NODE=livebook@127.0.0.1
+                """
+
+              true ->
+                """
+                  * Configure your Livebook Desktop to use long names by creating a file at ~/.livebookdesktop.bat with:
+
+                        export LIVEBOOK_DISTRIBUTION=name
+                        export LIVEBOOK_NODE=livebook@127.0.0.1
+                """
+            end
+
           Livebook.Config.abort!("""
           Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8), \
           which indicates something wrong in your OS configuration, or EPMD is not running.
@@ -159,10 +192,7 @@ defmodule Livebook.Application do
             * Consult our Installation FAQ:
               https://github.com/livebook-dev/livebook/wiki/Installation-FAQ
 
-            * If you are using Livebook's CLI or from source, consider using longnames:
-
-                  livebook server --name livebook@127.0.0.1
-                  elixir --name livebook@127.0.0.1 -S mix phx.server
+          #{hint}\
 
             * If the issue persists, please file a bug report
 
