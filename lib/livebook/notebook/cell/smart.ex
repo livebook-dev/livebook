@@ -34,7 +34,7 @@ defmodule Livebook.Notebook.Cell.Smart do
           attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,
           editor: Livebook.Runtime.editor() | nil,
-          editor_intellisense_node: node() | nil
+          editor_intellisense_node: {String.t(), String.t()} | nil
         }
 
   @type attrs :: map()

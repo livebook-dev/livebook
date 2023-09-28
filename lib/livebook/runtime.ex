@@ -871,7 +871,13 @@ defprotocol Livebook.Runtime do
   The given `parent_locators` identifies a sequence of evaluations
   that may be used as the context when resolving the request (if relevant).
   """
-  @spec handle_intellisense(t(), pid(), intellisense_request(), parent_locators(), node()) ::
+  @spec handle_intellisense(
+          t(),
+          pid(),
+          intellisense_request(),
+          parent_locators(),
+          {String.t(), String.t()} | nil
+        ) ::
           reference()
   def handle_intellisense(runtime, send_to, request, parent_locators, node)
 

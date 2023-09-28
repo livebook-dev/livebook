@@ -146,7 +146,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/6 given completion request" do
     test "provides basic completion when no evaluation reference is given", %{pid: pid} do
       request = {:completion, "System.ver"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], node())
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], nil)
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "version/0"}]}}
@@ -162,13 +162,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}], node())
+
+      ref =
+        RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}], nil)
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "number"}]}}
 
       request = {:completion, "ANSI.brigh"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}], node())
+
+      ref =
+        RuntimeServer.handle_intellisense(pid, self(), request, [{:c1, :e1}], nil)
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "bright/0"}]}}
@@ -178,7 +182,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/6 given details request" do
     test "responds with identifier details", %{pid: pid} do
       request = {:details, "System.version", 10}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], node())
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], nil)
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{range: %{from: 1, to: 15}, contents: [_]}}
@@ -188,7 +192,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/6 given format request" do
     test "responds with a formatted code", %{pid: pid} do
       request = {:format, "System.version"}
-      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], node())
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, [], nil)
 
       assert_receive {:runtime_intellisense_response, ^ref, ^request, %{code: "System.version()"}}
     end

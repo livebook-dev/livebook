@@ -1476,6 +1476,7 @@ defmodule LivebookWeb.SessionLive do
       if Runtime.connected?(data.runtime) do
         parent_locators = Session.parent_locators_for_cell(data, cell)
         node = intellisense_node(cell)
+
         ref = Runtime.handle_intellisense(data.runtime, self(), request, parent_locators, node)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
@@ -1704,11 +1705,14 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "set_smart_cell_editor_intellisense_node",
-        %{"js_view_ref" => cell_id, "node" => node, "cookie" => _cookie},
+        %{"js_view_ref" => cell_id, "node" => node, "cookie" => cookie},
         socket
       ) do
     Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
-      editor_intellisense_node: parse_node(node)
+      editor_intellisense_node:
+        if is_binary(node) and node =~ "@" and is_binary(cookie) and cookie != "" do
+          {node, cookie}
+        end
     })
 
     {:noreply, socket}
@@ -2923,18 +2927,7 @@ defmodule LivebookWeb.SessionLive do
   defp app_status_color(%{execution: :error}), do: "bg-red-400"
   defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: node()
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node}), do: node
-  defp intellisense_node(_), do: node()
-
-  defp parse_node(nil), do: nil
-  defp parse_node(""), do: nil
-
-  defp parse_node(node) do
-    try do
-      String.to_atom(node)
-    rescue
-      _ -> nil
-    end
-  end
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: nil}), do: nil
+  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node_cookie}), do: node_cookie
+  defp intellisense_node(_), do: nil
 end
