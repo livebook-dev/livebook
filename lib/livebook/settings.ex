@@ -43,70 +43,6 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns all known file systems.
-  """
-  @spec file_systems() :: list(FileSystem.t())
-  def file_systems() do
-    restored_file_systems =
-      Storage.all(:file_systems)
-      |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
-      |> Enum.map(&storage_to_fs/1)
-
-    [Livebook.Config.local_file_system() | restored_file_systems]
-  end
-
-  @doc """
-  Finds a file system by id.
-  """
-  @spec fetch_file_system(FileSystem.id()) :: {:ok, FileSystem.t()}
-  def fetch_file_system(file_system_id) do
-    local_file_system = Livebook.Config.local_file_system()
-
-    if file_system_id == local_file_system.id do
-      {:ok, local_file_system}
-    else
-      with {:ok, config} <- Storage.fetch(:file_systems, file_system_id) do
-        {:ok, storage_to_fs(config)}
-      end
-    end
-  end
-
-  @doc """
-  Saves a new file system to the configured ones.
-  """
-  @spec save_file_system(FileSystem.t()) :: :ok
-  def save_file_system(%FileSystem.S3{} = file_system) do
-    attributes =
-      file_system
-      |> FileSystem.S3.to_config()
-      |> Map.to_list()
-
-    attrs = [{:type, "s3"}, {:order, System.os_time()} | attributes]
-    :ok = Storage.insert(:file_systems, file_system.id, attrs)
-  end
-
-  @doc """
-  Removes the given file system from the configured ones.
-  """
-  @spec remove_file_system(FileSystem.id()) :: :ok
-  def remove_file_system(file_system_id) do
-    if default_dir().file_system.id == file_system_id do
-      Storage.delete_key(:settings, "global", :default_dir)
-    end
-
-    Livebook.NotebookManager.remove_file_system(file_system_id)
-
-    Storage.delete(:file_systems, file_system_id)
-  end
-
-  defp storage_to_fs(%{type: "s3"} = config) do
-    case FileSystem.S3.from_config(config) do
-      {:ok, fs} -> fs
-      {:error, message} -> raise ArgumentError, "invalid S3 configuration: #{message}"
-    end
-  end
-
-  @doc """
   Returns whether the update check is enabled.
   """
   @spec update_check_enabled?() :: boolean()
@@ -246,9 +182,10 @@ defmodule Livebook.Settings do
   @spec default_dir() :: FileSystem.File.t()
   def default_dir() do
     with {:ok, %{file_system_id: file_system_id, path: path}} <-
-           Storage.fetch_key(:settings, "global", :default_dir),
-         {:ok, file_system} <- fetch_file_system(file_system_id) do
-      FileSystem.File.new(file_system, path)
+           Storage.fetch_key(:settings, "global", :default_dir) do
+      Livebook.Hubs.get_file_systems()
+      |> Enum.find(&(&1.id == file_system_id))
+      |> FileSystem.File.new(path)
     else
       _ -> FileSystem.File.new(Livebook.Config.local_file_system())
     end

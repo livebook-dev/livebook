@@ -1,6 +1,7 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
+  import Livebook.HubHelpers
   import Livebook.TestHelpers
 
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem, Apps, App}
@@ -1653,8 +1654,8 @@ defmodule Livebook.SessionTest do
 
     test "when remote :file replies with the cached path" do
       bypass = Bypass.open()
-      bucket_url = "http://localhost:#{bypass.port}/mybucket"
-      s3_fs = FileSystem.S3.new(bucket_url, "key", "secret")
+      s3_fs = build_bypass_file_system(bypass)
+      bucket_url = s3_fs.bucket_url
 
       Bypass.expect_once(bypass, "GET", "/mybucket/image.jpg", fn conn ->
         Plug.Conn.resp(conn, 200, "content")

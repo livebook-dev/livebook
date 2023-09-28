@@ -11,25 +11,6 @@ defmodule Livebook.FileSystem.S3Test do
     {:ok, bypass: bypass, file_system: file_system}
   end
 
-  describe "new/3" do
-    test "trims trailing slash in bucket URL" do
-      assert %{bucket_url: "https://example.com/mybucket"} =
-               S3.new("https://example.com/mybucket/", "key", "secret")
-    end
-
-    test "determines region based on the URL by default" do
-      assert %{region: "eu-central-1"} =
-               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret")
-    end
-
-    test "accepts explicit region as an option" do
-      assert %{region: "auto"} =
-               S3.new("https://s3.eu-central-1.amazonaws.com/mybucket", "key", "secret",
-                 region: "auto"
-               )
-    end
-  end
-
   describe "FileSystem.default_path/1" do
     test "returns the root path" do
       file_system = build(:fs_s3, bucket_url: "https://example.com/mybucket", region: "auto")
@@ -988,66 +969,55 @@ defmodule Livebook.FileSystem.S3Test do
   end
 
   describe "FileSystem.load/2" do
-    test "loads region and external id from fields map" do
+    test "loads from atom keys" do
+      bucket_url = "https://mybucket.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      encrypted_hash = Base.url_encode64(hash, padding: false)
+
       fields = %{
-        bucket_url: "https://mybucket.s3.amazonaws.com",
+        id: "s3-#{encrypted_hash}",
+        bucket_url: bucket_url,
         region: "us-east-1",
         external_id: "123456789",
         access_key_id: "key",
-        secret_access_key: "secret"
+        secret_access_key: "secret",
+        hub_id: "personal-hub"
       }
 
-      hash = :crypto.hash(:sha256, fields.bucket_url)
-      id = "s3-#{Base.url_encode64(hash, padding: false)}"
-
       assert FileSystem.load(%S3{}, fields) == %S3{
-               id: id,
+               id: fields.id,
                bucket_url: fields.bucket_url,
                external_id: fields.external_id,
                region: fields.region,
                access_key_id: fields.access_key_id,
-               secret_access_key: fields.secret_access_key
-             }
-    end
-
-    test "loads region from bucket url" do
-      fields = %{
-        bucket_url: "https://mybucket.s3.us-east-1.amazonaws.com",
-        access_key_id: "key",
-        secret_access_key: "secret"
-      }
-
-      hash = :crypto.hash(:sha256, fields.bucket_url)
-
-      assert FileSystem.load(%S3{}, fields) == %S3{
-               id: "s3-#{Base.url_encode64(hash, padding: false)}",
-               bucket_url: fields.bucket_url,
-               external_id: nil,
-               region: "us-east-1",
-               access_key_id: fields.access_key_id,
-               secret_access_key: fields.secret_access_key
+               secret_access_key: fields.secret_access_key,
+               hub_id: fields.hub_id
              }
     end
 
     test "loads from string keys" do
+      bucket_url = "https://mybucket.s3.amazonaws.com"
+      hash = :crypto.hash(:sha256, bucket_url)
+      encrypted_hash = Base.url_encode64(hash, padding: false)
+
       fields = %{
-        "bucket_url" => "https://mybucket.s3.amazonaws.com",
+        "id" => "s3-#{encrypted_hash}",
+        "bucket_url" => bucket_url,
         "region" => "us-east-1",
         "external_id" => "123456789",
         "access_key_id" => "key",
-        "secret_access_key" => "secret"
+        "secret_access_key" => "secret",
+        "hub_id" => "personal-hub"
       }
 
-      hash = :crypto.hash(:sha256, fields["bucket_url"])
-      id = "s3-#{Base.url_encode64(hash, padding: false)}"
-
       assert FileSystem.load(%S3{}, fields) == %S3{
-               id: id,
+               id: fields["id"],
                bucket_url: fields["bucket_url"],
                external_id: fields["external_id"],
                region: fields["region"],
                access_key_id: fields["access_key_id"],
-               secret_access_key: fields["secret_access_key"]
+               secret_access_key: fields["secret_access_key"],
+               hub_id: fields["hub_id"]
              }
     end
   end
@@ -1062,7 +1032,8 @@ defmodule Livebook.FileSystem.S3Test do
                region: "us-east-1",
                access_key_id: "key",
                secret_access_key: "secret",
-               hub_id: "personal-hub"
+               hub_id: "personal-hub",
+               external_id: nil
              }
     end
   end

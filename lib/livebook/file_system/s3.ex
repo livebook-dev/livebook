@@ -24,43 +24,11 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
-  Returns a new file system struct.
-
-  ## Options
-
-    * `:region` - the bucket region. By default the URL is assumed
-      to have the format `*.[region].[rootdomain].com` and the region
-      is inferred from that URL
-
-    * `:external_id` - the external id from Teams.
-
-    * `:hub_id` - the Hub id.
-
-    * `:id` - the file system id.
-
+  Infers region from the given bucket URL.
   """
-  @spec new(String.t(), String.t(), String.t(), keyword()) :: t()
-  def new(bucket_url, access_key_id, secret_access_key, opts \\ []) do
-    opts = Keyword.validate!(opts, [:region, :external_id, :hub_id, :id])
-
-    bucket_url = String.trim_trailing(bucket_url, "/")
-    region = opts[:region] || region_from_uri(bucket_url)
-
-    hub_id = Keyword.get(opts, :hub_id, Livebook.Hubs.Personal.id())
-    id = opts[:id] || id(hub_id, bucket_url)
-
-    %__MODULE__{
-      id: id,
-      bucket_url: bucket_url,
-      external_id: opts[:external_id],
-      region: region,
-      access_key_id: access_key_id,
-      secret_access_key: secret_access_key,
-      hub_id: hub_id
-    }
-  end
-
-  defp region_from_uri(uri) do
+  @spec region_from_uri(String.t()) :: String.t()
+  # TODO: make it private again on Livebook v0.12
+  def region_from_uri(uri) do
     # For many services the API host is of the form *.[region].[rootdomain].com
     %{host: host} = URI.parse(uri)
     splitted_host = host |> String.split(".") |> Enum.reverse()
@@ -70,36 +38,6 @@ defmodule Livebook.FileSystem.S3 do
       "r2" -> "auto"
       region -> region
     end
-  end
-
-  @doc """
-  Parses file system from a configuration map.
-  """
-  @spec from_config(map()) :: {:ok, t()} | {:error, String.t()}
-  def from_config(config) do
-    case config do
-      %{
-        bucket_url: bucket_url,
-        access_key_id: access_key_id,
-        secret_access_key: secret_access_key
-      } ->
-        file_system =
-          new(bucket_url, access_key_id, secret_access_key,
-            region: config[:region],
-            external_id: config[:external_id]
-          )
-
-        {:ok, file_system}
-
-      _config ->
-        {:error,
-         "S3 configuration is expected to have keys: :bucket_url, :access_key_id and :secret_access_key, but got #{inspect(config)}"}
-    end
-  end
-
-  @spec to_config(t()) :: map()
-  def to_config(%__MODULE__{} = s3) do
-    Map.take(s3, [:bucket_url, :region, :access_key_id, :secret_access_key])
   end
 
   @doc """
@@ -121,7 +59,7 @@ defmodule Livebook.FileSystem.S3 do
       :hub_id
     ])
     |> put_region_from_uri()
-    |> validate_required([:bucket_url, :access_key_id, :secret_access_key])
+    |> validate_required([:bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
     |> Livebook.Utils.validate_url(:bucket_url)
     |> put_id()
   end
@@ -421,19 +359,31 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     })
   end
 
-  def load(_file_system, fields) do
-    S3.new(fields.bucket_url, fields.access_key_id, fields.secret_access_key,
-      region: fields[:region],
-      external_id: fields[:external_id],
-      id: fields[:id],
-      hub_id: fields[:hub_id]
-    )
+  def load(file_system, fields) do
+    %{
+      file_system
+      | id: fields.id,
+        bucket_url: fields.bucket_url,
+        external_id: fields.external_id,
+        region: fields.region,
+        access_key_id: fields.access_key_id,
+        secret_access_key: fields.secret_access_key,
+        hub_id: fields.hub_id
+    }
   end
 
   def dump(file_system) do
     file_system
     |> Map.from_struct()
-    |> Map.take([:id, :bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
+    |> Map.take([
+      :id,
+      :bucket_url,
+      :region,
+      :access_key_id,
+      :secret_access_key,
+      :hub_id,
+      :external_id
+    ])
   end
 
   def external_metadata(file_system) do

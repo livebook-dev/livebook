@@ -373,7 +373,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   end
 
   defp expect_s3_listing(bypass) do
-    Bypass.expect_once(bypass, "GET", "/", fn conn ->
+    Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/xml")
       |> Plug.Conn.resp(200, """

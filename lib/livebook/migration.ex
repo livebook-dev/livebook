@@ -64,9 +64,19 @@ defmodule Livebook.Migration do
         id_mapping =
           for config <- configs, into: %{} do
             old_id = config.id
+
+            # Ensure new file system fields
+            new_fields = %{
+              hub_id: Livebook.Hubs.Personal.id(),
+              external_id: nil,
+              region: Livebook.FileSystem.S3.region_from_uri(config.bucket_url)
+            }
+
+            config = Map.merge(new_fields, config)
+
             # At this point S3 is the only file system we store
-            {:ok, file_system} = Livebook.FileSystem.S3.from_config(config)
-            Livebook.Settings.save_file_system(file_system)
+            file_system = Livebook.FileSystems.load("s3", config)
+            Livebook.Hubs.Personal.save_file_system(file_system)
             Livebook.Storage.delete(:filesystem, old_id)
             {old_id, file_system.id}
           end
@@ -92,11 +102,10 @@ defmodule Livebook.Migration do
 
     with {:ok, default_file_system_id} <-
            Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
-      with {:ok, default_file_system} <-
-             Livebook.Settings.fetch_file_system(default_file_system_id) do
-        default_dir = Livebook.FileSystem.File.new(default_file_system)
-        Livebook.Settings.set_default_dir(default_dir)
-      end
+      Livebook.Hubs.get_file_systems()
+      |> Enum.find(&(&1.id == default_file_system_id))
+      |> Livebook.FileSystem.File.new()
+      |> Livebook.Settings.set_default_dir()
 
       Livebook.Storage.delete_key(:settings, "global", :default_file_system_id)
     end
