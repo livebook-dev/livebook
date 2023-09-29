@@ -51,11 +51,13 @@ defmodule Livebook.RemoteIntellisenseTest do
 
     build_path = Mix.Project.build_path() |> String.to_charlist()
     paths = Enum.reject(:code.get_path(), &List.starts_with?(&1, build_path))
+    node_paths = :erpc.call(node, :code, :get_path, [])
 
-    true = :erpc.call(node, :code, :set_path, [[~c"#{@tmp_dir}" | paths]])
+    true = :erpc.call(node, :code, :set_path, [[~c"#{@tmp_dir}" | paths] ++ node_paths])
     {:ok, _} = :erpc.call(node, :application, :ensure_all_started, [:elixir])
     {:module, RemoteModule} = :erpc.call(node, :code, :load_file, [RemoteModule])
     :loaded = :erpc.call(node, :code, :module_status, [RemoteModule])
+    :ok = :erpc.call(node, :application, :load, [:mnesia])
 
     [node: node]
   end
@@ -88,6 +90,26 @@ defmodule Livebook.RemoteIntellisenseTest do
                documentation: "Hello doc",
                insert_text: "hello($0)"
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
+    end
+
+    test "find modules from apps", %{node: node} do
+      context = eval(do: nil)
+
+      assert %{
+               label: "all_keys/1",
+               kind: :function,
+               detail: ":mnesia.all_keys/1",
+               documentation: """
+               Returns a list of all keys in the table named `Tab`. The semantics of this function is context-sensitive. For more information, see `mnesia:activity/4`. In transaction-context, it acquires a read lock on the entire table.
+
+               ```
+               @spec all_keys(tab :: table()) :: [
+                       key :: term()
+                     ]
+               ```\
+               """,
+               insert_text: "all_keys($0)"
+             } in Intellisense.get_completion_items(":mnesia.all", context, node)
     end
   end
 end
