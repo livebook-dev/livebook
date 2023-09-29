@@ -1,17 +1,38 @@
 defmodule Livebook.Migration do
-  @doc """
-  Runs all migrations.
-  """
-  @spec migrate() :: :ok
-  def migrate() do
-    delete_local_host_hub()
+  use GenServer, restart: :temporary
+
+  # We version our storage so we can remove migrations in the future.
+  # We also documented tables and IDs used in previous versions,
+  # as those must be avoided in the future.
+  #
+  # ## v1 (Livebook v0.11)
+  #
+  # * Deleted hubs.local-host
+  # * Migrated secrets to hub_secrets
+  # * Migrated filesystems to file_systems
+  # * Migrated settings.global.default_file_system_id to settings.global.default_dir
+  #
+  @migration_version 1
+
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok)
+  end
+
+  def init(:ok) do
     insert_personal_hub()
-    move_app_secrets_to_personal_hub()
     add_personal_hub_secret_key()
+
+    # v1
+    delete_local_host_hub()
+    move_app_secrets_to_personal_hub()
+
+    # TODO: remove on Livebook v0.12
     update_file_systems_to_deterministic_ids()
     ensure_new_file_system_attributes()
     move_default_file_system_id_to_default_dir()
-    :ok
+
+    Livebook.Storage.insert(:system, "global", migration_version: @migration_version)
+    :ignore
   end
 
   defp delete_local_host_hub() do
@@ -49,15 +70,14 @@ defmodule Livebook.Migration do
     end
   end
 
+  # We changed S3 file system ids, such that they are deterministic
+  # for the same bucket, rather than random. We take this opportunity
+  # to rename the scope from :filesystem to :file_systems, which
+  # conveniently allows for easy check if there's anything to migrate.
+  # This migration can be removed in the future (at the cost of discarding
+  # very old file systems (which can be re-added).
+  # TODO: remove on Livebook v0.12
   defp update_file_systems_to_deterministic_ids() do
-    # We changed S3 file system ids, such that they are deterministic
-    # for the same bucket, rather than random. We take this opportunity
-    # to rename the scope from :filesystem to :file_systems, which
-    # conveniently allows for easy check if there's anything to migrate.
-    # This migration can be removed in the future (at the cost of discarding
-    # very old file systems (which can be re-added).
-    # TODO: remove on Livebook v0.12
-
     case Livebook.Storage.all(:filesystem) do
       [] ->
         :ok
@@ -89,23 +109,14 @@ defmodule Livebook.Migration do
              {:ok, new_id} <- Map.fetch(id_mapping, default_file_system_id) do
           Livebook.Storage.insert(:settings, "global", default_file_system_id: new_id)
         end
-
-        # Livebook.NotebookManager is started before the migration runs,
-        # and it discards S3 files, since it can't find the file system.
-        # However, in this case it's fine; for recent notebooks it does
-        # not matter really and there are likely not many starred S3
-        # notebooks at this point (and the user can easily star again)
     end
   end
 
+  # Note that this is already handled by update_file_systems_to_deterministic_ids/0,
+  # we add this migration so it also applies to people using Livebook main.
+  # TODO: remove on Livebook v0.12
   defp ensure_new_file_system_attributes() do
-    # Note that this is already handled by update_file_systems_to_deterministic_ids/0,
-    # we add this migration so it also applies to people using Livebook main
-
-    # TODO: remove on Livebook v0.12
-
     for attrs <- Livebook.Storage.all(:file_systems) do
-      # Ensure new file system fields
       new_attrs = %{
         hub_id: Livebook.Hubs.Personal.id(),
         external_id: nil,
@@ -118,10 +129,8 @@ defmodule Livebook.Migration do
     end
   end
 
+  # TODO: remove on Livebook v0.12
   defp move_default_file_system_id_to_default_dir() do
-    # Convert default_file_system_id to default_dir
-    # TODO: remove on Livebook v0.12
-
     with {:ok, default_file_system_id} <-
            Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
       Livebook.Hubs.get_file_systems()

@@ -18,6 +18,8 @@ defmodule Livebook.Application do
         {Task.Supervisor, name: Livebook.TaskSupervisor},
         # Start the storage module
         Livebook.Storage,
+        # Run migrations as soon as the storage is running
+        Livebook.Migration,
         # Start the periodic version check
         Livebook.UpdateCheck,
         # Periodic measurement of system resources
@@ -57,7 +59,6 @@ defmodule Livebook.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
-        Livebook.Migration.migrate()
         load_lb_env_vars()
         create_offline_hub()
         clear_env_vars()
