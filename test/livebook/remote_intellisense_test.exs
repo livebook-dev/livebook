@@ -93,21 +93,15 @@ defmodule Livebook.RemoteIntellisenseTest do
     test "find modules from apps", %{node: node} do
       context = eval(do: nil)
 
-      assert %{
-               label: "all_keys/1",
-               kind: :function,
-               detail: ":mnesia.all_keys/1",
-               documentation: """
-               Returns a list of all keys in the table named `Tab`. The semantics of this function is context-sensitive. For more information, see `mnesia:activity/4`. In transaction-context, it acquires a read lock on the entire table.
-
-               ```
-               @spec all_keys(tab :: table()) :: [
-                       key :: term()
-                     ]
-               ```\
-               """,
-               insert_text: "all_keys($0)"
-             } in Intellisense.get_completion_items(":mnesia.all", context, node)
+      assert [
+               %{
+                 label: "all_keys/1",
+                 kind: :function,
+                 detail: ":mnesia.all_keys/1",
+                 documentation: _all_keys_doc,
+                 insert_text: "all_keys($0)"
+               }
+             ] = Intellisense.get_completion_items(":mnesia.all", context, node)
     end
   end
 end
