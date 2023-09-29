@@ -173,7 +173,7 @@ defmodule Livebook.Settings do
   def set_default_dir(file) do
     Storage.insert(:settings, "global",
       default_dir: %{
-        file_system_id: file.file_system.id,
+        file_system_id: file.file_system_id,
         file_system_type: Livebook.FileSystems.module_to_type(file.file_system_module),
         path: file.path
       }
