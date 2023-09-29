@@ -49,11 +49,9 @@ defmodule Livebook.RemoteIntellisenseTest do
     File.mkdir_p!(@tmp_dir)
     File.write!("#{@tmp_dir}/Elixir.RemoteModule.beam", bytecode)
 
-    build_path = Mix.Project.build_path() |> String.to_charlist()
-    paths = Enum.reject(:code.get_path(), &List.starts_with?(&1, build_path))
-    node_paths = :erpc.call(node, :code, :get_path, [])
+    elixir_path = :code.lib_dir(:elixir, :ebin)
 
-    true = :erpc.call(node, :code, :set_path, [[~c"#{@tmp_dir}" | paths] ++ node_paths])
+    :ok = :erpc.call(node, :code, :add_paths, [[~c"#{@tmp_dir}", elixir_path]])
     {:ok, _} = :erpc.call(node, :application, :ensure_all_started, [:elixir])
     {:module, RemoteModule} = :erpc.call(node, :code, :load_file, [RemoteModule])
     :loaded = :erpc.call(node, :code, :module_status, [RemoteModule])
