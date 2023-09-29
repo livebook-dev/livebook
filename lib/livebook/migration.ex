@@ -9,7 +9,9 @@ defmodule Livebook.Migration do
     move_app_secrets_to_personal_hub()
     add_personal_hub_secret_key()
     update_file_systems_to_deterministic_ids()
+    ensure_new_file_system_attributes()
     move_default_file_system_id_to_default_dir()
+    :ok
   end
 
   defp delete_local_host_hub() do
@@ -93,6 +95,26 @@ defmodule Livebook.Migration do
         # However, in this case it's fine; for recent notebooks it does
         # not matter really and there are likely not many starred S3
         # notebooks at this point (and the user can easily star again)
+    end
+  end
+
+  defp ensure_new_file_system_attributes() do
+    # Note that this is already handled by update_file_systems_to_deterministic_ids/0,
+    # we add this migration so it also applies to people using Livebook main
+
+    # TODO: remove on Livebook v0.12
+
+    for attrs <- Livebook.Storage.all(:file_systems) do
+      # Ensure new file system fields
+      new_attrs = %{
+        hub_id: Livebook.Hubs.Personal.id(),
+        external_id: nil,
+        region: Livebook.FileSystem.S3.region_from_uri(attrs.bucket_url)
+      }
+
+      attrs = Map.merge(new_attrs, attrs)
+
+      Livebook.Storage.insert(:file_systems, attrs.id, Map.to_list(attrs))
     end
   end
 
