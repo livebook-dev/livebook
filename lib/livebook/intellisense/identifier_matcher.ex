@@ -616,7 +616,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp get_modules(node) do
     modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
-    case :code.get_mode() do
+    case :erpc.call(node, :code, :get_mode, []) do
       :interactive -> modules ++ get_modules_from_applications(node)
       _otherwise -> modules
     end
@@ -736,7 +736,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp get_module_types(mod, node) do
     with true <- ensure_loaded?(mod, node),
-         {:ok, types} <- Code.Typespec.fetch_types(mod) do
+         {:ok, types} <- :erpc.call(node, Code.Typespec, :fetch_types, [mod]) do
       for {kind, {name, _, args}} <- types, kind in [:type, :opaque] do
         {name, length(args)}
       end
