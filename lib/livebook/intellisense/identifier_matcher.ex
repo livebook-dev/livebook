@@ -617,25 +617,25 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
     case :code.get_mode() do
-      :interactive -> modules ++ get_modules_from_applications()
+      :interactive -> modules ++ get_modules_from_applications(node)
       _otherwise -> modules
     end
   end
 
-  defp get_modules_from_applications do
-    for [app] <- loaded_applications(),
-        {:ok, modules} = :application.get_key(app, :modules),
+  defp get_modules_from_applications(node) do
+    for [app] <- loaded_applications(node),
+        {:ok, modules} = :erpc.call(node, :application, :get_key, [app, :modules]),
         module <- modules,
         do: module
   end
 
-  defp loaded_applications do
+  defp loaded_applications(node) do
     # If we invoke :application.loaded_applications/0,
     # it can error if we don't call safe_fixtable before.
     # Since in both cases we are reaching over the
     # application controller internals, we choose to match
     # for performance.
-    :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
+    :erpc.call(node, :ets, :match, [:ac_tab, {{:loaded, :"$1"}, :_}])
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
@@ -706,7 +706,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_module_type(mod, hint, ctx) do
-    types = get_module_types(mod)
+    types = get_module_types(mod, ctx.node)
 
     matching_types =
       Enum.filter(types, fn {name, _arity} ->
@@ -734,8 +734,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end)
   end
 
-  defp get_module_types(mod) do
-    with true <- ensure_loaded?(mod),
+  defp get_module_types(mod, node) do
+    with true <- ensure_loaded?(mod, node),
          {:ok, types} <- Code.Typespec.fetch_types(mod) do
       for {kind, {name, _, args}} <- types, kind in [:type, :opaque] do
         {name, length(args)}
@@ -745,8 +745,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp ensure_loaded?(Elixir), do: false
-  defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
+  defp ensure_loaded?(Elixir, _node), do: false
+  defp ensure_loaded?(mod, node), do: :erpc.call(node, Code, :ensure_loaded?, [mod])
 
   defp imports_from_env(env) do
     Enum.map(env.functions, fn {mod, funs} ->
