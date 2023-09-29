@@ -82,8 +82,14 @@ defmodule Livebook.FileSystem.S3 do
     end
   end
 
+  @personal_id Livebook.Hubs.Personal.id()
+
   def id(_, nil), do: nil
   def id(nil, bucket_url), do: hashed_id(bucket_url)
+
+  # We don't want to prefix when the hub_id is from Personal hub
+  def id(@personal_id, bucket_url), do: hashed_id(bucket_url)
+
   def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
 
   defp hashed_id(bucket_url) do
