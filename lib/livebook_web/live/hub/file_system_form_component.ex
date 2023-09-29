@@ -12,7 +12,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     button = button(file_system)
     title = title(file_system)
 
-    file_system = file_system || %FileSystem.S3{}
+    file_system = file_system || %FileSystem.S3{hub_id: assigns.hub.id}
     changeset = FileSystems.change_file_system(file_system)
     socket = assign(socket, assigns)
 
