@@ -1786,7 +1786,10 @@ defmodule LivebookWeb.SessionLiveTest do
                    %{
                      type: :file,
                      name: "image.jpg",
-                     file: %FileSystem.File{file_system: %FileSystem.Local{}, path: ^path}
+                     file: %FileSystem.File{
+                       file_system_module: Livebook.FileSystem.Local,
+                       path: ^path
+                     }
                    }
                  ]
                }

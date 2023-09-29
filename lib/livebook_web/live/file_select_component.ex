@@ -281,14 +281,14 @@ defmodule LivebookWeb.FileSelectComponent do
           aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
-          <span><%= file_system_name(@file.file_system) %></span>
+          <span><%= file_system_name(@file.file_system_module) %></span>
           <div class="pl-0.5 flex items-center">
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
           </div>
         </button>
       </:toggle>
       <%= for file_system <- @file_systems do %>
-        <%= if file_system == @file.file_system do %>
+        <%= if file_system.id == @file.file_system_id do %>
           <.menu_item variant={:selected}>
             <button id={"file-system-#{file_system.id}"} role="menuitem">
               <.file_system_icon file_system={file_system} />
@@ -462,8 +462,11 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
+    file_system =
+      Enum.find(socket.assigns.file_systems, &(&1.id == socket.assigns.file.file_system_id))
+
     file =
-      socket.assigns.file.file_system
+      file_system
       |> FileSystem.File.new()
       |> FileSystem.File.resolve(path)
 

@@ -1574,7 +1574,17 @@ defmodule LivebookWeb.SessionLive do
         socket
       end
 
-      assigns = %{name: file_entry.name, file: file_entry.file}
+      file_system_label =
+        case Livebook.FileSystem.File.fetch_file_system(file_entry.file) do
+          {:ok, file_system} -> file_system_label(file_system)
+          _ -> "Not available"
+        end
+
+      assigns = %{
+        name: file_entry.name,
+        file: file_entry.file,
+        file_system_label: file_system_label
+      }
 
       description = ~H"""
       <div>
@@ -1583,7 +1593,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="mt-4 flex flex-col gap-2 border border-gray-200 rounded-lg p-4">
         <.labeled_text label="Path"><%= @file.path %></.labeled_text>
-        <.labeled_text label="File system"><%= file_system_label(@file.file_system) %></.labeled_text>
+        <.labeled_text label="File system"><%= @file_system_label %></.labeled_text>
       </div>
       """
 

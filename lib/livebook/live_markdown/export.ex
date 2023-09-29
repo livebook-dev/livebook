@@ -143,7 +143,15 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp file_entry_metadata(%{type: :file, name: name, file: file}) do
-    %{type: "file", name: name, file: %{file_system_id: file.file_system.id, path: file.path}}
+    %{
+      type: "file",
+      name: name,
+      file: %{
+        file_system_id: file.file_system_id,
+        file_system_type: Livebook.FileSystems.module_to_type(file.file_system_module),
+        path: file.path
+      }
+    }
   end
 
   defp file_entry_metadata(%{type: :url, name: name, url: url}) do

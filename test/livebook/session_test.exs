@@ -1655,6 +1655,7 @@ defmodule Livebook.SessionTest do
     test "when remote :file replies with the cached path" do
       bypass = Bypass.open()
       s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       bucket_url = s3_fs.bucket_url
 
       Bypass.expect_once(bypass, "GET", "/mybucket/image.jpg", fn conn ->

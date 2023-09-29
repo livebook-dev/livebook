@@ -108,9 +108,9 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   end
 
   defp check_file_system_conectivity(file_system) do
-    default_dir = FileSystem.File.new(file_system)
+    default_path = FileSystem.default_path(file_system)
 
-    case FileSystem.File.list(default_dir) do
+    case FileSystem.list(file_system, default_path, false) do
       {:ok, _} -> :ok
       {:error, message} -> {:error, "Connection test failed: " <> message}
     end

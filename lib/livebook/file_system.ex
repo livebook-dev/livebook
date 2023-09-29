@@ -6,6 +6,14 @@ defprotocol Livebook.FileSystem do
   An identifier uniquely identifying the given file system.
 
   Every file system struct is expected have an `:id` field.
+
+  The identifier should be computed deterministically based on the
+  specific resource used as the file system. This ensures that
+  identifiers persisted in a notebook work for multiple users, as
+  long as they have a file system using the same resource.
+
+  Ths identifier should also include file system type and hub id
+  (if applicable) in order to avoid conflicts.
   """
   @type id :: String.t()
 
@@ -32,13 +40,6 @@ defprotocol Livebook.FileSystem do
   @type error :: String.t()
 
   @type access :: :read | :write | :read_write | :none
-
-  @doc """
-  Returns a term uniquely identifying the resource used as a file
-  system.
-  """
-  @spec resource_identifier(t()) :: term()
-  def resource_identifier(file_system)
 
   @doc """
   Returns the file system type.
@@ -176,7 +177,7 @@ defprotocol Livebook.FileSystem do
   Initializes chunked write to the given file.
 
   Should return the initial state, which is then reduced over in
-  `write_stream_chunk/3`
+  `write_stream_chunk/3`.
   """
   @spec write_stream_init(t(), path(), keyword()) :: {:ok, state} | {:error, error()}
         when state: term()

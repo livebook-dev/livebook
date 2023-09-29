@@ -172,7 +172,11 @@ defmodule Livebook.Settings do
   @spec set_default_dir(FileSystem.File.t()) :: :ok
   def set_default_dir(file) do
     Storage.insert(:settings, "global",
-      default_dir: %{file_system_id: file.file_system.id, path: file.path}
+      default_dir: %{
+        file_system_id: file.file_system_id,
+        file_system_type: Livebook.FileSystems.module_to_type(file.file_system_module),
+        path: file.path
+      }
     )
   end
 
@@ -181,11 +185,14 @@ defmodule Livebook.Settings do
   """
   @spec default_dir() :: FileSystem.File.t()
   def default_dir() do
-    with {:ok, %{file_system_id: file_system_id, path: path}} <-
+    with {:ok, %{file_system_id: file_system_id, file_system_type: file_system_type, path: path}} <-
            Storage.fetch_key(:settings, "global", :default_dir) do
-      Livebook.Hubs.get_file_systems()
-      |> Enum.find(&(&1.id == file_system_id))
-      |> FileSystem.File.new(path)
+      %FileSystem.File{
+        file_system_id: file_system_id,
+        file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+        path: path,
+        origin_pid: self()
+      }
     else
       _ -> FileSystem.File.new(Livebook.Config.local_file_system())
     end
