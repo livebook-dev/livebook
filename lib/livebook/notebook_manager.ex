@@ -248,6 +248,8 @@ defmodule Livebook.NotebookManager do
       |> Enum.sort_by(& &1.bucket_url)
       |> Enum.map(fn fields -> Livebook.FileSystems.load(fields.type, fields) end)
 
+    file_systems = [Livebook.Config.local_file_system() | file_systems]
+
     file_system_by_id =
       for file_system <- file_systems,
           do: {file_system.id, file_system},
