@@ -35,7 +35,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
         <%= @title %>
       </h3>
       <p class="text-gray-700">
-        Configure an AWS S3 bucket as a Livebook file system.
+        Configure an AWS S3 bucket as a Livebook file storage.
         Many storage services offer an S3-compatible API and
         those work as well.
       </p>
