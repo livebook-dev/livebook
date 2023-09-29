@@ -10,14 +10,15 @@ defmodule LivebookWeb.FileSystemWriter do
 
   @behaviour Phoenix.LiveView.UploadWriter
 
+  alias Livebook.FileSystem
+
   @impl true
   def init(opts) do
     file = Keyword.fetch!(opts, :file)
 
-    %{file_system: file_system, path: path} = file
-
-    with {:ok, write_state} <- Livebook.FileSystem.write_stream_init(file_system, path, []) do
-      {:ok, %{file: file, write_state: write_state}}
+    with {:ok, file_system} <- FileSystem.File.fetch_file_system(file),
+         {:ok, write_state} <- FileSystem.write_stream_init(file_system, file.path, []) do
+      {:ok, %{file: file, file_system: file_system, write_state: write_state}}
     end
   end
 
@@ -28,7 +29,7 @@ defmodule LivebookWeb.FileSystemWriter do
 
   @impl true
   def write_chunk(chunk, state) do
-    case Livebook.FileSystem.write_stream_chunk(state.file.file_system, state.write_state, chunk) do
+    case FileSystem.write_stream_chunk(state.file_system, state.write_state, chunk) do
       {:ok, write_state} -> {:ok, %{state | write_state: write_state}}
       {:error, message} -> {:error, message, state}
     end
@@ -36,14 +37,14 @@ defmodule LivebookWeb.FileSystemWriter do
 
   @impl true
   def close(state, :done) do
-    case Livebook.FileSystem.write_stream_finish(state.file.file_system, state.write_state) do
+    case FileSystem.write_stream_finish(state.file_system, state.write_state) do
       :ok -> {:ok, state}
       {:error, message} -> {:error, message}
     end
   end
 
   def close(state, _reason) do
-    case Livebook.FileSystem.write_stream_halt(state.file.file_system, state.write_state) do
+    case FileSystem.write_stream_halt(state.file_system, state.write_state) do
       :ok -> {:ok, state}
       {:error, message} -> {:error, message}
     end

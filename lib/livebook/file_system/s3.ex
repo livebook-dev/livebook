@@ -104,10 +104,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   alias Livebook.FileSystem
   alias Livebook.FileSystem.S3
 
-  def resource_identifier(file_system) do
-    {:s3, file_system.bucket_url}
-  end
-
   def type(_file_system) do
     :global
   end

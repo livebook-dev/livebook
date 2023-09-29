@@ -119,6 +119,11 @@ defmodule Livebook.HubHelpers do
     file_system
   end
 
+  def persist_file_system(file_system) do
+    hub = Livebook.Hubs.fetch_hub!(Livebook.Hubs.Personal.id())
+    :ok = Livebook.Hubs.create_file_system(hub, file_system)
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}

@@ -35,7 +35,8 @@ defmodule Livebook.FileSystem.FileTest do
 
   describe "local/1" do
     test "uses the globally configured local file system instance" do
-      assert FileSystem.File.local(p("/path")).file_system == Livebook.Config.local_file_system()
+      assert FileSystem.File.local(p("/path")).file_system_id ==
+               Livebook.Config.local_file_system().id
     end
   end
 
@@ -44,7 +45,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/other/file.txt")} =
+      assert %FileSystem.File{path: p("/other/file.txt")} =
                FileSystem.File.resolve(file, p("/other/file.txt"))
     end
 
@@ -52,7 +53,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/other_file.txt")} =
+      assert %FileSystem.File{path: p("/dir/other/other_file.txt")} =
                FileSystem.File.resolve(file, "../other/other_file.txt")
     end
 
@@ -60,7 +61,7 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       dir = FileSystem.File.new(file_system, p("/dir/nested/"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/file.txt")} =
+      assert %FileSystem.File{path: p("/dir/nested/file.txt")} =
                FileSystem.File.resolve(dir, "file.txt")
     end
 
@@ -68,14 +69,11 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
       file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/")} =
-               FileSystem.File.resolve(file, "../other/")
+      assert %FileSystem.File{path: p("/dir/other/")} = FileSystem.File.resolve(file, "../other/")
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/")} =
-               FileSystem.File.resolve(file, ".")
+      assert %FileSystem.File{path: p("/dir/nested/")} = FileSystem.File.resolve(file, ".")
 
-      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/")} =
-               FileSystem.File.resolve(file, "..")
+      assert %FileSystem.File{path: p("/dir/")} = FileSystem.File.resolve(file, "..")
     end
   end
 
@@ -274,6 +272,7 @@ defmodule Livebook.FileSystem.FileTest do
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
       s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -298,6 +297,7 @@ defmodule Livebook.FileSystem.FileTest do
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
       s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,
@@ -352,6 +352,7 @@ defmodule Livebook.FileSystem.FileTest do
          %{tmp_dir: tmp_dir} do
       bypass = Bypass.open()
       s3_fs = build_bypass_file_system(bypass)
+      persist_file_system(s3_fs)
       local_fs = FileSystem.Local.new()
 
       create_tree!(tmp_dir,

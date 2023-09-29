@@ -5,7 +5,7 @@ defmodule Livebook.FileSystems do
   Returns the type identifier for the given file system.
   """
   @spec type(FileSystem.t()) :: String.t()
-  def type(%FileSystem.S3{}), do: "s3"
+  def type(%module{}), do: module_to_type(module)
 
   @doc """
   Updates file system with the given changes.
@@ -38,7 +38,27 @@ defmodule Livebook.FileSystems do
   Loads the file system from given type and dumped data.
   """
   @spec load(String.t(), map()) :: FileSystem.t()
-  def load("s3", dumped_data) do
-    FileSystem.load(%FileSystem.S3{}, dumped_data)
+  def load(type, dumped_data) do
+    type
+    |> type_to_module()
+    |> struct!()
+    |> FileSystem.load(dumped_data)
   end
+
+  @doc """
+  Returns file system module corresponding to the given type.
+  """
+  @spec type_to_module(String.t()) :: module()
+  def type_to_module(type)
+  def type_to_module("local"), do: FileSystem.Local
+  def type_to_module("s3"), do: FileSystem.S3
+
+  @doc """
+  Returns a serializable type for corresponding to the given file
+  system module.
+  """
+  @spec module_to_type(module()) :: String.t()
+  def module_to_type(module)
+  def module_to_type(FileSystem.Local), do: "local"
+  def module_to_type(FileSystem.S3), do: "s3"
 end

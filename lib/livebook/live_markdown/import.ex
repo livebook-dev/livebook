@@ -412,19 +412,10 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {"file_entries", file_entry_metadata}, {attrs, messages}
       when is_list(file_entry_metadata) ->
-        file_system_by_id =
-          if Enum.any?(file_entry_metadata, &(&1["type"] == "file")) do
-            for file_system <- Livebook.Hubs.get_file_systems(),
-                do: {file_system.id, file_system},
-                into: %{}
-          else
-            %{}
-          end
-
         {file_entries, file_entry_messages} =
           for file_entry_metadata <- file_entry_metadata, reduce: {[], []} do
             {file_entries, warnings} ->
-              case file_entry_metadata_to_attrs(file_entry_metadata, file_system_by_id) do
+              case file_entry_metadata_to_attrs(file_entry_metadata) do
                 {:ok, file_entry} -> {[file_entry | file_entries], warnings}
                 {:error, message} -> {file_entries, [message | warnings]}
               end
@@ -478,31 +469,35 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
-  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}, _file_system_by_id) do
+  defp file_entry_metadata_to_attrs(%{"type" => "attachment", "name" => name}) do
     {:ok, %{type: :attachment, name: name}}
   end
 
-  defp file_entry_metadata_to_attrs(
-         %{
-           "type" => "file",
-           "name" => name,
-           "file" => %{"file_system_id" => file_system_id, "path" => path}
-         },
-         file_system_by_id
-       ) do
-    if file_system = file_system_by_id[file_system_id] do
-      file = Livebook.FileSystem.File.new(file_system, path)
-      {:ok, %{type: :file, name: name, file: file}}
-    else
-      {:error, "skipping file #{name}, since it points to an unknown file storage"}
-    end
+  defp file_entry_metadata_to_attrs(%{
+         "type" => "file",
+         "name" => name,
+         "file" => %{
+           "file_system_id" => file_system_id,
+           "file_system_type" => file_system_type,
+           "path" => path
+         }
+       }) do
+    file = %Livebook.FileSystem.File{
+      file_system_id: file_system_id,
+      file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+      path: path,
+      origin_pid: self()
+    }
+
+    {:ok, %{type: :file, name: name, file: file}}
   end
 
-  defp file_entry_metadata_to_attrs(
-         %{"type" => "url", "name" => name, "url" => url},
-         _file_system_by_id
-       ) do
+  defp file_entry_metadata_to_attrs(%{"type" => "url", "name" => name, "url" => url}) do
     {:ok, %{type: :url, name: name, url: url}}
+  end
+
+  defp file_entry_metadata_to_attrs(_other) do
+    {:error, "discarding file entry in invalid format"}
   end
 
   defp section_metadata_to_attrs(metadata) do

@@ -6,10 +6,10 @@ defmodule LivebookWeb.FileSystemHelpers do
   @doc """
   Formats the given file system into a short name.
   """
-  def file_system_name(file_system)
+  def file_system_name(file_system_module)
 
-  def file_system_name(%FileSystem.Local{}), do: "Disk"
-  def file_system_name(%FileSystem.S3{}), do: "S3"
+  def file_system_name(FileSystem.Local), do: "Disk"
+  def file_system_name(FileSystem.S3), do: "S3"
 
   @doc """
   Formats the given file system into a descriptive label.

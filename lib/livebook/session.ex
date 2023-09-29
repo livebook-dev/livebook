@@ -2652,29 +2652,28 @@ defmodule Livebook.Session do
   end
 
   defp file_entry_spec_from_file(file) do
-    if FileSystem.File.local?(file) do
-      if FileSystem.File.exists?(file) == {:ok, true} do
-        {:ok, %{type: :local, path: file.path}}
-      else
-        {:error, "no file exists at path #{inspect(file.path)}"}
-      end
-    else
-      spec =
-        case file.file_system do
-          %FileSystem.S3{} = file_system ->
-            "/" <> key = file.path
-
-            %{
-              type: :s3,
-              bucket_url: file_system.bucket_url,
-              region: file_system.region,
-              access_key_id: file_system.access_key_id,
-              secret_access_key: file_system.secret_access_key,
-              key: key
-            }
+    case file.file_system_module do
+      FileSystem.Local ->
+        case FileSystem.File.exists?(file) do
+          {:ok, true} -> {:ok, %{type: :local, path: file.path}}
+          {:ok, false} -> {:error, "no file exists at path #{inspect(file.path)}"}
+          {:error, error} -> {:error, error}
         end
 
-      {:ok, spec}
+      FileSystem.S3 ->
+        "/" <> key = file.path
+
+        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file) do
+          {:ok,
+           %{
+             type: :s3,
+             bucket_url: file_system.bucket_url,
+             region: file_system.region,
+             access_key_id: file_system.access_key_id,
+             secret_access_key: file_system.secret_access_key,
+             key: key
+           }}
+        end
     end
   end
 

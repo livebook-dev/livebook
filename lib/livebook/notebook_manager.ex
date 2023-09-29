@@ -100,14 +100,6 @@ defmodule Livebook.NotebookManager do
   end
 
   @doc """
-  Clears all information about notebooks from the removed file system.
-  """
-  @spec remove_file_system(Livebook.Utils.id()) :: :ok
-  def remove_file_system(file_system_id) do
-    GenServer.cast(__MODULE__, {:remove_file_system, file_system_id})
-  end
-
-  @doc """
   Updates the tracked notebook name for the given file.
 
   We track notebook names, so that we don't need to read and parse
@@ -121,6 +113,8 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def init(_opts) do
+    Livebook.Hubs.subscribe([:file_systems])
+
     {:ok, nil, {:continue, :load_state}}
   end
 
@@ -191,14 +185,6 @@ defmodule Livebook.NotebookManager do
     {:noreply, state, {:continue, :dump_state}}
   end
 
-  def handle_cast({:remove_file_system, file_system_id}, state = prev_state) do
-    recent_notebooks = remove_notebooks_on_file_system(state.recent_notebooks, file_system_id)
-    starred_notebooks = remove_notebooks_on_file_system(state.starred_notebooks, file_system_id)
-    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
-    broadcast_changes(state, prev_state)
-    {:noreply, state, {:continue, :dump_state}}
-  end
-
   def handle_cast({:update_notebook_name, file, name}, state = prev_state) do
     recent_notebooks = update_notebook_names(state.recent_notebooks, file, name)
     starred_notebooks = update_notebook_names(state.starred_notebooks, file, name)
@@ -207,8 +193,19 @@ defmodule Livebook.NotebookManager do
     {:noreply, state, {:continue, :dump_state}}
   end
 
+  @impl true
+  def handle_info({:file_system_deleted, file_system}, state = prev_state) do
+    recent_notebooks = remove_notebooks_on_file_system(state.recent_notebooks, file_system.id)
+    starred_notebooks = remove_notebooks_on_file_system(state.starred_notebooks, file_system.id)
+    state = %{state | recent_notebooks: recent_notebooks, starred_notebooks: starred_notebooks}
+    broadcast_changes(state, prev_state)
+    {:noreply, state, {:continue, :dump_state}}
+  end
+
+  def handle_info(_message, state), do: {:noreply, state}
+
   defp remove_notebooks_on_file_system(notebook_infos, file_system_id) do
-    Enum.reject(notebook_infos, &(&1.file.file_system.id == file_system_id))
+    Enum.reject(notebook_infos, &(&1.file.file_system_id == file_system_id))
   end
 
   defp update_notebook_names(notebook_infos, file, name) do
@@ -243,38 +240,42 @@ defmodule Livebook.NotebookManager do
         _ -> %{}
       end
 
-    file_systems =
-      Livebook.Storage.all(:file_systems)
-      |> Enum.sort_by(& &1.bucket_url)
-      |> Enum.map(fn fields -> Livebook.FileSystems.load(fields.type, fields) end)
-
-    file_systems = [Livebook.Config.local_file_system() | file_systems]
-
-    file_system_by_id =
-      for file_system <- file_systems,
-          do: {file_system.id, file_system},
-          into: %{}
-
     %{
-      recent_notebooks: load_notebook_infos(attrs[:recent_notebooks], file_system_by_id),
-      starred_notebooks: load_notebook_infos(attrs[:starred_notebooks], file_system_by_id)
+      recent_notebooks: load_notebook_infos(attrs[:recent_notebooks]),
+      starred_notebooks: load_notebook_infos(attrs[:starred_notebooks])
     }
   end
 
-  defp load_notebook_infos(nil, _file_system_by_id), do: []
+  defp load_notebook_infos(nil), do: []
 
-  defp load_notebook_infos(notebook_infos, file_system_by_id) do
+  defp load_notebook_infos(notebook_infos) do
     for %{file: file, name: name, added_at: added_at} <- notebook_infos,
-        file = load_file(file, file_system_by_id),
+        file = load_file(file),
         added_at = load_datetime(added_at) do
       %{file: file, name: name, added_at: added_at}
     end
   end
 
-  defp load_file(%{file_system_id: file_system_id, path: path}, file_system_by_id) do
-    if file_system = file_system_by_id[file_system_id] do
-      %FileSystem.File{file_system: file_system, path: path}
-    end
+  defp load_file(%{file_system_id: file_system_id, file_system_type: file_system_type, path: path}) do
+    %FileSystem.File{
+      file_system_id: file_system_id,
+      file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
+      path: path,
+      origin_pid: self()
+    }
+  end
+
+  # TODO: remove on Livebook v0.12
+  # NotebookManager starts before we run migrations, so we have a
+  # fallback here instead
+  defp load_file(%{file_system_id: file_system_id, path: path}) do
+    file_system_type =
+      case file_system_id do
+        "local" -> "local"
+        "s3-" <> _ -> "s3"
+      end
+
+    load_file(%{file_system_id: "local", path: path, file_system_type: file_system_type})
   end
 
   defp load_datetime(datetime) do
@@ -301,6 +302,10 @@ defmodule Livebook.NotebookManager do
   end
 
   defp dump_file(file) do
-    %{file_system_id: file.file_system.id, path: file.path}
+    %{
+      file_system_id: file.file_system_id,
+      file_system_type: Livebook.FileSystems.module_to_type(file.file_system_module),
+      path: file.path
+    }
   end
 end

@@ -1221,7 +1221,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   describe "file entries" do
     test "imports file entries" do
       markdown = """
-      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"file_entries":[{"name":"data.csv","type":"url","url":"https://example.com/data.csv"},{"file":{"file_system_id":"local","file_system_type":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"},{"name":"image.jpg","type":"attachment"}]} -->
 
       # My Notebook
       """
@@ -1235,7 +1235,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  },
@@ -1244,25 +1244,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              } = notebook
     end
 
-    test "skips file entries from unknown file system" do
-      markdown = """
-      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"s3-nonexistent","path":"/document.pdf"},"name":"document.pdf","type":"file"}]} -->
-
-      # My Notebook
-      """
-
-      {notebook, messages} = Import.notebook_from_livemd(markdown)
-
-      assert %Notebook{file_entries: []} = notebook
-
-      assert messages == [
-               "skipping file document.pdf, since it points to an unknown file storage"
-             ]
-    end
-
     test "imports :file file entries with quarantine when no stamp is given" do
       markdown = """
-      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"}]} -->
+      <!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"#{p("/document.pdf")}"},"name":"document.pdf","type":"file"}]} -->
 
       # My Notebook
       """
@@ -1275,7 +1259,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  }
@@ -1310,7 +1294,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/other.pdf")
                    }
                  }
@@ -1343,7 +1327,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document2.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  },
@@ -1351,7 +1335,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    type: :file,
                    name: "document1.pdf",
                    file: %Livebook.FileSystem.File{
-                     file_system: %Livebook.FileSystem.Local{},
+                     file_system_module: Livebook.FileSystem.Local,
                      path: p("/document.pdf")
                    }
                  }

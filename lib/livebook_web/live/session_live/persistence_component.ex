@@ -12,17 +12,17 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
   @impl true
   def update(%{event: {:set_file, file, _info}}, socket) do
-    current_file_system = socket.assigns.draft_file.file_system
+    current_file = socket.assigns.draft_file
 
     autosave_interval_s =
-      case file.file_system do
-        ^current_file_system ->
+      cond do
+        FileSystem.File.same_file_system?(file, current_file) ->
           socket.assigns.new_attrs.autosave_interval_s
 
-        %FileSystem.Local{} ->
+        FileSystem.File.local?(file) ->
           Livebook.Notebook.default_autosave_interval_s()
 
-        _other ->
+        true ->
           nil
       end
 
