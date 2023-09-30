@@ -137,7 +137,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
             range: nil | %{from: pos_integer(), to: pos_integer()}
           }
   def locate_identifier(line, column, intellisense_context, node) do
-    case :erpc.call(node, Code.Fragment, :surround_context, [line, {1, column}]) do
+    case Code.Fragment.surround_context(line, {1, column}) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
         fragment = String.slice(line, 0, to - 1)
 
@@ -361,9 +361,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp container_context(code, ctx) do
-    node = ctx.node
-
-    case :erpc.call(node, Code.Fragment, :container_cursor_to_quoted, [code]) do
+    case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
