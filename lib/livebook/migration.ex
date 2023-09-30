@@ -1,11 +1,13 @@
 defmodule Livebook.Migration do
   use GenServer, restart: :temporary
 
-  # We version our storage so we can remove migrations in the future.
-  # We also documented tables and IDs used in previous versions,
+  # We version our storage so we can remove migrations in the future
+  # by deleting the whole storage when finding too old versions.
+  #
+  # We also document tables and IDs used in previous versions,
   # as those must be avoided in the future.
   #
-  # ## v1 (Livebook v0.11)
+  # ## v1 (Livebook v0.11, Oct 2023)
   #
   # * Deleted hubs.local-host
   # * Migrated secrets to hub_secrets
@@ -20,9 +22,9 @@ defmodule Livebook.Migration do
 
   def init(:ok) do
     insert_personal_hub()
-    add_personal_hub_secret_key()
 
     # v1
+    add_personal_hub_secret_key()
     delete_local_host_hub()
     move_app_secrets_to_personal_hub()
 
