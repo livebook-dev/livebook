@@ -1350,49 +1350,52 @@ defmodule Livebook.IntellisenseTest do
     test "returns nil if there are no matches" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_details("Unknown.unknown()", 2, context)
+      assert nil == Intellisense.get_details("Unknown.unknown()", 2, context, node())
     end
 
     test "returns subject range" do
       context = eval(do: nil)
 
       assert %{range: %{from: 1, to: 18}} =
-               Intellisense.get_details("Integer.to_string(10)", 15, context)
+               Intellisense.get_details("Integer.to_string(10)", 15, context, node())
 
       assert %{range: %{from: 1, to: 8}} =
-               Intellisense.get_details("Integer.to_string(10)", 2, context)
+               Intellisense.get_details("Integer.to_string(10)", 2, context, node())
     end
 
     test "does not return duplicate details for functions with default arguments" do
       context = eval(do: nil)
 
-      assert %{contents: [_]} = Intellisense.get_details("Integer.to_string(10)", 15, context)
+      assert %{contents: [_]} =
+               Intellisense.get_details("Integer.to_string(10)", 15, context, node())
     end
 
     test "returns details only for exactly matching identifiers" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_details("Enum.ma", 6, context)
+      assert nil == Intellisense.get_details("Enum.ma", 6, context, node())
     end
 
     test "returns full docs" do
       context = eval(do: nil)
 
-      assert %{contents: [content]} = Intellisense.get_details("Enum.map", 6, context)
+      assert %{contents: [content]} = Intellisense.get_details("Enum.map", 6, context, node())
       assert content =~ "## Examples"
     end
 
     test "returns deprecated docs" do
       context = eval(do: nil)
 
-      assert %{contents: [content | _]} = Intellisense.get_details("Enum.chunk", 6, context)
+      assert %{contents: [content | _]} =
+               Intellisense.get_details("Enum.chunk", 6, context, node())
+
       assert content =~ "Use Enum.chunk_every/2 instead"
     end
 
     test "returns since docs" do
       context = eval(do: nil)
 
-      assert %{contents: [content]} = Intellisense.get_details("then", 2, context)
+      assert %{contents: [content]} = Intellisense.get_details("then", 2, context, node())
       assert content =~ "Since 1.12.0"
     end
 
@@ -1400,13 +1403,15 @@ defmodule Livebook.IntellisenseTest do
     test "returns full Erlang docs" do
       context = eval(do: nil)
 
-      assert %{contents: [file]} = Intellisense.get_details(":file.read()", 2, context)
+      assert %{contents: [file]} = Intellisense.get_details(":file.read()", 2, context, node())
       assert file =~ "## Performance"
 
-      assert %{contents: [file_read]} = Intellisense.get_details(":file.read()", 8, context)
+      assert %{contents: [file_read]} =
+               Intellisense.get_details(":file.read()", 8, context, node())
+
       assert file_read =~ "Typical error reasons:"
 
-      assert %{contents: [crypto]} = Intellisense.get_details(":crypto", 5, context)
+      assert %{contents: [crypto]} = Intellisense.get_details(":crypto", 5, context, node())
       assert crypto =~ "This module provides a set of cryptographic functions."
     end
 
@@ -1414,27 +1419,30 @@ defmodule Livebook.IntellisenseTest do
     test "properly renders Erlang signature types list" do
       context = eval(do: nil)
 
-      assert %{contents: [file_read]} = Intellisense.get_details(":odbc.connect()", 8, context)
+      assert %{contents: [file_read]} =
+               Intellisense.get_details(":odbc.connect()", 8, context, node())
+
       assert file_read =~ "Ref = connection_reference()"
     end
 
     test "properly parses unicode" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_details("msg = '🍵'", 8, context)
+      assert nil == Intellisense.get_details("msg = '🍵'", 8, context, node())
     end
 
     test "handles operators" do
       context = eval(do: nil)
 
-      assert %{contents: [match_op]} = Intellisense.get_details("x = 1", 3, context)
+      assert %{contents: [match_op]} = Intellisense.get_details("x = 1", 3, context, node())
       assert match_op =~ "Match operator."
     end
 
     test "handles local calls" do
       context = eval(do: nil)
 
-      assert %{contents: [to_string_fn]} = Intellisense.get_details("to_string(1)", 3, context)
+      assert %{contents: [to_string_fn]} =
+               Intellisense.get_details("to_string(1)", 3, context, node())
 
       assert to_string_fn =~ "Converts the argument to a string"
     end
@@ -1442,73 +1450,91 @@ defmodule Livebook.IntellisenseTest do
     test "returns nil for bitstring modifiers" do
       context = eval(do: nil)
 
-      assert nil == Intellisense.get_details("<<x :: integer>>", 6, context)
-      assert nil == Intellisense.get_details("<<x :: integer>>", 10, context)
+      assert nil == Intellisense.get_details("<<x :: integer>>", 6, context, node())
+      assert nil == Intellisense.get_details("<<x :: integer>>", 10, context, node())
     end
 
     test "includes full module name in the docs" do
       context = eval(do: nil)
 
-      assert %{contents: [date_range]} = Intellisense.get_details("Date.Range", 8, context)
+      assert %{contents: [date_range]} =
+               Intellisense.get_details("Date.Range", 8, context, node())
+
       assert date_range =~ "Date.Range"
     end
 
     test "returns module-prepended type signatures" do
       context = eval(do: nil)
 
-      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context)
+      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context, node())
       assert type =~ "Date.t()"
 
-      assert %{contents: [type]} = Intellisense.get_details(":code.load_error_rsn", 8, context)
+      assert %{contents: [type]} =
+               Intellisense.get_details(":code.load_error_rsn", 8, context, node())
+
       assert type =~ ":code.load_error_rsn()"
     end
 
     test "includes type specs" do
       context = eval(do: nil)
 
-      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context)
+      assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context, node())
       assert type =~ "@type t() :: %Date"
 
-      assert %{contents: [type]} = Intellisense.get_details(":code.load_error_rsn", 8, context)
+      assert %{contents: [type]} =
+               Intellisense.get_details(":code.load_error_rsn", 8, context, node())
+
       assert type =~ "@type load_error_rsn() ::"
 
       # opaque types are listed without internal definition
-      assert %{contents: [type]} = Intellisense.get_details("MapSet.internal", 10, context)
+      assert %{contents: [type]} =
+               Intellisense.get_details("MapSet.internal", 10, context, node())
+
       assert type =~ "@opaque internal(value)\n"
     end
 
     test "returns link to online documentation" do
       context = eval(do: nil)
 
-      assert %{contents: [content]} = Intellisense.get_details("Integer", 1, context)
+      assert %{contents: [content]} = Intellisense.get_details("Integer", 1, context, node())
       assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html"
 
       assert %{contents: [content]} =
-               Intellisense.get_details("Integer.to_string(10)", 15, context)
+               Intellisense.get_details("Integer.to_string(10)", 15, context, node())
 
       assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html#to_string/2"
 
       # test elixir types
-      assert %{contents: [content]} = Intellisense.get_details("GenServer.on_start", 12, context)
+      assert %{contents: [content]} =
+               Intellisense.get_details("GenServer.on_start", 12, context, node())
+
       assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/GenServer.html#t:on_start/0"
 
       # test erlang types
-      assert %{contents: [content]} = Intellisense.get_details(":code.load_ret", 7, context)
+      assert %{contents: [content]} =
+               Intellisense.get_details(":code.load_ret", 7, context, node())
+
       assert content =~ ~r"https://www.erlang.org/doc/man/code.html#type-load_ret"
 
       # test erlang modules on hexdocs
-      assert %{contents: [content]} = Intellisense.get_details(":telemetry.span", 13, context)
+      assert %{contents: [content]} =
+               Intellisense.get_details(":telemetry.span", 13, context, node())
+
       assert content =~ ~r"https://hexdocs.pm/telemetry/[^/]+/telemetry.html#span/3"
 
       # test erlang applications
-      assert %{contents: [content]} = Intellisense.get_details(":code", 3, context)
+      assert %{contents: [content]} = Intellisense.get_details(":code", 3, context, node())
       assert content =~ ~r"https://www.erlang.org/doc/man/code.html"
 
-      assert %{contents: [content]} = Intellisense.get_details(":code.load_binary", 10, context)
+      assert %{contents: [content]} =
+               Intellisense.get_details(":code.load_binary", 10, context, node())
+
       assert content =~ ~r"https://www.erlang.org/doc/man/code.html#load_binary-3"
 
       # test erlang modules
-      assert %{contents: [content]} = Intellisense.get_details(":atomics.new", 11, context)
+      assert %{contents: [content]} =
+               Intellisense.get_details(":atomics.new", 11, context, node())
+
       assert content =~ ~r"https://www.erlang.org/doc/man/atomics.html#new-2"
     end
   end
