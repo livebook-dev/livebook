@@ -256,26 +256,22 @@ defmodule Livebook.NotebookManager do
     end
   end
 
-  defp load_file(%{file_system_id: file_system_id, file_system_type: file_system_type, path: path}) do
+  defp load_file(%{file_system_id: file_system_id, path: path} = file) do
+    # In the past, not all files had a file_system_type, so we need to detect one from the id.
+    file_system_type =
+      Map.get_lazy(file, :file_system_type, fn ->
+        case file_system_id do
+          "local" -> "local"
+          "s3-" <> _ -> "s3"
+        end
+      end)
+
     %FileSystem.File{
       file_system_id: file_system_id,
       file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
       path: path,
       origin_pid: self()
     }
-  end
-
-  # TODO: remove on Livebook v0.12
-  # NotebookManager starts before we run migrations, so we have a
-  # fallback here instead
-  defp load_file(%{file_system_id: file_system_id, path: path}) do
-    file_system_type =
-      case file_system_id do
-        "local" -> "local"
-        "s3-" <> _ -> "s3"
-      end
-
-    load_file(%{file_system_id: "local", path: path, file_system_type: file_system_type})
   end
 
   defp load_datetime(datetime) do

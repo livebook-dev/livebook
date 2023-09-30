@@ -86,10 +86,7 @@ defmodule Livebook.FileSystem.S3 do
 
   def id(_, nil), do: nil
   def id(nil, bucket_url), do: hashed_id(bucket_url)
-
-  # For Personal hub we keep unprefixed ids
   def id(@personal_id, bucket_url), do: hashed_id(bucket_url)
-
   def id(hub_id, bucket_url), do: "#{hub_id}-#{hashed_id(bucket_url)}"
 
   defp hashed_id(bucket_url) do
