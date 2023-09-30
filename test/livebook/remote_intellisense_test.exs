@@ -32,7 +32,7 @@ defmodule Livebook.RemoteIntellisenseTest do
       defmodule Elixir.RemoteModule do
         @compile {:autoload, false}
         @moduledoc """
-        Remote module docs
+        RemoteModule module docs
         """
 
         @doc """
@@ -73,7 +73,7 @@ defmodule Livebook.RemoteIntellisenseTest do
                label: "RemoteModule",
                kind: :module,
                detail: "module",
-               documentation: "Remote module docs",
+               documentation: "RemoteModule module docs",
                insert_text: "RemoteModule"
              } in Intellisense.get_completion_items("RemoteModule", context, node)
     end
@@ -102,6 +102,13 @@ defmodule Livebook.RemoteIntellisenseTest do
                  insert_text: "all_keys($0)"
                }
              ] = Intellisense.get_completion_items(":mnesia.all", context, node)
+    end
+
+    test "get details", %{node: node} do
+      context = eval(do: nil)
+
+      assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
+      assert content =~ "RemoteModule module docs"
     end
   end
 end

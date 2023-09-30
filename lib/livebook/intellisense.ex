@@ -41,8 +41,8 @@ defmodule Livebook.Intellisense do
     %{items: items}
   end
 
-  def handle_request({:details, line, column}, context, _node) do
-    get_details(line, column, context)
+  def handle_request({:details, line, column}, context, node) do
+    get_details(line, column, context, node)
   end
 
   def handle_request({:signature, hint}, context, node) do
@@ -409,9 +409,11 @@ defmodule Livebook.Intellisense do
   Returns detailed information about an identifier located
   in `column` in `line`.
   """
-  @spec get_details(String.t(), pos_integer(), context()) :: Runtime.details_response() | nil
-  def get_details(line, column, context) do
-    %{matches: matches, range: range} = IdentifierMatcher.locate_identifier(line, column, context)
+  @spec get_details(String.t(), pos_integer(), context(), node()) ::
+          Runtime.details_response() | nil
+  def get_details(line, column, context, node) do
+    %{matches: matches, range: range} =
+      IdentifierMatcher.locate_identifier(line, column, context, node)
 
     case Enum.filter(matches, &include_in_details?/1) do
       [] ->

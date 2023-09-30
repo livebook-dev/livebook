@@ -131,13 +131,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   The function returns range of columns where the identifier
   is located and a list of matching identifier items.
   """
-  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context()) ::
+  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context(), node()) ::
           %{
             matches: list(identifier_item()),
             range: nil | %{from: pos_integer(), to: pos_integer()}
           }
-  def locate_identifier(line, column, intellisense_context) do
-    case Code.Fragment.surround_context(line, {1, column}) do
+  def locate_identifier(line, column, intellisense_context, node) do
+    case :erpc.call(node, Code.Fragment, :surround_context, [line, {1, column}]) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
         fragment = String.slice(line, 0, to - 1)
 
@@ -146,7 +146,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           intellisense_context: intellisense_context,
           matcher: @exact_matcher,
           type: :locate,
-          node: node()
+          node: node
         }
 
         matches = context_to_matches(context, ctx)
@@ -361,7 +361,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp container_context(code, ctx) do
-    case Code.Fragment.container_cursor_to_quoted(code) do
+    node = ctx.node
+
+    case :erpc.call(node, Code.Fragment, :container_cursor_to_quoted, [code]) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
