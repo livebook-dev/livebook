@@ -305,6 +305,12 @@ defmodule LivebookWeb.SessionLive do
                   </button>
                 </:toggle>
                 <.menu_item>
+                  <.link patch={~p"/new"} role="menuitem">
+                    <.remix_icon icon="add-line" />
+                    <span>New Notebook</span>
+                  </.link>
+                </.menu_item>
+                <.menu_item>
                   <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
                     <.remix_icon icon="download-2-line" />
                     <span>Export</span>
