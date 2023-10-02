@@ -13,8 +13,11 @@ defmodule Livebook.Migration do
   # * Migrated secrets to hub_secrets
   # * Migrated filesystems to file_systems
   # * Migrated settings.global.default_file_system_id to settings.global.default_dir
+  # * Added :file_system_type to starred/recent files
   #
   @migration_version 1
+
+  alias Livebook.Storage
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, :ok)
@@ -27,18 +30,19 @@ defmodule Livebook.Migration do
     add_personal_hub_secret_key()
     delete_local_host_hub()
     move_app_secrets_to_personal_hub()
+    add_file_system_type_to_notebook_manager_files()
 
     # TODO: remove on Livebook v0.12
     update_file_systems_to_deterministic_ids()
     ensure_new_file_system_attributes()
     move_default_file_system_id_to_default_dir()
 
-    Livebook.Storage.insert(:system, "global", migration_version: @migration_version)
+    Storage.insert(:system, "global", migration_version: @migration_version)
     :ignore
   end
 
   defp delete_local_host_hub() do
-    Livebook.Storage.delete(:hubs, "local-host")
+    Storage.delete(:hubs, "local-host")
   end
 
   defp insert_personal_hub() do
@@ -53,7 +57,7 @@ defmodule Livebook.Migration do
   end
 
   defp move_app_secrets_to_personal_hub() do
-    for %{name: name, value: value} <- Livebook.Storage.all(:secrets) do
+    for %{name: name, value: value} <- Storage.all(:secrets) do
       secret = %Livebook.Secrets.Secret{
         name: name,
         value: value,
@@ -61,14 +65,14 @@ defmodule Livebook.Migration do
       }
 
       Livebook.Hubs.Personal.set_secret(secret)
-      Livebook.Storage.delete(:secrets, name)
+      Storage.delete(:secrets, name)
     end
   end
 
   defp add_personal_hub_secret_key() do
-    with :error <- Livebook.Storage.fetch_key(:hubs, Livebook.Hubs.Personal.id(), :secret_key) do
+    with :error <- Storage.fetch_key(:hubs, Livebook.Hubs.Personal.id(), :secret_key) do
       secret_key = Livebook.Hubs.Personal.generate_secret_key()
-      Livebook.Storage.insert(:hubs, Livebook.Hubs.Personal.id(), secret_key: secret_key)
+      Storage.insert(:hubs, Livebook.Hubs.Personal.id(), secret_key: secret_key)
     end
   end
 
@@ -80,7 +84,7 @@ defmodule Livebook.Migration do
   # very old file systems (which can be re-added).
   # TODO: remove on Livebook v0.12
   defp update_file_systems_to_deterministic_ids() do
-    case Livebook.Storage.all(:filesystem) do
+    case Storage.all(:filesystem) do
       [] ->
         :ok
 
@@ -101,15 +105,15 @@ defmodule Livebook.Migration do
             # At this point S3 is the only file system we store
             file_system = Livebook.FileSystems.load("s3", config)
             Livebook.Hubs.Personal.save_file_system(file_system)
-            Livebook.Storage.delete(:filesystem, old_id)
+            Storage.delete(:filesystem, old_id)
             {old_id, file_system.id}
           end
 
         # Remap default file system id
         with {:ok, default_file_system_id} <-
-               Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id),
+               Storage.fetch_key(:settings, "global", :default_file_system_id),
              {:ok, new_id} <- Map.fetch(id_mapping, default_file_system_id) do
-          Livebook.Storage.insert(:settings, "global", default_file_system_id: new_id)
+          Storage.insert(:settings, "global", default_file_system_id: new_id)
         end
     end
   end
@@ -118,7 +122,7 @@ defmodule Livebook.Migration do
   # we add this migration so it also applies to people using Livebook main.
   # TODO: remove on Livebook v0.12
   defp ensure_new_file_system_attributes() do
-    for attrs <- Livebook.Storage.all(:file_systems) do
+    for attrs <- Storage.all(:file_systems) do
       new_attrs = %{
         hub_id: Livebook.Hubs.Personal.id(),
         external_id: nil,
@@ -127,20 +131,45 @@ defmodule Livebook.Migration do
 
       attrs = Map.merge(new_attrs, attrs)
 
-      Livebook.Storage.insert(:file_systems, attrs.id, Map.to_list(attrs))
+      Storage.insert(:file_systems, attrs.id, Map.to_list(attrs))
     end
   end
 
   # TODO: remove on Livebook v0.12
   defp move_default_file_system_id_to_default_dir() do
     with {:ok, default_file_system_id} <-
-           Livebook.Storage.fetch_key(:settings, "global", :default_file_system_id) do
+           Storage.fetch_key(:settings, "global", :default_file_system_id) do
       Livebook.Hubs.get_file_systems()
       |> Enum.find(&(&1.id == default_file_system_id))
       |> Livebook.FileSystem.File.new()
       |> Livebook.Settings.set_default_dir()
 
-      Livebook.Storage.delete_key(:settings, "global", :default_file_system_id)
+      Storage.delete_key(:settings, "global", :default_file_system_id)
     end
+  end
+
+  # In the past, not all files had a file_system_type, so we need to detect one from the id.
+  defp add_file_system_type_to_notebook_manager_files() do
+    with {:ok, %{recent_notebooks: _, starred_notebooks: _} = attrs} <-
+           Storage.fetch(:notebook_manager, "global") do
+      attrs =
+        attrs
+        |> update_in([:recent_notebooks, Access.all(), :file], &add_file_system_type/1)
+        |> update_in([:starred_notebooks, Access.all(), :file], &add_file_system_type/1)
+
+      Storage.insert(:notebook_manager, "global", attrs)
+    end
+  end
+
+  defp add_file_system_type(file) do
+    file_system_type =
+      Map.get_lazy(file, :file_system_type, fn ->
+        case file.file_system_id do
+          "local" -> "local"
+          "s3-" <> _ -> "s3"
+        end
+      end)
+
+    Map.put(file, :file_system_type, file_system_type)
   end
 end

@@ -256,16 +256,7 @@ defmodule Livebook.NotebookManager do
     end
   end
 
-  defp load_file(%{file_system_id: file_system_id, path: path} = file) do
-    # In the past, not all files had a file_system_type, so we need to detect one from the id.
-    file_system_type =
-      Map.get_lazy(file, :file_system_type, fn ->
-        case file_system_id do
-          "local" -> "local"
-          "s3-" <> _ -> "s3"
-        end
-      end)
-
+  defp load_file(%{file_system_id: file_system_id, file_system_type: file_system_type, path: path}) do
     %FileSystem.File{
       file_system_id: file_system_id,
       file_system_module: Livebook.FileSystems.type_to_module(file_system_type),
