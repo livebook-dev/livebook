@@ -224,17 +224,23 @@ let's check it out.
 ### Communication and automation of Elixir systems
 
 You may also deploy notebooks as applications that automate and monitor
-live Elixir systems. You will use the same techniques
-[as in the deploy guide](/learn/notebooks/deploy-apps) and from there
-directly connect to your cluster.
+live Elixir systems. By cliking on "+ Smart cell", you will find Livebook
+provides a "Remote execution" widget, that allows you to configure the
+node name, cookie, and the code you want to execute on the remote node.
 
-To do so, you need to ensure Livebook is deployed in the same network
-as your existing system. Then use [`Node.set_cookie/2`](https://hexdocs.pm/elixir/Node.html#set_cookie/2)
-with the node you want to connect to and its cookie, and finally
-explicitly call [`Node.connect/1`](https://hexdocs.pm/elixir/Node.html#connect/1)
-to confirm the connection can be established successfully.
-To execute code and retrieve data from the live node, use
-[the `:erpc` module](https://www.erlang.org/doc/man/erpc.html).
+The node and cookie information are configured directly in the production
+system you want to connect to. For example, to connect to a
+[Phoenix application](https://phoenixframework.org/) running on your machine,
+you may start it as follows:
+
+```shell
+$ iex --sname phoenix-app --cookie secret -S mix phx.server
+```
+
+With this information in hand, you can query and automate tasks within
+existing Elixir systems. You may also mix remote execution with Livebook's
+rich features to [deploy applications](/learn/notebooks/deploy-apps)
+that interact with those clusters.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -245,33 +251,25 @@ responsible for evaluating your code. You can choose the runtime by clicking
 the "Runtime" icon (<i class="ri-livebook-runtime"></i>) on the sidebar
 (or by using the <kbd>s</kbd> <kbd>r</kbd> keyboard shortcut).
 
-By default, a new Elixir runtime is started (similarly to starting `iex`).
-You can click reconnect whenever you want to discard the current runtime and
-start a new one.
+By default, a new Elixir runtime is started (similarly to starting `iex`)
+for each notebook. You can click reconnect whenever you want to discard the
+current runtime and start a new one.
 
-You can also manually *attach* to an existing distributed node by picking
-the "Attached Node" runtime. To do so, you will need the Erlang Name of
-the external node and its Erlang Cookie. For example, you can start a
-[Phoenix application](https://phoenixframework.org/) as follows:
+You can also manually *attach* to an existing node by picking the "Attached Node"
+runtime. While in the previous section we used the "Remove execution" smart cell
+to connect the default Livebook runtime to an existing node, the "Attached Node"
+will make it so the Livebook runtime itself runs within the external node.
 
-```shell
-$ iex --sname phoenix-app --cookie secret -S mix phx.server
-```
-
-Now open up a new notebook and click the "Runtime" icon on the sidebar.
+To do so, open up a new notebook and click the "Runtime" icon on the sidebar.
 Click to "Configure" the runtime and choose "Attached node". Input the
-name and cookie as above and you should be ready to connect to it.
-Any code that you execute in the notebook now runs within the Phoenix
-application you connected to.
+name and cookie from the remote node and you should be ready to connect
+to it. Once connected, be careful: any code that you execute in the notebook
+now runs within the connected application. You are also limited on actions
+you may perform. For example, you can't install dependencies (nor that would
+be a good idea on a running system).
 
 You may also [connect your local Livebook instance to a node running in
 production depending on your platform](https://fly.io/docs/elixir/advanced-guides/connect-livebook-to-your-app/).
-Once connected, Livebook can run any code within your production nodes
-(similar to a remote shell) which can be useful to debug and run checks
-on live systems.
-
-Attached nodes can't install new dependencies on a attached runtime
-and, in general, we recommend it only for debugging of external system.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -312,7 +310,7 @@ but in Erlang:
 ```
 
 We are just beginning the Erlang integration and contributions to
-enrich the support are welcome.
+further enrich it are welcome.
 
 ## Evaluation vs compilation
 
