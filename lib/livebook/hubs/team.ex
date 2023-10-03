@@ -5,15 +5,15 @@ defmodule Livebook.Hubs.Team do
   defmodule Offline do
     use Ecto.Schema
 
-    alias Livebook.Secrets.Secret
-
     @type t :: %__MODULE__{
-            secrets: list(Secret.t())
+            file_systems: list(Livebook.FileSystem.t()),
+            secrets: list(Livebook.Secrets.Secret.t())
           }
 
     @primary_key false
     embedded_schema do
       field :secrets, {:array, :map}, default: []
+      field :file_systems, {:array, :map}, default: []
     end
   end
 
