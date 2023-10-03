@@ -137,8 +137,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_secret(team, secret), do: Teams.delete_secret(team, secret)
 
   def connection_error(team) do
-    reason = TeamClient.get_connection_error(team.id)
-    "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    if reason = TeamClient.get_connection_error(team.id) do
+      "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    end
   end
 
   def notebook_stamp(team, notebook_source, metadata) do
