@@ -390,6 +390,8 @@ const Session = {
         this.reconnectRuntime();
       } else if (keyBuffer.tryMatch(["Escape", "Escape"])) {
         this.setFocusedEl(null);
+      } else if (keyBuffer.tryMatch(["g", "n"])) {
+        this.newNotebook();
       } else if (keyBuffer.tryMatch(["?"])) {
         this.showShortcuts();
       } else if (
@@ -872,6 +874,10 @@ const Session = {
 
     const actionEl = this.el.querySelector(`[data-btn-package-search]`);
     actionEl && actionEl.click();
+  },
+
+  newNotebook() {
+    this.pushEvent("new", {});
   },
 
   saveNotebook() {
