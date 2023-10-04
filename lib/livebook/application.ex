@@ -258,12 +258,11 @@ defmodule Livebook.Application do
             "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
           )
 
+      {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
       id = "team-#{name}"
 
       secrets =
         if encrypted_secrets do
-          {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
-
           case Livebook.Teams.decrypt(encrypted_secrets, secret_key, sign_secret) do
             {:ok, json} ->
               for {name, value} <- Jason.decode!(json),
@@ -284,8 +283,6 @@ defmodule Livebook.Application do
 
       file_systems =
         if encrypted_file_systems do
-          {secret_key, sign_secret} = Livebook.Teams.derive_keys(teams_key)
-
           case Livebook.Teams.decrypt(encrypted_file_systems, secret_key, sign_secret) do
             {:ok, json} ->
               for %{"type" => type} = dumped_data <- Jason.decode!(json),

@@ -541,9 +541,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
       ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
-      ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
-      ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
       """
+
+    secrets = secrets_env(socket)
+    file_systems = file_systems_env(socket)
 
     apps =
       """
@@ -556,7 +557,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       """
 
     zta = zta_env(socket.assigns.zta)
-    dockerfile = if zta, do: base <> zta <> apps, else: base <> apps
+
+    dockerfile =
+      for block <- [secrets, file_systems, zta],
+          not is_nil(block),
+          reduce: base,
+          do: (acc -> acc <> block)
+
+    dockerfile = dockerfile <> apps
+
     assign(socket, :dockerfile, dockerfile)
   end
 
@@ -600,6 +609,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   defp zta_env(%{"provider" => provider, "key" => key}) do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
+    """
+  end
+
+  defp secrets_env(%{assigns: %{secrets: []}}), do: nil
+
+  defp secrets_env(socket) do
+    """
+    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
+    """
+  end
+
+  defp file_systems_env(%{assigns: %{file_systems: []}}), do: nil
+
+  defp file_systems_env(socket) do
+    """
+    ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
     """
   end
 end
