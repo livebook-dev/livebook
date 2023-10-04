@@ -559,12 +559,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     zta = zta_env(socket.assigns.zta)
 
     dockerfile =
-      for block <- [secrets, file_systems, zta],
-          not is_nil(block),
-          reduce: base,
-          do: (acc -> acc <> block)
-
-    dockerfile = dockerfile <> apps
+      [base, secrets, file_systems, zta, apps]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join()
 
     assign(socket, :dockerfile, dockerfile)
   end
