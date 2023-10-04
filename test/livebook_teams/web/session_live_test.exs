@@ -332,5 +332,42 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       refute has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
       assert has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
     end
+
+    test "shows file system from offline hub", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      Livebook.Hubs.subscribe([:file_systems])
+
+      hub = offline_hub()
+      hub_id = hub.id
+      bucket_url = "https://#{hub.id}-file-system.s3.amazonaws.com"
+
+      file_system =
+        build(:fs_s3,
+          id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
+          bucket_url: bucket_url,
+          hub_id: hub_id,
+          external_id: "123"
+        )
+
+      put_offline_hub_file_system(file_system)
+      assert_receive {:file_system_created, ^file_system}
+
+      # loads the session page
+      {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
+
+      # change the hub to Personal
+      # and checks the file systems from Offline hub
+      Session.set_notebook_hub(session.pid, hub_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^hub_id}}
+
+      # targets the file system dropdown menu
+      file_system_menu = with_target(view, "#add-file-entry-select #file-system-menu-content")
+
+      # checks the file systems from Offline hub
+      assert has_element?(file_system_menu, "#file-system-local")
+      assert has_element?(file_system_menu, "#file-system-#{file_system.id}")
+
+      remove_offline_hub_file_system(file_system)
+    end
   end
 end

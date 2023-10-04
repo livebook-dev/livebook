@@ -5,15 +5,15 @@ defmodule Livebook.Hubs.Team do
   defmodule Offline do
     use Ecto.Schema
 
-    alias Livebook.Secrets.Secret
-
     @type t :: %__MODULE__{
-            secrets: list(Secret.t())
+            file_systems: list(Livebook.FileSystem.t()),
+            secrets: list(Livebook.Secrets.Secret.t())
           }
 
     @primary_key false
     embedded_schema do
       field :secrets, {:array, :map}, default: []
+      field :file_systems, {:array, :map}, default: []
     end
   end
 
@@ -137,8 +137,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_secret(team, secret), do: Teams.delete_secret(team, secret)
 
   def connection_error(team) do
-    reason = TeamClient.get_connection_error(team.id)
-    "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    if reason = TeamClient.get_connection_error(team.id) do
+      "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    end
   end
 
   def notebook_stamp(team, notebook_source, metadata) do

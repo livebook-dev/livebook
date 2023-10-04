@@ -53,7 +53,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutHelpers.topbar :if={not @hub_metadata.connected?} variant={:warning}>
+      <LayoutHelpers.topbar
+        :if={not @hub_metadata.connected? && Provider.connection_error(@hub)}
+        variant={:warning}
+      >
         <%= Provider.connection_error(@hub) %>
       </LayoutHelpers.topbar>
 
@@ -538,8 +541,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
       ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
-      ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
       """
+
+    secrets = secrets_env(socket)
+    file_systems = file_systems_env(socket)
 
     apps =
       """
@@ -552,21 +557,41 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       """
 
     zta = zta_env(socket.assigns.zta)
-    dockerfile = if zta, do: base <> zta <> apps, else: base <> apps
+
+    dockerfile =
+      [base, secrets, file_systems, zta, apps]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join()
+
     assign(socket, :dockerfile, dockerfile)
   end
 
   defp encrypt_secrets_to_dockerfile(socket) do
-    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
-
     secrets_map =
       for %{name: name, value: value} <- socket.assigns.secrets,
           into: %{},
           do: {name, value}
 
-    stringified_secrets = Jason.encode!(secrets_map)
+    encrypt_to_dockerfile(socket, secrets_map)
+  end
 
-    Livebook.Teams.encrypt(stringified_secrets, secret_key, sign_secret)
+  defp encrypt_file_systems_to_dockerfile(socket) do
+    file_systems =
+      for file_system <- socket.assigns.file_systems do
+        file_system
+        |> Livebook.FileSystem.dump()
+        |> Map.put_new(:type, Livebook.FileSystems.type(file_system))
+      end
+
+    encrypt_to_dockerfile(socket, file_systems)
+  end
+
+  defp encrypt_to_dockerfile(socket, data) do
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
+
+    data
+    |> Jason.encode!()
+    |> Livebook.Teams.encrypt(secret_key, sign_secret)
   end
 
   @zta_options for provider <- Livebook.Config.identity_providers(),
@@ -581,6 +606,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   defp zta_env(%{"provider" => provider, "key" => key}) do
     """
     ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
+    """
+  end
+
+  defp secrets_env(%{assigns: %{secrets: []}}), do: nil
+
+  defp secrets_env(socket) do
+    """
+    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
+    """
+  end
+
+  defp file_systems_env(%{assigns: %{file_systems: []}}), do: nil
+
+  defp file_systems_env(socket) do
+    """
+    ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
     """
   end
 end

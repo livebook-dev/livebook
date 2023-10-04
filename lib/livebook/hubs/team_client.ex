@@ -99,7 +99,13 @@ defmodule Livebook.Hubs.TeamClient do
   def init(%Hubs.Team{} = team) do
     derived_keys = Teams.derive_keys(team.teams_key)
 
-    {:ok, %__MODULE__{hub: team, secrets: team.offline.secrets, derived_keys: derived_keys}}
+    {:ok,
+     %__MODULE__{
+       hub: team,
+       secrets: team.offline.secrets,
+       file_systems: team.offline.file_systems,
+       derived_keys: derived_keys
+     }}
   end
 
   @impl true

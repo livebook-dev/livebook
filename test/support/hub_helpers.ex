@@ -100,6 +100,34 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
 
+  def put_offline_hub_file_system(file_system) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+    {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
+    %{name: name} = Livebook.FileSystem.external_metadata(file_system)
+    attrs = Livebook.FileSystem.dump(file_system)
+    json = Jason.encode!(attrs)
+    value = Livebook.Teams.encrypt(json, secret_key, sign_secret)
+
+    file_system_created =
+      LivebookProto.FileSystemCreated.new(
+        id: file_system.external_id,
+        name: name,
+        type: Livebook.FileSystems.type(file_system),
+        value: value
+      )
+
+    send(pid, {:event, :file_system_created, file_system_created})
+  end
+
+  def remove_offline_hub_file_system(file_system) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+    file_system_deleted = LivebookProto.FileSystemDeleted.new(id: file_system.external_id)
+
+    send(pid, {:event, :file_system_deleted, file_system_deleted})
+  end
+
   def create_teams_file_system(hub, node) do
     org_key = erpc_call(node, :get_org_key!, [hub.org_key_id])
     erpc_call(node, :create_file_system, [[org_key: org_key]])
