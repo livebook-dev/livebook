@@ -69,12 +69,14 @@ class LivebookApp : ApplicationContext
         ContextMenuStrip menu = new ContextMenuStrip();
         menu.Items.Add("Open", null, openClicked);
         menu.Items.Add("New Notebook", null, openNewNotebookClicked);
+        menu.Items.Add(new ToolStripSeparator());
 
         var copyURLButton = menu.Items.Add("Copy URL", null, copyURLClicked);
         copyURLButton.Enabled = false;
 
         menu.Items.Add("View Logs", null, viewLogsClicked);
         menu.Items.Add("Open .livebookdesktop.bat", null, openBootScriptClicked);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings", null, openSettingsClicked);
         menu.Items.Add("Quit", null, quitClicked);
         notifyIcon = new NotifyIcon()
