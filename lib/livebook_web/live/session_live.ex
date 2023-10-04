@@ -492,6 +492,7 @@ defmodule LivebookWeb.SessionLive do
       <.add_file_entry_content
         session={@session}
         hub={@data_view.hub}
+        file={@data_view.file}
         file_entries={@data_view.file_entries}
         tab={@tab}
       />
@@ -955,6 +956,7 @@ defmodule LivebookWeb.SessionLive do
           id="add-file-entry-from-file"
           hub={@hub}
           session={@session}
+          file={@file}
         />
         <.live_component
           :if={@tab == "url"}
