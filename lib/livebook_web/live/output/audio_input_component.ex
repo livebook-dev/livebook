@@ -16,8 +16,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
        max_entries: 1,
        max_file_size: 100_000_000_000,
        progress: &handle_progress/3,
-       auto_upload: true,
-       writer: fn _name, _entry, _socket -> {LivebookWeb.AnnotatedTmpFileWriter, []} end
+       auto_upload: true
      )}
   end
 
@@ -142,8 +141,8 @@ defmodule LivebookWeb.Output.AudioInputComponent do
 
   defp handle_progress(:file, entry, socket) do
     if entry.done? do
-      {meta, file_ref} =
-        consume_uploaded_entry(socket, entry, fn %{path: path, meta: meta} ->
+      file_ref =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
           {:ok, file_ref} =
             LivebookWeb.SessionHelpers.register_input_file(
               socket.assigns.session_pid,
@@ -153,10 +152,10 @@ defmodule LivebookWeb.Output.AudioInputComponent do
               socket.assigns.client_id
             )
 
-          {:ok, {meta, file_ref}}
+          {:ok, file_ref}
         end)
 
-      %{"num_channels" => num_channels, "sampling_rate" => sampling_rate} = meta
+      %{"num_channels" => num_channels, "sampling_rate" => sampling_rate} = entry.client_meta
 
       value = %{
         file_ref: file_ref,

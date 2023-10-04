@@ -190,9 +190,10 @@ const AudioInput = {
 
     const buffer = this.encodeAudio(audioInfo);
 
-    this.uploadTo(this.props.phxTarget, "file", [
-      new Blob([encodeAnnotatedBuffer(meta, buffer)]),
-    ]);
+    const blob = new Blob([buffer]);
+    blob.meta = () => meta;
+
+    this.uploadTo(this.props.phxTarget, "file", [blob]);
   },
 
   encodeAudio(audioInfo) {

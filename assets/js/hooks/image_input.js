@@ -297,15 +297,16 @@ const ImageInput = {
   },
 
   pushImage(canvas) {
-    const meta = {
-      height: canvas.height,
-      width: canvas.width,
-    };
-
     canvasToBuffer(canvas, this.props.format).then((buffer) => {
-      this.uploadTo(this.props.phxTarget, "file", [
-        new Blob([encodeAnnotatedBuffer(meta, buffer)]),
-      ]);
+      const meta = {
+        height: canvas.height,
+        width: canvas.width,
+      };
+
+      const blob = new Blob([buffer]);
+      blob.meta = () => meta;
+
+      this.uploadTo(this.props.phxTarget, "file", [blob]);
     });
   },
 
