@@ -1,6 +1,8 @@
 defmodule LivebookWeb.JSViewChannel do
   use Phoenix.Channel
 
+  alias LivebookWeb.Helpers.Codec
+
   @impl true
   def join("js_view", %{"session_token" => session_token}, socket) do
     case Phoenix.Token.verify(LivebookWeb.Endpoint, "session", session_token) do
@@ -154,7 +156,7 @@ defmodule LivebookWeb.JSViewChannel do
   # payload accordingly
 
   defp transport_encode!(meta, {:binary, info, binary}) do
-    {:binary, encode!([meta, info], binary)}
+    {:binary, Codec.encode_annotated_binary!([meta, info], binary)}
   end
 
   defp transport_encode!(meta, payload) do
@@ -162,24 +164,12 @@ defmodule LivebookWeb.JSViewChannel do
   end
 
   defp transport_decode!({:binary, raw}) do
-    {[meta, info], binary} = decode!(raw)
+    {[meta, info], binary} = Codec.decode_annotated_binary!(raw)
     {meta, {:binary, info, binary}}
   end
 
   defp transport_decode!(raw) do
     %{"root" => [meta, payload]} = raw
     {meta, payload}
-  end
-
-  defp encode!(meta, binary) do
-    meta = Jason.encode!(meta)
-    meta_size = byte_size(meta)
-    <<meta_size::size(32), meta::binary, binary::binary>>
-  end
-
-  defp decode!(raw) do
-    <<meta_size::size(32), meta::binary-size(meta_size), binary::binary>> = raw
-    meta = Jason.decode!(meta)
-    {meta, binary}
   end
 end

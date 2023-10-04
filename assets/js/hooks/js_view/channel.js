@@ -1,4 +1,5 @@
 import { Socket } from "phoenix";
+import { decodeAnnotatedBuffer, encodeAnnotatedBuffer } from "../../lib/codec";
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
@@ -43,7 +44,7 @@ export function transportEncode(meta, payload) {
     payload[1].constructor === ArrayBuffer
   ) {
     const [info, buffer] = payload;
-    return encode([meta, info], buffer);
+    return encodeAnnotatedBuffer([meta, info], buffer);
   } else {
     return { root: [meta, payload] };
   }
@@ -51,7 +52,7 @@ export function transportEncode(meta, payload) {
 
 export function transportDecode(raw) {
   if (raw.constructor === ArrayBuffer) {
-    const [[meta, info], buffer] = decode(raw);
+    const [[meta, info], buffer] = decodeAnnotatedBuffer(raw);
     return [meta, [info, buffer]];
   } else {
     const {
@@ -59,37 +60,4 @@ export function transportDecode(raw) {
     } = raw;
     return [meta, payload];
   }
-}
-
-const HEADER_LENGTH = 4;
-
-function encode(meta, buffer) {
-  const encoder = new TextEncoder();
-  const metaArray = encoder.encode(JSON.stringify(meta));
-
-  const raw = new ArrayBuffer(
-    HEADER_LENGTH + metaArray.byteLength + buffer.byteLength
-  );
-  const view = new DataView(raw);
-
-  view.setUint32(0, metaArray.byteLength);
-  new Uint8Array(raw, HEADER_LENGTH, metaArray.byteLength).set(metaArray);
-  new Uint8Array(raw, HEADER_LENGTH + metaArray.byteLength).set(
-    new Uint8Array(buffer)
-  );
-
-  return raw;
-}
-
-function decode(raw) {
-  const view = new DataView(raw);
-  const metaArrayLength = view.getUint32(0);
-
-  const metaArray = new Uint8Array(raw, HEADER_LENGTH, metaArrayLength);
-  const buffer = raw.slice(HEADER_LENGTH + metaArrayLength);
-
-  const decoder = new TextDecoder();
-  const meta = JSON.parse(decoder.decode(metaArray));
-
-  return [meta, buffer];
 }

@@ -36,6 +36,10 @@ defmodule LivebookWeb.Output.InputComponent do
         width={@input.attrs.size && elem(@input.attrs.size, 1)}
         format={@input.attrs.format}
         fit={@input.attrs.fit}
+        input_id={@input.id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        local={@local}
       />
     </div>
     """
@@ -52,6 +56,10 @@ defmodule LivebookWeb.Output.InputComponent do
         value={@value}
         format={@input.attrs.format}
         sampling_rate={@input.attrs.sampling_rate}
+        input_id={@input.id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        local={@local}
       />
     </div>
     """

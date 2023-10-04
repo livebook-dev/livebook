@@ -83,8 +83,6 @@ defmodule Livebook.Session do
 
   use GenServer, restart: :temporary
 
-  import Livebook.Notebook.Cell, only: [is_file_input_value: 1]
-
   alias Livebook.NotebookManager
   alias Livebook.Session.{Data, FileGuard}
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
@@ -1854,6 +1852,17 @@ defmodule Livebook.Session do
     end
   end
 
+  @doc """
+  Returns a local path to a session-registered file with the given
+  reference.
+  """
+  @spec registered_file_path(id(), Livebook.Runtime.file_ref()) :: String.t()
+  def registered_file_path(session_id, file_ref) do
+    {:file, file_id} = file_ref
+    %{path: session_dir} = session_tmp_dir(session_id)
+    Path.join([session_dir, "registered_files", file_id])
+  end
+
   defp encode_path_component(component) do
     String.replace(component, [".", "/", "\\", ":"], "_")
   end
@@ -2283,14 +2292,8 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:clean_up_input_values, input_infos}) do
-    for {_input_id, %{value: value}} <- input_infos do
-      case value do
-        value when is_file_input_value(value) ->
-          schedule_file_deletion(state, value.file_ref)
-
-        _ ->
-          :ok
-      end
+    for {_input_id, %{value: %{file_ref: file_ref}}} <- input_infos do
+      schedule_file_deletion(state, file_ref)
     end
 
     state
@@ -2525,11 +2528,6 @@ defmodule Livebook.Session do
         File.write(path <> ".gz", compressed)
       end
     end
-  end
-
-  defp registered_file_path(session_id, {:file, file_id}) do
-    %{path: session_dir} = session_tmp_dir(session_id)
-    Path.join([session_dir, "registered_files", file_id])
   end
 
   defp schedule_file_deletion(state, file_ref) do

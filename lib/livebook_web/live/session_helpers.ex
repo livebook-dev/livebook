@@ -272,4 +272,42 @@ defmodule LivebookWeb.SessionHelpers do
         end
     end
   end
+
+  @doc """
+  Generates a token for the given input.
+  """
+  @spec generate_input_token(pid(), String.t()) :: String.t()
+  def generate_input_token(live_view_pid, input_id) do
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "session-input", %{
+      live_view_pid: live_view_pid,
+      input_id: input_id
+    })
+  end
+
+  @doc """
+  Verifies token from `generate_input_token/2` and extracts the encoded
+  data.
+  """
+  @spec verify_input_token!(String.t()) :: {pid(), String.t()}
+  def verify_input_token!(token) do
+    {:ok, %{live_view_pid: live_view_pid, input_id: input_id}} =
+      Phoenix.Token.verify(LivebookWeb.Endpoint, "session-input", token)
+
+    {live_view_pid, input_id}
+  end
+
+  @doc """
+  Registers an uploaded input file in session.
+  """
+  @spec register_input_file(pid(), String.t(), String.t(), boolean(), String.t()) ::
+          {:ok, Livebook.Runtime.file_ref()}
+  def register_input_file(session_pid, path, input_id, local, client_id) do
+    if local do
+      key = "#{input_id}-#{client_id}"
+      Livebook.Session.register_file(session_pid, path, key, linked_client_id: client_id)
+    else
+      key = "#{input_id}-global"
+      Livebook.Session.register_file(session_pid, path, key)
+    end
+  end
 end

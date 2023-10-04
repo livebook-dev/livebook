@@ -45,17 +45,32 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :terminal_text, text: text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.TerminalTextComponent, id: id, text: text)
+
+    assigns = %{id: id, text: text}
+
+    ~H"""
+    <.live_component module={Output.TerminalTextComponent} id={@id} text={@text} />
+    """
   end
 
   defp render_output(%{type: :plain_text, text: text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.PlainTextComponent, id: id, text: text)
+
+    assigns = %{id: id, text: text}
+
+    ~H"""
+    <.live_component module={Output.PlainTextComponent} id={@id} text={@text} />
+    """
   end
 
   defp render_output(%{type: :markdown, text: text}, %{id: id, session_id: session_id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.MarkdownComponent, id: id, session_id: session_id, text: text)
+
+    assigns = %{id: id, session_id: session_id, text: text}
+
+    ~H"""
+    <.live_component module={Output.MarkdownComponent} id={@id} session_id={@session_id} text={@text} />
+    """
   end
 
   defp render_output(%{type: :image} = output, %{id: id}) do
@@ -71,13 +86,23 @@ defmodule LivebookWeb.Output do
          session_id: session_id,
          client_id: client_id
        }) do
-    live_component(LivebookWeb.JSViewComponent,
+    assigns = %{
       id: id,
       js_view: output.js_view,
       session_id: session_id,
-      client_id: client_id,
-      timeout_message: "Output data no longer available, please reevaluate this cell"
-    )
+      client_id: client_id
+    }
+
+    ~H"""
+    <.live_component
+      module={LivebookWeb.JSViewComponent}
+      id={@id}
+      js_view={@js_view}
+      session_id={@session_id}
+      client_id={@client_id}
+      timeout_message="Output data no longer available, please reevaluate this cell"
+    />
+    """
   end
 
   defp render_output(%{type: :frame} = output, %{
@@ -88,7 +113,7 @@ defmodule LivebookWeb.Output do
          client_id: client_id,
          cell_id: cell_id
        }) do
-    live_component(Output.FrameComponent,
+    assigns = %{
       id: id,
       outputs: output.outputs,
       placeholder: output.placeholder,
@@ -97,7 +122,21 @@ defmodule LivebookWeb.Output do
       input_views: input_views,
       client_id: client_id,
       cell_id: cell_id
-    )
+    }
+
+    ~H"""
+    <.live_component
+      module={Output.FrameComponent}
+      id={@id}
+      outputs={@outputs}
+      placeholder={@placeholder}
+      session_id={@session_id}
+      session_pid={@session_pid}
+      input_views={@input_views}
+      client_id={@client_id}
+      cell_id={@cell_id}
+    />
+    """
   end
 
   defp render_output(%{type: :tabs, outputs: outputs, labels: labels}, %{
@@ -226,13 +265,24 @@ defmodule LivebookWeb.Output do
          session_pid: session_pid,
          client_id: client_id
        }) do
-    live_component(Output.InputComponent,
+    assigns = %{
       id: id,
       input: input,
       input_views: input_views,
       session_pid: session_pid,
       client_id: client_id
-    )
+    }
+
+    ~H"""
+    <.live_component
+      module={Output.InputComponent}
+      id={@id}
+      input={@input}
+      input_views={@input_views}
+      session_pid={@session_pid}
+      client_id={@client_id}
+    />
+    """
   end
 
   defp render_output(%{type: :control} = control, %{
@@ -242,14 +292,26 @@ defmodule LivebookWeb.Output do
          client_id: client_id,
          cell_id: cell_id
        }) do
-    live_component(Output.ControlComponent,
+    assigns = %{
       id: id,
       control: control,
       input_views: input_views,
       session_pid: session_pid,
       client_id: client_id,
       cell_id: cell_id
-    )
+    }
+
+    ~H"""
+    <.live_component
+      module={Output.ControlComponent}
+      id={@id}
+      control={@control}
+      input_views={@input_views}
+      session_pid={@session_pid}
+      client_id={@client_id}
+      cell_id={@cell_id}
+    />
+    """
   end
 
   defp render_output(
