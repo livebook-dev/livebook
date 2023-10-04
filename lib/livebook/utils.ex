@@ -370,6 +370,10 @@ defmodule Livebook.Utils do
     LivebookWeb.Endpoint.access_url()
   end
 
+  def expand_desktop_url("/new") do
+    to_string(%{LivebookWeb.Endpoint.access_struct_url() | path: "/new"})
+  end
+
   def expand_desktop_url("/settings") do
     to_string(%{LivebookWeb.Endpoint.access_struct_url() | path: "/settings"})
   end

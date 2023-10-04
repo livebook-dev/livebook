@@ -68,6 +68,7 @@ class LivebookApp : ApplicationContext
 
         ContextMenuStrip menu = new ContextMenuStrip();
         menu.Items.Add("Open", null, openClicked);
+        menu.Items.Add("New Notebook", null, openNewNotebookClicked);
 
         var copyURLButton = menu.Items.Add("Copy URL", null, copyURLClicked);
         copyURLButton.Enabled = false;
@@ -132,6 +133,11 @@ class LivebookApp : ApplicationContext
     private void openClicked(object? sender, EventArgs e)
     {
         ElixirKit.API.Publish("open", "");
+    }
+
+    private void openNewNotebookClicked(object? sender, EventArgs e)
+    {
+        ElixirKit.API.Publish("open", "/new");
     }
 
     private void copyURLClicked(object? sender, EventArgs e)
