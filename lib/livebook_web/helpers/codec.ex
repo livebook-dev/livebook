@@ -68,12 +68,10 @@ defmodule LivebookWeb.Helpers.Codec do
     data_size = num_frames * block_align
 
     <<
-      # RIFF chunk
-      0x52494646::32-unsigned-integer-big,
+      "RIFF",
       36 + data_size::32-unsigned-integer-little,
-      0x57415645::32-unsigned-integer-big,
-      # "fmt " sub-chunk
-      0x666D7420::32-unsigned-integer-big,
+      "WAVE",
+      "fmt ",
       16::32-unsigned-integer-little,
       # 3 indicates 32-bit float PCM
       3::16-unsigned-integer-little,
@@ -82,8 +80,7 @@ defmodule LivebookWeb.Helpers.Codec do
       byte_rate::32-unsigned-integer-little,
       block_align::16-unsigned-integer-little,
       bytes_per_sample * 8::16-unsigned-integer-little,
-      # "data" sub-chunk
-      0x64617461::32-unsigned-integer-big,
+      "data",
       data_size::32-unsigned-integer-little
     >>
   end
