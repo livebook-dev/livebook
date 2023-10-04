@@ -72,9 +72,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.items = [
             NSMenuItem(title: "Open", action: #selector(open), keyEquivalent: "o"),
+            NSMenuItem(title: "New Notebook", action: #selector(openNewNotebook), keyEquivalent: "n"),
+            .separator(),
             copyURLItem,
             NSMenuItem(title: "View Logs", action: #selector(viewLogs), keyEquivalent: "l"),
             NSMenuItem(title: "Open .livebookdesktop.sh", action: #selector(openBootScript), keyEquivalent: ""),
+            .separator(),
             NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: ","),
             NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         ]
@@ -114,6 +117,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     func open() {
         ElixirKit.API.publish("open", "")
+    }
+
+    @objc
+    func openNewNotebook() {
+        ElixirKit.API.publish("open", "/new")
     }
 
     @objc
