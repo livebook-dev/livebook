@@ -9,7 +9,6 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
   def mount(socket) do
     {:ok,
      assign(socket,
-       file: Livebook.Config.local_file_system_home(),
        file_info: %{exists: true},
        changeset: changeset(),
        error_message: nil,
@@ -48,7 +47,12 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
   end
 
   def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
+    {file, assigns} = Map.pop!(assigns, :file)
+
+    {:ok,
+     socket
+     |> assign(assigns)
+     |> assign_new(:file, fn -> file || Livebook.FileSystems.default_file(assigns.hub) end)}
   end
 
   @impl true
