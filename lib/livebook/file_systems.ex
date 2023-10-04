@@ -61,4 +61,17 @@ defmodule Livebook.FileSystems do
   def module_to_type(module)
   def module_to_type(FileSystem.Local), do: "local"
   def module_to_type(FileSystem.S3), do: "s3"
+
+  @doc """
+  Returns default directory based on given hub.
+  """
+  @spec default_file(Livebook.Hubs.Provider.t()) :: FileSystem.File.t()
+  def default_file(hub) do
+    file_systems = Livebook.Hubs.get_file_systems(hub)
+    file = Livebook.Settings.default_dir()
+
+    if Enum.find(file_systems, &(&1.id == file.file_system_id)),
+      do: file,
+      else: Livebook.Config.local_file_system_home()
+  end
 end
