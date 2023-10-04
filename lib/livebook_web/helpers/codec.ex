@@ -48,7 +48,7 @@ defmodule LivebookWeb.Helpers.Codec do
 
         :big ->
           Stream.map(file_stream, fn binary ->
-            for <<x::32-float-native <- binary>>, reduce: <<>> do
+            for <<x::32-float-big <- binary>>, reduce: <<>> do
               acc -> <<acc::binary, x::32-float-little>>
             end
           end)
