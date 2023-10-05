@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
   alias Livebook.{Sessions, Session, FileSystem}
+  alias LivebookWeb.Helpers.Codec
 
   def show_file(conn, %{"id" => id, "name" => name}) do
     with {:ok, session} <- Sessions.fetch_session(id),
@@ -173,6 +174,91 @@ defmodule LivebookWeb.SessionController do
     end
   end
 
+  def show_input_audio(conn, %{"token" => token}) do
+    {live_view_pid, input_id} = LivebookWeb.SessionHelpers.verify_input_token!(token)
+
+    case GenServer.call(live_view_pid, {:get_input_value, input_id}) do
+      {:ok, session_id, value} ->
+        path = Livebook.Session.registered_file_path(session_id, value.file_ref)
+
+        conn =
+          conn
+          |> cache_permanently()
+          |> put_resp_header("accept-ranges", "bytes")
+
+        case value.format do
+          :pcm_f32 ->
+            %{size: file_size} = File.stat!(path)
+
+            total_size = Codec.pcm_as_wav_size(file_size)
+
+            case parse_byte_range(conn, total_size) do
+              {range_start, range_end} when range_start > 0 or range_end < total_size - 1 ->
+                stream =
+                  Codec.encode_pcm_as_wav_stream!(
+                    path,
+                    file_size,
+                    value.num_channels,
+                    value.sampling_rate,
+                    range_start,
+                    range_end - range_start + 1
+                  )
+
+                conn
+                |> put_content_range(range_start, range_end, total_size)
+                |> send_stream(206, stream)
+
+              _ ->
+                stream =
+                  Codec.encode_pcm_as_wav_stream!(
+                    path,
+                    file_size,
+                    value.num_channels,
+                    value.sampling_rate,
+                    0,
+                    total_size
+                  )
+
+                conn
+                |> put_resp_header("content-length", Integer.to_string(total_size))
+                |> send_stream(200, stream)
+            end
+
+          :wav ->
+            %{size: total_size} = File.stat!(path)
+
+            case parse_byte_range(conn, total_size) do
+              {range_start, range_end} when range_start > 0 or range_end < total_size - 1 ->
+                conn
+                |> put_content_range(range_start, range_end, total_size)
+                |> send_file(206, path, range_start, range_end - range_start + 1)
+
+              _ ->
+                send_file(conn, 200, path)
+            end
+        end
+
+      :error ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
+  def show_input_image(conn, %{"token" => token}) do
+    {live_view_pid, input_id} = LivebookWeb.SessionHelpers.verify_input_token!(token)
+
+    case GenServer.call(live_view_pid, {:get_input_value, input_id}) do
+      {:ok, session_id, value} ->
+        path = Livebook.Session.registered_file_path(session_id, value.file_ref)
+
+        conn
+        |> cache_permanently()
+        |> send_file(200, path)
+
+      :error ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
   defp accept_encoding?(conn, encoding) do
     encoding? = &String.contains?(&1, [encoding, "*"])
 
@@ -216,5 +302,56 @@ defmodule LivebookWeb.SessionController do
   defp put_content_type(conn, path) do
     content_type = MIME.from_path(path)
     put_resp_header(conn, "content-type", content_type)
+  end
+
+  defp parse_byte_range(conn, total_size) do
+    with [range] <- get_req_header(conn, "range"),
+         %{"bytes" => bytes} <- Plug.Conn.Utils.params(range),
+         {range_start, range_end} <- start_and_end(bytes, total_size) do
+      {range_start, range_end}
+    else
+      _ -> :error
+    end
+  end
+
+  defp start_and_end("-" <> rest, total_size) do
+    case Integer.parse(rest) do
+      {last, ""} when last > 0 and last <= total_size -> {total_size - last, total_size - 1}
+      _ -> :error
+    end
+  end
+
+  defp start_and_end(range, total_size) do
+    case Integer.parse(range) do
+      {first, "-"} when first >= 0 ->
+        {first, total_size - 1}
+
+      {first, "-" <> rest} when first >= 0 ->
+        case Integer.parse(rest) do
+          {last, ""} when last >= first -> {first, min(last, total_size - 1)}
+          _ -> :error
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  defp put_content_range(conn, range_start, range_end, total_size) do
+    put_resp_header(conn, "content-range", "bytes #{range_start}-#{range_end}/#{total_size}")
+  end
+
+  defp send_stream(conn, status, stream) do
+    conn = send_chunked(conn, status)
+
+    Enum.reduce_while(stream, conn, fn chunk, conn ->
+      case Plug.Conn.chunk(conn, chunk) do
+        {:ok, conn} ->
+          {:cont, conn}
+
+        {:error, :closed} ->
+          {:halt, conn}
+      end
+    end)
   end
 end
