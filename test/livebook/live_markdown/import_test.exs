@@ -1162,7 +1162,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":111,"stamp":{"token":"QTEyOEdDTQ.VezIVId8jnwawq79Mrxfx-bCeatRPQhg6zRw4gHjfGC_SimS5WSbdETLVnc.IXXzTiDf3JRLiNGt.rtLJ97RxNYLeF_x-2AigBt_y0bYdlh30bnEKUO7FKfJL-9EB6EQOgr1WbdHTkw.rU1OsjOhfU48tE3s0GB6Ag","token_signature":"M_LZP7ssEdLiVqo8_bZYFtJYAzqV5wczQF1mUdaOZeTYoCYXeLA9VuEajMCOwiVgMjfG24Y4PHrnABGUj0bB74xgEMOLtb6Ark42pCJfGUDLXpB2azMnwY6VRXi1nBUTnb_-MajpJVF_MgWGuj0cxyQ4rlfBu2VK1FQn8JGopLKBD7LcICZ9wkLJw3H_lXGTbVxnS6tLcvJZQdLJccTe4edpdF-_uG-d1KqtJva50jZ9vevyxh6zUubl0k5JnA3SUaTpc7AEsqmAMx9qQsoR64P-VobSFTKuuOFrlQsq21OupPCRKmUBU-RKrBvHbc6Fa1eoQigEQom5droj9cASdw","version":1}} -->
+      <!-- livebook:{"offset":111,"stamp":{"token":"UPDATEME","version":1}} -->
       """
 
       {notebook, []} = Import.notebook_from_livemd(markdown)

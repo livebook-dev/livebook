@@ -223,34 +223,30 @@ defmodule Livebook.Teams do
   @doc """
   Encrypts the given value with Teams key derived keys.
   """
-  @spec encrypt(String.t() | nil, bitstring(), bitstring()) :: String.t()
-  def encrypt(value, _secret, _sign_secret) when value in ["", nil], do: value
+  @spec encrypt(String.t() | nil, bitstring()) :: String.t()
+  def encrypt(value, _secret) when value in ["", nil], do: value
 
-  def encrypt(value, secret, sign_secret) do
-    Plug.Crypto.MessageEncryptor.encrypt(value, secret, sign_secret)
+  def encrypt(value, secret) do
+    Plug.Crypto.MessageEncryptor.encrypt(value, secret, "unused")
   end
 
   @doc """
   Decrypts the given encrypted value with Teams key derived keys.
   """
-  @spec decrypt(String.t() | nil, bitstring(), bitstring()) :: {:ok, String.t()} | :error
-  def decrypt(value, _secret, _sign_secret) when value in ["", nil], do: value
+  @spec decrypt(String.t() | nil, bitstring()) :: {:ok, String.t()} | :error
+  def decrypt(value, _secret) when value in ["", nil], do: value
 
-  def decrypt(encrypted_value, secret, sign_secret) do
-    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, sign_secret)
+  def decrypt(encrypted_value, secret) do
+    Plug.Crypto.MessageEncryptor.decrypt(encrypted_value, secret, "unused")
   end
 
   @doc """
   Derives the secret and sign secret from given `teams_key`.
   """
-  @spec derive_keys(String.t()) :: {bitstring(), bitstring()}
-  def derive_keys(@prefix <> teams_key) do
+  @spec derive_key(String.t()) :: bitstring()
+  def derive_key(@prefix <> teams_key) do
     binary_key = Base.url_decode64!(teams_key, padding: false)
-
-    <<secret::16-bytes, sign_secret::16-bytes>> =
-      Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
-
-    {secret, sign_secret}
+    Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
   end
 
   defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do

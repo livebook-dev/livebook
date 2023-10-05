@@ -85,8 +85,8 @@ defmodule Livebook.HubHelpers do
   def put_offline_hub_secret(secret) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)
-    {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
-    value = Livebook.Teams.encrypt(secret.value, secret_key, sign_secret)
+    secret_key = Livebook.Teams.derive_key(hub.teams_key)
+    value = Livebook.Teams.encrypt(secret.value, secret_key)
     secret_created = LivebookProto.SecretCreated.new(name: secret.name, value: value)
 
     send(pid, {:event, :secret_created, secret_created})
@@ -103,11 +103,11 @@ defmodule Livebook.HubHelpers do
   def put_offline_hub_file_system(file_system) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)
-    {secret_key, sign_secret} = Livebook.Teams.derive_keys(hub.teams_key)
+    secret_key = Livebook.Teams.derive_key(hub.teams_key)
     %{name: name} = Livebook.FileSystem.external_metadata(file_system)
     attrs = Livebook.FileSystem.dump(file_system)
     json = Jason.encode!(attrs)
-    value = Livebook.Teams.encrypt(json, secret_key, sign_secret)
+    value = Livebook.Teams.encrypt(json, secret_key)
 
     file_system_created =
       LivebookProto.FileSystemCreated.new(

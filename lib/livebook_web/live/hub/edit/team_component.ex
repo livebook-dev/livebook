@@ -587,11 +587,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp encrypt_to_dockerfile(socket, data) do
-    {secret_key, sign_secret} = Livebook.Teams.derive_keys(socket.assigns.hub.teams_key)
+    secret_key = Livebook.Teams.derive_key(socket.assigns.hub.teams_key)
 
     data
     |> Jason.encode!()
-    |> Livebook.Teams.encrypt(secret_key, sign_secret)
+    |> Livebook.Teams.encrypt(secret_key)
   end
 
   @zta_options for provider <- Livebook.Config.identity_providers(),

@@ -50,8 +50,8 @@ defmodule Livebook.Teams.Requests do
   @spec create_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_secret(team, secret) do
-    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
-    secret_value = Teams.encrypt(secret.value, secret_key, sign_secret)
+    secret_key = Teams.derive_key(team.teams_key)
+    secret_value = Teams.encrypt(secret.value, secret_key)
 
     headers = auth_headers(team)
     params = %{name: secret.name, value: secret_value}
@@ -65,8 +65,8 @@ defmodule Livebook.Teams.Requests do
   @spec update_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def update_secret(team, secret) do
-    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
-    secret_value = Teams.encrypt(secret.value, secret_key, sign_secret)
+    secret_key = Teams.derive_key(team.teams_key)
+    secret_value = Teams.encrypt(secret.value, secret_key)
 
     headers = auth_headers(team)
     params = %{name: secret.name, value: secret_value}
@@ -92,7 +92,7 @@ defmodule Livebook.Teams.Requests do
   @spec create_file_system(Team.t(), FileSystem.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_file_system(team, file_system) do
-    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    secret_key = Teams.derive_key(team.teams_key)
     headers = auth_headers(team)
 
     type = FileSystems.type(file_system)
@@ -103,7 +103,7 @@ defmodule Livebook.Teams.Requests do
     params = %{
       name: name,
       type: to_string(type),
-      value: Teams.encrypt(json, secret_key, sign_secret)
+      value: Teams.encrypt(json, secret_key)
     }
 
     post("/api/v1/org/file-systems", params, headers)
@@ -115,7 +115,7 @@ defmodule Livebook.Teams.Requests do
   @spec update_file_system(Team.t(), FileSystem.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def update_file_system(team, file_system) do
-    {secret_key, sign_secret} = Teams.derive_keys(team.teams_key)
+    secret_key = Teams.derive_key(team.teams_key)
     headers = auth_headers(team)
 
     type = FileSystems.type(file_system)
@@ -127,7 +127,7 @@ defmodule Livebook.Teams.Requests do
       id: file_system.external_id,
       name: name,
       type: to_string(type),
-      value: Teams.encrypt(json, secret_key, sign_secret)
+      value: Teams.encrypt(json, secret_key)
     }
 
     put("/api/v1/org/file-systems", params, headers)
