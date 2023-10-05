@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionControllerTest do
   use LivebookWeb.ConnCase, async: true
 
+  require Phoenix.LiveViewTest
+
   alias Livebook.{Sessions, Session, Notebook, FileSystem}
 
   describe "show_file" do
@@ -356,6 +358,100 @@ defmodule LivebookWeb.SessionControllerTest do
     end
   end
 
+  describe "show_audio_image" do
+    @tag :tmp_dir
+    test "given :wav input returns the audio binary", %{conn: conn, tmp_dir: tmp_dir} do
+      {session, input_id} = start_session_with_audio_input(:wav, "wav content", tmp_dir)
+
+      {:ok, view, _} = Phoenix.LiveViewTest.live(conn, ~p"/sessions/#{session.id}")
+
+      token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
+
+      conn = get(conn, ~p"/sessions/audio-input/#{token}")
+
+      assert conn.status == 200
+      assert conn.resp_body == "wav content"
+      assert get_resp_header(conn, "accept-ranges") == ["bytes"]
+
+      Session.close(session.pid)
+    end
+
+    @tag :tmp_dir
+    test "given :wav input supports range requests", %{conn: conn, tmp_dir: tmp_dir} do
+      {session, input_id} = start_session_with_audio_input(:wav, "wav content", tmp_dir)
+
+      {:ok, view, _} = Phoenix.LiveViewTest.live(conn, ~p"/sessions/#{session.id}")
+
+      token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
+
+      conn =
+        conn
+        |> put_req_header("range", "bytes=4-")
+        |> get(~p"/sessions/audio-input/#{token}")
+
+      assert conn.status == 206
+      assert conn.resp_body == "content"
+      assert get_resp_header(conn, "content-range") == ["bytes 4-10/11"]
+
+      Session.close(session.pid)
+    end
+
+    @tag :tmp_dir
+    test "given :pcm_f32 input returns a WAV binary", %{conn: conn, tmp_dir: tmp_dir} do
+      {session, input_id} = start_session_with_audio_input(:pcm_f32, "pcm content", tmp_dir)
+
+      {:ok, view, _} = Phoenix.LiveViewTest.live(conn, ~p"/sessions/#{session.id}")
+
+      token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
+
+      conn = get(conn, ~p"/sessions/audio-input/#{token}")
+
+      assert conn.status == 200
+      assert <<_header::44-binary, "pcm content">> = conn.resp_body
+      assert get_resp_header(conn, "accept-ranges") == ["bytes"]
+
+      Session.close(session.pid)
+    end
+
+    @tag :tmp_dir
+    test "given :pcm_f32 input supports range requests", %{conn: conn, tmp_dir: tmp_dir} do
+      {session, input_id} = start_session_with_audio_input(:pcm_f32, "pcm content", tmp_dir)
+
+      {:ok, view, _} = Phoenix.LiveViewTest.live(conn, ~p"/sessions/#{session.id}")
+
+      token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
+
+      conn =
+        conn
+        |> put_req_header("range", "bytes=48-")
+        |> get(~p"/sessions/audio-input/#{token}")
+
+      assert conn.status == 206
+      assert conn.resp_body == "content"
+      assert get_resp_header(conn, "content-range") == ["bytes 48-54/55"]
+
+      Session.close(session.pid)
+    end
+  end
+
+  describe "show_input_image" do
+    @tag :tmp_dir
+    test "returns the image binary", %{conn: conn, tmp_dir: tmp_dir} do
+      {session, input_id} = start_session_with_image_input(:rgb, "rgb content", tmp_dir)
+
+      {:ok, view, _} = Phoenix.LiveViewTest.live(conn, ~p"/sessions/#{session.id}")
+
+      token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
+
+      conn = get(conn, ~p"/sessions/image-input/#{token}")
+
+      assert conn.status == 200
+      assert conn.resp_body == "rgb content"
+
+      Session.close(session.pid)
+    end
+  end
+
   defp start_session_and_request_asset(conn, notebook, hash) do
     {:ok, session} = Sessions.create_session(notebook: notebook)
     # We need runtime in place to actually copy the archive
@@ -386,5 +482,63 @@ defmodule LivebookWeb.SessionControllerTest do
     }
 
     %{notebook: notebook, hash: hash}
+  end
+
+  defp start_session_with_audio_input(format, binary, tmp_dir) do
+    input = %{
+      type: :input,
+      ref: "ref",
+      id: "input1",
+      destination: :noop,
+      attrs: %{type: :audio, default: nil, label: "Audio", format: format, sampling_rate: 16_000}
+    }
+
+    cell = %{Notebook.Cell.new(:code) | outputs: [{1, input}]}
+    notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
+
+    {:ok, session} = Sessions.create_session(notebook: notebook)
+
+    source_path = Path.join(tmp_dir, "audio.bin")
+    File.write!(source_path, binary)
+
+    {:ok, file_ref} = Session.register_file(session.pid, source_path, "key")
+
+    Session.set_input_value(session.pid, "input1", %{
+      file_ref: file_ref,
+      sampling_rate: 16_000,
+      num_channels: 1,
+      format: format
+    })
+
+    {session, input.id}
+  end
+
+  defp start_session_with_image_input(format, binary, tmp_dir) do
+    input = %{
+      type: :input,
+      ref: "ref",
+      id: "input1",
+      destination: :noop,
+      attrs: %{type: :image, default: nil, label: "Image", format: :rgb, size: nil, fit: :contain}
+    }
+
+    cell = %{Notebook.Cell.new(:code) | outputs: [{1, input}]}
+    notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [cell]}]}
+
+    {:ok, session} = Sessions.create_session(notebook: notebook)
+
+    source_path = Path.join(tmp_dir, "image.bin")
+    File.write!(source_path, binary)
+
+    {:ok, file_ref} = Session.register_file(session.pid, source_path, "key")
+
+    Session.set_input_value(session.pid, "input1", %{
+      file_ref: file_ref,
+      height: 300,
+      width: 300,
+      format: format
+    })
+
+    {session, input.id}
   end
 end
