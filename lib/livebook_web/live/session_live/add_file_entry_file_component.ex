@@ -47,12 +47,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryFileComponent do
   end
 
   def update(assigns, socket) do
-    {file, assigns} = Map.pop!(assigns, :file)
-
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_new(:file, fn -> file || Livebook.FileSystems.default_file(assigns.hub) end)}
+     |> assign_new(:file, fn -> Livebook.Settings.default_dir(assigns.hub) end)}
   end
 
   @impl true
