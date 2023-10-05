@@ -197,4 +197,19 @@ defmodule Livebook.Settings do
       _ -> FileSystem.File.new(Livebook.Config.local_file_system())
     end
   end
+
+  @doc """
+  Gets default directory based on given hub.
+  """
+  @spec default_dir(Livebook.Hubs.Provider.t()) :: FileSystem.File.t()
+  def default_dir(hub) do
+    file_systems = Livebook.Hubs.get_file_systems(hub)
+    file = default_dir()
+
+    if Enum.any?(file_systems, &(&1.id == file.file_system_id)) do
+      file
+    else
+      Livebook.Config.local_file_system_home()
+    end
+  end
 end
