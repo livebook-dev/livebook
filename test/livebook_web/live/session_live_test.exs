@@ -915,22 +915,21 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "showing all files from default directory",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
-      %{path: old_path} = Livebook.Settings.default_dir()
-      file_system = Livebook.Config.local_file_system()
-      file = Livebook.FileSystem.File.new(file_system, tmp_dir)
-      Livebook.Settings.set_default_dir(file)
+      old_dir = Livebook.Settings.default_dir()
+      new_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+      Livebook.Settings.set_default_dir(new_dir)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
-      assert render(view) =~ tmp_dir
+      assert render(view) =~ new_dir.path
 
-      file = Livebook.FileSystem.File.new(file_system, old_path)
-      Livebook.Settings.set_default_dir(file)
+      Livebook.Settings.set_default_dir(old_dir)
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/file")
 
-      refute render(view) =~ tmp_dir
-      assert render(view) =~ old_path
+      refute render(view) =~ new_dir.path
+      assert render(view) =~ old_dir.path
     end
   end
 
