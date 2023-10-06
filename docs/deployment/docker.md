@@ -5,7 +5,7 @@
 You can deploy Livebook inside your infrastructure using Docker. The Dockerfile below provides a great starting point:
 
 ```dockerfile
-FROM ghcr.io/livebook-dev/livebook:edge
+FROM ghcr.io/livebook-dev/livebook
 
 # Configure your port accordingly
 ENV LIVEBOOK_PORT 7860
