@@ -11,15 +11,14 @@
 
 import "monaco-editor/esm/vs/editor/browser/coreCommands";
 // import 'monaco-editor/esm/vs/editor/browser/widget/codeEditorWidget';
-// import 'monaco-editor/esm/vs/editor/browser/widget/diffEditorWidget';
-// import 'monaco-editor/esm/vs/editor/browser/widget/diffNavigator';
+// import 'vs/editor/browser/widget/diffEditor/diffEditor.contribution';
 import "monaco-editor/esm/vs/editor/contrib/anchorSelect/browser/anchorSelect";
 import "monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching";
 import "monaco-editor/esm/vs/editor/contrib/caretOperations/browser/caretOperations";
 import "monaco-editor/esm/vs/editor/contrib/caretOperations/browser/transpose";
 import "monaco-editor/esm/vs/editor/contrib/clipboard/browser/clipboard";
 import "monaco-editor/esm/vs/editor/contrib/codeAction/browser/codeActionContributions";
-// import 'monaco-editor/esm/vs/editor/contrib/codelens/browser/codelensController';
+import "monaco-editor/esm/vs/editor/contrib/codelens/browser/codelensController";
 // import 'monaco-editor/esm/vs/editor/contrib/colorPicker/browser/colorContributions';
 // import 'monaco-editor/esm/vs/editor/contrib/colorPicker/browser/standaloneColorPickerActions';
 import "monaco-editor/esm/vs/editor/contrib/comment/browser/comment";
@@ -27,7 +26,7 @@ import "monaco-editor/esm/vs/editor/contrib/contextmenu/browser/contextmenu";
 import "monaco-editor/esm/vs/editor/contrib/cursorUndo/browser/cursorUndo";
 import "monaco-editor/esm/vs/editor/contrib/dnd/browser/dnd";
 // import 'monaco-editor/esm/vs/editor/contrib/dropOrPasteInto/browser/copyPasteContribution';
-// import 'monaco-editor/esm/vs/editor/contrib/dropOrPasteInto/browser/dropIntoEditorContribution';
+import "monaco-editor/esm/vs/editor/contrib/dropOrPasteInto/browser/dropIntoEditorContribution";
 import "monaco-editor/esm/vs/editor/contrib/find/browser/findController";
 import "monaco-editor/esm/vs/editor/contrib/folding/browser/folding";
 import "monaco-editor/esm/vs/editor/contrib/fontZoom/browser/fontZoom";
@@ -69,7 +68,6 @@ import "monaco-editor/esm/vs/editor/contrib/readOnlyMessage/browser/contribution
 // import 'monaco-editor/esm/vs/editor/common/standaloneStrings';
 // import 'vs/base/browser/ui/codicons/codiconStyles';
 
-import "monaco-editor/esm/vs/editor/standalone/browser/accessibilityHelp/accessibilityHelp";
 // import "monaco-editor/esm/vs/editor/standalone/browser/iPadShowKeyboard/iPadShowKeyboard";
 import "monaco-editor/esm/vs/editor/standalone/browser/inspectTokens/inspectTokens";
 import "monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneHelpQuickAccess";

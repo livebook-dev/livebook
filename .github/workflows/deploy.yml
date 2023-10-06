@@ -108,6 +108,9 @@ jobs:
     # The assets job may push new commit, so we wait for it
     needs: [assets]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cuda: ["11.8", "12.1"]
     steps:
       - uses: actions/checkout@v3
       - run: |
@@ -132,8 +135,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=semver,pattern={{version}}-cuda11.8
-            type=raw,value=latest-cuda11.8
+            type=semver,pattern={{version}}-cuda${{ matrix.cuda }}
+            type=raw,value=latest-cuda${{ matrix.cuda }}
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
@@ -142,7 +145,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            BASE_IMAGE=ghcr.io/livebook-dev/utils:elixir-${{ env.elixir }}-erlang-${{ env.otp }}-cuda11.8
+            BASE_IMAGE=ghcr.io/livebook-dev/utils:elixir-${{ env.elixir }}-erlang-${{ env.otp }}-cuda${{ matrix.cuda }}
 
   create_draft_release:
     if: github.ref_type == 'tag'

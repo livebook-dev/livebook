@@ -71,35 +71,27 @@ defmodule LivebookWeb.Output.FileInputComponent do
 
   defp handle_progress(:file, entry, socket) do
     if entry.done? do
-      socket
-      |> consume_uploaded_entries(:file, fn %{path: path}, entry ->
-        {:ok, file_ref} =
-          if socket.assigns.local do
-            key = "#{socket.assigns.input_id}-#{socket.assigns.client_id}"
-
-            Livebook.Session.register_file(socket.assigns.session_pid, path, key,
-              linked_client_id: socket.assigns.client_id
+      {file_ref, client_name} =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          {:ok, file_ref} =
+            LivebookWeb.SessionHelpers.register_input_file(
+              socket.assigns.session_pid,
+              path,
+              socket.assigns.input_id,
+              socket.assigns.local,
+              socket.assigns.client_id
             )
-          else
-            key = "#{socket.assigns.input_id}-global"
-            Livebook.Session.register_file(socket.assigns.session_pid, path, key)
-          end
 
-        {:ok, {file_ref, entry.client_name}}
-      end)
-      |> case do
-        [{file_ref, client_name}] ->
-          value = %{file_ref: file_ref, client_name: client_name}
+          {:ok, {file_ref, entry.client_name}}
+        end)
 
-          send_update(LivebookWeb.Output.InputComponent,
-            id: socket.assigns.input_component_id,
-            event: :change,
-            value: value
-          )
+      value = %{file_ref: file_ref, client_name: client_name}
 
-        [] ->
-          :ok
-      end
+      send_update(LivebookWeb.Output.InputComponent,
+        id: socket.assigns.input_component_id,
+        event: :change,
+        value: value
+      )
     end
 
     {:noreply, socket}

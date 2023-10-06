@@ -341,7 +341,7 @@ defprotocol Livebook.Runtime do
               type: :range,
               default: number(),
               label: String.t(),
-              debounce: :blur | non_neg_integer(),
+              debounce: non_neg_integer(),
               min: number(),
               max: number(),
               step: number()

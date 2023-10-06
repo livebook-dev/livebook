@@ -207,10 +207,9 @@ function rehypeMermaid(options) {
 
       if (classes.includes("mermaid")) {
         function updateNode(html) {
-          element.children = removePosition(
-            parseHtml.parse(html),
-            true
-          ).children;
+          const ast = parseHtml.parse(html);
+          removePosition(ast, true);
+          element.children = ast.children;
         }
 
         const value = toText(element, { whitespace: "pre" });

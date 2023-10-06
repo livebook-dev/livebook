@@ -603,30 +603,51 @@ defmodule LivebookWeb.FormComponents do
       <.live_file_input upload={@upload} class="hidden" />
       <.label><%= @label %></.label>
       <div :for={entry <- @upload.entries} class="flex flex-col gap-1">
-        <div class="flex flex-col gap-0.5">
-          <div class="flex items-center justify-between text-gray-700">
-            <span><%= entry.client_name %></span>
-            <button
-              type="button"
-              class="ml-1 text-gray-500 hover:text-gray-900"
-              phx-click={@on_clear}
-              phx-value-ref={entry.ref}
-              tabindex="-1"
-            >
-              <.remix_icon icon="close-line" />
-            </button>
-            <span class="flex-grow"></span>
-            <span :if={entry.preflighted?} class="text-sm font-medium">
-              <%= entry.progress %>%
-            </span>
-          </div>
-          <div :if={entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
-            <div
-              class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
-              style={"width: #{entry.progress}%"}
-            >
-            </div>
-          </div>
+        <.file_entry entry={entry} on_clear={@on_clear} />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a file entry with progress.
+
+  ## Examples
+
+      <.file_entry
+        entry={entry}
+        on_clear={JS.push("clear_file", target: @myself)}
+      />
+
+  """
+  attr :entry, Phoenix.LiveView.UploadEntry, required: true
+  attr :on_clear, Phoenix.LiveView.JS, required: true
+  attr :name, :string, default: nil
+
+  def file_entry(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-0.5">
+      <div class="flex items-center justify-between gap-1 text-gray-700">
+        <span><%= @name || @entry.client_name %></span>
+        <button
+          type="button"
+          class="text-gray-500 hover:text-gray-900"
+          phx-click={@on_clear}
+          phx-value-ref={@entry.ref}
+          tabindex="-1"
+        >
+          <.remix_icon icon="close-line" />
+        </button>
+        <span class="flex-grow"></span>
+        <span :if={@entry.preflighted?} class="text-sm font-medium">
+          <%= @entry.progress %>%
+        </span>
+      </div>
+      <div :if={@entry.preflighted?} class="w-full h-2 rounded-lg bg-blue-200">
+        <div
+          class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
+          style={"width: #{@entry.progress}%"}
+        >
         </div>
       </div>
     </div>
