@@ -2,10 +2,14 @@ defmodule Livebook.Stamping do
   # Cryptographic functions used to implement notebook stamping.
 
   @doc """
-  Performs authenticated encryption with associated data (ChaCha+Poly).
+  Performs authenticated encryption with associated data (AEAD) [1].
 
-  Returns a single token which carries encrypted `payload` and
-  signature for both `payload` and `additional_data`.
+  Uses ChaCha20-Poly1305 [2]. Returns a single token which carries
+  encrypted `payload` and signature for both `payload` and
+  `additional_data`.
+
+  [1]: https://en.wikipedia.org/wiki/Authenticated_encryption#Authenticated_encryption_with_associated_data_(AEAD)
+  [2]: https://en.wikipedia.org/wiki/ChaCha20-Poly1305
   """
   @spec chapoly_encrypt(term(), String.t(), String.t()) :: String.t()
   def chapoly_encrypt(payload, additional_data, secret_key) do
@@ -15,7 +19,7 @@ defmodule Livebook.Stamping do
   end
 
   @doc """
-  Decrypts and verifies data obtained from earlier Livebook versions.
+  Decrypts and verifies data obtained from `chapoly_encrypt/3`.
   """
   @spec chapoly_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
   def chapoly_decrypt(encrypted, additional_data, secret_key) do
@@ -31,7 +35,12 @@ defmodule Livebook.Stamping do
   end
 
   @doc """
-  Decrypts and verifies data obtained from earlier Livebook versions.
+  Decrypts and verifies data obtained from AEAD using AES-GCM-128 [1].
+
+  Earlier Livebook versions implemented AEAD using AES-GCM-128 and
+  this function can be used to decrypt that data.
+
+  [1]: https://www.rfc-editor.org/rfc/rfc5116#section-5
   """
   @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
   def aead_decrypt(encrypted, additional_data, secret_key) do
