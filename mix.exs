@@ -94,15 +94,15 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:phoenix, "~> 1.7.7"},
-      {:phoenix_html, "~> 3.0"},
-      # {:phoenix_live_view, "~> 0.20.0"},
+      {:phoenix, github: "phoenixframework/phoenix", override: true},
       {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
+      {:phoenix_html, "~> 3.0"},
       {:phoenix_live_dashboard, "~> 0.8.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
+      {:plug_crypto, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 1.0"},
       {:ecto, "~> 3.10"},

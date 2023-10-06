@@ -14,7 +14,7 @@ defmodule Livebook.Hubs.TeamClient do
   defstruct [
     :hub,
     :connection_error,
-    :derived_keys,
+    :derived_key,
     connected?: false,
     secrets: [],
     file_systems: []
@@ -82,7 +82,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def init(%Hubs.Team{offline: nil} = team) do
-    derived_keys = Teams.derive_keys(team.teams_key)
+    derived_key = Teams.derive_key(team.teams_key)
 
     headers = [
       {"x-lb-version", to_string(Application.spec(:livebook, :vsn))},
@@ -93,18 +93,18 @@ defmodule Livebook.Hubs.TeamClient do
     ]
 
     {:ok, _pid} = Teams.Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{hub: team, derived_keys: derived_keys}}
+    {:ok, %__MODULE__{hub: team, derived_key: derived_key}}
   end
 
   def init(%Hubs.Team{} = team) do
-    derived_keys = Teams.derive_keys(team.teams_key)
+    derived_key = Teams.derive_key(team.teams_key)
 
     {:ok,
      %__MODULE__{
        hub: team,
        secrets: team.offline.secrets,
        file_systems: team.offline.file_systems,
-       derived_keys: derived_keys
+       derived_key: derived_key
      }}
   end
 
@@ -165,8 +165,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp build_secret(state, %{name: name, value: value}) do
-    {secret_key, sign_secret} = state.derived_keys
-    {:ok, decrypted_value} = Teams.decrypt(value, secret_key, sign_secret)
+    {:ok, decrypted_value} = Teams.decrypt(value, state.derived_key)
 
     %Secrets.Secret{
       name: name,
@@ -189,8 +188,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp build_file_system(state, file_system) do
-    {secret_key, sign_secret} = state.derived_keys
-    {:ok, decrypted_value} = Teams.decrypt(file_system.value, secret_key, sign_secret)
+    {:ok, decrypted_value} = Teams.decrypt(file_system.value, state.derived_key)
 
     dumped_data =
       decrypted_value

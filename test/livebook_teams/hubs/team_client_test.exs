@@ -192,8 +192,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           hub_id: id
         )
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
       livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
 
       user_connected =
@@ -223,8 +223,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           hub_id: id
         )
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
       livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
 
       user_connected =
@@ -242,7 +242,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:secret_created, ^secret}
 
       updated_secret = %{secret | value: "an updated value"}
-      secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key, sign_secret)
+      secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key)
 
       updated_livebook_proto_secret =
         LivebookProto.Secret.new!(name: updated_secret.name, value: secret_value)
@@ -272,8 +272,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           hub_id: id
         )
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
       livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
 
       user_connected =
@@ -319,8 +319,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       attrs = Livebook.FileSystem.dump(file_system)
       credentials = Jason.encode!(attrs)
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      value = Livebook.Teams.encrypt(credentials, secret_key)
 
       livebook_proto_file_system =
         LivebookProto.FileSystem.new!(
@@ -362,8 +362,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       attrs = Livebook.FileSystem.dump(file_system)
       credentials = Jason.encode!(attrs)
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      value = Livebook.Teams.encrypt(credentials, secret_key)
 
       livebook_proto_file_system =
         LivebookProto.FileSystem.new!(
@@ -395,7 +395,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       updated_attrs = Livebook.FileSystem.dump(updated_file_system)
       updated_credentials = Jason.encode!(updated_attrs)
-      updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key, sign_secret)
+      updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
       updated_livebook_proto_file_system =
         LivebookProto.FileSystem.new!(
@@ -435,8 +435,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       attrs = Livebook.FileSystem.dump(file_system)
       credentials = Jason.encode!(attrs)
 
-      {secret_key, sign_secret} = Livebook.Teams.derive_keys(team.teams_key)
-      value = Livebook.Teams.encrypt(credentials, secret_key, sign_secret)
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      value = Livebook.Teams.encrypt(credentials, secret_key)
 
       livebook_proto_file_system =
         LivebookProto.FileSystem.new!(

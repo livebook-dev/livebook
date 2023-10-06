@@ -153,7 +153,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     # request to the Teams server (which ensures team membership).
 
     @teams_key_prefix <> teams_key = team.teams_key
-    token = Livebook.Stamping.aead_encrypt(metadata, notebook_source, teams_key)
+    token = Livebook.Stamping.chapoly_encrypt(metadata, notebook_source, teams_key)
 
     case Livebook.Teams.org_sign(team, token) do
       {:ok, token_signature} ->
@@ -172,9 +172,9 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     @public_key_prefix <> org_public_key = team.org_public_key
 
     if Livebook.Stamping.rsa_verify?(token_signature, token, org_public_key) do
-      Livebook.Stamping.aead_decrypt(token, notebook_source, teams_key)
+      Livebook.Stamping.chapoly_decrypt(token, notebook_source, teams_key)
     else
-      :error
+      {:error, :invalid}
     end
   end
 

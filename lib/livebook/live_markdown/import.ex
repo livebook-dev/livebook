@@ -603,6 +603,7 @@ defmodule Livebook.LiveMarkdown.Import do
   @invalid_stamp_message "invalid notebook stamp, disabling default access to secrets and remote files "
   @personal_stamp_context "(you are either not the author of this notebook or changed its source outside of Livebook)"
   @org_stamp_context "(this may happen if you made changes to the notebook source outside of Livebook)"
+  @too_recent_stamp_context "(the stamp has been generated using a more recent Livebook version, you need to upgrade)"
 
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
@@ -616,12 +617,17 @@ defmodule Livebook.LiveMarkdown.Import do
         notebook = apply_stamp_metadata(notebook, metadata)
         {true, notebook, []}
       else
-        _ ->
+        error ->
           extra =
-            if notebook.hub_id == "personal-hub" do
-              @personal_stamp_context
-            else
-              @org_stamp_context
+            cond do
+              error == {:error, :too_recent_version} ->
+                @too_recent_stamp_context
+
+              notebook.hub_id == "personal-hub" ->
+                @personal_stamp_context
+
+              true ->
+                @org_stamp_context
             end
 
           {false, notebook, [@invalid_stamp_message <> extra]}
