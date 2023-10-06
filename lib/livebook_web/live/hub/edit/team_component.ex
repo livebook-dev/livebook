@@ -286,16 +286,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 You may additionally perform the following optional steps:
               </p>
 
-              <ul class="text-gray-700 pl-1 space-y-3 list-disc list-inside">
-                <li>
-                  you may remove the default value for <code>TEAMS_KEY</code>
-                  from your Dockerfile and set it as a build argument in your deployment
-                  platform
+              <ul class="text-gray-700 space-y-3">
+                <li class="flex gap-2">
+                  <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+                  <span>
+                    you may remove the default value for <code>TEAMS_KEY</code>
+                    from your Dockerfile and set it as a build argument in your deployment
+                    platform
+                  </span>
                 </li>
-                <li>
-                  if you want to debug your deployed notebooks in production, you may
-                  set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
-                  value of at least 12 characters of your choice
+                <li class="flex gap-2">
+                  <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+                  <span>
+                    if you want to debug your deployed notebooks in production, you may
+                    set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
+                    value of at least 12 characters of your choice
+                  </span>
                 </li>
               </ul>
             </div>
