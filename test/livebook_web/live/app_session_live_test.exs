@@ -189,7 +189,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
       ref: "ref1",
       id: "input1",
       destination: test,
-      attrs: %{type: :number, default: 1, label: "Name"}
+      attrs: %{type: :number, default: 1, label: "Name", debounce: :blur}
     }
 
     notebook = %{
