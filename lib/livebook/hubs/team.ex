@@ -171,11 +171,14 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     @teams_key_prefix <> teams_key = team.teams_key
     @public_key_prefix <> org_public_key = team.org_public_key
 
-    if Livebook.Stamping.rsa_verify?(token_signature, token, org_public_key) do
-      Livebook.Stamping.chapoly_decrypt(token, notebook_source, teams_key)
-    else
-      :error
-    end
+    result =
+      if Livebook.Stamping.rsa_verify?(token_signature, token, org_public_key) do
+        Livebook.Stamping.chapoly_decrypt(token, notebook_source, teams_key)
+      else
+        :error
+      end
+
+    with :error <- result, do: {:error, :invalid}
   end
 
   def dump(team) do

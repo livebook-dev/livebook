@@ -25,7 +25,8 @@ defmodule Livebook.Hubs.TeamTest do
 
       assert {:ok, ^metadata} = Provider.verify_notebook_stamp(team, notebook_source, stamp)
 
-      assert :error = Provider.verify_notebook_stamp(team, notebook_source <> "change\n", stamp)
+      assert {:error, :invalid} =
+               Provider.verify_notebook_stamp(team, notebook_source <> "change\n", stamp)
     end
   end
 end

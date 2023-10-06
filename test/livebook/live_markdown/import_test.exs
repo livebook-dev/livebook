@@ -1123,6 +1123,24 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
+      <!-- livebook:{"offset":58,"stamp":{"token":"XCP.XcdH6x1x9B90SIKObuM8NWuEN7Tg2nyGWV3YhYtw6M0h8c4K0N5EFa8krthkrIqdIj6aEpUcsbEm4klRkSIh_W2YV1PXuMRQA0vCYU042IVFDbz1gq4","version":2}} -->
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
+    end
+
+    test "restores hub secret names from notebook stamp using personal hub v1 stamp" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
       <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.LF8LTeMYrtq8S7wsKMmk2YgOQzMAkEKT2d8fq1Gz3Ot1mydOgEZ1B4hcEZc.Wec6NwBQ584kE661.a_N-5jDiWrjhHha9zxHQ6JJOmxeqgiya3m6YlKt1Na_DPnEfXyLnengaUzQSrf8.ZoD5r6-H87RpTyvFkvEOQw","version":1}} -->
       """
 
@@ -1141,7 +1159,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":1}} -->
+      <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":2}} -->
       """
 
       {notebook, messages} = Import.notebook_from_livemd(markdown)
@@ -1162,7 +1180,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      <!-- livebook:{"offset":111,"stamp":{"token":"UPDATEME","version":1}} -->
+      <!-- livebook:{"offset":111,"stamp":{"token":"XCP.PgQjafbthVPSi0vQHsWBVoxWjs2V-IWPR4ADSbNGEuePE0uneqtT1rDJHKkJs9W__Q5cflYclSPEyIQwkGWw6IKHlLsy56PBDH2CiHvvy5GfVEpq0vA","token_signature":"KPp0SdwSfEFubAml93UnBH06Yvd4OKULmtF4FmxZ_iE9qR_o2OwCiMQH_MX7A6yTiXeKCrwlZEV-8m6AhX-t6FXc177m8RL5FmXVqrRZw57V7FuxrGacZjYDCTwpGhBQmIAynhfDt6nVmeQyof8bsiW3sskii9171Fa_XFAoSqJqC1J_o2MFRk16o607N-xwTadGsCVyYSl4FUhmEXraOr0krIEe8bdSQOcpXxaDmRJNAUAJkJd3LRJDt8ZkwgmMm4UJopWozQIk2fZGfSO-cepEHoy9HlrgBGWuNL7_J6z7nLxB4p_vF_mOX7fMhIOfzVRxqmzUmzlXZkEPcKhhgQ","version":1}} -->
       """
 
       {notebook, []} = Import.notebook_from_livemd(markdown)
