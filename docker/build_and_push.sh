@@ -17,10 +17,10 @@ docker buildx build --push --platform linux/amd64,linux/arm64 \
   docker/base
 
 docker buildx build --push --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/livebook-dev/utils:elixir-$elixir-erlang-$otp-cuda12.2 \
+  -t ghcr.io/livebook-dev/utils:elixir-$elixir-erlang-$otp-cuda12.1 \
   --build-arg ELIXIR_VERSION=$elixir \
   --build-arg ERLANG_VERSION=$otp \
   --build-arg UBUNTU_VERSION=$ubuntu \
-  --build-arg CUDA_VERSION=12.2.0 \
+  --build-arg CUDA_VERSION=12.1.0 \
   -f docker/base/elixir-cuda.dockerfile \
   docker/base

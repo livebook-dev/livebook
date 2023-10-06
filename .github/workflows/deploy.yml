@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cuda: ["11.8", "12.2"]
+        cuda: ["11.8", "12.1"]
     steps:
       - uses: actions/checkout@v3
       - run: |
