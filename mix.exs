@@ -115,7 +115,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
-      {:req, "~> 0.3.8"},
+      {:req, "~> 0.4.4"},
       {:bandit, "~> 0.7", only: :test},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
