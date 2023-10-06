@@ -21,7 +21,7 @@ defmodule Livebook.Stamping do
   @doc """
   Decrypts and verifies data obtained from `chapoly_encrypt/3`.
   """
-  @spec chapoly_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
+  @spec chapoly_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | {:error, :invalid}
   def chapoly_decrypt(encrypted, additional_data, secret_key) do
     secret = derive_key(secret_key)
 
@@ -30,7 +30,7 @@ defmodule Livebook.Stamping do
         {:ok, Plug.Crypto.non_executable_binary_to_term(payload)}
 
       :error ->
-        :error
+        {:error, :invalid}
     end
   end
 
@@ -42,7 +42,7 @@ defmodule Livebook.Stamping do
 
   [1]: https://www.rfc-editor.org/rfc/rfc5116#section-5
   """
-  @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | :error
+  @spec aead_decrypt(String.t(), String.t(), String.t()) :: {:ok, term()} | {:error, :invalid}
   def aead_decrypt(encrypted, additional_data, secret_key) do
     <<secret::16-bytes, sign_secret::16-bytes>> = derive_key(secret_key)
 
@@ -51,7 +51,7 @@ defmodule Livebook.Stamping do
         {:ok, Plug.Crypto.non_executable_binary_to_term(payload)}
 
       :error ->
-        :error
+        {:error, :invalid}
     end
   end
 

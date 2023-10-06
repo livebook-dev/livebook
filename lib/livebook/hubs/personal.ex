@@ -243,19 +243,16 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def verify_notebook_stamp(personal, notebook_source, stamp) do
-    result =
-      case stamp do
-        %{"version" => 1, "token" => token} ->
-          Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
+    case stamp do
+      %{"version" => 1, "token" => token} ->
+        Livebook.Stamping.aead_decrypt(token, notebook_source, personal.secret_key)
 
-        %{"version" => 2, "token" => token} ->
-          Livebook.Stamping.chapoly_decrypt(token, notebook_source, personal.secret_key)
+      %{"version" => 2, "token" => token} ->
+        Livebook.Stamping.chapoly_decrypt(token, notebook_source, personal.secret_key)
 
-        %{"version" => _} ->
-          {:error, :too_recent_version}
-      end
-
-    with :error <- result, do: {:error, :invalid}
+      %{"version" => _} ->
+        {:error, :too_recent_version}
+    end
   end
 
   def dump(personal) do
