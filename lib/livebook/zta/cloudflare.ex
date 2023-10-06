@@ -68,8 +68,8 @@ defmodule Livebook.ZTA.Cloudflare do
   defp verify_iss(_, _), do: :error
 
   defp get_user_identity(token, url) do
-    token = "CF_Authorization=#{token}"
-    resp = Req.request!(url: url, headers: [{"cookie", token}])
+    cookie = "CF_Authorization=#{token}"
+    resp = Req.request!(url: url, headers: [cookie: cookie])
     if resp.status == 200, do: {:ok, resp.body}, else: :error
   end
 
