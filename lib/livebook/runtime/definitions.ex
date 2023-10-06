@@ -1,7 +1,13 @@
 defmodule Livebook.Runtime.Definitions do
+  @kino_requirement "~> 0.11.0"
+
+  def kino_requirement do
+    @kino_requirement
+  end
+
   kino = %{
     name: "kino",
-    dependency: %{dep: {:kino, "~> 0.11.0"}, config: []}
+    dependency: %{dep: {:kino, @kino_requirement}, config: []}
   }
 
   kino_vega_lite = %{

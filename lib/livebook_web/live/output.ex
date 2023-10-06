@@ -410,9 +410,12 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output(output, %{}) do
+    req = Livebook.Runtime.Definitions.kino_requirement()
+
     render_error_message("""
-    Unknown output format: #{inspect(output)}. If you're using Kino,
-    you may want to update Kino and Livebook to the latest version.
+    Unknown output format: #{inspect(output)}. You may want to explicitly \
+    add {:kino, "#{req}"} as a notebook dependency or update to the latest \
+    Livebook.
     """)
   end
 
