@@ -1,7 +1,7 @@
 defmodule Livebook.Runtime.Definitions do
   kino = %{
     name: "kino",
-    dependency: %{dep: {:kino, github: "livebook-dev/kino", override: true}, config: []}
+    dependency: %{dep: {:kino, "~> 0.11.0"}, config: []}
   }
 
   kino_vega_lite = %{
@@ -31,7 +31,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_bumblebee = %{
     name: "kino_bumblebee",
-    dependency: %{dep: {:kino_bumblebee, github: "livebook-dev/kino_bumblebee"}, config: []}
+    dependency: %{dep: {:kino_bumblebee, "~> 0.4.0"}, config: []}
   }
 
   exla = %{
@@ -41,7 +41,7 @@ defmodule Livebook.Runtime.Definitions do
 
   torchx = %{
     name: "torchx",
-    dependency: %{dep: {:torchx, "~> 0.5.1"}, config: [nx: [default_backend: Torchx.Backend]]}
+    dependency: %{dep: {:torchx, ">= 0.0.0"}, config: [nx: [default_backend: Torchx.Backend]]}
   }
 
   kino_explorer = %{
