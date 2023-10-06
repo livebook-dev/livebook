@@ -94,7 +94,7 @@ defmodule Livebook.MixProject do
   #
   defp deps do
     [
-      {:plug_crypto, github: "elixir-plug/plug_crypto", branch: "jv-no-sign-secret-encrypt"},
+      {:plug_crypto, github: "elixir-plug/plug_crypto", override: true},
       {:phoenix, "~> 1.7.7"},
       {:phoenix_html, "~> 3.0"},
       # {:phoenix_live_view, "~> 0.20.0"},

@@ -4,12 +4,12 @@ defmodule Livebook.Stamping do
   @doc """
   Performs authenticated encryption with associated data (AEAD) [1].
 
-  Uses ChaCha20-Poly1305 [2]. Returns a single token which carries
+  Uses XChaCha20-Poly1305 [2]. Returns a single token which carries
   encrypted `payload` and signature for both `payload` and
   `additional_data`.
 
   [1]: https://en.wikipedia.org/wiki/Authenticated_encryption#Authenticated_encryption_with_associated_data_(AEAD)
-  [2]: https://en.wikipedia.org/wiki/ChaCha20-Poly1305
+  [2]: https://en.wikipedia.org/wiki/XChaCha20-Poly1305
   """
   @spec chapoly_encrypt(term(), String.t(), String.t()) :: String.t()
   def chapoly_encrypt(payload, additional_data, secret_key) do
