@@ -2892,7 +2892,13 @@ defmodule Livebook.Session do
   defp normalize_runtime_output(%{type: :input, attrs: attrs} = output)
        when attrs.type in [:text, :textarea, :password, :number, :url, :range, :color] and
               not is_map_key(attrs, :debounce) do
-    put_in(output.attrs[:debounce], :blur)
+    default =
+      case attrs.type do
+        :range -> 250
+        _other -> :blur
+      end
+
+    put_in(output.attrs[:debounce], default)
     |> normalize_runtime_output()
   end
 
