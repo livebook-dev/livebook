@@ -2889,6 +2889,19 @@ defmodule Livebook.Session do
   # attributes that are missing.
   defp normalize_runtime_output(output)
 
+  # Traverse composite outputs
+
+  # defp normalize_runtime_output(output) when output.type in [:frame, :tabs, :grid] do
+  #   outputs = Enum.map(output.outputs, &normalize_runtime_output/1)
+  #   %{output | outputs: outputs}
+  # end
+
+  # defp normalize_runtime_output(%{type: :frame_update} = output) do
+  #   {update_type, new_outputs} = output.update
+  #   new_outputs = Enum.map(new_outputs, &normalize_runtime_output/1)
+  #   %{output | update: {update_type, new_outputs}}
+  # end
+
   defp normalize_runtime_output(output) when is_map(output), do: output
 
   # TODO: Remove this when Kino v0.10.0 is a long time in the past.
@@ -2975,19 +2988,24 @@ defmodule Livebook.Session do
   end
 
   defp normalize_runtime_output({:input, attrs}) do
-    {fields, attrs} = Map.split(attrs, [:ref, :id, :destination])
+    {fields, %{type: type} = attrs} = Map.split(attrs, [:ref, :id, :destination])
 
     attrs =
-      case attrs.type do
-        :textarea -> Map.put_new(attrs, :monospace, false)
-        _other -> attrs
+      cond do
+        type in [:textarea] ->
+          attrs
+          |> Map.put_new(:monospace, false)
+          |> Map.put_new(:debounce, :blur)
+
+        type in [:text, :password, :number, :url, :color] ->
+          Map.put_new(attrs, :debounce, :blur)
+
+        type in [:range] ->
+          Map.put_new(attrs, :debounce, 250)
+
+        true ->
+          attrs
       end
-      |> Map.put_new_lazy(:debounce, fn ->
-        case attrs.type do
-          :range -> 250
-          _other -> :blur
-        end
-      end)
 
     Map.merge(fields, %{type: :input, attrs: attrs})
     |> normalize_runtime_output()
