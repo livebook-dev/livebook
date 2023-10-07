@@ -633,8 +633,11 @@ defmodule Livebook.LiveMarkdown.Import do
           {false, notebook, [@invalid_stamp_message <> extra]}
       end
 
-    # We enable teams features for offline hub only if the stamp
-    # is valid, which ensures it is an existing Teams hub
+    # If the hub is online, then by definition it is a valid hub,
+    # so we enable team features. If the hub is offline, then
+    # we can only enable team features if the stamp is valid
+    # (which means the server signed with a private key and we
+    # validate it against the public key).
     teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or valid_stamp?)
 
     {%{notebook | teams_enabled: teams_enabled}, messages}
