@@ -28,7 +28,7 @@ This release introduces a **breaking change** to audio and image inputs. Previou
 * Added Remote execution cell ([#2197](https://github.com/livebook-dev/livebook/pull/2197), [#2217](https://github.com/livebook-dev/livebook/pull/2217))
 * Support for getting temporary directory tied to runtime lifetime ([#2204](https://github.com/livebook-dev/livebook/pull/2204))
 * Button for inserting a branching section ([#2205](https://github.com/livebook-dev/livebook/pull/2205))
-* Zero Trust authentication strategy for Tailscale ([#1938](https://github.com/livebook-dev/livebook/pull/1938))
+* Zero Trust authentication strategy for Tailscale ([#2207](https://github.com/livebook-dev/livebook/pull/2207))
 * (Desktop) "Open .livebookdesktop.sh|bat" option to the system tray menu ([#2225](https://github.com/livebook-dev/livebook/pull/2225))
 * Support for customizing debounce behaviour on inputs ([#2224](https://github.com/livebook-dev/livebook/pull/2224))
 * (Desktop) "New Notebook" option to the system tray menu ([#2247](https://github.com/livebook-dev/livebook/pull/2247))
