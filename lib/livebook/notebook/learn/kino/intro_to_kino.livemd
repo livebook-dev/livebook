@@ -283,6 +283,61 @@ Kino.Layout.grid(images, columns: 3)
 
 <!-- livebook:{"branch_parent_index":0} -->
 
+## Kino.Shorts
+
+The `Kino` library also provides a [`Kino.Shorts`](https://hexdocs.pm/kino/Kino.Shorts.html)
+module, which wraps and unifies most of the functionality we've seen so far.
+Let's import it and give it a try:
+
+```elixir
+import Kino.Shorts
+```
+
+For example, we use `Kino.Input` to render and then read an input.
+With `Kino.Shorts`, this can be achieved with a single step:
+
+```elixir
+name = read_text("Your name: ")
+```
+
+Once you execute the cell, the input will appear and, the first time
+around, the value with be an empty string. You can pair this with
+`Kino.interrupt!/2` to read and validate inputs:
+
+```elixir
+name = read_text("Your name: ")
+
+if name == "" do
+  Kino.interrupt!(:error, "You must fill in your name")
+end
+```
+
+There are several other helpers in `Kino.Shorts`. For example,
+in the previous section we used grids with markdown to display
+and link several images. Using `Kino.Shorts`, we can simplify it as:
+
+```elixir
+urls = [
+  "https://images.unsplash.com/photo-1603203040743-24aced6793b4?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1578339850459-76b0ac239aa2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1633479397973-4e69efa75df2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1597838816882-4435b1977fbe?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1629778712393-4f316eee143e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1638667168629-58c2516fbd22?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80"
+]
+
+images =
+  for {url, i} <- Enum.with_index(urls, 1) do
+    image = markdown("![](#{url})")
+    label = markdown("**Image #{i}**")
+    grid([image, label], boxed: true)
+  end
+
+grid(images, columns: 3)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## dbg
 
 Kino hijacks Elixir's [`dbg/2`](https://hexdocs.pm/elixir/Kernel.html#dbg/2)
