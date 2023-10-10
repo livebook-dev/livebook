@@ -2,7 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [v0.11.0](https://github.com/livebook-dev/livebook/tree/v0.10.0) (2023-10-09)
+## [v0.11.1](https://github.com/livebook-dev/livebook/tree/v0.11.1) (2023-10-10)
+
+### Fixed
+
+* Startup crash when migrating starred/recent notebooks pointing to S3 ([#2269](https://github.com/livebook-dev/livebook/pull/2269))
+
+## [v0.11.0](https://github.com/livebook-dev/livebook/tree/v0.11.0) (2023-10-09)
 
 This release introduces file management, you can now tell Livebook what files the notebook depends on, be it on your disk or on the web. In relation to this, the `images/` directory has been deprecated in favour of notebook attachments (files living in the `files/` directory). One way to migrate is to rename the `images/` directory to `files/`, open the files panel (in the session sidebar), then "Add file" and choose "From unlisted". If you want to automatically do this for a large repository of notebooks, you can try out [this script](https://gist.github.com/jonatanklosko/20e28aa772a888a25a829337a4b805e1).
 
