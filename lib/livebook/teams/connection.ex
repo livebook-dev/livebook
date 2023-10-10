@@ -52,15 +52,11 @@ defmodule Livebook.Teams.Connection do
         reason = LivebookProto.Error.decode(error).details
         send(data.listener, {:server_error, reason})
 
-        {:keep_state_and_data, {{:timeout, :reconnect}, @backoff, nil}}
+        {:keep_state, data}
     end
   end
 
   def handle_event({:timeout, :backoff}, nil, _state, _data) do
-    {:keep_state_and_data, {:next_event, :internal, :connect}}
-  end
-
-  def handle_event({:timeout, :reconnect}, nil, _state, _data) do
     {:keep_state_and_data, {:next_event, :internal, :connect}}
   end
 
