@@ -128,8 +128,15 @@ defmodule Livebook.Hubs do
   end
 
   defp disconnect_hub(hub) do
+    # We use a task supervisor because the hub connection itself
+    # calls delete_hub (which calls this function), otherwise we deadlock.
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-      Process.sleep(5_500)
+      # Since other processes may have been communicating
+      # with the hub, we don't want to terminate abruptly and
+      # make them crash, so we give it some time to shut down.
+      #
+      # The default backoff is 5.5s, so we round it down to 5s.
+      Process.sleep(5_000)
       :ok = Provider.disconnect(hub)
     end)
 
