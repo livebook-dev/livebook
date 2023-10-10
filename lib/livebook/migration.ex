@@ -166,7 +166,7 @@ defmodule Livebook.Migration do
       Map.get_lazy(file, :file_system_type, fn ->
         case file.file_system_id do
           "local" -> "local"
-          "s3-" <> _ -> "s3"
+          _ -> "s3"
         end
       end)
 
