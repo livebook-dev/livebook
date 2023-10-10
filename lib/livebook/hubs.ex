@@ -136,7 +136,7 @@ defmodule Livebook.Hubs do
       # make them crash, so we give it some time to shut down.
       #
       # The default backoff is 5.5s, so we round it down to 5s.
-      Process.sleep(5_000)
+      Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)
 
