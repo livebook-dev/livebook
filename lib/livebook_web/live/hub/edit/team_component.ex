@@ -561,7 +561,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
     """
 
-    xla_target = base_env(base_image.env)
+    image_base_env = base_env(base_image.env)
 
     base_args = """
     ARG APPS_PATH=/path/to/my/notebooks
@@ -592,7 +592,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     zta = zta_env(socket.assigns.zta)
 
     dockerfile =
-      [image, base_args, xla_target, base_env, secrets, file_systems, zta, apps]
+      [image, base_args, image_base_env, base_env, secrets, file_systems, zta, apps]
       |> Enum.reject(&is_nil/1)
       |> Enum.join()
 
