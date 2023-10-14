@@ -30,6 +30,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
+    [{default_base_image, _} | _] = Livebook.Config.docker_tags()
+
     {:ok,
      socket
      |> assign(
@@ -44,7 +46,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        is_default: is_default?,
        zta: %{"provider" => "", "key" => ""},
        zta_metadata: nil,
-       base_image: "livebook"
+       base_image: default_base_image
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -207,16 +209,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 the steps below. First, configure your deployment:
               </p>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1">
                 <form phx-change="base_image" phx-target={@myself} phx-nosubmit>
                   <.radio_field
                     name="base_image"
                     label="Base image"
                     value={@base_image}
-                    options={[
-                      {"livebook", "Livebook"},
-                      {"livebook_cuda", "Livebook + CUDA"}
-                    ]}
+                    options={for {k, _v} <- Livebook.Config.docker_tags(), do: {k, k}}
                   />
                 </form>
               </div>
@@ -554,19 +553,22 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    version = to_string(Application.spec(:livebook, :vsn))
-    version = if version =~ "dev", do: "edge", else: version
+    {base_image, xla_target} =
+      List.keyfind(Livebook.Config.docker_tags(), socket.assigns.base_image, 0)
 
-    base_image =
-      if socket.assigns.base_image == "livebook_cuda",
-        do: "ghcr.io/livebook-dev/livebook:#{version}-cuda12.1",
-        else: "ghcr.io/livebook-dev/livebook:#{version}"
+    image = """
+    FROM ghcr.io/livebook-dev/livebook:#{base_image}
+    """
 
-    base =
+    xla_target = xla_target(xla_target)
+
+    base_args = """
+    ARG APPS_PATH=/path/to/my/notebooks
+    ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
+    """
+
+    base_env =
       """
-      FROM #{base_image}
-      ARG APPS_PATH=/path/to/my/notebooks
-      ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
 
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
@@ -589,7 +591,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     zta = zta_env(socket.assigns.zta)
 
     dockerfile =
-      [base, secrets, file_systems, zta, apps]
+      [image, base_args, xla_target, base_env, secrets, file_systems, zta, apps]
       |> Enum.reject(&is_nil/1)
       |> Enum.join()
 
@@ -652,6 +654,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   defp file_systems_env(socket) do
     """
     ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
+    """
+  end
+
+  defp xla_target([]), do: nil
+
+  defp xla_target(XLA_TARGET: xla_target) do
+    """
+    ENV XLA_TARGET #{xla_target}
     """
   end
 end

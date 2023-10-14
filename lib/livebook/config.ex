@@ -44,6 +44,17 @@ defmodule Livebook.Config do
 
   @identity_provider_read_only Enum.filter(@identity_providers, & &1.read_only)
 
+  def docker_tags do
+    version = app_version()
+    base = if version =~ "dev", do: "latest", else: version
+
+    [
+      {base, []},
+      {"#{base}-cuda11.8", [XLA_TARGET: "cuda118"]},
+      {"#{base}-cuda12.1", [XLA_TARGET: "cuda120"]}
+    ]
+  end
+
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
   """
