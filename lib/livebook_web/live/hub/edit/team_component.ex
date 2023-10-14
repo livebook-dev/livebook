@@ -43,7 +43,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        hub_metadata: Provider.to_metadata(assigns.hub),
        is_default: is_default?,
        zta: %{"provider" => "", "key" => ""},
-       zta_metadata: nil
+       zta_metadata: nil,
+       base_image: "livebook"
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -205,6 +206,20 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 deployment, without connecting back to Livebook Teams server, by following
                 the steps below. First, configure your deployment:
               </p>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <form phx-change="base_image" phx-target={@myself} phx-nosubmit>
+                  <.radio_field
+                    name="base_image"
+                    label="Base image"
+                    value={@base_image}
+                    options={[
+                      {"livebook", "Livebook"},
+                      {"livebook_cuda", "Livebook + CUDA"}
+                    ]}
+                  />
+                </form>
+              </div>
 
               <.form :let={f} class="py-2" for={@zta} phx-change="change_zta" phx-target={@myself}>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -526,6 +541,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
+  def handle_event("base_image", %{"base_image" => base_image}, socket) do
+    {:noreply, assign(socket, base_image: base_image) |> assign_dockerfile()}
+  end
+
   defp is_default?(hub) do
     Hubs.get_default_hub().id == hub.id
   end
@@ -538,9 +557,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     version = to_string(Application.spec(:livebook, :vsn))
     version = if version =~ "dev", do: "edge", else: version
 
+    base_image =
+      if socket.assigns.base_image == "livebook_cuda",
+        do: "ghcr.io/livebook-dev/livebook:#{version}-cuda12.1",
+        else: "ghcr.io/livebook-dev/livebook:#{version}"
+
     base =
       """
-      FROM ghcr.io/livebook-dev/livebook:#{version}
+      FROM #{base_image}
       ARG APPS_PATH=/path/to/my/notebooks
       ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
 
