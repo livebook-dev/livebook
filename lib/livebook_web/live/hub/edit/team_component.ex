@@ -30,7 +30,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
-    [{default_base_image, _} | _] = Livebook.Config.docker_tags()
+    [%{tag: default_base_image} | _] = Livebook.Config.docker_tags()
 
     {:ok,
      socket
@@ -215,7 +215,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     name="base_image"
                     label="Base image"
                     value={@base_image}
-                    options={for {k, _v} <- Livebook.Config.docker_tags(), do: {k, k}}
+                    options={for tag <- Livebook.Config.docker_tags(), do: {tag.tag, tag.name}}
                   />
                 </form>
               </div>
@@ -553,14 +553,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    {base_image, xla_target} =
-      List.keyfind(Livebook.Config.docker_tags(), socket.assigns.base_image, 0)
+    base_image = Enum.find(Livebook.Config.docker_tags(), &(&1.tag == socket.assigns.base_image))
 
     image = """
-    FROM ghcr.io/livebook-dev/livebook:#{base_image}
+    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
     """
 
-    xla_target = xla_target(xla_target)
+    xla_target = base_env(base_image.env)
 
     base_args = """
     ARG APPS_PATH=/path/to/my/notebooks
@@ -657,11 +656,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     """
   end
 
-  defp xla_target([]), do: nil
-
-  defp xla_target(XLA_TARGET: xla_target) do
-    """
-    ENV XLA_TARGET #{xla_target}
-    """
-  end
+  defp base_env([]), do: nil
+  defp base_env(list), do: Enum.map_join(list, fn {k, v} -> ~s/ENV #{k} "#{v}"\n/ end)
 end

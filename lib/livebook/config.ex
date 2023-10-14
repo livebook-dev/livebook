@@ -44,14 +44,17 @@ defmodule Livebook.Config do
 
   @identity_provider_read_only Enum.filter(@identity_providers, & &1.read_only)
 
+  @doc """
+  Returns docker tags to be used when generating sample Dockerfiles.
+  """
   def docker_tags do
     version = app_version()
     base = if version =~ "dev", do: "latest", else: version
 
     [
-      {base, []},
-      {"#{base}-cuda11.8", [XLA_TARGET: "cuda118"]},
-      {"#{base}-cuda12.1", [XLA_TARGET: "cuda120"]}
+      %{tag: base, name: "Livebook", env: []},
+      %{tag: "#{base}-cuda11.8", name: "Livebook + CUDA 11.8", env: [XLA_TARGET: "cuda118"]},
+      %{tag: "#{base}-cuda12.1", name: "Livebook + CUDA 12.1", env: [XLA_TARGET: "cuda120"]}
     ]
   end
 
