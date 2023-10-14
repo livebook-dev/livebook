@@ -30,7 +30,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
-    [%{tag: default_base_image} | _] = Livebook.Config.docker_tags()
+    docker_tags = Livebook.Config.docker_tags()
+    [%{tag: default_base_image} | _] = docker_tags
 
     {:ok,
      socket
@@ -46,7 +47,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        is_default: is_default?,
        zta: %{"provider" => "", "key" => ""},
        zta_metadata: nil,
-       base_image: default_base_image
+       base_image: default_base_image,
+       docker_tags: docker_tags
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -215,7 +217,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     name="base_image"
                     label="Base image"
                     value={@base_image}
-                    options={for tag <- Livebook.Config.docker_tags(), do: {tag.tag, tag.name}}
+                    options={for tag <- @docker_tags, do: {tag.tag, tag.name}}
                   />
                 </form>
               </div>
@@ -553,7 +555,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    base_image = Enum.find(Livebook.Config.docker_tags(), &(&1.tag == socket.assigns.base_image))
+    base_image = Enum.find(socket.assigns.docker_tags, &(&1.tag == socket.assigns.base_image))
 
     image = """
     FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
