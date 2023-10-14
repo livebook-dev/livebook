@@ -47,6 +47,7 @@ defmodule Livebook.Config do
   @doc """
   Returns docker tags to be used when generating sample Dockerfiles.
   """
+  @spec docker_tags() :: list(%{tag: String.t(), name: String.t(), env: keyword()})
   def docker_tags do
     version = app_version()
     base = if version =~ "dev", do: "latest", else: version
