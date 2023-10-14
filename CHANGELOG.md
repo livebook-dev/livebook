@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-* Bumped Elixir and Erlang versions in the Docker image and the desktop app ([#2254](https://github.com/livebook-dev/livebook/pull/2254))
+* Bumped Elixir and Erlang versions in the Docker image and the desktop app ([#2274](https://github.com/livebook-dev/livebook/pull/2274))
 
 ### Fixed
 
