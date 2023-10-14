@@ -2,6 +2,16 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.11.2](https://github.com/livebook-dev/livebook/tree/v0.11.2) (2023-10-14)
+
+### Changed
+
+* Bumped Elixir and Erlang versions in the Docker image and the desktop app ([#2254](https://github.com/livebook-dev/livebook/pull/2254))
+
+### Fixed
+
+* App links in the public apps list ([#2275](https://github.com/livebook-dev/livebook/pull/2275))
+
 ## [v0.11.1](https://github.com/livebook-dev/livebook/tree/v0.11.1) (2023-10-10)
 
 ### Fixed
@@ -48,7 +58,7 @@ This release introduces a **breaking change** to audio and image inputs. Previou
 * Clicking links within iframes to trigger navigation for the whole page ([#2160](https://github.com/livebook-dev/livebook/pull/2160))
 * Setup cell output to never be exported ([#2184](https://github.com/livebook-dev/livebook/pull/2184))
 * Moved file storage configuration from Settings to Hub page ([#2212](https://github.com/livebook-dev/livebook/pull/2212))
-* Bumped Elixir and Erlang versions in the Docker image ([#2254](https://github.com/livebook-dev/livebook/pull/2254))
+* Bumped Elixir and Erlang versions in the Docker image and the desktop app ([#2254](https://github.com/livebook-dev/livebook/pull/2254))
 * **(Breaking)** Changed audio and image input values to include file rather than inline binary data
 * Changed the algorithm used by Personal hub for stamping ([#2252](https://github.com/livebook-dev/livebook/pull/2252))
 
