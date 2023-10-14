@@ -30,6 +30,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
+    docker_tags = Livebook.Config.docker_tags()
+    [%{tag: default_base_image} | _] = docker_tags
+
     {:ok,
      socket
      |> assign(
@@ -43,7 +46,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        hub_metadata: Provider.to_metadata(assigns.hub),
        is_default: is_default?,
        zta: %{"provider" => "", "key" => ""},
-       zta_metadata: nil
+       zta_metadata: nil,
+       base_image: default_base_image,
+       docker_tags: docker_tags
      )
      |> assign_dockerfile()
      |> assign_form(changeset)}
@@ -205,6 +210,17 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 deployment, without connecting back to Livebook Teams server, by following
                 the steps below. First, configure your deployment:
               </p>
+
+              <div class="grid grid-cols-1">
+                <form phx-change="base_image" phx-target={@myself} phx-nosubmit>
+                  <.radio_field
+                    name="base_image"
+                    label="Base image"
+                    value={@base_image}
+                    options={for tag <- @docker_tags, do: {tag.tag, tag.name}}
+                  />
+                </form>
+              </div>
 
               <.form :let={f} class="py-2" for={@zta} phx-change="change_zta" phx-target={@myself}>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -526,6 +542,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
+  def handle_event("base_image", %{"base_image" => base_image}, socket) do
+    {:noreply, assign(socket, base_image: base_image) |> assign_dockerfile()}
+  end
+
   defp is_default?(hub) do
     Hubs.get_default_hub().id == hub.id
   end
@@ -535,14 +555,21 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   end
 
   defp assign_dockerfile(socket) do
-    version = to_string(Application.spec(:livebook, :vsn))
-    version = if version =~ "dev", do: "edge", else: version
+    base_image = Enum.find(socket.assigns.docker_tags, &(&1.tag == socket.assigns.base_image))
 
-    base =
+    image = """
+    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
+    """
+
+    image_base_env = base_env(base_image.env)
+
+    base_args = """
+    ARG APPS_PATH=/path/to/my/notebooks
+    ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
+    """
+
+    base_env =
       """
-      FROM ghcr.io/livebook-dev/livebook:#{version}
-      ARG APPS_PATH=/path/to/my/notebooks
-      ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
 
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
       ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
@@ -565,7 +592,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     zta = zta_env(socket.assigns.zta)
 
     dockerfile =
-      [base, secrets, file_systems, zta, apps]
+      [image, base_args, image_base_env, base_env, secrets, file_systems, zta, apps]
       |> Enum.reject(&is_nil/1)
       |> Enum.join()
 
@@ -630,4 +657,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
     """
   end
+
+  defp base_env([]), do: nil
+  defp base_env(list), do: Enum.map_join(list, fn {k, v} -> ~s/ENV #{k} "#{v}"\n/ end)
 end
