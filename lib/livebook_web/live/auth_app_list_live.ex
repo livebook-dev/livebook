@@ -18,7 +18,7 @@ defmodule LivebookWeb.AuthAppListLive do
     <div class="w-full flex flex-col space-y-4">
       <.link
         :for={app <- visible_apps(@apps)}
-        navigate={~p"/apps/#{app.slug}"}
+        href={~p"/apps/#{app.slug}"}
         class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
       >
         <span class="font-semibold"><%= app.notebook_name %></span>
