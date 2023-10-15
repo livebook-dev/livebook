@@ -33,20 +33,29 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             kind={:warning}
             message="The notebook uses session secrets, but those are not available to deployed apps. Convert them to Hub secrets instead."
           />
-          <div class="flex space-x-2">
-            <button
-              class="button-base button-blue"
-              phx-click="deploy_app"
-              disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
-            >
-              <.remix_icon icon="rocket-line" class="align-middle mr-1" />
-              <span>Deploy</span>
-            </button>
+          <div class="flex flex-col gap-3">
+            <div class="flex gap-2">
+              <button
+                class="button-base button-blue"
+                phx-click="deploy_app"
+                disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
+              >
+                <.remix_icon icon="rocket-line" class="align-middle mr-1" />
+                <span>Deploy</span>
+              </button>
+              <.link
+                patch={~p"/sessions/#{@session.id}/settings/app"}
+                class="button-base button-outlined-gray bg-transparent"
+              >
+                Configure
+              </.link>
+            </div>
             <.link
-              patch={~p"/sessions/#{@session.id}/settings/app"}
-              class="button-base button-outlined-gray bg-transparent"
+              class="text-sm text-gray-700 hover:text-blue-600"
+              patch={~p"/sessions/#{@session.id}/app-docker"}
             >
-              Configure
+              <.remix_icon icon="arrow-right-line" />
+              <span>Deploy with Docker</span>
             </.link>
           </div>
         </div>
@@ -55,18 +64,20 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             Latest deployment
           </h3>
           <div class="mt-2 border border-gray-200 rounded-lg">
-            <div class="p-4 flex flex-col space-y-3">
+            <div class="p-4 flex flex-col gap-3">
               <.labeled_text label="URL" one_line>
                 <a href={~p"/apps/#{@app.slug}"}>
                   <%= ~p"/apps/#{@app.slug}" %>
                 </a>
               </.labeled_text>
-              <.labeled_text label="Version" one_line>
-                v<%= @app.version %>
-              </.labeled_text>
-              <.labeled_text label="Session type" one_line>
-                <%= if(@app.multi_session, do: "Multi", else: "Single") %>
-              </.labeled_text>
+              <div class="flex gap-3">
+                <.labeled_text label="Session type" one_line class="grow">
+                  <%= if(@app.multi_session, do: "Multi", else: "Single") %>
+                </.labeled_text>
+                <.labeled_text label="Version" one_line class="grow">
+                  v<%= @app.version %>
+                </.labeled_text>
+              </div>
             </div>
             <div class="border-t border-gray-200 px-3 py-2 flex space-x-2">
               <div class="grow" />
@@ -85,9 +96,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             Running sessions
           </h3>
           <div class="mt-2 flex flex-col space-y-4">
-            <div :for={app_session <- @app.sessions} class="border border-gray-200 rounded-lg">
-              <div class="p-4 flex flex-col space-y-3">
-                <.labeled_text label="Status">
+            <div :for={app_session <- @app.sessions} class="w-full border border-gray-200 rounded-lg">
+              <div class="p-4 flex gap-3">
+                <.labeled_text label="Status" class="grow">
                   <a
                     class="inline-block"
                     aria-label="debug app"
@@ -97,7 +108,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                     <.app_status status={app_session.app_status} />
                   </a>
                 </.labeled_text>
-                <.labeled_text label="Version">
+                <.labeled_text label="Version" class="grow">
                   v<%= app_session.version %>
                 </.labeled_text>
               </div>

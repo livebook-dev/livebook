@@ -478,11 +478,13 @@ defmodule LivebookWeb.CoreComponents do
     default: false,
     doc: "whether to force the text into a single scrollable line"
 
+  attr :class, :string, default: nil
+
   slot :inner_block, required: true
 
   def labeled_text(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-1">
+    <div class={["flex flex-col space-y-1", @class]}>
       <span class="text-sm text-gray-500">
         <%= @label %>
       </span>
