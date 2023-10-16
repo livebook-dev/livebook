@@ -1,9 +1,9 @@
-defmodule LivebookWeb.AppHelpersTest do
+defmodule Livebook.Hubs.DockerfileTest do
   use ExUnit.Case, async: true
 
   import Livebook.TestHelpers
 
-  alias LivebookWeb.AppHelpers
+  alias Livebook.Hubs.Dockerfile
   alias Livebook.Hubs
   alias Livebook.Secrets.Secret
 
@@ -11,13 +11,13 @@ defmodule LivebookWeb.AppHelpersTest do
     test "deploying a single notebook in personal hub" do
       config =
         %{}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
       hub = Hubs.fetch_hub!(Hubs.Personal.id())
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile == """
              FROM ghcr.io/livebook-dev/livebook:latest
@@ -38,10 +38,10 @@ defmodule LivebookWeb.AppHelpersTest do
 
       config =
         %{docker_tag: "latest-cuda11.8"}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ """
              FROM ghcr.io/livebook-dev/livebook:latest-cuda11.8
@@ -56,7 +56,7 @@ defmodule LivebookWeb.AppHelpersTest do
         %{type: :attachment, name: "data.csv"}
       ]
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, file_entries, %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, file_entries, %{})
 
       assert dockerfile =~
                """
@@ -72,7 +72,7 @@ defmodule LivebookWeb.AppHelpersTest do
       hub_secrets = [secret]
       secrets = %{"TEST" => secret, "SESSION" => session_secret}
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
+      dockerfile = Dockerfile.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
 
       assert dockerfile =~
                """
@@ -86,13 +86,13 @@ defmodule LivebookWeb.AppHelpersTest do
     test "deploying a directory in personal hub" do
       config =
         %{deploy_all: true}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
       hub = Hubs.fetch_hub!(Hubs.Personal.id())
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ """
              # Notebooks and files
@@ -108,7 +108,7 @@ defmodule LivebookWeb.AppHelpersTest do
       hub_secrets = [secret, unused_secret]
       secrets = %{"TEST" => secret, "SESSION" => session_secret}
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
+      dockerfile = Dockerfile.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
 
       assert dockerfile =~
                """
@@ -123,13 +123,13 @@ defmodule LivebookWeb.AppHelpersTest do
     test "deploying a single notebook in teams hub" do
       config =
         %{}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
       hub = team_hub()
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile == """
              FROM ghcr.io/livebook-dev/livebook:latest
@@ -157,10 +157,10 @@ defmodule LivebookWeb.AppHelpersTest do
 
       config =
         %{docker_tag: "latest-cuda11.8"}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ """
              FROM ghcr.io/livebook-dev/livebook:latest-cuda11.8
@@ -175,7 +175,7 @@ defmodule LivebookWeb.AppHelpersTest do
         %{type: :attachment, name: "data.csv"}
       ]
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, file_entries, %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, file_entries, %{})
 
       assert dockerfile =~
                """
@@ -191,7 +191,7 @@ defmodule LivebookWeb.AppHelpersTest do
       hub_secrets = [secret]
       secrets = %{"TEST" => secret, "SESSION" => session_secret}
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
+      dockerfile = Dockerfile.build_dockerfile(config, hub, hub_secrets, [], file, [], secrets)
 
       assert dockerfile =~ "ENV LIVEBOOK_TEAMS_SECRETS"
       refute dockerfile =~ "ENV TEST"
@@ -202,7 +202,7 @@ defmodule LivebookWeb.AppHelpersTest do
       file_system = Livebook.Factory.build(:fs_s3)
       file_systems = [file_system]
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], file_systems, file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], file_systems, file, [], %{})
 
       assert dockerfile =~ "ENV LIVEBOOK_TEAMS_FS"
 
@@ -210,10 +210,10 @@ defmodule LivebookWeb.AppHelpersTest do
 
       config =
         %{zta_provider: :cloudflare, zta_key: "cloudflare_key"}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ ~S/ENV LIVEBOOK_IDENTITY_PROVIDER "cloudflare:cloudflare_key"/
     end
@@ -221,18 +221,105 @@ defmodule LivebookWeb.AppHelpersTest do
     test "deploying a directory in teams hub" do
       config =
         %{deploy_all: true}
-        |> AppHelpers.docker_config_changeset()
+        |> Dockerfile.config_changeset()
         |> Ecto.Changeset.apply_changes()
 
       hub = team_hub()
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
-      dockerfile = AppHelpers.build_dockerfile(config, hub, [], [], file, [], %{})
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ """
              # Notebooks and files
              COPY . /apps
              """
+    end
+  end
+
+  describe "warnings/6" do
+    test "warns when session secrets are used" do
+      config =
+        %{}
+        |> Dockerfile.config_changeset()
+        |> Ecto.Changeset.apply_changes()
+
+      hub = Hubs.fetch_hub!(Hubs.Personal.id())
+      app_settings = Livebook.Notebook.AppSettings.new()
+
+      session_secret = %Secret{name: "SESSION", value: "test", hub_id: nil}
+      secrets = %{"SESSION" => session_secret}
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], secrets)
+      assert warning =~ "The notebook uses session secrets"
+    end
+
+    test "warns when hub secrets are used from personal hub" do
+      config =
+        %{}
+        |> Dockerfile.config_changeset()
+        |> Ecto.Changeset.apply_changes()
+
+      hub = Hubs.fetch_hub!(Hubs.Personal.id())
+      app_settings = Livebook.Notebook.AppSettings.new()
+
+      secret = %Secret{name: "TEST", value: "test", hub_id: hub.id}
+
+      hub_secrets = [secret]
+      secrets = %{"TEST" => secret}
+
+      assert [warning] = Dockerfile.warnings(config, hub, hub_secrets, app_settings, [], secrets)
+      assert warning =~ "secrets are included in the Dockerfile"
+    end
+
+    test "warns when there is a reference to external file system from personal hub" do
+      config =
+        %{}
+        |> Dockerfile.config_changeset()
+        |> Ecto.Changeset.apply_changes()
+
+      hub = Hubs.fetch_hub!(Hubs.Personal.id())
+      app_settings = Livebook.Notebook.AppSettings.new()
+
+      file_system = Livebook.Factory.build(:fs_s3)
+
+      file_entries = [
+        %{type: :file, file: Livebook.FileSystem.File.new(file_system, "/data.csv")}
+      ]
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, file_entries, %{})
+
+      assert warning =~
+               "The S3 file storage, defined in your personal hub, will not be available in the Docker image"
+    end
+
+    test "warns when the app has no password in personal hub" do
+      config =
+        %{}
+        |> Dockerfile.config_changeset()
+        |> Ecto.Changeset.apply_changes()
+
+      hub = Hubs.fetch_hub!(Hubs.Personal.id())
+      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
+      assert warning =~ "This app has no password configuration"
+    end
+
+    test "warns when the app has no password and no ZTA in teams hub" do
+      config =
+        %{}
+        |> Dockerfile.config_changeset()
+        |> Ecto.Changeset.apply_changes()
+
+      hub = team_hub()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
+      assert warning =~ "This app has no password configuration"
+
+      config = %{config | zta_provider: :cloudflare, zta_key: "key"}
+
+      assert [] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
     end
   end
 

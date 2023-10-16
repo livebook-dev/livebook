@@ -43,8 +43,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        hub_metadata: Provider.to_metadata(assigns.hub),
        is_default: is_default?
      )
-     |> assign_new(:docker_config_changeset, fn ->
-       LivebookWeb.AppHelpers.docker_config_changeset()
+     |> assign_new(:config_changeset, fn ->
+       Livebook.Hubs.Dockerfile.config_changeset()
      end)
      |> update_dockerfile()
      |> assign_form(changeset)}
@@ -210,7 +210,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
               <.form
                 :let={f}
-                for={@docker_config_changeset}
+                for={@config_changeset}
                 as={:data}
                 phx-change="validate_dockerfile"
                 phx-target={@myself}
@@ -416,12 +416,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def handle_event("validate_dockerfile", %{"data" => data}, socket) do
     changeset =
       data
-      |> LivebookWeb.AppHelpers.docker_config_changeset()
+      |> Livebook.Hubs.Dockerfile.config_changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply,
      socket
-     |> assign(docker_config_changeset: changeset)
+     |> assign(config_changeset: changeset)
      |> update_dockerfile()}
   end
 
@@ -445,14 +445,14 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   defp update_dockerfile(socket) do
     config =
-      socket.assigns.docker_config_changeset
+      socket.assigns.config_changeset
       |> Ecto.Changeset.apply_changes()
       |> Map.replace!(:deploy_all, true)
 
     %{hub: hub, secrets: hub_secrets, file_systems: hub_file_systems} = socket.assigns
 
     dockerfile =
-      LivebookWeb.AppHelpers.build_dockerfile(
+      Livebook.Hubs.Dockerfile.build_dockerfile(
         config,
         hub,
         hub_secrets,

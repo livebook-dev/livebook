@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
        hub_secrets: Hubs.get_secrets(assigns.hub),
        hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true)
      )
-     |> assign_new(:changeset, fn -> LivebookWeb.AppHelpers.docker_config_changeset() end)
+     |> assign_new(:changeset, fn -> Livebook.Hubs.Dockerfile.config_changeset() end)
      |> assign_new(:save_result, fn -> nil end)
      |> update_dockerfile()}
   end
@@ -34,13 +34,13 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         settings_valid?={@settings_valid?}
         hub={@hub}
         hub_secrets={@hub_secrets}
-        app_settings={@app_settings}
         hub_file_systems={@hub_file_systems}
         file_entries={@file_entries}
         secrets={@secrets}
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
+        warnings={@warnings}
         save_result={@save_result}
         myself={@myself}
       />
@@ -83,16 +83,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         You can deploy this app in the cloud using Docker. To do that, configure
         the deployment and then use the generated Dockerfile.
       </p>
-      <div class="flex flex-col gap-2">
-        <.message_box
-          :for={
-            warning <-
-              warnings(@changeset, @hub, @hub_secrets, @app_settings, @file_entries, @secrets)
-          }
-          kind={:warning}
-          message={warning}
-        />
-      </div>
       <p class="text-gray-700">
         <.label>Hub</.label>
         <span>
@@ -100,6 +90,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <span><%= @hub.hub_name %></span>
         </span>
       </p>
+      <div class="flex flex-col gap-2">
+        <.message_box :for={warning <- @warnings} kind={:warning}>
+          <%= raw(warning) %>
+        </.message_box>
+      </div>
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
         <LivebookWeb.AppHelpers.docker_config_form_content hub={@hub} form={f} />
       </.form>
@@ -143,7 +138,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
       data
-      |> LivebookWeb.AppHelpers.docker_config_changeset()
+      |> Livebook.Hubs.Dockerfile.config_changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset) |> update_dockerfile()}
@@ -162,7 +157,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   defp update_dockerfile(socket) when socket.assigns.file == nil do
-    assign(socket, dockerfile: nil)
+    assign(socket, dockerfile: nil, warnings: [])
   end
 
   defp update_dockerfile(socket) do
@@ -174,11 +169,12 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       hub_file_systems: hub_file_systems,
       file: file,
       file_entries: file_entries,
-      secrets: secrets
+      secrets: secrets,
+      app_settings: app_settings
     } = socket.assigns
 
     dockerfile =
-      LivebookWeb.AppHelpers.build_dockerfile(
+      Livebook.Hubs.Dockerfile.build_dockerfile(
         config,
         hub,
         hub_secrets,
@@ -188,69 +184,16 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         secrets
       )
 
-    assign(socket, :dockerfile, dockerfile)
-  end
+    warnings =
+      Livebook.Hubs.Dockerfile.warnings(
+        config,
+        hub,
+        hub_secrets,
+        app_settings,
+        file_entries,
+        secrets
+      )
 
-  defp warnings(changeset, hub, hub_secrets, app_settings, file_entries, secrets) do
-    config = apply_changes(changeset)
-
-    common_warnings =
-      [
-        if Livebook.Session.Data.session_secrets(secrets, hub.id) != [] do
-          "The notebook uses session secrets, but those are not available to deployed apps." <>
-            " Convert them to Hub secrets instead."
-        end
-      ]
-
-    hub_warnings =
-      case Hubs.Provider.type(hub) do
-        "personal" ->
-          [
-            if used_secrets(config, hub, secrets, hub_secrets) != [] do
-              "You are deploying an app with secrets and the secrets are included in the Dockerfile" <>
-                " as environment variables. If someone else deploys this app, they must also set the" <>
-                " same secrets. Use Livebook Teams to automatically encrypt and synchronize secrets" <>
-                " across your team and deployments."
-            end,
-            if module = find_hub_file_system(file_entries) do
-              name = LivebookWeb.FileSystemHelpers.file_system_name(module)
-
-              "The #{name} file storage, defined in your personal hub, will not be available in the Docker image." <>
-                " You must either download all references as attachments or use Livebook Teams to automatically" <>
-                " encrypt and synchronize file storages across your team and deployments."
-            end,
-            if app_settings.access_type == :public do
-              "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. Either configure a password or use Livebook Teams to add Zero Trust Authentication" <>
-                " to your deployed notebooks."
-            end
-          ]
-
-        "team" ->
-          [
-            if app_settings.access_type == :public and
-                 (config.zta_provider == nil or config.zta_key == nil) do
-              "This app has no password configuration and anyone with access to the server will be able" <>
-                " to use it. Either configure a password or configure Zero Trust Authentication."
-            end
-          ]
-      end
-
-    Enum.reject(common_warnings ++ hub_warnings, &is_nil/1)
-  end
-
-  defp find_hub_file_system(file_entries) do
-    Enum.find_value(file_entries, fn entry ->
-      entry.type == :file && entry.file.file_system_module != FileSystem.Local &&
-        entry.file.file_system_module
-    end)
-  end
-
-  defp used_secrets(config, hub, secrets, hub_secrets) do
-    if config.deploy_all do
-      hub_secrets
-    else
-      for {_, secret} <- secrets, secret.hub_id == hub.id, do: secret
-    end
+    assign(socket, dockerfile: dockerfile, warnings: warnings)
   end
 end

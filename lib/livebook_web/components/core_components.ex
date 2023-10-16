@@ -94,10 +94,16 @@ defmodule LivebookWeb.CoreComponents do
 
       <.message_box kind={:info} message="🦊 in a 📦" />
 
+      <.message_box kind={:info}>
+        <span>🦊</span> in a <span>📦</span>
+      </.message_box>
+
   """
 
-  attr :message, :string, required: true
+  attr :message, :string, default: nil
   attr :kind, :atom, values: [:info, :success, :warning, :error]
+
+  slot :inner_block
 
   def message_box(assigns) do
     ~H"""
@@ -108,7 +114,14 @@ defmodule LivebookWeb.CoreComponents do
       @kind == :warning && "border-yellow-300",
       @kind == :error && "border-red-500"
     ]}>
-      <div class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= @message %></div>
+      <div
+        :if={@message}
+        class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar"
+        phx-no-format
+      ><%= @message %></div>
+      <div :if={@inner_block}>
+        <%= render_slot(@inner_block) %>
+      </div>
     </div>
     """
   end
