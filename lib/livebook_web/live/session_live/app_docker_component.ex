@@ -181,7 +181,15 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       )
 
     warnings =
-      Hubs.Dockerfile.warnings(config, hub, hub_secrets, app_settings, file_entries, secrets)
+      Hubs.Dockerfile.warnings(
+        config,
+        hub,
+        hub_secrets,
+        hub_file_systems,
+        app_settings,
+        file_entries,
+        secrets
+      )
 
     assign(socket, dockerfile: dockerfile, warnings: warnings)
   end

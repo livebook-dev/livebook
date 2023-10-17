@@ -202,7 +202,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       session_secret = %Secret{name: "SESSION", value: "test", hub_id: nil}
       secrets = %{"SESSION" => session_secret}
 
-      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], secrets)
+      assert [warning] = Dockerfile.warnings(config, hub, [], [], app_settings, [], secrets)
       assert warning =~ "The notebook uses session secrets"
     end
 
@@ -216,7 +216,9 @@ defmodule Livebook.Hubs.DockerfileTest do
       hub_secrets = [secret]
       secrets = %{"TEST" => secret}
 
-      assert [warning] = Dockerfile.warnings(config, hub, hub_secrets, app_settings, [], secrets)
+      assert [warning] =
+               Dockerfile.warnings(config, hub, hub_secrets, [], app_settings, [], secrets)
+
       assert warning =~ "secrets are included in the Dockerfile"
     end
 
@@ -226,12 +228,28 @@ defmodule Livebook.Hubs.DockerfileTest do
       app_settings = Livebook.Notebook.AppSettings.new()
 
       file_system = Livebook.Factory.build(:fs_s3)
+      file_systems = [file_system]
 
       file_entries = [
         %{type: :file, file: Livebook.FileSystem.File.new(file_system, "/data.csv")}
       ]
 
-      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, file_entries, %{})
+      assert [warning] =
+               Dockerfile.warnings(config, hub, [], file_systems, app_settings, file_entries, %{})
+
+      assert warning =~
+               "The S3 file storage, defined in your personal hub, will not be available in the Docker image"
+    end
+
+    test "warns when deploying a directory in personal hub and it has any file systems" do
+      config = dockerfile_config(%{deploy_all: true})
+      hub = personal_hub()
+      app_settings = Livebook.Notebook.AppSettings.new()
+
+      file_system = Livebook.Factory.build(:fs_s3)
+      file_systems = [file_system]
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], file_systems, app_settings, [], %{})
 
       assert warning =~
                "The S3 file storage, defined in your personal hub, will not be available in the Docker image"
@@ -242,7 +260,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       hub = personal_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
-      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
+      assert [warning] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "This app has no password configuration"
     end
 
@@ -251,12 +269,12 @@ defmodule Livebook.Hubs.DockerfileTest do
       hub = team_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
-      assert [warning] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
+      assert [warning] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "This app has no password configuration"
 
       config = %{config | zta_provider: :cloudflare, zta_key: "key"}
 
-      assert [] = Dockerfile.warnings(config, hub, [], app_settings, [], %{})
+      assert [] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
     end
   end
 
