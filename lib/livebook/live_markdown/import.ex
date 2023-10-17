@@ -600,10 +600,9 @@ defmodule Livebook.LiveMarkdown.Import do
   defp take_stamp_data([{:stamp, data} | elements]), do: {data, elements}
   defp take_stamp_data(elements), do: {nil, elements}
 
-  @invalid_stamp_message "invalid notebook stamp, disabling default access to secrets and remote files "
-  @personal_stamp_context "(you are either not the author of this notebook or changed its source outside of Livebook)"
-  @org_stamp_context "(this may happen if you made changes to the notebook source outside of Livebook)"
-  @too_recent_stamp_context "(the stamp has been generated using a more recent Livebook version, you need to upgrade)"
+  @personal_stamp_message "this notebook can only access environment variables defined in this machine (the notebook was either authored in another machine or changed outside of Livebook)"
+  @org_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (this may happen if you made changes to the notebook source outside of Livebook)"
+  @too_recent_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (the stamp has been generated using a more recent Livebook version, you need to upgrade)"
 
   defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
@@ -618,19 +617,14 @@ defmodule Livebook.LiveMarkdown.Import do
         {true, notebook, []}
       else
         error ->
-          extra =
+          message =
             cond do
-              error == {:error, :too_recent_version} ->
-                @too_recent_stamp_context
-
-              notebook.hub_id == "personal-hub" ->
-                @personal_stamp_context
-
-              true ->
-                @org_stamp_context
+              error == {:error, :too_recent_version} -> @too_recent_stamp_message
+              notebook.hub_id == "personal-hub" -> @personal_stamp_message
+              true -> @org_stamp_message
             end
 
-          {false, notebook, [@invalid_stamp_message <> extra]}
+          {false, notebook, [message]}
       end
 
     # If the hub is online, then by definition it is a valid hub,

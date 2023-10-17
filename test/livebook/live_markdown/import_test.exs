@@ -1165,7 +1165,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, messages} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: []} = notebook
-      assert ["invalid notebook stamp" <> _] = messages
+
+      assert ["this notebook can only access environment variables defined in this machine" <> _] =
+               messages
     end
 
     test "restores hub secret names from notebook stamp using offline hub" do
