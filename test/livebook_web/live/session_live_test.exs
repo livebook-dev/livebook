@@ -2169,4 +2169,51 @@ defmodule LivebookWeb.SessionLiveTest do
                "The notebook uses session secrets, but those are not available to deployed apps. Convert them to Hub secrets instead."
     end
   end
+
+  describe "docker deployment" do
+    test "instructs to choose a file when the notebook is not persisted",
+         %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "To deploy this app, make sure to save the notebook first."
+      assert render(view) =~ ~p"/sessions/#{session.id}/settings/file"
+    end
+
+    @tag :tmp_dir
+    test "instructs to change app settings when invalid",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "To deploy this app, make sure to specify valid settings."
+      assert render(view) =~ ~p"/sessions/#{session.id}/settings/app"
+    end
+
+    @tag :tmp_dir
+    test "shows dockerfile and allows saving it",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "FROM ghcr.io/livebook-dev/livebook:"
+
+      view
+      |> element("button", "Save alongside notebook")
+      |> render_click()
+
+      dockerfile_path = Path.join(tmp_dir, "Dockerfile")
+
+      assert File.read!(dockerfile_path) =~ "COPY notebook.livemd /apps"
+    end
+  end
 end
