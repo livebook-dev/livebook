@@ -5,6 +5,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
   alias Livebook.Hubs
   alias Livebook.FileSystem
+  alias LivebookWeb.AppHelpers
 
   @impl true
   def update(assigns, socket) do
@@ -17,7 +18,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
        hub_secrets: Hubs.get_secrets(assigns.hub),
        hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true)
      )
-     |> assign_new(:changeset, fn -> Livebook.Hubs.Dockerfile.config_changeset() end)
+     |> assign_new(:changeset, fn -> Hubs.Dockerfile.config_changeset() end)
      |> assign_new(:save_result, fn -> nil end)
      |> update_dockerfile()}
   end
@@ -91,10 +92,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         </.message_box>
       </div>
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
-        <LivebookWeb.AppHelpers.docker_config_form_content hub={@hub} form={f} />
+        <AppHelpers.docker_config_form_content hub={@hub} form={f} />
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
-      <LivebookWeb.AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile}>
+      <AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile}>
         <:dockerfile_actions>
           <button
             :if={@file}
@@ -108,7 +109,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
             <span class="font-normal text-xs">Save alongside notebook</span>
           </button>
         </:dockerfile_actions>
-      </LivebookWeb.AppHelpers.docker_instructions>
+      </AppHelpers.docker_instructions>
     </div>
     """
   end
@@ -133,7 +134,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
       data
-      |> Livebook.Hubs.Dockerfile.config_changeset()
+      |> Hubs.Dockerfile.config_changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset) |> update_dockerfile()}
@@ -169,7 +170,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     } = socket.assigns
 
     dockerfile =
-      Livebook.Hubs.Dockerfile.build_dockerfile(
+      Hubs.Dockerfile.build_dockerfile(
         config,
         hub,
         hub_secrets,
@@ -180,14 +181,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       )
 
     warnings =
-      Livebook.Hubs.Dockerfile.warnings(
-        config,
-        hub,
-        hub_secrets,
-        app_settings,
-        file_entries,
-        secrets
-      )
+      Hubs.Dockerfile.warnings(config, hub, hub_secrets, app_settings, file_entries, secrets)
 
     assign(socket, dockerfile: dockerfile, warnings: warnings)
   end

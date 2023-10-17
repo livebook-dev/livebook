@@ -43,9 +43,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        hub_metadata: Provider.to_metadata(assigns.hub),
        is_default: is_default?
      )
-     |> assign_new(:config_changeset, fn ->
-       Livebook.Hubs.Dockerfile.config_changeset()
-     end)
+     |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
      |> update_dockerfile()
      |> assign_form(changeset)}
   end
@@ -416,7 +414,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def handle_event("validate_dockerfile", %{"data" => data}, socket) do
     changeset =
       data
-      |> Livebook.Hubs.Dockerfile.config_changeset()
+      |> Hubs.Dockerfile.config_changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply,
@@ -452,15 +450,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     %{hub: hub, secrets: hub_secrets, file_systems: hub_file_systems} = socket.assigns
 
     dockerfile =
-      Livebook.Hubs.Dockerfile.build_dockerfile(
-        config,
-        hub,
-        hub_secrets,
-        hub_file_systems,
-        nil,
-        [],
-        %{}
-      )
+      Hubs.Dockerfile.build_dockerfile(config, hub, hub_secrets, hub_file_systems, nil, [], %{})
 
     assign(socket, :dockerfile, dockerfile)
   end
