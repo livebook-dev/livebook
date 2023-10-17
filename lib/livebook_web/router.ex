@@ -22,8 +22,10 @@ defmodule LivebookWeb.Router do
   end
 
   pipeline :auth do
-    plug LivebookWeb.AuthPlug
+    # If identity provider is enabled and we don't have access
+    # we don't want to show Livebook's authentication
     plug LivebookWeb.UserPlug
+    plug LivebookWeb.AuthPlug
   end
 
   pipeline :user do
@@ -141,7 +143,7 @@ defmodule LivebookWeb.Router do
   end
 
   scope "/authenticate", LivebookWeb do
-    pipe_through :browser
+    pipe_through [:browser, :user]
 
     get "/", AuthController, :index
     post "/", AuthController, :authenticate
