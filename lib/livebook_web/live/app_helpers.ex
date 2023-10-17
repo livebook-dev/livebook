@@ -141,9 +141,9 @@ defmodule LivebookWeb.AppHelpers do
 
   defp zta_options(), do: @zta_options
 
-  defp docker_tag_options() do
-    for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
-  end
+  @docker_tag_options for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
+
+  defp docker_tag_options(), do: @docker_tag_options
 
   @doc """
   Renders Docker deployment instruction for an app.
