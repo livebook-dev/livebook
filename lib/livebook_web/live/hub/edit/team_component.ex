@@ -12,7 +12,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     socket = assign(socket, assigns)
     changeset = Team.change_hub(assigns.hub)
     show_key? = assigns.params["show-key"] == "true"
-    secrets = Livebook.Hubs.get_secrets(assigns.hub)
+    secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
@@ -30,9 +30,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
-    docker_tags = Livebook.Config.docker_tags()
-    [%{tag: default_base_image} | _] = docker_tags
-
     {:ok,
      socket
      |> assign(
@@ -44,13 +41,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
-       is_default: is_default?,
-       zta: %{"provider" => "", "key" => ""},
-       zta_metadata: nil,
-       base_image: default_base_image,
-       docker_tags: docker_tags
+       is_default: is_default?
      )
-     |> assign_dockerfile()
+     |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
+     |> update_dockerfile()
      |> assign_form(changeset)}
   end
 
@@ -184,7 +178,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                File Storages
+                File storages
               </h2>
 
               <p class="text-gray-700">
@@ -202,129 +196,36 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                Airgapped Deployment
+                Airgapped deployment
               </h2>
 
               <p class="text-gray-700">
                 It is possible to deploy notebooks that belong to this Hub in an airgapped
-                deployment, without connecting back to Livebook Teams server, by following
-                the steps below. First, configure your deployment:
+                deployment, without connecting back to Livebook Teams server. Configure the
+                deployment below and use the generated Dockerfile in a directory with notebooks
+                that belong to your Organization.
               </p>
 
-              <div class="grid grid-cols-1">
-                <form phx-change="base_image" phx-target={@myself} phx-nosubmit>
-                  <.radio_field
-                    name="base_image"
-                    label="Base image"
-                    value={@base_image}
-                    options={for tag <- @docker_tags, do: {tag.tag, tag.name}}
-                  />
-                </form>
-              </div>
-
-              <.form :let={f} class="py-2" for={@zta} phx-change="change_zta" phx-target={@myself}>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <.select_field
-                    name="provider"
-                    label="Zero Trust Authentication provider"
-                    value={@zta["provider"]}
-                    help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
-                    prompt="None"
-                    options={zta_options()}
-                  />
-                  <.text_field
-                    :if={@zta_metadata}
-                    field={f[:key]}
-                    label={@zta_metadata.value}
-                    phx-debounce
-                  />
-                </div>
-
-                <div class="text-sm mt-2">
-                  <span :if={@zta_metadata}>
-                    See the
-                    <a
-                      class="text-blue-800 hover:text-blue-600"
-                      href={"https://hexdocs.pm/livebook/#{@zta_metadata.type}"}
-                    >
-                      Authentication with <%= @zta_metadata.name %> docs
-                    </a>
-                    for more information.
-                  </span>
-                </div>
+              <.form
+                :let={f}
+                for={@config_changeset}
+                as={:data}
+                phx-change="validate_dockerfile"
+                phx-target={@myself}
+              >
+                <LivebookWeb.AppHelpers.docker_config_form_content
+                  hub={@hub}
+                  form={f}
+                  show_deploy_all={false}
+                />
               </.form>
 
-              <p class="text-gray-700">
-                Then save the Dockerfile below in a repository with the Livebook notebooks
-                that belong to your Organization. <strong>You must change</strong>
-                the value of the <code>APPS_PATH</code>
-                argument in the template below to point to a directory with all <code>.livemd</code>
-                files you want to deploy.
-              </p>
-
-              <div id="env-code" class="py-2">
-                <div class="flex justify-between items-end mb-1">
-                  <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
-                  <button
-                    class="button-base button-gray whitespace-nowrap py-1 px-2"
-                    data-copy
-                    data-tooltip="Copied to clipboard"
-                    type="button"
-                    aria-label="copy to clipboard"
-                    phx-click={
-                      JS.dispatch("lb:clipcopy", to: "#offline-deployment-#{@hub.id}-source")
-                      |> JS.add_class(
-                        "tooltip top",
-                        to: "#env-code [data-copy]",
-                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
-                      )
-                      |> JS.remove_class(
-                        "tooltip top",
-                        to: "#env-code [data-copy]",
-                        transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
-                        time: 2000
-                      )
-                    }
-                  >
-                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
-                    <span class="font-normal text-xs">Copy source</span>
-                  </button>
-                </div>
-
-                <.code_preview
-                  source_id={"offline-deployment-#{@hub.id}-source"}
-                  source={@dockerfile}
-                  language="dockerfile"
-                />
-              </div>
-
-              <p class="text-gray-700 py-2">
-                You may additionally perform the following optional steps:
-              </p>
-
-              <ul class="text-gray-700 space-y-3">
-                <li class="flex gap-2">
-                  <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
-                  <span>
-                    you may remove the default value for <code>TEAMS_KEY</code>
-                    from your Dockerfile and set it as a build argument in your deployment
-                    platform
-                  </span>
-                </li>
-                <li class="flex gap-2">
-                  <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
-                  <span>
-                    if you want to debug your deployed notebooks in production, you may
-                    set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
-                    value of at least 12 characters of your choice
-                  </span>
-                </li>
-              </ul>
+              <LivebookWeb.AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile} />
             </div>
 
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                Danger Zone
+                Danger zone
               </h2>
 
               <div class="flex items-center justify-between gap-4 text-gray-700">
@@ -420,23 +321,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           <div class="flex items-center absolute inset-y-0 right-1">
             <button
               class="icon-button"
-              data-copy
               data-tooltip="Copied to clipboard"
               type="button"
               aria-label="copy to clipboard"
               phx-click={
                 JS.dispatch("lb:clipcopy", to: "#teams-key")
-                |> JS.add_class(
-                  "tooltip top",
-                  to: "#teams-key-toggle [data-copy]",
-                  transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
-                )
-                |> JS.remove_class(
-                  "tooltip top",
-                  to: "#teams-key-toggle [data-copy]",
-                  transition: {"ease-out duration-200", "opacity-0", "opacity-100"},
-                  time: 2000
-                )
+                |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
               }
             >
               <.remix_icon icon="clipboard-line" class="text-xl" />
@@ -521,15 +411,16 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
      )}
   end
 
-  def handle_event("change_zta", %{"provider" => provider} = params, socket) do
-    zta = %{"provider" => provider, "key" => params["key"]}
+  def handle_event("validate_dockerfile", %{"data" => data}, socket) do
+    changeset =
+      data
+      |> Hubs.Dockerfile.config_changeset()
+      |> Map.replace!(:action, :validate)
 
-    meta =
-      Enum.find(Livebook.Config.identity_providers(), fn meta ->
-        Atom.to_string(meta.type) == provider
-      end)
-
-    {:noreply, assign(socket, zta: zta, zta_metadata: meta) |> assign_dockerfile()}
+    {:noreply,
+     socket
+     |> assign(config_changeset: changeset)
+     |> update_dockerfile()}
   end
 
   def handle_event("mark_as_default", _, socket) do
@@ -542,10 +433,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     {:noreply, push_navigate(socket, to: ~p"/hub/#{socket.assigns.hub.id}")}
   end
 
-  def handle_event("base_image", %{"base_image" => base_image}, socket) do
-    {:noreply, assign(socket, base_image: base_image) |> assign_dockerfile()}
-  end
-
   defp is_default?(hub) do
     Hubs.get_default_hub().id == hub.id
   end
@@ -554,110 +441,17 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     assign(socket, form: to_form(changeset))
   end
 
-  defp assign_dockerfile(socket) do
-    base_image = Enum.find(socket.assigns.docker_tags, &(&1.tag == socket.assigns.base_image))
+  defp update_dockerfile(socket) do
+    config =
+      socket.assigns.config_changeset
+      |> Ecto.Changeset.apply_changes()
+      |> Map.replace!(:deploy_all, true)
 
-    image = """
-    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
-    """
-
-    image_base_env = base_env(base_image.env)
-
-    base_args = """
-    ARG APPS_PATH=/path/to/my/notebooks
-    ARG TEAMS_KEY="#{socket.assigns.hub.teams_key}"
-    """
-
-    base_env =
-      """
-
-      ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-      ENV LIVEBOOK_TEAMS_NAME "#{socket.assigns.hub.hub_name}"
-      ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{socket.assigns.hub.org_public_key}"
-      """
-
-    secrets = secrets_env(socket)
-    file_systems = file_systems_env(socket)
-
-    apps =
-      """
-
-      ENV LIVEBOOK_APPS_PATH "/apps"
-      ENV LIVEBOOK_APPS_PATH_WARMUP "manual"
-      ENV LIVEBOOK_APPS_PATH_HUB_ID "#{socket.assigns.hub.id}"
-      COPY ${APPS_PATH} /apps
-      RUN /app/bin/warmup_apps.sh\
-      """
-
-    zta = zta_env(socket.assigns.zta)
+    %{hub: hub, secrets: hub_secrets, file_systems: hub_file_systems} = socket.assigns
 
     dockerfile =
-      [image, base_args, image_base_env, base_env, secrets, file_systems, zta, apps]
-      |> Enum.reject(&is_nil/1)
-      |> Enum.join()
+      Hubs.Dockerfile.build_dockerfile(config, hub, hub_secrets, hub_file_systems, nil, [], %{})
 
     assign(socket, :dockerfile, dockerfile)
   end
-
-  defp encrypt_secrets_to_dockerfile(socket) do
-    secrets_map =
-      for %{name: name, value: value} <- socket.assigns.secrets,
-          into: %{},
-          do: {name, value}
-
-    encrypt_to_dockerfile(socket, secrets_map)
-  end
-
-  defp encrypt_file_systems_to_dockerfile(socket) do
-    file_systems =
-      for file_system <- socket.assigns.file_systems do
-        file_system
-        |> Livebook.FileSystem.dump()
-        |> Map.put_new(:type, Livebook.FileSystems.type(file_system))
-      end
-
-    encrypt_to_dockerfile(socket, file_systems)
-  end
-
-  defp encrypt_to_dockerfile(socket, data) do
-    secret_key = Livebook.Teams.derive_key(socket.assigns.hub.teams_key)
-
-    data
-    |> Jason.encode!()
-    |> Livebook.Teams.encrypt(secret_key)
-  end
-
-  @zta_options for provider <- Livebook.Config.identity_providers(),
-                   not provider.read_only,
-                   do: {provider.name, provider.type}
-
-  defp zta_options, do: @zta_options
-
-  defp zta_env(%{"provider" => ""}), do: nil
-  defp zta_env(%{"key" => ""}), do: nil
-
-  defp zta_env(%{"provider" => provider, "key" => key}) do
-    """
-    ENV LIVEBOOK_IDENTITY_PROVIDER "#{provider}:#{key}"
-    """
-  end
-
-  defp secrets_env(%{assigns: %{secrets: []}}), do: nil
-
-  defp secrets_env(socket) do
-    """
-    ENV LIVEBOOK_TEAMS_SECRETS "#{encrypt_secrets_to_dockerfile(socket)}"
-    """
-  end
-
-  defp file_systems_env(%{assigns: %{file_systems: []}}), do: nil
-
-  defp file_systems_env(socket) do
-    """
-    ENV LIVEBOOK_TEAMS_FS "#{encrypt_file_systems_to_dockerfile(socket)}"
-    """
-  end
-
-  defp base_env([]), do: nil
-  defp base_env(list), do: Enum.map_join(list, fn {k, v} -> ~s/ENV #{k} "#{v}"\n/ end)
 end

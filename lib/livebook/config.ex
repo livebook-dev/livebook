@@ -45,10 +45,10 @@ defmodule Livebook.Config do
   @identity_provider_read_only Enum.filter(@identity_providers, & &1.read_only)
 
   @doc """
-  Returns docker tags to be used when generating sample Dockerfiles.
+  Returns docker images to be used when generating sample Dockerfiles.
   """
-  @spec docker_tags() :: list(%{tag: String.t(), name: String.t(), env: keyword()})
-  def docker_tags do
+  @spec docker_images() :: list(%{tag: String.t(), name: String.t(), env: keyword()})
+  def docker_images() do
     version = app_version()
     base = if version =~ "dev", do: "latest", else: version
 

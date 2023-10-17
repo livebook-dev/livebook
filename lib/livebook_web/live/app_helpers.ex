@@ -1,6 +1,8 @@
 defmodule LivebookWeb.AppHelpers do
   use LivebookWeb, :html
 
+  alias Livebook.Hubs
+
   @doc """
   Renders page placeholder on unauthenticated dead render.
   """
@@ -78,5 +80,149 @@ defmodule LivebookWeb.AppHelpers do
       confirm_text: "Terminate",
       confirm_icon: "delete-bin-6-line"
     )
+  end
+
+  @doc """
+  Renders form fields for Dockerfile configuration.
+  """
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :hub, :map, required: true
+  attr :show_deploy_all, :boolean, default: true
+
+  def docker_config_form_content(assigns) do
+    ~H"""
+    <div class="flex flex-col space-y-4">
+      <.radio_field
+        :if={@show_deploy_all}
+        label="Deploy"
+        field={@form[:deploy_all]}
+        options={[
+          {"false", "Only this notebook"},
+          {"true", "All notebooks in the current directory"}
+        ]}
+      />
+      <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
+      <%= if Hubs.Provider.type(@hub) == "team" do %>
+        <div class="flex flex-col">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <.select_field
+              label="Zero Trust Authentication provider"
+              field={@form[:zta_provider]}
+              help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
+              prompt="None"
+              options={zta_options()}
+            />
+            <.text_field
+              :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
+              field={@form[:zta_key]}
+              label={zta_metadata.value}
+              phx-debounce
+            />
+          </div>
+          <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
+            See the
+            <a
+              class="text-blue-800 hover:text-blue-600"
+              href={"https://hexdocs.pm/livebook/#{zta_metadata.type}"}
+            >
+              Authentication with <%= zta_metadata.name %> docs
+            </a>
+            for more information.
+          </div>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  @zta_options for provider <- Livebook.Config.identity_providers(),
+                   not provider.read_only,
+                   do: {provider.name, provider.type}
+
+  defp zta_options(), do: @zta_options
+
+  defp docker_tag_options() do
+    for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
+  end
+
+  @doc """
+  Renders Docker deployment instruction for an app.
+  """
+  attr :hub, :map, required: true
+  attr :dockerfile, :string, required: true
+
+  slot :dockerfile_actions, default: nil
+
+  def docker_instructions(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-4">
+      <div>
+        <div class="flex items-end mb-1 gap-1">
+          <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
+          <div class="grow" />
+          <%= render_slot(@dockerfile_actions) %>
+          <button
+            class="button-base button-gray whitespace-nowrap py-1 px-2"
+            data-tooltip="Copied to clipboard"
+            type="button"
+            aria-label="copy to clipboard"
+            phx-click={
+              JS.dispatch("lb:clipcopy", to: "#dockerfile-source")
+              |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
+            }
+          >
+            <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+            <span class="font-normal text-xs">Copy source</span>
+          </button>
+        </div>
+
+        <.code_preview source_id="dockerfile-source" source={@dockerfile} language="dockerfile" />
+      </div>
+
+      <div class="text-gray-700">
+        To test the deployment locally, go the the notebook directory, save the Dockerfile, then run:
+      </div>
+
+      <.code_preview
+        source_id="dockerfile-cmd"
+        source={
+          ~s'''
+          docker build -t my-app .
+          docker run --rm -p 8080:8080 -p 8081:8081 my-app
+          '''
+        }
+        language="text"
+      />
+
+      <p class="text-gray-700 py-2">
+        You may additionally perform the following optional steps:
+      </p>
+
+      <ul class="text-gray-700 space-y-3">
+        <li :if={Hubs.Provider.type(@hub) == "team"} class="flex gap-2">
+          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+          <span>
+            you may remove the default value for <code>TEAMS_KEY</code>
+            from your Dockerfile and set it as a build argument in your deployment
+            platform
+          </span>
+        </li>
+        <li class="flex gap-2">
+          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+          <span>
+            if you want to debug your deployed notebooks in production, you may
+            set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
+            value of at least 12 characters of your choice
+          </span>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+  defp zta_metadata(nil), do: nil
+
+  defp zta_metadata(zta_provider) do
+    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
   end
 end

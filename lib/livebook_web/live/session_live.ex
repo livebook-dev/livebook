@@ -483,6 +483,26 @@ defmodule LivebookWeb.SessionLive do
     </.modal>
 
     <.modal
+      :if={@live_action == :app_docker}
+      id="app-docker-modal"
+      show
+      width={:big}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.AppDockerComponent}
+        id="app-docker"
+        session={@session}
+        hub={@data_view.hub}
+        file={@data_view.file}
+        app_settings={@data_view.app_settings}
+        secrets={@data_view.secrets}
+        file_entries={@data_view.file_entries}
+        settings={@data_view.app_settings}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :add_file_entry}
       id="add-file-entry-modal"
       show
