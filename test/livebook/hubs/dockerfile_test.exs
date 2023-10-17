@@ -7,6 +7,10 @@ defmodule Livebook.Hubs.DockerfileTest do
   alias Livebook.Hubs
   alias Livebook.Secrets.Secret
 
+  @docker_tag if Livebook.Config.app_version() =~ "-dev",
+                do: "latest",
+                else: Livebook.Config.app_version()
+
   describe "build_dockerfile/7" do
     test "deploying a single notebook in personal hub" do
       config = dockerfile_config()
@@ -16,7 +20,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile == """
-             FROM ghcr.io/livebook-dev/livebook:latest
+             FROM ghcr.io/livebook-dev/livebook:#{@docker_tag}
 
              # Apps configuration
              ENV LIVEBOOK_APPS_PATH "/apps"
@@ -91,7 +95,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile == """
-             FROM ghcr.io/livebook-dev/livebook:latest
+             FROM ghcr.io/livebook-dev/livebook:#{@docker_tag}
 
              ARG TEAMS_KEY="lb_tk_fn0pL3YLWzPoPFWuHeV3kd0o7_SFuIOoU4C_k6OWDYg"
 
@@ -160,14 +164,14 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "deploying with different base image" do
-      config = dockerfile_config(%{docker_tag: "latest-cuda11.8"})
+      config = dockerfile_config(%{docker_tag: "#{@docker_tag}-cuda11.8"})
       hub = personal_hub()
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
       dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
       assert dockerfile =~ """
-             FROM ghcr.io/livebook-dev/livebook:latest-cuda11.8
+             FROM ghcr.io/livebook-dev/livebook:#{@docker_tag}-cuda11.8
 
              ENV XLA_TARGET "cuda118"
              """
