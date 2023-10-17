@@ -613,10 +613,11 @@ defmodule Livebook.Config do
     end
   end
 
-  @doc """
+  @app_version Mix.Project.config()[:version]
+
+@doc """
   Returns the current version of running Livebook.
   """
-  @app_version Mix.Project.config()[:version]
   def app_version(), do: @app_version
 
   defp parse_connection_config!(config) do
