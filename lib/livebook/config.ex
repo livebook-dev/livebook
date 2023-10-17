@@ -616,7 +616,8 @@ defmodule Livebook.Config do
   @doc """
   Returns the current version of running Livebook.
   """
-  def app_version(), do: Mix.Project.config()[:version]
+  @app_version Mix.Project.config()[:version]
+  def app_version(), do: @app_version
 
   defp parse_connection_config!(config) do
     {node, cookie} = split_at_last_occurrence(config, ":")
