@@ -59,7 +59,7 @@ defmodule Livebook.Hubs.Dockerfile do
     image_envs = format_envs(base_image.env)
 
     hub_type = Hubs.Provider.type(hub)
-    used_secrets = used_secrets(config, hub, secrets, hub_secrets) |> Enum.sort_by(& &1.name)
+    used_secrets = used_hub_secrets(config, hub_secrets, secrets) |> Enum.sort_by(& &1.name)
     hub_config = format_hub_config(hub_type, config, hub, hub_file_systems, used_secrets)
 
     apps_config = """
@@ -202,11 +202,29 @@ defmodule Livebook.Hubs.Dockerfile do
     |> Livebook.Teams.encrypt(secret_key)
   end
 
-  defp used_secrets(config, hub, secrets, hub_secrets) do
+  defp used_hub_secrets(config, hub_secrets, secrets) do
     if config.deploy_all do
       hub_secrets
     else
-      for {_, secret} <- secrets, secret.hub_id == hub.id, do: secret
+      Enum.filter(hub_secrets, fn hub_secret ->
+        if secret = secrets[hub_secret.name] do
+          secret.hub_id == hub_secret.hub_id
+        end
+      end)
+    end
+  end
+
+  defp used_hub_file_systems(config, hub_file_systems, file_entries) do
+    if config.deploy_all do
+      hub_file_systems
+    else
+      file_entry_file_system_ids =
+        for entry <- file_entries,
+            entry.type == :file,
+            do: entry.file.file_system_id,
+            into: MapSet.new()
+
+      Enum.filter(hub_file_systems, &(&1.id in file_entry_file_system_ids))
     end
   end
 
@@ -223,11 +241,12 @@ defmodule Livebook.Hubs.Dockerfile do
           config(),
           Hubs.Provider.t(),
           list(Livebook.Secrets.Secret.t()),
+          list(Livebook.FileSystem.t()),
           Livebook.Notebook.AppSettings.t(),
           list(Livebook.Notebook.file_entry()),
           list(Livebook.Session.Data.secrets())
         ) :: list(String.t())
-  def warnings(config, hub, hub_secrets, app_settings, file_entries, secrets) do
+  def warnings(config, hub, hub_secrets, hub_file_systems, app_settings, file_entries, secrets) do
     common_warnings =
       [
         if Livebook.Session.Data.session_secrets(secrets, hub.id) != [] do
@@ -239,14 +258,18 @@ defmodule Livebook.Hubs.Dockerfile do
     hub_warnings =
       case Hubs.Provider.type(hub) do
         "personal" ->
+          used_hub_secrets = used_hub_secrets(config, hub_secrets, secrets)
+          used_hub_file_systems = used_hub_file_systems(config, hub_file_systems, file_entries)
+
           [
-            if used_secrets(config, hub, secrets, hub_secrets) != [] do
+            if used_hub_secrets != [] do
               "You are deploying an app with secrets and the secrets are included in the Dockerfile" <>
                 " as environment variables. If someone else deploys this app, they must also set the" <>
                 " same secrets. Use Livebook Teams to automatically encrypt and synchronize secrets" <>
                 " across your team and deployments."
             end,
-            if module = find_hub_file_system(file_entries) do
+            if used_hub_file_systems != [] do
+              %module{} = hd(used_hub_file_systems)
               name = LivebookWeb.FileSystemHelpers.file_system_name(module)
 
               "The #{name} file storage, defined in your personal hub, will not be available in the Docker image." <>
@@ -273,12 +296,5 @@ defmodule Livebook.Hubs.Dockerfile do
       end
 
     Enum.reject(common_warnings ++ hub_warnings, &is_nil/1)
-  end
-
-  defp find_hub_file_system(file_entries) do
-    Enum.find_value(file_entries, fn entry ->
-      entry.type == :file && entry.file.file_system_module != FileSystem.Local &&
-        entry.file.file_system_module
-    end)
   end
 end
