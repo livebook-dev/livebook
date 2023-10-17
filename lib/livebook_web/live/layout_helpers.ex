@@ -94,7 +94,7 @@ defmodule LivebookWeb.LayoutHelpers do
                 </span>
               </.link>
               <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-                v<%= Application.spec(:livebook, :vsn) %>
+                v<%= Livebook.Config.app_version() %>
               </span>
             </div>
             <.sidebar_link title="Home" icon="home-6-line" to={~p"/"} current={@current_page} />

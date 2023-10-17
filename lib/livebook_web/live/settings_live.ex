@@ -60,7 +60,7 @@ defmodule LivebookWeb.SettingsLive do
                   <% end %>
                 </.labeled_text>
                 <.labeled_text label="Livebook">
-                  v<%= Application.spec(:livebook, :vsn) %>
+                  v<%= Livebook.Config.app_version() %>
                 </.labeled_text>
                 <.labeled_text label="Elixir">
                   v<%= System.version() %>

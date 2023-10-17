@@ -149,7 +149,7 @@ defmodule Livebook.Teams.Requests do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
 
     [
-      {"x-lb-version", to_string(Application.spec(:livebook, :vsn))},
+      {"x-lb-version", Livebook.Config.app_version()},
       {"authorization", "Bearer " <> token}
     ]
   end
