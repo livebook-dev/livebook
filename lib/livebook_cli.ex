@@ -73,7 +73,7 @@ defmodule LivebookCLI do
     IO.puts(:erlang.system_info(:system_version))
     IO.puts("Elixir " <> System.build_info()[:build])
 
-    version = Application.spec(:livebook, :vsn)
+    version = Livebook.Config.app_version()
     IO.puts("\nLivebook #{version}")
   end
 end
