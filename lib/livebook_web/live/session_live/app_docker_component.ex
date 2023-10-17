@@ -32,6 +32,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       </h3>
       <.content
         file={@file}
+        settings_valid?={@settings_valid?}
         hub={@hub}
         changeset={@changeset}
         session={@session}
@@ -98,7 +99,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       <AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile}>
         <:dockerfile_actions>
           <button
-            :if={@file}
             class="button-base button-gray whitespace-nowrap py-1 px-2"
             type="button"
             aria-label="save dockerfile alongside the notebook"
