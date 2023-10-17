@@ -31,12 +31,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       </h3>
       <.content
         file={@file}
-        settings_valid?={@settings_valid?}
         hub={@hub}
-        hub_secrets={@hub_secrets}
-        hub_file_systems={@hub_file_systems}
-        file_entries={@file_entries}
-        secrets={@secrets}
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
