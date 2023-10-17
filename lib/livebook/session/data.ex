@@ -886,6 +886,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> set_secret(secret)
     |> update_notebook_hub_secret_names()
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -894,6 +895,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> unset_secret(secret_name)
     |> update_notebook_hub_secret_names()
+    |> set_dirty()
     |> wrap_ok()
   end
 
