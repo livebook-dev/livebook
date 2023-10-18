@@ -10,11 +10,15 @@ defmodule Livebook.LiveMarkdown.Import do
     {ast, rewrite_messages} = rewrite_ast(ast)
     elements = group_elements(ast)
     {stamp_data, elements} = take_stamp_data(elements)
-    {notebook, build_messages} = build_notebook(elements)
+    {notebook, valid_hub?, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
     {notebook, metadata_messages} =
-      postprocess_stamp(notebook, markdown, stamp_data)
+      if stamp_data != nil and valid_hub? do
+        postprocess_stamp(notebook, markdown, stamp_data)
+      else
+        {notebook, []}
+      end
 
     messages =
       earmark_messages ++
@@ -307,6 +311,9 @@ defmodule Livebook.LiveMarkdown.Import do
     build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
+  @unknown_hub_message "this notebook belongs to an Organization you don't have access to. " <>
+                         "Head to Livebook's home and add its Organization before reopening this notebook"
+
   defp build_notebook(elems, cells, sections, messages, output_counter) do
     # At this point we expect the heading, otherwise we use the default
     {name, elems} =
@@ -329,8 +336,15 @@ defmodule Livebook.LiveMarkdown.Import do
           ]
       end
 
-    {attrs, metadata_messages} = notebook_metadata_to_attrs(metadata)
-    messages = messages ++ metadata_messages
+    {attrs, messages} = notebook_metadata_to_attrs(metadata, messages)
+    hub_id = attrs[:hub_id]
+
+    {attrs, valid_hub?, messages} =
+      if is_nil(hub_id) or Hubs.hub_exists?(hub_id) do
+        {attrs, true, messages}
+      else
+        {Map.delete(attrs, :hub_id), false, messages ++ [@unknown_hub_message]}
+      end
 
     # We identify a single leading cell as the setup cell, in any
     # other case all extra cells are put in a default section
@@ -352,7 +366,7 @@ defmodule Livebook.LiveMarkdown.Import do
       |> maybe_put_setup_cell(setup_cell)
       |> Map.merge(attrs)
 
-    {notebook, messages}
+    {notebook, valid_hub?, messages}
   end
 
   defp maybe_put_name(notebook, nil), do: notebook
@@ -379,11 +393,8 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp grab_leading_comments(elems), do: {[], elems}
 
-  @unknown_hub_message "this notebook belongs to an Organization you don't have access to. " <>
-                         "Head to Livebook's home and add the Organization to your application before reopening this notebook"
-
-  defp notebook_metadata_to_attrs(metadata) do
-    Enum.reduce(metadata, {%{}, []}, fn
+  defp notebook_metadata_to_attrs(metadata, messages) do
+    Enum.reduce(metadata, {%{}, messages}, fn
       {"persist_outputs", persist_outputs}, {attrs, messages} ->
         {Map.put(attrs, :persist_outputs, persist_outputs), messages}
 
@@ -396,10 +407,7 @@ defmodule Livebook.LiveMarkdown.Import do
         {Map.put(attrs, :default_language, default_language), messages}
 
       {"hub_id", hub_id}, {attrs, messages} ->
-        cond do
-          Hubs.hub_exists?(hub_id) -> {Map.put(attrs, :hub_id, hub_id), messages}
-          true -> {attrs, messages ++ [@unknown_hub_message]}
-        end
+        {Map.put(attrs, :hub_id, hub_id), messages}
 
       {"app_settings", app_settings_metadata}, {attrs, messages} ->
         app_settings =
@@ -603,8 +611,6 @@ defmodule Livebook.LiveMarkdown.Import do
   @personal_stamp_message "this notebook can only access environment variables defined in this machine (the notebook was either authored in another machine or changed outside of Livebook)"
   @org_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (this may happen if you made changes to the notebook source outside of Livebook)"
   @too_recent_stamp_message "invalid notebook stamp, disabling access to secrets and remote files (the stamp has been generated using a more recent Livebook version, you need to upgrade)"
-
-  defp postprocess_stamp(notebook, _notebook_source, nil), do: {notebook, []}
 
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
     hub = Hubs.fetch_hub!(notebook.hub_id)
