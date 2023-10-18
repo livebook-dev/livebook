@@ -224,7 +224,7 @@ let's check it out.
 ### Communication and automation of Elixir systems
 
 You may also deploy notebooks as applications that automate and monitor
-live Elixir systems. By cliking on "+ Smart cell", you will find Livebook
+live Elixir systems. By clicking on "+ Smart cell", you will find Livebook
 provides a "Remote execution" widget, that allows you to configure the
 node name, cookie, and the code you want to execute on the remote node.
 
