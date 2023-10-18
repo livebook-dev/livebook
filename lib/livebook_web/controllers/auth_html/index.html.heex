@@ -62,14 +62,14 @@
   </div>
 
   <div
-    :if={@any_public_app? or @empty_apps_path?}
+    :if={@any_apps? or @empty_apps_path?}
     class="w-full h-full px-4 py-8 flex justify-center items-center"
   >
     <div class="w-full flex flex-col items-center">
       <div class="text-gray-700 text-xl font-medium">
-        Public apps
+        Apps
       </div>
-      <div :if={@any_public_app?} class="w-full mt-5 mx-auto max-w-[400px]">
+      <div :if={@any_apps?} class="w-full mt-5 mx-auto max-w-[400px]">
         <%= live_render(@conn, LivebookWeb.AuthAppListLive) %>
       </div>
       <div :if={@empty_apps_path?} class="mt-5 text-gray-600">
