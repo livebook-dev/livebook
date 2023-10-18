@@ -25,7 +25,7 @@ defmodule LivebookWeb.AuthController do
     render(conn, "index.html",
       errors: [],
       auth_mode: Livebook.Config.auth_mode(),
-      any_public_app?: any_public_app?(),
+      any_apps?: any_apps?(),
       empty_apps_path?: Livebook.Apps.empty_apps_path?()
     )
   end
@@ -56,7 +56,7 @@ defmodule LivebookWeb.AuthController do
     render(conn, "index.html",
       errors: errors,
       auth_mode: auth_mode,
-      any_public_app?: any_public_app?(),
+      any_apps?: any_apps?(),
       empty_apps_path?: Livebook.Apps.empty_apps_path?()
     )
   end
@@ -75,8 +75,7 @@ defmodule LivebookWeb.AuthController do
     |> halt()
   end
 
-  defp any_public_app?() do
-    Livebook.Apps.list_apps()
-    |> Enum.any?(& &1.public?)
+  defp any_apps?() do
+    Livebook.Apps.list_apps() != []
   end
 end

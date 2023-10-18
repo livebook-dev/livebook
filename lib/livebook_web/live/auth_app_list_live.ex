@@ -19,17 +19,16 @@ defmodule LivebookWeb.AuthAppListLive do
       <.link
         :for={app <- visible_apps(@apps)}
         href={~p"/apps/#{app.slug}"}
-        class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
+        class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex items-center justify-between"
       >
         <span class="font-semibold"><%= app.notebook_name %></span>
+        <.remix_icon :if={not app.public?} icon="lock-password-line" />
       </.link>
     </div>
     """
   end
 
   defp visible_apps(apps) do
-    apps
-    |> Enum.filter(& &1.public?)
-    |> Enum.sort_by(& &1.notebook_name)
+    Enum.sort_by(apps, & &1.notebook_name)
   end
 end
