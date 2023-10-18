@@ -102,13 +102,35 @@ defmodule LivebookWeb.AppHelpers do
         ]}
       />
       <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
+      <.radio_field
+        label="Cluster setup"
+        help={
+          ~S'''
+          When running multiple
+          instances of Livebook,
+          they need to be connected
+          into a single cluster.
+          '''
+        }
+        field={@form[:cluster]}
+        options={[
+          {"", "Single instance"},
+          {"fly_io", "Fly.io"}
+        ]}
+      />
       <%= if Hubs.Provider.type(@hub) == "team" do %>
         <div class="flex flex-col">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <.select_field
               label="Zero Trust Authentication provider"
               field={@form[:zta_provider]}
-              help="Enable this option if you want to deploy your notebooks behind an authentication proxy"
+              help={
+                ~S'''
+                Enable this option if you want
+                to deploy your notebooks behind
+                an authentication proxy
+                '''
+              }
               prompt="None"
               options={zta_options()}
             />

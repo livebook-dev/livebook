@@ -8,6 +8,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @type config :: %{
           deploy_all: boolean(),
           docker_tag: String.t(),
+          cluster: nil | :fly_io,
           zta_provider: atom() | nil,
           zta_key: String.t() | nil
         }
@@ -19,7 +20,13 @@ defmodule Livebook.Hubs.Dockerfile do
   def config_changeset(attrs \\ %{}) do
     default_image = Livebook.Config.docker_images() |> hd()
 
-    data = %{deploy_all: false, docker_tag: default_image.tag, zta_provider: nil, zta_key: nil}
+    data = %{
+      deploy_all: false,
+      docker_tag: default_image.tag,
+      cluster: nil,
+      zta_provider: nil,
+      zta_key: nil
+    }
 
     zta_types =
       for provider <- Livebook.Config.identity_providers(),
@@ -29,11 +36,12 @@ defmodule Livebook.Hubs.Dockerfile do
     types = %{
       deploy_all: :boolean,
       docker_tag: :string,
+      cluster: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io]),
       zta_provider: Ecto.ParameterizedType.init(Ecto.Enum, values: zta_types),
       zta_key: :string
     }
 
-    cast({data, types}, attrs, [:deploy_all, :docker_tag, :zta_provider, :zta_key])
+    cast({data, types}, attrs, [:deploy_all, :docker_tag, :cluster, :zta_provider, :zta_key])
     |> validate_required([:deploy_all, :docker_tag])
   end
 
@@ -108,13 +116,30 @@ defmodule Livebook.Hubs.Dockerfile do
     RUN /app/bin/warmup_apps.sh
     """
 
+    startup =
+      if config.cluster == :fly_io do
+        ~S"""
+        # Custom startup script to cluster multiple Livebook nodes
+        RUN printf '#!/bin/bash\n\
+        export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
+        export LIVEBOOK_DISTRIBUTION="name"\n\
+        export LIVEBOOK_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"\n\
+        export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"\n\
+        /app/bin/livebook start\n'\
+        > /app/bin/start.sh && chmod +x /app/bin/start.sh
+
+        CMD [ "/app/bin/start.sh" ]
+        """
+      end
+
     [
       image,
       image_envs,
       hub_config,
       apps_config,
       notebook,
-      apps_warmup
+      apps_warmup,
+      startup
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")

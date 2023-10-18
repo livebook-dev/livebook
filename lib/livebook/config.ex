@@ -613,6 +613,21 @@ defmodule Livebook.Config do
     end
   end
 
+  @doc """
+  Parses and validates DNS cluster query from env.
+  """
+  def dns_cluster_query!(env) do
+    if cluster_config = System.get_env(env) do
+      case cluster_config do
+        "dns:" <> query ->
+          query
+
+        other ->
+          abort!(~s{expected #{env} to be either "dns:query", got: #{inspect(other)}})
+      end
+    end
+  end
+
   @app_version Mix.Project.config()[:version]
 
   @doc """

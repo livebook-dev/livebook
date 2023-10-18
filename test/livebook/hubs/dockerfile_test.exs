@@ -195,6 +195,16 @@ defmodule Livebook.Hubs.DockerfileTest do
                COPY files/data.csv files/image.jpeg /apps/files/
                """
     end
+
+    test "deploying with fly.io cluster setup" do
+      config = dockerfile_config(%{cluster: :fly_io})
+      hub = personal_hub()
+      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
+
+      dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
+
+      assert dockerfile =~ ~s/export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"/
+    end
   end
 
   describe "warnings/6" do
