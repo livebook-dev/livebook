@@ -153,11 +153,6 @@ defmodule LivebookWeb.SessionLive do
           button_attrs={["data-el-sections-list-toggle": true]}
         />
         <.button_item
-          icon="group-fill"
-          label="Connected users (su)"
-          button_attrs={["data-el-clients-list-toggle": true]}
-        />
-        <.button_item
           icon="folder-open-fill"
           label="Files (sf)"
           button_attrs={["data-el-files-list-toggle": true]}
@@ -182,10 +177,19 @@ defmodule LivebookWeb.SessionLive do
           />
         </div>
         <.button_item
+          icon="group-fill"
+          label="Connected users (su)"
+          button_attrs={["data-el-clients-list-toggle": true]}
+        />
+
+        <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
           button_attrs={["data-el-runtime-info-toggle": true]}
         />
+
+        <div class="grow"></div>
+
         <.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
@@ -193,8 +197,6 @@ defmodule LivebookWeb.SessionLive do
           active={@live_action == :bin}
           link_attrs={["data-btn-show-bin": true]}
         />
-
-        <div class="grow"></div>
 
         <.link_item
           icon="keyboard-box-fill"
