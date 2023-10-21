@@ -27,7 +27,7 @@ String.replace(message, "🍵", "☕")
 Note however that bindings are not global, so each cell *sees* only stuff
 that goes above itself. This approach helps to keep the notebook clean and
 predictable as you keep working on it. Furthermore, Livebook tracks which
-variables are used by each cell and in order to detect which cells become
+variables are used by each cell in order to detect which cells become
 stale. For example, try changing the `message` variable and you will see
 the status indicator on the bottom right of the second cell become yellow.
 
@@ -351,7 +351,7 @@ Now let's try running it:
 Bench.sum()
 ```
 
-The latest cell should execute a least an order of magnitude faster
+The latest cell should execute at least an order of magnitude faster
 than the previous `Enum.reduce/3` call. While the call `Bench.sum()`
 itself is evaluated, the one million iterations of `Enum.reduce/3`
 happen inside a module, which is compiled.
