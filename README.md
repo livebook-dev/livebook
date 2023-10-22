@@ -212,6 +212,11 @@ The following environment variables can be used to configure Livebook on boot:
     Those certificates are used during for server authentication when Livebook
     accesses files from external sources.
 
+  * LIVEBOOK_CLUSTER - configures clustering strategy when running multiple
+    instances of Livebook. Currently the only supported value is `dns:QUERY`,
+    in which case nodes ask DNS for A/AAAA records using the given query and
+    try to connect to peer nodes on the discovered IPs.
+
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 

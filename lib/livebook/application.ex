@@ -49,6 +49,7 @@ defmodule Livebook.Application do
           iframe_server_specs() ++
             identity_provider() ++
             [
+              {DNSCluster, query: Application.get_env(:livebook, :dns_cluster_query) || :ignore},
               # Start the Endpoint (http/https)
               # We skip the access url as we do our own logging below
               {LivebookWeb.Endpoint, log_access_url: false}
