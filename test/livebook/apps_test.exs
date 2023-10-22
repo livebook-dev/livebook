@@ -261,5 +261,29 @@ defmodule Livebook.AppsTest do
 
       Livebook.App.close(app.pid)
     end
+
+    @tag :tmp_dir
+    test "skips existing apps when :start_only is enabled", %{tmp_dir: tmp_dir} do
+      app_path = Path.join(tmp_dir, "app.livemd")
+
+      File.write!(app_path, """
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
+
+      # App
+      """)
+
+      Livebook.Apps.subscribe()
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+      assert_receive {:app_updated, app}
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir)
+      assert %{version: 2} = Livebook.App.get_by_pid(app.pid)
+
+      Livebook.Apps.deploy_apps_in_dir(tmp_dir, start_only: true)
+      assert %{version: 2} = Livebook.App.get_by_pid(app.pid)
+
+      Livebook.App.close(app.pid)
+    end
   end
 end
