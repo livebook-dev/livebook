@@ -333,7 +333,8 @@ defmodule Livebook.Application do
 
       Livebook.Apps.deploy_apps_in_dir(apps_path,
         password: Livebook.Config.apps_path_password(),
-        warmup: warmup
+        warmup: warmup,
+        start_only: true
       )
     end
   end

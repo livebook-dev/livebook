@@ -22,10 +22,14 @@ defmodule Livebook.Apps do
     * `:files_source` - a location to fetch notebook files from, see
       `Livebook.Session.start_link/1` for more details
 
+    * `:start_only` - when `true`, deploys only if the app does not
+      exist already. Defaults to `false`
+
   """
-  @spec deploy(Livebook.Notebook.t(), keyword()) :: {:ok, pid()} | {:error, term()}
+  @spec deploy(Livebook.Notebook.t(), keyword()) ::
+          {:ok, pid()} | {:error, :already_started} | {:error, term()}
   def deploy(notebook, opts \\ []) do
-    opts = Keyword.validate!(opts, warnings: [], files_source: nil)
+    opts = Keyword.validate!(opts, warnings: [], files_source: nil, start_only: false)
 
     slug = notebook.app_settings.slug
     name = name(slug)
@@ -41,18 +45,12 @@ defmodule Livebook.Apps do
               end
 
             pid ->
-              App.deploy(pid, notebook,
-                warnings: opts[:warnings],
-                files_source: opts[:files_source]
-              )
-
-              {:ok, pid}
+              redeploy_app(pid, notebook, opts)
           end
         end)
 
       pid ->
-        App.deploy(pid, notebook, warnings: opts[:warnings], files_source: opts[:files_source])
-        {:ok, pid}
+        redeploy_app(pid, notebook, opts)
     end
   end
 
@@ -74,6 +72,15 @@ defmodule Livebook.Apps do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp redeploy_app(pid, notebook, opts) do
+    if opts[:start_only] do
+      {:error, :already_started}
+    else
+      App.deploy(pid, notebook, warnings: opts[:warnings], files_source: opts[:files_source])
+      {:ok, pid}
     end
   end
 
@@ -166,10 +173,14 @@ defmodule Livebook.Apps do
       This can be used to warmup apps without deployment. Defaults
       to `false`
 
+    * `:start_only` - when `true`, deploys only if the app does not
+      exist already. Defaults to `false`
+
   """
   @spec deploy_apps_in_dir(String.t(), keyword()) :: :ok
   def deploy_apps_in_dir(path, opts \\ []) do
-    opts = Keyword.validate!(opts, [:password, warmup: true, skip_deploy: false])
+    opts =
+      Keyword.validate!(opts, [:password, warmup: true, skip_deploy: false, start_only: false])
 
     infos = import_app_notebooks(path)
 
@@ -226,7 +237,11 @@ defmodule Livebook.Apps do
 
         warnings = Enum.map(info.import_warnings, &("Import: " <> &1))
 
-        {:ok, _} = deploy(notebook, warnings: warnings, files_source: info.files_source)
+        deploy(notebook,
+          warnings: warnings,
+          files_source: info.files_source,
+          start_only: opts[:start_only]
+        )
       end
     end
 
