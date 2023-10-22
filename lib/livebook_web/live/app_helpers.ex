@@ -101,7 +101,9 @@ defmodule LivebookWeb.AppHelpers do
           {"true", "All notebooks in the current directory"}
         ]}
       />
-      <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
+      <div class="grid grid-cols-1 md:grid-cols-2">
+        <.select_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2">
         <.select_field
           label="Clustering"
@@ -169,7 +171,7 @@ defmodule LivebookWeb.AppHelpers do
 
   defp zta_options(), do: @zta_options
 
-  @docker_tag_options for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
+  @docker_tag_options for image <- Livebook.Config.docker_images(), do: {image.name, image.tag}
 
   defp docker_tag_options(), do: @docker_tag_options
 
