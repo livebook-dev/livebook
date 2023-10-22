@@ -212,6 +212,10 @@ defmodule Livebook do
            :identity_provider,
            Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") ||
              {LivebookWeb.SessionIdentity, :unused}
+
+    if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
+      config :livebook, :dns_cluster_query, dns_cluster_query
+    end
   end
 
   @doc """
