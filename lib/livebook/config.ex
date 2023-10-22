@@ -319,6 +319,14 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :force_ssl_host)
   end
 
+  @doc """
+  Returns the application cacertfile if any.
+  """
+  @spec cacertfile() :: String.t() | nil
+  def cacertfile() do
+    Application.get_env(:livebook, :cacertfile)
+  end
+
   @feature_flags Application.compile_env(:livebook, :feature_flags)
 
   @doc """
@@ -510,6 +518,13 @@ defmodule Livebook.Config do
   Parses force ssl host setting from env.
   """
   def force_ssl_host!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses application cacertfile from env.
+  """
+  def cacertfile!(env) do
     System.get_env(env)
   end
 
