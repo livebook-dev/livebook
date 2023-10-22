@@ -119,7 +119,7 @@ defmodule Livebook.Hubs.Dockerfile do
     startup =
       if config.cluster == :fly_io do
         ~S"""
-        # Custom startup script to cluster multiple Livebook nodes
+        # Custom startup script to cluster multiple Livebook nodes on Fly.io
         RUN printf '#!/bin/bash\n\
         export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
         export LIVEBOOK_DISTRIBUTION="name"\n\

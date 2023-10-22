@@ -623,7 +623,7 @@ defmodule Livebook.Config do
           query
 
         other ->
-          abort!(~s{expected #{env} to be either "dns:query", got: #{inspect(other)}})
+          abort!(~s{expected #{env} to be "dns:query", got: #{inspect(other)}})
       end
     end
   end

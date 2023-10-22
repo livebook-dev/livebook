@@ -103,13 +103,17 @@ defmodule LivebookWeb.AppHelpers do
       />
       <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
       <.radio_field
-        label="Cluster setup"
+        label="Clustering"
         help={
           ~S'''
           When running multiple
           instances of Livebook,
           they need to be connected
           into a single cluster.
+          You must either deploy
+          it as a single instance
+          or choose a platform to
+          enable clustering on.
           '''
         }
         field={@form[:cluster]}
