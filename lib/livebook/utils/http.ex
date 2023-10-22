@@ -213,9 +213,17 @@ defmodule Livebook.Utils.HTTP do
 
   defp http_ssl_opts() do
     # Use secure options, see https://gist.github.com/jonatanklosko/5e20ca84127f6b31bbe3906498e1a1d7
+
+    cacert_opt =
+      if cacertfile = Livebook.Config.cacertfile() do
+        {:cacertfile, to_charlist(cacertfile)}
+      else
+        {:cacerts, @cacerts}
+      end
+
     [
+      cacert_opt,
       verify: :verify_peer,
-      cacerts: @cacerts,
       customize_hostname_check: [
         match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
       ]

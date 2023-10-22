@@ -177,6 +177,10 @@ defmodule Livebook do
       config :livebook, :force_ssl_host, force_ssl_host
     end
 
+    if cacertfile = Livebook.Config.cacertfile!("LIVEBOOK_CACERTFILE") do
+      config :livebook, :cacertfile, cacertfile
+    end
+
     config :livebook,
            :cookie,
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
