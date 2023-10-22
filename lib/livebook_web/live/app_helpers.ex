@@ -119,7 +119,7 @@ defmodule LivebookWeb.AppHelpers do
             enable clustering on.
             '''
           }
-          field={@form[:cluster]}
+          field={@form[:clustering]}
           options={[
             {"Single instance", ""},
             {"Fly.io", "fly_io"}

@@ -8,7 +8,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @type config :: %{
           deploy_all: boolean(),
           docker_tag: String.t(),
-          cluster: nil | :fly_io,
+          clustering: nil | :fly_io,
           zta_provider: atom() | nil,
           zta_key: String.t() | nil
         }
@@ -23,7 +23,7 @@ defmodule Livebook.Hubs.Dockerfile do
     data = %{
       deploy_all: false,
       docker_tag: default_image.tag,
-      cluster: nil,
+      clustering: nil,
       zta_provider: nil,
       zta_key: nil
     }
@@ -36,12 +36,12 @@ defmodule Livebook.Hubs.Dockerfile do
     types = %{
       deploy_all: :boolean,
       docker_tag: :string,
-      cluster: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io]),
+      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io]),
       zta_provider: Ecto.ParameterizedType.init(Ecto.Enum, values: zta_types),
       zta_key: :string
     }
 
-    cast({data, types}, attrs, [:deploy_all, :docker_tag, :cluster, :zta_provider, :zta_key])
+    cast({data, types}, attrs, [:deploy_all, :docker_tag, :clustering, :zta_provider, :zta_key])
     |> validate_required([:deploy_all, :docker_tag])
   end
 
@@ -117,7 +117,7 @@ defmodule Livebook.Hubs.Dockerfile do
     """
 
     startup =
-      if config.cluster == :fly_io do
+      if config.clustering == :fly_io do
         ~S"""
         # Custom startup script to cluster multiple Livebook nodes on Fly.io
         RUN printf '#!/bin/bash\n\

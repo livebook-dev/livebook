@@ -197,7 +197,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "deploying with fly.io cluster setup" do
-      config = dockerfile_config(%{cluster: :fly_io})
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = personal_hub()
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
