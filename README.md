@@ -191,7 +191,7 @@ The following environment variables can be used to configure Livebook on boot:
     are deployed on Livebook startup with the persisted settings. Password-protected
     notebooks will receive a random password, unless LIVEBOOK_APPS_PATH_PASSWORD
     is set. When deploying using Livebook's Docker image, consider using
-    `LIVEBOOK_APPS_PATH_WARMUP`.
+    LIVEBOOK_APPS_PATH_WARMUP.
 
   * LIVEBOOK_APPS_PATH_HUB_ID - deploy only the notebooks in
     LIVEBOOK_APPS_PATH that belong to the given Hub ID
@@ -207,6 +207,10 @@ The following environment variables can be used to configure Livebook on boot:
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is
     served on. Useful when deploying behind a reverse proxy.
+
+  * LIVEBOOK_CACERTFILE - path to a local file containing CA certificates.
+    Those certificates are used during for server authentication when Livebook
+    accesses files from external sources.
 
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
