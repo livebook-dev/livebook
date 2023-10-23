@@ -421,6 +421,19 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses and validates debug mode from env.
+  """
+  def debug!(env) do
+    if debug = System.get_env(env) do
+      cond do
+        debug in ["1", "true"] -> true
+        debug in ["0", "false"] -> false
+        true -> abort!("expected #{env} to be a boolean, got: #{inspect(debug)}")
+      end
+    end
+  end
+
+  @doc """
   Parses and validates the port from env.
   """
   def port!(env) do

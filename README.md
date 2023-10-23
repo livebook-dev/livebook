@@ -224,6 +224,9 @@ The following environment variables can be used to configure Livebook on boot:
     configuration. Defaults to "livebook" under the default user data
     directory.
 
+  * LIVEBOOK_DEBUG - enables verbose logging, when set to "true". Disabled
+    by default.
+
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
     "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)

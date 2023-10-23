@@ -91,6 +91,10 @@ defmodule Livebook do
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
           Base.encode64(:crypto.strong_rand_bytes(48))
 
+    if Livebook.Config.debug!("LIVEBOOK_DEBUG") do
+      config :logger, level: :debug
+    end
+
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do
       config :livebook, LivebookWeb.Endpoint, http: [port: port]
     end
