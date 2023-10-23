@@ -4,20 +4,25 @@ defmodule Livebook.AppsTest do
   import ExUnit.CaptureLog
   import Livebook.HubHelpers
 
+  alias Livebook.Utils
+
   describe "deploy_apps_in_dir/1" do
     @tag :tmp_dir
     test "deploys apps", %{tmp_dir: tmp_dir} do
       app1_path = Path.join(tmp_dir, "app1.livemd")
       app2_path = Path.join(tmp_dir, "app2.livemd")
 
+      slug1 = Utils.random_short_id()
+      slug2 = Utils.random_short_id()
+
       File.write!(app1_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app1"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug1}"}} -->
 
       # App 1
       """)
 
       File.write!(app2_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app2"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug2}"}} -->
 
       # App 2
       """)
@@ -26,15 +31,15 @@ defmodule Livebook.AppsTest do
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
 
-      assert_receive {:app_created, %{slug: "app1"} = app1}
+      assert_receive {:app_created, %{slug: ^slug1} = app1}
 
       assert_receive {:app_updated,
-                      %{slug: "app1", sessions: [%{app_status: %{execution: :executed}}]}}
+                      %{slug: ^slug1, sessions: [%{app_status: %{execution: :executed}}]}}
 
-      assert_receive {:app_created, %{slug: "app2"} = app2}
+      assert_receive {:app_created, %{slug: ^slug2} = app2}
 
       assert_receive {:app_updated,
-                      %{slug: "app2", sessions: [%{app_status: %{execution: :executed}}]}}
+                      %{slug: ^slug2, sessions: [%{app_status: %{execution: :executed}}]}}
 
       Livebook.App.close(app1.pid)
       Livebook.App.close(app2.pid)
@@ -167,8 +172,10 @@ defmodule Livebook.AppsTest do
     test "warns when a notebook is protected and no :password is set", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
+      slug = Utils.random_short_id()
+
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"slug":"#{slug}"}} -->
 
       # App
       """)
@@ -180,7 +187,7 @@ defmodule Livebook.AppsTest do
              end) =~
                "The app at app.livemd will use a random password. You may want to set LIVEBOOK_APPS_PATH_PASSWORD or make the app public."
 
-      assert_receive {:app_created, %{slug: "app"} = app}
+      assert_receive {:app_created, %{slug: ^slug} = app}
 
       Livebook.App.close(app.pid)
     end
@@ -189,8 +196,10 @@ defmodule Livebook.AppsTest do
     test "overrides apps password when :password is set", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
+      slug = Utils.random_short_id()
+
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"slug":"#{slug}"}} -->
 
       # App
       """)
@@ -199,7 +208,7 @@ defmodule Livebook.AppsTest do
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir, password: "verylongpass")
 
-      assert_receive {:app_created, %{slug: "app"} = app}
+      assert_receive {:app_created, %{slug: ^slug} = app}
 
       %{access_type: :protected, password: "verylongpass"} = Livebook.App.get_settings(app.pid)
 
@@ -210,8 +219,10 @@ defmodule Livebook.AppsTest do
     test "deploys with import warnings", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
+      slug = Utils.random_short_id()
+
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"}} -->
 
       # App
 
@@ -224,7 +235,7 @@ defmodule Livebook.AppsTest do
                Livebook.Apps.deploy_apps_in_dir(tmp_dir)
              end) =~ "line 5 - fenced Code Block opened with"
 
-      assert_receive {:app_created, %{slug: "app", warnings: warnings} = app}
+      assert_receive {:app_created, %{slug: ^slug, warnings: warnings} = app}
 
       assert warnings == [
                "Import: line 5 - fenced Code Block opened with ``` not closed at end of input"
@@ -241,8 +252,10 @@ defmodule Livebook.AppsTest do
       image_path = Path.join(files_path, "image.jpg")
       File.write!(image_path, "content")
 
+      slug = Utils.random_short_id()
+
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"},"file_entries":[{"name":"image.jpg","type":"attachment"}]} -->
 
       # App
       """)
@@ -251,7 +264,7 @@ defmodule Livebook.AppsTest do
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
 
-      assert_receive {:app_created, %{slug: "app"} = app}
+      assert_receive {:app_created, %{slug: ^slug} = app}
 
       session_id = Livebook.App.get_session_id(app.pid)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
@@ -266,8 +279,10 @@ defmodule Livebook.AppsTest do
     test "skips existing apps when :start_only is enabled", %{tmp_dir: tmp_dir} do
       app_path = Path.join(tmp_dir, "app.livemd")
 
+      slug = Utils.random_short_id()
+
       File.write!(app_path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"app"}} -->
+      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"}} -->
 
       # App
       """)
@@ -275,7 +290,7 @@ defmodule Livebook.AppsTest do
       Livebook.Apps.subscribe()
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
-      assert_receive {:app_updated, app}
+      assert_receive {:app_created, %{slug: ^slug} = app}
 
       Livebook.Apps.deploy_apps_in_dir(tmp_dir)
       assert %{version: 2} = Livebook.App.get_by_pid(app.pid)
