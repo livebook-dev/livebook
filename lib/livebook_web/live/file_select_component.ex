@@ -5,6 +5,9 @@ defmodule LivebookWeb.FileSelectComponent do
   #
   #   * `:file` - the currently entered file
   #
+  #   * `:hub` - the hub to show file systems from. By default file
+  #     systems from all hubs are available
+  #
   #   * `:running_files` - the list of notebook files that are already
   #     linked to running sessions
   #

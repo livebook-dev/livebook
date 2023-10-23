@@ -4,11 +4,16 @@ defmodule Livebook.Integration.AppsTest do
   describe "deploy_apps_in_dir/1" do
     @tag :tmp_dir
     test "deploys apps with hub secrets", %{user: user, node: node, tmp_dir: tmp_dir} do
+      Livebook.Hubs.subscribe([:secrets])
+
       hub = create_team_hub(user, node)
       hub_id = hub.id
-      app_path = Path.join(tmp_dir, "app.livemd")
       secret = insert_secret(name: "DB_PASSWORD", value: "postgres", hub_id: hub.id)
       secret_name = secret.name
+
+      assert_receive {:secret_created, %{hub_id: ^hub_id, name: ^secret_name}}
+
+      app_path = Path.join(tmp_dir, "app.livemd")
 
       markdown = """
       <!-- livebook:{"app_settings":{"slug":"#{hub_id}"},"hub_id":"#{hub_id}"} -->

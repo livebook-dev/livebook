@@ -313,7 +313,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _client, ^personal_id}}
 
       # targets the file system dropdown menu
-      file_system_menu = with_target(view, "#add-file-entry-select #file-system-menu-content")
+      file_system_menu = with_target(view, "#add-file-entry-modal #file-system-menu-content")
 
       # checks the file systems from Personal
       assert has_element?(file_system_menu, "#file-system-local")
@@ -324,9 +324,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # and checks the file systems from Team
       Session.set_notebook_hub(session.pid, team.id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
-
-      # targets the file system dropdown menu
-      file_system_menu = with_target(view, "#file-system-menu")
 
       assert has_element?(file_system_menu, "#file-system-local")
       refute has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
