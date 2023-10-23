@@ -123,7 +123,6 @@ defmodule Livebook.Hubs.Dockerfile do
         RUN printf '\
         #!/bin/bash\n\
         export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
-        export LIVEBOOK_DISTRIBUTION="name"\n\
         export LIVEBOOK_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"\n\
         export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"\n\
         /app/bin/livebook start\n\
