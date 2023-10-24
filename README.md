@@ -349,6 +349,11 @@ When clustering is enabled, you must additionally set the following env vars:
 `LIVEBOOK_DISTRIBUTION` is automatically set to `name` if clustering is
 enabled.
 
+Some variables, like `LIVEBOOK_NODE`, are oftentimes computed at runtime.
+When using the Livebook Docker image, you can create a file at `/app/env.sh`
+that exports the necessary environment variables. This file is invoked right
+before booting Livebook.
+
 ## Development
 
 Livebook is primarily a Phoenix web application and can be setup as such:
