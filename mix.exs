@@ -1,7 +1,7 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.14.2 or ~> 1.15-dev"
+  @elixir_requirement "~> 1.15.2"
   @version "0.12.0-dev"
   @description "Automate code & data workflows with interactive notebooks"
 
