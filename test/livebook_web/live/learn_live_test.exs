@@ -13,8 +13,13 @@ defmodule LivebookWeb.LearnLiveTest do
 
     assert to =~ "/sessions/"
 
-    {:ok, view, _} = live(conn, to)
-    assert render(view) =~ "Welcome to Livebook"
+    # Note that this LV page is huge and the simulated rendering in
+    # LV tests is not heavily optimized. This LV receives events from
+    # concurrent tests (such as hub creation) and rendering is a big
+    # bottleneck, to the point where calling render(view) times out.
+    # That's why we only assert on the dead render HTML.
+    {:ok, _view, html} = live(conn, to)
+    assert html =~ "Welcome to Livebook"
 
     close_session_by_path(to)
   end
