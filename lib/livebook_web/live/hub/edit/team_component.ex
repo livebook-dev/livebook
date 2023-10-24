@@ -220,7 +220,11 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 />
               </.form>
 
-              <LivebookWeb.AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile} />
+              <LivebookWeb.AppHelpers.docker_instructions
+                hub={@hub}
+                dockerfile={@dockerfile}
+                dockerfile_config={Ecto.Changeset.apply_changes(@config_changeset)}
+              />
             </div>
 
             <div class="flex flex-col space-y-4">

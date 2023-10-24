@@ -337,7 +337,7 @@ When clustering is enabled, you must additionally set the following env vars:
   * `LIVEBOOK_NODE=livebook_server@IP`, where `IP` is the machine IP of each
     deployed node
 
-  * You must set `LIVEBOOK_SECRET_KEY_BASE` and `RELEASE_COOKIE` to
+  * You must set `LIVEBOOK_SECRET_KEY_BASE` and `LIVEBOOK_COOKIE` to
     different random values (use `openssl rand -base64 48` to generate
     said values)
 

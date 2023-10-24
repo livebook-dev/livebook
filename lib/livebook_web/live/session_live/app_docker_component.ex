@@ -96,7 +96,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         <AppHelpers.docker_config_form_content hub={@hub} form={f} />
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
-      <AppHelpers.docker_instructions hub={@hub} dockerfile={@dockerfile}>
+      <AppHelpers.docker_instructions
+        hub={@hub}
+        dockerfile={@dockerfile}
+        dockerfile_config={apply_changes(@changeset)}
+      >
         <:dockerfile_actions>
           <button
             class="button-base button-gray whitespace-nowrap py-1 px-2"

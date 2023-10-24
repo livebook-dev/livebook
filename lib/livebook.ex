@@ -89,7 +89,7 @@ defmodule Livebook do
     config :livebook, LivebookWeb.Endpoint,
       secret_key_base:
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
-          Base.encode64(:crypto.strong_rand_bytes(48))
+          Livebook.Utils.random_secret_key_base()
 
     if port = Livebook.Config.port!("LIVEBOOK_PORT") do
       config :livebook, LivebookWeb.Endpoint, http: [port: port]
