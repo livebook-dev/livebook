@@ -2,11 +2,11 @@ defmodule Livebook.ZTA.Tailscale do
   use GenServer
   require Logger
 
-  defstruct [:name, :address]
+  defstruct [:address]
 
   def start_link(opts) do
     options = [address: opts[:identity_key]]
-    GenServer.start_link(__MODULE__, options, name: opts[:name])
+    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
   end
 
   def authenticate(name, conn, _opts) do
