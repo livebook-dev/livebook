@@ -276,7 +276,7 @@ defmodule Livebook.Hubs.Dockerfile do
           list(Livebook.FileSystem.t()),
           Livebook.Notebook.AppSettings.t(),
           list(Livebook.Notebook.file_entry()),
-          list(Livebook.Session.Data.secrets())
+          Livebook.Session.Data.secrets()
         ) :: list(String.t())
   def warnings(config, hub, hub_secrets, hub_file_systems, app_settings, file_entries, secrets) do
     common_warnings =
