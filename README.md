@@ -55,8 +55,8 @@ pick the one that best fits your use case.
 
 ### Docker
 
-Running Livebook using Docker is a great option for cloud deployments
-and also for local usage in case you don't have Elixir installed.
+Running Livebook using Docker is another great option to run Livebook
+in case you don't have Elixir installed.
 
 ```shell
 # Running with the default configuration
@@ -76,28 +76,13 @@ docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="secures
 docker run -p 8090:8090 -p 8091:8091 --pull always -e LIVEBOOK_PORT=8090 -e LIVEBOOK_IFRAME_PORT=8091 ghcr.io/livebook-dev/livebook
 ```
 
+To deploy Livebook on your cloud platform, see our [Docker Deployment](docs/deployment/docker.md) guide.
+
 For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
 To try out features from the main branch you can alternatively
 use the `ghcr.io/livebook-dev/livebook:edge` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
-
-If using Docker Compose the following template is a good starting point:
-
-```yml
-services:
-  livebook:
-    image: ghcr.io/livebook-dev/livebook
-    ports:
-      - 8090:8090
-      - 8091:8091
-    environment:
-      - LIVEBOOK_PORT=8090
-      - LIVEBOOK_IFRAME_PORT=8091
-```
-
-To run multiple instances of Livebook behind a load balancer,
-see the ["Clustering"](#clustering) section.
 
 ### Embedded devices
 
@@ -216,7 +201,8 @@ The following environment variables can be used to configure Livebook on boot:
     accesses files from external sources.
 
   * LIVEBOOK_CLUSTER - configures clustering strategy when running multiple
-    instances of Livebook. See the ["Clustering"](#clustering) section below.
+    instances of Livebook. See the "Clustering" section of our Docker Deployment
+    guide for more information: https://hexdocs.pm/livebook/docker.html
 
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
@@ -327,32 +313,6 @@ such as:
 
 Be careful when modifying boot files, Livebook may be unable to start if
 configured incorrectly.
-
-### Clustering
-
-Clustering is enabled via the `LIVEBOOK_CLUSTER` environment variable.
-Currently the only supported value is `dns:QUERY`, in which case nodes
-ask DNS for A/AAAA records using the given query and try to connect to
-peer nodes on the discovered IPs.
-
-When clustering is enabled, you must additionally set the following env vars:
-
-  * `LIVEBOOK_NODE=livebook_server@IP`, where `IP` is the machine IP of each
-    deployed node
-
-  * You must set `LIVEBOOK_SECRET_KEY_BASE` and `LIVEBOOK_COOKIE` to
-    different random values (use `openssl rand -base64 48` to generate
-    said values)
-
-  * If your cloud requires IPv6, also set `ERL_AFLAGS="-proto_dist inet6_tcp"`
-
-`LIVEBOOK_DISTRIBUTION` is automatically set to `name` if clustering is
-enabled.
-
-Some variables, like `LIVEBOOK_NODE`, are oftentimes computed at runtime.
-When using the Livebook Docker image, you can create a file at `/app/env.sh`
-that exports the necessary environment variables. This file is invoked right
-before booting Livebook.
 
 ## Development
 
