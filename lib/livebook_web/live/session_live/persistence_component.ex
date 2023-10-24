@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
           case assigns.session.origin do
             # If it's a forked notebook, default to the same folder
             {:file, file} -> FileSystem.File.containing_dir(file)
-            nil -> Livebook.Settings.default_dir(assigns.hub)
+            _ -> Livebook.Settings.default_dir(assigns.hub)
           end
       end)
       |> assign_new(:saved_file, fn -> file end)
