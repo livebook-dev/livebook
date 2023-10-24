@@ -30,7 +30,6 @@ defmodule Livebook.Hubs.Dockerfile do
 
     zta_types =
       for provider <- Livebook.Config.identity_providers(),
-          not provider.read_only,
           do: provider.type
 
     types = %{

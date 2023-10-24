@@ -10,12 +10,13 @@ defmodule Livebook.ZTA.GoogleIAP do
   defstruct [:name, :req_options, :identity, :keys]
 
   def start_link(opts) do
-    identity = opts[:custom_identity] || identity(opts[:identity][:key])
+    identity = opts[:custom_identity] || identity(opts[:identity_key])
     options = [req_options: [url: identity.certs], identity: identity, keys: nil]
     GenServer.start_link(__MODULE__, options, name: opts[:name])
   end
 
-  def authenticate(name, conn, fields: fields) do
+  def authenticate(name, conn, opts \\ []) do
+    fields = opts[:fields] || Map.values(@fields)
     token = get_req_header(conn, @assertion)
     {identity, keys} = GenServer.call(name, :info, :infinity)
     {conn, authenticate_user(token, fields, identity, keys)}

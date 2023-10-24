@@ -30,9 +30,7 @@ defmodule Livebook.ZTA.TailscaleTest do
 
     options = [
       name: @name,
-      identity: [
-        key: "http://localhost:#{bypass.port}"
-      ]
+      identity_key: "http://localhost:#{bypass.port}"
     ]
 
     {:ok, bypass: bypass, options: options, conn: conn}
@@ -57,7 +55,7 @@ defmodule Livebook.ZTA.TailscaleTest do
     end
 
     socket = Path.relative_to_cwd("#{tmp_dir}/bandit.sock")
-    options = Keyword.put(options, :identity, key: socket)
+    options = Keyword.put(options, :identity_key, socket)
     start_supervised!({Bandit, plug: TestPlug, ip: {:local, socket}, port: 0})
     start_supervised!({Tailscale, options})
     {_conn, user} = Tailscale.authenticate(@name, conn, @fields)
@@ -66,7 +64,7 @@ defmodule Livebook.ZTA.TailscaleTest do
 
   test "raises when configured with missing unix socket", %{options: options} do
     Process.flag(:trap_exit, true)
-    options = Keyword.put(options, :identity, key: "./invalid-socket.sock")
+    options = Keyword.put(options, :identity_key, "./invalid-socket.sock")
 
     assert ExUnit.CaptureLog.capture_log(fn ->
              {:error, _} = start_supervised({Tailscale, options})
@@ -92,7 +90,7 @@ defmodule Livebook.ZTA.TailscaleTest do
     options: options,
     conn: conn
   } do
-    options = Keyword.put(options, :identity, key: "http://:foobar@localhost:#{bypass.port}")
+    options = Keyword.put(options, :identity_key, "http://:foobar@localhost:#{bypass.port}")
 
     Bypass.expect_once(bypass, fn conn ->
       assert %{"addr" => "151.236.219.228:1"} = conn.query_params

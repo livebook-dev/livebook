@@ -1,6 +1,7 @@
 defmodule Livebook.ConfigTest do
   use ExUnit.Case, async: true
 
+  doctest Livebook.Config
   alias Livebook.Config
 
   describe "node!/1" do
