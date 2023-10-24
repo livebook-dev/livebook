@@ -7,12 +7,12 @@ defmodule Livebook.ZTA.Cloudflare do
   @renew_afer 24 * 60 * 60 * 1000
   @fields %{"user_uuid" => :id, "name" => :name, "email" => :email}
 
-  defstruct [:name, :req_options, :identity, :keys]
+  defstruct [:req_options, :identity, :keys]
 
   def start_link(opts) do
     identity = opts[:custom_identity] || identity(opts[:identity_key])
     options = [req_options: [url: identity.certs], identity: identity, keys: nil]
-    GenServer.start_link(__MODULE__, options, name: opts[:name])
+    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
   end
 
   def authenticate(name, conn, opts \\ []) do
