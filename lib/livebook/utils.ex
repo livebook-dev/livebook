@@ -28,6 +28,14 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Generates a random value for Phoenix secret key base.
+  """
+  @spec random_secret_key_base() :: String.t()
+  def random_secret_key_base() do
+    Base.encode64(:crypto.strong_rand_bytes(48))
+  end
+
+  @doc """
   Generates a random binary id that includes node information.
 
   ## Format
