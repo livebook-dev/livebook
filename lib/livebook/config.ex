@@ -25,6 +25,12 @@ defmodule Livebook.Config do
       name: "Tailscale",
       value: "Tailscale CLI socket path",
       module: Livebook.ZTA.Tailscale
+    },
+    %{
+      type: :teleport,
+      name: "Teleport",
+      value: "Teleport cluster address (https://[cluster-name]:3080)",
+      module: Livebook.ZTA.Teleport
     }
   ]
 
