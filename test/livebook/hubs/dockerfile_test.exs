@@ -31,7 +31,7 @@ defmodule Livebook.Hubs.DockerfileTest do
              COPY notebook.livemd /apps/
 
              # Cache apps setup at build time
-             RUN /app/bin/warmup_apps.sh
+             RUN /app/bin/warmup_apps
              """
 
       # With secrets
@@ -113,7 +113,7 @@ defmodule Livebook.Hubs.DockerfileTest do
              COPY notebook.livemd /apps/
 
              # Cache apps setup at build time
-             RUN /app/bin/warmup_apps.sh
+             RUN /app/bin/warmup_apps
              """
 
       # With secrets
