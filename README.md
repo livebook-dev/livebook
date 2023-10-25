@@ -237,6 +237,10 @@ The following environment variables can be used to configure Livebook on boot:
 
       * "cloudflare:<your-team-name (domain)>"
       * "google_iap:<your-audience (aud)>"
+      * "tailscale:<tailscale-cli-socket-path>"
+      * "custom:YourElixirModule"
+
+    See our authentication docs for more information: https://hexdocs.pm/livebook/authentication.html
 
   * `LIVEBOOK_IFRAME_PORT` - sets the port that Livebook serves iframes at.
     This is relevant only when running Livebook without TLS. Defaults to 8081.

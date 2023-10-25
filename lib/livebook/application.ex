@@ -387,8 +387,8 @@ defmodule Livebook.Application do
   end
 
   defp identity_provider() do
-    {module, key} = Livebook.Config.identity_provider()
-    [{module, name: LivebookWeb.ZTA, identity: [key: key]}]
+    {_type, module, key} = Livebook.Config.identity_provider()
+    [{module, name: LivebookWeb.ZTA, identity_key: key}]
   end
 
   defp serverless?() do

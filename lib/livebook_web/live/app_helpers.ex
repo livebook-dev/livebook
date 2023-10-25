@@ -164,7 +164,6 @@ defmodule LivebookWeb.AppHelpers do
   end
 
   @zta_options for provider <- Livebook.Config.identity_providers(),
-                   not provider.read_only,
                    do: {provider.name, provider.type}
 
   defp zta_options(), do: @zta_options

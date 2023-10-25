@@ -2725,10 +2725,12 @@ defmodule Livebook.Session do
         info = %{type: :multi_session}
 
         if user = state.started_by do
+          {type, _module, _key} = Livebook.Config.identity_provider()
+
           started_by =
             user
             |> Map.take([:id, :name, :email])
-            |> Map.put(:source, Livebook.Config.identity_provider_type())
+            |> Map.put(:source, type)
 
           Map.put(info, :started_by, started_by)
         else
