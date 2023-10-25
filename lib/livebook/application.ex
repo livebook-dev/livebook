@@ -247,25 +247,27 @@ defmodule Livebook.Application do
   end
 
   defp create_teams_hub() do
-    case {System.get_env("LIVEBOOK_TEAMS_KEY"), System.get_env("LIVEBOOK_TEAMS_AUTH")} do
-      {nil, nil} ->
-        :ok
+    teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
+    auth = System.get_env("LIVEBOOK_TEAMS_AUTH")
 
-      {teams_key, auth_key} when teams_key == nil or auth_key == nil ->
+    cond do
+      teams_key && auth ->
+        case String.split(auth, ":") do
+          ["offline", name, public_key] -> create_offline_hub(teams_key, name, public_key)
+          _ -> Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
+        end
+
+      teams_key || auth ->
         Livebook.Config.abort!(
           "You must specify both LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_AUTH."
         )
 
-      {teams_key, "offline:" <> rest} ->
-        create_offline_hub(teams_key, rest)
-
-      {_, _} ->
-        Livebook.Config.abort!("Unknown LIVEBOOK_TEAMS_AUTH configuration.")
+      true ->
+        :ok
     end
   end
 
-  defp create_offline_hub(teams_key, rest) do
-    [name, public_key] = String.split(rest, ":", parts: 2)
+  defp create_offline_hub(teams_key, name, public_key) do
     encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
     encrypted_file_systems = System.get_env("LIVEBOOK_TEAMS_FS")
     secret_key = Livebook.Teams.derive_key(teams_key)
