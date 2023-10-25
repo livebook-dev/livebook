@@ -26,7 +26,7 @@ defmodule LivebookWeb.FileSelectComponentTest do
   defp attrs(attrs) do
     Keyword.merge(
       [
-        id: 1,
+        id: "1",
         file: FileSystem.File.local(p("/")),
         extnames: [".livemd"],
         running_files: []
