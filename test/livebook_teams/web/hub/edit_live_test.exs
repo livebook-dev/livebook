@@ -187,72 +187,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       end
     end
 
-    test "mark hub as default", %{conn: conn, hub: hub} do
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      assert view
-             |> element("a", "Mark as default")
-             |> has_element?()
-
-      refute view
-             |> element("a", "Remove as default")
-             |> has_element?()
-
-      assert {:ok, _view, _html} =
-               view
-               |> element("a", "Mark as default")
-               |> render_click()
-               |> follow_redirect(conn)
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      assert view
-             |> element("a", "Remove as default")
-             |> has_element?()
-
-      refute view
-             |> element("a", "Mark as default")
-             |> has_element?()
-
-      assert view
-             |> element("span", "Default")
-             |> has_element?()
-    end
-
-    test "remove hub as default", %{conn: conn, hub: hub} do
-      Hubs.set_default_hub(hub.id)
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      assert view
-             |> element("a", "Remove as default")
-             |> has_element?()
-
-      refute view
-             |> element("a", "Mark as default")
-             |> has_element?()
-
-      assert {:ok, _view, _html} =
-               view
-               |> element("a", "Remove as default")
-               |> render_click()
-               |> follow_redirect(conn)
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      assert view
-             |> element("a", "Mark as default")
-             |> has_element?()
-
-      refute view
-             |> element("a", "Remove as default")
-             |> has_element?()
-
-      refute view
-             |> element("span", "Default")
-             |> has_element?()
-    end
-
     test "creates a file system", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -382,5 +316,45 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       </ListBucketResult>
       """)
     end)
+  end
+
+  defmodule Global do
+    use Livebook.TeamsIntegrationCase, async: false
+
+    setup %{user: user, node: node} do
+      Livebook.Hubs.subscribe([:crud, :connection, :secrets, :file_systems])
+      hub = create_team_hub(user, node)
+      id = hub.id
+
+      assert_receive {:hub_connected, ^id}
+
+      {:ok, hub: hub}
+    end
+
+    test "marking and unmarking hub as default", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert {:ok, view, _html} =
+               view
+               |> element("a", "Mark as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      assert view
+             |> element("span", "Default")
+             |> has_element?()
+
+      assert Hubs.get_default_hub().id == hub.id
+
+      assert {:ok, view, _html} =
+               view
+               |> element("a", "Remove as default")
+               |> render_click()
+               |> follow_redirect(conn)
+
+      refute view
+             |> element("span", "Default")
+             |> has_element?()
+    end
   end
 end
