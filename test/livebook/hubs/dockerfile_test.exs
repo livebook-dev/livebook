@@ -101,8 +101,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
              # Teams Hub configuration for airgapped deployment
              ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-             ENV LIVEBOOK_TEAMS_NAME "org-name-387"
-             ENV LIVEBOOK_TEAMS_OFFLINE_KEY "lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
+             ENV LIVEBOOK_TEAMS_AUTH "offline:org-name-387:lb_opk_fpxnp3r5djwxnmirx3tu276hialoivf3"
 
              # Apps configuration
              ENV LIVEBOOK_APPS_PATH "/apps"
