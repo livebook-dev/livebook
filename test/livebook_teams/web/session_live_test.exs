@@ -307,19 +307,21 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.set_notebook_hub(session.pid, personal_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^personal_id}}
 
+      file_entry_select = element(view, "#add-file-entry-select")
+
       # checks the file systems from Personal
-      assert has_element?(view, "#add-file-entry-select-file-system-local")
-      assert has_element?(view, "#add-file-entry-select-file-system-#{personal_file_system.id}")
-      refute has_element?(view, "#add-file-entry-select-file-system-#{team_file_system.id}")
+      assert render(file_entry_select) =~ "local"
+      assert render(file_entry_select) =~ personal_file_system.id
+      refute render(file_entry_select) =~ team_file_system.id
 
       # change the hub to Team
       # and checks the file systems from Team
       Session.set_notebook_hub(session.pid, team.id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
-      assert has_element?(view, "#add-file-entry-select-file-system-local")
-      refute has_element?(view, "#add-file-entry-select-file-system-#{personal_file_system.id}")
-      assert has_element?(view, "#add-file-entry-select-file-system-#{team_file_system.id}")
+      assert render(file_entry_select) =~ "local"
+      refute render(file_entry_select) =~ personal_file_system.id
+      assert render(file_entry_select) =~ team_file_system.id
     end
 
     test "shows file system from offline hub", %{conn: conn, session: session} do
@@ -350,8 +352,9 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _client, ^hub_id}}
 
       # checks the file systems from Offline hub
-      assert has_element?(view, "#add-file-entry-select-file-system-local")
-      assert has_element?(view, "#add-file-entry-select-file-system-#{file_system.id}")
+      file_entry_select = element(view, "#add-file-entry-select")
+      assert render(file_entry_select) =~ "local"
+      assert render(file_entry_select) =~ file_system.id
 
       remove_offline_hub_file_system(file_system)
     end
