@@ -11,7 +11,7 @@ defmodule Livebook.ZTA.Teleport do
 
   def start_link(opts) do
     url =
-      opts[:identity][:key]
+      opts[:identity_key]
       |> URI.parse()
       |> URI.append_path(@well_known_jwks_path)
       |> URI.to_string()

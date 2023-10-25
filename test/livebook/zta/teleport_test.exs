@@ -27,9 +27,7 @@ defmodule Livebook.ZTA.TeleportTest do
 
     options = [
       name: @name,
-      identity: %{
-        key: "http://localhost:#{bypass.port}"
-      }
+      identity_key: "http://localhost:#{bypass.port}"
     ]
 
     Bypass.expect(bypass, "GET", "/.well-known/jwks.json", fn conn ->
