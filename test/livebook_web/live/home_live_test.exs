@@ -205,20 +205,13 @@ defmodule LivebookWeb.HomeLiveTest do
   end
 
   describe "hubs" do
-    test "renders sidebar section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "HUBS"
-      assert html =~ "Add Organization"
-    end
+    test "renders persisted hubs in the sidebar", %{conn: conn} do
+      team = Livebook.HubHelpers.offline_hub()
 
-    test "renders sidebar persisted hubs", %{conn: conn} do
-      team = insert_hub(:team, id: "team-foo-bar-id")
-
-      {:ok, _view, html} = live(conn, ~p"/")
-      assert html =~ "HUBS"
-      assert html =~ team.hub_name
-
-      Livebook.Hubs.delete_hub("team-foo-bar-id")
+      {:ok, view, _} = live(conn, ~p"/")
+      assert render(view) =~ "HUBS"
+      assert render(view) =~ team.hub_name
+      assert render(view) =~ "Add Organization"
     end
   end
 

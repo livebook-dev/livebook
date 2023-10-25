@@ -749,7 +749,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   end
 
   test "imports notebook hub id when exists" do
-    %{id: hub_id} = Livebook.Factory.insert_hub(:team)
+    %{id: hub_id} = Livebook.HubHelpers.offline_hub()
 
     markdown = """
     <!-- livebook:{"hub_id":"#{hub_id}"} -->
@@ -1216,7 +1216,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     end
 
     test "sets :teams_enabled to true when the teams hub exist regardless the stamp" do
-      %{id: hub_id} = Livebook.Factory.insert_hub(:team)
+      %{id: hub_id} = Livebook.HubHelpers.offline_hub()
 
       markdown = """
       <!-- livebook:{"hub_id":"#{hub_id}"} -->

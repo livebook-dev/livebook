@@ -1913,31 +1913,35 @@ defmodule Livebook.SessionTest do
 
     describe "default hub for new notebooks" do
       test "use the default hub as default for new notebooks" do
-        hub = Livebook.Factory.insert_hub(:team)
+        hub = Livebook.HubHelpers.offline_hub()
         Livebook.Hubs.set_default_hub(hub.id)
         notebook = Livebook.Session.default_notebook()
 
         assert notebook.hub_id == hub.id
-        Livebook.Hubs.delete_hub(hub.id)
+
+        Livebook.Hubs.unset_default_hub()
       end
 
       test "fallback to personal-hub when there's no default" do
-        hub = Livebook.Factory.insert_hub(:team)
-        Livebook.Hubs.unset_default_hub(hub.id)
+        hub = Livebook.HubHelpers.offline_hub()
+        Livebook.Hubs.set_default_hub(hub.id)
+        Livebook.Hubs.unset_default_hub()
         notebook = Livebook.Session.default_notebook()
 
         assert notebook.hub_id == "personal-hub"
-        Livebook.Hubs.delete_hub(hub.id)
       end
 
       test "fallback to personal-hub when the default doesn't exist" do
-        hub = Livebook.Factory.insert_hub(:team)
+        hub = Livebook.Factory.build(:team)
+        Livebook.Hubs.save_hub(hub)
         Livebook.Hubs.set_default_hub(hub.id)
         Livebook.Hubs.delete_hub(hub.id)
         notebook = Livebook.Session.default_notebook()
 
         refute Livebook.Hubs.hub_exists?(hub.id)
         assert notebook.hub_id == "personal-hub"
+
+        Livebook.Hubs.unset_default_hub()
       end
     end
   end
