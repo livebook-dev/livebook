@@ -61,7 +61,7 @@ defmodule Livebook.Application do
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
         load_lb_env_vars()
-        create_offline_hub()
+        create_teams_hub()
         clear_env_vars()
         display_startup_info()
         Livebook.Hubs.connect_hubs()
@@ -246,74 +246,84 @@ defmodule Livebook.Application do
     Livebook.Secrets.set_startup_secrets(secrets)
   end
 
-  def create_offline_hub() do
-    name = System.get_env("LIVEBOOK_TEAMS_NAME")
-    public_key = System.get_env("LIVEBOOK_TEAMS_OFFLINE_KEY")
+  defp create_teams_hub() do
+    teams_key = System.get_env("LIVEBOOK_TEAMS_KEY")
+    auth = System.get_env("LIVEBOOK_TEAMS_AUTH")
+
+    cond do
+      teams_key && auth ->
+        case String.split(auth, ":") do
+          ["offline", name, public_key] -> create_offline_hub(teams_key, name, public_key)
+          _ -> Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
+        end
+
+      teams_key || auth ->
+        Livebook.Config.abort!(
+          "You must specify both LIVEBOOK_TEAMS_KEY and LIVEBOOK_TEAMS_AUTH."
+        )
+
+      true ->
+        :ok
+    end
+  end
+
+  defp create_offline_hub(teams_key, name, public_key) do
     encrypted_secrets = System.get_env("LIVEBOOK_TEAMS_SECRETS")
     encrypted_file_systems = System.get_env("LIVEBOOK_TEAMS_FS")
+    secret_key = Livebook.Teams.derive_key(teams_key)
+    id = "team-#{name}"
 
-    if name && public_key do
-      teams_key =
-        System.get_env("LIVEBOOK_TEAMS_KEY") ||
-          Livebook.Config.abort!(
-            "You specified LIVEBOOK_TEAMS_NAME, but LIVEBOOK_TEAMS_KEY is missing."
-          )
+    secrets =
+      if encrypted_secrets do
+        case Livebook.Teams.decrypt(encrypted_secrets, secret_key) do
+          {:ok, json} ->
+            for {name, value} <- Jason.decode!(json),
+                do: %Livebook.Secrets.Secret{
+                  name: name,
+                  value: value,
+                  hub_id: id
+                }
 
-      secret_key = Livebook.Teams.derive_key(teams_key)
-      id = "team-#{name}"
-
-      secrets =
-        if encrypted_secrets do
-          case Livebook.Teams.decrypt(encrypted_secrets, secret_key) do
-            {:ok, json} ->
-              for {name, value} <- Jason.decode!(json),
-                  do: %Livebook.Secrets.Secret{
-                    name: name,
-                    value: value,
-                    hub_id: id
-                  }
-
-            :error ->
-              Livebook.Config.abort!(
-                "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
-              )
-          end
-        else
-          []
+          :error ->
+            Livebook.Config.abort!(
+              "You specified LIVEBOOK_TEAMS_SECRETS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
+            )
         end
+      else
+        []
+      end
 
-      file_systems =
-        if encrypted_file_systems do
-          case Livebook.Teams.decrypt(encrypted_file_systems, secret_key) do
-            {:ok, json} ->
-              for %{"type" => type} = dumped_data <- Jason.decode!(json),
-                  do: Livebook.FileSystems.load(type, dumped_data)
+    file_systems =
+      if encrypted_file_systems do
+        case Livebook.Teams.decrypt(encrypted_file_systems, secret_key) do
+          {:ok, json} ->
+            for %{"type" => type} = dumped_data <- Jason.decode!(json),
+                do: Livebook.FileSystems.load(type, dumped_data)
 
-            :error ->
-              Livebook.Config.abort!(
-                "You specified LIVEBOOK_TEAMS_FS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
-              )
-          end
-        else
-          []
+          :error ->
+            Livebook.Config.abort!(
+              "You specified LIVEBOOK_TEAMS_FS, but we couldn't decrypt with the given LIVEBOOK_TEAMS_KEY."
+            )
         end
+      else
+        []
+      end
 
-      Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
-        id: "team-#{name}",
-        hub_name: name,
-        hub_emoji: "💡",
-        user_id: 0,
-        org_id: 0,
-        org_key_id: 0,
-        session_token: "",
-        teams_key: teams_key,
-        org_public_key: public_key,
-        offline: %Livebook.Hubs.Team.Offline{
-          secrets: secrets,
-          file_systems: file_systems
-        }
-      })
-    end
+    Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
+      id: "team-#{name}",
+      hub_name: name,
+      hub_emoji: "💡",
+      user_id: 0,
+      org_id: 0,
+      org_key_id: 0,
+      session_token: "",
+      teams_key: teams_key,
+      org_public_key: public_key,
+      offline: %Livebook.Hubs.Team.Offline{
+        secrets: secrets,
+        file_systems: file_systems
+      }
+    })
   end
 
   defp config_env_var?("LIVEBOOK_" <> _), do: true

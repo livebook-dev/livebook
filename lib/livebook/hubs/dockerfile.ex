@@ -159,8 +159,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
       # Teams Hub configuration for airgapped deployment
       ENV LIVEBOOK_TEAMS_KEY ${TEAMS_KEY}
-      ENV LIVEBOOK_TEAMS_NAME "#{hub.hub_name}"
-      ENV LIVEBOOK_TEAMS_OFFLINE_KEY "#{hub.org_public_key}"
+      ENV LIVEBOOK_TEAMS_AUTH "offline:#{hub.hub_name}:#{hub.org_public_key}"
       """
 
     secrets =
