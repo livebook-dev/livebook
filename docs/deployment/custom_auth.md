@@ -2,7 +2,7 @@
 
 It is possible to provide custom Zero Trust Authentication (ZTA) inside Livebook's Docker images.
 
-To do so, you must define a file with the `.exs` extension inside the `/app/extensions` of your Livebook image, for example, `/app/extensions/my_auth.exs`. This file should define at least one module, which implements the ZTA skeleton below:
+To do so, you must define a file with the `.exs` extension inside the `/app/user/extensions` of your Livebook image, for example, `/app/user/extensions/my_auth.exs`. This file should define at least one module, which implements the ZTA skeleton below:
 
 ```elixir
 defmodule MyAuth do

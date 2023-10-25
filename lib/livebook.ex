@@ -83,7 +83,7 @@ defmodule Livebook do
   """
   def config_runtime do
     if root = System.get_env("RELEASE_ROOT") do
-      for file <- Path.wildcard(Path.join(root, "extensions/*.exs")) do
+      for file <- Path.wildcard(Path.join(root, "user/extensions/*.exs")) do
         Code.require_file(file)
       end
     end
