@@ -25,7 +25,8 @@ defmodule Livebook.RemoteIntellisenseTest do
     {:ok, _pid, node} =
       :peer.start(%{
         name: :remote_runtime,
-        args: [~c"-setcookie", Atom.to_charlist(Node.get_cookie())]
+        args: [~c"-setcookie", Atom.to_charlist(Node.get_cookie())],
+        wait_boot: 30_000
       })
 
     {:module, Elixir.RemoteModule, bytecode, _} =
