@@ -89,12 +89,6 @@ defmodule Livebook.Factory do
     factory_name |> build() |> struct!(attrs) |> Map.from_struct()
   end
 
-  def insert_hub(factory_name, attrs \\ %{}) do
-    factory_name
-    |> build(attrs)
-    |> Livebook.Hubs.save_hub()
-  end
-
   def insert_secret(attrs \\ %{}) do
     secret = build(:secret, attrs)
     hub = Livebook.Hubs.fetch_hub!(secret.hub_id)
