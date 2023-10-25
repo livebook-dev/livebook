@@ -104,13 +104,9 @@ defmodule Livebook.Hubs do
     :ok
   end
 
-  @spec unset_default_hub(String.t()) :: :ok
-  def unset_default_hub(id) do
-    with {:ok, _hub} <- fetch_hub(id) do
-      :ok = Storage.delete(:default_hub, "default_hub")
-    end
-
-    :ok
+  @spec unset_default_hub() :: :ok
+  def unset_default_hub() do
+    :ok = Storage.delete(:default_hub, "default_hub")
   end
 
   @spec get_default_hub() :: Provider.t()
@@ -124,7 +120,7 @@ defmodule Livebook.Hubs do
   end
 
   defp maybe_unset_default_hub(hub_id) do
-    if get_default_hub().id == hub_id, do: unset_default_hub(hub_id), else: :ok
+    if get_default_hub().id == hub_id, do: unset_default_hub(), else: :ok
   end
 
   defp disconnect_hub(hub) do
