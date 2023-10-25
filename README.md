@@ -190,7 +190,7 @@ The following environment variables can be used to configure Livebook on boot:
   * LIVEBOOK_APPS_PATH_WARMUP - sets the warmup mode for apps deployed from
     LIVEBOOK_APPS_PATH. Must be either "auto" (apps are warmed up on Livebook
     startup, right before app deployment) or "manual" (apps are warmed up when
-    building the Docker image; to do so add "RUN /app/bin/warmup_apps.sh" to
+    building the Docker image; to do so add "RUN /app/bin/warmup_apps" to
     your image). Defaults to "auto".
 
   * LIVEBOOK_BASE_URL_PATH - sets the base url path the web application is
