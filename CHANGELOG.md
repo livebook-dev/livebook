@@ -2,6 +2,25 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.11.3](https://github.com/livebook-dev/livebook/tree/v0.11.3) (2023-10-25)
+
+### Added
+
+* Docker deployment instructions to app panel ([#2276](https://github.com/livebook-dev/livebook/pull/2276), [#2286](https://github.com/livebook-dev/livebook/pull/2286), [#2294](https://github.com/livebook-dev/livebook/pull/2294), [#2295](https://github.com/livebook-dev/livebook/pull/2295))
+* Support for custom HTTP certificate ([#2287](https://github.com/livebook-dev/livebook/pull/2287))
+* Customizable configuration script to Docker release ([#2295](https://github.com/livebook-dev/livebook/pull/2295), [#2302](https://github.com/livebook-dev/livebook/pull/2302))
+
+### Changed
+
+* Auth page apps list to include password-protected apps ([#2284](https://github.com/livebook-dev/livebook/pull/2284))
+* Deprecated `warmup_apps.sh` in favour of `warmup_apps` ([#2305](https://github.com/livebook-dev/livebook/pull/2305))
+
+### Fixed
+
+* Marking notebook as changed when hub secret is toggled ([#2279](https://github.com/livebook-dev/livebook/pull/2279))
+* Deploying apps from directory to happen only once when in cluster ([#2291](https://github.com/livebook-dev/livebook/pull/2291))
+* Saving for notebooks loaded from a URL ([#2300](https://github.com/livebook-dev/livebook/pull/2300))
+
 ## [v0.11.2](https://github.com/livebook-dev/livebook/tree/v0.11.2) (2023-10-14)
 
 ### Changed
