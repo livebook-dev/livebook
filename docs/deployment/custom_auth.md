@@ -36,7 +36,7 @@ Or, if you want to pass a custom identity key:
 LIVEBOOK_IDENTITY_PROVIDER="custom:MyAuth:my-key"
 ```
 
-Keep in mind that the identity provider contract in Livebook is still evolving and it may change in future releases.
+Keep in mind that the identity provider contract in Livebook is still evolving and it may change in future releases. Additionally, your code may rely on two dependencies: [Req ~> 0.4](https://hexdocs.pm/req) and [JOSE ~> 1.11](https://hexdocs.pm/jose).
 
 ## Development
 
