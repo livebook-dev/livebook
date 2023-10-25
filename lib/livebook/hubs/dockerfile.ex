@@ -112,7 +112,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
     apps_warmup = """
     # Cache apps setup at build time
-    RUN /app/bin/warmup_apps.sh
+    RUN /app/bin/warmup_apps
     """
 
     random_secret_key_base = Livebook.Utils.random_secret_key_base()
