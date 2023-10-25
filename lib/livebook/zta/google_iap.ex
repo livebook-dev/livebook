@@ -7,18 +7,18 @@ defmodule Livebook.ZTA.GoogleIAP do
   @renew_afer 24 * 60 * 60 * 1000
   @fields %{"sub" => :id, "name" => :name, "email" => :email}
 
-  defstruct [:name, :req_options, :identity, :keys]
+  defstruct [:req_options, :identity, :keys]
 
   def start_link(opts) do
-    identity = opts[:custom_identity] || identity(opts[:identity][:key])
+    identity = opts[:custom_identity] || identity(opts[:identity_key])
     options = [req_options: [url: identity.certs], identity: identity, keys: nil]
-    GenServer.start_link(__MODULE__, options, name: opts[:name])
+    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
   end
 
-  def authenticate(name, conn, fields: fields) do
+  def authenticate(name, conn, _opts) do
     token = get_req_header(conn, @assertion)
     {identity, keys} = GenServer.call(name, :info, :infinity)
-    {conn, authenticate_user(token, fields, identity, keys)}
+    {conn, authenticate_user(token, identity, keys)}
   end
 
   @impl true
@@ -44,7 +44,7 @@ defmodule Livebook.ZTA.GoogleIAP do
     keys
   end
 
-  defp authenticate_user(token, _fields, identity, keys) do
+  defp authenticate_user(token, identity, keys) do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss, identity.key) do

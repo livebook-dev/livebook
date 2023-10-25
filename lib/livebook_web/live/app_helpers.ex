@@ -164,7 +164,6 @@ defmodule LivebookWeb.AppHelpers do
   end
 
   @zta_options for provider <- Livebook.Config.identity_providers(),
-                   not provider.read_only,
                    do: {provider.name, provider.type}
 
   defp zta_options(), do: @zta_options
@@ -178,6 +177,7 @@ defmodule LivebookWeb.AppHelpers do
   """
   attr :hub, :map, required: true
   attr :dockerfile, :string, required: true
+  attr :dockerfile_config, :map, required: true
 
   slot :dockerfile_actions, default: nil
 
@@ -233,6 +233,16 @@ defmodule LivebookWeb.AppHelpers do
             you may remove the default value for <code>TEAMS_KEY</code>
             from your Dockerfile and set it as a build argument in your deployment
             platform
+          </span>
+        </li>
+        <li :if={@dockerfile_config.clustering} class="flex gap-2">
+          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+          <span>
+            you may set <code>LIVEBOOK_SECRET_KEY_BASE</code>
+            and <code>LIVEBOOK_COOKIE</code>
+            as runtime environment secrets in your deployment platform, to ensure their
+            values stay the same across deployments. If you do that, you can remove
+            the defaults from your Dockerfile
           </span>
         </li>
         <li class="flex gap-2">

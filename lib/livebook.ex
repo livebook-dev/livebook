@@ -82,6 +82,12 @@ defmodule Livebook do
 
   """
   def config_runtime do
+    if root = System.get_env("RELEASE_ROOT") do
+      for file <- Path.wildcard(Path.join(root, "user/extensions/*.exs")) do
+        Code.require_file(file)
+      end
+    end
+
     import Config
 
     config :livebook, :random_boot_id, :crypto.strong_rand_bytes(3)
@@ -89,7 +95,7 @@ defmodule Livebook do
     config :livebook, LivebookWeb.Endpoint,
       secret_key_base:
         Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
-          Base.encode64(:crypto.strong_rand_bytes(48))
+          Livebook.Utils.random_secret_key_base()
 
     if Livebook.Config.debug!("LIVEBOOK_DEBUG") do
       config :logger, level: :debug
@@ -214,8 +220,7 @@ defmodule Livebook do
 
     config :livebook,
            :identity_provider,
-           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER") ||
-             {LivebookWeb.SessionIdentity, :unused}
+           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER")
 
     if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
       config :livebook, :dns_cluster_query, dns_cluster_query

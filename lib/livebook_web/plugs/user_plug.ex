@@ -30,10 +30,9 @@ defmodule LivebookWeb.UserPlug do
   end
 
   defp ensure_user_identity(conn) do
-    {module, _} = Livebook.Config.identity_provider()
+    {_type, module, _key} = Livebook.Config.identity_provider()
 
-    {conn, identity_data} =
-      module.authenticate(LivebookWeb.ZTA, conn, fields: [:id, :name, :email])
+    {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
 
     if identity_data do
       put_session(conn, :identity_data, identity_data)

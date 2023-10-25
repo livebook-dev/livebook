@@ -30,7 +30,6 @@ defmodule Livebook.Hubs.Dockerfile do
 
     zta_types =
       for provider <- Livebook.Config.identity_providers(),
-          not provider.read_only,
           do: provider.type
 
     types = %{
@@ -116,20 +115,27 @@ defmodule Livebook.Hubs.Dockerfile do
     RUN /app/bin/warmup_apps.sh
     """
 
+    random_secret_key_base = Livebook.Utils.random_secret_key_base()
+    random_cookie = Livebook.Utils.random_cookie()
+
     startup =
       if config.clustering == :fly_io do
-        ~S"""
-        # Custom startup script to cluster multiple Livebook nodes on Fly.io
-        RUN printf '\
-        #!/bin/bash\n\
-        export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
-        export LIVEBOOK_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"\n\
-        export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"\n\
-        /app/bin/livebook start\n\
-        ' > /app/bin/start.sh && chmod +x /app/bin/start.sh
-
-        CMD [ "/app/bin/start.sh" ]
         """
+        # --- Clustering ---
+
+        # Set the same Livebook secrets across all nodes
+        ENV LIVEBOOK_SECRET_KEY_BASE "#{random_secret_key_base}"
+        ENV LIVEBOOK_COOKIE "#{random_cookie}"
+
+        """ <>
+          ~S"""
+          # Runtime configuration to cluster multiple Livebook nodes on Fly.io
+          RUN printf '\
+          export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
+          export LIVEBOOK_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"\n\
+          export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"\n\
+          ' > /app/env.sh
+          """
       end
 
     [
@@ -269,7 +275,7 @@ defmodule Livebook.Hubs.Dockerfile do
           list(Livebook.FileSystem.t()),
           Livebook.Notebook.AppSettings.t(),
           list(Livebook.Notebook.file_entry()),
-          list(Livebook.Session.Data.secrets())
+          Livebook.Session.Data.secrets()
         ) :: list(String.t())
   def warnings(config, hub, hub_secrets, hub_file_systems, app_settings, file_entries, secrets) do
     common_warnings =

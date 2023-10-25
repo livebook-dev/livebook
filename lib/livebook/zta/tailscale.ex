@@ -2,14 +2,14 @@ defmodule Livebook.ZTA.Tailscale do
   use GenServer
   require Logger
 
-  defstruct [:name, :address]
+  defstruct [:address]
 
   def start_link(opts) do
-    options = [address: opts[:identity][:key]]
-    GenServer.start_link(__MODULE__, options, name: opts[:name])
+    options = [address: opts[:identity_key]]
+    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
   end
 
-  def authenticate(name, conn, _) do
+  def authenticate(name, conn, _opts) do
     remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
     tailscale_address = GenServer.call(name, :get_address)
     user = authenticate_ip(remote_ip, tailscale_address)

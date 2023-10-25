@@ -3,53 +3,40 @@ defmodule Livebook.Config do
 
   @type auth_mode() :: :token | :password | :disabled
 
+  # Those are the public identity providers.
+  #
+  # There are still a :session and :custom identity providers,
+  # but those are handled internally.
   @identity_providers [
-    %{
-      type: :session,
-      name: "Session",
-      value: "Cookie value",
-      module: LivebookWeb.SessionIdentity,
-      read_only: true
-    },
     %{
       type: :cloudflare,
       name: "Cloudflare",
       value: "Team name (domain)",
-      module: Livebook.ZTA.Cloudflare,
-      read_only: false
+      module: Livebook.ZTA.Cloudflare
     },
     %{
       type: :google_iap,
       name: "Google IAP",
       value: "Audience (aud)",
-      module: Livebook.ZTA.GoogleIAP,
-      read_only: false
+      module: Livebook.ZTA.GoogleIAP
     },
     %{
       type: :tailscale,
       name: "Tailscale",
       value: "Tailscale CLI socket path",
-      module: Livebook.ZTA.Tailscale,
-      read_only: false
+      module: Livebook.ZTA.Tailscale
     },
     %{
       type: :teleport,
       name: "Teleport",
       value: "Teleport cluster address (https://[cluster-name]:3080)",
-      module: Livebook.ZTA.Teleport,
-      read_only: false
+      module: Livebook.ZTA.Teleport
     }
   ]
 
   @identity_provider_type_to_module Map.new(@identity_providers, fn provider ->
                                       {Atom.to_string(provider.type), provider.module}
                                     end)
-
-  @identity_provider_module_to_type Map.new(@identity_providers, fn provider ->
-                                      {provider.module, provider.type}
-                                    end)
-
-  @identity_provider_read_only Enum.filter(@identity_providers, & &1.read_only)
 
   @doc """
   Returns docker images to be used when generating sample Dockerfiles.
@@ -256,6 +243,9 @@ defmodule Livebook.Config do
 
   @doc """
   Returns all identity providers.
+
+  Internal identity providers, such as session and custom,
+  are not included.
   """
   def identity_providers do
     @identity_providers
@@ -264,7 +254,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the identity provider.
   """
-  @spec identity_provider() :: {module, binary}
+  @spec identity_provider() :: {atom(), module, binary}
   def identity_provider() do
     Application.fetch_env!(:livebook, :identity_provider)
   end
@@ -274,17 +264,8 @@ defmodule Livebook.Config do
   """
   @spec identity_provider_read_only?() :: boolean()
   def identity_provider_read_only?() do
-    {module, _} = Livebook.Config.identity_provider()
-    module in @identity_provider_read_only
-  end
-
-  @doc """
-  Returns identity provider type.
-  """
-  @spec identity_provider_type() :: atom()
-  def identity_provider_type() do
-    {module, _} = identity_provider()
-    Map.fetch!(@identity_provider_module_to_type, module)
+    {type, _module, _key} = Livebook.Config.identity_provider()
+    Map.has_key?(identity_provider_type_to_module(), type)
   end
 
   @doc """
@@ -703,18 +684,39 @@ defmodule Livebook.Config do
   def identity_provider!(env) do
     if provider = System.get_env(env) do
       identity_provider!(env, provider)
+    else
+      {:session, LivebookWeb.SessionIdentity, :unused}
     end
   end
 
   @doc """
   Parses and validates zero trust identity provider within context.
+
+      iex> Livebook.Config.identity_provider!("ENV_VAR", "custom:Module")
+      {:custom, Module, nil}
+
+      iex> Livebook.Config.identity_provider!("ENV_VAR", "custom:LivebookWeb.SessionIdentity:extra")
+      {:custom, LivebookWeb.SessionIdentity, "extra"}
   """
+  def identity_provider!(context, "custom:" <> module_key) do
+    destructure [module, key], String.split(module_key, ":", parts: 2)
+    module = Module.concat([module])
+
+    if Code.ensure_loaded?(module) do
+      {:custom, module, key}
+    else
+      abort!("module given as custom identity provider in #{context} could not be found")
+    end
+  end
+
   def identity_provider!(context, provider) do
     with [type, key] <- String.split(provider, ":", parts: 2),
-         %{^type => module} <- @identity_provider_type_to_module do
+         %{^type => module} <- identity_provider_type_to_module() do
       {module, key}
     else
       _ -> abort!("invalid configuration for identity provider given in #{context}")
     end
   end
+
+  defp identity_provider_type_to_module, do: @identity_provider_type_to_module
 end
