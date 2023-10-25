@@ -238,6 +238,7 @@ The following environment variables can be used to configure Livebook on boot:
       * "cloudflare:<your-team-name (domain)>"
       * "google_iap:<your-audience (aud)>"
       * "tailscale:<tailscale-cli-socket-path>"
+      * "teleport:<teleport-cluster-address>"
       * "custom:YourElixirModule"
 
     See our authentication docs for more information: https://hexdocs.pm/livebook/authentication.html
