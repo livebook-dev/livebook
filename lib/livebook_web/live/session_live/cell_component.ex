@@ -659,25 +659,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp evaluation_outputs(assigns) do
     ~H"""
-    <%!-- TODO: remove the outer <div> when fixed https://github.com/phoenixframework/phoenix_live_view/issues/2886 --%>
-    <div>
-      <div
-        class="flex flex-col"
-        data-el-outputs-container
-        id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
-        phx-update="stream"
-      >
-        <LivebookWeb.Output.output
-          :for={{dom_id, output} <- @outputs}
-          id={dom_id}
-          output={output.output}
-          session_id={@session_id}
-          session_pid={@session_pid}
-          client_id={@client_id}
-          cell_id={@cell_view.id}
-          input_views={@cell_view.eval.input_views}
-        />
-      </div>
+    <div
+      class="flex flex-col"
+      data-el-outputs-container
+      id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
+      phx-update="stream"
+    >
+      <LivebookWeb.Output.output
+        :for={{dom_id, output} <- @outputs}
+        id={dom_id}
+        output={output.output}
+        session_id={@session_id}
+        session_pid={@session_pid}
+        client_id={@client_id}
+        cell_id={@cell_view.id}
+        input_views={@cell_view.eval.input_views}
+      />
     </div>
     """
   end
