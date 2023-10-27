@@ -6,27 +6,21 @@ defmodule LivebookWeb.Output do
   alias LivebookWeb.Output
 
   @doc """
-  Renders a list of cell outputs.
+  Renders a single cell output.
   """
-  attr :outputs, :list, required: true
+  attr :id, :string, required: true
+  attr :output, :map, required: true
   attr :session_id, :string, required: true
   attr :session_pid, :any, required: true
   attr :input_views, :map, required: true
-  attr :dom_id_map, :map, required: true
   attr :client_id, :string, required: true
   attr :cell_id, :string, required: true
 
-  def outputs(assigns) do
+  def output(assigns) do
     ~H"""
-    <div
-      :for={{idx, output} <- Enum.reverse(@outputs)}
-      class="max-w-full"
-      id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
-      data-el-output
-      data-border={border?(output)}
-    >
-      <%= render_output(output, %{
-        id: "output-#{idx}",
+    <div id={@id} class="max-w-full" data-el-output data-border={border?(@output)}>
+      <%= render_output(@output, %{
+        id: "#{@id}-output",
         session_id: @session_id,
         session_pid: @session_pid,
         input_views: @input_views,
@@ -45,7 +39,6 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :terminal_text, text: text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-
     assigns = %{id: id, text: text}
 
     ~H"""
@@ -55,7 +48,6 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :plain_text, text: text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-
     assigns = %{id: id, text: text}
 
     ~H"""
@@ -65,7 +57,6 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :markdown, text: text}, %{id: id, session_id: session_id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-
     assigns = %{id: id, session_id: session_id, text: text}
 
     ~H"""
@@ -147,21 +138,8 @@ defmodule LivebookWeb.Output do
          client_id: client_id,
          cell_id: cell_id
        }) do
-    {labels, active_idx} =
-      if labels == :__pruned__ do
-        {[], nil}
-      else
-        labels =
-          Enum.zip_with(labels, outputs, fn label, {output_idx, _} -> {output_idx, label} end)
-
-        active_idx = get_in(outputs, [Access.at(0), Access.elem(0)])
-
-        {labels, active_idx}
-      end
-
     assigns = %{
       id: id,
-      active_idx: active_idx,
       labels: labels,
       outputs: outputs,
       session_id: session_id,
@@ -171,47 +149,18 @@ defmodule LivebookWeb.Output do
       cell_id: cell_id
     }
 
-    # After pruning we don't render labels and we render only those
-    # outputs that are kept during pruning
-
     ~H"""
-    <div id={@id}>
-      <div class="tabs mb-2" id={"#{@id}-tabs"} phx-update="append">
-        <button
-          :for={{output_idx, label} <- @labels}
-          id={"#{@id}-tabs-#{output_idx}"}
-          class={["tab", output_idx == @active_idx && "active"]}
-          phx-click={
-            JS.remove_class("active", to: "##{@id}-tabs .tab.active")
-            |> JS.add_class("active")
-            |> JS.add_class("hidden", to: "##{@id}-tab-contents > *:not(.hidden)")
-            |> JS.remove_class("hidden", to: "##{@id}-tab-content-#{output_idx}")
-          }
-        >
-          <%= label %>
-        </button>
-      </div>
-      <div id={"#{@id}-tab-contents"} phx-update="append">
-        <% # We use data-keep-attribute, because we know active_idx only on the first render %>
-        <div
-          :for={{output_idx, output} <- @outputs}
-          id={"#{@id}-tab-content-#{output_idx}"}
-          data-tab-content={output_idx}
-          class={[output_idx != @active_idx && "hidden"]}
-          data-keep-attribute="class"
-        >
-          <.outputs
-            outputs={[{output_idx, output}]}
-            dom_id_map={%{}}
-            session_id={@session_id}
-            session_pid={@session_pid}
-            input_views={@input_views}
-            client_id={@client_id}
-            cell_id={@cell_id}
-          />
-        </div>
-      </div>
-    </div>
+    <.live_component
+      module={Output.TabsComponent}
+      id={@id}
+      outputs={@outputs}
+      labels={@labels}
+      session_id={@session_id}
+      session_pid={@session_pid}
+      input_views={@input_views}
+      client_id={@client_id}
+      cell_id={@cell_id}
+    />
     """
   end
 
@@ -236,26 +185,18 @@ defmodule LivebookWeb.Output do
     }
 
     ~H"""
-    <div id={@id} class="overflow-auto tiny-scrollbar">
-      <div
-        id={"#{@id}-grid"}
-        class="grid grid-cols-2 w-full"
-        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
-        phx-update="append"
-      >
-        <div :for={{output_idx, output} <- @outputs} id={"#{@id}-grid-item-#{output_idx}"}>
-          <.outputs
-            outputs={[{output_idx, output}]}
-            dom_id_map={%{}}
-            session_id={@session_id}
-            session_pid={@session_pid}
-            input_views={@input_views}
-            client_id={@client_id}
-            cell_id={@cell_id}
-          />
-        </div>
-      </div>
-    </div>
+    <.live_component
+      module={Output.GridComponent}
+      id={@id}
+      outputs={@outputs}
+      columns={@columns}
+      gap={@gap}
+      session_id={@session_id}
+      session_pid={@session_pid}
+      input_views={@input_views}
+      client_id={@client_id}
+      cell_id={@cell_id}
+    />
     """
   end
 

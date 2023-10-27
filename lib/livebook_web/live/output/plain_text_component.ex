@@ -3,16 +3,18 @@ defmodule LivebookWeb.Output.PlainTextComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, chunks: 0), temporary_assigns: [text: nil]}
+    {:ok, stream(socket, :chunks, [])}
   end
 
   @impl true
   def update(assigns, socket) do
     {text, assigns} = Map.pop(assigns, :text)
+
     socket = assign(socket, assigns)
 
     if text do
-      {:ok, socket |> assign(text: text) |> update(:chunks, &(&1 + 1))}
+      chunk = %{id: Livebook.Utils.random_id(), text: text}
+      {:ok, stream_insert(socket, :chunks, chunk)}
     else
       {:ok, socket}
     end
@@ -21,13 +23,8 @@ defmodule LivebookWeb.Output.PlainTextComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id={"plain-text-#{@id}"}
-      class="text-gray-700 whitespace-pre-wrap"
-      phx-update="append"
-      phx-no-format
-    ><span :if={@text} id={"plain-text-#{@id}-chunk-#{@chunks}"}><%=
-     @text  %></span></div>
+    <div id={@id} class="text-gray-700 whitespace-pre-wrap" phx-update="stream" phx-no-format><span
+      :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
     """
   end
 end

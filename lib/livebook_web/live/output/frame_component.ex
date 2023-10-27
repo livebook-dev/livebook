@@ -3,8 +3,7 @@ defmodule LivebookWeb.Output.FrameComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, counter: 0, output_count: 0, persistent_id_map: %{}),
-     temporary_assigns: [outputs: []]}
+    {:ok, stream(socket, :outputs, [])}
   end
 
   @impl true
@@ -14,75 +13,47 @@ defmodule LivebookWeb.Output.FrameComponent do
 
     socket = assign(socket, assigns)
 
-    socket =
-      if socket.assigns.counter == 0 do
-        assign(socket,
-          counter: 1,
-          output_count: length(outputs),
-          persistent_id_map: map_idx_to_persistent_id(outputs, socket.assigns.id)
-        )
-      else
-        socket
-      end
+    socket = assign_new(socket, :num_outputs, fn -> length(outputs) end)
 
     socket =
       case update_type do
         nil ->
-          assign(socket, outputs: outputs)
+          stream(socket, :outputs, stream_items(outputs))
 
         :replace ->
-          prev_output_count = socket.assigns.output_count
-          prev_persistent_id_map = socket.assigns.persistent_id_map
-
-          output_count = length(outputs)
-          persistent_id_map = map_idx_to_persistent_id(outputs, socket.assigns.id)
-
-          socket =
-            assign(socket,
-              outputs: outputs,
-              output_count: output_count,
-              persistent_id_map: persistent_id_map
-            )
-
-          less_outputs? = prev_output_count > output_count
-          appended_outputs? = prev_output_count > map_size(prev_persistent_id_map)
-
-          # If there are outputs that we need to remove, increase the counter.
-          # Otherwise we reuse DOM element ids via persistent_id_map
-          if less_outputs? or appended_outputs? do
-            update(socket, :counter, &(&1 + 1))
-          else
-            socket
-          end
+          socket
+          |> assign(num_outputs: length(outputs))
+          |> stream(:outputs, stream_items(outputs), reset: true)
 
         :append ->
           socket
-          |> assign(:outputs, outputs)
-          |> update(:output_count, &(length(outputs) + &1))
+          |> update(:num_outputs, &(length(outputs) + &1))
+          |> stream(:outputs, stream_items(outputs))
       end
 
     {:ok, socket}
   end
 
-  defp map_idx_to_persistent_id(outputs, root_id) do
-    outputs
-    |> Enum.with_index()
-    |> Map.new(fn {{output_idx, _}, idx} -> {output_idx, "#{root_id}-#{idx}"} end)
+  defp stream_items(outputs) do
+    for {idx, output} <- Enum.reverse(outputs) do
+      %{id: Integer.to_string(idx), idx: idx, output: output}
+    end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"frame-output-#{@id}"}>
-      <%= if @output_count == 0 do %>
+    <div id={@id}>
+      <%= if @num_outputs == 0 do %>
         <div :if={@placeholder} class="text-gray-300 p-4 rounded-lg border border-gray-200">
           Nothing here...
         </div>
       <% else %>
-        <div id={"frame-outputs-#{@id}-#{@counter}"} phx-update="append">
-          <LivebookWeb.Output.outputs
-            outputs={@outputs}
-            dom_id_map={@persistent_id_map}
+        <div id={"#{@id}-outputs"} phx-update="stream">
+          <LivebookWeb.Output.output
+            :for={{dom_id, output} <- @streams.outputs}
+            id={dom_id}
+            output={output.output}
             session_id={@session_id}
             session_pid={@session_pid}
             input_views={@input_views}

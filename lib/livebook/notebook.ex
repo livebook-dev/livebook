@@ -867,7 +867,7 @@ defmodule Livebook.Notebook do
         do_prune_outputs(outputs, appendable?, acc)
 
       pruned_tabs_outputs ->
-        output = %{output | outputs: pruned_tabs_outputs, labels: :__pruned__}
+        output = %{output | outputs: pruned_tabs_outputs}
         do_prune_outputs(outputs, appendable?, [{idx, output} | acc])
     end
   end

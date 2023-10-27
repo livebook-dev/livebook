@@ -4,6 +4,32 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   import LivebookWeb.SessionHelpers
 
   @impl true
+  def mount(socket) do
+    {:ok, stream(socket, :outputs, [])}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    socket =
+      case assigns.cell_view do
+        %{eval: %{outputs: outputs}} ->
+          stream_items =
+            for {idx, output} <- Enum.reverse(outputs) do
+              %{id: Integer.to_string(idx), idx: idx, output: output}
+            end
+
+          stream(socket, :outputs, stream_items)
+
+        %{} ->
+          socket
+      end
+
+    {:ok, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div
@@ -99,6 +125,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <.doctest_summary cell_id={@cell_view.id} doctest_summary={@cell_view.eval.doctest_summary} />
       <.evaluation_outputs
+        outputs={@streams.outputs}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -146,6 +173,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </div>
         </div>
         <.evaluation_outputs
+          outputs={@streams.outputs}
           cell_view={@cell_view}
           session_id={@session_id}
           session_pid={@session_pid}
@@ -249,6 +277,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
       <.evaluation_outputs
+        outputs={@streams.outputs}
         cell_view={@cell_view}
         session_id={@session_id}
         session_pid={@session_pid}
@@ -630,21 +659,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp evaluation_outputs(assigns) do
     ~H"""
-    <div
-      class="flex flex-col"
-      data-el-outputs-container
-      id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
-      phx-update="append"
-    >
-      <LivebookWeb.Output.outputs
-        outputs={@cell_view.eval.outputs}
-        dom_id_map={%{}}
-        session_id={@session_id}
-        session_pid={@session_pid}
-        client_id={@client_id}
-        cell_id={@cell_view.id}
-        input_views={@cell_view.eval.input_views}
-      />
+    <%!-- TODO: remove the outer <div> when fixed https://github.com/phoenixframework/phoenix_live_view/issues/2886 --%>
+    <div>
+      <div
+        class="flex flex-col"
+        data-el-outputs-container
+        id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
+        phx-update="stream"
+      >
+        <LivebookWeb.Output.output
+          :for={{dom_id, output} <- @outputs}
+          id={dom_id}
+          output={output.output}
+          session_id={@session_id}
+          session_pid={@session_pid}
+          client_id={@client_id}
+          cell_id={@cell_view.id}
+          input_views={@cell_view.eval.input_views}
+        />
+      </div>
     </div>
     """
   end
