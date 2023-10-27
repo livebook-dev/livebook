@@ -576,6 +576,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           put_in(state.smart_cells[ref], info)
 
         {:error, error} ->
+          send(state.owner, {:runtime_smart_cell_down, ref})
           Logger.error("failed to start smart cell - #{Exception.format_exit(error)}")
           state
       end
@@ -594,10 +595,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast({:stop_smart_cell, ref}, state) do
-    {%{pid: pid}, state} = pop_in(state.smart_cells[ref])
+    {info, state} = pop_in(state.smart_cells[ref])
 
-    if pid do
-      DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
+    if info do
+      DynamicSupervisor.terminate_child(state.smart_cell_supervisor, info.pid)
     end
 
     {:noreply, state}
