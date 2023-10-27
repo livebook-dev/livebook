@@ -242,6 +242,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       @impl true
       def init(info) do
+        if info.attrs["crash"] do
+          raise "crash"
+        end
+
         {:ok, info}
       end
 
@@ -275,6 +279,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
 
     @tag opts: @opts
+    @tag capture_log: true
+    test "notifies runtime owner when a smart cell fails to start", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{"crash" => true}, [])
+      assert_receive {:runtime_smart_cell_down, "ref"}
+    end
+
+    @tag opts: @opts
     test "once started scans binding and sends the result to the cell server", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
@@ -303,6 +314,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
       RuntimeServer.evaluate_code(pid, :elixir, "1 + 1", {:c1, :e1}, [], smart_cell_ref: "ref")
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_eval_result_ping}
+    end
+
+    @tag opts: @opts
+    test "ignores stop request for stopped smart cells", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, [])
+      assert_receive {:runtime_smart_cell_started, "ref", %{js_view: %{pid: smart_cell_pid}}}
+      Process.exit(smart_cell_pid, :crashed)
+      assert_receive {:runtime_smart_cell_down, "ref"}
+      RuntimeServer.stop_smart_cell(pid, "ref")
+
+      # The server should still be operational
+      RuntimeServer.evaluate_code(pid, :elixir, "1 + 1", {:c1, :e1}, [])
     end
   end
 end
