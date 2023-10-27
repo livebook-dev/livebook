@@ -1109,7 +1109,7 @@ defmodule Livebook.Session.Data do
       notebook: Notebook.delete_cell(data.notebook, cell.id),
       bin_entries: [
         %{
-          cell: cell,
+          cell: Map.replace(cell, :outputs, []),
           section_id: section.id,
           section_name: section.name,
           index: Enum.find_index(section.cells, &(&1 == cell)),
