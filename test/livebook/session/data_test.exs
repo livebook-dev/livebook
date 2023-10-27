@@ -780,6 +780,21 @@ defmodule Livebook.Session.DataTest do
       refute Map.has_key?(cell_infos, "c1")
     end
 
+    test "does not include cell outputs in deleted cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1"])
+        ])
+
+      operation = {:delete_cell, @cid, "c1"}
+
+      assert {:ok, %{bin_entries: [%{cell: %{id: "c1", outputs: []}}]}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
     test "unqueues the cell if it's queued for evaluation" do
       data =
         data_after_operations!([
