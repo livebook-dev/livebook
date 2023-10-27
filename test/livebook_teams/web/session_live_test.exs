@@ -51,7 +51,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # clicks the button to add a new secret
       view
-      |> with_target("#secrets_list")
       |> element("#new-secret-button")
       |> render_click(%{})
 
@@ -76,8 +75,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # fills and submits the secrets modal form
       # to create a new secret on team hub
-      secrets_modal = with_target(view, "#secrets")
-      form = element(secrets_modal, ~s{form[phx-submit="save"]})
+      form = element(view, ~s{#secrets-modal form[phx-submit="save"]})
 
       render_change(form, attrs)
       render_submit(form, attrs)
@@ -119,7 +117,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # clicks the button to edit a secret
       view
-      |> with_target("#secrets_list")
       |> element("#hub-#{id}-secret-#{secret_name}-edit-button")
       |> render_click()
 
@@ -190,8 +187,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # clicks the button and fills the form to create a new secret
       # that prefilled the name with the received from exception.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
-      form_element = element(secrets_component, "form[phx-submit='save']")
+      form_element = element(view, "#secrets-modal form[phx-submit='save']")
       assert has_element?(form_element)
       attrs = %{value: secret.value, hub_id: team.id}
       render_submit(form_element, %{secret: attrs})
@@ -257,13 +253,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # is being shown, so clicks it's button to set the app secret
       # to the session, allowing the user to fetches the secret.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
 
-      assert render(secrets_component) =~
-               "in #{hub_label(team)}. Allow this session to access it?"
+      assert render(view) =~ "in #{hub_label(team)}. Allow this session to access it?"
 
-      grant_access_button = element(secrets_component, "button", "Grant access")
-      render_click(grant_access_button)
+      view
+      |> element("#secrets-modal button", "Grant access")
+      |> render_click()
 
       # checks if the secret exists and is inside the session,
       # then executes the code cell again and checks if the
@@ -294,15 +289,15 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       bucket_url = "https://my-own-bucket.s3.amazonaws.com"
 
-      file_system =
+      team_file_system =
         build(:fs_s3,
           id: Livebook.FileSystem.S3.id(team_id, bucket_url),
           bucket_url: bucket_url,
           hub_id: team_id
         )
 
-      Livebook.Hubs.create_file_system(team, file_system)
-      assert_receive {:file_system_created, team_file_system}
+      Livebook.Hubs.create_file_system(team, team_file_system)
+      assert_receive {:file_system_created, %{hub_id: ^team_id} = team_file_system}
 
       # loads the session page
       {:ok, view, _html} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
@@ -312,22 +307,21 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.set_notebook_hub(session.pid, personal_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^personal_id}}
 
-      # targets the file system dropdown menu
-      file_system_menu = with_target(view, "#add-file-entry-modal #file-system-menu-content")
+      file_entry_select = element(view, "#add-file-entry-select")
 
       # checks the file systems from Personal
-      assert has_element?(file_system_menu, "#file-system-local")
-      assert has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
-      refute has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
+      assert render(file_entry_select) =~ "local"
+      assert render(file_entry_select) =~ personal_file_system.id
+      refute render(file_entry_select) =~ team_file_system.id
 
       # change the hub to Team
       # and checks the file systems from Team
       Session.set_notebook_hub(session.pid, team.id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
-      assert has_element?(file_system_menu, "#file-system-local")
-      refute has_element?(file_system_menu, "#file-system-#{personal_file_system.id}")
-      assert has_element?(file_system_menu, "#file-system-#{team_file_system.id}")
+      assert render(file_entry_select) =~ "local"
+      refute render(file_entry_select) =~ personal_file_system.id
+      assert render(file_entry_select) =~ team_file_system.id
     end
 
     test "shows file system from offline hub", %{conn: conn, session: session} do
@@ -357,12 +351,10 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.set_notebook_hub(session.pid, hub_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^hub_id}}
 
-      # targets the file system dropdown menu
-      file_system_menu = with_target(view, "#add-file-entry-select #file-system-menu-content")
-
       # checks the file systems from Offline hub
-      assert has_element?(file_system_menu, "#file-system-local")
-      assert has_element?(file_system_menu, "#file-system-#{file_system.id}")
+      file_entry_select = element(view, "#add-file-entry-select")
+      assert render(file_entry_select) =~ "local"
+      assert render(file_entry_select) =~ file_system.id
 
       remove_offline_hub_file_system(file_system)
     end

@@ -334,11 +334,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     test "marking and unmarking hub as default", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
-      assert {:ok, view, _html} =
-               view
-               |> element("a", "Mark as default")
-               |> render_click()
-               |> follow_redirect(conn)
+      view
+      |> element("button", "Mark as default")
+      |> render_click()
 
       assert view
              |> element("span", "Default")
@@ -346,11 +344,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert Hubs.get_default_hub().id == hub.id
 
-      assert {:ok, view, _html} =
-               view
-               |> element("a", "Remove as default")
-               |> render_click()
-               |> follow_redirect(conn)
+      view
+      |> element("button", "Remove as default")
+      |> render_click()
 
       refute view
              |> element("span", "Default")
