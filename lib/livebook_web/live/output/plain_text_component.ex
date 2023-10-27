@@ -23,7 +23,12 @@ defmodule LivebookWeb.Output.PlainTextComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} class="text-gray-700 whitespace-pre-wrap" phx-update="stream" phx-no-format><span
+    <div
+      id={@id}
+      class="text-gray-700 whitespace-pre-wrap break-words"
+      phx-update="stream"
+      phx-no-format
+    ><span
       :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
     """
   end
