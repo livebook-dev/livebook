@@ -55,7 +55,7 @@ defmodule Livebook.Hubs.Dockerfile do
           list(Livebook.FileSystem.t()),
           Livebook.FileSystem.File.t() | nil,
           list(Livebook.Notebook.file_entry()),
-          list(Livebook.Session.Data.secrets())
+          Livebook.Session.Data.secrets()
         ) :: String.t()
   def build_dockerfile(config, hub, hub_secrets, hub_file_systems, file, file_entries, secrets) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))

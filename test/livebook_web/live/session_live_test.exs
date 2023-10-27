@@ -1515,8 +1515,7 @@ defmodule LivebookWeb.SessionLiveTest do
       # Clicks the button and fills the form to create a new secret
       # that prefilled the name with the received from exception.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
-      form_element = element(secrets_component, "form[phx-submit='save']")
+      form_element = element(view, "#secrets-modal form[phx-submit='save']")
       assert has_element?(form_element)
       render_submit(form_element, %{secret: %{value: secret.value, hub_id: secret.hub_id}})
 
@@ -1562,12 +1561,10 @@ defmodule LivebookWeb.SessionLiveTest do
       # is being shown, so clicks it's button to set the app secret
       # to the session, allowing the user to fetches the secret.
       render_click(add_secret_button)
-      secrets_component = with_target(view, "#secrets-modal")
 
-      assert render(secrets_component) =~
-               "in #{hub_label(secret)}. Allow this session to access it?"
+      assert render(view) =~ "in #{hub_label(secret)}. Allow this session to access it?"
 
-      grant_access_button = element(secrets_component, "button", "Grant access")
+      grant_access_button = element(view, "#secrets-modal button", "Grant access")
       render_click(grant_access_button)
 
       # Checks if the secret exists and is inside the session,
@@ -1621,7 +1618,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       # clicks the button to edit a secret
       view
-      |> with_target("#secrets_list")
       |> element("#hub-#{hub.id}-secret-#{secret_name}-edit-button")
       |> render_click()
 
