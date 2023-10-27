@@ -8,23 +8,6 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     {:ok, assign(socket, changeset: changeset(), error_message: nil, fetching: false)}
   end
 
-  @impl true
-  def update(%{file_entry_result: file_entry_result}, socket) do
-    socket = assign(socket, fetching: false)
-
-    case file_entry_result do
-      {:ok, file_entry} ->
-        {:ok, add_file_entry(socket, file_entry)}
-
-      {:error, message} ->
-        {:ok, assign(socket, error_message: Livebook.Utils.upcase_first(message))}
-    end
-  end
-
-  def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
-  end
-
   defp changeset(attrs \\ %{}) do
     data = %{url: nil, name: nil, copy: false}
     types = %{url: :string, name: :string, copy: :boolean}
@@ -137,7 +120,13 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
         file_entry = %{name: data.name, type: :url, url: data.url}
 
         if data.copy do
-          async_create_attachment_file_entry(socket, file_entry)
+          session = socket.assigns.session
+
+          socket =
+            start_async(socket, :file_entry, fn ->
+              Livebook.Session.to_attachment_file_entry(session, file_entry)
+            end)
+
           {:noreply, assign(socket, fetching: true, error_message: nil)}
         else
           {:noreply, add_file_entry(socket, file_entry)}
@@ -148,15 +137,17 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
     end
   end
 
-  defp async_create_attachment_file_entry(socket, file_entry) do
-    pid = self()
-    id = socket.assigns.id
-    session = socket.assigns.session
+  @impl true
+  def handle_async(:file_entry, {:ok, file_entry_result}, socket) do
+    socket = assign(socket, fetching: false)
 
-    Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
-      file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
-      send_update(pid, __MODULE__, id: id, file_entry_result: file_entry_result)
-    end)
+    case file_entry_result do
+      {:ok, file_entry} ->
+        {:noreply, add_file_entry(socket, file_entry)}
+
+      {:error, message} ->
+        {:noreply, assign(socket, error_message: Livebook.Utils.upcase_first(message))}
+    end
   end
 
   defp add_file_entry(socket, file_entry) do

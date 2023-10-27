@@ -3,17 +3,21 @@ defmodule LivebookWeb.Output.MarkdownComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(), chunks: 0),
-     temporary_assigns: [text: nil]}
+    {:ok,
+     socket
+     |> assign(allowed_uri_schemes: Livebook.Config.allowed_uri_schemes())
+     |> stream(:chunks, [])}
   end
 
   @impl true
   def update(assigns, socket) do
     {text, assigns} = Map.pop(assigns, :text)
+
     socket = assign(socket, assigns)
 
     if text do
-      {:ok, socket |> assign(text: text) |> update(:chunks, &(&1 + 1))}
+      chunk = %{id: Livebook.Utils.random_id(), text: text}
+      {:ok, stream_insert(socket, :chunks, chunk)}
     else
       {:ok, socket}
     end
@@ -23,21 +27,19 @@ defmodule LivebookWeb.Output.MarkdownComponent do
   def render(assigns) do
     ~H"""
     <div
-      id={"markdown-renderer-#{@id}"}
+      id={@id}
       phx-hook="MarkdownRenderer"
       data-base-path={~p"/sessions/#{@session_id}"}
       data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
     >
       <div
         data-template
-        id={"markdown-renderer-#{@id}-template"}
+        id={"#{@id}-template"}
         class="text-gray-700 whitespace-pre-wrap hidden"
-        phx-update="append"
+        phx-update="stream"
         phx-no-format
-      ><span :if={@text} id={"plain-text-#{@id}-chunk-#{@chunks}"}><%=
-     @text  %></span></div>
-      <div data-content class="markdown" id={"markdown-rendered-#{@id}-content"} phx-update="ignore">
-      </div>
+      ><span :for={{dom_id, chunk}<- @streams.chunks} id={dom_id}><%= chunk.text %></span></div>
+      <div data-content class="markdown" id={"#{@id}-content"} phx-update="ignore"></div>
     </div>
     """
   end

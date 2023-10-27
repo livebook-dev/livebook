@@ -140,22 +140,14 @@ defmodule LivebookWeb.AppSessionLive do
           </h1>
         </div>
         <div class="pt-4 flex flex-col gap-6">
-          <div
+          <.live_component
             :for={cell_view <- @data_view.cell_views}
-            class="empty:hidden"
-            id={"outputs-#{cell_view.id}-#{cell_view.outputs_batch_number}"}
-            phx-update="append"
-          >
-            <LivebookWeb.Output.outputs
-              outputs={cell_view.outputs}
-              dom_id_map={%{}}
-              session_id={@session.id}
-              session_pid={@session.pid}
-              client_id={@client_id}
-              cell_id={cell_view.id}
-              input_views={cell_view.input_views}
-            />
-          </div>
+            module={LivebookWeb.AppSessionLive.CellOutputsComponent}
+            id={"outputs-#{cell_view.id}"}
+            cell_view={cell_view}
+            session={@session}
+            client_id={@client_id}
+          />
           <%= if @data_view.app_status.execution == :error do %>
             <div class={[
               "flex justify-between items-center px-4 py-2 border-l-4 shadow-custom-1",
@@ -413,7 +405,7 @@ defmodule LivebookWeb.AppSessionLive do
 
         for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
-            id: "output-#{idx}",
+            id: "outputs-#{idx}-output",
             outputs: frame.outputs,
             update_type: update_type,
             input_views: input_views_for_cell(cell, data, changed_input_ids)
@@ -434,7 +426,7 @@ defmodule LivebookWeb.AppSessionLive do
                 :markdown -> LivebookWeb.Output.MarkdownComponent
               end
 
-            send_update(module, id: "output-#{idx}", text: output.text)
+            send_update(module, id: "outputs-#{idx}-output", text: output.text)
             data_view
 
           _ ->

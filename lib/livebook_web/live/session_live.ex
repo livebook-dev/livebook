@@ -2862,7 +2862,7 @@ defmodule LivebookWeb.SessionLive do
 
         for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
-            id: "output-#{idx}",
+            id: "outputs-#{idx}-output",
             outputs: frame.outputs,
             update_type: update_type,
             # Note that we are not updating data_view to avoid re-render,
@@ -2886,7 +2886,7 @@ defmodule LivebookWeb.SessionLive do
                 :markdown -> LivebookWeb.Output.MarkdownComponent
               end
 
-            send_update(module, id: "output-#{idx}", text: output.text)
+            send_update(module, id: "outputs-#{idx}-output", text: output.text)
             data_view
 
           _ ->

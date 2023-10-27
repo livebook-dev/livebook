@@ -9,20 +9,6 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   end
 
   @impl true
-  def update(%{transfer_file_entry_result: {name, file_entry_result}}, socket) do
-    case file_entry_result do
-      {:ok, file_entry} ->
-        Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-
-      {:error, message} ->
-        send(self(), {:put_flash, :error, Livebook.Utils.upcase_first(message)})
-    end
-
-    socket = update(socket, :transferring_file_entry_names, &MapSet.delete(&1, name))
-
-    {:ok, socket}
-  end
-
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
@@ -326,22 +312,19 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   end
 
   def handle_event("transfer_file_entry", %{"name" => name}, socket) do
-    if file_entry = find_file_entry(socket, name) do
-      pid = self()
-      id = socket.assigns.id
-      session = socket.assigns.session
+    socket =
+      if file_entry = find_file_entry(socket, name) do
+        session = socket.assigns.session
 
-      Task.Supervisor.async_nolink(Livebook.TaskSupervisor, fn ->
-        file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
-
-        send_update(pid, __MODULE__,
-          id: id,
-          transfer_file_entry_result: {name, file_entry_result}
-        )
-      end)
-    end
-
-    socket = update(socket, :transferring_file_entry_names, &MapSet.put(&1, name))
+        socket
+        |> start_async(:transfer_file_entry, fn ->
+          file_entry_result = Livebook.Session.to_attachment_file_entry(session, file_entry)
+          {name, file_entry_result}
+        end)
+        |> update(:transferring_file_entry_names, &MapSet.put(&1, name))
+      else
+        socket
+      end
 
     {:noreply, socket}
   end
@@ -350,6 +333,21 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
     if file_entry = find_file_entry(socket, name) do
       Livebook.Session.clear_file_entry_cache(socket.assigns.session.id, file_entry.name)
     end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:transfer_file_entry, {:ok, {name, file_entry_result}}, socket) do
+    case file_entry_result do
+      {:ok, file_entry} ->
+        Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+
+      {:error, message} ->
+        send(self(), {:put_flash, :error, Livebook.Utils.upcase_first(message)})
+    end
+
+    socket = update(socket, :transferring_file_entry_names, &MapSet.delete(&1, name))
 
     {:noreply, socket}
   end
