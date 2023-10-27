@@ -14,7 +14,7 @@ defmodule LivebookWeb.Output.ControlComponent do
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
       data-cell-id={@cell_id}
-      data-default-handlers={@control.default_handlers.attrs}
+      data-default-handlers={@control.attrs.default_handlers}
       data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @control.attrs.events)}
       data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @control.attrs.events)}
       data-target={@myself}
@@ -105,7 +105,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   defp maybe_report_status(socket, enabled) do
-    %{assigns: %{attrs: attrs, keyboard_enabled: current}} = socket
+    %{assigns: %{control: %{attrs: attrs}, keyboard_enabled: current}} = socket
 
     if :status in attrs.events and enabled != current do
       report_event(socket, %{type: :status, enabled: enabled})
