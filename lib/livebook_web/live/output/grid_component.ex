@@ -13,8 +13,8 @@ defmodule LivebookWeb.Output.GridComponent do
     socket = assign(socket, assigns)
 
     stream_items =
-      for {idx, output} <- Enum.reverse(outputs) do
-        id = "#{socket.assigns.id}-grid-item-#{idx}"
+      for {idx, output} <- outputs do
+        id = "#{idx}-grid-item"
         %{id: id, idx: idx, output: output}
       end
 
@@ -35,7 +35,7 @@ defmodule LivebookWeb.Output.GridComponent do
       >
         <div :for={{dom_id, output} <- @streams.outputs} id={dom_id}>
           <LivebookWeb.Output.output
-            id={"#{dom_id}-output"}
+            id={"outputs-#{output.idx}"}
             output={output.output}
             session_id={@session_id}
             session_pid={@session_pid}

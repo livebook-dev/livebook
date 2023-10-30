@@ -24,8 +24,8 @@ defmodule LivebookWeb.Output.TabsComponent do
     socket = assign(socket, assigns)
 
     stream_items =
-      for {idx, output} <- Enum.reverse(outputs) do
-        id = "#{socket.assigns.id}-tab-content-#{idx}"
+      for {idx, output} <- outputs do
+        id = "#{idx}-tabs-item"
         %{id: id, idx: idx, output: output}
       end
 
@@ -61,7 +61,7 @@ defmodule LivebookWeb.Output.TabsComponent do
           class={[output.idx != @active_idx && "hidden"]}
         >
           <LivebookWeb.Output.output
-            id={"#{dom_id}-output"}
+            id={"outputs-#{output.idx}"}
             output={output.output}
             session_id={@session_id}
             session_pid={@session_pid}

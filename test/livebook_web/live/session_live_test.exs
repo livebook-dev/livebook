@@ -686,6 +686,40 @@ defmodule LivebookWeb.SessionLiveTest do
       refute content =~ "In frame"
     end
 
+    test "frame output update when within grid", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      evaluate_setup(session.pid)
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      frame = %{type: :frame, ref: "1", outputs: [terminal_text("In frame")], placeholder: true}
+      grid = %{type: :grid, outputs: [frame], columns: ["Frame"], gap: 8, boxed: false}
+      send(session.pid, {:runtime_evaluation_output, cell_id, grid})
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      assert render(view) =~ "In frame"
+
+      frame_update = %{
+        type: :frame_update,
+        ref: "1",
+        update: {:replace, [terminal_text("Updated frame")]}
+      }
+
+      send(session.pid, {:runtime_evaluation_output, cell_id, frame_update})
+
+      wait_for_session_update(session.pid)
+
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "Updated frame"
+      refute content =~ "In frame"
+    end
+
     test "client-specific output is sent only to one target", %{conn: conn, session: session} do
       user1 = build(:user, name: "Jake Peralta")
       {_, client_id} = Session.register_client(session.pid, self(), user1)
