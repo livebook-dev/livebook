@@ -363,7 +363,7 @@ defmodule Livebook.Application do
           port: port
         ] ++ Keyword.take(http, [:ip])
 
-      spec = Plug.Cowboy.child_spec(iframe_opts)
+      spec = Bandit.child_spec(iframe_opts)
       spec = update_in(spec.start, &{__MODULE__, :start_iframe, [port, &1]})
       [spec]
     else

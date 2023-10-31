@@ -101,7 +101,7 @@ defmodule Livebook.MixProject do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
+      {:bandit, "~> 1.0"},
       {:plug_crypto, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 1.0"},
@@ -117,7 +117,6 @@ defmodule Livebook.MixProject do
       # ZTA deps
       {:jose, "~> 1.11.5"},
       {:req, "~> 0.4.4"},
-      {:bandit, "~> 0.7", only: :test},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]

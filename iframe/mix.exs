@@ -20,7 +20,7 @@ defmodule LivebookSpace.MixProject do
 
   defp deps do
     [
-      {:plug_cowboy, "~> 2.0"}
+      {:bandit, "~> 1.0"}
     ]
   end
 end

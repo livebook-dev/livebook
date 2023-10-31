@@ -140,10 +140,10 @@ defmodule LivebookWeb.Endpoint do
     base =
       case struct_url() do
         %URI{scheme: "https", port: 0} = uri ->
-          %{uri | port: Livebook.Utils.get_port(__MODULE__.HTTPS, 433)}
+          %{uri | port: Livebook.Utils.get_port(__MODULE__, :https, 433)}
 
         %URI{scheme: "http", port: 0} = uri ->
-          %{uri | port: Livebook.Utils.get_port(__MODULE__.HTTP, 80)}
+          %{uri | port: Livebook.Utils.get_port(__MODULE__, :https, 80)}
 
         %URI{} = uri ->
           uri

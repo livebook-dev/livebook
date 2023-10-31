@@ -617,14 +617,15 @@ defmodule Livebook.Utils do
   The listener references usually follow the pattern `plug.HTTP`
   and `plug.HTTPS`.
   """
-  @spec get_port(:ranch.ref(), :inet.port_number()) :: :inet.port_number()
-  def get_port(ref, default) do
+  @spec get_port(module, :http | :https, :inet.port_number()) :: :inet.port_number()
+  def get_port(endpoint, scheme, default) do
     try do
-      :ranch.get_addr(ref)
+      {:ok, pid} = Bandit.PhoenixAdapter.bandit_pid(endpoint, scheme)
+      ThousandIsland.listener_info(pid)
     rescue
       _ -> default
     else
-      {_, port} when is_integer(port) -> port
+      {:ok, {_, port}} when is_integer(port) -> port
       _ -> default
     end
   end
