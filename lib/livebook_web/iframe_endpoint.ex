@@ -35,7 +35,7 @@ defmodule LivebookWeb.IframeEndpoint do
     iframe_port = Livebook.Config.iframe_port()
 
     case livebook_port do
-      0 -> Livebook.Utils.get_port(__MODULE__.HTTP, iframe_port)
+      0 -> Livebook.Utils.get_port(__MODULE__, :http, iframe_port)
       _ -> iframe_port
     end
   end

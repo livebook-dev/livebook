@@ -2,6 +2,7 @@ import Config
 
 # Configures the endpoint
 config :livebook, LivebookWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost", path: "/"],
   pubsub_server: Livebook.PubSub,
   live_view: [signing_salt: "livebook"],
@@ -21,9 +22,6 @@ config :mime, :types, %{
   "audio/m4a" => ["m4a"],
   "text/plain" => ["livemd"]
 }
-
-# We want CSRF tokens to be logged to help users with debugging
-config :plug_cowboy, :log_exceptions_with_status_code, [407..599]
 
 config :livebook,
   teams_url: "https://teams.livebook.dev",
