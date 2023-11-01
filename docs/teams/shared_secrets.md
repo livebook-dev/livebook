@@ -8,7 +8,11 @@ Just add a secret to your organization hub, and Livebook Teams will synchronize 
 
 ![](assets/add_shared_secret.png)
 
-It also synchronizes updates and deletions of secrets.
+You can also create such secrets directly from a notebook.
+
+![](assets/add_shared_secret_from_notebook.png)
+
+Shared secrets updates and deletions will also be synchronized.
 
 ## How it works
 
