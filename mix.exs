@@ -194,7 +194,9 @@ defmodule Livebook.MixProject do
       extra_section: "Guides",
       extras: extras(),
       filter_modules: fn mod, _ -> mod in [Livebook] end,
+      assets: Path.expand("./docs/images"),
       groups_for_extras: [
+        "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*")
       ]
     ]
@@ -207,7 +209,8 @@ defmodule Livebook.MixProject do
       "docs/deployment/docker.md",
       "docs/deployment/cloudflare.md",
       "docs/deployment/google_iap.md",
-      "docs/deployment/tailscale.md"
+      "docs/deployment/tailscale.md",
+      "docs/teams/shared_secrets.md"
     ]
   end
 end
