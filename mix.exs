@@ -210,7 +210,9 @@ defmodule Livebook.MixProject do
       "docs/deployment/cloudflare.md",
       "docs/deployment/google_iap.md",
       "docs/deployment/tailscale.md",
-      "docs/teams/shared_secrets.md"
+      "docs/teams/intro.md",
+      "docs/teams/shared_secrets.md",
+      "docs/teams/shared_file_storages.md"
     ]
   end
 end
