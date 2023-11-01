@@ -196,8 +196,8 @@ defmodule Livebook.MixProject do
       filter_modules: fn mod, _ -> mod in [Livebook] end,
       assets: Path.expand("./docs/images"),
       groups_for_extras: [
-        Deployment: Path.wildcard("docs/deployment/*"),
-        "Livebook Teams": Path.wildcard("docs/teams/*")
+        "Livebook Teams": Path.wildcard("docs/teams/*"),
+        Deployment: Path.wildcard("docs/deployment/*")
       ]
     ]
   end
