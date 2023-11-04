@@ -1,4 +1,4 @@
-defmodule LivebookWeb.AppsLive do
+defmodule LivebookWeb.AppsDashboardLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.AppHelpers

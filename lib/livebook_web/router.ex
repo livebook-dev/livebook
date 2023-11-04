@@ -73,7 +73,7 @@ defmodule LivebookWeb.Router do
       live "/learn", LearnLive, :page
       live "/learn/notebooks/:slug", LearnLive, :notebook
 
-      live "/apps", AppsLive, :page
+      live "/apps-dashboard", AppsDashboardLive, :page
 
       live "/hub", Hub.NewLive, :new, as: :hub
       live "/hub/:id", Hub.EditLive, :edit, as: :hub
