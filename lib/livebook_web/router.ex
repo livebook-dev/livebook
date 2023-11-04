@@ -130,13 +130,6 @@ defmodule LivebookWeb.Router do
 
       live "/apps/:slug/:id", AppSessionLive, :page
       live "/apps/:slug/:id/source", AppSessionLive, :source
-    end
-  end
-
-  live_session :public,
-    on_mount: [LivebookWeb.UserHook, LivebookWeb.Confirm] do
-    scope "/", LivebookWeb do
-      pipe_through [:browser, :user]
 
       live "/apps", AppsLive, :page
     end

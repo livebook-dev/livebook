@@ -27,7 +27,13 @@ defmodule LivebookWeb.AppsDashboardLive do
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
-        <LayoutHelpers.title text="Apps" />
+        <div class="flex items-center justify-between">
+          <LayoutHelpers.title text="Apps" />
+          <.link navigate={~p"/apps"} class="flex items-center text-blue-600">
+            <span class="font-semibold">Listing</span>
+            <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+          </.link>
+        </div>
         <div class="mt-10">
           <.app_list apps={@apps} />
         </div>

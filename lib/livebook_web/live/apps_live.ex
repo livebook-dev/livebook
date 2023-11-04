@@ -16,45 +16,67 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="w-full h-full px-4 py-8 flex justify-center items-center">
-      <div class="w-full flex flex-col items-center">
-        <div class="text-gray-700 text-xl font-medium">
-          Apps
+    <div class="h-full flex flex-col overflow-y-auto">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <div class="w-10 h-10">
+          <.link navigate={~p"/"}>
+            <img src={~p"/images/logo.png"} height="40" widthz="40" alt="logo livebook" />
+          </.link>
         </div>
-        <div class="w-full mt-5 mx-auto max-w-[400px]">
-          <div class="w-full flex flex-col space-y-4">
-            <.link
-              :for={app <- apps_listing(@apps)}
-              href={~p"/apps/#{app.slug}"}
-              class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex items-center justify-between"
-            >
-              <span class="font-semibold"><%= app.notebook_name %></span>
-              <.remix_icon :if={not app.public?} icon="lock-password-line" />
-            </.link>
-          </div>
+        <div>
+          <.link navigate={~p"/apps-dashboard"} class="flex items-center text-blue-600">
+            <span class="font-semibold">Dashboard</span>
+            <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+          </.link>
         </div>
-        <%!-- TODO show message when there are no apps --%>
-        <div :if={@apps == [] and @empty_apps_path?} class="mt-5 text-gray-600">
-          <div>
-            No app notebooks found. <br />Follow these steps to list your apps here:
+      </div>
+      <div class="w-full max-w-screen-lg px-4 md:px-20 py-4 mx-auto">
+        <div class="flex flex-col items-center">
+          <h1 class="text-2xl text-gray-800 font-medium">
+            Apps
+          </h1>
+          <div :if={@apps != []} class="w-full mt-5 max-w-[400px]">
+            <div class="w-full flex flex-col space-y-4">
+              <.link
+                :for={app <- apps_listing(@apps)}
+                navigate={~p"/apps/#{app.slug}"}
+                class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex items-center justify-between"
+              >
+                <span class="font-semibold"><%= app.notebook_name %></span>
+                <.remix_icon :if={not app.public?} icon="lock-password-line" />
+              </.link>
+            </div>
           </div>
-          <ol class="mt-4 pl-4 flex flex-col space-y-1 list-decimal list-inside">
-            <li>
-              Open a notebook
-            </li>
-            <li>
-              Click <.remix_icon icon="rocket-line" class="align-sub text-lg" />
-              in the sidebar and configure the app as public
-            </li>
-            <li>
-              Save the notebook to the
-              <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
-              folder
-            </li>
-            <li>
-              Relaunch your Livebook app
-            </li>
-          </ol>
+          <div
+            :if={@apps == [] and not @empty_apps_path?}
+            class="mt-5 flex flex-col w-full max-w-[400px]"
+          >
+            <.no_entries :if={@apps == []}>
+              No apps running.
+            </.no_entries>
+          </div>
+          <div :if={@apps == [] and @empty_apps_path?} class="mt-5 text-gray-600">
+            <div>
+              No app notebooks found. Follow these steps to list your apps here:
+            </div>
+            <ol class="mt-4 pl-4 flex flex-col space-y-1 list-decimal list-inside">
+              <li>
+                Open a notebook
+              </li>
+              <li>
+                Click <.remix_icon icon="rocket-line" class="align-baseline text-lg" />
+                in the sidebar and configure the app as public
+              </li>
+              <li>
+                Save the notebook to the
+                <span class="font-medium"><%= Livebook.Config.apps_path() %></span>
+                folder
+              </li>
+              <li>
+                Relaunch your Livebook app
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>
