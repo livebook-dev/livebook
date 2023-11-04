@@ -261,18 +261,4 @@ defmodule LivebookWeb.AppsDashboardLive do
     app = Enum.find(apps, &(&1.slug == slug))
     Enum.find(app.sessions, &(&1.id == session_id))
   end
-
-  def update_app_list(apps, {:app_created, app}) do
-    if app in apps, do: apps, else: [app | apps]
-  end
-
-  def update_app_list(apps, {:app_updated, app}) do
-    Enum.map(apps, fn other ->
-      if other.slug == app.slug, do: app, else: other
-    end)
-  end
-
-  def update_app_list(apps, {:app_closed, app}) do
-    Enum.reject(apps, &(&1.slug == app.slug))
-  end
 end

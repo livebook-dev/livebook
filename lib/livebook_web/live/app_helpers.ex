@@ -263,4 +263,23 @@ defmodule LivebookWeb.AppHelpers do
   defp zta_metadata(zta_provider) do
     Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
   end
+
+  @doc """
+  Updates app list with the given apps event.
+  """
+  def update_app_list(apps, event)
+
+  def update_app_list(apps, {:app_created, app}) do
+    if app in apps, do: apps, else: [app | apps]
+  end
+
+  def update_app_list(apps, {:app_updated, app}) do
+    Enum.map(apps, fn other ->
+      if other.slug == app.slug, do: app, else: other
+    end)
+  end
+
+  def update_app_list(apps, {:app_closed, app}) do
+    Enum.reject(apps, &(&1.slug == app.slug))
+  end
 end
