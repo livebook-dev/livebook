@@ -52,11 +52,11 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
       # access the page and shows the teams key modal
       {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=true")
-      refute has_element?(view, "#show-key-modal.hidden")
+      assert has_element?(view, "#key-modal")
 
       # access the page when closes the modal
       assert {:ok, view, _html} = live(conn, "/hub/team-#{name}")
-      assert has_element?(view, "#show-key-modal.hidden")
+      refute has_element?(view, "#key-modal")
 
       # checks if the hub is in the sidebar
       assert_sidebar_hub(view, "team-#{name}", name)
@@ -113,11 +113,11 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
       # access the page and shows the teams key modal
       {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=true")
-      refute has_element?(view, "#show-key-modal.hidden")
+      assert has_element?(view, "#key-modal")
 
       # access the page when closes the modal
       assert {:ok, view, _html} = live(conn, "/hub/team-#{name}")
-      assert has_element?(view, "#show-key-modal.hidden")
+      refute has_element?(view, "#key-modal")
 
       # checks if the hub is in the sidebar
       assert_sidebar_hub(view, "team-#{name}", name)
