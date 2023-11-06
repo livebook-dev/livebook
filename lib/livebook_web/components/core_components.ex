@@ -172,12 +172,14 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div
       id={@id}
-      class={["fixed z-[10000] inset-0", if(@show, do: "fade-in", else: "hidden")]}
-      phx-remove={JS.transition("fade-out")}
+      class="fixed z-[10000] inset-0 hidden"
+      phx-mounted={@show && show_modal(@id)}
+      phx-remove={hide_modal(@id)}
+      data-cancel={modal_on_cancel(@patch, @navigate)}
       {@rest}
     >
       <!-- Modal container -->
-      <div class="h-screen flex items-center justify-center p-4">
+      <div id={"#{@id}-container"} class="h-screen flex items-center justify-center p-4">
         <!-- Overlay -->
         <div class="absolute z-0 inset-0 bg-gray-500 opacity-75" aria-hidden="true"></div>
         <!-- Modal box -->
@@ -192,17 +194,15 @@ defmodule LivebookWeb.CoreComponents do
           aria-modal="true"
           tabindex="0"
           autofocus
-          phx-window-keydown={hide_modal(@id)}
-          phx-click-away={hide_modal(@id)}
+          phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+          phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
           phx-key="escape"
         >
-          <.link :if={@patch} patch={@patch} class="hidden" id={"#{@id}-return"}></.link>
-          <.link :if={@navigate} patch={@navigate} class="hidden" id={"#{@id}-return"}></.link>
           <button
             type="button"
             class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
             aria_label="close modal"
-            phx-click={hide_modal(@id)}
+            phx-click={JS.exec("data-cancel", to: "##{@id}")}
           >
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
@@ -219,14 +219,19 @@ defmodule LivebookWeb.CoreComponents do
   defp modal_width_class(:big), do: "max-w-4xl"
   defp modal_width_class(:large), do: "max-w-6xl"
 
+  defp modal_on_cancel(nil, nil), do: JS.exec("phx-remove")
+  defp modal_on_cancel(nil, navigate), do: JS.patch(navigate)
+  defp modal_on_cancel(patch, nil), do: JS.patch(patch)
+
   @doc """
   Shows a modal rendered with `modal/1`.
   """
   def show_modal(js \\ %JS{}, id) do
     js
-    |> JS.show(
-      to: "##{id}",
-      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+    |> JS.show(to: "##{id}")
+    |> JS.transition(
+      {"ease-out duration-200", "opacity-0", "opacity-100"},
+      to: "##{id}-container"
     )
   end
 
@@ -235,11 +240,11 @@ defmodule LivebookWeb.CoreComponents do
   """
   def hide_modal(js \\ %JS{}, id) do
     js
-    |> JS.hide(
-      to: "##{id}",
-      transition: {"ease-in duration-200", "opacity-100", "opacity-0"}
+    |> JS.transition(
+      {"ease-in duration-200", "opacity-100", "opacity-0"},
+      to: "##{id}-container"
     )
-    |> JS.dispatch("click", to: "##{id}-return")
+    |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"})
   end
 
   @doc """
