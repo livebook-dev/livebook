@@ -24,9 +24,7 @@ defmodule LivebookWeb.AuthController do
   def index(conn, _params) do
     render(conn, "index.html",
       errors: [],
-      auth_mode: Livebook.Config.auth_mode(),
-      any_apps?: any_apps?(),
-      empty_apps_path?: Livebook.Apps.empty_apps_path?()
+      auth_mode: Livebook.Config.auth_mode()
     )
   end
 
@@ -55,9 +53,7 @@ defmodule LivebookWeb.AuthController do
 
     render(conn, "index.html",
       errors: errors,
-      auth_mode: auth_mode,
-      any_apps?: any_apps?(),
-      empty_apps_path?: Livebook.Apps.empty_apps_path?()
+      auth_mode: auth_mode
     )
   end
 
@@ -73,9 +69,5 @@ defmodule LivebookWeb.AuthController do
       end
     end)
     |> halt()
-  end
-
-  defp any_apps?() do
-    Livebook.Apps.list_apps() != []
   end
 end
