@@ -107,10 +107,16 @@ defmodule LivebookWeb.AppSessionLive do
                 <.remix_icon icon="arrow-down-s-line" />
               </button>
             </:toggle>
-            <.menu_item>
+            <.menu_item :if={@livebook_authenticated?}>
               <.link navigate={~p"/"} role="menuitem">
                 <.remix_icon icon="home-6-line" />
                 <span>Home</span>
+              </.link>
+            </.menu_item>
+            <.menu_item>
+              <.link navigate={~p"/apps"} role="menuitem">
+                <.remix_icon icon="layout-grid-fill" />
+                <span>Apps</span>
               </.link>
             </.menu_item>
             <.menu_item :if={@data_view.multi_session}>
