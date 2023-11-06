@@ -96,13 +96,12 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   <.remix_icon icon="settings-line" /> Manage organization
                 </a>
 
-                <button
-                  phx-click={show_modal("show-key-modal")}
-                  phx-target={@myself}
+                <.link
+                  patch={~p"/hub/#{@hub.id}?show-key=true"}
                   class="hover:text-blue-600 cursor-pointer"
                 >
                   <.remix_icon icon="key-2-fill" /> Display Teams key
-                </button>
+                </.link>
                 <%= if @default? do %>
                   <button
                     phx-click="remove_as_default"
@@ -253,7 +252,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
             </div>
           </div>
 
-          <.modal show={@show_key} id="show-key-modal" width={:medium} patch={~p"/hub/#{@hub.id}"}>
+          <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
             <.teams_key_modal teams_key={@hub.teams_key} />
           </.modal>
 
