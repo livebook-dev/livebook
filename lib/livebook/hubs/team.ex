@@ -38,7 +38,7 @@ defmodule Livebook.Hubs.Team do
     field :org_key_id, :integer
     field :teams_key, :string
     field :org_public_key, :string
-    field :session_token, :string
+    field :session_token, :string, redact: true
     field :hub_name, :string
     field :hub_emoji, :string
 
