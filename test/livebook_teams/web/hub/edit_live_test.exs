@@ -30,9 +30,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> element("#team-form .invalid-feedback")
              |> has_element?()
 
-               view
-               |> element("#team-form")
-               |> render_submit(%{"team" => attrs})
+      view
+      |> element("#team-form")
+      |> render_submit(%{"team" => attrs})
 
       update = render(view)
       assert update =~ "Hub updated successfully"
