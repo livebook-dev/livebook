@@ -15,7 +15,13 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
 
     socket = assign(socket, assigns)
 
-    {:ok, assign(socket, title: title(socket), button: button(socket), changeset: changeset)}
+    {:ok,
+     assign(socket,
+       title: title(socket),
+       button: button(socket),
+       changeset: changeset,
+       error_message: nil
+     )}
   end
 
   @impl true
@@ -25,6 +31,9 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
       <div class="flex flex-columns gap-4">
         <.form
           :let={f}
@@ -91,10 +100,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
         {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
 
       {:transport_error, error} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, error)
-         |> push_patch(to: "/hub/#{socket.assigns.hub.id}/secrets/new")}
+        {:noreply, assign(socket, error_message: error)}
     end
   end
 
