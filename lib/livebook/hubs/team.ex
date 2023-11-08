@@ -38,7 +38,7 @@ defmodule Livebook.Hubs.Team do
     field :org_key_id, :integer
     field :teams_key, :string
     field :org_public_key, :string
-    field :session_token, :string
+    field :session_token, :string, redact: true
     field :hub_name, :string
     field :hub_emoji, :string
 
@@ -137,8 +137,15 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_secret(team, secret), do: Teams.delete_secret(team, secret)
 
   def connection_error(team) do
-    if reason = TeamClient.get_connection_error(team.id) do
-      "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    cond do
+      team.offline ->
+        "You are running an offline Hub for deployment. You cannot modify its settings."
+
+      reason = TeamClient.get_connection_error(team.id) ->
+        "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+
+      true ->
+        nil
     end
   end
 

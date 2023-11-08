@@ -312,7 +312,7 @@ defmodule Livebook.Application do
     Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
       id: "team-#{name}",
       hub_name: name,
-      hub_emoji: "💡",
+      hub_emoji: "⭐️",
       user_id: 0,
       org_id: 0,
       org_key_id: 0,
