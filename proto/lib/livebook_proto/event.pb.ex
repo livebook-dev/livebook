@@ -1,7 +1,7 @@
 defmodule LivebookProto.Event do
   use Protobuf, syntax: :proto3, protoc_gen_elixir_version: "0.12.0"
 
-  oneof :type, 0
+  oneof(:type, 0)
 
   field :secret_created, 1,
     type: LivebookProto.SecretCreated,
@@ -36,5 +36,20 @@ defmodule LivebookProto.Event do
   field :file_system_deleted, 7,
     type: LivebookProto.FileSystemDeleted,
     json_name: "fileSystemDeleted",
+    oneof: 0
+
+  field :deployment_group_created, 8,
+    type: LivebookProto.DeploymentGroupCreated,
+    json_name: "deploymentGroupCreated",
+    oneof: 0
+
+  field :deployment_group_updated, 9,
+    type: LivebookProto.DeploymentGroupUpdated,
+    json_name: "deploymentGroupUpdated",
+    oneof: 0
+
+  field :deployment_group_deleted, 10,
+    type: LivebookProto.DeploymentGroupDeleted,
+    json_name: "deploymentGroupDeleted",
     oneof: 0
 end

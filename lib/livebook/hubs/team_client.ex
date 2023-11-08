@@ -7,6 +7,7 @@ defmodule Livebook.Hubs.TeamClient do
   alias Livebook.Hubs
   alias Livebook.Secrets
   alias Livebook.Teams
+  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
 
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
@@ -17,7 +18,8 @@ defmodule Livebook.Hubs.TeamClient do
     :derived_key,
     connected?: false,
     secrets: [],
-    file_systems: []
+    file_systems: [],
+    deployment_groups: []
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
@@ -66,6 +68,14 @@ defmodule Livebook.Hubs.TeamClient do
     GenServer.call(registry_name(id), :get_connection_error)
   catch
     :exit, _ -> "connection refused"
+  end
+
+  @doc """
+  Returns a list of cached deployment groups.
+  """
+  @spec get_deployment_groups(String.t()) :: list(DeploymentGroup.t())
+  def get_deployment_groups(id) do
+    GenServer.call(registry_name(id), :get_deployment_groups)
   end
 
   @doc """
@@ -123,6 +133,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_file_systems, _caller, state) do
     {:reply, state.file_systems, state}
+  end
+
+  def handle_call(:get_deployment_groups, _caller, state) do
+    {:reply, state.deployment_groups, state}
   end
 
   @impl true
@@ -198,6 +212,22 @@ defmodule Livebook.Hubs.TeamClient do
     FileSystems.load(file_system.type, dumped_data)
   end
 
+  defp put_deployment_group(state, deployment_group) do
+    state = remove_deployment_group(state, deployment_group)
+    %{state | deployment_groups: [deployment_group | state.deployment_groups]}
+  end
+
+  defp remove_deployment_group(state, deployment_group) do
+    %{
+      state
+      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id))
+    }
+  end
+
+  defp build_deployment_group(state, %{id: id, name: name, mode: mode}) do
+    %DeploymentGroup{id: id, name: name, mode: mode, hub_id: state.hub.id}
+  end
+
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
     Hubs.Broadcasts.secret_created(secret)
 
@@ -261,10 +291,49 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:deployment_group_created, %DeploymentGroup{} = deployment_group, state) do
+    Teams.Broadcasts.deployment_group_created(deployment_group)
+
+    put_deployment_group(state, deployment_group)
+  end
+
+  defp handle_event(:deployment_group_created, deployment_group_created, state) do
+    handle_event(
+      :deployment_group_created,
+      build_deployment_group(state, deployment_group_created),
+      state
+    )
+  end
+
+  defp handle_event(:deployment_group_updated, %DeploymentGroup{} = deployment_group, state) do
+    Teams.Broadcasts.deployment_group_updated(deployment_group)
+
+    put_deployment_group(state, deployment_group)
+  end
+
+  defp handle_event(:deployment_group_updated, deployment_group_updated, state) do
+    handle_event(
+      :deployment_group_updated,
+      build_deployment_group(state, deployment_group_updated),
+      state
+    )
+  end
+
+  defp handle_event(:deployment_group_deleted, deployment_group_deleted, state) do
+    if deployment_group =
+         Enum.find(state.deployment_groups, &(&1.id == deployment_group_deleted.id)) do
+      Teams.Broadcasts.deployment_group_deleted(deployment_group)
+      remove_deployment_group(state, deployment_group)
+    else
+      state
+    end
+  end
+
   defp handle_event(:user_connected, user_connected, state) do
     state
     |> dispatch_secrets(user_connected)
     |> dispatch_file_systems(user_connected)
+    |> dispatch_deployment_groups(user_connected)
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
@@ -304,6 +373,19 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp dispatch_file_systems(state, _), do: state
+
+  defp dispatch_deployment_groups(state, %{deployment_groups: deployment_groups}) do
+    decrypted_deployment_groups = Enum.map(deployment_groups, &build_deployment_group(state, &1))
+
+    {created, deleted, updated} =
+      diff(state.deployment_groups, decrypted_deployment_groups, &(&1.id == &2.id))
+
+    dispatch_events(state,
+      deployment_group_deleted: deleted,
+      deployment_group_created: created,
+      deployment_group_updated: updated
+    )
+  end
 
   defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do
     deleted_fun = unless deleted_fun, do: fun, else: deleted_fun

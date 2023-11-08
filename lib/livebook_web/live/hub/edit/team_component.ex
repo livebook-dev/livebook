@@ -6,6 +6,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
+  alias Livebook.Teams.DeploymentGroups
 
   @impl true
   def update(assigns, socket) do
@@ -14,8 +15,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     show_key = assigns.params["show-key"]
     secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
+    deployment_groups = DeploymentGroups.get_deployment_groups(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
+    deployment_group_id = assigns.params["deployment_group_id"]
     default? = default_hub?(assigns.hub)
 
     secret_value =
@@ -30,6 +33,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
+    deployment_group =
+      if assigns.live_action == :edit_deployment_group do
+        Enum.find_value(deployment_groups, &(&1.id == deployment_group_id && &1)) ||
+          raise(
+            NotFoundError,
+            "could not find deployment group matching #{inspect(deployment_group_id)}"
+          )
+      end
+
     {:ok,
      socket
      |> assign(
@@ -37,6 +49,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        file_system: file_system,
        file_system_id: file_system_id,
        file_systems: file_systems,
+       deployment_group_id: deployment_group_id,
+       deployment_group: deployment_group,
+       deployment_groups: deployment_groups,
        show_key: show_key,
        secret_name: secret_name,
        secret_value: secret_value,
@@ -195,6 +210,24 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                Deployment groups
+              </h2>
+
+              <p class="text-gray-700">
+                Deployment groups.
+              </p>
+
+              <.live_component
+                module={LivebookWeb.Hub.Teams.DeploymentGroupListComponent}
+                id="hub-deployment-groups-list"
+                hub_id={@hub.id}
+                deployment_groups={@deployment_groups}
+                target={@myself}
+              />
+            </div>
+
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 Airgapped deployment
               </h2>
 
@@ -289,6 +322,23 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               hub={@hub}
               file_system={@file_system}
               file_system_id={@file_system_id}
+              return_to={~p"/hub/#{@hub.id}"}
+            />
+          </.modal>
+
+          <.modal
+            :if={@live_action in [:new_deployment_group, :edit_deployment_group]}
+            id="deployment-groups-modal"
+            show
+            width={:medium}
+            patch={~p"/hub/#{@hub.id}"}
+          >
+            <.live_component
+              module={LivebookWeb.Hub.Teams.DeploymentGroupFormComponent}
+              id="deployment-groups"
+              hub={@hub}
+              deployment_group_id={@deployment_group_id}
+              deployment_group={@deployment_group}
               return_to={~p"/hub/#{@hub.id}"}
             />
           </.modal>

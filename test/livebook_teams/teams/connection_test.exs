@@ -72,5 +72,21 @@ defmodule Livebook.Teams.ConnectionTest do
       refute file_system_created.value == FileSystem.dump(file_system)
       assert is_binary(file_system_created.value)
     end
+
+    test "receives the deployment_group_created event", %{user: user, node: node} do
+      {hub, headers} = build_team_headers(user, node)
+
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
+      assert_receive :connected
+
+      # creates a new deployment_group
+      deployment_group = build(:deployment_group, name: "FOO", mode: "offline")
+      assert {:ok, _id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+
+      # deployment_group name and mode are not encrypted
+      assert_receive {:event, :deployment_group_created, deployment_group_created}
+      assert deployment_group_created.name == deployment_group.name
+      assert deployment_group_created.mode == deployment_group.mode
+    end
   end
 end

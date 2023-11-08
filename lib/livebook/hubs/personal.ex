@@ -112,7 +112,7 @@ defmodule Livebook.Hubs.Personal do
   @doc """
   Unset secret from given id.
   """
-  @spec set_secret(String.t()) :: :ok
+  @spec unset_secret(String.t()) :: :ok
   def unset_secret(id) do
     Storage.delete(@secrets_namespace, id)
     :ok

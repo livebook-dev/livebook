@@ -1,4 +1,5 @@
 defmodule LivebookWeb.Integration.Hub.EditLiveTest do
+  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
@@ -303,6 +304,153 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       refute file_system in Livebook.Hubs.get_file_systems(hub)
+    end
+
+    test "creates a deployment group", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      deployment_group =
+        build(:deployment_group,
+          name: "TEAM_ADD_DEPLOYMENT_GROUP",
+          mode: "offline",
+          hub_id: hub.id
+        )
+
+      attrs = %{
+        deployment_group: %{
+          name: deployment_group.name,
+          value: deployment_group.mode,
+          hub_id: deployment_group.hub_id
+        }
+      }
+
+      refute render(view) =~ deployment_group.name
+
+      view
+      |> element("#add-deployment-group")
+      |> render_click(%{})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/new")
+      assert render(view) =~ "Add deployment group"
+
+      view
+      |> element("#deployment-groups-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#deployment-groups-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#deployment-groups-form")
+      |> render_submit(attrs)
+
+      assert_receive {:deployment_group_created,
+                      %DeploymentGroup{name: "TEAM_ADD_DEPLOYMENT_GROUP"} = deployment_group}
+
+      %{"success" => "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
+      assert deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(hub)
+    end
+
+    test "updates existing deployment group", %{conn: conn, hub: hub} do
+      insert_deployment_group(
+        name: "TEAM_EDIT_DEPLOYMENT_GROUP",
+        mode: "online",
+        hub_id: hub.id
+      )
+
+      assert_receive {:deployment_group_created,
+                      %DeploymentGroup{name: "TEAM_EDIT_DEPLOYMENT_GROUP"} = deployment_group}
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      attrs = %{
+        deployment_group: %{
+          id: deployment_group.id,
+          name: deployment_group.name,
+          mode: deployment_group.mode,
+          hub_id: deployment_group.hub_id
+        }
+      }
+
+      new_mode = "offline"
+
+      view
+      |> element("#hub-deployment-group-#{deployment_group.id}-edit")
+      |> render_click(%{"deployment_group_name" => deployment_group.id})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+      assert render(view) =~ "Edit deployment group"
+
+      view
+      |> element("#deployment-groups-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#deployment-groups-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#deployment-groups-form")
+      |> render_submit(put_in(attrs.deployment_group.mode, new_mode))
+
+      updated_deployment_group = %{deployment_group | mode: new_mode}
+
+      assert_receive {:deployment_group_updated, ^updated_deployment_group}
+
+      %{"success" => "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
+
+      assert updated_deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(
+               hub
+             )
+    end
+
+    test "deletes existing deployment group", %{conn: conn, hub: hub} do
+      insert_deployment_group(
+        name: "TEAM_DELETE_DEPLOYMENT_GROUP",
+        mode: "online",
+        hub_id: hub.id
+      )
+
+      assert_receive {:deployment_group_created,
+                      %DeploymentGroup{name: "TEAM_DELETE_DEPLOYMENT_GROUP"} = deployment_group}
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      refute view
+             |> element("#deployment-groups-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#hub-deployment-group-#{deployment_group.id}-delete", "Delete")
+      |> render_click()
+
+      render_confirm(view)
+
+      assert_receive {:deployment_group_deleted,
+                      %DeploymentGroup{name: "TEAM_DELETE_DEPLOYMENT_GROUP"}}
+
+      %{"success" => "Deployment group TEAM_DELETE_DEPLOYMENT_GROUP deleted successfully"} =
+        assert_redirect(view, "/hub/#{hub.id}")
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      refute render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
+      refute deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(hub)
+    end
+
+    test "raises an error if the deployment group does not exist", %{conn: conn, hub: hub} do
+      assert_raise LivebookWeb.NotFoundError, fn ->
+        live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/9999999")
+      end
     end
   end
 
