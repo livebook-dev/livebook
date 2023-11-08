@@ -2,7 +2,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs
-  alias Livebook.Hubs.{Provider, Team}
+  alias Livebook.Hubs.Provider
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
@@ -10,7 +10,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    changeset = Team.change_hub(assigns.hub)
+    changeset = Teams.change_hub(assigns.hub)
     show_key = assigns.params["show-key"]
     secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
@@ -393,7 +393,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def handle_event("validate", %{"team" => attrs}, socket) do
     changeset =
       socket.assigns.hub
-      |> Team.change_hub(attrs)
+      |> Teams.change_hub(attrs)
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}

@@ -56,6 +56,8 @@ defmodule Livebook.Hubs.Team do
     hub_emoji
   )a
 
+  @editable_fields ~w(hub_emoji)a
+
   @doc """
   Initializes a new Team hub.
   """
@@ -71,19 +73,17 @@ defmodule Livebook.Hubs.Team do
     }
   end
 
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking hub changes.
-  """
-  @spec change_hub(t(), map()) :: Ecto.Changeset.t()
-  def change_hub(%__MODULE__{} = team, attrs \\ %{}) do
-    changeset(team, attrs)
-  end
-
-  defp changeset(team, attrs) do
+  def creation_changeset(team, attrs) do
     team
     |> cast(attrs, @fields)
     |> validate_required(@fields)
     |> add_id()
+  end
+
+  def update_changeset(team, attrs) do
+    team
+    |> cast(attrs, @editable_fields)
+    |> validate_required(@editable_fields)
   end
 
   defp add_id(changeset) do
