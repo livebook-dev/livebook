@@ -188,13 +188,21 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Returns an `%Ecto.Changeset{}` for tracking hub changes.
+  """
+  @spec change_hub(Team.t(), map()) :: Ecto.Changeset.t()
+  def change_hub(%Team{} = team, attrs \\ %{}) do
+    Team.update_changeset(team, attrs)
+  end
+
+  @doc """
   Creates a Hub.
 
   It notifies interested processes about hub metadata data change.
   """
   @spec create_hub!(map()) :: Team.t()
   def create_hub!(attrs) do
-    changeset = Team.change_hub(Team.new(), attrs)
+    changeset = Team.creation_changeset(Team.new(), attrs)
     team = apply_action!(changeset, :insert)
 
     Hubs.save_hub(team)
@@ -208,7 +216,7 @@ defmodule Livebook.Teams do
   """
   @spec update_hub(Team.t(), map()) :: {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
   def update_hub(%Team{} = team, attrs) do
-    changeset = Team.change_hub(team, attrs)
+    changeset = Team.update_changeset(team, attrs)
     id = get_field(changeset, :id)
 
     if Hubs.hub_exists?(id) do
