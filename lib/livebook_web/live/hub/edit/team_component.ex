@@ -11,7 +11,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def update(assigns, socket) do
     socket = assign(socket, assigns)
     changeset = Teams.change_hub(assigns.hub)
-    show_key? = assigns.params["show-key"] == "true"
+    show_key = assigns.params["show-key"]
     secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     secret_name = assigns.params["secret_name"]
@@ -37,7 +37,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        file_system: file_system,
        file_system_id: file_system_id,
        file_systems: file_systems,
-       show_key: show_key?,
+       show_key: show_key,
        secret_name: secret_name,
        secret_value: secret_value,
        hub_metadata: Provider.to_metadata(assigns.hub),
@@ -97,7 +97,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 </a>
 
                 <.link
-                  patch={~p"/hub/#{@hub.id}?show-key=true"}
+                  patch={~p"/hub/#{@hub.id}?show-key=yes"}
                   class="hover:text-blue-600 cursor-pointer"
                 >
                   <.remix_icon icon="key-2-fill" /> Display Teams key
@@ -253,7 +253,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           </div>
 
           <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
-            <.teams_key_modal teams_key={@hub.teams_key} />
+            <.teams_key_modal
+              teams_key={@hub.teams_key}
+              confirm_url={if @show_key == "confirm", do: ~p"/hub/#{@hub.id}"}
+            />
           </.modal>
 
           <.modal
@@ -311,7 +314,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         required for you and invited users to join this organization.
         We recommend storing it somewhere safe:
       </div>
-      <div class=" w-full">
+      <div class="w-full">
         <div id="teams-key-toggle" class="relative flex">
           <input
             type="password"
@@ -366,6 +369,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           </div>
         </div>
       </div>
+      <.link :if={@confirm_url} patch={@confirm_url} class="button-base button-blue block text-center">
+        <.remix_icon class="mr-2" icon="thumb-up-fill" /> I've saved my Teams key in a secure location
+      </.link>
     </div>
     """
   end
@@ -377,7 +383,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         {:noreply,
          socket
          |> put_flash(:success, "Hub updated successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}")}
+         |> push_patch(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
