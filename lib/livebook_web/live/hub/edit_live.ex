@@ -19,10 +19,7 @@ defmodule LivebookWeb.Hub.EditLive do
   @impl true
   def handle_params(params, _url, socket) do
     {id, params} = Map.pop(params, "id")
-    hub = Hubs.fetch_hub!(id)
-    type = Provider.type(hub)
-
-    {:noreply, assign(socket, hub: hub, type: type, params: params)}
+    {:noreply, socket |> load_hub(id) |> assign(:params, params)}
   end
 
   @impl true
@@ -82,15 +79,21 @@ defmodule LivebookWeb.Hub.EditLive do
   end
 
   @impl true
-  def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}, params: params}} = socket) do
-    {:noreply, push_patch(socket, to: ~p"/hub/#{id}?#{params}")}
+  def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
   end
 
-  def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}, params: params}} = socket) do
-    {:noreply, push_patch(socket, to: ~p"/hub/#{id}?#{params}")}
+  def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
+  end
+
+  defp load_hub(socket, id) do
+    hub = Hubs.fetch_hub!(id)
+    type = Provider.type(hub)
+    assign(socket, hub: hub, type: type)
   end
 end
