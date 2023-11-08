@@ -48,10 +48,14 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, "/hub/team-#{name}?show-key=true", check_completion_data_interval())
+        assert_redirect(
+          view,
+          "/hub/team-#{name}?show-key=confirm",
+          check_completion_data_interval()
+        )
 
       # access the page and shows the teams key modal
-      {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=true")
+      {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=confirm")
       assert has_element?(view, "#key-modal")
 
       # access the page when closes the modal
@@ -109,10 +113,14 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # check if the page redirected to edit hub page
       # and check the flash message
       %{"success" => "Hub added successfully"} =
-        assert_redirect(view, "/hub/team-#{name}?show-key=true", check_completion_data_interval())
+        assert_redirect(
+          view,
+          "/hub/team-#{name}?show-key=confirm",
+          check_completion_data_interval()
+        )
 
       # access the page and shows the teams key modal
-      {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=true")
+      {:ok, view, _html} = live(conn, "/hub/team-#{name}?show-key=confirm")
       assert has_element?(view, "#key-modal")
 
       # access the page when closes the modal
