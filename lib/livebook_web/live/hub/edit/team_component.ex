@@ -369,11 +369,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           </div>
         </div>
       </div>
-      <.link
-        :if={@confirm_url}
-        patch={@confirm_url}
-        class="button-base button-blue block text-center"
-      >
+      <.link :if={@confirm_url} patch={@confirm_url} class="button-base button-blue block text-center">
         <.remix_icon class="mr-2" icon="thumb-up-fill" /> I've saved my Teams key in a secure location
       </.link>
     </div>
