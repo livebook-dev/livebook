@@ -32,7 +32,7 @@ defmodule Livebook.Runtime.Embedded.Packages do
   end
 end
 
-# Enable dependency saerch for the embedded runtime
+# Enable dependency search for the embedded runtime
 Application.put_env(:livebook, Livebook.Runtime.Embedded,
   load_packages: {Livebook.Runtime.Embedded.Packages, :list, []}
 )
@@ -53,16 +53,26 @@ Livebook.HubHelpers.set_offline_hub()
 # Compile anything pending on TeamsServer
 Livebook.TeamsServer.setup()
 
-erl_docs_missing? =
-  match?({:error, _}, Code.fetch_docs(:gen_server)) or match?({:error, _}, Code.fetch_docs(:odbc))
-
 windows? = match?({:win32, _}, :os.type())
+
+erl_docs_exclude =
+  if match?({:error, _}, Code.fetch_docs(:gen_server)) or
+       match?({:error, _}, Code.fetch_docs(:odbc)) do
+    [erl_docs: true]
+  else
+    []
+  end
+
+windows_exclude = if windows?, do: [unix: true], else: []
+
+teams_exclude =
+  if not Livebook.TeamsServer.available?() do
+    [teams_integration: true]
+  else
+    []
+  end
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
-  exclude: [
-    erl_docs: erl_docs_missing?,
-    unix: windows?,
-    teams_integration: not Livebook.TeamsServer.available?()
-  ]
+  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude
 )
