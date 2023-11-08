@@ -372,7 +372,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       <.link
         :if={@confirm_url}
         patch={@confirm_url}
-        class="button-base button-outlined-blue block text-center"
+        class="button-base button-blue block text-center"
       >
         <.remix_icon class="mr-2" icon="thumb-up-fill" /> I've saved my Teams key in a secure location
       </.link>
