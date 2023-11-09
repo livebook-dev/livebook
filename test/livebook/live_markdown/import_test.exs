@@ -1211,12 +1211,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
       {notebook, messages} = Import.notebook_from_livemd(markdown)
 
-      assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: true} = notebook
+      assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: false} = notebook
       assert ["invalid notebook stamp" <> _] = messages
     end
 
     test "sets :teams_enabled to true when the teams hub exist regardless the stamp" do
-      %{id: hub_id} = Livebook.HubHelpers.offline_hub()
+      %{id: hub_id} = hub = Livebook.Factory.insert_fake_online_hub()
 
       markdown = """
       <!-- livebook:{"hub_id":"#{hub_id}"} -->
@@ -1235,6 +1235,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {notebook, [_]} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: ^hub_id, teams_enabled: true} = notebook
+
+      Livebook.Hubs.delete_hub(hub.id)
     end
   end
 
