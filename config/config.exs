@@ -37,6 +37,15 @@ config :livebook,
   within_iframe: false,
   allowed_uri_schemes: []
 
+config :livebook, Livebook.Copilot,
+  enabled: true,
+  model: Livebook.Copilot.Models.GPT4
+
+config :openai,
+  # find it at https://platform.openai.com/account/api-keys
+  api_key: System.get_env("OPENAI_API_KEY"),
+  http_options: [recv_timeout: 30_000]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

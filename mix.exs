@@ -119,7 +119,9 @@ defmodule Livebook.MixProject do
       {:jose, "~> 1.11.5"},
       {:req, "~> 0.4.4"},
       # Docs
-      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false},
+      {:ai, "~> 0.3.4"},
+      {:openai, "~> 0.5.4"}
     ]
   end
 
