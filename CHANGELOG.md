@@ -2,6 +2,21 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.11.4](https://github.com/livebook-dev/livebook/tree/v0.11.4) (2023-11-09)
+
+### Added
+
+* Improved error handling Team hub page ([#2328](https://github.com/livebook-dev/livebook/pull/2328), [#2326](https://github.com/livebook-dev/livebook/pull/2326), [#2327](https://github.com/livebook-dev/livebook/pull/2327), [#2329](https://github.com/livebook-dev/livebook/pull/2329))
+
+### Changed
+
+* Separated apps from auth and improved apps navigation ([#2322](https://github.com/livebook-dev/livebook/pull/2322))
+* Updated the Docker base image to Debian Bookworm
+
+### Fixed
+
+* Keyboard control
+
 ## [v0.11.3](https://github.com/livebook-dev/livebook/tree/v0.11.3) (2023-10-25)
 
 ### Added
