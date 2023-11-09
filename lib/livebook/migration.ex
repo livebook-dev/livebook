@@ -191,7 +191,8 @@ defmodule Livebook.Migration do
   end
 
   defp add_team_hub_offline() do
-    for %{id: "team-" <> _ = id} <- Storage.all(:hubs) do
+    for %{id: "team-" <> _ = id} = attrs <- Storage.all(:hubs),
+        not Map.has_key?(attrs, :offline) do
       Storage.insert(:hubs, id, offline: false)
     end
   end
