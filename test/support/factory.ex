@@ -103,4 +103,19 @@ defmodule Livebook.Factory do
 
     env_var
   end
+
+  # Creates an online hub with offline connection, which is safe to
+  # used in tests without hubs server.
+  def insert_fake_online_hub() do
+    hub = Livebook.Factory.build(:team)
+
+    # Save the hub and start the TeamClient as an offline hub
+    hub
+    |> Map.put(:offline, %Livebook.Hubs.Team.Offline{})
+    |> Livebook.Hubs.save_hub()
+
+    # Save the hub as an online hub (with the offline TeamClient
+    # already running)
+    Livebook.Hubs.save_hub(hub)
+  end
 end

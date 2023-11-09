@@ -25,12 +25,14 @@ defmodule Livebook.Migration do
 
   def init(:ok) do
     insert_personal_hub()
+    remove_offline_hub()
 
     # v1
     add_personal_hub_secret_key()
     delete_local_host_hub()
     move_app_secrets_to_personal_hub()
     add_file_system_type_to_notebook_manager_files()
+    add_team_hub_offline()
 
     # TODO: remove on Livebook v0.12
     update_file_systems_to_deterministic_ids()
@@ -55,6 +57,21 @@ defmodule Livebook.Migration do
       })
     end
   end
+
+  defp remove_offline_hub() do
+    # We put offline hub in the storage for consistency, but it should
+    # be present if the environment variables are set. Consequently, we
+    # always remove it and insert on startup if applicable.
+
+    for %{id: "team-" <> _ = id} = attrs <- Storage.all(:hubs), offline_hub?(attrs) do
+      :ok = Storage.delete(:hubs, id)
+    end
+  end
+
+  # TODO: use just :offline on Livebook v0.12
+  defp offline_hub?(%{offline: true}), do: true
+  defp offline_hub?(%{user_id: 0, org_id: 0, org_key_id: 0}), do: true
+  defp offline_hub?(_attrs), do: false
 
   defp move_app_secrets_to_personal_hub() do
     for %{name: name, value: value} <- Storage.all(:secrets) do
@@ -171,5 +188,11 @@ defmodule Livebook.Migration do
       end)
 
     Map.put(file, :file_system_type, file_system_type)
+  end
+
+  defp add_team_hub_offline() do
+    for %{id: "team-" <> _ = id} <- Storage.all(:hubs) do
+      Storage.insert(:hubs, id, offline: false)
+    end
   end
 end
