@@ -36,10 +36,6 @@ For screencasts and news, check out [news.livebook.dev](https://news.livebook.de
 We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
-### On the cloud
-
-  * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
-
 ### Desktop app
 
   * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)

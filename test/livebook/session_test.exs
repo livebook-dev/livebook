@@ -1932,8 +1932,7 @@ defmodule Livebook.SessionTest do
       end
 
       test "fallback to personal-hub when the default doesn't exist" do
-        hub = Livebook.Factory.build(:team)
-        Livebook.Hubs.save_hub(hub)
+        hub = Livebook.Factory.insert_fake_online_hub()
         Livebook.Hubs.set_default_hub(hub.id)
         Livebook.Hubs.delete_hub(hub.id)
         notebook = Livebook.Session.default_notebook()

@@ -88,7 +88,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
 
   def handle_event("save", %{"file_system" => attrs}, socket) do
     with {:ok, file_system} <- FileSystems.update_file_system(socket.assigns.file_system, attrs),
-         :ok <- check_file_system_conectivity(file_system),
+         :ok <- check_file_system_connectivity(file_system),
          :ok <- save_file_system(file_system, socket) do
       message =
         case socket.assigns.mode do
@@ -102,12 +102,12 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
        |> push_redirect(to: socket.assigns.return_to)}
     else
       {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
-      {:transport_error, message} -> {:noreply, put_flash(socket, :error, message)}
+      {:transport_error, message} -> {:noreply, assign(socket, error_message: message)}
       {:error, message} -> {:noreply, assign(socket, error_message: message)}
     end
   end
 
-  defp check_file_system_conectivity(file_system) do
+  defp check_file_system_connectivity(file_system) do
     default_path = FileSystem.default_path(file_system)
 
     case FileSystem.list(file_system, default_path, false) do

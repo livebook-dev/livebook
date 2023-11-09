@@ -1,4 +1,4 @@
-defmodule LivebookWeb.AppsLiveTest do
+defmodule LivebookWeb.AppsDashboardLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
@@ -11,7 +11,7 @@ defmodule LivebookWeb.AppsLiveTest do
     app_settings = %{Notebook.AppSettings.new() | slug: slug}
     notebook = %{Notebook.new() | app_settings: app_settings, name: "My app #{slug}"}
 
-    {:ok, view, _} = live(conn, ~p"/apps")
+    {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
     refute render(view) =~ slug
 
@@ -32,7 +32,7 @@ defmodule LivebookWeb.AppsLiveTest do
     app_settings = %{Notebook.AppSettings.new() | slug: slug}
     notebook = %{Notebook.new() | app_settings: app_settings, name: "My app #{slug}"}
 
-    {:ok, view, _} = live(conn, ~p"/apps")
+    {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
     Apps.subscribe()
     {:ok, app_pid} = Apps.deploy(notebook)
@@ -53,7 +53,7 @@ defmodule LivebookWeb.AppsLiveTest do
     app_settings = %{Notebook.AppSettings.new() | slug: slug}
     notebook = %{Notebook.new() | app_settings: app_settings, name: "My app #{slug}"}
 
-    {:ok, view, _} = live(conn, ~p"/apps")
+    {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
     Apps.subscribe()
     {:ok, app_pid} = Apps.deploy(notebook)

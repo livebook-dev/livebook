@@ -127,7 +127,11 @@ defmodule Livebook.MixProject do
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
-              {:ok, quoted} <- Code.string_to_quoted(contents, warn_on_unnecessary_quotes: false),
+              {:ok, quoted} <-
+                Code.string_to_quoted(contents,
+                  warn_on_unnecessary_quotes: false,
+                  emit_warnings: false
+                ),
               {%{} = lock, _binding} <- Code.eval_quoted(quoted, []) do
            for {dep, hex} when elem(hex, 0) == :hex <- lock,
                do: {dep, elem(hex, 2)},

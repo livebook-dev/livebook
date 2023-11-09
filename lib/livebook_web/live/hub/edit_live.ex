@@ -9,17 +9,17 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    Hubs.subscribe([:connection])
+    if connected?(socket) do
+      Hubs.subscribe([:connection])
+    end
 
     {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    hub = Hubs.fetch_hub!(params["id"])
-    type = Provider.type(hub)
-
-    {:noreply, assign(socket, hub: hub, type: type, params: params, counter: 0)}
+    {id, params} = Map.pop(params, "id")
+    {:noreply, socket |> load_hub(id) |> assign(:params, params)}
   end
 
   @impl true
@@ -30,13 +30,7 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <.hub_component
-        type={@type}
-        hub={@hub}
-        live_action={@live_action}
-        params={@params}
-        counter={@counter}
-      />
+      <.hub_component type={@type} hub={@hub} live_action={@live_action} params={@params} />
     </LayoutHelpers.layout>
     """
   end
@@ -48,7 +42,6 @@ defmodule LivebookWeb.Hub.EditLive do
       hub={@hub}
       params={@params}
       live_action={@live_action}
-      counter={@counter}
       id="personal-form"
     />
     """
@@ -87,14 +80,20 @@ defmodule LivebookWeb.Hub.EditLive do
 
   @impl true
   def handle_info({:hub_connected, id}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
+    {:noreply, load_hub(socket, id)}
   end
 
   def handle_info({_event, id, _reason}, %{assigns: %{hub: %{id: id}}} = socket) do
-    {:noreply, push_navigate(socket, to: ~p"/hub/#{id}")}
+    {:noreply, load_hub(socket, id)}
   end
 
   def handle_info(_message, socket) do
     {:noreply, socket}
+  end
+
+  defp load_hub(socket, id) do
+    hub = Hubs.fetch_hub!(id)
+    type = Provider.type(hub)
+    assign(socket, hub: hub, type: type)
   end
 end

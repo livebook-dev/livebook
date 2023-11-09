@@ -298,7 +298,7 @@ defmodule LivebookWeb.Hub.NewLive do
         {:noreply,
          socket
          |> put_flash(:success, "Hub added successfully")
-         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=true")}
+         |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=confirm")}
 
       {:error, :expired} ->
         changeset =

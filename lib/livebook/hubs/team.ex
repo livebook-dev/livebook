@@ -38,7 +38,7 @@ defmodule Livebook.Hubs.Team do
     field :org_key_id, :integer
     field :teams_key, :string
     field :org_public_key, :string
-    field :session_token, :string
+    field :session_token, :string, redact: true
     field :hub_name, :string
     field :hub_emoji, :string
 
@@ -56,6 +56,8 @@ defmodule Livebook.Hubs.Team do
     hub_emoji
   )a
 
+  @editable_fields ~w(hub_emoji)a
+
   @doc """
   Initializes a new Team hub.
   """
@@ -71,19 +73,17 @@ defmodule Livebook.Hubs.Team do
     }
   end
 
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking hub changes.
-  """
-  @spec change_hub(t(), map()) :: Ecto.Changeset.t()
-  def change_hub(%__MODULE__{} = team, attrs \\ %{}) do
-    changeset(team, attrs)
-  end
-
-  defp changeset(team, attrs) do
+  def creation_changeset(team, attrs) do
     team
     |> cast(attrs, @fields)
     |> validate_required(@fields)
     |> add_id()
+  end
+
+  def update_changeset(team, attrs) do
+    team
+    |> cast(attrs, @editable_fields)
+    |> validate_required(@editable_fields)
   end
 
   defp add_id(changeset) do
@@ -109,7 +109,16 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   @public_key_prefix Livebook.Hubs.Team.public_key_prefix()
 
   def load(team, fields) do
-    struct(team, fields)
+    {offline?, fields} = Map.pop(fields, :offline?, false)
+
+    offline =
+      if offline? do
+        :persistent_term.get({__MODULE__, :offline, fields.id})
+      end
+
+    team
+    |> struct(fields)
+    |> Map.replace!(:offline, offline)
   end
 
   def to_metadata(team) do
@@ -137,8 +146,15 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_secret(team, secret), do: Teams.delete_secret(team, secret)
 
   def connection_error(team) do
-    if reason = TeamClient.get_connection_error(team.id) do
-      "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+    cond do
+      team.offline ->
+        "You are running an offline Hub for deployment. You cannot modify its settings."
+
+      reason = TeamClient.get_connection_error(team.id) ->
+        "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
+
+      true ->
+        nil
     end
   end
 
@@ -179,9 +195,18 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   end
 
   def dump(team) do
+    # Offline hub is kept in storage, but only during the lifetime of
+    # the runtime (we remove it on the subsequent startup). With this
+    # assumption we can safely store the %Offline{} struct in memory,
+    # so that the secrets are never written to disk.
+    if team.offline do
+      :persistent_term.put({__MODULE__, :offline, team.id}, team.offline)
+    end
+
     team
     |> Map.from_struct()
     |> Map.delete(:offline)
+    |> Map.put(:offline?, team.offline != nil)
   end
 
   def get_file_systems(team) do

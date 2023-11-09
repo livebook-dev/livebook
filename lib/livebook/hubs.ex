@@ -298,7 +298,7 @@ defmodule Livebook.Hubs do
   Verifies a notebook stamp and returns the decrypted metadata.
   """
   @spec verify_notebook_stamp(Provider.t(), iodata(), Provider.notebook_stamp()) ::
-          {:ok, metadata :: map()} | :error
+          {:ok, metadata :: map()} | {:error, :invalid | :too_recent_version}
   def verify_notebook_stamp(hub, notebook_source, stamp) do
     Provider.verify_notebook_stamp(hub, notebook_source, stamp)
   end
