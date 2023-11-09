@@ -32,7 +32,6 @@ defmodule Livebook.Migration do
     delete_local_host_hub()
     move_app_secrets_to_personal_hub()
     add_file_system_type_to_notebook_manager_files()
-    add_team_hub_offline()
 
     # TODO: remove on Livebook v0.12
     update_file_systems_to_deterministic_ids()
@@ -188,12 +187,5 @@ defmodule Livebook.Migration do
       end)
 
     Map.put(file, :file_system_type, file_system_type)
-  end
-
-  defp add_team_hub_offline() do
-    for %{id: "team-" <> _ = id} = attrs <- Storage.all(:hubs),
-        not Map.has_key?(attrs, :offline) do
-      Storage.insert(:hubs, id, offline: false)
-    end
   end
 end
