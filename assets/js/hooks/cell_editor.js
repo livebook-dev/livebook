@@ -28,6 +28,7 @@ const CellEditor = {
           revision,
           this.props.language,
           this.props.intellisense,
+          this.props.copilot,
           this.props.readOnly,
           code_markers,
           doctest_reports
@@ -78,6 +79,11 @@ const CellEditor = {
       intellisense: getAttributeOrThrow(
         this.el,
         "data-intellisense",
+        parseBoolean
+      ),
+      copilot: getAttributeOrThrow(
+        this.el,
+        "data-copilot",
         parseBoolean
       ),
       readOnly: getAttributeOrThrow(this.el, "data-read-only", parseBoolean),

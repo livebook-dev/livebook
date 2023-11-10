@@ -227,6 +227,23 @@ settingsStore.getAndSubscribe((settings) => {
       },
     }
   );
+
+  window.monaco = monaco // so i can access it in the dev tools
+  monaco.languages.registerInlineCompletionsProvider(
+    "elixir",
+    {
+      freeInlineCompletions: (completions) => {
+        return;
+      },
+      provideInlineCompletions: (model, position, context, token) => {
+        if (model.__getCopilotCompletionItems__) {
+          return model.__getCopilotCompletionItems__(model, position);
+        } else {
+          return null;
+        }
+      }
+    }
+  );
 });
 
 monaco.languages.registerHoverProvider("elixir", {

@@ -1523,6 +1523,11 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  def handle_event("copilot_request", request, socket) do
+    ref = Livebook.Copilot.handle_request(request)
+    {:reply, %{"ref" => inspect(ref)}, socket}
+  end
+
   def handle_event("fork_session", %{}, socket) do
     %{pid: pid, files_dir: files_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
@@ -1825,6 +1830,11 @@ defmodule LivebookWeb.SessionLive do
     response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}
+  end
+
+  def handle_info({:copilot_response, ref, request, response}, socket) do
+    payload = %{"ref" => inspect(ref), "response" => response}
+    {:noreply, push_event(socket, "copilot_response", payload)}
   end
 
   def handle_info({:location_report, client_id, report}, socket) do

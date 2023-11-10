@@ -11,6 +11,9 @@ import Doctest from "./live_editor/doctest";
 import { initVimMode } from "monaco-vim";
 import { EmacsExtension, unregisterKey } from "monaco-emacs";
 
+import debounce from 'lodash/debounce';
+
+
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
  */
@@ -24,6 +27,7 @@ class LiveEditor {
     revision,
     language,
     intellisense,
+    copilot,
     readOnly,
     codeMarkers,
     doctestReports
@@ -34,6 +38,7 @@ class LiveEditor {
     this.source = source;
     this.language = language;
     this.intellisense = intellisense;
+    this.copilot = copilot;
     this.readOnly = readOnly;
     this._onMount = [];
     this._onChange = [];
@@ -78,6 +83,10 @@ class LiveEditor {
 
     if (this.intellisense) {
       this._setupIntellisense();
+    }
+
+    if (this.copilot) {
+      this._setupInlineCopilot();
     }
 
     this.editorClient.setEditorAdapter(new MonacoEditorAdapter(this.editor));
@@ -624,6 +633,105 @@ class LiveEditor {
         ({ ref }) => {
           if (ref) {
             this.handlerByRef[ref] = (response) => {
+              if (response) {
+                resolve(response);
+              } else {
+                reject(null);
+              }
+            };
+          } else {
+            reject(null);
+          }
+        }
+      );
+    });
+  }
+
+  _setupInlineCopilot() {
+
+    // Not sure if there is a way to get monaco to debounce inline completions.
+    // We only want to show code completion items after certain delay
+    // Adapted from here: https://blog.smithers.dev/posts/debounce-with-promise/
+    // TODO is here the right place for the debouncing? this code also gets called when manually triggering the completion, right?
+    function debouncePromise(debounceDelay, func) {
+      var promiseResolverRef = {
+        current: function() {}
+      };
+
+      var debouncedFunc = debounce(function(...args) {
+        var promiseResolverSnapshot = promiseResolverRef.current;
+        func(...args).then(function(...args) {
+          if (promiseResolverSnapshot === promiseResolverRef.current) {
+            promiseResolverRef.current(...args);
+          }
+        });
+      }, debounceDelay);
+
+      return function(...args) {
+        return new Promise(function(resolve) {
+          promiseResolverRef.current({items: []});
+          promiseResolverRef.current = resolve;
+          debouncedFunc(...args);
+        });
+      };
+    }
+
+    const settings = settingsStore.get();
+
+    this.copilotHandlerByRef = {};
+
+    this.editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, () => {
+      this.editor.trigger("copilot", "editor.action.inlineSuggest.trigger")
+    });
+
+    this.editor.getModel().__getCopilotCompletionItems__ = debouncePromise(500, (model, position) => {
+
+      const contextBeforeCursor = model.getValueInRange(new monaco.Range(1, 1, position.lineNumber, position.column));
+      const contextAfterCursor = model.getValueInRange(new monaco.Range(position.lineNumber, position.column, model.getLineCount(), model.getLineMaxColumn(model.getLineCount())));
+
+      return this._asyncCopilotRequest("completion", {
+        context_before_cursor: contextBeforeCursor,
+        context_after_cursor: contextAfterCursor
+      })
+        .then((response) => {
+          const items = response.items.map((suggestion) => {
+            const replaceLength = replacedSuffixLength(
+              contextBeforeCursor,
+              suggestion.insertText
+            );
+
+            const range = new monaco.Range(
+              position.lineNumber,
+              position.column - replaceLength,
+              position.lineNumber,
+              position.column
+            );
+
+            return { ...suggestion, range };
+          });
+          console.log("items", items)
+          return { items };
+        })
+        //.catch(() => null); // why is this in the original intellisense implementation?
+    });
+
+    this.hook.handleEvent("copilot_response", ({ ref, response }) => {
+      const handler = this.copilotHandlerByRef[ref];
+      if (handler) {
+        handler(response);
+        delete this.copilotHandlerByRef[ref];
+      }
+    });
+  }
+
+  _asyncCopilotRequest(type, props) {
+    return new Promise((resolve, reject) => {
+      this.hook.pushEvent(
+        "copilot_request",
+        { cell_id: this.cellId, type, ...props },
+        ({ ref }) => {
+          if (ref) {
+            this.copilotHandlerByRef[ref] = (response) => {
               if (response) {
                 resolve(response);
               } else {

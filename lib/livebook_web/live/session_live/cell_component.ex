@@ -118,6 +118,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           empty={@cell_view.empty}
           language={@cell_view.language}
           intellisense
+          copilot={Application.get_env(:livebook, Livebook.Copilot)[:enabled]}
         />
         <div class="absolute bottom-2 right-2">
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
@@ -612,6 +613,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   attr :empty, :boolean, required: true
   attr :language, :string, required: true
   attr :intellisense, :boolean, default: false
+  attr :copilot, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :rounded, :atom, default: :both
 
@@ -625,6 +627,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-tag={@tag}
       data-language={@language}
       data-intellisense={to_string(@intellisense)}
+      data-copilot={to_string(@copilot)}
       data-read-only={to_string(@read_only)}
     >
       <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
