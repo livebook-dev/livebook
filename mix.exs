@@ -1,3 +1,7 @@
+if System.otp_release() < "25" do
+  Mix.raise("Livebook requires Erlang/OTP 25+")
+end
+
 defmodule Livebook.MixProject do
   use Mix.Project
 
@@ -105,7 +109,6 @@ defmodule Livebook.MixProject do
       {:bandit, "~> 1.0"},
       {:plug_crypto, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
-      {:castore, "~> 1.0"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:aws_signature, "~> 0.3.0"},
