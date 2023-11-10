@@ -200,17 +200,6 @@ defmodule Livebook.Utils.HTTP do
     end
   end
 
-  # Load SSL certificates
-
-  crt_file = CAStore.file_path()
-  crt = File.read!(crt_file)
-  pems = :public_key.pem_decode(crt)
-  ders = Enum.map(pems, fn {:Certificate, der, _} -> der end)
-
-  # Note: we need to load the certificates at compilation time, as we
-  # don't have access to package files in Escript.
-  @cacerts ders
-
   defp http_ssl_opts() do
     # Use secure options, see https://gist.github.com/jonatanklosko/5e20ca84127f6b31bbe3906498e1a1d7
 
@@ -218,7 +207,7 @@ defmodule Livebook.Utils.HTTP do
       if cacertfile = Livebook.Config.cacertfile() do
         {:cacertfile, to_charlist(cacertfile)}
       else
-        {:cacerts, @cacerts}
+        {:cacerts, :public_key.cacerts_get()}
       end
 
     [

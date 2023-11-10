@@ -39,6 +39,7 @@ defmodule LivebookWeb.Helpers.Codec do
 
     file_offset = max(offset - @wav_header_size, 0)
 
+    # TODO: use File.stream!(path, [{:read_offset, file_offset}]) once we require Elixir v1.16+
     file_stream = raw_file_range_stream!(path, file_offset, file_length)
 
     file_stream =
