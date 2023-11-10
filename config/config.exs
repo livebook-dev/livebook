@@ -39,7 +39,7 @@ config :livebook,
 
 config :livebook, Livebook.Copilot,
   enabled: true,
-  model: Livebook.Copilot.Models.GPT4
+  model: Livebook.Copilot.LlamaCppHttpApi
 
 config :openai,
   # find it at https://platform.openai.com/account/api-keys

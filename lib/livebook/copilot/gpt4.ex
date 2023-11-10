@@ -1,4 +1,4 @@
-defmodule Livebook.Copilot.Models.GPT4 do
+defmodule Livebook.Copilot.GPT4 do
   import AI
 
   # Must return a list of completions
