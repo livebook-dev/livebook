@@ -8,3 +8,4 @@ It's currently in free beta. You can [join the beta waiting list here](https://l
 
 - [Shared secrets management](shared_secrets.md)
 - [Shared file storages](shared_file_storages.md)
+- [Airgapped notebook deployment with Zero Trust Authentication](../deployment/docker.md#deploy-notebooks-as-applications)
