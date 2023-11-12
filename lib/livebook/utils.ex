@@ -613,15 +613,11 @@ defmodule Livebook.Utils do
 
   @doc """
   Gets the port for an existing listener.
-
-  The listener references usually follow the pattern `plug.HTTP`
-  and `plug.HTTPS`.
   """
   @spec get_port(module, :http | :https, :inet.port_number()) :: :inet.port_number()
   def get_port(endpoint, scheme, default) do
     try do
-      {:ok, pid} = Bandit.PhoenixAdapter.bandit_pid(endpoint, scheme)
-      ThousandIsland.listener_info(pid)
+      endpoint.server_info(scheme)
     rescue
       _ -> default
     else
