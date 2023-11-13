@@ -4,7 +4,7 @@ defmodule Livebook.Integration.AppsTest do
   describe "deploy_apps_in_dir/1" do
     @tag :tmp_dir
     test "deploys apps with hub secrets", %{user: user, node: node, tmp_dir: tmp_dir} do
-      Livebook.Hubs.subscribe([:secrets])
+      Livebook.Hubs.Broadcasts.subscribe([:secrets])
 
       hub = create_team_hub(user, node)
       hub_id = hub.id

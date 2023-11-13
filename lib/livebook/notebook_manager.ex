@@ -113,7 +113,7 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def init(_opts) do
-    Livebook.Hubs.subscribe([:file_systems])
+    Livebook.Hubs.Broadcasts.subscribe([:file_systems])
 
     {:ok, nil, {:continue, :load_state}}
   end

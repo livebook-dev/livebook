@@ -7,7 +7,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
 
   setup %{user: user, node: node} do
-    Livebook.Hubs.subscribe([:crud, :connection, :secrets, :file_systems])
+    Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -322,7 +322,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     use Livebook.TeamsIntegrationCase, async: false
 
     setup %{user: user, node: node} do
-      Livebook.Hubs.subscribe([:crud, :connection, :secrets, :file_systems])
+      Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
       hub = create_team_hub(user, node)
       id = hub.id
 

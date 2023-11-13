@@ -7,7 +7,7 @@ defmodule LivebookWeb.SidebarHook do
 
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
-      Livebook.Hubs.subscribe([:crud, :connection])
+      Livebook.Hubs.Broadcasts.subscribe([:crud, :connection])
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sidebar")
     end
 

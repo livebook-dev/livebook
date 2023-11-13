@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
   describe "personal" do
     setup do
-      Livebook.Hubs.subscribe([:crud, :secrets, :file_systems])
+      Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets, :file_systems])
       {:ok, hub: Hubs.fetch_hub!(Hubs.Personal.id())}
     end
 

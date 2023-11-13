@@ -139,59 +139,6 @@ defmodule Livebook.Hubs do
     :ok
   end
 
-  @doc """
-  Subscribes to one or more subtopics in `"hubs"`.
-
-  ## Messages
-
-  Topic `hubs:crud`:
-
-    * `{:hub_changed, hub_id}`
-
-  Topic `hubs:connection`:
-
-    * `{:hub_connected, hub_id}`
-    * `{:hub_connection_failed, hub_id, reason}`
-    * `{:hub_server_error, hub_id, reason}`
-
-  Topic `hubs:secrets`:
-
-    * `{:secret_created, %Secret{}}`
-    * `{:secret_updated, %Secret{}}`
-    * `{:secret_deleted, %Secret{}}`
-
-  Topic `hubs:file_systems`:
-
-    * `{:file_system_created, FileSystem.t()}`
-    * `{:file_system_updated, FileSystem.t()}`
-    * `{:file_system_deleted, FileSystem.t()}`
-
-  """
-  @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
-  def subscribe(topics) when is_list(topics) do
-    for topic <- topics, do: subscribe(topic)
-
-    :ok
-  end
-
-  def subscribe(topic) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
-  @doc """
-  Unsubscribes from `subscribe/0`.
-  """
-  @spec unsubscribe(atom() | list(atom())) :: :ok
-  def unsubscribe(topics) when is_list(topics) do
-    for topic <- topics, do: unsubscribe(topic)
-
-    :ok
-  end
-
-  def unsubscribe(topic) do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{topic}")
-  end
-
   defp to_struct(%{id: "personal-" <> _} = fields) do
     Provider.load(%Personal{}, fields)
   end

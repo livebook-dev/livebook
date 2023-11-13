@@ -6,7 +6,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   @moduletag :capture_log
 
   setup do
-    Livebook.Hubs.subscribe([:connection, :file_systems, :secrets])
+    Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
     :ok
   end
 

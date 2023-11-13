@@ -807,7 +807,7 @@ defmodule Livebook.Session do
   @impl true
   def init(opts) do
     Livebook.Settings.subscribe()
-    Livebook.Hubs.subscribe([:secrets])
+    Livebook.Hubs.Broadcasts.subscribe([:secrets])
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)

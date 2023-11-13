@@ -10,7 +10,7 @@ defmodule LivebookWeb.Hub.EditLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Hubs.subscribe([:connection])
+      Hubs.Broadcasts.subscribe([:connection])
     end
 
     {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}

@@ -90,7 +90,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "redirects the user to update or delete a secret",
          %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Hubs.subscribe([:secrets, :connection])
+      Livebook.Hubs.Broadcasts.subscribe([:secrets, :connection])
       team = create_team_hub(user, node)
       id = team.id
       assert_receive {:hub_connected, ^id}
@@ -278,7 +278,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     test "shows only hub's file systems",
          %{conn: conn, user: user, node: node, session: session} do
       Session.subscribe(session.id)
-      Livebook.Hubs.subscribe([:file_systems])
+      Livebook.Hubs.Broadcasts.subscribe([:file_systems])
 
       personal_id = Livebook.Hubs.Personal.id()
       personal_file_system = build(:fs_s3)
@@ -326,7 +326,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "shows file system from offline hub", %{conn: conn, session: session} do
       Session.subscribe(session.id)
-      Livebook.Hubs.subscribe([:file_systems])
+      Livebook.Hubs.Broadcasts.subscribe([:file_systems])
 
       hub = offline_hub()
       hub_id = hub.id
