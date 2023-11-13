@@ -143,7 +143,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
           hub_id: team.id
         )
 
-      assert Livebook.Teams.create_secret(team, secret) == :ok
+      assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       # receives the operation event
       assert_receive {:operation, {:sync_hub_secrets, "__server__"}}
@@ -240,7 +240,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert has_element?(add_secret_button)
 
       # creates the secret
-      assert Livebook.Teams.create_secret(team, secret) == :ok
+      assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       # receives the operation event
       assert_receive {:operation, {:sync_hub_secrets, "__server__"}}

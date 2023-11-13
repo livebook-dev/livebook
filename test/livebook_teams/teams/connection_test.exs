@@ -43,7 +43,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # creates a new secret
       secret = build(:secret, name: "FOO", value: "BAR")
-      assert Livebook.Teams.create_secret(hub, secret) == :ok
+      assert Livebook.Hubs.create_secret(hub, secret) == :ok
 
       # receives `{:event, :secret_created, secret_created}` event
       # without decrypting the value
@@ -60,7 +60,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # creates a new file system
       file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
-      assert Livebook.Teams.create_file_system(hub, file_system) == :ok
+      assert Livebook.Hubs.create_file_system(hub, file_system) == :ok
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = FileSystem.external_metadata(file_system)
 

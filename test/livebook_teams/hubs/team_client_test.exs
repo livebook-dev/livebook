@@ -52,7 +52,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_CREATED_FOO", value: "BAR")
-      assert Livebook.Teams.create_secret(team, secret) == :ok
+      assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       name = secret.name
       value = secret.value
@@ -69,7 +69,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_UPDATED_FOO", value: "BAR")
-      assert Livebook.Teams.create_secret(team, secret) == :ok
+      assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       name = secret.name
       value = secret.value
@@ -79,7 +79,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # updates the secret
       update_secret = Map.replace!(secret, :value, "BAZ")
-      assert Livebook.Teams.update_secret(team, update_secret) == :ok
+      assert Livebook.Hubs.update_secret(team, update_secret) == :ok
 
       new_value = update_secret.value
 
@@ -95,7 +95,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:hub_connected, ^id}
 
       secret = build(:secret, name: "SECRET_DELETED_FOO", value: "BAR")
-      assert Livebook.Teams.create_secret(team, secret) == :ok
+      assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       name = secret.name
       value = secret.value
@@ -104,7 +104,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:secret_created, %{name: ^name, value: ^value}}
 
       # deletes the secret
-      assert Livebook.Teams.delete_secret(team, secret) == :ok
+      assert Livebook.Hubs.delete_secret(team, secret) == :ok
 
       # receives `{:secret_deleted, secret_deleted}` event
       assert_receive {:secret_deleted, %{name: ^name, value: ^value}}
@@ -117,7 +117,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:hub_connected, ^id}
 
       file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
-      assert Livebook.Teams.create_file_system(team, file_system) == :ok
+      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
 
       bucket_url = file_system.bucket_url
 
@@ -137,7 +137,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           region: "us-east-1"
         )
 
-      assert Livebook.Teams.create_file_system(team, file_system) == :ok
+      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
 
       bucket_url = file_system.bucket_url
       region = file_system.region
@@ -148,7 +148,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # updates the file system
       update_file_system = %{file_system | region: "eu-central-1", external_id: id}
-      assert Livebook.Teams.update_file_system(team, update_file_system) == :ok
+      assert Livebook.Hubs.update_file_system(team, update_file_system) == :ok
 
       new_region = update_file_system.region
 
@@ -164,7 +164,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:hub_connected, ^id}
 
       file_system = build(:fs_s3, bucket_url: "https://file_system_deleted.s3.amazonaws.com")
-      assert Livebook.Teams.create_file_system(team, file_system) == :ok
+      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
 
       bucket_url = file_system.bucket_url
 
@@ -173,7 +173,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # deletes the file system
       delete_file_system = %{file_system | external_id: id}
-      assert Livebook.Teams.delete_file_system(team, delete_file_system) == :ok
+      assert Livebook.Hubs.delete_file_system(team, delete_file_system) == :ok
 
       # receives `{:file_system_deleted, file_system_deleted}` event
       assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}

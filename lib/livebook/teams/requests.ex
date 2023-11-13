@@ -145,6 +145,25 @@ defmodule Livebook.Teams.Requests do
     delete("/api/v1/org/file-systems", params, headers)
   end
 
+  @doc """
+  Add requests errors to a `changeset` for the given `fields`.
+  """
+  def add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
+    for {key, errors} <- errors_map,
+        field = String.to_atom(key),
+        field in fields,
+        error <- errors,
+        reduce: changeset,
+        do: (acc -> Ecto.Changeset.add_error(acc, field, error))
+  end
+
+  @doc """
+  Add requests errors to a struct.
+  """
+  def add_errors(%struct{} = value, errors_map) do
+    value |> Ecto.Changeset.change() |> add_errors(struct.__schema__(:fields), errors_map)
+  end
+
   defp auth_headers(team) do
     token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
 
