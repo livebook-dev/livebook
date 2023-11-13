@@ -102,10 +102,12 @@ defmodule Livebook.Hubs.Team do
 end
 
 defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
-  alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams
+  alias Livebook.Hubs.{Team, TeamClient}
+  alias Livebook.Teams.Requests
+  alias Livebook.FileSystem
+  alias Livebook.Secrets.Secret
 
-  @teams_key_prefix Teams.Org.teams_key_prefix()
+  @teams_key_prefix Livebook.Teams.Org.teams_key_prefix()
   @public_key_prefix Livebook.Hubs.Team.public_key_prefix()
 
   def load(team, fields) do
@@ -136,14 +138,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def connection_spec(team), do: {TeamClient, team}
 
   def disconnect(team), do: TeamClient.stop(team.id)
-
-  def get_secrets(team), do: TeamClient.get_secrets(team.id)
-
-  def create_secret(team, secret), do: Teams.create_secret(team, secret)
-
-  def update_secret(team, secret), do: Teams.update_secret(team, secret)
-
-  def delete_secret(team, secret), do: Teams.delete_secret(team, secret)
 
   def connection_error(team) do
     cond do
@@ -209,13 +203,89 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     |> Map.put(:offline?, team.offline != nil)
   end
 
-  def get_file_systems(team) do
-    TeamClient.get_file_systems(team.id)
+  def get_secrets(team), do: TeamClient.get_secrets(team.id)
+
+  @spec create_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_secret(%Team{} = team, %Secret{} = secret) do
+    case Requests.create_secret(team, secret) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
   end
 
-  def create_file_system(team, file_system), do: Teams.create_file_system(team, file_system)
+  @spec update_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def update_secret(%Team{} = team, %Secret{} = secret) do
+    case Requests.update_secret(team, secret) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
+  end
 
-  def update_file_system(team, file_system), do: Teams.update_file_system(team, file_system)
+  @spec delete_secret(Team.t(), Secret.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_secret(%Team{} = team, %Secret{} = secret) do
+    case Requests.delete_secret(team, secret) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      any -> any
+    end
+  end
 
-  def delete_file_system(team, file_system), do: Teams.delete_file_system(team, file_system)
+  def get_file_systems(team), do: TeamClient.get_file_systems(team.id)
+
+  @spec create_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_file_system(%Team{} = team, file_system) do
+    case Requests.create_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
+  @spec update_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def update_file_system(%Team{} = team, file_system) do
+    case Requests.update_file_system(team, file_system) do
+      {:ok, %{"id" => _}} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
+  @spec delete_file_system(Team.t(), FileSystem.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_file_system(%Team{} = team, file_system) do
+    case Requests.delete_file_system(team, file_system) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      any -> any
+    end
+  end
+
+  defp add_secret_errors(%Secret{} = secret, errors_map) do
+    Requests.add_errors(secret, errors_map)
+  end
+
+  defp add_file_system_errors(file_system, errors_map) do
+    %{error_field: field} = FileSystem.external_metadata(file_system)
+    errors_map = Map.new(errors_map, fn {_key, values} -> {field, values} end)
+    Requests.add_errors(file_system, errors_map)
+  end
 end
