@@ -24,6 +24,13 @@ defmodule Livebook.Intellisense do
         }
 
   @doc """
+  Clear any cache stored related to the given node.
+  """
+  def clear_cache(node) do
+    IdentifierMatcher.clear_all_loaded(node)
+  end
+
+  @doc """
   Resolves an intellisense request as defined by `Runtime`.
 
   In practice this function simply dispatches the request to one of
