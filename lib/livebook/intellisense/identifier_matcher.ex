@@ -617,26 +617,22 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
     if node == node() and :code.get_mode() == :interactive do
-      modules ++ get_modules_from_applications(node)
+      modules ++ get_modules_from_applications()
     else
       modules
     end
   end
 
-  defp get_modules_from_applications(node) do
-    for [app] <- loaded_applications(node),
-        {:ok, modules} = :erpc.call(node, :application, :get_key, [app, :modules]),
-        module <- modules,
-        do: module
-  end
-
-  defp loaded_applications(node) do
+  defp get_modules_from_applications() do
     # If we invoke :application.loaded_applications/0,
     # it can error if we don't call safe_fixtable before.
     # Since in both cases we are reaching over the
     # application controller internals, we choose to match
     # for performance.
-    :erpc.call(node, :ets, :match, [:ac_tab, {{:loaded, :"$1"}, :_}])
+    for [app] <- :ets.match(:ac_tab, {{:loaded, :"$1"}, :_}),
+        {:ok, modules} = :erpc.call(node, :application, :get_key, [app, :modules]),
+        module <- modules,
+        do: module
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
@@ -695,7 +691,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp reflection?(:module_info, 0), do: true
   defp reflection?(:module_info, 1), do: true
   defp reflection?(:__info__, 1), do: true
-  defp reflection?(_), do: false
+  defp reflection?(_, _), do: false
 
   defp function_or_macro("MACRO-" <> name, _, arity),
     do: {String.to_atom(name), arity - 1, :macro}
