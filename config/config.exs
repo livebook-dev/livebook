@@ -37,6 +37,7 @@ config :livebook,
   within_iframe: false,
   allowed_uri_schemes: []
 
+# TODO: Remove this in aws_credentials 0.2.0
 config :aws_credentials, fail_if_unavailable: false
 
 # Import environment specific config. This must remain at the bottom

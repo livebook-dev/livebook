@@ -252,11 +252,6 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp build_url(file_system, path, query) do
-    query =
-      if file_system.session_token,
-        do: Map.put(query, :"X-Amz-Security-Token", file_system.session_token),
-        else: query
-
     query_string = URI.encode_query(query)
     query_string = if query_string != "", do: "?#{query_string}", else: ""
 
@@ -267,6 +262,11 @@ defmodule Livebook.FileSystem.S3.Client do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
     %{host: host} = URI.parse(file_system.bucket_url)
     headers = [{"Host", host} | headers]
+
+    headers =
+      if file_system.session_token,
+        do: [{"X-Amz-Security-Token", file_system.session_token} | headers],
+        else: headers
 
     :aws_signature.sign_v4(
       file_system.access_key_id,
