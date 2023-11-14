@@ -41,8 +41,7 @@ defmodule Livebook.Teams.Requests do
   @spec org_sign(Team.t(), String.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def org_sign(team, payload) do
-    headers = auth_headers(team)
-    post("/api/v1/org/sign", %{payload: payload}, headers)
+    post("/api/v1/org/sign", %{payload: payload}, auth_headers(team))
   end
 
   @doc """
