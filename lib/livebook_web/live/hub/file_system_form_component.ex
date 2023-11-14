@@ -87,7 +87,9 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   end
 
   def handle_event("save", %{"file_system" => attrs}, socket) do
-    with {:ok, file_system} <- FileSystems.update_file_system(socket.assigns.file_system, attrs),
+    changeset = FileSystems.change_file_system(socket.assigns.file_system, attrs)
+
+    with {:ok, file_system} <- Ecto.Changeset.apply_action(changeset, :update),
          :ok <- check_file_system_connectivity(file_system),
          :ok <- save_file_system(file_system, socket) do
       message =
