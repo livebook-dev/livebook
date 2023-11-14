@@ -751,7 +751,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp ensure_loaded?(Elixir, _node), do: false
   # Remote nodes only have loaded modules
   defp ensure_loaded?(_mod, node) when node != node(), do: true
-  defp ensure_loaded?(mod, node), do: Code.ensure_loaded?(mod)
+  defp ensure_loaded?(mod, _node), do: Code.ensure_loaded?(mod)
 
   defp imports_from_env(env) do
     Enum.map(env.functions, fn {mod, funs} ->
