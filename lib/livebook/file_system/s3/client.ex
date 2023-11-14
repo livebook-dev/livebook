@@ -252,6 +252,11 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp build_url(file_system, path, query) do
+    query =
+      if file_system.session_token,
+        do: Map.put(query, :"X-Amz-Security-Token", file_system.session_token),
+        else: query
+
     query_string = URI.encode_query(query)
     query_string = if query_string != "", do: "?#{query_string}", else: ""
 
@@ -273,7 +278,8 @@ defmodule Livebook.FileSystem.S3.Client do
       url,
       headers,
       body || "",
-      uri_encode_path: false
+      uri_encode_path: false,
+      session_token: file_system.session_token
     )
   end
 
@@ -286,6 +292,7 @@ defmodule Livebook.FileSystem.S3.Client do
     body = opts[:body]
     timeout = if long, do: 60_000, else: 30_000
 
+    file_system = ensure_credentials(file_system)
     url = build_url(file_system, path, query)
     headers = sign_headers(file_system, method, url, headers, body)
     body = body && {"application/octet-stream", body}
@@ -303,6 +310,28 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp decode({:error, _} = error), do: error
+
+  defp ensure_credentials(%S3{access_key_id: nil} = file_system) do
+    case :aws_credentials.get_credentials() do
+      # Temporary credentials include a session token
+      %{access_key_id: access_key_id, secret_access_key: secret_access_key, token: session_token} ->
+        %S3{
+          file_system
+          | access_key_id: access_key_id,
+            secret_access_key: secret_access_key,
+            session_token: session_token
+        }
+
+      # Environment & Role credentials do not include a token
+      %{access_key_id: access_key_id, secret_access_key: secret_access_key} ->
+        %S3{file_system | access_key_id: access_key_id, secret_access_key: secret_access_key}
+
+      _otherwise ->
+        file_system
+    end
+  end
+
+  defp ensure_credentials(file_system), do: file_system
 
   defp xml?(headers, body) do
     guess_xml? = String.starts_with?(body, "<?xml")

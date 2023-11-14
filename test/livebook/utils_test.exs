@@ -45,4 +45,92 @@ defmodule Livebook.UtilsTest do
       end
     end
   end
+
+  describe "validate_mutual_inclusion/2" do
+    setup do
+      {:ok,
+       %{
+         types: %{
+           name: :string,
+           conditional_one: :integer,
+           conditional_two: :integer,
+           conditional_three: :integer
+         }
+       }}
+    end
+
+    test "all fields present", %{types: types} do
+      changeset =
+        Ecto.Changeset.change({%{}, types}, %{
+          name: "name",
+          conditional_one: 1,
+          conditional_two: 2,
+          conditional_three: 3
+        })
+        |> Livebook.Utils.validate_mutual_inclusion([
+          :conditional_one,
+          :conditional_two,
+          :conditional_three
+        ])
+
+      assert changeset.valid?
+    end
+
+    test "no fields present", %{types: types} do
+      changeset =
+        Ecto.Changeset.change({%{}, types}, %{
+          name: "name"
+        })
+        |> Livebook.Utils.validate_mutual_inclusion([
+          :conditional_one,
+          :conditional_two,
+          :conditional_three
+        ])
+
+      assert changeset.valid?
+    end
+
+    test "some fields present", %{types: types} do
+      changeset =
+        Ecto.Changeset.change({%{}, types}, %{
+          name: "name",
+          conditional_one: 1,
+          conditional_two: 2
+        })
+        |> Livebook.Utils.validate_mutual_inclusion([
+          :conditional_one,
+          :conditional_two,
+          :conditional_three
+        ])
+
+      expected =
+        {:conditional_one,
+         {"if any of [:conditional_one, :conditional_two, :conditional_three] is present, all must be present",
+          []}}
+
+      refute changeset.valid?
+      assert [^expected | []] = changeset.errors
+    end
+
+    test "any/either inflection", %{types: types} do
+      changeset =
+        Ecto.Changeset.change({%{}, types}, %{
+          name: "name",
+          conditional_one: 1,
+          conditional_two: 2
+        })
+        |> Livebook.Utils.validate_mutual_inclusion([
+          :conditional_two,
+          :conditional_three
+        ])
+
+      expected =
+        {:conditional_two,
+         {"if either of [:conditional_two, :conditional_three] is present, both must be present",
+          []}}
+
+      refute changeset.valid?
+      assert [^expected | []] = changeset.errors
+    end
+  end
 end

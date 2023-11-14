@@ -205,6 +205,31 @@ defmodule Livebook.Utils do
     end)
   end
 
+  @doc """
+  Validates that if one field of a set is present, all must be present
+  """
+  @spec validate_mutual_inclusion(Ecto.Changeset.t(), list(atom())) :: Ecto.Changeset.t()
+  def validate_mutual_inclusion(changeset, fields) do
+    with field_count <- length(fields),
+         present_count <-
+           Enum.count(fields, fn field ->
+             value = Ecto.Changeset.get_field(changeset, field)
+             value && value != ""
+           end) do
+      if present_count == 0 || present_count == field_count do
+        changeset
+      else
+        {any, all} = if length(fields) == 2, do: {"either", "both"}, else: {"any", "all"}
+
+        Ecto.Changeset.add_error(
+          changeset,
+          hd(fields),
+          "if #{any} of #{inspect(fields)} is present, #{all} must be present"
+        )
+      end
+    end
+  end
+
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 
