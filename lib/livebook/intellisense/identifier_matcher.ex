@@ -411,7 +411,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp container_context_struct(cursor, pairs, aliases, ctx) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          alias = expand_alias(aliases, ctx),
-         true <- Keyword.keyword?(pairs) and function_exported?(alias, :__struct__, 1) do
+         true <- Keyword.keyword?(pairs) and has_struct?(alias) do
       {:struct, alias, pairs}
     else
       _ -> nil
