@@ -9,6 +9,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
     hub = create_team_hub(user, node)
     id = hub.id
 

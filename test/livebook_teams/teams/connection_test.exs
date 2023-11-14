@@ -81,7 +81,9 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # creates a new deployment_group
       deployment_group = build(:deployment_group, name: "FOO", mode: "offline")
-      assert {:ok, _id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+
+      assert {:ok, _id} =
+               Livebook.Teams.DeploymentGroups.create_deployment_group(hub, deployment_group)
 
       # deployment_group name and mode are not encrypted
       assert_receive {:event, :deployment_group_created, deployment_group_created}

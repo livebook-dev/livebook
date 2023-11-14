@@ -7,6 +7,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
     :ok
   end
 
@@ -188,7 +189,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       deployment_group =
         build(:deployment_group, name: "DEPLOYMENT_GROUP_CREATED_FOO", mode: "online")
 
-      assert {:ok, _id} = Livebook.Teams.create_deployment_group(team, deployment_group)
+      assert {:ok, _id} =
+               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
 
       %{name: name, mode: mode} = deployment_group
       # receives `{:event, :deployment_group_created, deployment_group_created}` event
@@ -204,17 +206,22 @@ defmodule Livebook.Hubs.TeamClientTest do
       deployment_group =
         build(:deployment_group, name: "DEPLOYMENT_GROUP_UPDATED_FOO", mode: "offline")
 
-      assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
+      assert {:ok, id} =
+               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
 
-      name = deployment_group.name
-      mode = deployment_group.mode
+      %{name: name, mode: mode} = deployment_group
 
       # receives `{:deployment_group_created, deployment_group_created}` event
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
 
       # updates the deployment group
       update_deployment_group = %{deployment_group | id: id, mode: "online"}
-      assert {:ok, ^id} = Livebook.Teams.update_deployment_group(team, update_deployment_group)
+
+      assert {:ok, ^id} =
+               Livebook.Teams.DeploymentGroups.update_deployment_group(
+                 team,
+                 update_deployment_group
+               )
 
       new_mode = update_deployment_group.mode
 
@@ -231,7 +238,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       deployment_group =
         build(:deployment_group, name: "DEPLOYMENT_GROUP_DELETED_FOO", mode: "online")
 
-      assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
+      assert {:ok, id} =
+               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
 
       name = deployment_group.name
       mode = deployment_group.mode
@@ -240,7 +248,10 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
 
       # deletes the deployment group
-      assert Livebook.Teams.delete_deployment_group(team, %{deployment_group | id: id}) == :ok
+      assert Livebook.Teams.DeploymentGroups.delete_deployment_group(team, %{
+               deployment_group
+               | id: id
+             }) == :ok
 
       # receives `{:deployment_group_deleted, deployment_group_deleted}` event
       assert_receive {:deployment_group_deleted, %{name: ^name, mode: ^mode}}

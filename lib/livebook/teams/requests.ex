@@ -6,6 +6,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Teams
   alias Livebook.Teams.Org
   alias Livebook.Utils.HTTP
+  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -143,6 +144,42 @@ defmodule Livebook.Teams.Requests do
     params = %{id: file_system.external_id}
 
     delete("/api/v1/org/file-systems", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to create a deployment group.
+  """
+  @spec create_deployment_group(Team.t(), DeploymentGroup.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_deployment_group(team, deployment_group) do
+    headers = auth_headers(team)
+    params = %{name: deployment_group.name, mode: deployment_group.mode}
+
+    post("/api/v1/org/deployment-groups", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to update a deployment group.
+  """
+  @spec update_deployment_group(Team.t(), DeploymentGroup.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def update_deployment_group(team, deployment_group) do
+    headers = auth_headers(team)
+    params = %{id: deployment_group.id, name: deployment_group.name, mode: deployment_group.mode}
+
+    put("/api/v1/org/deployment-groups", params, headers)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to delete a deployment group.
+  """
+  @spec delete_deployment_group(Team.t(), DeploymentGroup.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_deployment_group(team, deployment_group) do
+    headers = auth_headers(team)
+    params = %{id: deployment_group.id}
+
+    delete("/api/v1/org/deployment-groups", params, headers)
   end
 
   @doc """

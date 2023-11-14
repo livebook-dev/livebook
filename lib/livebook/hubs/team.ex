@@ -2,7 +2,6 @@ defmodule Livebook.Hubs.Team do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Livebook.Teams
   alias Livebook.Hubs.TeamClient
 
   defmodule Offline do
