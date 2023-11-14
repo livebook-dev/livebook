@@ -100,6 +100,25 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @alias_only_charlists ~w(alias import require)c
 
   @doc """
+  Clears all loaded entries stored for node.
+  """
+  def clear_all_loaded(node) do
+    :persistent_term.erase({__MODULE__, node})
+  end
+
+  defp cached_all_loaded(node) do
+    case :persistent_term.get({__MODULE__, node}, :error) do
+      :error ->
+        modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
+        :persistent_term.put({__MODULE__, node}, modules)
+        modules
+
+      [_ | _] = modules ->
+        modules
+    end
+  end
+
+  @doc """
   Returns a list of identifiers matching the given `hint` together
   with relevant information.
 
@@ -438,7 +457,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp container_context_struct_fields(pairs, mod, hint, ctx) do
-    map = Map.from_struct(mod.__struct__)
+    map = Map.from_struct(mod.__struct__())
     map = filter_out_fields(map, pairs)
 
     for {field, default} <- map,
@@ -619,7 +638,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp get_modules(node) do
-    modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
+    modules = cached_all_loaded(node)
 
     if node == node() and :code.get_mode() == :interactive do
       modules ++ get_modules_from_applications()
