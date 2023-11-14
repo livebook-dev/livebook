@@ -7,6 +7,9 @@ defmodule LivebookProto do
     SecretCreated,
     SecretDeleted,
     SecretUpdated,
+    DeploymentGroupCreated,
+    DeploymentGroupDeleted,
+    DeploymentGroupUpdated,
     UserSynchronized
   }
 
@@ -22,6 +25,9 @@ defmodule LivebookProto do
           | SecretCreated.t()
           | SecretDeleted.t()
           | SecretUpdated.t()
+          | DeploymentGroupCreated.t()
+          | DeploymentGroupDeleted.t()
+          | DeploymentGroupUpdated.t()
           | UserSynchronized.t()
 
   @doc """

@@ -48,6 +48,28 @@ message FileSystemDeleted {
   string id = 1;
 }
 
+message DeploymentGroup {
+  string id = 1;
+  string name = 2;
+  string mode = 3;
+}
+
+message DeploymentGroupCreated {
+  string id = 1;
+  string name = 2;
+  string mode = 3;
+}
+
+message DeploymentGroupUpdated {
+  string id = 1;
+  string name = 2;
+  string mode = 3;
+}
+
+message DeploymentGroupDeleted {
+  string id = 1;
+}
+
 message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
@@ -63,5 +85,8 @@ message Event {
     FileSystemCreated file_system_created = 5;
     FileSystemUpdated file_system_updated = 6;
     FileSystemDeleted file_system_deleted = 7;
+    DeploymentGroupCreated deployment_group_created = 8;
+    DeploymentGroupUpdated deployment_group_updated = 9;
+    DeploymentGroupDeleted deployment_group_deleted = 10;
   }
 }

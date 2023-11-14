@@ -132,6 +132,30 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
 
+  def put_offline_hub_deployment_group(deployment_group) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+
+    deployment_group_created =
+      LivebookProto.DeploymentGroupCreated.new(
+        id: deployment_group.id,
+        name: deployment_group.name,
+        mode: deployment_group.mode
+      )
+
+    send(pid, {:event, :deployment_group_created, deployment_group_created})
+  end
+
+  def remove_offline_hub_deployment_group(deployment_group) do
+    hub = offline_hub()
+    {:ok, pid} = hub_pid(hub)
+
+    deployment_group_deleted =
+      LivebookProto.DeploymentGroupDeleted.new(id: deployment_group.id)
+
+    send(pid, {:event, :deployment_group_deleted, deployment_group_deleted})
+  end
+
   def put_offline_hub_file_system(file_system) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)

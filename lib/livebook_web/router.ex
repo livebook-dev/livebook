@@ -83,6 +83,12 @@ defmodule LivebookWeb.Router do
       live "/hub/:id/secrets/edit/:secret_name", Hub.EditLive, :edit_secret, as: :hub
       live "/hub/:id/file-systems/new", Hub.EditLive, :new_file_system, as: :hub
       live "/hub/:id/file-systems/edit/:file_system_id", Hub.EditLive, :edit_file_system, as: :hub
+      live "/hub/:id/deployment-groups/new", Hub.EditLive, :new_deployment_group, as: :hub
+
+      live "/hub/:id/deployment-groups/edit/:deployment_group_id",
+           Hub.EditLive,
+           :edit_deployment_group,
+           as: :hub
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts

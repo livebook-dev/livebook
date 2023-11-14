@@ -7,6 +7,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
     :ok
   end
 
@@ -177,6 +178,83 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # receives `{:file_system_deleted, file_system_deleted}` event
       assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}
+    end
+
+    test "receives the deployment_group_created event", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      id = team.id
+
+      assert_receive {:hub_connected, ^id}
+
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_CREATED_FOO", mode: "online")
+
+      assert {:ok, _id} =
+               Livebook.Teams.create_deployment_group(team, deployment_group)
+
+      %{name: name, mode: mode} = deployment_group
+      # receives `{:event, :deployment_group_created, deployment_group_created}` event
+      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
+    end
+
+    test "receives the deployment_group_updated event", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      id = team.id
+
+      assert_receive {:hub_connected, ^id}
+
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_UPDATED_FOO", mode: "offline")
+
+      assert {:ok, id} =
+               Livebook.Teams.create_deployment_group(team, deployment_group)
+
+      %{name: name, mode: mode} = deployment_group
+
+      # receives `{:deployment_group_created, deployment_group_created}` event
+      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
+
+      # updates the deployment group
+      update_deployment_group = %{deployment_group | id: id, mode: "online"}
+
+      assert {:ok, ^id} =
+               Livebook.Teams.update_deployment_group(
+                 team,
+                 update_deployment_group
+               )
+
+      new_mode = update_deployment_group.mode
+
+      # receives `{:deployment_group_updated, deployment_group_updated}` event
+      assert_receive {:deployment_group_updated, %{name: ^name, mode: ^new_mode}}
+    end
+
+    test "receives the deployment_group_deleted event", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      id = team.id
+
+      assert_receive {:hub_connected, ^id}
+
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_DELETED_FOO", mode: "online")
+
+      assert {:ok, id} =
+               Livebook.Teams.create_deployment_group(team, deployment_group)
+
+      name = deployment_group.name
+      mode = deployment_group.mode
+
+      # receives `{:deployment_group_created, deployment_group_created}` event
+      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
+
+      # deletes the deployment group
+      assert Livebook.Teams.delete_deployment_group(team, %{
+               deployment_group
+               | id: id
+             }) == :ok
+
+      # receives `{:deployment_group_deleted, deployment_group_deleted}` event
+      assert_receive {:deployment_group_deleted, %{name: ^name, mode: ^mode}}
     end
   end
 
