@@ -182,16 +182,8 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Updates deployment group with the given changes.
+  Updates a deployment group with the given changes.
   """
-  @spec update_deployment_group(DeploymentGroup.t(), map()) ::
-          {:ok, DeploymentGroup.t()} | {:error, Ecto.Changeset.t()}
-  def update_deployment_group(%DeploymentGroup{} = deployment_group, attrs) do
-    deployment_group
-    |> DeploymentGroup.changeset(attrs)
-    |> Ecto.Changeset.apply_action(:update)
-  end
-
   @spec update_deployment_group(Team.t(), DeploymentGroup.t()) ::
           {:ok, pos_integer()}
           | {:error, Ecto.Changeset.t()}
@@ -249,6 +241,9 @@ defmodule Livebook.Teams do
     end
   end
 
+  @doc """
+  Gets a list of deployment groups for a given Hub.
+  """
   def get_deployment_groups(team) do
     TeamClient.get_deployment_groups(team.id)
   end

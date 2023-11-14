@@ -82,8 +82,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
   @impl true
   def handle_event("save", %{"deployment_group" => attrs}, socket) do
-    with {:ok, deployment_group} <-
-           Teams.update_deployment_group(socket.assigns.deployment_group, attrs),
+    changeset = Teams.change_deployment_group(socket.assigns.deployment_group, attrs)
+
+    with {:ok, deployment_group} <- Ecto.Changeset.apply_action(changeset, :update),
          {:ok, _id} <- save_deployment_group(deployment_group, socket) do
       message =
         case socket.assigns.mode do
@@ -96,9 +97,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
        |> put_flash(:success, message)
        |> push_redirect(to: socket.assigns.return_to)}
     else
-      {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
-      {:transport_error, message} -> {:noreply, assign(socket, error_message: message)}
-      {:error, message} -> {:noreply, assign(socket, error_message: message)}
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
+
+      {:transport_error, message} ->
+        {:noreply, assign(socket, error_message: message)}
+
+      {:error, message} ->
+        {:noreply, assign(socket, error_message: message)}
     end
   end
 
