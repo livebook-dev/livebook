@@ -747,7 +747,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  # Skio Elixir to avoid warnings
+  # Skip Elixir to avoid warnings
   defp ensure_loaded?(Elixir, _node), do: false
   # Remote nodes only have loaded modules
   defp ensure_loaded?(_mod, node) when node != node(), do: true
