@@ -320,6 +320,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  # This is ignoring information from remote nodes
+  # and only listing structs that are also structs
+  # in the current node. Doing this check remotely
+  # would unfortunately be too expensive. Alternatively
+  # we list all modules.
   defp match_struct(hint, ctx) do
     for %{kind: :module, module: module} = item <- match_alias(hint, ctx, true),
         has_struct?(module),
@@ -616,30 +621,27 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp get_modules(node) do
     modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
-    case :erpc.call(node, :code, :get_mode, []) do
-      :interactive -> modules ++ get_modules_from_applications(node)
-      _otherwise -> modules
+    if node == node() and :code.get_mode() == :interactive do
+      modules ++ get_modules_from_applications()
+    else
+      modules
     end
   end
 
-  defp get_modules_from_applications(node) do
-    for [app] <- loaded_applications(node),
-        {:ok, modules} = :erpc.call(node, :application, :get_key, [app, :modules]),
-        module <- modules,
-        do: module
-  end
-
-  defp loaded_applications(node) do
+  defp get_modules_from_applications() do
     # If we invoke :application.loaded_applications/0,
     # it can error if we don't call safe_fixtable before.
     # Since in both cases we are reaching over the
     # application controller internals, we choose to match
     # for performance.
-    :erpc.call(node, :ets, :match, [:ac_tab, {{:loaded, :"$1"}, :_}])
+    for [app] <- :ets.match(:ac_tab, {{:loaded, :"$1"}, :_}),
+        {:ok, modules} = :application.get_key(app, :modules),
+        module <- modules,
+        do: module
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
-    if :erpc.call(ctx.node, Code, :ensure_loaded?, [mod]) do
+    if ensure_loaded?(mod, ctx.node) do
       funs = funs || exports(mod, ctx.node)
 
       matching_funs =
@@ -686,20 +688,20 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp exports(mod, node) do
-    loaded = :erpc.call(node, Code, :ensure_loaded?, [mod])
-    exported = :erpc.call(node, :erlang, :function_exported, [mod, :__info__, 1])
-
-    if loaded and exported do
-      macros = :erpc.call(node, mod, :__info__, [:macros])
-      functions = :erpc.call(node, mod, :__info__, [:functions]) -- [__info__: 1]
-      append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
-    else
-      functions =
-        :erpc.call(node, mod, :module_info, [:exports]) -- [module_info: 0, module_info: 1]
-
-      append_funs_type(functions, :function)
-    end
+    for {fun, arity} <- :erpc.call(node, mod, :module_info, [:exports]),
+        not reflection?(fun, arity),
+        do: function_or_macro(Atom.to_string(fun), fun, arity)
   end
+
+  defp reflection?(:module_info, 0), do: true
+  defp reflection?(:module_info, 1), do: true
+  defp reflection?(:__info__, 1), do: true
+  defp reflection?(_, _), do: false
+
+  defp function_or_macro("MACRO-" <> name, _, arity),
+    do: {String.to_atom(name), arity - 1, :macro}
+
+  defp function_or_macro(_, fun, arity), do: {fun, arity, :function}
 
   defp append_funs_type(funs, type) do
     Enum.map(funs, &Tuple.append(&1, type))
@@ -745,8 +747,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  # Skip Elixir to avoid warnings
   defp ensure_loaded?(Elixir, _node), do: false
-  defp ensure_loaded?(mod, node), do: :erpc.call(node, Code, :ensure_loaded?, [mod])
+  # Remote nodes only have loaded modules
+  defp ensure_loaded?(_mod, node) when node != node(), do: true
+  defp ensure_loaded?(mod, _node), do: Code.ensure_loaded?(mod)
 
   defp imports_from_env(env) do
     Enum.map(env.functions, fn {mod, funs} ->
