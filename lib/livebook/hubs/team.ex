@@ -165,8 +165,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     @teams_key_prefix <> teams_key = team.teams_key
     token = Livebook.Stamping.chapoly_encrypt(metadata, notebook_source, teams_key)
 
-    case Livebook.Teams.org_sign(team, token) do
-      {:ok, token_signature} ->
+    case Requests.org_sign(team, token) do
+      {:ok, %{"signature" => token_signature}} ->
         stamp = %{"version" => 1, "token" => token, "token_signature" => token_signature}
         {:ok, stamp}
 

@@ -86,19 +86,6 @@ defmodule Livebook.Teams do
   end
 
   @doc """
-  Send a request to Livebook Teams API to sign a payload.
-  """
-  @spec org_sign(Team.t(), String.t()) ::
-          {:ok, String.t()}
-          | {:transport_error, String.t()}
-  def org_sign(team, payload) do
-    case Requests.org_sign(team, payload) do
-      {:ok, %{"signature" => signature}} -> {:ok, signature}
-      any -> any
-    end
-  end
-
-  @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
   """
   @spec change_hub(Team.t(), map()) :: Ecto.Changeset.t()
