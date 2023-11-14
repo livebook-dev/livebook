@@ -616,9 +616,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp get_modules(node) do
     modules = Enum.map(:erpc.call(node, :code, :all_loaded, []), &elem(&1, 0))
 
-    case :erpc.call(node, :code, :get_mode, []) do
-      :interactive -> modules ++ get_modules_from_applications(node)
-      _otherwise -> modules
+    if node == node() and :code.get_mode() == :interactive do
+      modules ++ get_modules_from_applications(node)
+    else
+      modules
     end
   end
 
