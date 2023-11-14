@@ -57,6 +57,7 @@ defmodule Livebook.Teams.Requests do
     params = %{name: secret.name, value: secret_value}
 
     post("/api/v1/org/secrets", params, headers)
+    |> dispatch_messages(team)
   end
 
   @doc """
@@ -72,6 +73,7 @@ defmodule Livebook.Teams.Requests do
     params = %{name: secret.name, value: secret_value}
 
     put("/api/v1/org/secrets", params, headers)
+    |> dispatch_messages(team)
   end
 
   @doc """
@@ -84,6 +86,7 @@ defmodule Livebook.Teams.Requests do
     params = %{name: secret.name}
 
     delete("/api/v1/org/secrets", params, headers)
+    |> dispatch_messages(team)
   end
 
   @doc """
@@ -254,6 +257,23 @@ defmodule Livebook.Teams.Requests do
          "Something went wrong, try again later or please file a bug if it persists"}
     end
   end
+
+  defp dispatch_messages({:ok, %{"messages" => _} = body}, team) do
+    {messages, body} = Map.pop!(body, "messages")
+
+    for message <- messages do
+      %{type: event} =
+        message
+        |> Base.url_decode64!(padding: false)
+        |> LivebookProto.Event.decode()
+
+      Livebook.Hubs.TeamClient.handle_event(team.id, event)
+    end
+
+    {:ok, body}
+  end
+
+  defp dispatch_messages(result, _), do: result
 
   defp json?(headers) do
     HTTP.fetch_content_type(headers) == {:ok, "application/json"}
