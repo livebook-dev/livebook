@@ -327,9 +327,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # we list all modules.
   defp match_struct(hint, ctx) do
     for %{kind: :module, module: module} = item <- match_alias(hint, ctx, true),
-        function_exported?(mod, :__struct__, 1),
-        not function_exported?(mod, :exception, 1),
+        has_struct?(module),
+        not is_exception?(module),
         do: item
+  end
+
+  defp has_struct?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+  end
+
+  defp is_exception?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :exception, 1)
   end
 
   defp match_module_member(mod, hint, ctx) do
@@ -403,7 +411,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp container_context_struct(cursor, pairs, aliases, ctx) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          alias = expand_alias(aliases, ctx),
-         true <- Keyword.keyword?(pairs) and has_struct?(alias) do
+         true <- Keyword.keyword?(pairs) and function_exported?(alias, :__struct__, 1) do
       {:struct, alias, pairs}
     else
       _ -> nil
