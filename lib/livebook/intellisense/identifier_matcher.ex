@@ -320,19 +320,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  # This is ignoring information from remote nodes
+  # and only listing structs that are also structs
+  # in the current node. Doing this check remotely
+  # would unfortunately be too expensive. Alternatively
+  # we list all modules.
   defp match_struct(hint, ctx) do
     for %{kind: :module, module: module} = item <- match_alias(hint, ctx, true),
-        has_struct?(module),
-        not is_exception?(module),
+        function_exported?(mod, :__struct__, 1),
+        not function_exported?(mod, :exception, 1),
         do: item
-  end
-
-  defp has_struct?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
-  end
-
-  defp is_exception?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :exception, 1)
   end
 
   defp match_module_member(mod, hint, ctx) do
@@ -630,13 +627,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     # application controller internals, we choose to match
     # for performance.
     for [app] <- :ets.match(:ac_tab, {{:loaded, :"$1"}, :_}),
-        {:ok, modules} = :erpc.call(node, :application, :get_key, [app, :modules]),
+        {:ok, modules} = :application.get_key(app, :modules),
         module <- modules,
         do: module
   end
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
-    if :erpc.call(ctx.node, Code, :ensure_loaded?, [mod]) do
+    if ensure_loaded?(mod, ctx.node) do
       funs = funs || exports(mod, ctx.node)
 
       matching_funs =
@@ -742,8 +739,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  # Skio Elixir to avoid warnings
   defp ensure_loaded?(Elixir, _node), do: false
-  defp ensure_loaded?(mod, node), do: :erpc.call(node, Code, :ensure_loaded?, [mod])
+  # Remote nodes only have loaded modules
+  defp ensure_loaded?(_mod, node) when node != node(), do: true
+  defp ensure_loaded?(mod, node), do: Code.ensure_loaded?(mod)
 
   defp imports_from_env(env) do
     Enum.map(env.functions, fn {mod, funs} ->
