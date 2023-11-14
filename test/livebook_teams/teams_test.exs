@@ -3,6 +3,7 @@ defmodule Livebook.TeamsTest do
 
   alias Livebook.Teams
   alias Livebook.Teams.Org
+  alias Livebook.Teams.DeploymentGroup
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -146,6 +147,35 @@ defmodule Livebook.TeamsTest do
 
       assert Teams.get_org_request_completion_data(org, org_request.device_code) ==
                {:error, :expired}
+    end
+  end
+
+  describe "update_deployment_group/2" do
+    test "returns a valid deployment group" do
+      attrs = params_for(:deployment_group, name: "FOO", mode: :online)
+
+      assert {:ok, deployment_group} =
+               Teams.update_deployment_group(%DeploymentGroup{}, attrs)
+
+      assert attrs.name == deployment_group.name
+      assert attrs.mode == deployment_group.mode
+      assert attrs.hub_id == deployment_group.hub_id
+    end
+
+    test "returns changeset error" do
+      attrs = params_for(:deployment_group, name: "", mode: "ofline")
+
+      assert {:error, changeset} =
+               Teams.update_deployment_group(%DeploymentGroup{}, attrs)
+
+      assert "can't be blank" in errors_on(changeset).name
+
+      attrs = params_for(:deployment_group, name: "@name", mode: "")
+
+      assert {:error, changeset} =
+               Teams.update_deployment_group(%DeploymentGroup{}, attrs)
+
+      assert "can't be blank" in errors_on(changeset).mode
     end
   end
 end

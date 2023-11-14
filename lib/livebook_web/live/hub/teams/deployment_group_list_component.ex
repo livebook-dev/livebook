@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Teams.DeploymentGroups
+  alias Livebook.Teams
 
   @impl true
   def render(assigns) do
@@ -75,10 +75,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
   def handle_event("delete_deployment_group", %{"id" => id, "name" => name}, socket) do
     on_confirm = fn socket ->
       hub = Livebook.Hubs.fetch_hub!(socket.assigns.hub.id)
-      deployment_groups = DeploymentGroups.get_deployment_groups(hub)
+      deployment_groups = Teams.get_deployment_groups(hub)
       deployment_group = Enum.find(deployment_groups, &(&1.id == id))
 
-      case DeploymentGroups.delete_deployment_group(hub, deployment_group) do
+      case Teams.delete_deployment_group(hub, deployment_group) do
         :ok ->
           socket
           |> put_flash(:success, "Deployment group #{deployment_group.name} deleted successfully")

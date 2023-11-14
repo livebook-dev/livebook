@@ -190,7 +190,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group, name: "DEPLOYMENT_GROUP_CREATED_FOO", mode: "online")
 
       assert {:ok, _id} =
-               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
+               Livebook.Teams.create_deployment_group(team, deployment_group)
 
       %{name: name, mode: mode} = deployment_group
       # receives `{:event, :deployment_group_created, deployment_group_created}` event
@@ -207,7 +207,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group, name: "DEPLOYMENT_GROUP_UPDATED_FOO", mode: "offline")
 
       assert {:ok, id} =
-               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
+               Livebook.Teams.create_deployment_group(team, deployment_group)
 
       %{name: name, mode: mode} = deployment_group
 
@@ -218,7 +218,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       update_deployment_group = %{deployment_group | id: id, mode: "online"}
 
       assert {:ok, ^id} =
-               Livebook.Teams.DeploymentGroups.update_deployment_group(
+               Livebook.Teams.update_deployment_group(
                  team,
                  update_deployment_group
                )
@@ -239,7 +239,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group, name: "DEPLOYMENT_GROUP_DELETED_FOO", mode: "online")
 
       assert {:ok, id} =
-               Livebook.Teams.DeploymentGroups.create_deployment_group(team, deployment_group)
+               Livebook.Teams.create_deployment_group(team, deployment_group)
 
       name = deployment_group.name
       mode = deployment_group.mode
@@ -248,7 +248,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
 
       # deletes the deployment group
-      assert Livebook.Teams.DeploymentGroups.delete_deployment_group(team, %{
+      assert Livebook.Teams.delete_deployment_group(team, %{
                deployment_group
                | id: id
              }) == :ok

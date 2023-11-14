@@ -7,7 +7,7 @@ defmodule Livebook.Hubs.TeamClient do
   alias Livebook.Hubs
   alias Livebook.Secrets
   alias Livebook.Teams
-  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
+  alias Livebook.Teams.DeploymentGroup
 
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor

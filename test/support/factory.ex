@@ -56,7 +56,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:deployment_group) do
-    %Livebook.Teams.DeploymentGroups.DeploymentGroup{
+    %Livebook.Teams.DeploymentGroup{
       name: "FOO",
       mode: "offline"
     }
@@ -106,7 +106,7 @@ defmodule Livebook.Factory do
   def insert_deployment_group(attrs \\ %{}) do
     deployment_group = build(:deployment_group, attrs)
     hub = Livebook.Hubs.fetch_hub!(deployment_group.hub_id)
-    {:ok, _id} = Livebook.Teams.DeploymentGroups.create_deployment_group(hub, deployment_group)
+    {:ok, _id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
     deployment_group
   end
 

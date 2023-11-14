@@ -1,5 +1,5 @@
 defmodule LivebookWeb.Integration.Hub.EditLiveTest do
-  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
+  alias Livebook.Teams.DeploymentGroup
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
@@ -355,7 +355,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
-      assert deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(hub)
+      assert deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
     test "updates existing deployment group", %{conn: conn, hub: hub} do
@@ -410,9 +410,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
 
-      assert updated_deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(
-               hub
-             )
+      assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
     test "deletes existing deployment group", %{conn: conn, hub: hub} do
@@ -445,7 +443,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       refute render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
-      refute deployment_group in Livebook.Teams.DeploymentGroups.get_deployment_groups(hub)
+      refute deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
     test "raises an error if the deployment group does not exist", %{conn: conn, hub: hub} do

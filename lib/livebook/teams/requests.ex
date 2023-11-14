@@ -6,7 +6,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Teams
   alias Livebook.Teams.Org
   alias Livebook.Utils.HTTP
-  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
+  alias Livebook.Teams.DeploymentGroup
 
   @doc """
   Send a request to Livebook Team API to create a new org.

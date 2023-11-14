@@ -6,7 +6,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
   alias LivebookWeb.NotFoundError
-  alias Livebook.Teams.DeploymentGroups
 
   @impl true
   def update(assigns, socket) do
@@ -15,7 +14,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     show_key = assigns.params["show-key"]
     secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
-    deployment_groups = DeploymentGroups.get_deployment_groups(assigns.hub)
+    deployment_groups = Teams.get_deployment_groups(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     deployment_group_id = assigns.params["deployment_group_id"]

@@ -1,5 +1,5 @@
 defmodule Livebook.Teams.Broadcasts do
-  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
+  alias Livebook.Teams.DeploymentGroup
 
   @type broadcast :: :ok | {:error, term()}
 

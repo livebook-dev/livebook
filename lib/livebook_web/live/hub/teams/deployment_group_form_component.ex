@@ -1,15 +1,15 @@
 defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Teams.DeploymentGroups.DeploymentGroup
-  alias Livebook.Teams.DeploymentGroups
+  alias Livebook.Teams.DeploymentGroup
+  alias Livebook.Teams
 
   @impl true
   def update(assigns, socket) do
     deployment_group = assigns.deployment_group
 
     deployment_group = deployment_group || %DeploymentGroup{hub_id: assigns.hub.id}
-    changeset = DeploymentGroups.change_deployment_group(deployment_group)
+    changeset = Teams.change_deployment_group(deployment_group)
 
     socket = assign(socket, assigns)
 
@@ -83,7 +83,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
   @impl true
   def handle_event("save", %{"deployment_group" => attrs}, socket) do
     with {:ok, deployment_group} <-
-           DeploymentGroups.update_deployment_group(socket.assigns.deployment_group, attrs),
+           Teams.update_deployment_group(socket.assigns.deployment_group, attrs),
          {:ok, _id} <- save_deployment_group(deployment_group, socket) do
       message =
         case socket.assigns.mode do
@@ -113,8 +113,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
   defp save_deployment_group(deployment_group, socket) do
     case socket.assigns.mode do
-      :new -> DeploymentGroups.create_deployment_group(socket.assigns.hub, deployment_group)
-      :edit -> DeploymentGroups.update_deployment_group(socket.assigns.hub, deployment_group)
+      :new -> Teams.create_deployment_group(socket.assigns.hub, deployment_group)
+      :edit -> Teams.update_deployment_group(socket.assigns.hub, deployment_group)
     end
   end
 

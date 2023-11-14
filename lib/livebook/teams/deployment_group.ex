@@ -1,4 +1,4 @@
-defmodule Livebook.Teams.DeploymentGroups.DeploymentGroup do
+defmodule Livebook.Teams.DeploymentGroup do
   use Ecto.Schema
   import Ecto.Changeset
 
