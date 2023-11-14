@@ -686,20 +686,20 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp exports(mod, node) do
-    loaded = :erpc.call(node, Code, :ensure_loaded?, [mod])
-    exported = :erpc.call(node, :erlang, :function_exported, [mod, :__info__, 1])
-
-    if loaded and exported do
-      macros = :erpc.call(node, mod, :__info__, [:macros])
-      functions = :erpc.call(node, mod, :__info__, [:functions]) -- [__info__: 1]
-      append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
-    else
-      functions =
-        :erpc.call(node, mod, :module_info, [:exports]) -- [module_info: 0, module_info: 1]
-
-      append_funs_type(functions, :function)
-    end
+    for {fun, arity} <- :erpc.call(node, mod, :module_info, [:exports]),
+        not reflection?(fun, arity),
+        do: function_or_macro(Atom.to_string(fun), fun, arity)
   end
+
+  defp reflection?(:module_info, 0), do: true
+  defp reflection?(:module_info, 1), do: true
+  defp reflection?(:__info__, 1), do: true
+  defp reflection?(_), do: false
+
+  defp function_or_macro("MACRO-" <> name, _, arity),
+    do: {String.to_atom(name), arity - 1, :macro}
+
+  defp function_or_macro(_, fun, arity), do: {fun, arity, :function}
 
   defp append_funs_type(funs, type) do
     Enum.map(funs, &Tuple.append(&1, type))
