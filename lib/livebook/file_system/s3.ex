@@ -11,7 +11,6 @@ defmodule Livebook.FileSystem.S3 do
           region: String.t(),
           access_key_id: String.t(),
           secret_access_key: String.t(),
-          session_token: String.t(),
           hub_id: String.t()
         }
 
@@ -27,7 +26,6 @@ defmodule Livebook.FileSystem.S3 do
     field :region, :string
     field :access_key_id, :string
     field :secret_access_key, :string
-    field :session_token, :string
     field :hub_id, :string
   end
 
@@ -64,7 +62,6 @@ defmodule Livebook.FileSystem.S3 do
       :region,
       :access_key_id,
       :secret_access_key,
-      :session_token,
       :hub_id
     ])
     |> put_region_from_uri()
