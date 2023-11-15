@@ -19,8 +19,8 @@ config :livebook, Livebook.Copilot,
   enabled: true,
   backend: Livebook.Copilot.BumblebeeBackend,
   backend_config: %{
-    model: "codellama-7b",
-    client: :cuda
+    model: "gpt2",
+    client: :host
   }
 
 config :nx,
