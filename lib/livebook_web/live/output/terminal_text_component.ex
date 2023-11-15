@@ -31,7 +31,7 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
       {html_lines, [last_html_line]} = Enum.split(html_lines, -1)
 
       stream_items =
-        for html_line <- html_lines, do: %{id: Livebook.Utils.random_id(), html: html_line}
+        for html_line <- html_lines, do: %{id: Livebook.Utils.random_long_id(), html: html_line}
 
       socket = stream(socket, :html_lines, stream_items)
 

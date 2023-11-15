@@ -7,7 +7,7 @@ defmodule LivebookWeb.SessionIdentity do
     if id = get_session(conn, :current_user_id) do
       {conn, %{id: id}}
     else
-      user_id = Livebook.Utils.random_id()
+      user_id = Livebook.Utils.random_long_id()
       {put_session(conn, :current_user_id, user_id), %{id: user_id}}
     end
   end

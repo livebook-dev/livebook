@@ -13,7 +13,7 @@ defmodule LivebookWeb.Output.PlainTextComponent do
     socket = assign(socket, assigns)
 
     if text do
-      chunk = %{id: Livebook.Utils.random_id(), text: text}
+      chunk = %{id: Livebook.Utils.random_long_id(), text: text}
       {:ok, stream_insert(socket, :chunks, chunk)}
     else
       {:ok, socket}

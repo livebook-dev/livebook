@@ -8,7 +8,7 @@ defmodule LivebookWeb.JSViewChannelTest do
       LivebookWeb.Socket
       |> socket()
       |> subscribe_and_join(LivebookWeb.JSViewChannel, "js_view", %{
-        "session_token" => session_token(session_id, Livebook.Utils.random_id())
+        "session_token" => session_token(session_id, Livebook.Utils.random_long_id())
       })
 
     %{socket: socket}

@@ -22,7 +22,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
   end
 
   defp create_app(app_settings_attrs) do
-    slug = Livebook.Utils.random_id()
+    slug = Livebook.Utils.random_long_id()
 
     app_settings =
       Livebook.Notebook.AppSettings.new()

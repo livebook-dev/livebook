@@ -207,7 +207,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     FileSystem.Utils.assert_regular_path!(path)
 
     downloads_dir = Path.join(Livebook.Config.tmp_path(), "downloads")
-    download_path = Path.join(downloads_dir, Livebook.Utils.random_id())
+    download_path = Path.join(downloads_dir, Livebook.Utils.random_long_id())
 
     with :ok <- File.mkdir_p(downloads_dir),
          {:ok, device} <- File.open(download_path, [:write]) do
