@@ -1142,14 +1142,12 @@ defmodule Livebook.Session do
              Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
         index = Enum.find_index(section.cells, &(&1 == cell))
         chunks = cell.chunks || [{0, byte_size(cell.source)}]
-        chunk_count = length(chunks)
 
         state =
           for {{offset, size}, chunk_idx} <- Enum.with_index(chunks), reduce: state do
             state ->
-              outputs = if(chunk_idx == chunk_count - 1, do: cell.outputs, else: [])
               source = binary_part(cell.source, offset, size)
-              attrs = %{source: source, outputs: outputs}
+              attrs = %{source: source}
               cell_idx = index + chunk_idx
               cell_id = Utils.random_id()
 
