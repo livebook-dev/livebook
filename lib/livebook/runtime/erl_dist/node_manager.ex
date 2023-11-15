@@ -149,12 +149,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.unregister(:standard_error)
     Process.register(state.original_standard_error, :standard_error)
 
-    # TODO: remove logger backend once we require Elixir v1.15
-    if Code.ensure_loaded?(Logger) and function_exported?(Logger, :add_handlers, 1) do
-      :logger.remove_handler(:livebook_gl_handler)
-    else
-      Logger.remove_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
-    end
+    :logger.remove_handler(:livebook_gl_handler)
 
     if state.unload_modules_on_termination do
       ErlDist.unload_required_modules()
