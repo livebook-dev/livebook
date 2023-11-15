@@ -223,7 +223,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   end
 
   defp make_tmp_dir() do
-    path = Path.join([System.tmp_dir!(), "livebook_runtime", random_id()])
+    path = Path.join([System.tmp_dir!(), "livebook_runtime", random_long_id()])
 
     if File.mkdir_p(path) == :ok do
       path
@@ -234,9 +234,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   defp ebin_path(tmp_dir), do: Path.join(tmp_dir, "ebin")
 
   defp child_tmp_dir(nil), do: nil
-  defp child_tmp_dir(tmp_dir), do: Path.join(tmp_dir, random_id())
+  defp child_tmp_dir(tmp_dir), do: Path.join(tmp_dir, random_long_id())
 
-  defp random_id() do
+  defp random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 end

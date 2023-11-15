@@ -1,7 +1,7 @@
 defmodule Livebook.Factory do
   def build(:user) do
     %Livebook.Users.User{
-      id: Livebook.Utils.random_id(),
+      id: Livebook.Utils.random_long_id(),
       name: "Jose Valim",
       hex_color: Livebook.EctoTypes.HexColor.random()
     }
@@ -21,7 +21,7 @@ defmodule Livebook.Factory do
       org_id: 1,
       user_id: 1,
       org_key_id: 1,
-      org_public_key: Livebook.Hubs.Team.public_key_prefix() <> Livebook.Utils.random_id(),
+      org_public_key: Livebook.Hubs.Team.public_key_prefix() <> Livebook.Utils.random_long_id(),
       teams_key: org.teams_key,
       session_token: Livebook.Utils.random_short_id(),
       offline: nil

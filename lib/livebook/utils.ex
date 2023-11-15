@@ -8,6 +8,14 @@ defmodule Livebook.Utils do
   """
   @spec random_id() :: id()
   def random_id() do
+    :crypto.strong_rand_bytes(10) |> Base.encode32(case: :lower)
+  end
+
+  @doc """
+  Generates a random long binary id.
+  """
+  @spec random_long_id() :: id()
+  def random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 

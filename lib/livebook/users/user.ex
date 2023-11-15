@@ -32,7 +32,7 @@ defmodule Livebook.Users.User do
   Generates a new user.
   """
   @spec new(String.t()) :: t()
-  def new(id \\ Utils.random_id()) do
+  def new(id \\ Utils.random_long_id()) do
     %__MODULE__{
       id: id,
       name: nil,

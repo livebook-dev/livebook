@@ -339,7 +339,7 @@ defmodule Livebook.Runtime.Evaluator do
   defp initial_context() do
     env = Code.env_for_eval([])
     env = Macro.Env.prepend_tracer(env, Evaluator.Tracer)
-    %{id: random_id(), binding: [], env: env, pdict: %{}}
+    %{id: random_long_id(), binding: [], env: env, pdict: %{}}
   end
 
   defp handle_cast({:evaluate_code, language, code, ref, parent_refs, opts}, state) do
@@ -432,7 +432,7 @@ defmodule Livebook.Runtime.Evaluator do
     {new_context, result, identifiers_used, identifiers_defined} =
       case eval_result do
         {:ok, value, binding, env} ->
-          context_id = random_id()
+          context_id = random_long_id()
 
           new_context = %{
             id: context_id,
@@ -585,7 +585,7 @@ defmodule Livebook.Runtime.Evaluator do
     binding = merge_binding(prev_context.binding, context.binding)
     env = merge_env(prev_context.env, context.env)
     pdict = context.pdict
-    %{id: random_id(), binding: binding, env: env, pdict: pdict}
+    %{id: random_long_id(), binding: binding, env: env, pdict: pdict}
   end
 
   defp merge_binding(prev_binding, binding) do
@@ -977,7 +977,7 @@ defmodule Livebook.Runtime.Evaluator do
     end
   end
 
-  defp random_id() do
+  defp random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 
