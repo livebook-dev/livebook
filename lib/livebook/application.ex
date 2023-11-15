@@ -41,7 +41,13 @@ defmodule Livebook.Application do
         # Start the registry for managing unique connections
         {Registry, keys: :unique, name: Livebook.HubsRegistry},
         # Start the supervisor dynamically managing connections
-        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
+        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
+
+        # TODO no idea if this is the best way to do this ... please help
+        # My thinking is that this way we can load the model in copilot.ex for the first time
+        # without blocking anything
+        {DynamicSupervisor,
+         name: Livebook.Copilot.BumblebeeServingSupervisor, strategy: :one_for_one}
       ] ++
         if serverless?() do
           []

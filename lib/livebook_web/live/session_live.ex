@@ -1832,9 +1832,43 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "intellisense_response", payload)}
   end
 
-  def handle_info({:copilot_response, ref, request, response}, socket) do
-    payload = %{"ref" => inspect(ref), "response" => response}
-    {:noreply, push_event(socket, "copilot_response", payload)}
+  def handle_info({:copilot_response, ref, _request, {:ok, completion, context}}, socket) do
+    {:noreply,
+     socket
+     |> push_event("copilot_response", %{
+       "ref" => inspect(ref),
+       "response" => %{
+         completions: [completion]
+       }
+     })
+     |> put_flash(
+       :info,
+       "Copilot: #{context[:backend]} completed in #{context[:time]}ms"
+     )}
+  end
+
+  def handle_info({:copilot_response, ref, _request, {:error, error}}, socket) do
+    {:noreply,
+     socket
+     |> push_event("copilot_response", %{
+       "ref" => inspect(ref),
+       "response" => %{
+         error: error
+       }
+     })
+     |> put_flash(:error, error)}
+  end
+
+  def handle_info({:copilot_response, ref, _request, {:loading_model, message}}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:warning, message)}
+  end
+
+  def handle_info({:copilot_model_loaded, message}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:success, message)}
   end
 
   def handle_info({:location_report, client_id, report}, socket) do

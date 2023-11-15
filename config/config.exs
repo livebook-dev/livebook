@@ -37,14 +37,39 @@ config :livebook,
   within_iframe: false,
   allowed_uri_schemes: []
 
+# TODO keen for some advice how best to structure this configuration
+# feels a bit jank
 config :livebook, Livebook.Copilot,
   enabled: true,
-  model: Livebook.Copilot.LlamaCppHttpApi
+  # backend: Livebook.Copilot.HuggingfaceBackend,
+  # backend_config: %{
+  #   model: "deepseek-coder-1.3b"
+  # }
 
-config :openai,
-  # find it at https://platform.openai.com/account/api-keys
-  api_key: System.get_env("OPENAI_API_KEY"),
-  http_options: [recv_timeout: 30_000]
+  backend: Livebook.Copilot.DummyBackend,
+  backend_config: %{
+    model: "echo"
+  }
+
+# backend: Livebook.Copilot.BumblebeeBackend,
+# backend_config: %{
+#   model: "gpt2"
+# }
+
+# backend: Livebook.Copilot.LlamaCppHttpBackend,
+# backend_config: %{
+#   model: "codellama-7b"
+# }
+
+# backend: Livebook.Copilot.Openai,
+# backend_config: %{
+#   api_key: System.get_env("OPENAI_API_KEY"),
+#   model: "gpt-4-1106-preview"
+# }
+
+config :nx,
+  default_backend: EXLA.Backend,
+  client: :host
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -15,6 +15,18 @@ config :livebook, :iframe_port, 8081
 # Set log level to warning by default to reduce output
 config :logger, level: :warning
 
+config :livebook, Livebook.Copilot,
+  enabled: true,
+  backend: Livebook.Copilot.BumblebeeBackend,
+  backend_config: %{
+    model: "codellama-7b",
+    client: :cuda
+  }
+
+config :nx,
+  default_backend: EXLA.Backend,
+  client: :cuda
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key

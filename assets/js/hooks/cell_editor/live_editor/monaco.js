@@ -233,11 +233,17 @@ settingsStore.getAndSubscribe((settings) => {
     "elixir",
     {
       freeInlineCompletions: (completions) => {
+        // TODO?
         return;
       },
       provideInlineCompletions: (model, position, context, token) => {
-        if (model.__getCopilotCompletionItems__) {
-          return model.__getCopilotCompletionItems__(model, position);
+        let getItems = model.__getCopilotCompletionItems__;
+        if (context.triggerKind == monaco.languages.InlineCompletionTriggerKind.Automatic) {
+          getItems = model.__getCopilotCompletionItemsDebounced__;
+        }
+
+        if (getItems) {
+          return getItems(model, position, context, token);
         } else {
           return null;
         }

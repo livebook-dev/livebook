@@ -120,8 +120,13 @@ defmodule Livebook.MixProject do
       {:req, "~> 0.4.4"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false},
-      {:ai, "~> 0.3.4"},
-      {:openai, "~> 0.5.4"}
+      {:openai_ex, "~> 0.4.1"},
+
+      # TODO these are some heavy dependencies - can we somehow make them conditional on
+      # actually wanting bumblebee completion?
+      {:bumblebee, "~> 0.4.2"},
+      {:nx, "~> 0.6.1"},
+      {:exla, "~> 0.6.1"}
     ]
   end
 

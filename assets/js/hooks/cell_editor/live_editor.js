@@ -649,73 +649,124 @@ class LiveEditor {
 
   _setupInlineCopilot() {
 
+    const settings = settingsStore.get();
+
+    this.copilotHandlerByRef = {};
+
+    // There's an issue in monaco that means the commands will only ever be executed
+    // on the most recently added editor. To avoid this, we can use addAction
+    // as described here: https://github.com/microsoft/monaco-editor/issues/2947
+    this.editor.addAction({
+      id: "copilot_completion",
+      label: "Copilot completion",
+      keybindings: [monaco.KeyMod.WinCtrl | monaco.KeyCode.Space],
+      run: () => {
+        console.log("Keyboard trigger!")
+        this.editor.trigger("copilot", "editor.action.inlineSuggest.trigger");
+      }
+    });
+
+
+    // TODO insert client-side completion cache to avoid needlessly hitting server
+    this.editor.getModel().__getCopilotCompletionItems__ = (model, position, context, token) => {
+
+      console.log("Copilot completion items provider", context, token)
+      const contextBeforeCursor = model.getValueInRange(new monaco.Range(1, 1, position.lineNumber, position.column));
+      const contextAfterCursor = model.getValueInRange(new monaco.Range(position.lineNumber, position.column, model.getLineCount(), model.getLineMaxColumn(model.getLineCount())));
+
+      // When triggered automatically, we don't show suggestions when the cursor is in the middle of a 
+      // word or at the beginning of the editor
+      if (context.triggerKind == monaco.languages.InlineCompletionTriggerKind.Automatic) {
+        console.log("Triggered automatically")
+        if (!/\S/.test(contextBeforeCursor)) {
+          console.log("Context before cursor consists entirely of whitespace")
+          return null
+        }
+        if (/^\S/.test(contextAfterCursor)) {
+          console.log("Bailing out because cursor is in the middle of some text")
+          return null;
+        }
+      } else {
+        console.log("Triggered manually")
+      }
+
+      // not sure if we need this, yet
+      if (context.selectedSuggestionInfo !== undefined) {
+        console.debug("Autocomplete widget is visible");
+      }
+
+      return this._asyncCopilotRequest("completion", {
+        context_before_cursor: contextBeforeCursor,
+        context_after_cursor: contextAfterCursor
+      }).then((response) => {
+        if (response.error) {
+          console.error("Copilot completion failed", response.error)
+          return
+        }
+
+        if (!response.completions) {
+          console.warn("No copilot completion items received")
+          return
+        }
+        const items = response.completions.map((completion) => {
+          return {
+            insertText: completion,
+            range: new monaco.Range(
+              position.lineNumber,
+              position.column,
+              position.lineNumber,
+              position.column
+            )
+          }
+        });
+        console.log("items", items)
+        return {
+          items
+        };
+      });
+    }
+
     // Not sure if there is a way to get monaco to debounce inline completions.
-    // We only want to show code completion items after certain delay
+    // We only want to show code completion items after certain delay (unless triggered via keyboard)
     // Adapted from here: https://blog.smithers.dev/posts/debounce-with-promise/
     // TODO is here the right place for the debouncing? this code also gets called when manually triggering the completion, right?
     function debouncePromise(debounceDelay, func) {
-      var promiseResolverRef = {
-        current: function() {}
+      let promiseResolverRef = {
+        current: function () {}
       };
 
-      var debouncedFunc = debounce(function(...args) {
-        var promiseResolverSnapshot = promiseResolverRef.current;
-        func(...args).then(function(...args) {
+      // TODO don't debounce when triggered by keyboard shortcut
+      var debouncedFunc = debounce(function (...args) {
+        let promiseResolverSnapshot = promiseResolverRef.current;
+        let returnedPromise = func(...args);
+        if (returnedPromise == null) {
+          return;
+        }
+        func(...args).then(function (...args) {
           if (promiseResolverSnapshot === promiseResolverRef.current) {
             promiseResolverRef.current(...args);
           }
         });
       }, debounceDelay);
 
-      return function(...args) {
-        return new Promise(function(resolve) {
-          promiseResolverRef.current({items: []});
+      return function (...args) {
+        return new Promise(function (resolve) {
+          promiseResolverRef.current({
+            items: []
+          });
           promiseResolverRef.current = resolve;
           debouncedFunc(...args);
         });
       };
     }
+    this.editor.getModel().__getCopilotCompletionItemsDebounced__ = debouncePromise(500, (model, position, context, token) => {
+      return model.__getCopilotCompletionItems__(model, position, context, token)
+    })
 
-    const settings = settingsStore.get();
-
-    this.copilotHandlerByRef = {};
-
-    this.editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, () => {
-      this.editor.trigger("copilot", "editor.action.inlineSuggest.trigger")
-    });
-
-    this.editor.getModel().__getCopilotCompletionItems__ = debouncePromise(500, (model, position) => {
-
-      const contextBeforeCursor = model.getValueInRange(new monaco.Range(1, 1, position.lineNumber, position.column));
-      const contextAfterCursor = model.getValueInRange(new monaco.Range(position.lineNumber, position.column, model.getLineCount(), model.getLineMaxColumn(model.getLineCount())));
-
-      return this._asyncCopilotRequest("completion", {
-        context_before_cursor: contextBeforeCursor,
-        context_after_cursor: contextAfterCursor
-      })
-        .then((response) => {
-          const items = response.items.map((suggestion) => {
-            const replaceLength = replacedSuffixLength(
-              contextBeforeCursor,
-              suggestion.insertText
-            );
-
-            const range = new monaco.Range(
-              position.lineNumber,
-              position.column - replaceLength,
-              position.lineNumber,
-              position.column
-            );
-
-            return { ...suggestion, range };
-          });
-          console.log("items", items)
-          return { items };
-        })
-        //.catch(() => null); // why is this in the original intellisense implementation?
-    });
-
-    this.hook.handleEvent("copilot_response", ({ ref, response }) => {
+    this.hook.handleEvent("copilot_response", ({
+      ref,
+      response
+    }) => {
       const handler = this.copilotHandlerByRef[ref];
       if (handler) {
         handler(response);
