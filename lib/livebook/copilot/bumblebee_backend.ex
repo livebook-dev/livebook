@@ -31,7 +31,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
   def post_process(_, completion), do: completion
 
   def nx_serving_spec(%{model: "codellama-7b"} = config) do
-    repo = {:hf, "codellama/codellama-7b-hf"}
+    repo = {:hf, "codellama/CodeLlama-7b-hf"}
 
     {:ok, model_info} =
       Bumblebee.load_model(repo,
