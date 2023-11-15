@@ -208,7 +208,7 @@ Also some spacing adjustments.
 
 .doctest-details-widget {
   @apply font-editor;
-  white-space: pre;
+  white-space: pre-wrap;
   background-color: rgba(0, 0, 0, 0.05);
   padding-top: 6px;
   padding-bottom: 6px;
