@@ -15,6 +15,12 @@ defmodule Livebook.FileSystem.S3 do
           hub_id: String.t()
         }
 
+  @type credentials_t :: %{
+          access_key_id: String.t() | nil,
+          secret_access_key: String.t() | nil,
+          token: String.t() | nil
+        }
+
   embedded_schema do
     field :bucket_url, :string
     field :external_id, :string
@@ -125,6 +131,7 @@ defmodule Livebook.FileSystem.S3 do
   Retrieve AWS credentials from the S3 FileSystem configuration, or from
   the instance/environment if they're missing
   """
+  @spec credentials(S3.t()) :: S3.credentials_t()
   def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
