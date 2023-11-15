@@ -334,7 +334,7 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   end
 
   defp format_stacktrace_entry(entry, _test_case, _test) do
-    Exception.format_stacktrace_entry(entry)
+    Livebook.Runtime.Evaluator.Formatter.format_stacktrace_entry(entry)
   end
 
   defp format_label(label), do: colorize(:cyan, "#{label}:")
