@@ -31,9 +31,13 @@ defmodule Livebook.TeamsTest do
       org = build(:org)
       key_hash = Org.key_hash(org)
 
-      teams_org = :erpc.call(node, Hub.Integration, :create_org, [[name: org.name]])
-      :erpc.call(node, Hub.Integration, :create_org_key, [[org: teams_org, key_hash: key_hash]])
-      :erpc.call(node, Hub.Integration, :create_user_org, [[org: teams_org, user: user]])
+      teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
+
+      :erpc.call(node, TeamsRPC, :create_org_key, [
+        [org: teams_org, key_hash: key_hash]
+      ])
+
+      :erpc.call(node, TeamsRPC, :create_user_org, [[org: teams_org, user: user]])
 
       assert {:ok,
               %{
@@ -63,11 +67,14 @@ defmodule Livebook.TeamsTest do
 
   describe "get_org_request_completion_data/1" do
     test "returns the org data when it has been confirmed", %{node: node, user: user} do
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
-      org_request = :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
+      org_request =
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
+
+      org_request =
+        :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
 
       org =
         build(:org,
@@ -103,10 +110,11 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns the org request awaiting confirmation", %{node: node} do
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
-      org_request = :erpc.call(node, Hub.Integration, :create_org_request, [[key_hash: key_hash]])
+      org_request =
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
 
       org =
         build(:org,
@@ -122,17 +130,19 @@ defmodule Livebook.TeamsTest do
 
     test "returns error when org request doesn't exist" do
       org = build(:org, id: 0)
-      assert {:transport_error, _embarrassing} = Teams.get_org_request_completion_data(org, "")
+
+      assert {:transport_error, _embarrassing} =
+               Teams.get_org_request_completion_data(org, "")
     end
 
     test "returns error when org request expired", %{node: node} do
       now = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
       expires_at = NaiveDateTime.add(now, -5000)
-      teams_key = Teams.Org.teams_key()
+      teams_key = Org.teams_key()
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
-        :erpc.call(node, Hub.Integration, :create_org_request, [
+        :erpc.call(node, TeamsRPC, :create_org_request, [
           [expires_at: expires_at, key_hash: key_hash]
         ])
 
@@ -204,7 +214,10 @@ defmodule Livebook.TeamsTest do
       assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
 
       update_deployment_group = %{deployment_group | id: id, name: ""}
-      assert {:error, changeset} = Teams.update_deployment_group(team, update_deployment_group)
+
+      assert {:error, changeset} =
+               Teams.update_deployment_group(team, update_deployment_group)
+
       assert "can't be blank" in errors_on(changeset).name
     end
 
@@ -215,11 +228,17 @@ defmodule Livebook.TeamsTest do
       assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
 
       update_deployment_group = %{deployment_group | id: id, mode: ""}
-      assert {:error, changeset} = Teams.update_deployment_group(team, update_deployment_group)
+
+      assert {:error, changeset} =
+               Teams.update_deployment_group(team, update_deployment_group)
+
       assert "can't be blank" in errors_on(changeset).mode
 
       update_deployment_group = %{deployment_group | id: id, mode: "invalid"}
-      assert {:error, changeset} = Teams.update_deployment_group(team, update_deployment_group)
+
+      assert {:error, changeset} =
+               Teams.update_deployment_group(team, update_deployment_group)
+
       assert "is invalid" in errors_on(changeset).mode
     end
   end

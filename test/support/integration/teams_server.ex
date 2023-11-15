@@ -5,7 +5,7 @@ defmodule Livebook.TeamsServer do
 
   @name __MODULE__
   @timeout 10_000
-  @default_teams_dir "../hub"
+  @default_teams_dir "../teams"
 
   def available?() do
     System.get_env("TEAMS_PATH") != nil or File.exists?(@default_teams_dir)
@@ -105,7 +105,7 @@ defmodule Livebook.TeamsServer do
   # Private
 
   defp call_erpc_function(node, function, args \\ []) do
-    :erpc.call(node, Hub.Integration, function, args)
+    :erpc.call(node, TeamsRPC, function, args)
   end
 
   defp ensure_session_token(state) do
