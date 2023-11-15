@@ -19,6 +19,11 @@ defmodule Livebook.IntellisenseTest do
     end
   end
 
+  setup do
+    Intellisense.clear_cache(node())
+    :ok
+  end
+
   describe "format_code/1" do
     test "formats valid code" do
       assert %{code: "1 + 1", code_markers: []} = Intellisense.format_code("1+1")
