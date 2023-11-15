@@ -91,20 +91,15 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.unregister(:standard_error)
     Process.register(io_forward_gl_pid, :standard_error)
 
-    # TODO: remove logger backend once we require Elixir v1.15
-    if Code.ensure_loaded?(Logger) and function_exported?(Logger, :add_handlers, 1) do
-      {:ok, _pid} = Livebook.Runtime.ErlDist.Sink.start_link()
+    {:ok, _pid} = Livebook.Runtime.ErlDist.Sink.start_link()
 
-      :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
-        formatter: Logger.Formatter.new(),
-        filters: [
-          code_server_logs:
-            {&Livebook.Runtime.ErlDist.LoggerGLHandler.filter_code_server_logs/2, nil}
-        ]
-      })
-    else
-      Logger.add_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
-    end
+    :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
+      formatter: Logger.Formatter.new(),
+      filters: [
+        code_server_logs:
+          {&Livebook.Runtime.ErlDist.LoggerGLHandler.filter_code_server_logs/2, nil}
+      ]
+    })
 
     # Set `ignore_module_conflict` only for the NodeManager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]

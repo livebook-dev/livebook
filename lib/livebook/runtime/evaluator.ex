@@ -613,7 +613,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp eval(:elixir, code, binding, env) do
     {{result, extra_diagnostics}, diagnostics} =
-      with_diagnostics([log: true], fn ->
+      Code.with_diagnostics([log: true], fn ->
         try do
           quoted = Code.string_to_quoted!(code, file: env.file)
 
@@ -814,17 +814,6 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp filter_erlang_code_markers(code_markers) do
     Enum.reject(code_markers, &(&1.line == 0))
-  end
-
-  # TODO: remove once we require Elixir v1.15
-  if Code.ensure_loaded?(Code) and function_exported?(Code, :with_diagnostics, 2) do
-    defp with_diagnostics(opts, fun) do
-      Code.with_diagnostics(opts, fun)
-    end
-  else
-    defp with_diagnostics(_opts, fun) do
-      {fun.(), []}
-    end
   end
 
   defp extra_diagnostic?(%SyntaxError{}), do: true
