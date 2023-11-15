@@ -105,7 +105,7 @@ defmodule Livebook.TeamsServer do
   # Private
 
   defp call_erpc_function(node, function, args \\ []) do
-    :erpc.call(node, Teams.Integration, function, args)
+    :erpc.call(node, TeamsRPC.Integration, function, args)
   end
 
   defp ensure_session_token(state) do
