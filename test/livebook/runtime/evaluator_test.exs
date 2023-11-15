@@ -195,6 +195,17 @@ defmodule Livebook.Runtime.EvaluatorTest do
              """ <> _ = clean_message(message)
     end
 
+    test "only keeps #cell: markers in stacktrace", %{evaluator: evaluator} do
+      code = """
+      List.first(%{})
+      """
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: "file.ex#cell:abcDEF")
+
+      assert_receive {:runtime_evaluation_response, :code_1, error(message), metadata()}
+      assert message =~ "  #cell:abcDEF:1: (file)"
+    end
+
     test "returns additional metadata when there is a syntax error", %{evaluator: evaluator} do
       code = "1+"
 

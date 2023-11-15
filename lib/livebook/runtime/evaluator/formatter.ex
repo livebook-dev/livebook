@@ -133,11 +133,34 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
       if stacktrace == [] do
         banner
       else
-        stacktrace = Exception.format_stacktrace(stacktrace)
+        stacktrace = format_stacktrace(stacktrace)
         [banner, "\n", error_color(stacktrace)]
       end
 
     IO.iodata_to_binary(message)
+  end
+
+  defp format_stacktrace(trace) do
+    case trace do
+      [] -> "\n"
+      _ -> "    " <> Enum.map_join(trace, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
+    end
+  end
+
+  @doc """
+  Formats a stacktrace entry keeping only the #cell: bits.
+  """
+  def format_stacktrace_entry(entry) do
+    entry =
+      with {mod, fun, arity, info} <- entry,
+           [_ | _] = file <- info[:file],
+           [_, cell] <- :string.split(file, "#cell:") do
+        {mod, fun, arity, Keyword.put(info, :file, ~c"#cell:" ++ cell)}
+      else
+        _ -> entry
+      end
+
+    Exception.format_stacktrace_entry(entry)
   end
 
   defp blame_match(%{match?: true, node: node}), do: Macro.to_string(node)
