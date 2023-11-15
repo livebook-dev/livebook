@@ -319,11 +319,11 @@ memory_plot =
   |> Kino.VegaLite.new()
 ```
 
-Now we can use `Kino.VegaLite.periodically/4` to create a self-updating
+Now we can use `Kino.listen/2` to create a self-updating
 plot of memory usage over time on the remote node:
 
 ```elixir
-Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
+Kino.listen(200, fn i ->
   point =
     :erpc.call(node, :erlang, :memory, [])
     |> Enum.map(fn {type, bytes} -> {type, bytes / 1_000_000} end)
@@ -331,7 +331,6 @@ Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
     |> Map.put(:iter, i)
 
   Kino.VegaLite.push(memory_plot, point, window: 1000)
-  {:cont, i + 1}
 end)
 ```
 
