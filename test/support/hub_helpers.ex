@@ -217,6 +217,6 @@ defmodule Livebook.HubHelpers do
   defp hub_element_id(id), do: "#hubs #hub-#{id}"
 
   defp erpc_call(node, fun, args) do
-    :erpc.call(node, TeamsRPC.Integration, fun, args)
+    :erpc.call(node, TeamsRPC, fun, args)
   end
 end

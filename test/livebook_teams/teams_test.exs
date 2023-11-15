@@ -31,13 +31,13 @@ defmodule Livebook.TeamsTest do
       org = build(:org)
       key_hash = Org.key_hash(org)
 
-      teams_org = :erpc.call(node, TeamsRPC.Integration, :create_org, [[name: org.name]])
+      teams_org = :erpc.call(node, TeamsRPC, :create_org, [[name: org.name]])
 
-      :erpc.call(node, TeamsRPC.Integration, :create_org_key, [
+      :erpc.call(node, TeamsRPC, :create_org_key, [
         [org: teams_org, key_hash: key_hash]
       ])
 
-      :erpc.call(node, TeamsRPC.Integration, :create_user_org, [[org: teams_org, user: user]])
+      :erpc.call(node, TeamsRPC, :create_user_org, [[org: teams_org, user: user]])
 
       assert {:ok,
               %{
@@ -71,10 +71,10 @@ defmodule Livebook.TeamsTest do
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
-        :erpc.call(node, TeamsRPC.Integration, :create_org_request, [[key_hash: key_hash]])
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
 
       org_request =
-        :erpc.call(node, TeamsRPC.Integration, :confirm_org_request, [org_request, user])
+        :erpc.call(node, TeamsRPC, :confirm_org_request, [org_request, user])
 
       org =
         build(:org,
@@ -114,7 +114,7 @@ defmodule Livebook.TeamsTest do
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
-        :erpc.call(node, TeamsRPC.Integration, :create_org_request, [[key_hash: key_hash]])
+        :erpc.call(node, TeamsRPC, :create_org_request, [[key_hash: key_hash]])
 
       org =
         build(:org,
@@ -142,7 +142,7 @@ defmodule Livebook.TeamsTest do
       key_hash = :crypto.hash(:sha256, teams_key) |> Base.url_encode64(padding: false)
 
       org_request =
-        :erpc.call(node, TeamsRPC.Integration, :create_org_request, [
+        :erpc.call(node, TeamsRPC, :create_org_request, [
           [expires_at: expires_at, key_hash: key_hash]
         ])
 
