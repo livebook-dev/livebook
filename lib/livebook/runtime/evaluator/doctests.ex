@@ -134,17 +134,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
     end
   end
 
-  defp end_of_doctest?(line) do
-    case String.trim_leading(line) do
-      "" -> true
-      "```" <> _ -> true
-      "~~~" <> _ -> true
-      "'''" <> _ -> true
-      "\"\"\"" <> _ -> true
-      _ -> false
-    end
-  end
-
   defp define_test_module(doctests_specs) do
     id =
       doctests_specs
