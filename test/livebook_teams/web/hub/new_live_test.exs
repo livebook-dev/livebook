@@ -35,14 +35,14 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       render_submit(form, attrs)
 
       # gets the org request by name
-      org_request = :erpc.call(node, Hub.Integration, :get_org_request_by!, [[name: name]])
+      org_request = :erpc.call(node, Teams.Integration, :get_org_request_by!, [[name: name]])
 
       # check if the form has the url to confirm
       link_element = element(view, "#new-org-form a")
       assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
-      :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
+      :erpc.call(node, Teams.Integration, :confirm_org_request, [org_request, user])
 
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page
@@ -76,10 +76,10 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub")
 
       # previously create the org and associate user with org
-      org = :erpc.call(node, Hub.Integration, :create_org, [[name: name]])
-      :erpc.call(node, Hub.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
-      :erpc.call(node, Hub.Integration, :create_org_key_pair, [[org: org]])
-      :erpc.call(node, Hub.Integration, :create_user_org, [[org: org, user: user]])
+      org = :erpc.call(node, Teams.Integration, :create_org, [[name: name]])
+      :erpc.call(node, Teams.Integration, :create_org_key, [[org: org, key_hash: key_hash]])
+      :erpc.call(node, Teams.Integration, :create_org_key_pair, [[org: org]])
+      :erpc.call(node, Teams.Integration, :create_user_org, [[org: org, user: user]])
 
       # select the new org option
       view
@@ -98,7 +98,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
       # gets the org request by name and key hash
       org_request =
-        :erpc.call(node, Hub.Integration, :get_org_request_by!, [
+        :erpc.call(node, Teams.Integration, :get_org_request_by!, [
           [name: name, key_hash: key_hash]
         ])
 
@@ -107,7 +107,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       assert render(link_element) =~ "/org-request/#{org_request.id}/confirm"
 
       # force org request confirmation
-      :erpc.call(node, Hub.Integration, :confirm_org_request, [org_request, user])
+      :erpc.call(node, Teams.Integration, :confirm_org_request, [org_request, user])
 
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page
