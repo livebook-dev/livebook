@@ -88,7 +88,7 @@ defmodule Livebook.FileSystem.S3 do
         add_error(
           changeset,
           :access_key_id,
-          "credentials not present and cannot be obtained from the environment"
+          "credentials missing and cannot be obtained from the environment"
         )
 
       _ ->
@@ -122,29 +122,31 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
-  Add environment/instance credentials to the given FileSystem if
-  they're not already included
+  Retrieve AWS credentials from the S3 FileSystem configuration, or from
+  the instance/environment if they're missing
   """
-  def ensure_credentials(%__MODULE__{} = file_system) do
+  def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
-        :aws_credentials.get_credentials()
-        |> add_credentials(file_system)
+        case :aws_credentials.get_credentials() do
+          :undefined ->
+            %{access_key_id: nil, secret_access_key: nil, token: nil}
+
+          credentials ->
+            credentials
+            |> Enum.filter(fn {k, _} ->
+              Enum.member?([:access_key_id, :secret_access_key, :token], k)
+            end)
+            |> Enum.into(%{})
+        end
 
       _ ->
-        file_system
+        %{
+          access_key_id: file_system.access_key_id,
+          secret_access_key: file_system.secret_access_key,
+          token: nil
+        }
     end
-  end
-
-  defp add_credentials(:undefined, target), do: target
-
-  defp add_credentials(credentials, %__MODULE__{} = file_system) do
-    %__MODULE__{
-      file_system
-      | access_key_id: credentials[:access_key_id],
-        secret_access_key: credentials[:secret_access_key],
-        session_token: credentials[:token]
-    }
   end
 end
 
