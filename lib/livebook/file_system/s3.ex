@@ -58,12 +58,13 @@ defmodule Livebook.FileSystem.S3 do
       :region,
       :access_key_id,
       :secret_access_key,
+      :session_token,
       :hub_id
     ])
     |> put_region_from_uri()
     |> validate_required([:bucket_url, :region, :hub_id])
-    |> Livebook.Utils.validate_mutual_inclusion([:access_key_id, :secret_access_key])
     |> Livebook.Utils.validate_url(:bucket_url)
+    |> validate_credentials()
     |> put_id()
   end
 
@@ -71,6 +72,27 @@ defmodule Livebook.FileSystem.S3 do
     case get_field(changeset, :bucket_url) do
       nil -> changeset
       bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
+    end
+  end
+
+  defp validate_credentials(changeset) do
+    case {get_field(changeset, :access_key_id), get_field(changeset, :secret_access_key)} do
+      {nil, nil} -> try_environment_credentials(changeset)
+      _ -> validate_required(changeset, [:access_key_id, :secret_access_key])
+    end
+  end
+
+  defp try_environment_credentials(changeset) do
+    case :aws_credentials.get_credentials() do
+      :undefined ->
+        add_error(
+          changeset,
+          :access_key_id,
+          "credentials missing and cannot be obtained from the environment"
+        )
+
+      _ ->
+        changeset
     end
   end
 
@@ -97,6 +119,34 @@ defmodule Livebook.FileSystem.S3 do
     encrypted_hash = Base.url_encode64(hash, padding: false)
 
     "s3-#{encrypted_hash}"
+  end
+
+  @doc """
+  Retrieve AWS credentials from the S3 FileSystem configuration, or from
+  the instance/environment if they're missing
+  """
+  def credentials(%__MODULE__{} = file_system) do
+    case {file_system.access_key_id, file_system.secret_access_key} do
+      {nil, nil} ->
+        case :aws_credentials.get_credentials() do
+          :undefined ->
+            %{access_key_id: nil, secret_access_key: nil, token: nil}
+
+          credentials ->
+            credentials
+            |> Enum.filter(fn {k, _} ->
+              Enum.member?([:access_key_id, :secret_access_key, :token], k)
+            end)
+            |> Enum.into(%{})
+        end
+
+      _ ->
+        %{
+          access_key_id: file_system.access_key_id,
+          secret_access_key: file_system.secret_access_key,
+          token: nil
+        }
+    end
   end
 end
 

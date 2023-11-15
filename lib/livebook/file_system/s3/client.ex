@@ -259,18 +259,19 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp sign_headers(file_system, method, url, headers, body \\ nil) do
+    credentials = S3.credentials(file_system)
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
     %{host: host} = URI.parse(file_system.bucket_url)
     headers = [{"Host", host} | headers]
 
     headers =
-      if file_system.session_token,
-        do: [{"X-Amz-Security-Token", file_system.session_token} | headers],
+      if credentials.token,
+        do: [{"X-Amz-Security-Token", credentials.token} | headers],
         else: headers
 
     :aws_signature.sign_v4(
-      file_system.access_key_id,
-      file_system.secret_access_key,
+      credentials.access_key_id,
+      credentials.secret_access_key,
       file_system.region,
       "s3",
       now,
@@ -279,7 +280,7 @@ defmodule Livebook.FileSystem.S3.Client do
       headers,
       body || "",
       uri_encode_path: false,
-      session_token: file_system.session_token
+      session_token: credentials.token
     )
   end
 
@@ -292,7 +293,6 @@ defmodule Livebook.FileSystem.S3.Client do
     body = opts[:body]
     timeout = if long, do: 60_000, else: 30_000
 
-    file_system = ensure_credentials(file_system)
     url = build_url(file_system, path, query)
     headers = sign_headers(file_system, method, url, headers, body)
     body = body && {"application/octet-stream", body}
@@ -310,28 +310,6 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp decode({:error, _} = error), do: error
-
-  defp ensure_credentials(%S3{access_key_id: nil} = file_system) do
-    case :aws_credentials.get_credentials() do
-      # Temporary credentials include a session token
-      %{access_key_id: access_key_id, secret_access_key: secret_access_key, token: session_token} ->
-        %S3{
-          file_system
-          | access_key_id: access_key_id,
-            secret_access_key: secret_access_key,
-            session_token: session_token
-        }
-
-      # Environment & Role credentials do not include a token
-      %{access_key_id: access_key_id, secret_access_key: secret_access_key} ->
-        %S3{file_system | access_key_id: access_key_id, secret_access_key: secret_access_key}
-
-      _otherwise ->
-        file_system
-    end
-  end
-
-  defp ensure_credentials(file_system), do: file_system
 
   defp xml?(headers, body) do
     guess_xml? = String.starts_with?(body, "<?xml")
