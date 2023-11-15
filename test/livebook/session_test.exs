@@ -178,8 +178,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
-                       %{source: "content", outputs: []}}}
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "content"}}}
     end
 
     test "inserts multiple cells when the smart cell has explicit chunks" do
@@ -206,40 +205,10 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:delete_cell, _client_id, ^cell_id}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 0, :code, _id,
-                       %{source: "chunk 1", outputs: []}}}
+                      {:insert_cell, _client_id, ^section_id, 0, :code, _id, %{source: "chunk 1"}}}
 
       assert_receive {:operation,
-                      {:insert_cell, _client_id, ^section_id, 1, :code, _id,
-                       %{source: "chunk 2", outputs: [{1, terminal_text("Hello")}]}}}
-    end
-
-    test "doesn't garbage collect input values" do
-      input = %{
-        type: :input,
-        ref: "ref",
-        id: "input1",
-        destination: :noop,
-        attrs: %{type: :text, default: "hey", label: "Name", debounce: :blur}
-      }
-
-      smart_cell = %{
-        Notebook.Cell.new(:smart)
-        | kind: "text",
-          source: "content",
-          outputs: [{1, input}]
-      }
-
-      section = %{Notebook.Section.new() | cells: [smart_cell]}
-      notebook = %{Notebook.new() | sections: [section]}
-
-      session = start_session(notebook: notebook)
-
-      Session.subscribe(session.id)
-
-      Session.convert_smart_cell(session.pid, smart_cell.id)
-
-      assert %{input_infos: %{"input1" => %{value: "hey"}}} = Session.get_data(session.pid)
+                      {:insert_cell, _client_id, ^section_id, 1, :code, _id, %{source: "chunk 2"}}}
     end
   end
 
