@@ -265,8 +265,8 @@ defmodule Livebook.FileSystem.S3.Client do
     headers = [{"Host", host} | headers]
 
     headers =
-      if credentials.session_token,
-        do: [{"X-Amz-Security-Token", credentials.session_token} | headers],
+      if credentials.token,
+        do: [{"X-Amz-Security-Token", credentials.token} | headers],
         else: headers
 
     :aws_signature.sign_v4(
@@ -280,7 +280,7 @@ defmodule Livebook.FileSystem.S3.Client do
       headers,
       body || "",
       uri_encode_path: false,
-      session_token: credentials.session_token
+      session_token: credentials.token
     )
   end
 

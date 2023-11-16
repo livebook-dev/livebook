@@ -17,7 +17,7 @@ defmodule Livebook.FileSystem.S3 do
   @type credentials :: %{
           access_key_id: String.t() | nil,
           secret_access_key: String.t() | nil,
-          session_token: String.t() | nil
+          token: String.t() | nil
         }
 
   embedded_schema do
@@ -136,21 +136,17 @@ defmodule Livebook.FileSystem.S3 do
       {nil, nil} ->
         case get_credentials() do
           :undefined ->
-            %{access_key_id: nil, secret_access_key: nil, session_token: nil}
+            %{access_key_id: nil, secret_access_key: nil, token: nil}
 
           credentials ->
-            %{
-              access_key_id: credentials[:access_key_id],
-              secret_access_key: credentials[:secret_access_key],
-              session_token: credentials[:token]
-            }
+            Map.take(credentials, [:access_key_id, :secret_access_key, :token])
         end
 
       _ ->
         %{
           access_key_id: file_system.access_key_id,
           secret_access_key: file_system.secret_access_key,
-          session_token: nil
+          token: nil
         }
     end
   end
