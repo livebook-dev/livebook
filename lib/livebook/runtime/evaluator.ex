@@ -836,11 +836,6 @@ defmodule Livebook.Runtime.Evaluator do
           do: {:variable, var},
           into: identifiers_used
 
-    identifiers_used =
-      for var <- tracer_info.undefined_vars,
-          do: {:variable, var},
-          into: identifiers_used
-
     identifiers_defined =
       for var <- vars_defined(context, prev_context),
           do: {{:variable, var}, context.id},

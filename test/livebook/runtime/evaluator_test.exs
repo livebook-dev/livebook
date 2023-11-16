@@ -834,22 +834,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert {:variable, {:z, nil}} not in identifiers.used
     end
 
-    test "reports parentheses-less arity-0 import as a used variable", %{evaluator: evaluator} do
-      # TODO: remove all logic around undefined unused vars once we require Elixir v1.15
-      Code.put_compiler_option(:on_undefined_variable, :warn)
-
-      identifiers =
-        """
-        self
-        """
-        |> eval(evaluator, 0)
-
-      Code.put_compiler_option(:on_undefined_variable, :raise)
-
-      assert {:variable, {:self, nil}} in identifiers.used
-      assert :imports in identifiers.used
-    end
-
     test "module definition", %{evaluator: evaluator} do
       identifiers =
         """
