@@ -9,9 +9,15 @@ defmodule Livebook.FileSystem.S3 do
           bucket_url: String.t(),
           external_id: String.t() | nil,
           region: String.t(),
-          access_key_id: String.t(),
-          secret_access_key: String.t(),
+          access_key_id: String.t() | nil,
+          secret_access_key: String.t() | nil,
           hub_id: String.t()
+        }
+
+  @type credentials :: %{
+          access_key_id: String.t() | nil,
+          secret_access_key: String.t() | nil,
+          session_token: String.t() | nil
         }
 
   embedded_schema do
@@ -59,8 +65,9 @@ defmodule Livebook.FileSystem.S3 do
       :hub_id
     ])
     |> put_region_from_uri()
-    |> validate_required([:bucket_url, :region, :access_key_id, :secret_access_key, :hub_id])
+    |> validate_required([:bucket_url, :region, :hub_id])
     |> Livebook.Utils.validate_url(:bucket_url)
+    |> validate_credentials()
     |> put_id()
   end
 
@@ -68,6 +75,27 @@ defmodule Livebook.FileSystem.S3 do
     case get_field(changeset, :bucket_url) do
       nil -> changeset
       bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
+    end
+  end
+
+  defp validate_credentials(changeset) do
+    case {get_field(changeset, :access_key_id), get_field(changeset, :secret_access_key)} do
+      {nil, nil} -> try_environment_credentials(changeset)
+      _ -> validate_required(changeset, [:access_key_id, :secret_access_key])
+    end
+  end
+
+  defp try_environment_credentials(changeset) do
+    case :aws_credentials.get_credentials() do
+      :undefined ->
+        add_error(
+          changeset,
+          :access_key_id,
+          "credentials missing and cannot be obtained from the environment"
+        )
+
+      _ ->
+        changeset
     end
   end
 
@@ -94,6 +122,37 @@ defmodule Livebook.FileSystem.S3 do
     encrypted_hash = Base.url_encode64(hash, padding: false)
 
     "s3-#{encrypted_hash}"
+  end
+
+  @doc """
+  Retrieves credentials for the given file system.
+
+  If the credentials are not specified by the file system, they are
+  fetched from environment variables or AWS instance if applicable.
+  """
+  @spec credentials(S3.t()) :: S3.credentials()
+  def credentials(%__MODULE__{} = file_system) do
+    case {file_system.access_key_id, file_system.secret_access_key} do
+      {nil, nil} ->
+        case :aws_credentials.get_credentials() do
+          :undefined ->
+            %{access_key_id: nil, secret_access_key: nil, session_token: nil}
+
+          credentials ->
+            %{
+              access_key_id: credentials[:access_key_id],
+              secret_access_key: credentials[:secret_access_key],
+              session_token: credentials[:token]
+            }
+        end
+
+      _ ->
+        %{
+          access_key_id: file_system.access_key_id,
+          secret_access_key: file_system.secret_access_key,
+          session_token: nil
+        }
+    end
   end
 end
 

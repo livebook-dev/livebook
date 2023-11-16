@@ -259,13 +259,19 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp sign_headers(file_system, method, url, headers, body \\ nil) do
+    credentials = S3.credentials(file_system)
     now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
     %{host: host} = URI.parse(file_system.bucket_url)
     headers = [{"Host", host} | headers]
 
+    headers =
+      if credentials.session_token,
+        do: [{"X-Amz-Security-Token", credentials.session_token} | headers],
+        else: headers
+
     :aws_signature.sign_v4(
-      file_system.access_key_id,
-      file_system.secret_access_key,
+      credentials.access_key_id,
+      credentials.secret_access_key,
       file_system.region,
       "s3",
       now,
@@ -273,7 +279,8 @@ defmodule Livebook.FileSystem.S3.Client do
       url,
       headers,
       body || "",
-      uri_encode_path: false
+      uri_encode_path: false,
+      session_token: credentials.session_token
     )
   end
 
