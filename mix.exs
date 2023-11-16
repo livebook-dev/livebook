@@ -153,15 +153,20 @@ defmodule Livebook.MixProject do
 
   ## Releases
 
+  # aws_credentials has runtime: false, so explicitly add is as :load
+  @release_apps [livebook: :permanent, aws_credentials: :load]
+
   defp releases do
     [
       livebook: [
+        applications: @release_apps,
         include_executables_for: [:unix, :windows],
         include_erts: false,
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]
       ],
       app: [
+        applications: @release_apps,
         include_erts: false,
         rel_templates_path: "rel/app",
         steps: [

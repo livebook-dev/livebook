@@ -87,7 +87,7 @@ defmodule Livebook.Application do
 
   defp setup_optional_dependencies() do
     if Livebook.Config.aws_credentials?() do
-      Application.ensure_all_started(:aws_credentials)
+      {:ok, _} = Application.ensure_all_started(:aws_credentials)
     end
   end
 
