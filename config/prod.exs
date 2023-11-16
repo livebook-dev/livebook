@@ -17,15 +17,18 @@ config :logger, level: :warning
 
 config :livebook, Livebook.Copilot,
   enabled: true,
-  backend: Livebook.Copilot.BumblebeeBackend,
-  backend_config: %{
-    model: "gpt2",
-    client: :host
-  }
+  backend: Livebook.BumblebeeBackend
+
+# backend_config: %{
+#   model: "gpt2",
+#   client: :host
+# }
 
 config :nx,
   default_backend: EXLA.Backend,
-  client: :cuda
+  client: :host
+
+# client: :cuda
 
 # ## SSL Support
 #
