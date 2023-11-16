@@ -2669,7 +2669,7 @@ defmodule Livebook.Session do
              region: file_system.region,
              access_key_id: credentials.access_key_id,
              secret_access_key: credentials.secret_access_key,
-             session_token: credentials.session_token,
+             token: credentials.token,
              key: key
            }}
         end
