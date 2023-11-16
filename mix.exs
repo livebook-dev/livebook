@@ -120,13 +120,16 @@ defmodule Livebook.MixProject do
       {:req, "~> 0.4.4"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false},
-      {:openai_ex, "~> 0.4.1"},
 
+      # Copilot depencies
+      {:openai_ex, "~> 0.4.1"},
       # TODO these are some heavy dependencies - can we somehow make them conditional on
       # actually wanting bumblebee completion?
-      {:bumblebee, "~> 0.4.2"},
-      {:nx, "~> 0.6.1"},
-      {:exla, "~> 0.6.1"}
+      # {:bumblebee, "~> 0.4.2"},
+      {:bumblebee, "~> 0.4.2",
+       git: "https://github.com/elixir-nx/bumblebee", branch: "jk-deepseek"},
+      {:nx, "~> 0.6.4", override: true},
+      {:exla, "~> 0.6.4"}
     ]
   end
 

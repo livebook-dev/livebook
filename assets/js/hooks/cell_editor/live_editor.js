@@ -738,11 +738,12 @@ class LiveEditor {
       // TODO don't debounce when triggered by keyboard shortcut
       var debouncedFunc = debounce(function (...args) {
         let promiseResolverSnapshot = promiseResolverRef.current;
-        let returnedPromise = func(...args);
+        let returnedPromise = func(...args)
         if (returnedPromise == null) {
           return;
         }
-        func(...args).then(function (...args) {
+        returnedPromise.then(function (...args) {
+          console.log("then called")
           if (promiseResolverSnapshot === promiseResolverRef.current) {
             promiseResolverRef.current(...args);
           }
@@ -759,9 +760,8 @@ class LiveEditor {
         });
       };
     }
-    this.editor.getModel().__getCopilotCompletionItemsDebounced__ = debouncePromise(500, (model, position, context, token) => {
-      return model.__getCopilotCompletionItems__(model, position, context, token)
-    })
+    this.editor.getModel().__getCopilotCompletionItemsDebounced__ = debouncePromise(300, this.editor.getModel().__getCopilotCompletionItems__)
+
 
     this.hook.handleEvent("copilot_response", ({
       ref,

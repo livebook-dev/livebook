@@ -1859,7 +1859,7 @@ defmodule LivebookWeb.SessionLive do
      |> put_flash(:error, error)}
   end
 
-  def handle_info({:copilot_response, ref, _request, {:loading_model, message}}, socket) do
+  def handle_info({:copilot_response, _ref, _request, {:loading_model, message}}, socket) do
     {:noreply,
      socket
      |> put_flash(:warning, message)}

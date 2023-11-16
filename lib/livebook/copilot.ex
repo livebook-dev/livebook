@@ -29,12 +29,16 @@ defmodule Livebook.Copilot do
               "Loading copilot model #{backend} with #{inspect(backend_config)} - this may take a while."}}
           )
 
-          apply(backend, :load_model!, [backend_config])
+          {time, _} =
+            :timer.tc(fn ->
+              backend
+              |> apply(:load_model!, [backend_config])
+            end)
 
           send(
             pid,
             {:copilot_model_loaded,
-             "Copilot backend #{backend} with #{inspect(backend_config)} is ready to use now."}
+             "Loaded {backend} #{inspect(backend_config)} in #{trunc(time / 1_000)}ms"}
           )
         end
 

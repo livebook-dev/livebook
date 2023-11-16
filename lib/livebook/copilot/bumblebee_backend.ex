@@ -13,7 +13,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
       ""
     else
       completion =
-        Nx.Serving.batched_run(Copilot.CompletionBackends.GPT2, prompt)
+        Nx.Serving.batched_run(serving_name(model), prompt)
         |> Map.get(:results)
         |> hd
         |> Map.get(:text)
@@ -22,13 +22,53 @@ defmodule Livebook.Copilot.BumblebeeBackend do
     end
   end
 
-  def build_prompt("codellama-7b", pre, suf),
+  def build_prompt("deepseek-coder" <> _, pre, suf),
+    do:
+      "<｜fim▁begin｜># cell.ex: an elixir livebook cell written in elixir\n#{pre}<｜fim▁hole｜>#{suf}<｜fim▁end｜>"
+
+  def build_prompt("codellama" <> _, pre, suf),
     do: "<PRE>#{pre} <SUF>#{suf} <MID>"
 
   def build_prompt(_, pre, _suf), do: pre
 
-  def post_process("codellama-7b", completion), do: completion |> String.trim_trailing("<EOT>")
+  # TODO for some reason this model returns the whole string, not just the completed parts
+  def post_process("deepseek-coder" <> _, completion),
+    do:
+      String.split(completion, "<｜fim▁end｜>")
+      |> Enum.at(1)
+
+  def post_process("codellama" <> _, completion), do: completion |> String.trim_trailing("<EOT>")
   def post_process(_, completion), do: completion
+
+  def nx_serving_spec(%{model: "deepseek-coder-1.3b"} = config) do
+    repo = {:hf, "deepseek-ai/deepseek-coder-1.3b-base"}
+
+    {:ok, model_info} =
+      Bumblebee.load_model(repo,
+        backend: {EXLA.Backend, client: config[:client] || :host}
+      )
+
+    {:ok, tokenizer} =
+      Bumblebee.load_tokenizer(
+        {:hf, "deepseek-ai/deepseek-coder-1.3b-base",
+         revision: "e94f2b11bc28abbd67ecadfaad058c30b24a589f"}
+      )
+
+    {:ok, generation_config} = Bumblebee.load_generation_config(repo)
+
+    generation_config =
+      Bumblebee.configure(generation_config, max_new_tokens: 200, no_repeat_ngram_length: 7)
+
+    serving =
+      Bumblebee.Text.generation(model_info, tokenizer, generation_config,
+        compile: [batch_size: 1, sequence_length: 512],
+        stream: false,
+        defn_options: [compiler: EXLA, lazy_transfers: :never],
+        preallocate_params: true
+      )
+
+    {Nx.Serving, name: serving_name(config[:model]), serving: serving}
+  end
 
   def nx_serving_spec(%{model: "codellama-7b"} = config) do
     repo = {:hf, "codellama/CodeLlama-7b-hf"}
@@ -42,7 +82,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
     {:ok, generation_config} = Bumblebee.load_generation_config(repo)
 
     generation_config =
-      Bumblebee.configure(generation_config, max_new_tokens: 100)
+      Bumblebee.configure(generation_config, max_new_tokens: 100, no_repeat_ngram_length: 7)
 
     serving =
       Bumblebee.Text.generation(model_info, tokenizer, generation_config,
@@ -51,7 +91,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
         defn_options: [compiler: EXLA, lazy_transfers: :never]
       )
 
-    {Nx.Serving, name: serving_name("codellama-7b"), serving: serving}
+    {Nx.Serving, name: serving_name(config[:model]), serving: serving}
   end
 
   def nx_serving_spec(%{model: "gpt2"} = config) do
@@ -66,7 +106,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
     {:ok, generation_config} = Bumblebee.load_generation_config(repo)
 
     generation_config =
-      Bumblebee.configure(generation_config, max_new_tokens: 30, no_repeat_ngram_length: 3)
+      Bumblebee.configure(generation_config, max_new_tokens: 30, no_repeat_ngram_length: 5)
 
     serving =
       Bumblebee.Text.generation(model_info, tokenizer, generation_config,
@@ -75,7 +115,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
         defn_options: [compiler: EXLA, lazy_transfers: :never]
       )
 
-    {Nx.Serving, name: serving_name("gpt2"), serving: serving}
+    {Nx.Serving, name: serving_name(config[:model]), serving: serving}
   end
 
   def load_model!(%{model: model} = config) do
@@ -105,6 +145,7 @@ defmodule Livebook.Copilot.BumblebeeBackend do
     !!child
   end
 
+  defp serving_name("deepseek-coder-1.3b"), do: Copilot.CompletionBackends.DeepseekSmall
   defp serving_name("gpt2"), do: Copilot.CompletionBackends.GPT2
   defp serving_name("codellama-7b"), do: Copilot.CompletionBackends.Codellama
 end

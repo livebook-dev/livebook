@@ -17,7 +17,11 @@ config :logger, level: :warning
 
 config :livebook, Livebook.Copilot,
   enabled: true,
-  backend: Livebook.BumblebeeBackend
+  backend: Livebook.Copilot.BumblebeeBackend,
+  backend_config: %{
+    model: "deepseek-coder-1.3b",
+    client: :cuda
+  }
 
 # backend_config: %{
 #   model: "gpt2",
@@ -26,9 +30,8 @@ config :livebook, Livebook.Copilot,
 
 config :nx,
   default_backend: EXLA.Backend,
-  client: :host
-
-# client: :cuda
+  device: :cuda,
+  client: :cuda
 
 # ## SSL Support
 #
