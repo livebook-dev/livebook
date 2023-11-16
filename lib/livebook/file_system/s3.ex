@@ -9,8 +9,8 @@ defmodule Livebook.FileSystem.S3 do
           bucket_url: String.t(),
           external_id: String.t() | nil,
           region: String.t(),
-          access_key_id: String.t(),
-          secret_access_key: String.t(),
+          access_key_id: String.t() | nil,
+          secret_access_key: String.t() | nil,
           hub_id: String.t()
         }
 
