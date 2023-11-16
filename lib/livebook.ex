@@ -145,6 +145,10 @@ defmodule Livebook do
       config :livebook, :within_iframe, true
     end
 
+    if Livebook.Config.boolean!("LIVEBOOK_AWS_CREDENTIALS", false) do
+      config :livebook, :aws_credentials, true
+    end
+
     config :livebook,
            :default_runtime,
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||

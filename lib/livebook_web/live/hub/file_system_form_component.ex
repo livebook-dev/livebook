@@ -59,13 +59,23 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             placeholder="https://s3.[region].amazonaws.com/[bucket]"
           />
           <.text_field field={f[:region]} label="Region (optional)" />
-          <.password_field field={f[:access_key_id]} label="Access Key ID (optional)" />
-          <.password_field field={f[:secret_access_key]} label="Secret Access Key (optional)" />
-          <p class="text-xs text-gray-700">
-            You may leave Access Key fields empty. In such cases,
-            they will be automatically read from your environment variables,
-            AWS credentials, or Amazon EC2/ECS metadata.
-          </p>
+          <%= if Livebook.Config.aws_credentials?() do %>
+            <.password_field field={f[:access_key_id]} label="Access Key ID (optional)" />
+            <.password_field field={f[:secret_access_key]} label="Secret Access Key (optional)" />
+            <p class="text-xs text-gray-700">
+              You may leave Access Key fields empty. In such cases,
+              they will be automatically read from your environment variables,
+              AWS credentials, or Amazon EC2/ECS metadata.
+            </p>
+          <% else %>
+            <.password_field field={f[:access_key_id]} label="Access Key ID" />
+            <.password_field field={f[:secret_access_key]} label="Secret Access Key" />
+            <p class="text-xs text-gray-700">
+              Start Livebook with <code>LIVEBOOK_AWS_CREDENTIALS</code> environment
+              variable set if you want to automatically read credentials from
+              environment variables, AWS credentials, or Amazon EC2/ECS metadata.
+            </p>
+          <% end %>
           <div class="flex space-x-2">
             <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
               <.remix_icon icon={@button.icon} class="align-middle mr-1" />

@@ -2,6 +2,7 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
+    setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()
     ensure_distribution!()
@@ -82,6 +83,12 @@ defmodule Livebook.Application do
   def config_change(changed, _new, removed) do
     LivebookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp setup_optional_dependencies() do
+    if Livebook.Config.aws_credentials?() do
+      Application.ensure_all_started(:aws_credentials)
+    end
   end
 
   defp ensure_directories!() do
