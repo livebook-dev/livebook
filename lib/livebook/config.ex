@@ -220,6 +220,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns if aws_credentials is enabled.
+  """
+  @spec aws_credentials?() :: boolean()
+  def aws_credentials?() do
+    Application.fetch_env!(:livebook, :aws_credentials)
+  end
+
+  @doc """
   Shuts down the system, if possible.
   """
   def shutdown do

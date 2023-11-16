@@ -189,6 +189,10 @@ The following environment variables can be used to configure Livebook on boot:
     building the Docker image; to do so add "RUN /app/bin/warmup_apps" to
     your image). Defaults to "auto".
 
+  * `LIVEBOOK_AWS_CREDENTIALS` - enable Livebook to read AWS Credentials from
+    environment variables, AWS Credentials, EC2/ECS metadata when configuring
+    S3 buckets.
+
   * `LIVEBOOK_BASE_URL_PATH` - sets the base url path the web application is
     served on. Useful when deploying behind a reverse proxy.
 

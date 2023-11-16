@@ -86,7 +86,7 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   defp try_environment_credentials(changeset) do
-    case :aws_credentials.get_credentials() do
+    case get_credentials() do
       :undefined ->
         add_error(
           changeset,
@@ -134,7 +134,7 @@ defmodule Livebook.FileSystem.S3 do
   def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
-        case :aws_credentials.get_credentials() do
+        case get_credentials() do
           :undefined ->
             %{access_key_id: nil, secret_access_key: nil, session_token: nil}
 
@@ -152,6 +152,14 @@ defmodule Livebook.FileSystem.S3 do
           secret_access_key: file_system.secret_access_key,
           session_token: nil
         }
+    end
+  end
+
+  defp get_credentials do
+    if Livebook.Config.aws_credentials?() do
+      :aws_credentials.get_credentials()
+    else
+      :undefined
     end
   end
 end

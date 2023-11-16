@@ -35,7 +35,8 @@ config :livebook,
   shutdown_callback: nil,
   update_instructions_url: nil,
   within_iframe: false,
-  allowed_uri_schemes: []
+  allowed_uri_schemes: [],
+  aws_credentials: false
 
 # TODO: Remove this in aws_credentials 0.2.0
 config :aws_credentials, fail_if_unavailable: false
