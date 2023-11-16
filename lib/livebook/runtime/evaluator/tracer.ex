@@ -14,8 +14,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
             requires_used: MapSet.new(),
             requires_defined: MapSet.new(),
             imports_used?: false,
-            imports_defined?: false,
-            undefined_vars: MapSet.new()
+            imports_defined?: false
 
   @type t :: %__MODULE__{
           modules_used: MapSet.t(),
@@ -25,8 +24,7 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
           requires_used: MapSet.t(),
           requires_defined: MapSet.t(),
           imports_used?: boolean(),
-          imports_defined?: boolean(),
-          undefined_vars: MapSet.t()
+          imports_defined?: boolean()
         }
 
   @doc false
@@ -62,13 +60,11 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
         if(env.module, do: [], else: [:import_defined]) ++
           [{:module_used, module}, {:alias_used, module}]
 
-      {:imported_function, meta, module, name, _arity} ->
-        var? = Keyword.has_key?(meta, :if_undefined)
-        [{:module_used, module}, {:import_used, name, var?}]
+      {:imported_function, _meta, module, _name, _arity} ->
+        [{:module_used, module}, :import_used]
 
-      {:imported_macro, meta, module, name, _arity} ->
-        var? = Keyword.has_key?(meta, :if_undefined)
-        [{:module_used, module}, {:import_used, name, var?}]
+      {:imported_macro, _meta, module, _name, _arity} ->
+        [{:module_used, module}, :import_used]
 
       {:alias, _meta, alias, as, _opts} ->
         if(env.module, do: [], else: [{:alias_defined, as, alias}]) ++
@@ -136,14 +132,8 @@ defmodule Livebook.Runtime.Evaluator.Tracer do
     update_in(info.requires_defined, &MapSet.put(&1, module))
   end
 
-  defp apply_update(info, {:import_used, name, var?}) do
-    info = put_in(info.imports_used?, true)
-
-    if var? do
-      update_in(info.undefined_vars, &MapSet.put(&1, {name, nil}))
-    else
-      info
-    end
+  defp apply_update(info, :import_used) do
+    put_in(info.imports_used?, true)
   end
 
   defp apply_update(info, :import_defined) do

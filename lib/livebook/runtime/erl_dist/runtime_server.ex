@@ -387,7 +387,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_info({:orphan_log, output}, state) do
     with %{} = evaluator <- state.last_evaluator,
          {:group_leader, io_proxy} <- Process.info(evaluator.pid, :group_leader) do
-      ErlDist.LoggerGLBackend.async_io(io_proxy, output)
+      ErlDist.LoggerGLHandler.async_io(io_proxy, output)
     end
 
     {:noreply, state}

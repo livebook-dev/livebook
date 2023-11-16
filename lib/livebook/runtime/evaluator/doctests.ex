@@ -92,25 +92,11 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
   defp report_doctest_result(%{state: {:failed, failure}} = test, lines) do
     doctest_line = test.tags.doctest_line
     [prompt_line | _] = lines = Enum.drop(lines, doctest_line - 1)
-
-    end_line =
-      if end_line = test.tags[:doctest_data][:end_line] do
-        end_line
-      else
-        # TODO: Remove this branch once we require Elixir v1.15+
-        interval =
-          lines
-          |> Enum.take_while(&(not end_of_doctest?(&1)))
-          |> length()
-
-        interval + doctest_line - 1
-      end
+    end_line = test.tags[:doctest_data][:end_line]
 
     end_line =
       with {:error, %ExUnit.AssertionError{}, [{_, _, _, location} | _]} <- failure,
            assertion_line = location[:line],
-           # TODO: Remove this check once we require Elixir v1.15+
-           true <- is_integer(test.tags[:doctest_data][:end_line]),
            true <- assertion_line in doctest_line..end_line do
         end_line -
           length(
@@ -144,17 +130,6 @@ defmodule Livebook.Runtime.Evaluator.Doctests do
       "iex(" <> _ -> true
       "...>" <> _ -> true
       "...(" <> _ -> true
-      _ -> false
-    end
-  end
-
-  defp end_of_doctest?(line) do
-    case String.trim_leading(line) do
-      "" -> true
-      "```" <> _ -> true
-      "~~~" <> _ -> true
-      "'''" <> _ -> true
-      "\"\"\"" <> _ -> true
       _ -> false
     end
   end
