@@ -14,10 +14,10 @@ defmodule Livebook.FileSystem.S3 do
           hub_id: String.t()
         }
 
-  @type credentials_t :: %{
+  @type credentials :: %{
           access_key_id: String.t() | nil,
           secret_access_key: String.t() | nil,
-          token: String.t() | nil
+          session_token: String.t() | nil
         }
 
   embedded_schema do
@@ -125,30 +125,32 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
-  Retrieve AWS credentials from the S3 FileSystem configuration, or from
-  the instance/environment if they're missing
+  Retrieves credentials for the given file system.
+
+  If the credentials are not specified by the file system, they are
+  fetched from environment variables or AWS instance if applicable.
   """
-  @spec credentials(S3.t()) :: S3.credentials_t()
+  @spec credentials(S3.t()) :: S3.credentials()
   def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
         case :aws_credentials.get_credentials() do
           :undefined ->
-            %{access_key_id: nil, secret_access_key: nil, token: nil}
+            %{access_key_id: nil, secret_access_key: nil, session_token: nil}
 
           credentials ->
-            credentials
-            |> Enum.filter(fn {k, _} ->
-              Enum.member?([:access_key_id, :secret_access_key, :token], k)
-            end)
-            |> Enum.into(%{})
+            %{
+              access_key_id: credentials[:access_key_id],
+              secret_access_key: credentials[:secret_access_key],
+              session_token: credentials[:token]
+            }
         end
 
       _ ->
         %{
           access_key_id: file_system.access_key_id,
           secret_access_key: file_system.secret_access_key,
-          token: nil
+          session_token: nil
         }
     end
   end

@@ -2661,14 +2661,16 @@ defmodule Livebook.Session do
       FileSystem.S3 ->
         "/" <> key = file.path
 
-        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file) do
+        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file),
+             credentials <- FileSystem.S3.credentials(file_system) do
           {:ok,
            %{
              type: :s3,
              bucket_url: file_system.bucket_url,
              region: file_system.region,
-             access_key_id: file_system.access_key_id,
-             secret_access_key: file_system.secret_access_key,
+             access_key_id: credentials.access_key_id,
+             secret_access_key: credentials.secret_access_key,
+             session_token: credentials.session_token,
              key: key
            }}
         end
