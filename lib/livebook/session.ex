@@ -2661,8 +2661,9 @@ defmodule Livebook.Session do
       FileSystem.S3 ->
         "/" <> key = file.path
 
-        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file),
-             credentials <- FileSystem.S3.credentials(file_system) do
+        with {:ok, file_system} <- FileSystem.File.fetch_file_system(file) do
+          credentials = FileSystem.S3.credentials(file_system)
+
           {:ok,
            %{
              type: :s3,
