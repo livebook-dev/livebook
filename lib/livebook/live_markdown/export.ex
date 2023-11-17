@@ -225,7 +225,9 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(%{
       "livebook_object" => "smart_cell",
       "kind" => cell.kind,
-      "attrs" => cell.attrs,
+      # Attributes may include arbitrary values, including sequences
+      # like "-->" that would mess our format, so we always encode them
+      "attrs" => cell.attrs |> ensure_order() |> Jason.encode!() |> Base.encode64(padding: false),
       "chunks" => cell.chunks && Enum.map(cell.chunks, &Tuple.to_list/1)
     })
   end
