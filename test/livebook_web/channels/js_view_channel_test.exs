@@ -57,6 +57,14 @@ defmodule LivebookWeb.JSViewChannelTest do
     assert_push "event:1", %{"root" => [["ping"], [1, 2, 3]]}
   end
 
+  test "ignores client events when no connection is found", %{socket: socket} do
+    push(socket, "event", %{"root" => [["ping", "1"], [1, 2, 3]]})
+
+    # The channel should still be operational
+    push(socket, "connect", %{"connect_token" => connect_token(), "ref" => "1", "id" => "id1"})
+    assert_receive {:connect, _from, %{}}
+  end
+
   describe "binary payload" do
     test "initial data", %{socket: socket} do
       push(socket, "connect", %{"connect_token" => connect_token(), "ref" => "1", "id" => "id1"})

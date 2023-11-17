@@ -47,30 +47,40 @@ defmodule LivebookWeb.JSViewChannel do
 
   def handle_in("event", raw, socket) do
     {[event, ref], payload} = transport_decode!(raw)
-    pid = socket.assigns.ref_with_info[ref].pid
-    send(pid, {:event, event, payload, %{origin: socket.assigns.client_id, ref: ref}})
+
+    with %{^ref => info} <- socket.assigns.ref_with_info do
+      send(info.pid, {:event, event, payload, %{origin: socket.assigns.client_id, ref: ref}})
+    end
+
     {:noreply, socket}
   end
 
   def handle_in("ping", %{"ref" => ref}, socket) do
-    pid = socket.assigns.ref_with_info[ref].pid
-    send(pid, {:ping, self(), nil, %{ref: ref}})
+    with %{^ref => info} <- socket.assigns.ref_with_info do
+      send(info.pid, {:ping, self(), nil, %{ref: ref}})
+    end
+
     {:noreply, socket}
   end
 
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
-      if socket.assigns.ref_with_info[ref].count == 1 do
-        Livebook.Session.unsubscribe_from_runtime_events(
-          socket.assigns.session_id,
-          "js_live",
-          ref
-        )
+      case socket.assigns.ref_with_info do
+        %{^ref => %{count: 1}} ->
+          Livebook.Session.unsubscribe_from_runtime_events(
+            socket.assigns.session_id,
+            "js_live",
+            ref
+          )
 
-        {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
-        socket
-      else
-        update_in(socket.assigns.ref_with_info[ref], &%{&1 | count: &1.count - 1})
+          {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
+          socket
+
+        %{^ref => %{count: count}} when count > 1 ->
+          update_in(socket.assigns.ref_with_info[ref], &%{&1 | count: &1.count - 1})
+
+        %{} ->
+          socket
       end
 
     {:noreply, socket}
