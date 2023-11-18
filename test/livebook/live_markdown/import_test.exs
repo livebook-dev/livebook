@@ -43,13 +43,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Process.info()
     ```
 
-    <!-- livebook:{"attrs":{"text":"My text"},"livebook_object":"smart_cell","kind":"text"} -->
+    <!-- livebook:{"attrs":"eyJ0ZXh0IjoiTXkgdGV4dCJ9","livebook_object":"smart_cell","kind":"text"} -->
 
     ```elixir
     IO.puts("My text")
     ```
 
-    <!-- livebook:{"attrs":{},"chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
+    <!-- livebook:{"attrs":"e30","chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
 
     ```elixir
     x = 1
@@ -913,6 +913,40 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       assert [
                "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
              ] == messages
+    end
+
+    test "imports smart cell attributes as map" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      <!-- livebook:{"attrs":{"text":"My text"},"livebook_object":"smart_cell","kind":"text"} -->
+
+      ```elixir
+      IO.puts("My text")
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Smart{
+                       source: """
+                       IO.puts("My text")\
+                       """,
+                       attrs: %{"text" => "My text"},
+                       kind: "text"
+                     }
+                   ]
+                 }
+               ]
+             } = notebook
     end
   end
 

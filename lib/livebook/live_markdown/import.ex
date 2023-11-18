@@ -243,6 +243,17 @@ defmodule Livebook.LiveMarkdown.Import do
        ) do
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
     %{"kind" => kind, "attrs" => attrs} = data
+
+    attrs =
+      case attrs do
+        # Import map attributes for backward compatibility
+        %{} ->
+          attrs
+
+        encoded when is_binary(encoded) ->
+          encoded |> Base.decode64!(padding: false) |> Jason.decode!()
+      end
+
     chunks = if(chunks = data["chunks"], do: Enum.map(chunks, &List.to_tuple/1))
 
     cell = %{

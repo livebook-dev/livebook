@@ -133,13 +133,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     Process.info()
     ```
 
-    <!-- livebook:{"attrs":{"text":"My text"},"chunks":null,"kind":"text","livebook_object":"smart_cell"} -->
+    <!-- livebook:{"attrs":"eyJ0ZXh0IjoiTXkgdGV4dCJ9","chunks":null,"kind":"text","livebook_object":"smart_cell"} -->
 
     ```elixir
     IO.puts("My text")
     ```
 
-    <!-- livebook:{"attrs":{},"chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
+    <!-- livebook:{"attrs":"e30","chunks":[[0,5],[7,5]],"kind":"multi_chunk","livebook_object":"smart_cell"} -->
 
     ```elixir
     x = 1
