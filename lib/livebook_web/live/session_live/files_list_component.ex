@@ -143,7 +143,11 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
               </button>
             </.menu_item>
             <.menu_item>
-              <a role="menuitem" href={~p"/sessions/#{@session.id}/download/files/#{file_entry.name}"}>
+              <a
+                role="menuitem"
+                href={~p"/sessions/#{@session.id}/download/files/#{file_entry.name}"}
+                download
+              >
                 <.remix_icon icon="download-2-line" />
                 <span>Download</span>
               </a>

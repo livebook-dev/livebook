@@ -53,6 +53,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
                 href={
                   ~p"/sessions/#{@session.id}/download/export/livemd?include_outputs=#{@include_outputs}"
                 }
+                download
               >
                 <.remix_icon icon="download-2-line" class="text-lg" />
               </a>
