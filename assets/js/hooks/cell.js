@@ -230,7 +230,7 @@ const Cell = {
         const markdown = new Markdown(markdownContainer, source, {
           baseUrl: this.props.sessionPath,
           emptyText: "Empty markdown cell",
-          allowedUriSchemes: this.props.allowedUriSchemes.split(","),
+          allowedUriSchemes: this.props.allowedUriSchemes,
         });
 
         liveEditor.onChange((newSource) => {
