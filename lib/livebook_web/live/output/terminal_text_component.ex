@@ -53,10 +53,10 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
       id={@id}
       class="relative"
       phx-hook="VirtualizedLines"
-      data-max-height="300"
-      data-follow="true"
-      data-max-lines={Livebook.Notebook.max_terminal_lines()}
-      data-ignore-trailing-empty-line="true"
+      data-p-max-height={hook_prop(300)}
+      data-p-follow={hook_prop(true)}
+      data-p-max-lines={hook_prop(Livebook.Notebook.max_terminal_lines())}
+      data-p-ignore-trailing-empty-line={hook_prop(true)}
     >
       <% # Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>
       <% # Note 2: We glue the tags together to avoid inserting unintended whitespace %>

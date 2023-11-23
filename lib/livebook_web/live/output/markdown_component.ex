@@ -29,8 +29,8 @@ defmodule LivebookWeb.Output.MarkdownComponent do
     <div
       id={@id}
       phx-hook="MarkdownRenderer"
-      data-base-path={~p"/sessions/#{@session_id}"}
-      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
+      data-p-base-path={hook_prop(~p"/sessions/#{@session_id}")}
+      data-p-allowed-uri-schemes={hook_prop(@allowed_uri_schemes)}
     >
       <div
         data-template

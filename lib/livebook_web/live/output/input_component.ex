@@ -101,10 +101,10 @@ defmodule LivebookWeb.Output.InputComponent do
         step="60"
         autocomplete="off"
         phx-hook="UtcDateTimeInput"
-        data-utc-value={@value && NaiveDateTime.to_iso8601(@value)}
-        data-utc-min={@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min)}
-        data-utc-max={@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max)}
-        data-phx-target={@myself}
+        data-p-utc-value={hook_prop(@value && NaiveDateTime.to_iso8601(@value))}
+        data-p-utc-min={hook_prop(@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min))}
+        data-p-utc-max={hook_prop(@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max))}
+        data-p-phx-target={hook_prop(@myself)}
       />
     </div>
     """
@@ -127,10 +127,10 @@ defmodule LivebookWeb.Output.InputComponent do
         step="60"
         autocomplete="off"
         phx-hook="UtcTimeInput"
-        data-utc-value={@value && Time.to_iso8601(@value)}
-        data-utc-min={@input.attrs.min && Time.to_iso8601(@input.attrs.min)}
-        data-utc-max={@input.attrs.max && Time.to_iso8601(@input.attrs.max)}
-        data-phx-target={@myself}
+        data-p-utc-value={hook_prop(@value && Time.to_iso8601(@value))}
+        data-p-utc-min={hook_prop(@input.attrs.min && Time.to_iso8601(@input.attrs.min))}
+        data-p-utc-max={hook_prop(@input.attrs.max && Time.to_iso8601(@input.attrs.max))}
+        data-p-phx-target={hook_prop(@myself)}
       />
     </div>
     """

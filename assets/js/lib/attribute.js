@@ -1,49 +1,27 @@
-export function getAttributeOrThrow(element, attr, transform = null) {
-  if (!element.hasAttribute(attr)) {
-    throw new Error(
-      `Missing attribute '${attr}' on element <${element.tagName}:${element.id}>`
-    );
-  }
+export function parseHookProps(element, names) {
+  const props = {};
 
-  const value = element.getAttribute(attr);
+  for (const name of names) {
+    const attr = `data-p-${name}`;
 
-  return transform ? transform(value) : value;
-}
+    if (!element.hasAttribute(attr)) {
+      throw new Error(
+        `Missing attribute "${attr}" on element <${element.tagName}:${element.id}>`
+      );
+    }
 
-export function getAttributeOrDefault(
-  element,
-  attr,
-  defaultValue,
-  transform = null
-) {
-  if (element.hasAttribute(attr)) {
     const value = element.getAttribute(attr);
-    return transform ? transform(value) : value;
-  } else {
-    return defaultValue;
+    props[kebabToCamelCase(name)] = JSON.parse(value);
   }
+
+  return props;
 }
 
-export function parseBoolean(value) {
-  if (value === "true") {
-    return true;
-  }
+function kebabToCamelCase(name) {
+  const [part, ...parts] = name.split("-");
 
-  if (value === "false") {
-    return false;
-  }
-
-  throw new Error(
-    `Invalid boolean attribute ${value}, should be either "true" or "false"`
-  );
-}
-
-export function parseInteger(value) {
-  const number = parseInt(value, 10);
-
-  if (Number.isNaN(number)) {
-    throw new Error(`Invalid integer value ${value}`);
-  }
-
-  return number;
+  return [
+    part,
+    ...parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)),
+  ].join("");
 }

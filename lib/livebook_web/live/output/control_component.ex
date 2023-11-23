@@ -13,11 +13,11 @@ defmodule LivebookWeb.Output.ControlComponent do
       class="flex"
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
-      data-cell-id={@cell_id}
-      data-default-handlers={@control.attrs.default_handlers}
-      data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @control.attrs.events)}
-      data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @control.attrs.events)}
-      data-target={@myself}
+      data-p-cell-id={hook_prop(@cell_id)}
+      data-p-default-handlers={hook_prop(@control.attrs.default_handlers)}
+      data-p-keydown-enabled={hook_prop(@keyboard_enabled and :keydown in @control.attrs.events)}
+      data-p-keyup-enabled={hook_prop(@keyboard_enabled and :keyup in @control.attrs.events)}
+      data-p-target={hook_prop(@myself)}
     >
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
         <button

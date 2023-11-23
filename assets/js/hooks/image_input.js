@@ -1,34 +1,29 @@
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseInteger,
-} from "../lib/attribute";
-import { encodeAnnotatedBuffer } from "../lib/codec";
+import { parseHookProps } from "../lib/attribute";
 
 const dropClasses = ["bg-yellow-100", "border-yellow-300"];
 
 /**
  * A hook for client-preprocessed image input.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-id` - a unique id
+ *   * `id` - a unique id
  *
- *   * `data-phx-target` - the component to send the `"change"` event to
+ *   * `phx-target` - the component to send the `"change"` event to
  *
- *   * `data-height` - the image bounding height
+ *   * `height` - the image bounding height
  *
- *   * `data-width` - the image bounding width
+ *   * `width` - the image bounding width
  *
- *   * `data-format` - the desired image format
+ *   * `format` - the desired image format
  *
- *   * `data-fit` - the fit strategy
+ *   * `fit` - the fit strategy
  *
- *   * `data-image-url` - the URL to the image binary value
+ *   * `image-url` - the URL to the image binary value
  *
- *   * `data-value-height` - the height of the current image value
+ *   * `value-height` - the height of the current image value
  *
- *   * `data-value-width` - the width fo the current image value
+ *   * `value-width` - the width fo the current image value
  *
  */
 const ImageInput = {
@@ -139,27 +134,17 @@ const ImageInput = {
   },
 
   getProps() {
-    return {
-      id: getAttributeOrThrow(this.el, "data-id"),
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-      height: getAttributeOrDefault(this.el, "data-height", null, parseInteger),
-      width: getAttributeOrDefault(this.el, "data-width", null, parseInteger),
-      format: getAttributeOrThrow(this.el, "data-format"),
-      fit: getAttributeOrThrow(this.el, "data-fit"),
-      imageUrl: getAttributeOrDefault(this.el, "data-image-url", null),
-      valueHeight: getAttributeOrDefault(
-        this.el,
-        "data-value-height",
-        null,
-        parseInteger
-      ),
-      valueWidth: getAttributeOrDefault(
-        this.el,
-        "data-value-width",
-        null,
-        parseInteger
-      ),
-    };
+    return parseHookProps(this.el, [
+      "id",
+      "phx-target",
+      "height",
+      "width",
+      "format",
+      "fit",
+      "image-url",
+      "value-height",
+      "value-width",
+    ]);
   },
 
   updateImagePreview() {

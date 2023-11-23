@@ -1,18 +1,18 @@
-import { getAttributeOrThrow } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import Markdown from "../lib/markdown";
 import { findChildOrThrow } from "../lib/utils";
 
 /**
  * A hook used to render Markdown content on the client.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-base-path` - the path to resolve relative URLs against
+ *   * `base-path` - the path to resolve relative URLs against
  *
- *   * `data-allowed-uri-schemes` - a comma separated list of additional
- *     URI schemes that should be kept during sanitization
+ *   * `allowed-uri-schemes` - a list of additional URI schemes
+ *     that should be kept during sanitization
  *
- * The element should have two children:
+ * ## Children
  *
  *   * `[data-template]` - a hidden container containing the markdown
  *     content. The DOM structure is ignored, only text content matters
@@ -29,7 +29,7 @@ const MarkdownRenderer = {
 
     this.markdown = new Markdown(this.contentEl, this.templateEl.textContent, {
       baseUrl: this.props.basePath,
-      allowedUriSchemes: this.props.allowedUriSchemes.split(","),
+      allowedUriSchemes: this.props.allowedUriSchemes,
     });
   },
 
@@ -40,13 +40,7 @@ const MarkdownRenderer = {
   },
 
   getProps() {
-    return {
-      basePath: getAttributeOrThrow(this.el, "data-base-path"),
-      allowedUriSchemes: getAttributeOrThrow(
-        this.el,
-        "data-allowed-uri-schemes"
-      ),
-    };
+    return parseHookProps(this.el, ["base-path", "allowed-uri-schemes"]);
   },
 };
 

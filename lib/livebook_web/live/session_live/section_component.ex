@@ -12,8 +12,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         id={@section_view.id}
         data-focusable-id={@section_view.id}
         phx-hook="Headline"
-        data-on-value-change="set_section_name"
-        data-metadata={@section_view.id}
+        data-p-id={hook_prop(@section_view.id)}
+        data-p-on-value-change={hook_prop("set_section_name")}
+        data-p-metadata={hook_prop(@section_view.id)}
       >
         <div class="absolute left-0 top-0 bottom-0 transform -translate-x-full w-10 flex justify-end items-center pr-2">
           <button
