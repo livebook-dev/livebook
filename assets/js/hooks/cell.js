@@ -1,4 +1,4 @@
-import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import Markdown from "../lib/markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
@@ -11,15 +11,23 @@ import { isEvaluable } from "../lib/notebook";
  * Manages the collaborative editor, takes care of markdown rendering
  * and focusing the editor when applicable.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-cell-id` - id of the cell being edited
+ *   * `cell-id` - id of the cell being edited
  *
- *   * `data-type` - type of the cell
+ *   * `type` - type of the cell
  *
- *   * `data-session-path` - root path to the current session
+ *   * `session-path` - root path to the current session
  *
- *   * `data-evaluation-digest` - digest of the last evaluated cell source
+ *   * `evaluation-digest` - digest of the last evaluated cell source
+ *
+ *   * `smart-cell-js-view-ref` - ref for the JS View, applicable
+ *     only to Smart cells
+ *
+ *   * `allowed-uri-schemes` - a list of additional URI schemes that
+ *     should be kept during sanitization. Applicable only to Markdown
+ *     cells
+ *
  */
 const Cell = {
   mounted() {
@@ -124,25 +132,14 @@ const Cell = {
   },
 
   getProps() {
-    return {
-      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
-      type: getAttributeOrThrow(this.el, "data-type"),
-      sessionPath: getAttributeOrThrow(this.el, "data-session-path"),
-      evaluationDigest: getAttributeOrDefault(
-        this.el,
-        "data-evaluation-digest",
-        null
-      ),
-      smartCellJSViewRef: getAttributeOrDefault(
-        this.el,
-        "data-smart-cell-js-view-ref",
-        null
-      ),
-      allowedUriSchemes: getAttributeOrThrow(
-        this.el,
-        "data-allowed-uri-schemes"
-      ),
-    };
+    return parseHookProps(this.el, [
+      "cell-id",
+      "type",
+      "session-path",
+      "evaluation-digest",
+      "smart-cell-js-view-ref",
+      "allowed-uri-schemes",
+    ]);
   },
 
   handleNavigationEvent(event) {
@@ -377,9 +374,9 @@ const Cell = {
   },
 
   handleDispatchQueueEvaluation(dispatch) {
-    if (this.props.type === "smart" && this.props.smartCellJSViewRef) {
+    if (this.props.type === "smart" && this.props.smartCellJsViewRef) {
       // Ensure the smart cell UI is reflected on the server, before the evaluation
-      globalPubSub.broadcast(`js_views:${this.props.smartCellJSViewRef}`, {
+      globalPubSub.broadcast(`js_views:${this.props.smartCellJsViewRef}`, {
         type: "sync",
         callback: dispatch,
       });

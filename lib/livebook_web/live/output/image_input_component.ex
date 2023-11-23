@@ -55,15 +55,15 @@ defmodule LivebookWeb.Output.ImageInputComponent do
         class="inline-flex flex-col"
         phx-hook="ImageInput"
         phx-update="ignore"
-        data-id={@id}
-        data-phx-target={@myself}
-        data-height={@height}
-        data-width={@width}
-        data-format={@format}
-        data-fit={@fit}
-        data-image-url={@image_url}
-        data-value-height={@value[:height]}
-        data-value-width={@value[:width]}
+        data-p-id={hook_prop(@id)}
+        data-p-phx-target={hook_prop(@myself)}
+        data-p-height={hook_prop(@height)}
+        data-p-width={hook_prop(@width)}
+        data-p-format={hook_prop(@format)}
+        data-p-fit={hook_prop(@fit)}
+        data-p-image-url={hook_prop(@image_url)}
+        data-p-value-height={hook_prop(@value[:height])}
+        data-p-value-width={hook_prop(@value[:width])}
       >
         <input
           type="file"

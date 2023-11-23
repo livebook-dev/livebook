@@ -36,17 +36,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       class="flex flex-col relative scroll-mt-[50px] sm:scroll-mt-0"
       data-el-cell
       id={"cell-#{@cell_view.id}"}
-      phx-hook="Cell"
-      data-cell-id={@cell_view.id}
-      data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
-      data-session-path={~p"/sessions/#{@session_id}"}
-      data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
+      data-focusable-id={@cell_view.id}
+      data-js-empty={@cell_view.empty}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
       data-eval-errored={get_in(@cell_view, [:eval, :errored])}
-      data-js-empty={@cell_view.empty}
-      data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}
-      data-allowed-uri-schemes={Enum.join(@allowed_uri_schemes, ",")}
+      phx-hook="Cell"
+      data-p-cell-id={hook_prop(@cell_view.id)}
+      data-p-type={hook_prop(@cell_view.type)}
+      data-p-session-path={hook_prop(~p"/sessions/#{@session_id}")}
+      data-p-evaluation-digest={hook_prop(get_in(@cell_view, [:eval, :evaluation_digest]))}
+      data-p-smart-cell-js-view-ref={hook_prop(smart_cell_js_view_ref(@cell_view))}
+      data-p-allowed-uri-schemes={hook_prop(@allowed_uri_schemes)}
     >
       <%= render_cell(assigns) %>
     </div>
@@ -621,11 +622,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       id={"cell-editor-#{@cell_id}-#{@tag}"}
       phx-update="ignore"
       phx-hook="CellEditor"
-      data-cell-id={@cell_id}
-      data-tag={@tag}
-      data-language={@language}
-      data-intellisense={to_string(@intellisense)}
-      data-read-only={to_string(@read_only)}
+      data-p-cell-id={hook_prop(@cell_id)}
+      data-p-tag={hook_prop(@tag)}
+      data-p-language={hook_prop(@language)}
+      data-p-intellisense={hook_prop(@intellisense)}
+      data-p-read-only={hook_prop(@read_only)}
     >
       <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
         <div class="px-8" data-el-skeleton>
@@ -687,7 +688,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         id={"#{@id}-cell-timer"}
         phx-hook="Timer"
         phx-update="ignore"
-        data-start={DateTime.to_iso8601(@cell_view.eval.evaluation_start)}
+        data-p-start={hook_prop(DateTime.to_iso8601(@cell_view.eval.evaluation_start))}
       >
       </span>
     </.cell_status_indicator>

@@ -9,7 +9,7 @@ import {
   isElementInViewport,
   isElementHidden,
 } from "../lib/utils";
-import { getAttributeOrDefault } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "./cell_editor/live_editor/monaco";
@@ -26,10 +26,12 @@ import { settingsStore } from "../lib/settings";
  * communicate between this global hook and cells and for that we
  * use a simple local pubsub that the hooks subscribe to.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-autofocus-cell-id` - id of the cell that gets initial
+ *   * `autofocus-cell-id` - id of the cell that gets initial
  *     focus once the notebook is loaded
+ *
+ *   * `global-status` - global evaluation status
  *
  * ## Shortcuts
  *
@@ -270,14 +272,7 @@ const Session = {
   },
 
   getProps() {
-    return {
-      autofocusCellId: getAttributeOrDefault(
-        this.el,
-        "data-autofocus-cell-id",
-        null
-      ),
-      globalStatus: getAttributeOrDefault(this.el, "data-global-status", null),
-    };
+    return parseHookProps(this.el, ["autofocus-cell-id", "global-status"]);
   },
 
   faviconForEvaluationStatus(evaluationStatus) {

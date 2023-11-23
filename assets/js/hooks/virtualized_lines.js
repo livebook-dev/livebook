@@ -1,10 +1,5 @@
 import HyperList from "hyperlist";
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseBoolean,
-  parseInteger,
-} from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import {
   findChildOrThrow,
   getLineHeight,
@@ -16,21 +11,21 @@ import {
  * A hook used to render text lines as a virtual list, so that only
  * the visible lines are actually in the DOM.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-max-height` - the maximum height of the element, exceeding
+ *   * `max-height` - the maximum height of the element, exceeding
  *     this height enables scrolling
  *
- *   * `data-follow` - whether to automatically scroll to the bottom as
- *     new lines appear. Defaults to false
+ *   * `follow` - whether to automatically scroll to the bottom as
+ *     new lines appear
  *
- *   * `data-max-lines` - the maximum number of lines to keep in the DOM.
+ *   * `max-lines` - the maximum number of lines to keep in the DOM.
  *     By default all lines are kept
  *
- *   * `data-ignore-trailing-empty-line` - whether to ignore the last
- *     line if it is empty. Defaults to false
+ *   * `ignore-trailing-empty-line` - whether to ignore the last
+ *     line if it is empty
  *
- * The element should have two children:
+ * ## Children
  *
  *   * `[data-template]` - a hidden container containing all the line
  *     elements, each with a data-line attribute
@@ -73,27 +68,12 @@ const VirtualizedLines = {
   },
 
   getProps() {
-    return {
-      maxHeight: getAttributeOrThrow(this.el, "data-max-height", parseInteger),
-      follow: getAttributeOrDefault(
-        this.el,
-        "data-follow",
-        false,
-        parseBoolean
-      ),
-      maxLines: getAttributeOrDefault(
-        this.el,
-        "data-max-lines",
-        null,
-        parseInteger
-      ),
-      ignoreTrailingEmptyLine: getAttributeOrDefault(
-        this.el,
-        "data-ignore-trailing-empty-line",
-        false,
-        parseBoolean
-      ),
-    };
+    return parseHookProps(this.el, [
+      "max-height",
+      "follow",
+      "max-lines",
+      "ignore-trailing-empty-line",
+    ]);
   },
 
   hyperListConfig() {

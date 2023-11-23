@@ -1,13 +1,14 @@
-import { getAttributeOrThrow } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 
 const UPDATE_INTERVAL_MS = 100;
 
 /**
  * A hook used to display a counting timer.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-start` - the timestamp to count from
+ *   * `start` - the timestamp to count from
+ *
  */
 const Timer = {
   mounted() {
@@ -26,9 +27,7 @@ const Timer = {
   },
 
   getProps() {
-    return {
-      start: getAttributeOrThrow(this.el, "data-start"),
-    };
+    return parseHookProps(this.el, ["start"]);
   },
 
   updateDOM() {

@@ -59,12 +59,12 @@ defmodule LivebookWeb.Output.AudioInputComponent do
         id={"#{@id}-root"}
         phx-hook="AudioInput"
         phx-update="ignore"
-        data-id={@id}
-        data-phx-target={@myself}
-        data-format={@format}
-        data-sampling-rate={@sampling_rate}
-        data-endianness={@endianness}
-        data-audio-url={@audio_url}
+        data-p-id={hook_prop(@id)}
+        data-p-phx-target={hook_prop(@myself)}
+        data-p-format={hook_prop(@format)}
+        data-p-sampling-rate={hook_prop(@sampling_rate)}
+        data-p-endianness={hook_prop(@endianness)}
+        data-p-audio-url={hook_prop(@audio_url)}
       >
         <input
           type="file"

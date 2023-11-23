@@ -1,8 +1,4 @@
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseInteger,
-} from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import {
   isElementHidden,
   isElementVisibleInViewport,
@@ -36,32 +32,31 @@ import { initializeIframeSource } from "./js_view/iframe";
  * Then, a number of `event:<ref>` with `{ event, payload }` payload
  * can be sent. The `event` is forwarded to the initialized component.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-ref` - a unique identifier used as messages scope
+ *   * `ref` - a unique identifier used as messages scope
  *
- *   * `data-assets-base-path` - the base path to fetch assets from
+ *   * `assets-base-path` - the base path to fetch assets from
  *     within the iframe (and resolve all relative paths against)
  *
- *   * `data-assets-cdn-url` - a URL to CDN location to fetch assets
+ *   * `assets-cdn-url` - a URL to CDN location to fetch assets
  *     from. Only used if specified and the entrypoint script can be
  *     successfully accessed, also only when Livebook runs on https
  *
- *   * `data-js-path` - a relative path for the initial view-specific
+ *   * `js-path` - a relative path for the initial view-specific
  *     JS module
  *
- *   * `data-session-token` - a session-specific token passed when
+ *   * `session-token` - a session-specific token passed when
  *     joining the JS view channel
  *
- *   * `data-connect-token` - a JS view specific token passed in the
+ *   * `connect-token` - a JS view specific token passed in the
  *     "connect" message to the channel
  *
- *   * `data-iframe-local-port` - the local port where the iframe is
- *     served
+ *   * `iframe-port` - the local port where the iframe is served
  *
- *   * `data-iframe-url` - an optional location to load the iframe from
+ *   * `iframe-url` - an optional location to load the iframe from
  *
- *   * `data-timeout-message` - the message to show when the initial
+ *   * `timeout-message` - the message to show when the initial
  *     data does not load
  *
  */
@@ -180,21 +175,17 @@ const JSView = {
   },
 
   getProps() {
-    return {
-      ref: getAttributeOrThrow(this.el, "data-ref"),
-      assetsBasePath: getAttributeOrThrow(this.el, "data-assets-base-path"),
-      assetsCdnUrl: getAttributeOrDefault(this.el, "data-assets-cdn-url", null),
-      jsPath: getAttributeOrThrow(this.el, "data-js-path"),
-      sessionToken: getAttributeOrThrow(this.el, "data-session-token"),
-      connectToken: getAttributeOrThrow(this.el, "data-connect-token"),
-      iframePort: getAttributeOrThrow(
-        this.el,
-        "data-iframe-local-port",
-        parseInteger
-      ),
-      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-url", null),
-      timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
-    };
+    return parseHookProps(this.el, [
+      "ref",
+      "assets-base-path",
+      "assets-cdn-url",
+      "js-path",
+      "session-token",
+      "connect-token",
+      "iframe-port",
+      "iframe-url",
+      "timeout-message",
+    ]);
   },
 
   createIframe() {

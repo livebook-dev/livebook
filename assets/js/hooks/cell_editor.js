@@ -1,9 +1,5 @@
 import LiveEditor from "./cell_editor/live_editor";
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseBoolean,
-} from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 
 const CellEditor = {
   mounted() {
@@ -71,17 +67,13 @@ const CellEditor = {
   },
 
   getProps() {
-    return {
-      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
-      tag: getAttributeOrThrow(this.el, "data-tag"),
-      language: getAttributeOrDefault(this.el, "data-language", null),
-      intellisense: getAttributeOrThrow(
-        this.el,
-        "data-intellisense",
-        parseBoolean
-      ),
-      readOnly: getAttributeOrThrow(this.el, "data-read-only", parseBoolean),
-    };
+    return parseHookProps(this.el, [
+      "cell-id",
+      "tag",
+      "language",
+      "intellisense",
+      "read-only",
+    ]);
   },
 };
 

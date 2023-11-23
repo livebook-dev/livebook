@@ -1,22 +1,23 @@
-import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import { cancelEvent, isEditableElement, isMacOS } from "../lib/utils";
 
 /**
  * A hook for ControlComponent to handle user keyboard interactions.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-cell-id` - id of the cell in which the control is rendered
+ *   * `cell-id` - id of the cell in which the control is rendered
  *
- *   * `data-default-handlers` - whether keyboard events should be
+ *   * `default-handlers` - whether keyboard events should be
  *     intercepted and canceled, disabling session shortcuts. Must be
  *     one of "off", "on", or "disable_only"
  *
- *   * `data-keydown-enabled` - whether keydown events should be listened to
+ *   * `keydown-enabled` - whether keydown events should be listened to
  *
- *   * `data-keyup-enabled` - whether keyup events should be listened to
+ *   * `keyup-enabled` - whether keyup events should be listened to
  *
- *   * `data-target` - the target to send live events to
+ *   * `target` - the target to send live events to
+ *
  */
 const KeyboardControl = {
   mounted() {
@@ -47,21 +48,13 @@ const KeyboardControl = {
   },
 
   getProps() {
-    return {
-      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
-      defaultHandlers: getAttributeOrThrow(this.el, "data-default-handlers"),
-      isKeydownEnabled: getAttributeOrThrow(
-        this.el,
-        "data-keydown-enabled",
-        parseBoolean
-      ),
-      isKeyupEnabled: getAttributeOrThrow(
-        this.el,
-        "data-keyup-enabled",
-        parseBoolean
-      ),
-      target: getAttributeOrThrow(this.el, "data-target"),
-    };
+    return parseHookProps(this.el, [
+      "cell-id",
+      "default-handlers",
+      "keydown-enabled",
+      "keyup-enabled",
+      "target",
+    ]);
   },
 
   handleDocumentKeyDown(event) {
@@ -83,7 +76,7 @@ const KeyboardControl = {
         return;
       }
 
-      if (this.props.isKeydownEnabled) {
+      if (this.props.keydownEnabled) {
         const { key } = event;
         this.pushEventTo(this.props.target, "keydown", { key });
       }
@@ -96,7 +89,7 @@ const KeyboardControl = {
         cancelEvent(event);
       }
 
-      if (this.props.isKeyupEnabled) {
+      if (this.props.keyupEnabled) {
         const { key } = event;
         this.pushEventTo(this.props.target, "keyup", { key });
       }
@@ -104,7 +97,7 @@ const KeyboardControl = {
   },
 
   handleDocumentFocus(event) {
-    if (this.props.isKeydownEnabled && isEditableElement(event.target)) {
+    if (this.props.keydownEnabled && isEditableElement(event.target)) {
       this.disableKeyboard();
     }
   },
@@ -122,7 +115,7 @@ const KeyboardControl = {
   },
 
   keyboardEnabled() {
-    return this.props.isKeydownEnabled || this.props.isKeyupEnabled;
+    return this.props.keydownEnabled || this.props.keyupEnabled;
   },
 
   isKeyboardToggle(event) {

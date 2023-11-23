@@ -133,8 +133,8 @@ defmodule LivebookWeb.SessionLive do
       id={"session-#{@session.id}"}
       data-el-session
       phx-hook="Session"
-      data-global-status={elem(@data_view.global_status, 0)}
-      data-autofocus-cell-id={@autofocus_cell_id}
+      data-p-global-status={hook_prop(elem(@data_view.global_status, 0))}
+      data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
     >
       <nav
         class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-3 sm:py-5 bg-gray-900"
@@ -287,8 +287,9 @@ defmodule LivebookWeb.SessionLive do
                 data-focusable-id="notebook"
                 id="notebook"
                 phx-hook="Headline"
-                data-on-value-change="set_notebook_name"
-                data-metadata="notebook"
+                data-p-id={hook_prop("notebook")}
+                data-p-on-value-change={hook_prop("set_notebook_name")}
+                data-p-metadata={hook_prop("notebook")}
               >
                 <h1
                   class="px-1 -ml-1.5 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"

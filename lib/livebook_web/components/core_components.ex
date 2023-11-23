@@ -476,7 +476,7 @@ defmodule LivebookWeb.CoreComponents do
       class={if(@wrap, do: "break-all whitespace-pre-wrap", else: "tiny-scrollbar")}
       id={"#{@source_id}-highlight"}
       phx-hook="Highlight"
-      data-language={@language}
+      data-p-language={hook_prop(@language)}
     ><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
     </div>
     """
@@ -718,5 +718,24 @@ defmodule LivebookWeb.CoreComponents do
     opts = Keyword.validate!(opts, [:to])
 
     Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
+  end
+
+  @doc """
+  Encodes value for hook prop attribute.
+
+  ## Examples
+
+      <div id="hook" phx-hook={MyHook} data-p-value={hook_prop(@value)}>
+      </div>
+
+  """
+  def hook_prop(value)
+
+  def hook_prop(%Phoenix.LiveComponent.CID{} = value) do
+    hook_prop(to_string(value))
+  end
+
+  def hook_prop(value) do
+    Jason.encode!(value)
   end
 end

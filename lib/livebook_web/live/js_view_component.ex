@@ -16,15 +16,17 @@ defmodule LivebookWeb.JSViewComponent do
       id={"js-output-#{@id}-#{@js_view.ref}"}
       phx-hook="JSView"
       phx-update="ignore"
-      data-ref={@js_view.ref}
-      data-assets-base-path={~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/"}
-      data-assets-cdn-url={cdn_url(@js_view.assets[:cdn_url])}
-      data-js-path={@js_view.assets.js_path}
-      data-session-token={session_token(@session_id, @client_id)}
-      data-connect-token={connect_token(@js_view.pid)}
-      data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}
-      data-iframe-url={Livebook.Config.iframe_url()}
-      data-timeout-message={@timeout_message}
+      data-p-ref={hook_prop(@js_view.ref)}
+      data-p-assets-base-path={
+        hook_prop(~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/")
+      }
+      data-p-assets-cdn-url={hook_prop(cdn_url(@js_view.assets[:cdn_url]))}
+      data-p-js-path={hook_prop(@js_view.assets.js_path)}
+      data-p-session-token={hook_prop(session_token(@session_id, @client_id))}
+      data-p-connect-token={hook_prop(connect_token(@js_view.pid))}
+      data-p-iframe-port={hook_prop(LivebookWeb.IframeEndpoint.port())}
+      data-p-iframe-url={hook_prop(Livebook.Config.iframe_url())}
+      data-p-timeout-message={hook_prop(@timeout_message)}
     >
     </div>
     """

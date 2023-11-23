@@ -1,8 +1,4 @@
-import {
-  getAttributeOrDefault,
-  getAttributeOrThrow,
-  parseInteger,
-} from "../lib/attribute";
+import { parseHookProps } from "../lib/attribute";
 import { encodeAnnotatedBuffer, encodePcmAsWav } from "../lib/codec";
 
 const dropClasses = ["bg-yellow-100", "border-yellow-300"];
@@ -10,19 +6,19 @@ const dropClasses = ["bg-yellow-100", "border-yellow-300"];
 /**
  * A hook for client-preprocessed audio input.
  *
- * ## Configuration
+ * ## Props
  *
- *   * `data-id` - a unique id
+ *   * `id` - a unique id
  *
- *   * `data-phx-target` - the component to send the `"change"` event to
+ *   * `phx-target` - the component to send the `"change"` event to
  *
- *   * `data-format` - the desired audio format
+ *   * `format` - the desired audio format
  *
- *   * `data-sampling-rate` - the audio sampling rate for
+ *   * `sampling-rate` - the audio sampling rate for
  *
- *   * `data-endianness` - the server endianness, either `"little"` or `"big"`
+ *   * `endianness` - the server endianness, either `"little"` or `"big"`
  *
- *   * `data-audio-url` - the URL to audio file to use for the current preview
+ *   * `audio-url` - the URL to audio file to use for the current preview
  *
  */
 const AudioInput = {
@@ -103,18 +99,14 @@ const AudioInput = {
   },
 
   getProps() {
-    return {
-      id: getAttributeOrThrow(this.el, "data-id"),
-      phxTarget: getAttributeOrThrow(this.el, "data-phx-target", parseInteger),
-      samplingRate: getAttributeOrThrow(
-        this.el,
-        "data-sampling-rate",
-        parseInteger
-      ),
-      endianness: getAttributeOrThrow(this.el, "data-endianness"),
-      format: getAttributeOrThrow(this.el, "data-format"),
-      audioUrl: getAttributeOrDefault(this.el, "data-audio-url", null),
-    };
+    return parseHookProps(this.el, [
+      "id",
+      "phx-target",
+      "sampling-rate",
+      "endianness",
+      "format",
+      "audio-url",
+    ]);
   },
 
   startRecording() {
