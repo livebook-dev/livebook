@@ -101,6 +101,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-secrets-list"
               hub={@hub}
               secrets={@secrets}
+              secrets_origin={:hub}
             />
           </div>
 

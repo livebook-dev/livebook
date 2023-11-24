@@ -185,6 +185,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 id="hub-secrets-list"
                 hub={@hub}
                 secrets={@secrets}
+                secrets_origin={:hub}
                 target={@myself}
               />
             </div>
@@ -321,23 +322,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               hub={@hub}
               file_system={@file_system}
               file_system_id={@file_system_id}
-              return_to={~p"/hub/#{@hub.id}"}
-            />
-          </.modal>
-
-          <.modal
-            :if={@live_action in [:new_deployment_group, :edit_deployment_group]}
-            id="deployment-groups-modal"
-            show
-            width={:medium}
-            patch={~p"/hub/#{@hub.id}"}
-          >
-            <.live_component
-              module={LivebookWeb.Hub.Teams.DeploymentGroupFormComponent}
-              id="deployment-groups"
-              hub={@hub}
-              deployment_group_id={@deployment_group_id}
-              deployment_group={@deployment_group}
               return_to={~p"/hub/#{@hub.id}"}
             />
           </.modal>

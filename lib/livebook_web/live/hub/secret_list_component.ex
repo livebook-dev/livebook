@@ -16,7 +16,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@secrets == []}>
-          No secrets in this Hub yet.
+          <%= "No secrets in this #{@secrets_origin} yet." %>
         </.no_entries>
         <div
           :for={secret <- @secrets}
@@ -43,7 +43,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                 <.menu_item>
                   <.link
                     id={"hub-secret-#{secret.name}-edit"}
-                    patch={~p"/hub/#{secret.hub_id}/secrets/edit/#{secret.name}"}
+                    patch={patch_to(@secrets_origin, secret)}
                     type="button"
                     role="menuitem"
                   >
@@ -77,7 +77,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         </div>
       </div>
       <div class="flex">
-        <.link patch={~p"/hub/#{@hub.id}/secrets/new"} class="button-base button-blue" id="add-secret">
+        <.link patch={add_to(assigns)} class="button-base button-blue" id="add-secret">
           Add secret
         </.link>
       </div>
@@ -110,4 +110,15 @@ defmodule LivebookWeb.Hub.SecretListComponent do
        confirm_icon: "delete-bin-6-line"
      )}
   end
+
+  defp patch_to(:hub, secret), do: ~p"/hub/#{secret.hub_id}/secrets/edit/#{secret.name}"
+
+  defp patch_to(:deployment_group, secret) do
+    ~p"/hub/#{secret.hub_id}/deployment-groups/edit/#{secret.deployment_group_id}/secrets/edit/#{secret.name}"
+  end
+
+  defp add_to(%{secrets_origin: :hub, hub: hub}), do: ~p"/hub/#{hub.id}/secrets/new"
+
+  defp add_to(%{secrets_origin: :deployment_group, hub: hub, deployment_group: dg}),
+    do: ~p"/hub/#{hub.id}/deployment-groups/edit/#{dg.id}/secrets/new"
 end
