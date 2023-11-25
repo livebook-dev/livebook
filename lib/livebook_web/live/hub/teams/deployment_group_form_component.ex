@@ -75,9 +75,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 <.remix_icon icon={@button.icon} class="align-middle mr-1" />
                 <span class="font-normal"><%= @button.label %></span>
               </button>
-              <.link patch={@return_to} class="button-base button-outlined-gray">
-                Cancel
-              </.link>
+              <%= if @mode == :new do %>
+                <.link patch={@return_to} class="button-base button-outlined-gray">
+                  Cancel
+                </.link>
+              <% end %>
             </div>
           </div>
         </.form>
@@ -91,7 +93,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
     changeset = Teams.change_deployment_group(socket.assigns.deployment_group, attrs)
 
     with {:ok, deployment_group} <- Ecto.Changeset.apply_action(changeset, :update),
-         {:ok, _id} <- save_deployment_group(deployment_group, socket) do
+         {:ok, id} <- save_deployment_group(deployment_group, socket) do
       message =
         case socket.assigns.mode do
           :new -> "Deployment group #{deployment_group.name} added successfully"
@@ -101,7 +103,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       {:noreply,
        socket
        |> put_flash(:success, message)
-       |> push_redirect(to: socket.assigns.return_to)}
+       |> push_redirect(to: ~p"/hub/#{socket.assigns.hub.id}/deployment-groups/edit/#{id}")}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, changeset: changeset)}

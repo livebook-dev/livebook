@@ -17,7 +17,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     deployment_groups = Teams.get_deployment_groups(hub)
     deployment_group = Enum.find_value(deployment_groups, &(&1.id == deployment_group_id && &1))
     default? = default_hub?(hub)
-    secrets = []
+
+    secrets =
+      Hubs.get_secrets(hub) |> Enum.filter(&(&1.deployment_group_id == deployment_group_id))
 
     secret_value =
       if socket.assigns.live_action == :edit_secret do
@@ -83,6 +85,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                     <% end %>
                   </div>
                 </LayoutHelpers.title>
+                <p class="text-sm flex flex-row space-x-6 text-gray-700">
+                  <.link patch={~p"/hub/#{@hub.id}"} class="hover:text-blue-600 cursor-pointer">
+                    <.remix_icon icon="arrow-left-line" /> Back to Hub
+                  </.link>
+                </p>
               </div>
 
               <div class="flex flex-col space-y-4">

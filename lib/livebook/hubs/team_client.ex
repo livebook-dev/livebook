@@ -196,13 +196,14 @@ defmodule Livebook.Hubs.TeamClient do
     %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
   end
 
-  defp build_secret(state, %{name: name, value: value}) do
+  defp build_secret(state, %{name: name, value: value, deployment_group_id: deployment_group_id}) do
     {:ok, decrypted_value} = Teams.decrypt(value, state.derived_key)
 
     %Secrets.Secret{
       name: name,
       value: decrypted_value,
-      hub_id: state.hub.id
+      hub_id: state.hub.id,
+      deployment_group_id: deployment_group_id
     }
   end
 

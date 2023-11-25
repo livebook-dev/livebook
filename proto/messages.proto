@@ -12,11 +12,13 @@ message Secret {
 message SecretCreated {
   string name = 1;
   string value = 2;
+  string deployment_group_id = 3;
 }
 
 message SecretUpdated {
   string name = 1;
   string value = 2;
+  string deployment_group_id = 3;
 }
 
 message SecretDeleted {

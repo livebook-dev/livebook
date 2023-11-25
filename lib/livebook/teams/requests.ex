@@ -53,7 +53,15 @@ defmodule Livebook.Teams.Requests do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
 
-    post("/api/v1/org/secrets", %{name: secret.name, value: secret_value}, team)
+    headers = auth_headers(team)
+
+    params = %{
+      name: secret.name,
+      value: secret_value,
+      deployment_group_id: secret.deployment_group_id
+    }
+
+    post("/api/v1/org/secrets", params, headers)
   end
 
   @doc """
