@@ -203,7 +203,7 @@ defmodule Livebook.Hubs.TeamClient do
       name: name,
       value: decrypted_value,
       hub_id: state.hub.id,
-      deployment_group_id: deployment_group_id
+      deployment_group_id: if(deployment_group_id !== "", do: deployment_group_id)
     }
   end
 

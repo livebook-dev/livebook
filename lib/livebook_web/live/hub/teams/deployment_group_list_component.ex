@@ -29,7 +29,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
               <.menu_item>
                 <.link
                   id={"hub-deployment-group-#{deployment_group.id}-edit"}
-                  patch={~p"/hub/#{@hub_id}/deployment-groups/edit/#{deployment_group.id}"}
+                  navigate={~p"/hub/#{@hub_id}/deployment-groups/edit/#{deployment_group.id}"}
                   type="button"
                   role="menuitem"
                 >
@@ -60,7 +60,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
       </div>
       <div class="flex">
         <.link
-          patch={~p"/hub/#{@hub_id}/deployment-groups/new"}
+          navigate={~p"/hub/#{@hub_id}/deployment-groups/new"}
           class="button-base button-blue"
           id="add-deployment-group"
         >

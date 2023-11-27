@@ -15,8 +15,16 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     deployment_group_id = params["deployment_group_id"]
     secret_name = params["secret_name"]
     deployment_groups = Teams.get_deployment_groups(hub)
-    deployment_group = Enum.find_value(deployment_groups, &(&1.id == deployment_group_id && &1))
     default? = default_hub?(hub)
+
+    deployment_group =
+      if socket.assigns.live_action != :new_deployment_group do
+        Enum.find_value(deployment_groups, &(&1.id == deployment_group_id && &1)) ||
+          raise(
+            NotFoundError,
+            "could not find deployment group matching #{inspect(deployment_group_id)}"
+          )
+      end
 
     secrets =
       Hubs.get_secrets(hub) |> Enum.filter(&(&1.deployment_group_id == deployment_group_id))
