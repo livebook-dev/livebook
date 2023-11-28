@@ -88,6 +88,14 @@ defmodule Livebook.Hubs.TeamClient do
     :exit, _ -> false
   end
 
+  @doc """
+  Enqueues the synchronous event to be handled by the Team client.
+  """
+  @spec handle_event(String.t(), {atom(), LivebookProto.event_proto()}) :: :ok
+  def handle_event(id, {topic, data}) do
+    GenServer.cast(registry_name(id), {:event, topic, data})
+  end
+
   ## GenServer callbacks
 
   @impl true
@@ -142,11 +150,13 @@ defmodule Livebook.Hubs.TeamClient do
   @impl true
   def handle_info(:connected, state) do
     Hubs.Broadcasts.hub_connected(state.hub.id)
+
     {:noreply, %{state | connected?: true, connection_error: nil}}
   end
 
   def handle_info({:connection_error, reason}, state) do
     Hubs.Broadcasts.hub_connection_failed(state.hub.id, reason)
+
     {:noreply, %{state | connected?: false, connection_error: reason}}
   end
 
@@ -163,6 +173,13 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, handle_event(topic, data, state)}
   end
 
+  @impl true
+  def handle_cast({:event, topic, data}, state) do
+    Logger.debug("Received event #{topic} with data: #{inspect(data)}")
+
+    {:noreply, handle_event(topic, data, state)}
+  end
+
   # Private
 
   defp registry_name(id) do
@@ -171,6 +188,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp put_secret(state, secret) do
     state = remove_secret(state, secret)
+
     %{state | secrets: [secret | state.secrets]}
   end
 
@@ -190,6 +208,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp put_file_system(state, file_system) do
     state = remove_file_system(state, file_system)
+
     %{state | file_systems: [file_system | state.file_systems]}
   end
 
