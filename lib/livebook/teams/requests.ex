@@ -190,8 +190,9 @@ defmodule Livebook.Teams.Requests do
 
   defp post(path, json, team \\ nil) do
     body = {"application/json", Jason.encode!(json)}
+    headers = if team, do: auth_headers(team), else: []
 
-    request(:post, path, body: body, headers: auth_headers(team))
+    request(:post, path, body: body, headers: headers)
     |> dispatch_messages(team)
   end
 
@@ -240,7 +241,7 @@ defmodule Livebook.Teams.Requests do
     end
   end
 
-  defp dispatch_messages({:ok, %{"messages" => _} = body}, team) do
+  defp dispatch_messages({:ok, %{"messages" => _} = body}, %Livebook.Hubs.Team{} = team) do
     {messages, body} = Map.pop!(body, "messages")
 
     for message <- messages do
