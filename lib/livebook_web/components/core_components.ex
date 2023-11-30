@@ -326,6 +326,7 @@ defmodule LivebookWeb.CoreComponents do
   defp show_menu(id) do
     JS.show(to: "##{id}-overlay")
     |> JS.show(to: "##{id}-content", display: "flex")
+    |> JS.dispatch("lb:scroll_into_view", to: "##{id}-content")
   end
 
   defp hide_menu(id) do
