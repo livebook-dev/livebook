@@ -1,4 +1,7 @@
 import topbar from "topbar";
+import scrollIntoView from "scroll-into-view-if-needed";
+
+import { waitUntilVisible } from "./lib/utils";
 
 export function registerTopbar() {
   topbar.config({
@@ -55,6 +58,18 @@ export function registerGlobalEventHandlers() {
         "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."
       );
     }
+  });
+
+  window.addEventListener("lb:scroll_into_view", (event) => {
+    // If the element is going to be shown, we want to wait for that
+    waitUntilVisible(event.target).then(() => {
+      scrollIntoView(event.target, {
+        scrollMode: "if-needed",
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    });
   });
 
   window.addEventListener("phx:lb:exec_js", (event) => {

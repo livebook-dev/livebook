@@ -21,6 +21,24 @@ export function isElementHidden(element) {
   return element.offsetParent === null;
 }
 
+export function waitUntilVisible(element) {
+  let viewportIntersectionObserver = null;
+
+  return new Promise((resolve, reject) => {
+    if (isElementHidden(element)) {
+      viewportIntersectionObserver = new ResizeObserver((entries) => {
+        if (!isElementHidden(element)) {
+          viewportIntersectionObserver.disconnect();
+          resolve();
+        }
+      });
+      viewportIntersectionObserver.observe(element);
+    } else {
+      resolve();
+    }
+  });
+}
+
 export function isElementVisibleInViewport(element) {
   return !isElementHidden(element) && isElementInViewport(element);
 }
