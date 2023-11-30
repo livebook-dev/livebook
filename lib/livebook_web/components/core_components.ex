@@ -303,8 +303,6 @@ defmodule LivebookWeb.CoreComponents do
       >
         <%= render_slot(@toggle) %>
       </div>
-      <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 pointer-events-none hidden" phx-click-away={hide_menu(@id)}>
-      </div>
       <menu
         id={"#{@id}-content"}
         class={[
@@ -324,13 +322,11 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   defp show_menu(id) do
-    JS.show(to: "##{id}-overlay")
-    |> JS.show(to: "##{id}-content", display: "flex")
+    JS.show(to: "##{id}-content", display: "flex")
   end
 
   defp hide_menu(id) do
-    JS.hide(to: "##{id}-overlay")
-    |> JS.hide(to: "##{id}-content")
+    JS.hide(to: "##{id}-content")
   end
 
   defp menu_position_class(:top_left), do: "top-0 left-0 transform -translate-y-full -mt-1"
