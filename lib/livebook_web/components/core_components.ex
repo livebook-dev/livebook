@@ -303,7 +303,7 @@ defmodule LivebookWeb.CoreComponents do
       >
         <%= render_slot(@toggle) %>
       </div>
-      <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 hidden" phx-click-away={hide_menu(@id)}>
+      <div id={"#{@id}-overlay"} class="fixed z-[90] inset-0 pointer-events-none hidden" phx-click-away={hide_menu(@id)}>
       </div>
       <menu
         id={"#{@id}-content"}
