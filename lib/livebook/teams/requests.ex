@@ -53,15 +53,13 @@ defmodule Livebook.Teams.Requests do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
 
-    headers = auth_headers(team)
-
     params = %{
       name: secret.name,
       value: secret_value,
       deployment_group_id: secret.deployment_group_id
     }
 
-    post("/api/v1/org/secrets", params, headers)
+    post("/api/v1/org/secrets", params, team)
   end
 
   @doc """
@@ -73,15 +71,13 @@ defmodule Livebook.Teams.Requests do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
 
-    headers = auth_headers(team)
-
     params = %{
       name: secret.name,
       value: secret_value,
       deployment_group_id: secret.deployment_group_id
     }
 
-    put("/api/v1/org/secrets", params, headers)
+    put("/api/v1/org/secrets", params, team)
   end
 
   @doc """
@@ -90,14 +86,9 @@ defmodule Livebook.Teams.Requests do
   @spec delete_secret(Team.t(), Secret.t()) ::
           {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def delete_secret(team, secret) do
-<<<<<<< HEAD
-    delete("/api/v1/org/secrets", %{name: secret.name}, team)
-=======
-    headers = auth_headers(team)
     params = %{name: secret.name, deployment_group_id: secret.deployment_group_id}
 
-    delete("/api/v1/org/secrets", params, headers)
->>>>>>> 6d856216 (Applying suggestions)
+    delete("/api/v1/org/secrets", params, team)
   end
 
   @doc """
