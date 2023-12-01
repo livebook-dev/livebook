@@ -6,7 +6,7 @@ defmodule Livebook.Secrets.Secret do
           name: String.t(),
           value: String.t(),
           hub_id: String.t() | nil,
-          deployment_group_id: non_neg_integer() | nil
+          deployment_group_id: String.t() | nil
         }
 
   @primary_key {:name, :string, autogenerate: false}
