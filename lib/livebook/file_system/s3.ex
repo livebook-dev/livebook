@@ -33,10 +33,10 @@ defmodule Livebook.FileSystem.S3 do
   Infers region from the given bucket URL.
   """
   @spec region_from_uri(String.t()) :: String.t()
-  # TODO: make it private again on Livebook v0.12
   def region_from_uri(uri) do
     # For many services the API host is of the form *.[region].[rootdomain].com
-    %{host: host} = URI.parse(uri)
+    host = URI.parse(uri).host || ""
+
     splitted_host = host |> String.split(".") |> Enum.reverse()
 
     case Enum.at(splitted_host, 2, "auto") do
@@ -64,18 +64,10 @@ defmodule Livebook.FileSystem.S3 do
       :secret_access_key,
       :hub_id
     ])
-    |> put_region_from_uri()
     |> validate_required([:bucket_url, :region, :hub_id])
     |> Livebook.Utils.validate_url(:bucket_url)
     |> validate_credentials()
     |> put_id()
-  end
-
-  defp put_region_from_uri(changeset) do
-    case get_field(changeset, :bucket_url) do
-      nil -> changeset
-      bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
-    end
   end
 
   defp validate_credentials(changeset) do

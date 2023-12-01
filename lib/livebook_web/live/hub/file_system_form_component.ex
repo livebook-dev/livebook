@@ -58,7 +58,13 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             label="Bucket URL"
             placeholder="https://s3.[region].amazonaws.com/[bucket]"
           />
-          <.text_field field={f[:region]} label="Region (optional)" />
+          <.text_field
+            field={f[:region]}
+            label="Region"
+            placeholder={
+              FileSystem.S3.region_from_uri(Ecto.Changeset.get_field(@changeset, :bucket_url) || "")
+            }
+          />
           <%= if Livebook.Config.aws_credentials?() do %>
             <.password_field field={f[:access_key_id]} label="Access Key ID (optional)" />
             <.password_field field={f[:secret_access_key]} label="Secret Access Key (optional)" />
