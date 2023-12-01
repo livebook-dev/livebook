@@ -3,5 +3,4 @@ defmodule LivebookProto.SecretCreated do
 
   field :name, 1, type: :string
   field :value, 2, type: :string
-  field :deployment_group_id, 3, type: :string
 end

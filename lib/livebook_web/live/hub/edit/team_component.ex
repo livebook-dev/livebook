@@ -186,6 +186,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub={@hub}
                 secrets={@secrets}
                 secrets_origin={:hub}
+                add_path={~p"/hub/#{@hub.id}/secrets/new"}
+                edit_path={"hub/#{@hub.id}/secrets/edit"}
+                return_to={~p"/hub/#{@hub.id}"}
                 target={@myself}
               />
             </div>

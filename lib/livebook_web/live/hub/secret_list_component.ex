@@ -16,7 +16,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@secrets == []}>
-          <%= "No secrets in this #{@secrets_origin} yet." %>
+          No secrets here... yet!
         </.no_entries>
         <div
           :for={secret <- @secrets}
@@ -43,7 +43,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                 <.menu_item>
                   <.link
                     id={"hub-secret-#{secret.name}-edit"}
-                    patch={patch_to(@secrets_origin, secret)}
+                    patch={"/#{@edit_path}/#{secret.name}"}
                     type="button"
                     role="menuitem"
                   >
@@ -60,7 +60,9 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                         value: %{
                           name: secret.name,
                           value: secret.value,
-                          hub_id: secret.hub_id
+                          hub_id: secret.hub_id,
+                          deployment_group_id: secret.deployment_group_id,
+                          return_to: @return_to
                         }
                       )
                     }
@@ -77,7 +79,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         </div>
       </div>
       <div class="flex">
-        <.link patch={add_to(assigns)} class="button-base button-blue" id="add-secret">
+        <.link patch={@add_path} class="button-base button-blue" id="add-secret">
           Add secret
         </.link>
       </div>
@@ -95,7 +97,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         :ok ->
           socket
           |> put_flash(:success, "Secret #{secret.name} deleted successfully")
-          |> push_navigate(to: ~p"/hub/#{hub.id}")
+          |> push_navigate(to: attrs["return_to"])
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)
@@ -110,15 +112,4 @@ defmodule LivebookWeb.Hub.SecretListComponent do
        confirm_icon: "delete-bin-6-line"
      )}
   end
-
-  defp patch_to(:hub, secret), do: ~p"/hub/#{secret.hub_id}/secrets/edit/#{secret.name}"
-
-  defp patch_to(:deployment_group, secret) do
-    ~p"/hub/#{secret.hub_id}/deployment-groups/edit/#{secret.deployment_group_id}/secrets/edit/#{secret.name}"
-  end
-
-  defp add_to(%{secrets_origin: :hub, hub: hub}), do: ~p"/hub/#{hub.id}/secrets/new"
-
-  defp add_to(%{secrets_origin: :deployment_group, hub: hub, deployment_group: dg}),
-    do: ~p"/hub/#{hub.id}/deployment-groups/edit/#{dg.id}/secrets/new"
 end

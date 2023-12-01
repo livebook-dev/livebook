@@ -27,7 +27,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
       end
 
     secrets =
-      Hubs.get_secrets(hub) |> Enum.filter(&(&1.deployment_group_id == deployment_group_id))
+      if socket.assigns.live_action != :new_deployment_group,
+        do: deployment_group.secrets,
+        else: []
 
     secret_value =
       if socket.assigns.live_action == :edit_secret do
@@ -128,6 +130,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                     secrets={@secrets}
                     secrets_origin={:deployment_group}
                     deployment_group={@deployment_group}
+                    add_path={
+                      ~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}/secrets/new"
+                    }
+                    edit_path={"hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}/secrets/edit"}
+                    return_to={~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}"}
                   />
                 </div>
               <% end %>

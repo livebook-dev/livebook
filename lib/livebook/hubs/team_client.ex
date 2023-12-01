@@ -196,14 +196,14 @@ defmodule Livebook.Hubs.TeamClient do
     %{state | secrets: Enum.reject(state.secrets, &(&1.name == secret.name))}
   end
 
-  defp build_secret(state, %{name: name, value: value, deployment_group_id: deployment_group_id}) do
+  defp build_secret(state, %{name: name, value: value} = attrs) do
     {:ok, decrypted_value} = Teams.decrypt(value, state.derived_key)
 
     %Secrets.Secret{
       name: name,
       value: decrypted_value,
       hub_id: state.hub.id,
-      deployment_group_id: if(deployment_group_id !== "", do: deployment_group_id)
+      deployment_group_id: Map.get(attrs, :deployment_group_id)
     }
   end
 
@@ -244,8 +244,9 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp build_deployment_group(state, %{id: id, name: name, mode: mode}) do
-    %DeploymentGroup{id: id, name: name, mode: mode, hub_id: state.hub.id}
+  defp build_deployment_group(state, %{id: id, name: name, mode: mode, secrets: secrets}) do
+    secrets = Enum.map(secrets, &build_secret(state, &1))
+    %DeploymentGroup{id: id, name: name, mode: mode, hub_id: state.hub.id, secrets: secrets}
   end
 
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
