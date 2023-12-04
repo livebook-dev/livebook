@@ -532,6 +532,7 @@ defmodule LivebookWeb.FormComponents do
           data-show
           type="button"
           aria-label="show password"
+          tabindex="-1"
           phx-click={
             JS.remove_attribute("type", to: "##{@id} input")
             |> JS.set_attribute({"type", "text"}, to: "##{@id} input")
@@ -546,6 +547,7 @@ defmodule LivebookWeb.FormComponents do
           data-hide
           type="button"
           aria-label="hide password"
+          tabindex="-1"
           phx-click={
             JS.remove_attribute("type", to: "##{@id} input")
             |> JS.set_attribute({"type", "password"}, to: "##{@id} input")
