@@ -88,7 +88,7 @@ defmodule Livebook.UpdateCheck do
           schedule_check(state, @day_in_ms)
 
         {:error, error} ->
-          Logger.error("version check failed, #{error}")
+          Logger.warning("version check failed, #{error}")
           schedule_check(state, @hour_in_ms)
       end
 
@@ -96,7 +96,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{request_ref: ref} = state) do
-    Logger.error("version check failed, reason: #{inspect(reason)}")
+    Logger.warning("version check failed, reason: #{inspect(reason)}")
     {:noreply, %{state | request_ref: nil} |> schedule_check(@hour_in_ms)}
   end
 
