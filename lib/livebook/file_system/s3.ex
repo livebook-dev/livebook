@@ -30,23 +30,6 @@ defmodule Livebook.FileSystem.S3 do
   end
 
   @doc """
-  Infers region from the given bucket URL.
-  """
-  @spec region_from_uri(String.t()) :: String.t()
-  # TODO: make it private again on Livebook v0.12
-  def region_from_uri(uri) do
-    # For many services the API host is of the form *.[region].[rootdomain].com
-    %{host: host} = URI.parse(uri)
-    splitted_host = host |> String.split(".") |> Enum.reverse()
-
-    case Enum.at(splitted_host, 2, "auto") do
-      "s3" -> "us-east-1"
-      "r2" -> "auto"
-      region -> region
-    end
-  end
-
-  @doc """
   Returns an `%Ecto.Changeset{}` for tracking file system changes.
   """
   @spec change_file_system(t(), map()) :: Ecto.Changeset.t()
@@ -64,18 +47,10 @@ defmodule Livebook.FileSystem.S3 do
       :secret_access_key,
       :hub_id
     ])
-    |> put_region_from_uri()
-    |> validate_required([:bucket_url, :region, :hub_id])
+    |> validate_required([:bucket_url, :hub_id])
     |> Livebook.Utils.validate_url(:bucket_url)
     |> validate_credentials()
     |> put_id()
-  end
-
-  defp put_region_from_uri(changeset) do
-    case get_field(changeset, :bucket_url) do
-      nil -> changeset
-      bucket_url -> put_change(changeset, :region, region_from_uri(bucket_url))
-    end
   end
 
   defp validate_credentials(changeset) do
@@ -156,6 +131,38 @@ defmodule Livebook.FileSystem.S3 do
       :aws_credentials.get_credentials()
     else
       :undefined
+    end
+  end
+
+  @doc """
+  Infers region from the given bucket URL.
+  """
+  @spec region_from_url(String.t()) :: String.t()
+  def region_from_url(url) do
+    # For many services the API host is of the form *.[region].[rootdomain].com
+    host = URI.parse(url).host || ""
+
+    splitted_host = host |> String.split(".") |> Enum.reverse()
+
+    case Enum.at(splitted_host, 2, "auto") do
+      "s3" -> "us-east-1"
+      "r2" -> "auto"
+      region -> region
+    end
+  end
+
+  @doc """
+  Sets region field on `changeset` based on bucket URL, unless already
+  specified.
+  """
+  @spec maybe_put_region_from_url(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  def maybe_put_region_from_url(changeset) do
+    case {get_field(changeset, :region), get_field(changeset, :bucket_url)} do
+      {nil, bucket_url} when bucket_url != nil ->
+        put_change(changeset, :region, region_from_url(bucket_url))
+
+      _ ->
+        changeset
     end
   end
 end

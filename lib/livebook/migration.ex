@@ -113,7 +113,7 @@ defmodule Livebook.Migration do
             new_fields = %{
               hub_id: Livebook.Hubs.Personal.id(),
               external_id: nil,
-              region: Livebook.FileSystem.S3.region_from_uri(config.bucket_url)
+              region: Livebook.FileSystem.S3.region_from_url(config.bucket_url)
             }
 
             config = Map.merge(new_fields, config)
@@ -142,7 +142,7 @@ defmodule Livebook.Migration do
       new_attrs = %{
         hub_id: Livebook.Hubs.Personal.id(),
         external_id: nil,
-        region: Livebook.FileSystem.S3.region_from_uri(attrs.bucket_url)
+        region: Livebook.FileSystem.S3.region_from_url(attrs.bucket_url)
       }
 
       attrs = Map.merge(new_attrs, attrs)
