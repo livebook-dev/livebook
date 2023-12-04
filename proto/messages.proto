@@ -48,24 +48,31 @@ message FileSystemDeleted {
   string id = 1;
 }
 
+message DeploymentGroupSecret {
+  string name = 1;
+  string value = 2;
+  string deployment_group_id = 3;
+}
+
 message DeploymentGroup {
   string id = 1;
   string name = 2;
   string mode = 3;
+  repeated DeploymentGroupSecret secrets = 4;
 }
 
 message DeploymentGroupCreated {
   string id = 1;
   string name = 2;
   string mode = 3;
-  repeated Secret secrets = 4;
+  repeated DeploymentGroupSecret secrets = 4;
 }
 
 message DeploymentGroupUpdated {
   string id = 1;
   string name = 2;
   string mode = 3;
-  repeated Secret secrets = 4;
+  repeated DeploymentGroupSecret secrets = 4;
 }
 
 message DeploymentGroupDeleted {

@@ -49,6 +49,13 @@ defmodule Livebook.Teams.Requests do
   """
   @spec create_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_secret(team, %{deployment_group_id: nil} = secret) do
+    secret_key = Teams.derive_key(team.teams_key)
+    secret_value = Teams.encrypt(secret.value, secret_key)
+
+    post("/api/v1/org/secrets", %{name: secret.name, value: secret_value}, team)
+  end
+
   def create_secret(team, secret) do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
@@ -59,7 +66,7 @@ defmodule Livebook.Teams.Requests do
       deployment_group_id: secret.deployment_group_id
     }
 
-    post("/api/v1/org/secrets", params, team)
+    post("/api/v1/org/deployment-groups/secrets", params, team)
   end
 
   @doc """
@@ -67,6 +74,13 @@ defmodule Livebook.Teams.Requests do
   """
   @spec update_secret(Team.t(), Secret.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def update_secret(team, %{deployment_group_id: nil} = secret) do
+    secret_key = Teams.derive_key(team.teams_key)
+    secret_value = Teams.encrypt(secret.value, secret_key)
+
+    put("/api/v1/org/secrets", %{name: secret.name, value: secret_value}, team)
+  end
+
   def update_secret(team, secret) do
     secret_key = Teams.derive_key(team.teams_key)
     secret_value = Teams.encrypt(secret.value, secret_key)
@@ -77,7 +91,7 @@ defmodule Livebook.Teams.Requests do
       deployment_group_id: secret.deployment_group_id
     }
 
-    put("/api/v1/org/secrets", params, team)
+    put("/api/v1/org/deployment-groups/secrets", params, team)
   end
 
   @doc """
@@ -85,10 +99,14 @@ defmodule Livebook.Teams.Requests do
   """
   @spec delete_secret(Team.t(), Secret.t()) ::
           {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_secret(team, %{deployment_group_id: nil} = secret) do
+    delete("/api/v1/org/secrets", %{name: secret.name}, team)
+  end
+
   def delete_secret(team, secret) do
     params = %{name: secret.name, deployment_group_id: secret.deployment_group_id}
 
-    delete("/api/v1/org/secrets", params, team)
+    delete("/api/v1/org/deployment-groups/secrets", params, team)
   end
 
   @doc """

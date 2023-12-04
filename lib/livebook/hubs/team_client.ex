@@ -198,16 +198,12 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_secret(state, %{name: name, value: value} = attrs) do
     {:ok, decrypted_value} = Teams.decrypt(value, state.derived_key)
-    deployment_group_id = Map.get(attrs, :deployment_group_id)
-
-    deployment_group_id =
-      if deployment_group_id && deployment_group_id != "", do: deployment_group_id
 
     %Secrets.Secret{
       name: name,
       value: decrypted_value,
       hub_id: state.hub.id,
-      deployment_group_id: deployment_group_id
+      deployment_group_id: Map.get(attrs, :deployment_group_id)
     }
   end
 

@@ -13,7 +13,7 @@ defmodule Livebook.Secrets.Secret do
   embedded_schema do
     field :value, :string
     field :hub_id, :string
-    field :deployment_group_id, :integer
+    field :deployment_group_id, :string
   end
 
   def changeset(secret, attrs \\ %{}) do

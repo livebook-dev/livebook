@@ -4,11 +4,11 @@ defmodule Livebook.Teams.DeploymentGroup do
   alias Livebook.Secrets.Secret
 
   @type t :: %__MODULE__{
-          id: pos_integer() | nil,
+          id: String.t() | nil,
           name: String.t() | nil,
           mode: :online | :offline,
           hub_id: String.t() | nil,
-          secrets: list()
+          secrets: [Secret.t()]
         }
 
   @primary_key {:id, :id, autogenerate: false}

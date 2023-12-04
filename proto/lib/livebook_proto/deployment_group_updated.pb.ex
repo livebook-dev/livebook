@@ -4,5 +4,5 @@ defmodule LivebookProto.DeploymentGroupUpdated do
   field :id, 1, type: :string
   field :name, 2, type: :string
   field :mode, 3, type: :string
-  field :secrets, 4, repeated: true, type: LivebookProto.Secret
+  field :secrets, 4, repeated: true, type: LivebookProto.DeploymentGroupSecret
 end
