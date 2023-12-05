@@ -83,7 +83,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
         :ok ->
           socket
           |> put_flash(:success, "File storage deleted successfully")
-          |> push_navigate(to: ~p"/hub/#{hub.id}")
+          |> push_patch(to: ~p"/hub/#{hub.id}")
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)

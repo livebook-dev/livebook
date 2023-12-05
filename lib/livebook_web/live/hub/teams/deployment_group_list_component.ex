@@ -82,7 +82,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
         :ok ->
           socket
           |> put_flash(:success, "Deployment group #{deployment_group.name} deleted successfully")
-          |> push_navigate(to: ~p"/hub/#{hub.id}")
+          |> push_patch(to: ~p"/hub/#{hub.id}")
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)
