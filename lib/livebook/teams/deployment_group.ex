@@ -11,7 +11,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           secrets: [Secret.t()]
         }
 
-  @primary_key {:id, :id, autogenerate: false}
+  @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
     field :name, :string
     field :mode, Ecto.Enum, values: [:online, :offline]
