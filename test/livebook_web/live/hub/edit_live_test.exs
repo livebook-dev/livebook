@@ -153,11 +153,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-
-      %{"success" => "Secret PERSONAL_DELETE_SECRET deleted successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret PERSONAL_DELETE_SECRET deleted successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
       refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -265,8 +265,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_receive {:file_system_deleted, ^file_system}
 
-      %{"success" => "File storage deleted successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage deleted successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
