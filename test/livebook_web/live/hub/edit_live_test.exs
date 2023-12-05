@@ -81,9 +81,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-
-      %{"success" => "Secret PERSONAL_ADD_SECRET added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret PERSONAL_ADD_SECRET added successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -128,9 +127,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-
-      %{"success" => "Secret PERSONAL_EDIT_SECRET updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret PERSONAL_EDIT_SECRET updated successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
@@ -194,9 +192,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, ^file_system}
-
-      %{"success" => "File storage added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage added successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -236,9 +233,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       updated_file_system = %{file_system | access_key_id: "new key"}
       assert_receive {:file_system_updated, ^updated_file_system}
-
-      %{"success" => "File storage updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage updated successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 

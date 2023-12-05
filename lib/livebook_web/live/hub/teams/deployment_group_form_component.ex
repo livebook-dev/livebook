@@ -103,7 +103,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       {:noreply,
        socket
        |> put_flash(:success, message)
-       |> push_redirect(to: ~p"/hub/#{socket.assigns.hub.id}/deployment-groups/edit/#{id}")}
+       |> push_patch(to: ~p"/hub/#{socket.assigns.hub.id}/deployment-groups/edit/#{id}")}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, changeset: changeset)}

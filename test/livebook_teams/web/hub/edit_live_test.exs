@@ -100,9 +100,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-
-      %{"success" => "Secret TEAM_ADD_SECRET added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret TEAM_ADD_SECRET added successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -148,9 +147,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-
-      %{"success" => "Secret TEAM_EDIT_SECRET updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret TEAM_EDIT_SECRET updated successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
@@ -174,7 +172,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret TEAM_DELETE_SECRET deleted successfully"
 
@@ -221,9 +218,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, %{id: ^id} = file_system}
-
-      %{"success" => "File storage added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage added successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -266,9 +262,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       updated_file_system = %{file_system | access_key_id: "new key"}
       assert_receive {:file_system_updated, ^updated_file_system}
-
-      %{"success" => "File storage updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage updated successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -297,7 +292,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage deleted successfully"
 
@@ -349,8 +343,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_receive {:deployment_group_created,
                       %DeploymentGroup{name: "TEAM_ADD_DEPLOYMENT_GROUP"} = deployment_group}
 
-      %{"success" => "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -408,9 +402,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_deployment_group = %{deployment_group | mode: new_mode}
 
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
-
-      %{"success" => "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name

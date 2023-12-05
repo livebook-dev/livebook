@@ -96,7 +96,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
       {:noreply,
        socket
        |> put_flash(:success, message)
-       |> push_redirect(to: socket.assigns.return_to)}
+       |> push_patch(to: socket.assigns.return_to)}
     else
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
