@@ -325,14 +325,14 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
         }
       }
 
-      refute render(view) =~ deployment_group.name
-
       view
       |> element("#add-deployment-group")
-      |> render_click(%{})
+      |> render_click()
 
       assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/new")
-      assert render(view) =~ "Add deployment group"
+
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/new")
+      assert html =~ "Add a new deployment group to"
 
       view
       |> element("#deployment-groups-form")
@@ -350,7 +350,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
                       %DeploymentGroup{name: "TEAM_ADD_DEPLOYMENT_GROUP"} = deployment_group}
 
       %{"success" => "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -386,7 +386,12 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_click(%{"deployment_group_name" => deployment_group.id})
 
       assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-      assert render(view) =~ "Edit deployment group"
+
+      {:ok, view, html} =
+        live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+
+      assert html =~ "Edit deployment group"
+      assert html =~ "Manage the #{deployment_group.name} deployment group"
 
       view
       |> element("#deployment-groups-form")
@@ -405,7 +410,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
 
       %{"success" => "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
+        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name

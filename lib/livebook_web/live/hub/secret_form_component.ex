@@ -20,6 +20,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
        title: title(socket),
        button: button(socket),
        changeset: changeset,
+       deployment_group_id: assigns[:deployment_group_id],
        error_message: nil
      )}
   end
@@ -66,6 +67,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
               phx-debounce
             />
             <.hidden_field field={f[:hub_id]} value={@hub.id} />
+            <.hidden_field field={f[:deployment_group_id]} value={@deployment_group_id} />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
                 <.remix_icon icon={@button.icon} class="align-middle mr-1" />

@@ -16,7 +16,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@secrets == []}>
-          No secrets in this Hub yet.
+          No secrets here... yet!
         </.no_entries>
         <div
           :for={secret <- @secrets}
@@ -43,7 +43,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                 <.menu_item>
                   <.link
                     id={"hub-secret-#{secret.name}-edit"}
-                    patch={~p"/hub/#{secret.hub_id}/secrets/edit/#{secret.name}"}
+                    patch={"/#{@edit_path}/#{secret.name}"}
                     type="button"
                     role="menuitem"
                   >
@@ -60,7 +60,9 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                         value: %{
                           name: secret.name,
                           value: secret.value,
-                          hub_id: secret.hub_id
+                          hub_id: secret.hub_id,
+                          deployment_group_id: secret.deployment_group_id,
+                          return_to: @return_to
                         }
                       )
                     }
@@ -77,7 +79,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         </div>
       </div>
       <div class="flex">
-        <.link patch={~p"/hub/#{@hub.id}/secrets/new"} class="button-base button-blue" id="add-secret">
+        <.link patch={@add_path} class="button-base button-blue" id="add-secret">
           Add secret
         </.link>
       </div>
@@ -95,7 +97,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         :ok ->
           socket
           |> put_flash(:success, "Secret #{secret.name} deleted successfully")
-          |> push_navigate(to: ~p"/hub/#{hub.id}")
+          |> push_navigate(to: attrs["return_to"])
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)
