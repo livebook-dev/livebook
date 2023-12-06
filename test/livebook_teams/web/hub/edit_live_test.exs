@@ -325,12 +325,13 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
         }
       }
 
-      {:ok, view, html} =
-        view
-        |> element("#add-deployment-group")
-        |> render_click()
-        |> follow_redirect(conn, ~p"/hub/#{hub.id}/deployment-groups/new")
+      view
+      |> element("#add-deployment-group")
+      |> render_click()
 
+      assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/new")
+
+      {:ok, view, html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/new")
       assert html =~ "Add a new deployment group to"
 
       view
@@ -380,11 +381,14 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       new_mode = "offline"
 
+      view
+      |> element("#hub-deployment-group-#{deployment_group.id}-edit")
+      |> render_click(%{"deployment_group_name" => deployment_group.id})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+
       {:ok, view, html} =
-        view
-        |> element("#hub-deployment-group-#{deployment_group.id}-edit")
-        |> render_click(%{"deployment_group_name" => deployment_group.id})
-        |> follow_redirect(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+        live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
 
       assert html =~ "Edit deployment group"
       assert html =~ "Manage the #{deployment_group.name} deployment group"

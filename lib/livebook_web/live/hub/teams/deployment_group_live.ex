@@ -128,7 +128,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                     id="hub-secrets-list"
                     hub={@hub}
                     secrets={@secrets}
-                    secrets_origin={:deployment_group}
                     deployment_group={@deployment_group}
                     add_path={
                       ~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}/secrets/new"
