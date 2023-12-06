@@ -181,7 +181,7 @@ graph TD;
 
 ## Elixir integration and use cases
 
-There are many ways Elixir developers and leverage Livebook today.
+There are many ways Elixir developers use and leverage Livebook today.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -216,7 +216,7 @@ Your Livebook notebooks can be deployed as actual applications which
 you may then share within your team and company. We have a
 [whole guide dedicated to this topic](/learn/notebooks/deploy-apps),
 which is recommended reading for those who want to learn more.
-The next use caso also builds on top of notebook deployment,
+The next use case also builds on top of notebook deployment,
 let's check it out.
 
 <!-- livebook:{"break_markdown":true} -->
@@ -240,13 +240,13 @@ $ iex --sname phoenix-app --cookie secret -S mix phx.server
 With this information in hand, you can query and automate tasks within
 existing Elixir systems. You may also mix remote execution with Livebook's
 rich features to [deploy applications](/learn/notebooks/deploy-apps)
-that interact with those clusters.
+that interact with those systems.
 
 <!-- livebook:{"break_markdown":true} -->
 
 ### Debugging live systems (with attached mode)
 
-Livebook has a concept of **runtime**, which in practice is an Elixir node
+Livebook uses the concept of a **runtime**, which in practice is an Elixir node
 responsible for evaluating your code. You can choose the runtime by clicking
 the "Runtime" icon (<i class="ri-livebook-runtime"></i>) on the sidebar
 (or by using the <kbd>s</kbd> <kbd>r</kbd> keyboard shortcut).
@@ -256,7 +256,7 @@ for each notebook. You can click reconnect whenever you want to discard the
 current runtime and start a new one.
 
 You can also manually *attach* to an existing node by picking the "Attached Node"
-runtime. While in the previous section we used the "Remove execution" smart cell
+runtime. While in the previous section we used the "Remote execution" smart cell
 to connect the default Livebook runtime to an existing node, the "Attached Node"
 will make it so the Livebook runtime itself runs within the external node.
 
@@ -265,7 +265,7 @@ Click to "Configure" the runtime and choose "Attached node". Input the
 name and cookie from the remote node and you should be ready to connect
 to it. Once connected, be careful: any code that you execute in the notebook
 now runs within the connected application. You are also limited on actions
-you may perform. For example, you can't install dependencies (nor that would
+you may perform. For example, you can't install dependencies (nor would that
 be a good idea on a running system).
 
 You may also [connect your local Livebook instance to a node running in
@@ -290,7 +290,7 @@ click on the submenu option on the right side of the "Elixir" cell
 button and choose Erlang.
 
 Your Erlang code will run alongside your Elixir cells. This means
-you can leverage all of dependency management and smart cells features
+you can leverage all of the dependency management and smart cell features
 outlined in the previous sections. In particular, integration between
 Erlang and Elixir will happen as follows:
 
@@ -367,7 +367,7 @@ There are two main ways of running tests inside Livebook.
 
 ### Doctests
 
-Doctests allows developers to provide and test examples directly
+Doctests allow developers to provide and test examples directly
 from their documentation. Doctests are defined with the `iex>`
 prompts under the `@moduledoc` and `@doc` attributes of your
 modules. Let's see an example:
@@ -386,7 +386,7 @@ defmodule MyModule do
 end
 ```
 
-Livebook automatically detect doctests for any defined modules
+Livebook automatically detects doctests for any defined modules
 and automatically executes them when you evaluate the cell.
 Doctests which fail are marked in red in the gutter and show
 the failure information right below them. Otherwise they are tagged
@@ -397,7 +397,7 @@ see [`ExUnit.Doctest`](https://hexdocs.pm/ex_unit/ExUnit.DocTest.html).
 
 ### ExUnit integration
 
-It is also possible to `ExUnit` suites directly from your notebooks.
+It is also possible to run `ExUnit` suites directly from your notebooks.
 The key is to disable `ExUnit`'s autorun feature and then explicitly
 run the test suite after all test cases have been defined:
 
