@@ -83,9 +83,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_receive {:secret_created, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret PERSONAL_ADD_SECRET added successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -129,8 +126,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_receive {:secret_updated, ^updated_secret}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret PERSONAL_EDIT_SECRET updated successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -153,9 +148,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_receive {:secret_deleted, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret PERSONAL_DELETE_SECRET deleted successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
       refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -194,9 +186,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_receive {:file_system_created, ^file_system}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage added successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -232,12 +221,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       |> render_submit(put_in(attrs.file_system.access_key_id, "new key"))
 
       updated_file_system = %{file_system | access_key_id: "new key"}
+
       assert_receive {:file_system_updated, ^updated_file_system}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage updated successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -263,9 +250,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "File storage deleted successfully"
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
       refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       refute file_system in Livebook.Hubs.get_file_systems(hub)
     end

@@ -30,7 +30,9 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply,
      socket
      |> load_hub(id)
-     |> increment_counter()
+     # Hub-specific components load data, such as secrets and we use
+     # a counter to force re-render on every patch.
+     |> update(:counter, &(&1 + 1))
      |> assign(:params, params)}
   end
 
@@ -116,9 +118,5 @@ defmodule LivebookWeb.Hub.EditLive do
     type = Provider.type(hub)
 
     assign(socket, hub: hub, type: type)
-  end
-
-  defp increment_counter(socket) do
-    assign(socket, counter: socket.assigns.counter + 1)
   end
 end
