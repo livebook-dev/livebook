@@ -326,11 +326,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:deployment_group_created,
-                      %DeploymentGroup{name: "TEAM_ADD_DEPLOYMENT_GROUP"} = deployment_group}
+                      %DeploymentGroup{id: id, name: "TEAM_ADD_DEPLOYMENT_GROUP"} =
+                        deployment_group}
 
-      assert_patch(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{id}")
       assert render(view) =~ "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"
-      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
       assert deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
@@ -384,9 +384,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_deployment_group = %{deployment_group | mode: new_mode}
 
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
-      assert_patch(view, "/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
       assert render(view) =~ "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"
-      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
       assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
