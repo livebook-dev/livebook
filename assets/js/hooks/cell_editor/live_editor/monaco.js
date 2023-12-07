@@ -1,3 +1,7 @@
+// We need to set window.MonacoEnvironment before importing vs/editor/editor.api,
+// because it expects MonacoEnvironment.globalAPI to be set on import
+import "./monaco_environment";
+
 // For the full list of features see [1] and [2]. The Monaco Webpack
 // plugin always ignores certain imports [3], so we ignore these as
 // well. On top of that, we ignore some other features which we
@@ -105,19 +109,6 @@ import { theme, lightTheme } from "./theme";
 import { PieceTreeTextBufferBuilder } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
 
 import { settingsStore } from "../../../lib/settings";
-
-window.MonacoEnvironment = {
-  // Certain browser extensions are Monaco-aware, so we expose it on
-  // the window object
-  globalAPI: true,
-  getWorkerUrl(_workerId, label) {
-    if (label === "json") {
-      return "/assets/language/json/json.worker.js";
-    }
-
-    return "/assets/editor/editor.worker.js";
-  },
-};
 
 // Force LF for line ending.
 //
