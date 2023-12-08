@@ -125,7 +125,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
       {:noreply,
        socket
        |> put_flash(:success, message)
-       |> push_redirect(to: socket.assigns.return_to)}
+       |> push_patch(to: socket.assigns.return_to)}
     else
       {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
       {:transport_error, message} -> {:noreply, assign(socket, error_message: message)}

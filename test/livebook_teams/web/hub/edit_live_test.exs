@@ -100,12 +100,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:secret_created, ^secret}
-
-      %{"success" => "Secret TEAM_ADD_SECRET added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret TEAM_ADD_SECRET added successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -148,11 +144,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_secret = %{secret | value: new_value}
 
       assert_receive {:secret_updated, ^updated_secret}
-
-      %{"success" => "Secret TEAM_EDIT_SECRET updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret TEAM_EDIT_SECRET updated successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -174,11 +167,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
-
-      %{"success" => "Secret TEAM_DELETE_SECRET deleted successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Secret TEAM_DELETE_SECRET deleted successfully"
       refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -221,12 +211,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:file_system_created, %{id: ^id} = file_system}
-
-      %{"success" => "File storage added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage added successfully"
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -265,13 +251,10 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(put_in(attrs.file_system.access_key_id, "new key"))
 
       updated_file_system = %{file_system | access_key_id: "new key"}
+
       assert_receive {:file_system_updated, ^updated_file_system}
-
-      %{"success" => "File storage updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage updated successfully"
       assert render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       assert updated_file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -297,12 +280,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       render_confirm(view)
 
       assert_receive {:file_system_deleted, ^file_system}
-
-      %{"success" => "File storage deleted successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "File storage deleted successfully"
       refute render(element(view, "#hub-file-systems-list")) =~ file_system.bucket_url
       refute file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -347,14 +326,11 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(attrs)
 
       assert_receive {:deployment_group_created,
-                      %DeploymentGroup{name: "TEAM_ADD_DEPLOYMENT_GROUP"} = deployment_group}
+                      %DeploymentGroup{id: id, name: "TEAM_ADD_DEPLOYMENT_GROUP"} =
+                        deployment_group}
 
-      %{"success" => "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
+      assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{id}")
+      assert render(view) =~ "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"
       assert deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
@@ -408,13 +384,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       updated_deployment_group = %{deployment_group | mode: new_mode}
 
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
-
-      %{"success" => "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      assert render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
-
+      assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+      assert render(view) =~ "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"
       assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
@@ -443,10 +414,8 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_receive {:deployment_group_deleted,
                       %DeploymentGroup{name: "TEAM_DELETE_DEPLOYMENT_GROUP"}}
 
-      %{"success" => "Deployment group TEAM_DELETE_DEPLOYMENT_GROUP deleted successfully"} =
-        assert_redirect(view, "/hub/#{hub.id}")
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      assert_patch(view, "/hub/#{hub.id}")
+      assert render(view) =~ "Deployment group TEAM_DELETE_DEPLOYMENT_GROUP deleted successfully"
       refute render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
       refute deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end

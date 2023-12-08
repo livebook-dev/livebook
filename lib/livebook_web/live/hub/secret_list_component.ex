@@ -97,7 +97,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         :ok ->
           socket
           |> put_flash(:success, "Secret #{secret.name} deleted successfully")
-          |> push_navigate(to: attrs["return_to"])
+          |> push_patch(to: attrs["return_to"])
 
         {:transport_error, reason} ->
           put_flash(socket, :error, reason)

@@ -13,13 +13,27 @@ defmodule LivebookWeb.Hub.EditLive do
       Hubs.Broadcasts.subscribe([:connection])
     end
 
-    {:ok, assign(socket, hub: nil, type: nil, page_title: "Hub - Livebook", params: %{})}
+    {:ok,
+     assign(socket,
+       hub: nil,
+       counter: 0,
+       type: nil,
+       page_title: "Hub - Livebook",
+       params: %{}
+     )}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
     {id, params} = Map.pop(params, "id")
-    {:noreply, socket |> load_hub(id) |> assign(:params, params)}
+
+    {:noreply,
+     socket
+     |> load_hub(id)
+     # Hub-specific components load data, such as secrets and we use
+     # a counter to force re-render on every patch.
+     |> update(:counter, &(&1 + 1))
+     |> assign(:params, params)}
   end
 
   @impl true
@@ -30,7 +44,13 @@ defmodule LivebookWeb.Hub.EditLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <.hub_component type={@type} hub={@hub} live_action={@live_action} params={@params} />
+      <.hub_component
+        type={@type}
+        hub={@hub}
+        counter={@counter}
+        live_action={@live_action}
+        params={@params}
+      />
     </LayoutHelpers.layout>
     """
   end
@@ -41,6 +61,7 @@ defmodule LivebookWeb.Hub.EditLive do
       module={LivebookWeb.Hub.Edit.PersonalComponent}
       hub={@hub}
       params={@params}
+      counter={@counter}
       live_action={@live_action}
       id="personal-form"
     />
@@ -54,6 +75,7 @@ defmodule LivebookWeb.Hub.EditLive do
       hub={@hub}
       live_action={@live_action}
       params={@params}
+      counter={@counter}
       id="team-form"
     />
     """
@@ -94,6 +116,7 @@ defmodule LivebookWeb.Hub.EditLive do
   defp load_hub(socket, id) do
     hub = Hubs.fetch_hub!(id)
     type = Provider.type(hub)
+
     assign(socket, hub: hub, type: type)
   end
 end
