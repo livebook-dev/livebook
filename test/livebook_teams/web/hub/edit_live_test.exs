@@ -1,11 +1,11 @@
 defmodule LivebookWeb.Integration.Hub.EditLiveTest do
-  alias Livebook.Teams.DeploymentGroup
   use Livebook.TeamsIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
   import Livebook.TestHelpers
 
   alias Livebook.Hubs
+  alias Livebook.Teams.DeploymentGroup
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
