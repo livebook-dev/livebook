@@ -8,8 +8,11 @@ import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../../lib/text_utils";
 import { settingsStore } from "../../lib/settings";
 import Doctest from "./live_editor/doctest";
-import { initVimMode } from "monaco-vim";
+import { initVimMode, VimMode } from "monaco-vim";
 import { EmacsExtension, unregisterKey } from "monaco-emacs";
+
+// Expose the Vim extension for customization
+window.unstable_monacoExtensions = { VimMode };
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
