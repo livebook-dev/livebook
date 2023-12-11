@@ -106,7 +106,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
        |> push_patch(to: ~p"/hub/#{socket.assigns.hub.id}/deployment-groups/edit/#{id}")}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
+        {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
 
       {:transport_error, message} ->
         {:noreply, assign(socket, error_message: message)}

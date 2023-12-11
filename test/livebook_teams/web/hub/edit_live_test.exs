@@ -104,6 +104,16 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert render(view) =~ "Secret TEAM_ADD_SECRET added successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
+
+      # Guarantee it shows the error from API
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}/secrets/new")
+
+      view
+      |> element("#secrets-form")
+      |> render_submit(attrs)
+
+      assert render(view) =~ "has already been taken"
     end
 
     test "updates existing secret", %{conn: conn, hub: hub} do
@@ -332,6 +342,16 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{id}")
       assert render(view) =~ "Deployment group TEAM_ADD_DEPLOYMENT_GROUP added successfully"
       assert deployment_group in Livebook.Teams.get_deployment_groups(hub)
+
+      # Guarantee it shows the error from API
+
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/new")
+
+      view
+      |> element("#deployment-groups-form")
+      |> render_submit(attrs)
+
+      assert render(view) =~ "has already been taken"
     end
 
     test "updates existing deployment group", %{conn: conn, hub: hub} do
