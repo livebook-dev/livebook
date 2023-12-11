@@ -85,6 +85,15 @@ message UserConnected {
   repeated FileSystem file_systems = 3;
 }
 
+message AgentConnected {
+  int32 id = 1;
+  string name = 2;
+  string public_key = 3;
+  DeploymentGroup deployment_group = 4;
+  repeated Secret secrets = 5;
+  repeated FileSystem file_systems = 6;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -97,5 +106,6 @@ message Event {
     DeploymentGroupCreated deployment_group_created = 8;
     DeploymentGroupUpdated deployment_group_updated = 9;
     DeploymentGroupDeleted deployment_group_deleted = 10;
+    AgentConnected agent_connected = 11;
   }
 }
