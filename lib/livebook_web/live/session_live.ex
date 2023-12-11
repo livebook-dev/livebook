@@ -343,13 +343,13 @@ defmodule LivebookWeb.SessionLive do
               <.menu position={:bottom_left} id="notebook-hub-menu">
                 <:toggle>
                   <div
-                    class="inline-flex items-center group cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
+                    class="inline-flex items-center cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
                     aria-label={@data_view.hub.hub_name}
                   >
                     <span>in</span>
                     <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
                     <span><%= @data_view.hub.hub_name %></span>
-                    <.remix_icon icon="arrow-down-s-line" class="invisible group-hover:visible" />
+                    <.remix_icon icon="arrow-down-s-line" />
                   </div>
                 </:toggle>
                 <.menu_item :for={hub <- @saved_hubs}>
