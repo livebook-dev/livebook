@@ -127,9 +127,14 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
        |> put_flash(:success, message)
        |> push_patch(to: socket.assigns.return_to)}
     else
-      {:error, %Ecto.Changeset{} = changeset} -> {:noreply, assign(socket, changeset: changeset)}
-      {:transport_error, message} -> {:noreply, assign(socket, error_message: message)}
-      {:error, message} -> {:noreply, assign(socket, error_message: message)}
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
+
+      {:transport_error, message} ->
+        {:noreply, assign(socket, error_message: message)}
+
+      {:error, message} ->
+        {:noreply, assign(socket, error_message: message)}
     end
   end
 
