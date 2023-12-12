@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Zero Trust authentication strategy for Teleport ([#2296](https://github.com/livebook-dev/livebook/pull/2296))
 * Docs for shared Teams secrets and file storages ([#2317](https://github.com/livebook-dev/livebook/pull/2317), [#2318](https://github.com/livebook-dev/livebook/pull/2318))
 * Support for sourcing S3 file system credentials from environment variables, AWS credentials, or Amazon EC2/ECS metadata ([#2347](https://github.com/livebook-dev/livebook/pull/2347), [#2358](https://github.com/livebook-dev/livebook/pull/2358))
+* (Desktop) Started registering Livebook in Add/Remove Programs on Windows ([#2398](https://github.com/livebook-dev/livebook/pull/2398))
 
 ### Changed
 
