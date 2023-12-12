@@ -210,7 +210,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               />
             </div>
 
-            <div class="flex flex-col space-y-4">
+            <div
+              :if={Livebook.Config.feature_flag_enabled?(:deployment_groups)}
+              class="flex flex-col space-y-4"
+            >
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 Deployment groups
               </h2>
