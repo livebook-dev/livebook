@@ -1346,18 +1346,6 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
-  def handle_event("add_form_cell_dependencies", %{}, socket) do
-    Session.add_dependencies(socket.assigns.session.pid, [%{dep: {:kino, "~> 0.8.1"}, config: []}])
-
-    {status, socket} = maybe_reconnect_runtime(socket)
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-    end
-
-    {:noreply, socket}
-  end
-
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
     data = socket.private.data
 

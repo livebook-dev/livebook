@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Persisting Smart cells with `-->` sequence in the attributes ([#2364](https://github.com/livebook-dev/livebook/pull/2364))
 * Downloading files in notebook export
 * Secrets list not updating when deleting Teams hub secrets ([#2371](https://github.com/livebook-dev/livebook/pull/2371))
+* File system form in Teams hub to show errors when creation fails because of duplicated bucket ([#2396](https://github.com/livebook-dev/livebook/pull/2396))
 
 ## v0.11
 
