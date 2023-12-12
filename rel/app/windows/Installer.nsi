@@ -36,7 +36,7 @@ Section "Install"
 
   File /a /r "bin\Livebook-Release\"
 
-  CreateDirectory "$INSTDIR\Logs"
+  CreateDirectory "$LOCALAPPDATA\Livebook\Logs"
   WriteUninstaller "$INSTDIR\LivebookUninstall.exe"
 SectionEnd
 
