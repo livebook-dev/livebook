@@ -18,4 +18,7 @@ if [ ! -f $vc_redist_path ]; then
   curl -L --fail --output $vc_redist_path $url
 fi
 
-makensis //DERTS_VERSION=`elixir -e "IO.puts :erlang.system_info(:version)"` Installer.nsi
+makensis \
+  //DERTS_VERSION=`elixir -e "IO.puts :erlang.system_info(:version)"` \
+  //DLIVEBOOK_VERSION=`elixir -e "Mix.start() ; Mix.Project.in_project(:livebook, \"../../..\", fn _ -> IO.puts Mix.Project.config()[:version] end)"` \
+  Installer.nsi

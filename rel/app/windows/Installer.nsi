@@ -38,6 +38,16 @@ Section "Install"
 
   CreateDirectory "$LOCALAPPDATA\Livebook\Logs"
   WriteUninstaller "$INSTDIR\LivebookUninstall.exe"
+
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayName" "Livebook"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayVersion" "${LIVEBOOK_VERSION}"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayIcon" "$INSTDIR\Livebook.exe"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "Publisher" "Dashbit"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "UninstallString" '"$INSTDIR\LivebookUninstall.exe"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoRepair" 1
+
+  WriteRegStr   HKLM "Software\Dashbit\Livebook" "InstallRoot" "$INSTDIR"
 SectionEnd
 
 Section "Desktop Shortcut"
@@ -87,6 +97,9 @@ Section "Uninstall"
   DeleteRegKey HKCR ".livemd"
   DeleteRegKey HKCR "Livebook.LiveMarkdown"
   DeleteRegKey HKCR "livebook"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook"
+  DeleteRegKey HKLM "Software\Dashbit\Livebook"
+  DeleteRegKey /ifempty HKLM "Software\Dashbit"
 
   DetailPrint "Terminating Livebook..."
   ExecWait "taskkill /f /t /im Livebook.exe"
