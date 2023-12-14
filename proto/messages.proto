@@ -83,6 +83,7 @@ message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
   repeated FileSystem file_systems = 3;
+  repeated DeploymentGroup deployment_groups = 4;
 }
 
 message AgentConnected {

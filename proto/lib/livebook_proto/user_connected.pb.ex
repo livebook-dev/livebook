@@ -4,4 +4,9 @@ defmodule LivebookProto.UserConnected do
   field :name, 1, type: :string
   field :secrets, 2, repeated: true, type: LivebookProto.Secret
   field :file_systems, 3, repeated: true, type: LivebookProto.FileSystem, json_name: "fileSystems"
+
+  field :deployment_groups, 4,
+    repeated: true,
+    type: LivebookProto.DeploymentGroup,
+    json_name: "deploymentGroups"
 end
