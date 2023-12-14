@@ -30,7 +30,7 @@ defmodule Livebook.Hubs.Team do
           offline: Offline.t() | nil
         }
 
-  @enforce_keys [:user_id, :org_id, :org_key_id, :session_token, :org_public_key, :teams_key]
+  @enforce_keys [:org_id, :org_key_id, :session_token, :teams_key]
 
   embedded_schema do
     field :org_id, :integer
