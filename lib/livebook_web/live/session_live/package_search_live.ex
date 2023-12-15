@@ -145,6 +145,5 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
 
   defp add_dependency(socket, dependency) do
     Livebook.Session.add_dependencies(socket.assigns.session.pid, [dependency])
-    push_patch(socket, to: socket.assigns.return_to)
   end
 end
