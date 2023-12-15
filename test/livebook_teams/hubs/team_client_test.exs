@@ -12,7 +12,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   end
 
   describe "start_link/1" do
-    test "successfully authenticates the web socket connection", %{user: user, node: node} do
+    test "successfully authenticates the user's web socket connection", %{user: user, node: node} do
       team = build_team_hub(user, node)
       id = team.id
 
