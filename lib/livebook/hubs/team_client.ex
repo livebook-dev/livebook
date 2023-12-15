@@ -378,7 +378,29 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(user_connected)
   end
 
+  defp handle_event(:agent_connected, agent_connected, state) do
+    %{state | deployment_groups: [agent_connected.deployment_group]}
+    |> dispatch_secrets(agent_connected)
+    |> dispatch_file_systems(agent_connected)
+  end
+
+  defp dispatch_secrets(state, %{
+         deployment_group: %{secrets: agent_secrets},
+         secrets: org_secrets
+       }) do
+    secrets =
+      Enum.reject(org_secrets, fn secret ->
+        Enum.any?(agent_secrets, &(&1.name == secret.name))
+      end) ++ agent_secrets
+
+    dispatch_secrets(state, secrets)
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
+    dispatch_secrets(state, secrets)
+  end
+
+  defp dispatch_secrets(state, secrets) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
     {created, deleted, updated} =
