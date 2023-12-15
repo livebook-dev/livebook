@@ -2,16 +2,11 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
   use LivebookWeb, :live_view
 
   @impl true
-  def mount(
-        _params,
-        %{"session_pid" => session_pid, "runtime" => runtime, "return_to" => return_to},
-        socket
-      ) do
+  def mount(_params, %{"session_pid" => session_pid, "runtime" => runtime}, socket) do
     socket =
       assign(socket,
         session: Livebook.Session.get_by_pid(session_pid),
         runtime: runtime,
-        return_to: return_to,
         search: "",
         search_ref: nil,
         packages: [],
