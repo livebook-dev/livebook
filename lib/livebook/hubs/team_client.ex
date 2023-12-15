@@ -102,13 +102,24 @@ defmodule Livebook.Hubs.TeamClient do
   def init(%Hubs.Team{offline: nil} = team) do
     derived_key = Teams.derive_key(team.teams_key)
 
-    headers = [
-      {"x-lb-version", Livebook.Config.app_version()},
-      {"x-user", to_string(team.user_id)},
-      {"x-org", to_string(team.org_id)},
-      {"x-org-key", to_string(team.org_key_id)},
-      {"x-session-token", team.session_token}
-    ]
+    headers =
+      if team.user_id do
+        [
+          {"x-lb-version", Livebook.Config.app_version()},
+          {"x-user", to_string(team.user_id)},
+          {"x-org", to_string(team.org_id)},
+          {"x-org-key", to_string(team.org_key_id)},
+          {"x-session-token", team.session_token}
+        ]
+      else
+        [
+          {"x-lb-version", Livebook.Config.app_version()},
+          {"x-org", to_string(team.org_id)},
+          {"x-org-key", to_string(team.org_key_id)},
+          {"x-agent-name", Livebook.Config.agent_name()},
+          {"x-agent-key", team.session_token}
+        ]
+      end
 
     {:ok, _pid} = Teams.Connection.start_link(self(), headers)
     {:ok, %__MODULE__{hub: team, derived_key: derived_key}}

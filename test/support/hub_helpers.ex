@@ -62,6 +62,29 @@ defmodule Livebook.HubHelpers do
     )
   end
 
+  def build_agent_team_hub(node) do
+    teams_org = build(:org)
+    teams_key = teams_org.teams_key
+    key_hash = Livebook.Teams.Org.key_hash(teams_org)
+
+    org = erpc_call(node, :create_org, [])
+    org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
+    erpc_call(node, :create_org_key_pair, [[org: org]])
+    deployment_group = erpc_call(node, :create_deployment_group, [[org: org]])
+    agent_key = erpc_call(node, :create_agent_key, [[deployment_group: deployment_group]])
+
+    build(:team,
+      id: "team-#{org.name}",
+      hub_name: org.name,
+      user_id: nil,
+      org_id: org.id,
+      org_key_id: org_key.id,
+      org_public_key: "",
+      session_token: agent_key.key,
+      teams_key: teams_key
+    )
+  end
+
   def build_offline_team_hub(user, node) do
     teams_org = build(:org, teams_key: @offline_hub_key, name: @offline_hub_org_name)
     key_hash = Livebook.Teams.Org.key_hash(teams_org)

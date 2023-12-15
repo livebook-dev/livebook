@@ -23,6 +23,20 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert TeamClient.connected?(team.id)
     end
 
+    test "successfully authenticates the agent's web socket connection", %{node: node} do
+      team = build_agent_team_hub(node)
+      id = team.id
+      Application.put_env(:livebook, :agent_name, "chonky-cat-123")
+
+      refute TeamClient.connected?(team.id)
+
+      TeamClient.start_link(team)
+      assert_receive {:hub_connected, ^id}
+      assert TeamClient.connected?(team.id)
+
+      Application.put_env(:livebook, :agent_name, nil)
+    end
+
     test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
       team =
         build(:team,
