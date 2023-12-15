@@ -627,8 +627,7 @@ defmodule LivebookWeb.SessionLive do
         id: "package-search",
         session: %{
           "session_pid" => @session.pid,
-          "runtime" => @data_view.runtime,
-          "return_to" => @self_path
+          "runtime" => @data_view.runtime
         }
       ) %>
     </.modal>
