@@ -86,6 +86,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       assert_receive {:runtime_evaluation_output, :e1, terminal_text(log_message, true)}
 
       assert log_message =~ "[error] hey"
+
+      # Stop the server explicitly to make sure all logger messages are
+      # sent by the time the test ends and stops capturing logs
+      RuntimeServer.stop(pid)
     end
 
     test "supports cross-container evaluation context references", %{pid: pid} do
@@ -219,6 +223,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     assert_receive {:runtime_container_down, :c1, message}
     assert message =~ "(RuntimeError) error"
+
+    # Stop the server explicitly to make sure all logger messages are
+    # sent by the time the test ends and stops capturing logs
+    RuntimeServer.stop(pid)
   end
 
   describe "smart cells" do
@@ -283,6 +291,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     test "notifies runtime owner when a smart cell fails to start", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{"crash" => true}, [])
       assert_receive {:runtime_smart_cell_down, "ref"}
+
+      # Stop the server explicitly to make sure all logger messages are
+      # sent by the time the test ends and stops capturing logs
+      RuntimeServer.stop(pid)
     end
 
     @tag opts: @opts
