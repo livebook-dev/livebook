@@ -707,9 +707,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp exports(mod, node) do
-    for {fun, arity} <- :erpc.call(node, mod, :module_info, [:exports]),
-        not reflection?(fun, arity),
-        do: function_or_macro(Atom.to_string(fun), fun, arity)
+    try do
+      :erpc.call(node, mod, :module_info, [:exports])
+    rescue
+      _ -> []
+    else
+      exports ->
+        for {fun, arity} <- exports,
+            not reflection?(fun, arity),
+            do: function_or_macro(Atom.to_string(fun), fun, arity)
+    end
   end
 
   defp reflection?(:module_info, 0), do: true
