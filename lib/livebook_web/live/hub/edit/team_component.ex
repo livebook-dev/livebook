@@ -57,8 +57,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        hub_metadata: Provider.to_metadata(assigns.hub),
        default?: default?
      )
-     |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
-     |> update_dockerfile()
      |> assign_form(changeset)}
   end
 
@@ -228,39 +226,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 hub_id={@hub.id}
                 deployment_groups={@deployment_groups}
                 target={@myself}
-              />
-            </div>
-
-            <div class="flex flex-col space-y-4">
-              <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
-                Airgapped deployment
-              </h2>
-
-              <p class="text-gray-700">
-                It is possible to deploy notebooks that belong to this Hub in an airgapped
-                deployment, without connecting back to Livebook Teams server. Configure the
-                deployment below and use the generated Dockerfile in a directory with notebooks
-                that belong to your Organization.
-              </p>
-
-              <.form
-                :let={f}
-                for={@config_changeset}
-                as={:data}
-                phx-change="validate_dockerfile"
-                phx-target={@myself}
-              >
-                <LivebookWeb.AppHelpers.docker_config_form_content
-                  hub={@hub}
-                  form={f}
-                  show_deploy_all={false}
-                />
-              </.form>
-
-              <LivebookWeb.AppHelpers.docker_instructions
-                hub={@hub}
-                dockerfile={@dockerfile}
-                dockerfile_config={Ecto.Changeset.apply_changes(@config_changeset)}
               />
             </div>
 
@@ -458,18 +423,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
      )}
   end
 
-  def handle_event("validate_dockerfile", %{"data" => data}, socket) do
-    changeset =
-      data
-      |> Hubs.Dockerfile.config_changeset()
-      |> Map.replace!(:action, :validate)
-
-    {:noreply,
-     socket
-     |> assign(config_changeset: changeset)
-     |> update_dockerfile()}
-  end
-
   def handle_event("mark_as_default", _, socket) do
     Hubs.set_default_hub(socket.assigns.hub.id)
     {:noreply, assign(socket, default?: true)}
@@ -486,19 +439,5 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, form: to_form(changeset))
-  end
-
-  defp update_dockerfile(socket) do
-    config =
-      socket.assigns.config_changeset
-      |> Ecto.Changeset.apply_changes()
-      |> Map.replace!(:deploy_all, true)
-
-    %{hub: hub, secrets: hub_secrets, file_systems: hub_file_systems} = socket.assigns
-
-    dockerfile =
-      Hubs.Dockerfile.build_dockerfile(config, hub, hub_secrets, hub_file_systems, nil, [], %{})
-
-    assign(socket, :dockerfile, dockerfile)
   end
 end
