@@ -292,7 +292,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [livebook_proto_secret],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -323,7 +324,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [livebook_proto_secret],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -343,7 +345,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [updated_livebook_proto_secret],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       send(pid, {:event, :user_connected, user_connected})
@@ -359,7 +362,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       secret =
         build(:secret,
-          name: "SECRET_UPDATED",
+          name: "SECRET_DELETED",
           value: "an encrypted value",
           hub_id: id
         )
@@ -372,7 +375,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [livebook_proto_secret],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -386,7 +390,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       send(pid, {:event, :user_connected, user_connected})
@@ -426,7 +431,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: [livebook_proto_file_system]
+          file_systems: [livebook_proto_file_system],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -469,7 +475,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: [livebook_proto_file_system]
+          file_systems: [livebook_proto_file_system],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -501,7 +508,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: [updated_livebook_proto_file_system]
+          file_systems: [updated_livebook_proto_file_system],
+          deployment_groups: []
         )
 
       send(pid, {:event, :user_connected, user_connected})
@@ -542,7 +550,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: [livebook_proto_file_system]
+          file_systems: [livebook_proto_file_system],
+          deployment_groups: []
         )
 
       {:ok, pid} = TeamClient.start_link(team)
@@ -556,7 +565,8 @@ defmodule Livebook.Hubs.TeamClientTest do
         LivebookProto.UserConnected.new!(
           name: team.hub_name,
           secrets: [],
-          file_systems: []
+          file_systems: [],
+          deployment_groups: []
         )
 
       send(pid, {:event, :user_connected, user_connected})
