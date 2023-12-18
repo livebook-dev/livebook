@@ -207,8 +207,8 @@ defmodule Livebook.HubHelpers do
     send(pid, {:event, :file_system_deleted, file_system_deleted})
   end
 
-  def create_teams_file_system(hub, node) do
-    org_key = erpc_call(node, :get_org_key!, [hub.org_key_id])
+  def create_teams_file_system(hub, node, org_key \\ nil) do
+    org_key = if org_key, do: org_key, else: erpc_call(node, :get_org_key!, [hub.org_key_id])
     erpc_call(node, :create_file_system, [[org_key: org_key]])
   end
 
@@ -231,6 +231,10 @@ defmodule Livebook.HubHelpers do
     :ok = Livebook.Hubs.create_file_system(hub, file_system)
   end
 
+  def erpc_call(node, fun, args) do
+    :erpc.call(node, TeamsRPC, fun, args)
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}
@@ -238,8 +242,4 @@ defmodule Livebook.HubHelpers do
   end
 
   defp hub_element_id(id), do: "#hubs #hub-#{id}"
-
-  defp erpc_call(node, fun, args) do
-    :erpc.call(node, TeamsRPC, fun, args)
-  end
 end
