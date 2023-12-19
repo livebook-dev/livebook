@@ -218,8 +218,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     hub_secrets = Hubs.get_secrets(hub)
     hub_file_systems = Hubs.get_file_systems(hub, hub_only: true)
 
-    override_secrets = Enum.map(deployment_group_secrets, & &1.name)
-    secrets = deployment_group_secrets ++ Enum.reject(hub_secrets, &(&1.name in override_secrets))
+    secrets = Enum.uniq_by(deployment_group_secrets ++ hub_secrets, & &1.name)
 
     dockerfile =
       Hubs.Dockerfile.build_dockerfile(config, hub, secrets, hub_file_systems, nil, [], %{})
