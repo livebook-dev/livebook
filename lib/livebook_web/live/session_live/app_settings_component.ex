@@ -121,7 +121,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <button
             class="button-base button-blue"
             type="button"
-            phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
+            phx-click={JS.push("patch_back", target: @myself) |> JS.push("deploy_app")}
             disabled={not @changeset.valid?}
           >
             <.remix_icon icon="rocket-line" class="align-middle mr-1" />
@@ -154,5 +154,10 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     end
 
     {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  # TODO: use JS.patch back once possible (https://github.com/phoenixframework/phoenix_live_view/issues/2954)
+  def handle_event("patch_back", %{}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
   end
 end
