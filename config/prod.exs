@@ -12,9 +12,6 @@ config :livebook, LivebookWeb.Endpoint,
 
 config :livebook, :iframe_port, 8081
 
-# Disable all feature flags in production
-config :livebook, :feature_flags, []
-
 # Set log level to warning by default to reduce output
 config :logger, level: :warning
 
