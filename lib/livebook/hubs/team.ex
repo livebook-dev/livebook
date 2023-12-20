@@ -114,6 +114,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     {offline?, fields} = Map.pop(fields, :offline?, false)
 
     offline =
+      # We don't want to persist offline in storage, so we read from persistent term
       if offline? do
         :persistent_term.get({__MODULE__, :offline, fields.id})
       end
