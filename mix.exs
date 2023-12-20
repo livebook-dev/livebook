@@ -100,8 +100,7 @@ defmodule Livebook.MixProject do
     [
       {:phoenix, "~> 1.7.8"},
       {:phoenix_live_view, "~> 0.20.2"},
-      # {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
-      {:phoenix_html, "~> 3.0"},
+      {:phoenix_html, "~> 4.0"},
       {:phoenix_live_dashboard, "~> 0.8.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
