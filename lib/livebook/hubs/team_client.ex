@@ -14,8 +14,9 @@ defmodule Livebook.Hubs.TeamClient do
 
   defstruct [
     :hub,
-    :connection_error,
+    :connection_status,
     :derived_key,
+    :deployment_group_id,
     connected?: false,
     secrets: [],
     file_systems: [],
@@ -61,11 +62,11 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
-  Returns the latest error from connection.
+  Returns the latest status from connection.
   """
-  @spec get_connection_error(String.t()) :: String.t() | nil
-  def get_connection_error(id) do
-    GenServer.call(registry_name(id), :get_connection_error)
+  @spec get_connection_status(String.t()) :: String.t() | nil
+  def get_connection_status(id) do
+    GenServer.call(registry_name(id), :get_connection_status)
   catch
     :exit, _ -> "connection refused"
   end
@@ -138,16 +139,26 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @impl true
-  def handle_call(:get_connection_error, _caller, state) do
-    {:reply, state.connection_error, state}
+  def handle_call(:get_connection_status, _caller, state) do
+    {:reply, state.connection_status, state}
   end
 
   def handle_call(:connected?, _caller, state) do
     {:reply, state.connected?, state}
   end
 
-  def handle_call(:get_secrets, _caller, state) do
+  def handle_call(:get_secrets, _caller, %{deployment_group_id: nil} = state) do
     {:reply, state.secrets, state}
+  end
+
+  def handle_call(:get_secrets, _caller, state) do
+    case Enum.find(state.deployment_groups, &(&1.id == state.deployment_group_id)) do
+      nil ->
+        {:reply, state.secrets, state}
+
+      %{secrets: agent_secrets} ->
+        {:reply, Enum.uniq_by(agent_secrets ++ state.secrets, & &1.name), state}
+    end
   end
 
   def handle_call(:get_file_systems, _caller, state) do
@@ -162,13 +173,13 @@ defmodule Livebook.Hubs.TeamClient do
   def handle_info(:connected, state) do
     Hubs.Broadcasts.hub_connected(state.hub.id)
 
-    {:noreply, %{state | connected?: true, connection_error: nil}}
+    {:noreply, %{state | connected?: true, connection_status: nil}}
   end
 
   def handle_info({:connection_error, reason}, state) do
     Hubs.Broadcasts.hub_connection_failed(state.hub.id, reason)
 
-    {:noreply, %{state | connected?: false, connection_error: reason}}
+    {:noreply, %{state | connected?: false, connection_status: reason}}
   end
 
   def handle_info({:server_error, reason}, state) do
@@ -371,36 +382,22 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  defp handle_event(:user_connected, user_connected, state) do
+  defp handle_event(:user_connected, connected, state) do
     state
-    |> dispatch_secrets(user_connected)
-    |> dispatch_file_systems(user_connected)
-    |> dispatch_deployment_groups(user_connected)
+    |> dispatch_secrets(connected)
+    |> dispatch_file_systems(connected)
+    |> dispatch_deployment_groups(connected)
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
-    %{state | deployment_groups: [agent_connected.deployment_group]}
+    %{state | deployment_group_id: to_string(agent_connected.deployment_group_id)}
+    |> update_hub(agent_connected)
     |> dispatch_secrets(agent_connected)
     |> dispatch_file_systems(agent_connected)
-  end
-
-  defp dispatch_secrets(state, %{
-         deployment_group: %{secrets: agent_secrets},
-         secrets: org_secrets
-       }) do
-    secrets =
-      Enum.reject(org_secrets, fn secret ->
-        Enum.any?(agent_secrets, &(&1.name == secret.name))
-      end) ++ agent_secrets
-
-    dispatch_secrets(state, secrets)
+    |> dispatch_deployment_groups(agent_connected)
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
-    dispatch_secrets(state, secrets)
-  end
-
-  defp dispatch_secrets(state, secrets) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
     {created, deleted, updated} =
@@ -449,6 +446,15 @@ defmodule Livebook.Hubs.TeamClient do
       deployment_group_created: created,
       deployment_group_updated: updated
     )
+  end
+
+  defp update_hub(state, %{public_key: org_public_key}) do
+    hub = %{state.hub | org_public_key: org_public_key}
+
+    # TODO: Fix this before merging
+    # ^hub = Hubs.save_hub(hub)
+
+    %{state | hub: hub}
   end
 
   defp diff(old_list, new_list, fun, deleted_fun \\ nil, updated_fun \\ nil) do

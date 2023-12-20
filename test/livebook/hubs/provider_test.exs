@@ -55,8 +55,8 @@ defmodule Livebook.Hubs.ProviderTest do
       refute secret in Provider.get_secrets(hub)
     end
 
-    test "connection_error/1", %{hub: hub} do
-      assert_raise RuntimeError, "not implemented", fn -> Provider.connection_error(hub) end
+    test "connection_status/1", %{hub: hub} do
+      assert_raise RuntimeError, "not implemented", fn -> Provider.connection_status(hub) end
     end
   end
 end

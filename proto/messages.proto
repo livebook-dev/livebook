@@ -90,9 +90,10 @@ message AgentConnected {
   int32 id = 1;
   string name = 2;
   string public_key = 3;
-  DeploymentGroup deployment_group = 4;
+  int32 deployment_group_id = 4;
   repeated Secret secrets = 5;
   repeated FileSystem file_systems = 6;
+  repeated DeploymentGroup deployment_groups = 7;
 }
 
 message Event {

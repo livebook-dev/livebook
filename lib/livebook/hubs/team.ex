@@ -140,12 +140,15 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def disconnect(team), do: TeamClient.stop(team.id)
 
-  def connection_error(team) do
+  def connection_status(team) do
     cond do
       team.offline ->
         "You are running an offline Hub for deployment. You cannot modify its settings."
 
-      reason = TeamClient.get_connection_error(team.id) ->
+      team.user_id == nil ->
+        "You are running a Livebook Agent instance with online Hub for deployment. You are in read-only mode."
+
+      reason = TeamClient.get_connection_status(team.id) ->
         "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
 
       true ->

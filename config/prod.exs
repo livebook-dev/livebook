@@ -15,9 +15,6 @@ config :livebook, :iframe_port, 8081
 # Set log level to warning by default to reduce output
 config :logger, level: :warning
 
-# Disable any feature flag in production
-config :livebook, :feature_flags, []
-
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key

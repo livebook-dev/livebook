@@ -80,10 +80,10 @@ defprotocol Livebook.Hubs.Provider do
   def delete_secret(hub, secret)
 
   @doc """
-  Gets the connection error from hub.
+  Gets the connection status from hub.
   """
-  @spec connection_error(t()) :: String.t() | nil
-  def connection_error(hub)
+  @spec connection_status(t()) :: String.t() | nil
+  def connection_status(hub)
 
   @doc """
   Generates a notebook stamp.

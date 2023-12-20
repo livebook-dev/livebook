@@ -13,9 +13,9 @@ defmodule Livebook.HubHelpers do
     teams_key: @offline_hub_key,
     org_public_key: @offline_hub_org_public_key,
     hub_name: @offline_hub_org_name,
-    user_id: 0,
-    org_id: 0,
-    org_key_id: 0,
+    user_id: nil,
+    org_id: nil,
+    org_key_id: nil,
     session_token: "",
     offline: %Livebook.Hubs.Team.Offline{
       secrets: []
@@ -69,20 +69,31 @@ defmodule Livebook.HubHelpers do
 
     org = erpc_call(node, :create_org, [])
     org_key = erpc_call(node, :create_org_key, [[org: org, key_hash: key_hash]])
-    erpc_call(node, :create_org_key_pair, [[org: org]])
-    deployment_group = erpc_call(node, :create_deployment_group, [[org: org]])
+
+    deployment_group =
+      erpc_call(node, :create_deployment_group, [
+        [
+          name: "sleepy-cat-#{System.unique_integer([:positive])}",
+          mode: :offline,
+          org: org
+        ]
+      ])
+
     agent_key = erpc_call(node, :create_agent_key, [[deployment_group: deployment_group]])
 
-    build(:team,
-      id: "team-#{org.name}",
-      hub_name: org.name,
-      user_id: nil,
-      org_id: org.id,
-      org_key_id: org_key.id,
-      org_public_key: "",
-      session_token: agent_key.key,
-      teams_key: teams_key
-    )
+    team =
+      build(:team,
+        id: "team-#{org.name}",
+        hub_name: org.name,
+        user_id: nil,
+        org_id: org.id,
+        org_key_id: org_key.id,
+        org_public_key: nil,
+        session_token: agent_key.key,
+        teams_key: teams_key
+      )
+
+    {agent_key, org, deployment_group, team}
   end
 
   def build_offline_team_hub(user, node) do

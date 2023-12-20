@@ -11,146 +11,68 @@ defmodule Livebook.Hubs.TeamClientTest do
     :ok
   end
 
-  describe "start_link/1" do
-    test "successfully authenticates the user's web socket connection", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
+  test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
+    team =
+      build(:team,
+        user_id: user.id,
+        org_id: 123_456,
+        org_key_id: 123_456,
+        session_token: token
+      )
 
-      refute TeamClient.connected?(team.id)
+    id = team.id
 
-      TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      assert TeamClient.connected?(team.id)
-    end
+    TeamClient.start_link(team)
 
-    test "successfully authenticates the agent's web socket connection", %{node: node} do
-      team = build_agent_team_hub(node)
-      id = team.id
-      Application.put_env(:livebook, :agent_name, "chonky-cat-123")
+    assert_receive {:hub_server_error, ^id, error}
 
-      refute TeamClient.connected?(team.id)
+    assert error ==
+             "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
 
-      TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      assert TeamClient.connected?(team.id)
-
-      Application.put_env(:livebook, :agent_name, nil)
-    end
-
-    test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
-      team =
-        build(:team,
-          user_id: user.id,
-          org_id: 123_456,
-          org_key_id: 123_456,
-          session_token: token
-        )
-
-      id = team.id
-
-      TeamClient.start_link(team)
-
-      assert_receive {:hub_server_error, ^id, error}
-
-      assert error ==
-               "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
-
-      refute Livebook.Hubs.hub_exists?(team.id)
-    end
+    refute Livebook.Hubs.hub_exists?(team.id)
   end
 
   describe "handle events" do
-    test "receives the secret_created event", %{user: user, node: node} do
+    setup %{user: user, node: node} do
       team = create_team_hub(user, node)
       id = team.id
 
       assert_receive {:hub_connected, ^id}
 
-      secret = build(:secret, name: "SECRET_CREATED_FOO", value: "BAR")
-      assert Livebook.Hubs.create_secret(team, secret) == :ok
-
-      name = secret.name
-      value = secret.value
-
-      # receives `{:event, :secret_created, secret_created}` event
-      # with the value decrypted
-      assert_receive {:secret_created, %{name: ^name, value: ^value}}
+      {:ok, team: team}
     end
 
-    test "receives the secret_updated event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      secret = build(:secret, name: "SECRET_UPDATED_FOO", value: "BAR")
+    test "receives the secret events", %{team: team} do
+      secret = build(:secret, name: "SECRET", value: "BAR")
       assert Livebook.Hubs.create_secret(team, secret) == :ok
 
       name = secret.name
       value = secret.value
 
       # receives `{:secret_created, secret_created}` event
+      # with the value decrypted
       assert_receive {:secret_created, %{name: ^name, value: ^value}}
 
       # updates the secret
-      update_secret = Map.replace!(secret, :value, "BAZ")
-      assert Livebook.Hubs.update_secret(team, update_secret) == :ok
+      updated_secret = Map.replace!(secret, :value, "BAZ")
+      assert Livebook.Hubs.update_secret(team, updated_secret) == :ok
 
-      new_value = update_secret.value
+      new_value = updated_secret.value
 
       # receives `{:secret_updated, secret_updated}` event
       # with the value decrypted
       assert_receive {:secret_updated, %{name: ^name, value: ^new_value}}
-    end
-
-    test "receives the secret_deleted event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      secret = build(:secret, name: "SECRET_DELETED_FOO", value: "BAR")
-      assert Livebook.Hubs.create_secret(team, secret) == :ok
-
-      name = secret.name
-      value = secret.value
-
-      # receives `{:secret_created, secret_created}` event
-      assert_receive {:secret_created, %{name: ^name, value: ^value}}
 
       # deletes the secret
-      assert Livebook.Hubs.delete_secret(team, secret) == :ok
+      assert Livebook.Hubs.delete_secret(team, updated_secret) == :ok
 
       # receives `{:secret_deleted, secret_deleted}` event
-      assert_receive {:secret_deleted, %{name: ^name, value: ^value}}
+      assert_receive {:secret_deleted, %{name: ^name, value: ^new_value}}
     end
 
-    test "receives the file_system_created event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      file_system = build(:fs_s3, bucket_url: "https://file_system_created.s3.amazonaws.com")
-      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
-
-      bucket_url = file_system.bucket_url
-
-      # receives `{:event, :file_system_created, file_system_created}` event
-      assert_receive {:file_system_created, %{bucket_url: ^bucket_url}}
-    end
-
-    test "receives the file_system_updated event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
+    test "receives the file system events", %{team: team} do
       file_system =
-        build(:fs_s3,
-          bucket_url: "https://file_system_updated.s3.amazonaws.com",
-          region: "us-east-1"
-        )
+        build(:fs_s3, bucket_url: "https://file_system.s3.amazonaws.com", region: "us-east-1")
 
       assert Livebook.Hubs.create_file_system(team, file_system) == :ok
 
@@ -162,70 +84,31 @@ defmodule Livebook.Hubs.TeamClientTest do
                       %{external_id: id, bucket_url: ^bucket_url, region: ^region}}
 
       # updates the file system
-      update_file_system = %{file_system | region: "eu-central-1", external_id: id}
-      assert Livebook.Hubs.update_file_system(team, update_file_system) == :ok
+      updated_file_system = %{file_system | region: "eu-central-1", external_id: id}
+      assert Livebook.Hubs.update_file_system(team, updated_file_system) == :ok
 
-      new_region = update_file_system.region
+      new_region = updated_file_system.region
 
       # receives `{:file_system_updated, file_system_updated}` event
       assert_receive {:file_system_updated,
                       %{external_id: ^id, bucket_url: ^bucket_url, region: ^new_region}}
-    end
-
-    test "receives the file_system_deleted event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      file_system = build(:fs_s3, bucket_url: "https://file_system_deleted.s3.amazonaws.com")
-      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
-
-      bucket_url = file_system.bucket_url
-
-      # receives `{:file_system_created, file_system_created}` event
-      assert_receive {:file_system_created, %{external_id: id, bucket_url: ^bucket_url}}
 
       # deletes the file system
-      delete_file_system = %{file_system | external_id: id}
-      assert Livebook.Hubs.delete_file_system(team, delete_file_system) == :ok
+      assert Livebook.Hubs.delete_file_system(team, updated_file_system) == :ok
 
       # receives `{:file_system_deleted, file_system_deleted}` event
       assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}
     end
 
-    test "receives the deployment_group_created event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_CREATED_FOO", mode: "online")
-
-      assert {:ok, _id} =
-               Livebook.Teams.create_deployment_group(team, deployment_group)
-
-      %{name: name, mode: mode} = deployment_group
-      # receives `{:event, :deployment_group_created, deployment_group_created}` event
-      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
-    end
-
-    test "receives the deployment_group_updated event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_UPDATED_FOO", mode: "offline")
+    test "receives the deployment group events", %{team: team} do
+      deployment_group = build(:deployment_group, name: "DEPLOYMENT_GROUP", mode: "online")
 
       assert {:ok, id} =
                Livebook.Teams.create_deployment_group(team, deployment_group)
 
       %{name: name, mode: mode} = deployment_group
 
-      # receives `{:deployment_group_created, deployment_group_created}` event
+      # receives `{:event, :deployment_group_created, deployment_group_created}` event
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
 
       # updates the deployment group
@@ -241,175 +124,74 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # receives `{:deployment_group_updated, deployment_group_updated}` event
       assert_receive {:deployment_group_updated, %{name: ^name, mode: ^new_mode}}
-    end
-
-    test "receives the deployment_group_deleted event", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      id = team.id
-
-      assert_receive {:hub_connected, ^id}
-
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_DELETED_FOO", mode: "online")
-
-      assert {:ok, id} =
-               Livebook.Teams.create_deployment_group(team, deployment_group)
-
-      name = deployment_group.name
-      mode = deployment_group.mode
-
-      # receives `{:deployment_group_created, deployment_group_created}` event
-      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
 
       # deletes the deployment group
-      assert Livebook.Teams.delete_deployment_group(team, %{
-               deployment_group
-               | id: id
-             }) == :ok
+      assert Livebook.Teams.delete_deployment_group(team, update_deployment_group) == :ok
 
       # receives `{:deployment_group_deleted, deployment_group_deleted}` event
-      assert_receive {:deployment_group_deleted, %{name: ^name, mode: ^mode}}
+      assert_receive {:deployment_group_deleted, %{name: ^name, mode: ^new_mode}}
     end
   end
 
-  describe "user connected event" do
-    test "fills the secrets list", %{user: user, node: node} do
+  describe "handle user_connected event" do
+    setup %{user: user, node: node} do
       team = build_team_hub(user, node)
-      id = team.id
 
+      user_connected =
+        LivebookProto.UserConnected.new!(
+          name: team.hub_name,
+          secrets: [],
+          file_systems: [],
+          deployment_groups: []
+        )
+
+      {:ok, team: team, user_connected: user_connected}
+    end
+
+    test "dispatches the secrets list", %{team: team, user_connected: user_connected} do
       secret =
         build(:secret,
-          name: "SECRET_CREATED",
+          name: "CHONKY_CAT",
           value: "an encrypted value",
-          hub_id: id
+          hub_id: team.id
         )
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
       livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [livebook_proto_secret],
-          file_systems: [],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
+      # creates the secret
+      user_connected = %{user_connected | secrets: [livebook_proto_secret]}
+      pid = connect_to_teams(team)
       refute_receive {:secret_created, ^secret}
-
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:secret_created, ^secret}
       assert secret in TeamClient.get_secrets(team.id)
-    end
 
-    test "replaces the secret with updated value", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
-      secret =
-        build(:secret,
-          name: "SECRET_UPDATED",
-          value: "an encrypted value",
-          hub_id: id
-        )
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [livebook_proto_secret],
-          file_systems: [],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:secret_created, ^secret}
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:secret_created, ^secret}
-
+      # updates the secret
       updated_secret = %{secret | value: "an updated value"}
       secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key)
-
-      updated_livebook_proto_secret =
-        LivebookProto.Secret.new!(name: updated_secret.name, value: secret_value)
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [updated_livebook_proto_secret],
-          file_systems: [],
-          deployment_groups: []
-        )
-
+      updated_livebook_proto_secret = %{livebook_proto_secret | value: secret_value}
+      user_connected = %{user_connected | secrets: [updated_livebook_proto_secret]}
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:secret_updated, ^updated_secret}
-
       refute secret in TeamClient.get_secrets(team.id)
       assert updated_secret in TeamClient.get_secrets(team.id)
+
+      # deletes the secret
+      user_connected = %{user_connected | secrets: []}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:secret_deleted, ^updated_secret}
+      refute updated_secret in TeamClient.get_secrets(team.id)
     end
 
-    test "deletes the secret", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
-      secret =
-        build(:secret,
-          name: "SECRET_DELETED",
-          value: "an encrypted value",
-          hub_id: id
-        )
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [livebook_proto_secret],
-          file_systems: [],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:secret_created, ^secret}
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:secret_created, ^secret}
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: []
-        )
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:secret_deleted, ^secret}
-
-      refute secret in TeamClient.get_secrets(team.id)
-    end
-
-    test "fills the file systems list", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
+    test "dispatches the file systems list", %{team: team, user_connected: user_connected} do
       bucket_url = "https://mybucket.s3.amazonaws.com"
       hash = :crypto.hash(:sha256, bucket_url)
-      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
+      fs_id = "#{team.id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
       file_system =
-        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456", hub_id: id)
+        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456", hub_id: team.id)
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -427,68 +209,18 @@ defmodule Livebook.Hubs.TeamClientTest do
           value: value
         )
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [livebook_proto_file_system],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
+      # creates the file system
+      user_connected = %{user_connected | file_systems: [livebook_proto_file_system]}
+      pid = connect_to_teams(team)
       refute_receive {:file_system_created, ^file_system}
-
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:file_system_created, ^file_system}
       assert file_system in TeamClient.get_file_systems(team.id)
-    end
 
-    test "replaces the file system with updated value", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
-      bucket_url = "https://update_fs_994641.s3.amazonaws.com"
-      hash = :crypto.hash(:sha256, bucket_url)
-      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
-
-      file_system =
-        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "994641", hub_id: id)
-
-      type = Livebook.FileSystems.type(file_system)
-      %{name: name} = Livebook.FileSystem.external_metadata(file_system)
-      attrs = Livebook.FileSystem.dump(file_system)
-      credentials = Jason.encode!(attrs)
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      value = Livebook.Teams.encrypt(credentials, secret_key)
-
-      livebook_proto_file_system =
-        LivebookProto.FileSystem.new!(
-          id: file_system.external_id,
-          name: name,
-          type: to_string(type),
-          value: value
-        )
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [livebook_proto_file_system],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:file_system_created, ^file_system}
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:file_system_created, ^file_system}
-
+      # updates the file system
       updated_file_system = %{
         file_system
-        | id: "#{id}-s3-ATC52Lo7d-bS21OLjPQ8KFBPJN8ku4hCn2nic2jTGeI",
+        | id: "#{team.id}-s3-ATC52Lo7d-bS21OLjPQ8KFBPJN8ku4hCn2nic2jTGeI",
           bucket_url: "https://updated_name.s3.amazonaws.com"
       }
 
@@ -496,39 +228,140 @@ defmodule Livebook.Hubs.TeamClientTest do
       updated_credentials = Jason.encode!(updated_attrs)
       updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
-      updated_livebook_proto_file_system =
-        LivebookProto.FileSystem.new!(
-          id: updated_file_system.external_id,
-          name: updated_file_system.bucket_url,
-          type: to_string(type),
+      updated_livebook_proto_file_system = %{
+        livebook_proto_file_system
+        | name: updated_file_system.bucket_url,
           value: updated_value
+      }
+
+      user_connected = %{user_connected | file_systems: [updated_livebook_proto_file_system]}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:file_system_updated, ^updated_file_system}
+      refute file_system in TeamClient.get_file_systems(team.id)
+      assert updated_file_system in TeamClient.get_file_systems(team.id)
+
+      # deletes the file system
+      user_connected = %{user_connected | file_systems: []}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:file_system_deleted, ^updated_file_system}
+      refute updated_file_system in TeamClient.get_file_systems(team.id)
+    end
+
+    test "dispatches the deployment groups list", %{team: team, user_connected: user_connected} do
+      deployment_group =
+        build(:deployment_group,
+          id: "1",
+          name: "sleepy-cat-#{System.unique_integer([:positive])}",
+          mode: "offline",
+          hub_id: team.id,
+          secrets: []
         )
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
+      livebook_proto_deployment_group =
+        LivebookProto.DeploymentGroup.new!(
+          id: to_string(deployment_group.id),
+          name: deployment_group.name,
+          mode: to_string(deployment_group.mode),
+          secrets: []
+        )
+
+      # creates the deployment group
+      user_connected = %{user_connected | deployment_groups: [livebook_proto_deployment_group]}
+      pid = connect_to_teams(team)
+      refute_receive {:deployment_group_created, ^deployment_group}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:deployment_group_created, ^deployment_group}
+      assert deployment_group in TeamClient.get_deployment_groups(team.id)
+
+      # updates the deployment group
+      updated_deployment_group = %{deployment_group | mode: "online"}
+
+      updated_livebook_proto_deployment_group = %{
+        livebook_proto_deployment_group
+        | mode: updated_deployment_group.mode
+      }
+
+      user_connected = %{
+        user_connected
+        | deployment_groups: [updated_livebook_proto_deployment_group]
+      }
+
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:deployment_group_updated, ^updated_deployment_group}
+      refute deployment_group in TeamClient.get_deployment_groups(team.id)
+      assert updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+
+      # deletes the deployment group
+      user_connected = %{user_connected | deployment_groups: []}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:deployment_group_deleted, ^updated_deployment_group}
+      refute updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+    end
+  end
+
+  describe "handle agent_connected event" do
+    setup %{node: node, test: test} do
+      {agent_key, org, deployment_group, team} = build_agent_team_hub(node)
+      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
+
+      agent_connected =
+        LivebookProto.AgentConnected.new!(
+          id: agent_key.id,
+          name: Livebook.Config.agent_name(),
+          public_key: org_key_pair.public_key,
+          deployment_group_id: deployment_group.id,
           secrets: [],
-          file_systems: [updated_livebook_proto_file_system],
+          file_systems: [],
           deployment_groups: []
         )
 
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:file_system_updated, ^updated_file_system}
-
-      refute file_system in TeamClient.get_file_systems(team.id)
-      assert updated_file_system in TeamClient.get_file_systems(team.id)
+      {:ok, team: team, deployment_group: deployment_group, agent_connected: agent_connected}
     end
 
-    test "deletes the file system", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
+    test "dispatches the secrets list", %{team: team, agent_connected: agent_connected} do
+      secret =
+        build(:secret,
+          name: "AGENT_SECRET",
+          value: "an encrypted value",
+          hub_id: team.id
+        )
 
-      bucket_url = "https://delete_fs_45465641.s3.amazonaws.com"
+      secret_key = Livebook.Teams.derive_key(team.teams_key)
+      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
+      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
+
+      # creates the secret
+      agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
+      pid = connect_to_teams(team)
+      refute_receive {:secret_created, ^secret}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:secret_created, ^secret}
+      assert secret in TeamClient.get_secrets(team.id)
+
+      # updates the secret
+      updated_secret = %{secret | value: "an updated value"}
+      secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key)
+      updated_livebook_proto_secret = %{livebook_proto_secret | value: secret_value}
+      agent_connected = %{agent_connected | secrets: [updated_livebook_proto_secret]}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:secret_updated, ^updated_secret}
+      refute secret in TeamClient.get_secrets(team.id)
+      assert updated_secret in TeamClient.get_secrets(team.id)
+
+      # deletes the secret
+      agent_connected = %{agent_connected | secrets: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:secret_deleted, ^updated_secret}
+      refute updated_secret in TeamClient.get_secrets(team.id)
+    end
+
+    test "dispatches the file systems list", %{team: team, agent_connected: agent_connected} do
+      bucket_url = "https://mybucket.s3.amazonaws.com"
       hash = :crypto.hash(:sha256, bucket_url)
-      fs_id = "#{id}-s3-#{Base.url_encode64(hash, padding: false)}"
+      fs_id = "#{team.id}-s3-#{Base.url_encode64(hash, padding: false)}"
 
       file_system =
-        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "45465641", hub_id: id)
+        build(:fs_s3, id: fs_id, bucket_url: bucket_url, external_id: "123456", hub_id: team.id)
 
       type = Livebook.FileSystems.type(file_system)
       %{name: name} = Livebook.FileSystem.external_metadata(file_system)
@@ -546,45 +379,52 @@ defmodule Livebook.Hubs.TeamClientTest do
           value: value
         )
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [livebook_proto_file_system],
-          deployment_groups: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
+      # creates the file system
+      agent_connected = %{agent_connected | file_systems: [livebook_proto_file_system]}
+      pid = connect_to_teams(team)
       refute_receive {:file_system_created, ^file_system}
-
-      send(pid, {:event, :user_connected, user_connected})
+      send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:file_system_created, ^file_system}
+      assert file_system in TeamClient.get_file_systems(team.id)
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: []
-        )
+      # updates the file system
+      updated_file_system = %{
+        file_system
+        | id: "#{team.id}-s3-ATC52Lo7d-bS21OLjPQ8KFBPJN8ku4hCn2nic2jTGeI",
+          bucket_url: "https://updated_name.s3.amazonaws.com"
+      }
 
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:file_system_deleted, ^file_system}
+      updated_attrs = Livebook.FileSystem.dump(updated_file_system)
+      updated_credentials = Jason.encode!(updated_attrs)
+      updated_value = Livebook.Teams.encrypt(updated_credentials, secret_key)
 
+      updated_livebook_proto_file_system = %{
+        livebook_proto_file_system
+        | name: updated_file_system.bucket_url,
+          value: updated_value
+      }
+
+      agent_connected = %{agent_connected | file_systems: [updated_livebook_proto_file_system]}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:file_system_updated, ^updated_file_system}
       refute file_system in TeamClient.get_file_systems(team.id)
+      assert updated_file_system in TeamClient.get_file_systems(team.id)
+
+      # deletes the file system
+      agent_connected = %{agent_connected | file_systems: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:file_system_deleted, ^updated_file_system}
+      refute updated_file_system in TeamClient.get_file_systems(team.id)
     end
 
-    test "fills the deployment groups list", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
+    test "dispatches the deployment groups list",
+         %{team: team, deployment_group: teams_deployment_group, agent_connected: agent_connected} do
       deployment_group =
         build(:deployment_group,
-          id: "1",
-          name: "sleepy-cat-#{System.unique_integer([:positive])}",
-          mode: "offline",
-          hub_id: id,
+          id: to_string(teams_deployment_group.id),
+          name: teams_deployment_group.name,
+          mode: to_string(teams_deployment_group.mode),
+          hub_id: team.id,
           secrets: []
         )
 
@@ -596,318 +436,85 @@ defmodule Livebook.Hubs.TeamClientTest do
           secrets: []
         )
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: [livebook_proto_deployment_group]
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:deployment_group_created, ^deployment_group}
-
-      send(pid, {:event, :user_connected, user_connected})
+      # creates the deployment group
+      agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
+      pid = connect_to_teams(team)
+      send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:deployment_group_created, ^deployment_group}
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
-    end
 
-    test "replaces the deployment group with updated value", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
-      deployment_group =
-        build(:deployment_group,
-          id: "1",
-          name: "sleepy-cat-#{System.unique_integer([:positive])}",
-          mode: "offline",
-          hub_id: id,
-          secrets: []
-        )
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: [livebook_proto_deployment_group]
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:deployment_group_created, ^deployment_group}
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:deployment_group_created, ^deployment_group}
-
+      # updates the deployment group
       updated_deployment_group = %{deployment_group | mode: "online"}
 
-      updated_livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(updated_deployment_group.id),
-          name: updated_deployment_group.name,
-          mode: to_string(updated_deployment_group.mode),
-          secrets: []
-        )
+      updated_livebook_proto_deployment_group = %{
+        livebook_proto_deployment_group
+        | mode: updated_deployment_group.mode
+      }
 
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: [updated_livebook_proto_deployment_group]
-        )
+      agent_connected = %{
+        agent_connected
+        | deployment_groups: [updated_livebook_proto_deployment_group]
+      }
 
-      send(pid, {:event, :user_connected, user_connected})
+      send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
-
       refute deployment_group in TeamClient.get_deployment_groups(team.id)
       assert updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+
+      # deletes the deployment group
+      agent_connected = %{agent_connected | deployment_groups: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:deployment_group_deleted, ^updated_deployment_group}
+      refute updated_deployment_group in TeamClient.get_deployment_groups(team.id)
     end
 
-    test "deletes the deployment group", %{user: user, node: node} do
-      team = build_team_hub(user, node)
-      id = team.id
-
-      deployment_group =
-        build(:deployment_group,
-          id: "1",
-          name: "sleepy-cat-#{System.unique_integer([:positive])}",
-          mode: "offline",
-          hub_id: id,
-          secrets: []
-        )
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: [livebook_proto_deployment_group]
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:deployment_group_created, ^deployment_group}
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:deployment_group_created, ^deployment_group}
-
-      user_connected =
-        LivebookProto.UserConnected.new!(
-          name: team.hub_name,
-          secrets: [],
-          file_systems: [],
-          deployment_groups: []
-        )
-
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:deployment_group_deleted, ^deployment_group}
-
-      refute deployment_group in TeamClient.get_deployment_groups(team.id)
-    end
-  end
-
-  describe "agent connected event" do
-    setup do
-      agent_name = "chonky-cat-#{System.unique_integer([:positive])}"
-      Application.put_env(:livebook, :agent_name, agent_name)
-
-      on_exit(fn -> Application.put_env(:livebook, :agent_name, nil) end)
-
-      {:ok, agent_name: agent_name}
-    end
-
-    test "fills the secrets list", %{agent_name: agent_name, node: node} do
-      team = build_agent_team_hub(node)
-      id = team.id
-
+    test "dispatches the secrets list and override with deployment group secret",
+         %{team: team, deployment_group: teams_deployment_group, agent_connected: agent_connected} do
       secret =
         build(:secret,
-          name: "SECRET_CREATED",
+          name: "ORG_SECRET",
           value: "an encrypted value",
-          hub_id: id
+          hub_id: team.id
         )
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
       livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
 
-      org_key = erpc_call(node, :get_org_key!, [team.org_key_id])
-      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org_key.org]])
-      deployment_group = erpc_call(node, :create_deployment_group, [[org: org_key.org]])
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [livebook_proto_secret],
-          file_systems: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
+      # creates the secret
+      agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
+      pid = connect_to_teams(team)
       refute_receive {:secret_created, ^secret}
-
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:secret_created, ^secret}
       assert secret in TeamClient.get_secrets(team.id)
-    end
 
-    test "replaces the secret with updated value", %{agent_name: agent_name, node: node} do
-      team = build_agent_team_hub(node)
-      id = team.id
-
-      secret =
-        build(:secret,
-          name: "SECRET_UPDATED",
-          value: "an encrypted value",
-          hub_id: id
-        )
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
-
-      org_key = erpc_call(node, :get_org_key!, [team.org_key_id])
-      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org_key.org]])
-      deployment_group = erpc_call(node, :create_deployment_group, [[org: org_key.org]])
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [livebook_proto_secret],
-          file_systems: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:secret_created, ^secret}
-
-      send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_created, ^secret}
-
-      updated_secret = %{secret | value: "an updated value"}
-      secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key)
-
-      updated_livebook_proto_secret =
-        LivebookProto.Secret.new!(name: updated_secret.name, value: secret_value)
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [updated_livebook_proto_secret],
-          file_systems: []
-        )
-
-      send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_updated, ^updated_secret}
-
-      refute secret in TeamClient.get_secrets(team.id)
-      assert updated_secret in TeamClient.get_secrets(team.id)
-    end
-
-    test "replaces the secret with deployment group secret", %{agent_name: agent_name, node: node} do
-      team = build_agent_team_hub(node)
-      id = team.id
-
-      secret =
-        build(:secret,
-          name: "DEPLOYMENT_GROUP_SECRET",
-          value: "an encrypted value",
-          hub_id: id
-        )
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
-
-      org_key = erpc_call(node, :get_org_key!, [team.org_key_id])
-      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org_key.org]])
-      deployment_group = erpc_call(node, :create_deployment_group, [[org: org_key.org]])
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [livebook_proto_secret],
-          file_systems: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:secret_created, ^secret}
-
-      send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_created, ^secret}
-
-      updated_secret = %{
+      # overrides the secret with deployment group secret
+      override_secret = %{
         secret
         | value: "an updated value",
-          deployment_group_id: deployment_group.id
+          deployment_group_id: teams_deployment_group.id
       }
 
-      secret_value = Livebook.Teams.encrypt(updated_secret.value, secret_key)
+      secret_value = Livebook.Teams.encrypt(override_secret.value, secret_key)
 
       livebook_proto_deployment_group_secret =
         LivebookProto.DeploymentGroupSecret.new!(
-          name: updated_secret.name,
+          name: override_secret.name,
           value: secret_value,
-          deployment_group_id: updated_secret.deployment_group_id
+          deployment_group_id: override_secret.deployment_group_id
         )
 
-      updated_livebook_proto_deployment_group =
+      deployment_group =
+        build(:deployment_group,
+          id: to_string(teams_deployment_group.id),
+          name: teams_deployment_group.name,
+          mode: to_string(teams_deployment_group.mode),
+          hub_id: team.id,
+          secrets: [override_secret]
+        )
+
+      livebook_proto_deployment_group =
         LivebookProto.DeploymentGroup.new!(
           id: to_string(deployment_group.id),
           name: deployment_group.name,
@@ -915,81 +522,18 @@ defmodule Livebook.Hubs.TeamClientTest do
           secrets: [livebook_proto_deployment_group_secret]
         )
 
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: updated_livebook_proto_deployment_group,
-          secrets: [livebook_proto_secret],
-          file_systems: []
-        )
-
+      agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_updated, ^updated_secret}
-
+      assert_receive {:deployment_group_created, ^deployment_group}
       refute secret in TeamClient.get_secrets(team.id)
-      assert updated_secret in TeamClient.get_secrets(team.id)
+      assert override_secret in TeamClient.get_secrets(team.id)
     end
+  end
 
-    test "deletes the secret", %{agent_name: agent_name, node: node} do
-      team = build_agent_team_hub(node)
-      id = team.id
+  defp connect_to_teams(%{id: id} = team) do
+    {:ok, pid} = TeamClient.start_link(team)
+    assert_receive {:hub_connected, ^id}
 
-      secret =
-        build(:secret,
-          name: "SECRET_DELETED",
-          value: "an encrypted value",
-          hub_id: id
-        )
-
-      secret_key = Livebook.Teams.derive_key(team.teams_key)
-      secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
-
-      org_key = erpc_call(node, :get_org_key!, [team.org_key_id])
-      org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org_key.org]])
-      deployment_group = erpc_call(node, :create_deployment_group, [[org: org_key.org]])
-
-      livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
-          id: to_string(deployment_group.id),
-          name: deployment_group.name,
-          mode: to_string(deployment_group.mode),
-          secrets: []
-        )
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [livebook_proto_secret],
-          file_systems: []
-        )
-
-      {:ok, pid} = TeamClient.start_link(team)
-      assert_receive {:hub_connected, ^id}
-      refute_receive {:secret_created, ^secret}
-
-      send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_created, ^secret}
-
-      agent_connected =
-        LivebookProto.AgentConnected.new!(
-          id: deployment_group.id,
-          name: agent_name,
-          public_key: org_key_pair.public_key,
-          deployment_group: livebook_proto_deployment_group,
-          secrets: [],
-          file_systems: []
-        )
-
-      send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:secret_deleted, ^secret}
-
-      refute secret in TeamClient.get_secrets(team.id)
-    end
+    pid
   end
 end
