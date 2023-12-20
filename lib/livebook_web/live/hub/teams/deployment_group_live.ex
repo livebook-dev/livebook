@@ -49,7 +49,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
        secret_value: secret_value,
        default?: default?,
        secrets: secrets
-     )}
+     )
+     |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
+     |> update_dockerfile()}
   end
 
   @impl true
@@ -125,7 +127,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
 
                   <.live_component
                     module={LivebookWeb.Hub.SecretListComponent}
-                    id="hub-secrets-list"
+                    id="deployment-group-secrets-list"
                     hub={@hub}
                     secrets={@secrets}
                     deployment_group={@deployment_group}
@@ -134,6 +136,32 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                     }
                     edit_path={"hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}/secrets/edit"}
                     return_to={~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}"}
+                  />
+                </div>
+                <div class="flex flex-col space-y-4">
+                  <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                    Airgapped deployment
+                  </h2>
+
+                  <p class="text-gray-700">
+                    It is possible to deploy notebooks that belong to this Hub in an airgapped
+                    deployment, without connecting back to Livebook Teams server. Configure the
+                    deployment below and use the generated Dockerfile in a directory with notebooks
+                    that belong to your Organization.
+                  </p>
+
+                  <.form :let={f} for={@config_changeset} as={:data} phx-change="validate_dockerfile">
+                    <LivebookWeb.AppHelpers.docker_config_form_content
+                      hub={@hub}
+                      form={f}
+                      show_deploy_all={false}
+                    />
+                  </.form>
+
+                  <LivebookWeb.AppHelpers.docker_instructions
+                    hub={@hub}
+                    dockerfile={@dockerfile}
+                    dockerfile_config={Ecto.Changeset.apply_changes(@config_changeset)}
                   />
                 </div>
               <% end %>
@@ -162,7 +190,39 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     """
   end
 
+  @impl true
+  def handle_event("validate_dockerfile", %{"data" => data}, socket) do
+    changeset =
+      data
+      |> Hubs.Dockerfile.config_changeset()
+      |> Map.replace!(:action, :validate)
+
+    {:noreply,
+     socket
+     |> assign(config_changeset: changeset)
+     |> update_dockerfile()}
+  end
+
   defp default_hub?(hub) do
     Hubs.get_default_hub().id == hub.id
+  end
+
+  defp update_dockerfile(socket) do
+    config =
+      socket.assigns.config_changeset
+      |> Ecto.Changeset.apply_changes()
+      |> Map.replace!(:deploy_all, true)
+
+    %{hub: hub, secrets: deployment_group_secrets} = socket.assigns
+
+    hub_secrets = Hubs.get_secrets(hub)
+    hub_file_systems = Hubs.get_file_systems(hub, hub_only: true)
+
+    secrets = Enum.uniq_by(deployment_group_secrets ++ hub_secrets, & &1.name)
+
+    dockerfile =
+      Hubs.Dockerfile.build_dockerfile(config, hub, secrets, hub_file_systems, nil, [], %{})
+
+    assign(socket, :dockerfile, dockerfile)
   end
 end

@@ -354,7 +354,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert render(view) =~ "has already been taken"
     end
 
-    test "updates existing deployment group", %{conn: conn, hub: hub} do
+    test "updates an existing deployment group", %{conn: conn, hub: hub} do
       insert_deployment_group(
         name: "TEAM_EDIT_DEPLOYMENT_GROUP",
         mode: "online",
