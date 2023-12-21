@@ -75,11 +75,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
           <div id={"#{@hub.id}-component"}>
             <div class="mb-8 flex flex-col space-y-10">
               <div class="flex flex-col space-y-2">
-                <TeamsComponents.header
-                  hub={@hub}
-                  hub_metadata={@hub_metadata}
-                  default?={@default?}
-                />
+                <TeamsComponents.header hub={@hub} hub_metadata={@hub_metadata} default?={@default?} />
                 <p class="text-sm flex flex-row space-x-6 text-gray-700">
                   <.link patch={~p"/hub/#{@hub.id}"} class="hover:text-blue-600 cursor-pointer">
                     <.remix_icon icon="arrow-left-line" /> Back to Hub
