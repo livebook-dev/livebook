@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
   use LivebookWeb, :live_view
 
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.TeamsComponents
   alias Livebook.Hubs
   alias Livebook.Teams
   alias Livebook.Hubs.Provider
@@ -74,29 +75,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
           <div id={"#{@hub.id}-component"}>
             <div class="mb-8 flex flex-col space-y-10">
               <div class="flex flex-col space-y-2">
-                <LayoutHelpers.title>
-                  <div class="flex gap-2 items-center">
-                    <div class="flex justify-center">
-                      <span class="relative">
-                        <%= @hub.hub_emoji %>
-
-                        <div class={[
-                          "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
-                          if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
-                        ]} />
-                      </span>
-                    </div>
-                    <%= @hub.hub_name %>
-                    <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
-                      Livebook Teams
-                    </span>
-                    <%= if @default? do %>
-                      <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded cursor-default">
-                        Default
-                      </span>
-                    <% end %>
-                  </div>
-                </LayoutHelpers.title>
+                <TeamsComponents.header hub={@hub} hub_metadata={@hub_metadata} default?={@default?} />
                 <p class="text-sm flex flex-row space-x-6 text-gray-700">
                   <.link patch={~p"/hub/#{@hub.id}"} class="hover:text-blue-600 cursor-pointer">
                     <.remix_icon icon="arrow-left-line" /> Back to Hub
