@@ -5,6 +5,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs.Provider
   alias Livebook.Teams
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.TeamsComponents
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -75,7 +76,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         <div id={"#{@id}-component"}>
           <div class="mb-8 flex flex-col space-y-10">
             <div class="flex flex-col space-y-2">
-              <LayoutHelpers.hub_header hub={@hub} hub_metadata={@hub_metadata} default?={@default?} />
+              <TeamsComponents.header hub={@hub} hub_metadata={@hub_metadata} default?={@default?} />
               <p class="text-sm flex flex-row space-x-6 text-gray-700">
                 <a href={org_url(@hub, "/")} class="hover:text-blue-600">
                   <.remix_icon icon="mail-line" /> Invite users

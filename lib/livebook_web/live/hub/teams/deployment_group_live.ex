@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
   use LivebookWeb, :live_view
 
   alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.TeamsComponents
   alias Livebook.Hubs
   alias Livebook.Teams
   alias Livebook.Hubs.Provider
@@ -74,7 +75,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
           <div id={"#{@hub.id}-component"}>
             <div class="mb-8 flex flex-col space-y-10">
               <div class="flex flex-col space-y-2">
-                <LayoutHelpers.hub_header
+                <TeamsComponents.header
                   hub={@hub}
                   hub_metadata={@hub_metadata}
                   default?={@default?}
