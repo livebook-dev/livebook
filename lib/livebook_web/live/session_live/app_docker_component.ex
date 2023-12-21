@@ -6,17 +6,27 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   alias Livebook.Hubs
   alias Livebook.FileSystem
   alias LivebookWeb.AppHelpers
+  alias Livebook.Teams
 
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
+    hub_type = Hubs.Provider.type(assigns.hub)
+    deployment_groups = if hub_type == "team", do: Teams.get_deployment_groups(assigns.hub)
+    deployment_group = if deployment_groups, do: List.first(deployment_groups)
+
+    IO.inspect(assigns.deployed_app_deployment_group)
 
     {:ok,
      socket
      |> assign(settings_valid?: Livebook.Notebook.AppSettings.valid?(socket.assigns.settings))
      |> assign(
        hub_secrets: Hubs.get_secrets(assigns.hub),
-       hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true)
+       hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
+       hub_type: hub_type,
+       deployment_groups: deployment_groups,
+       deployment_group: deployment_group,
+       deployment_group_form: %{"id" => assigns.deployed_app_deployment_group}
      )
      |> assign_new(:changeset, fn -> Hubs.Dockerfile.config_changeset() end)
      |> assign_new(:save_result, fn -> nil end)
@@ -34,6 +44,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         file={@file}
         settings_valid?={@settings_valid?}
         hub={@hub}
+        hub_type={@hub_type}
+        deployment_groups={@deployment_groups}
+        deployment_group={@deployment_group}
+        deployment_group_form={@deployment_group_form}
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
@@ -80,13 +94,41 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         You can deploy this app in the cloud using Docker. To do that, configure
         the deployment and then use the generated Dockerfile.
       </p>
-      <p class="text-gray-700">
-        <.label>Hub</.label>
-        <span>
-          <span class="text-lg"><%= @hub.hub_emoji %></span>
-          <span><%= @hub.hub_name %></span>
-        </span>
-      </p>
+      <div class="flex gap-12">
+        <p class="text-gray-700">
+          <.label>Hub</.label>
+          <span>
+            <span class="text-lg"><%= @hub.hub_emoji %></span>
+            <span><%= @hub.hub_name %></span>
+          </span>
+        </p>
+        <%= if @hub_type == "team" do %>
+          <%= if @deployment_groups != [] do %>
+            <.form
+              :let={f}
+              for={@deployment_group_form}
+              phx-change="select_deployment_group"
+              phx-target={@myself}
+            >
+              <.select_field
+                help={
+                  ~S'''
+                  Deployment group.
+                  '''
+                }
+                field={f[:id]}
+                options={for dg <- @deployment_groups, do: {dg.name, dg.id}}
+                label="Deployment Group"
+              />
+            </.form>
+          <% else %>
+            <p class="text-gray-700">
+              <.label>Deployment Group</.label>
+              <span>No deployment groups available</span>
+            </p>
+          <% end %>
+        <% end %>
+      </div>
       <div class="flex flex-col gap-2">
         <.message_box :for={warning <- @warnings} kind={:warning}>
           <%= raw(warning) %>
@@ -154,6 +196,12 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       end
 
     {:noreply, assign(socket, save_result: save_result)}
+  end
+
+  def handle_event("select_deployment_group", %{"id" => id}, socket) do
+    Livebook.Session.set_deployed_app_deployment_group(socket.assigns.session.pid, id)
+
+    {:noreply, socket}
   end
 
   defp update_dockerfile(socket) when socket.assigns.file == nil do

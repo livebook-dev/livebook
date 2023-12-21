@@ -34,7 +34,8 @@ defmodule Livebook.Session.Data do
     :hub_secrets,
     :mode,
     :deployed_app_slug,
-    :app_data
+    :app_data,
+    :deployed_app_deployment_group
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem, Hubs}
@@ -227,6 +228,7 @@ defmodule Livebook.Session.Data do
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
+          | {:set_deployed_app_deployment_group, String.t()}
 
   @type action ::
           :connect_runtime
@@ -305,6 +307,7 @@ defmodule Livebook.Session.Data do
       hub_secrets: hub_secrets,
       mode: opts[:mode],
       deployed_app_slug: nil,
+      deployed_app_deployment_group: nil,
       app_data: app_data
     }
 
@@ -978,6 +981,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_deployed_app_slug(slug)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_deployed_app_deployment_group, _client_id, deployment_group}) do
+    data
+    |> with_actions()
+    |> set_deployed_app_deployment_group(deployment_group)
     |> wrap_ok()
   end
 
@@ -1949,6 +1959,10 @@ defmodule Livebook.Session.Data do
 
   defp set_deployed_app_slug(data_actions, slug) do
     set!(data_actions, deployed_app_slug: slug)
+  end
+
+  defp set_deployed_app_deployment_group(data_actions, deployment_group) do
+    set!(data_actions, deployed_app_deployment_group: deployment_group)
   end
 
   defp app_deactivate(data_actions) do
