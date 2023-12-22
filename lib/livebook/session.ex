@@ -609,9 +609,9 @@ defmodule Livebook.Session do
   @doc """
   Sends a deployment group selection request to the server.
   """
-  @spec set_deployed_app_deployment_group(pid(), String.t()) :: :ok
-  def set_deployed_app_deployment_group(pid, id) do
-    GenServer.cast(pid, {:set_deployed_app_deployment_group, self(), id})
+  @spec set_notebook_deployment_group(pid(), String.t()) :: :ok
+  def set_notebook_deployment_group(pid, id) do
+    GenServer.cast(pid, {:set_notebook_deployment_group, self(), id})
   end
 
   @doc """
@@ -1401,9 +1401,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:set_deployed_app_deployment_group, client_pid, id}, state) do
+  def handle_cast({:set_notebook_deployment_group, client_pid, id}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:set_deployed_app_deployment_group, client_id, id}
+    operation = {:set_notebook_deployment_group, client_id, id}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -2188,6 +2188,10 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_notebook_hub, _client_id, _id}) do
+    notify_update(state)
+  end
+
+  defp after_operation(state, _prev_state, {:set_notebook_deployment_group, _client_id, _id}) do
     notify_update(state)
   end
 
