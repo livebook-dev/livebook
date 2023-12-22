@@ -213,8 +213,13 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       file: file,
       file_entries: file_entries,
       secrets: secrets,
-      app_settings: app_settings
+      app_settings: app_settings,
+      deployment_groups: deployment_groups,
+      deployment_group_id: deployment_group_id
     } = socket.assigns
+
+    deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id))
+    hub_secrets = Enum.uniq_by(deployment_group.secrets ++ hub_secrets, & &1.name)
 
     dockerfile =
       Hubs.Dockerfile.build_dockerfile(
