@@ -156,7 +156,7 @@ defmodule Livebook.Session do
 
         * `{:dir, dir}` - a directory file
 
-        * `{:url, url} - a base url to the files directory (with `/` suffix)
+        * `{:url, url}` - a base url to the files directory (with `/` suffix)
 
         * `{:inline, contents_map}` - a map with file names pointing to their
           binary contents
