@@ -906,6 +906,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> set_notebook_hub(hub)
       |> update_notebook_hub_secret_names()
+      |> update_notebook_deployment_group(hub)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -1738,6 +1739,17 @@ defmodule Livebook.Session.Data do
       for {_name, secret} <- data.secrets, secret.hub_id == data.notebook.hub_id, do: secret.name
 
     set!(data_actions, notebook: %{data.notebook | hub_secret_names: hub_secret_names})
+  end
+
+  defp update_notebook_deployment_group({data, _} = data_actions, hub) do
+    hub_type = Livebook.Hubs.Provider.type(hub)
+
+    deployment_group =
+      if hub_type == "team", do: Livebook.Teams.get_deployment_groups(hub) |> List.first()
+
+    id = if deployment_group, do: deployment_group.id
+
+    set!(data_actions, notebook: %{data.notebook | deployment_group_id: id})
   end
 
   defp add_file_entries({data, _} = data_actions, file_entries) do
