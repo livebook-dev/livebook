@@ -38,9 +38,6 @@ config :livebook,
   allowed_uri_schemes: [],
   aws_credentials: false
 
-# TODO: Remove this in aws_credentials 0.2.0
-config :aws_credentials, fail_if_unavailable: false
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

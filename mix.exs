@@ -110,7 +110,7 @@ defmodule Livebook.MixProject do
       {:earmark_parser, "~> 1.4"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
-      {:aws_credentials, "~> 0.1.11", runtime: false},
+      {:aws_credentials, "~> 0.2.0", runtime: false},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.8.0"},
