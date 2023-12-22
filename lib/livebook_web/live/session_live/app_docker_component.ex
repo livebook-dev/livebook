@@ -104,6 +104,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
               for={@deployment_group_form}
               phx-change="select_deployment_group"
               phx-target={@myself}
+              id="select_deployment_group_form"
             >
               <.select_field
                 help={
@@ -219,7 +220,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     } = socket.assigns
 
     deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id))
-    hub_secrets = Enum.uniq_by(deployment_group.secrets ++ hub_secrets, & &1.name)
+
+    hub_secrets =
+      if deployment_group,
+        do: Enum.uniq_by(deployment_group.secrets ++ hub_secrets, & &1.name),
+        else: hub_secrets
 
     dockerfile =
       Hubs.Dockerfile.build_dockerfile(
