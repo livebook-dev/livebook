@@ -219,7 +219,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       deployment_group_id: deployment_group_id
     } = socket.assigns
 
-    deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id))
+    deployment_group =
+      if deployment_group_id, do: Enum.find(deployment_groups, &(&1.id == deployment_group_id))
 
     hub_secrets =
       if deployment_group,
