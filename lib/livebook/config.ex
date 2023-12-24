@@ -29,8 +29,9 @@ defmodule Livebook.Config do
     %{
       type: :teleport,
       name: "Teleport",
-      value: "Teleport cluster address (https://[cluster-name]:3080)",
-      module: Livebook.ZTA.Teleport
+      value: "Teleport cluster address",
+      module: Livebook.ZTA.Teleport,
+      help: "Example: https://[cluster-name]:3080"
     }
   ]
 
