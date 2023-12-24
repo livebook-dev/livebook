@@ -144,6 +144,7 @@ defmodule LivebookWeb.AppHelpers do
               :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
               field={@form[:zta_key]}
               label={zta_metadata.value}
+              help={zta_help(zta_metadata)}
               phx-debounce
             />
           </div>
@@ -282,4 +283,7 @@ defmodule LivebookWeb.AppHelpers do
   def update_app_list(apps, {:app_closed, app}) do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
+
+  defp zta_help(%{help: help}), do: "#{help}"
+  defp zta_help(_), do: nil
 end
