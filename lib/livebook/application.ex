@@ -47,11 +47,12 @@ defmodule Livebook.Application do
         if serverless?() do
           []
         else
+          {_type, module, key} = Livebook.Config.identity_provider()
+
           iframe_server_specs() ++
-            identity_provider() ++
             [
+              {module, name: LivebookWeb.ZTA, identity_key: key},
               {DNSCluster, query: Application.get_env(:livebook, :dns_cluster_query) || :ignore},
-              # Start the Endpoint (http/https)
               # We skip the access url as we do our own logging below
               {LivebookWeb.Endpoint, log_access_url: false}
             ] ++ app_specs()
@@ -367,45 +368,14 @@ defmodule Livebook.Application do
         [
           scheme: :http,
           plug: LivebookWeb.IframeEndpoint,
-          port: port
+          port: port,
+          thousand_island_options: [supervisor_options: [name: LivebookWeb.IframeEndpoint]]
         ] ++ Keyword.take(http, [:ip])
 
-      spec = Bandit.child_spec(iframe_opts)
-      spec = update_in(spec.start, &{__MODULE__, :start_iframe, [port, &1]})
-      [spec]
+      [{Bandit, iframe_opts}]
     else
       []
     end
-  end
-
-  @doc false
-  def start_iframe(port, {m, f, a}) do
-    case apply(m, f, a) do
-      {:ok, pid} ->
-        {:ok, pid}
-
-      {:error, {:shutdown, {_, _, {{_, {:error, :eaddrinuse}}, _}}}} ->
-        iframe_port_in_use(port)
-
-      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} ->
-        iframe_port_in_use(port)
-
-      {:error, _} = error ->
-        error
-    end
-  end
-
-  @dialyzer {:no_return, iframe_port_in_use: 1}
-
-  defp iframe_port_in_use(port) do
-    Livebook.Config.abort!(
-      "Failed to start Livebook iframe server because port #{port} is already in use"
-    )
-  end
-
-  defp identity_provider() do
-    {_type, module, key} = Livebook.Config.identity_provider()
-    [{module, name: LivebookWeb.ZTA, identity_key: key}]
   end
 
   defp serverless?() do

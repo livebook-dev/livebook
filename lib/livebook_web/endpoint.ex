@@ -140,10 +140,10 @@ defmodule LivebookWeb.Endpoint do
     base =
       case struct_url() do
         %URI{scheme: "https", port: 0} = uri ->
-          %{uri | port: Livebook.Utils.get_port(__MODULE__, :https, 433)}
+          %{uri | port: port(:https, 433)}
 
         %URI{scheme: "http", port: 0} = uri ->
-          %{uri | port: Livebook.Utils.get_port(__MODULE__, :http, 80)}
+          %{uri | port: port(:http, 80)}
 
         %URI{} = uri ->
           uri
@@ -161,5 +161,16 @@ defmodule LivebookWeb.Endpoint do
 
   def access_url do
     URI.to_string(access_struct_url())
+  end
+
+  defp port(scheme, default) do
+    try do
+      server_info(scheme)
+    rescue
+      _ -> default
+    else
+      {:ok, {_, port}} when is_integer(port) -> port
+      _ -> default
+    end
   end
 end
