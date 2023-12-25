@@ -620,21 +620,6 @@ defmodule Livebook.Utils do
   defp memory_unit(:KB), do: 1_000
 
   @doc """
-  Gets the port for an existing listener.
-  """
-  @spec get_port(module, :http | :https, :inet.port_number()) :: :inet.port_number()
-  def get_port(endpoint, scheme, default) do
-    try do
-      endpoint.server_info(scheme)
-    rescue
-      _ -> default
-    else
-      {:ok, {_, port}} when is_integer(port) -> port
-      _ -> default
-    end
-  end
-
-  @doc """
   Converts the given IP address into a valid hostname.
 
   ## Examples
