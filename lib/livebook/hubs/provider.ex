@@ -138,4 +138,9 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec delete_file_system(t(), FileSystem.t()) :: :ok | {:transport_error, String.t()}
   def delete_file_system(hub, file_system)
+
+  @doc """
+  Get the deployment groups for a given hub.
+  """
+  def deployment_groups(hub)
 end

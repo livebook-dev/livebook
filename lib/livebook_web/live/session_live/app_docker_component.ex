@@ -6,13 +6,13 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   alias Livebook.Hubs
   alias Livebook.FileSystem
   alias LivebookWeb.AppHelpers
-  alias Livebook.Teams
+  alias Livebook.Hubs.Provider
 
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    hub_type = Hubs.Provider.type(assigns.hub)
-    deployment_groups = if hub_type == "team", do: Teams.get_deployment_groups(assigns.hub)
+    hub_type = Provider.type(assigns.hub)
+    deployment_groups = Provider.deployment_groups(assigns.hub)
 
     {:ok,
      socket

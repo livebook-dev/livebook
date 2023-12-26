@@ -2191,10 +2191,6 @@ defmodule Livebook.Session do
     notify_update(state)
   end
 
-  defp after_operation(state, _prev_state, {:set_notebook_deployment_group, _client_id, _id}) do
-    notify_update(state)
-  end
-
   defp after_operation(state, prev_state, {:add_file_entries, _client_id, file_entries}) do
     names = for entry <- file_entries, do: entry.name, into: MapSet.new()
 
