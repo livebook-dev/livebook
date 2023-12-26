@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
                   '''
                 }
                 field={f[:id]}
-                options={for dg <- @deployment_groups, do: {dg.name, dg.id}}
+                options={deployment_group_options(@deployment_groups)}
                 label="Deployment Group"
               />
             </.form>
@@ -250,5 +250,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       )
 
     assign(socket, dockerfile: dockerfile, warnings: warnings)
+  end
+
+  defp deployment_group_options(deployment_groups) do
+    for deployment_group <- [%{name: "none", id: nil}] ++ deployment_groups,
+        do: {deployment_group.name, deployment_group.id}
   end
 end
