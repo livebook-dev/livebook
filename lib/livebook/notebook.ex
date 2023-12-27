@@ -25,7 +25,8 @@ defmodule Livebook.Notebook do
     :hub_secret_names,
     :file_entries,
     :quarantine_file_entry_names,
-    :teams_enabled
+    :teams_enabled,
+    :deployment_group_id
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
@@ -46,7 +47,8 @@ defmodule Livebook.Notebook do
           hub_secret_names: list(String.t()),
           file_entries: list(file_entry()),
           quarantine_file_entry_names: MapSet.new(String.t()),
-          teams_enabled: boolean()
+          teams_enabled: boolean(),
+          deployment_group_id: String.t() | nil
         }
 
   @typedoc """
@@ -110,7 +112,8 @@ defmodule Livebook.Notebook do
       hub_secret_names: [],
       file_entries: [],
       quarantine_file_entry_names: MapSet.new(),
-      teams_enabled: false
+      teams_enabled: false,
+      deployment_group_id: nil
     }
     |> put_setup_cell(Cell.new(:code))
   end

@@ -280,6 +280,8 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
+  def deployment_groups(team), do: TeamClient.get_deployment_groups(team.id)
+
   defp add_secret_errors(%Secret{} = secret, errors_map) do
     Requests.add_errors(secret, errors_map)
   end

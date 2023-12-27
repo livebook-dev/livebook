@@ -277,4 +277,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     :ok = Personal.remove_file_system(file_system.id)
     :ok = Broadcasts.file_system_deleted(file_system)
   end
+
+  def deployment_groups(_personal), do: nil
 end

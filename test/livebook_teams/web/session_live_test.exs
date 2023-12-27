@@ -359,4 +359,103 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       remove_offline_hub_file_system(file_system)
     end
   end
+
+  describe "deployment group for app deployment" do
+    @tag :tmp_dir
+    test "show deployment group on app deployment",
+         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
+      team = create_team_hub(user, node)
+      team_id = team.id
+
+      insert_deployment_group(
+        name: "DEPLOYMENT_GROUP_SUSIE",
+        mode: "online",
+        hub_id: team_id
+      )
+
+      Session.subscribe(session.id)
+      Session.set_notebook_hub(session.pid, team_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "Deployment Group"
+      assert has_element?(view, "#select_deployment_group_form")
+    end
+
+    @tag :tmp_dir
+    test "set deployment group on app deployment",
+         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
+      team = create_team_hub(user, node)
+      team_id = team.id
+
+      insert_deployment_group(
+        name: "DEPLOYMENT_GROUP_SUSIE",
+        mode: "online",
+        hub_id: team_id
+      )
+
+      insert_deployment_group(
+        name: "DEPLOYMENT_GROUP_TOBIAS",
+        mode: "online",
+        hub_id: team_id
+      )
+
+      Session.subscribe(session.id)
+      Session.set_notebook_hub(session.pid, team_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "Deployment Group"
+      assert has_element?(view, "#select_deployment_group_form")
+
+      view
+      |> form("#select_deployment_group_form", %{id: "2"})
+      |> render_change()
+
+      assert_receive {:operation, {:set_notebook_deployment_group, _client, "2"}}
+    end
+
+    @tag :tmp_dir
+    test "show no deployments groups available",
+         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
+      team = create_team_hub(user, node)
+      team_id = team.id
+
+      Session.subscribe(session.id)
+      Session.set_notebook_hub(session.pid, team_id)
+      assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
+
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert render(view) =~ "Deployment Group"
+      assert render(view) =~ "No deployment groups available"
+      refute has_element?(view, "#select_deployment_group_form")
+    end
+  end
 end

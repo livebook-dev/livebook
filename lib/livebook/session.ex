@@ -607,6 +607,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a deployment group selection request to the server.
+  """
+  @spec set_notebook_deployment_group(pid(), String.t()) :: :ok
+  def set_notebook_deployment_group(pid, id) do
+    GenServer.cast(pid, {:set_notebook_deployment_group, self(), id})
+  end
+
+  @doc """
   Sends a file entries addition request to the server.
 
   Note that if file entries with any of the given names already exist
@@ -1390,6 +1398,12 @@ defmodule Livebook.Session do
   def handle_cast({:set_notebook_hub, client_pid, id}, state) do
     client_id = client_id(state, client_pid)
     operation = {:set_notebook_hub, client_id, id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:set_notebook_deployment_group, client_pid, id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:set_notebook_deployment_group, client_id, id}
     {:noreply, handle_operation(state, operation)}
   end
 

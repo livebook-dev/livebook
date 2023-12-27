@@ -102,7 +102,14 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp notebook_metadata(notebook) do
-    keys = [:persist_outputs, :autosave_interval_s, :default_language, :hub_id]
+    keys = [
+      :persist_outputs,
+      :autosave_interval_s,
+      :default_language,
+      :hub_id,
+      :deployment_group_id
+    ]
+
     metadata = put_unless_default(%{}, Map.take(notebook, keys), Map.take(Notebook.new(), keys))
 
     app_settings_metadata = app_settings_metadata(notebook.app_settings)

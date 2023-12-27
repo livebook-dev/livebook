@@ -420,6 +420,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {"hub_id", hub_id}, {attrs, messages} ->
         {Map.put(attrs, :hub_id, hub_id), messages}
 
+      {"deployment_group_id", deployment_group_id}, {attrs, messages} ->
+        {Map.put(attrs, :deployment_group_id, deployment_group_id), messages}
+
       {"app_settings", app_settings_metadata}, {attrs, messages} ->
         app_settings =
           Map.merge(

@@ -227,6 +227,7 @@ defmodule Livebook.Session.Data do
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
+          | {:set_notebook_deployment_group, String.t()}
 
   @type action ::
           :connect_runtime
@@ -905,9 +906,18 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> set_notebook_hub(hub)
       |> update_notebook_hub_secret_names()
+      |> set_notebook_deployment_group(nil)
       |> set_dirty()
       |> wrap_ok()
     end
+  end
+
+  def apply_operation(data, {:set_notebook_deployment_group, _client_id, id}) do
+    data
+    |> with_actions()
+    |> set_notebook_deployment_group(id)
+    |> set_dirty()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:sync_hub_secrets, _client_id}) do
@@ -1712,6 +1722,10 @@ defmodule Livebook.Session.Data do
       },
       hub_secrets: Hubs.get_secrets(hub)
     )
+  end
+
+  defp set_notebook_deployment_group({data, _} = data_actions, id) do
+    set!(data_actions, notebook: %{data.notebook | deployment_group_id: id})
   end
 
   defp sync_hub_secrets({data, _} = data_actions) do

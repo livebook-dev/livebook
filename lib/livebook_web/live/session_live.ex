@@ -502,6 +502,7 @@ defmodule LivebookWeb.SessionLive do
         secrets={@data_view.secrets}
         file_entries={@data_view.file_entries}
         settings={@data_view.app_settings}
+        deployment_group_id={@data_view.deployment_group_id}
       />
     </.modal>
 
@@ -2671,7 +2672,8 @@ defmodule LivebookWeb.SessionLive do
       file_entries: Enum.sort_by(data.notebook.file_entries, & &1.name),
       quarantine_file_entry_names: data.notebook.quarantine_file_entry_names,
       app_settings: data.notebook.app_settings,
-      deployed_app_slug: data.deployed_app_slug
+      deployed_app_slug: data.deployed_app_slug,
+      deployment_group_id: data.notebook.deployment_group_id
     }
   end
 
