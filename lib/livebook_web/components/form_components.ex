@@ -411,6 +411,7 @@ defmodule LivebookWeb.FormComponents do
   attr :class, :string, default: ""
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
+  attr :disabled, :boolean, default: false
 
   attr :options, :list, default: []
   attr :prompt, :string, default: nil
