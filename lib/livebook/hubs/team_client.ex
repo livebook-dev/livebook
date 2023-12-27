@@ -244,9 +244,19 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp build_deployment_group(state, %{id: id, name: name, mode: mode, secrets: secrets}) do
-    secrets = Enum.map(secrets, &build_secret(state, &1))
-    %DeploymentGroup{id: id, name: name, mode: mode, hub_id: state.hub.id, secrets: secrets}
+  defp build_deployment_group(state, deployment_group) do
+    secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
+
+    %DeploymentGroup{
+      id: deployment_group.id,
+      name: deployment_group.name,
+      mode: deployment_group.mode,
+      hub_id: state.hub.id,
+      secrets: secrets,
+      clustering: deployment_group.clustering,
+      zta_provider: String.to_atom(deployment_group.zta_provider),
+      zta_key: deployment_group.zta_key
+    }
   end
 
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do

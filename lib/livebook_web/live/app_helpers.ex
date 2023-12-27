@@ -102,65 +102,70 @@ defmodule LivebookWeb.AppHelpers do
         ]}
       />
       <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
-      <div class="grid grid-cols-1 md:grid-cols-2">
-        <.select_field
-          label="Clustering"
-          help={
-            ~S'''
-            When running multiple
-            instances of Livebook,
-            they need to be connected
-            into a single cluster.
-            You must either deploy
-            it as a single instance
-            or choose a platform to
-            enable clustering on.
-            '''
-          }
-          field={@form[:clustering]}
-          options={[
-            {"Single instance", ""},
-            {"Fly.io", "fly_io"}
-          ]}
-        />
-      </div>
-      <%= if Hubs.Provider.type(@hub) == "team" do %>
-        <div class="flex flex-col">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <.select_field
-              label="Zero Trust Authentication provider"
-              field={@form[:zta_provider]}
-              help={
-                ~S'''
-                Enable this option if you want
-                to deploy your notebooks behind
-                an authentication proxy
-                '''
-              }
-              prompt="None"
-              options={zta_options()}
-            />
-            <.text_field
-              :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
-              field={@form[:zta_key]}
-              label={zta_metadata.value}
-              help={zta_help(zta_metadata)}
-              phx-debounce
-            />
-          </div>
-          <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
-            See the
-            <a
-              class="text-blue-800 hover:text-blue-600"
-              href={"https://hexdocs.pm/livebook/#{zta_metadata.type}"}
-            >
-              Authentication with <%= zta_metadata.name %> docs
-            </a>
-            for more information.
-          </div>
-        </div>
-      <% end %>
     </div>
+    """
+  end
+
+  def deployment_group_form_content(assigns) do
+    ~H"""
+    <div class="grid grid-cols-1 md:grid-cols-2">
+      <.select_field
+        label="Clustering"
+        help={
+          ~S'''
+          When running multiple
+          instances of Livebook,
+          they need to be connected
+          into a single cluster.
+          You must either deploy
+          it as a single instance
+          or choose a platform to
+          enable clustering on.
+          '''
+        }
+        field={@form[:clustering]}
+        options={[
+          {"Single instance", ""},
+          {"Fly.io", "fly_io"}
+        ]}
+      />
+    </div>
+    <%= if Hubs.Provider.type(@hub) == "team" do %>
+      <div class="flex flex-col">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <.select_field
+            label="Zero Trust Authentication provider"
+            field={@form[:zta_provider]}
+            help={
+              ~S'''
+              Enable this option if you want
+              to deploy your notebooks behind
+              an authentication proxy
+              '''
+            }
+            prompt="None"
+            options={zta_options()}
+          />
+          <.text_field
+            :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
+            field={@form[:zta_key]}
+            label={zta_metadata.value}
+            help={zta_help(zta_metadata)}
+            phx-debounce
+          />
+        </div>
+        <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
+          See the
+          <a
+            class="text-blue-800 hover:text-blue-600"
+            href={"https://hexdocs.pm/livebook/#{zta_metadata.type}"}
+          >
+            Authentication with <%= zta_metadata.name %> docs
+          </a>
+          for more information.
+        </div>
+      </div>
+    <% end %>
     """
   end
 

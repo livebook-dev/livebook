@@ -128,7 +128,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         </.message_box>
       </div>
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
-        <AppHelpers.docker_config_form_content hub={@hub} form={f} />
+        <div class="flex flex-col space-y-4">
+          <AppHelpers.docker_config_form_content hub={@hub} form={f} />
+          <AppHelpers.deployment_group_form_content hub={@hub} form={f} />
+        </div>
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
       <AppHelpers.docker_instructions
