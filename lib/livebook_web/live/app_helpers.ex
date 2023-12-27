@@ -134,6 +134,8 @@ defmodule LivebookWeb.AppHelpers do
           {"Single instance", ""},
           {"Fly.io", "fly_io"}
         ]}
+        disabled={@form[:ready_only].value}
+        class="disabled:cursor-not-allowed"
       />
     </div>
     <%= if Hubs.Provider.type(@hub) == "team" do %>
@@ -151,6 +153,8 @@ defmodule LivebookWeb.AppHelpers do
             }
             prompt="None"
             options={zta_options()}
+            disabled={@form[:ready_only].value}
+            class="disabled:cursor-not-allowed"
           />
           <.text_field
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
@@ -158,6 +162,8 @@ defmodule LivebookWeb.AppHelpers do
             label={zta_metadata.value}
             help={zta_help(zta_metadata)}
             phx-debounce
+            disabled={@form[:ready_only].value}
+            class="disabled:cursor-not-allowed"
           />
         </div>
         <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">

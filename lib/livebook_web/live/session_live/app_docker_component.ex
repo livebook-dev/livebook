@@ -20,7 +20,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
        hub_secrets: Hubs.get_secrets(assigns.hub),
        hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
        deployment_groups: deployment_groups,
-       deployment_group_form: %{"id" => assigns.deployment_group_id}
+       deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
+       deployment_group_id: assigns.deployment_group_id
      )
      |> assign_new(:changeset, fn -> Hubs.Dockerfile.config_changeset() end)
      |> assign_new(:save_result, fn -> nil end)
@@ -40,6 +41,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         hub={@hub}
         deployment_groups={@deployment_groups}
         deployment_group_form={@deployment_group_form}
+        deployment_group_id={@deployment_group_id}
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
@@ -97,7 +99,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         <%= if @deployment_groups do %>
           <%= if @deployment_groups != [] do %>
             <.form
-              :let={f}
               for={@deployment_group_form}
               phx-change="select_deployment_group"
               phx-target={@myself}
@@ -109,9 +110,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
                   Share deployment credentials, secrets, and configuration with deployment groups.
                   '''
                 }
-                field={f[:id]}
+                field={@deployment_group_form[:deployment_group_id]}
                 options={deployment_group_options(@deployment_groups)}
                 label="Deployment Group"
+                name="deployment_group_id"
+                value={@deployment_group_id}
               />
             </.form>
           <% else %>
@@ -127,11 +130,19 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <%= raw(warning) %>
         </.message_box>
       </div>
-      <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
+      <.form
+        :let={f}
+        for={deployment_group_form_content(assigns)}
+        as={:data}
+        phx-change="validate"
+        phx-target={@myself}
+      >
         <div class="flex flex-col space-y-4">
-          <AppHelpers.docker_config_form_content hub={@hub} form={f} />
           <AppHelpers.deployment_group_form_content hub={@hub} form={f} />
         </div>
+      </.form>
+      <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
+        <AppHelpers.docker_config_form_content hub={@hub} form={f} />
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
       <AppHelpers.docker_instructions
@@ -194,7 +205,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     {:noreply, assign(socket, save_result: save_result)}
   end
 
-  def handle_event("select_deployment_group", %{"id" => id}, socket) do
+  def handle_event("select_deployment_group", %{"deployment_group_id" => id}, socket) do
     Livebook.Session.set_notebook_deployment_group(socket.assigns.session.pid, id)
 
     {:noreply, socket}
@@ -257,5 +268,21 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   defp deployment_group_options(deployment_groups) do
     for deployment_group <- [%{name: "none", id: nil}] ++ deployment_groups,
         do: {deployment_group.name, deployment_group.id}
+  end
+
+  defp deployment_group_form_content(%{deployment_group_id: id} = assigns) do
+    deployment_group = if id, do: Enum.find(assigns.deployment_groups, &(&1.id == id))
+
+    if deployment_group do
+      %{
+        "deployment_group_id" => deployment_group.id,
+        "clustering" => deployment_group.clustering,
+        "zta_provider" => deployment_group.zta_provider,
+        "zta_key" => deployment_group.zta_key,
+        "ready_only" => true
+      }
+    else
+      assigns.changeset
+    end
   end
 end
