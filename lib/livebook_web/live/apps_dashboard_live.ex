@@ -22,7 +22,7 @@ defmodule LivebookWeb.AppsDashboardLive do
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout
-      current_page={~p"/apps"}
+      current_page={~p"/apps-dashboard"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
