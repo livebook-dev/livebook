@@ -11,7 +11,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    hub_type = Provider.type(assigns.hub)
     deployment_groups = Provider.deployment_groups(assigns.hub)
 
     {:ok,
@@ -20,7 +19,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
      |> assign(
        hub_secrets: Hubs.get_secrets(assigns.hub),
        hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
-       hub_type: hub_type,
        deployment_groups: deployment_groups,
        deployment_group_form: %{"id" => assigns.deployment_group_id}
      )
@@ -40,7 +38,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         file={@file}
         settings_valid?={@settings_valid?}
         hub={@hub}
-        hub_type={@hub_type}
         deployment_groups={@deployment_groups}
         deployment_group_form={@deployment_group_form}
         changeset={@changeset}
@@ -97,7 +94,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
             <span><%= @hub.hub_name %></span>
           </span>
         </p>
-        <%= if @hub_type == "team" do %>
+        <%= if @deployment_groups do %>
           <%= if @deployment_groups != [] do %>
             <.form
               :let={f}
@@ -109,7 +106,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
               <.select_field
                 help={
                   ~S'''
-                  Deployment group.
+                  Share deployment credentials, secrets, and configuration with deployment groups.
                   '''
                 }
                 field={f[:id]}
