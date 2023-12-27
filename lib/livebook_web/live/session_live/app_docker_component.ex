@@ -223,9 +223,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       if deployment_group_id, do: Enum.find(deployment_groups, &(&1.id == deployment_group_id))
 
     hub_secrets =
-      if deployment_group,
-        do: Enum.uniq_by(deployment_group.secrets ++ hub_secrets, & &1.name),
-        else: hub_secrets
+      if deployment_group do
+        Enum.uniq_by(deployment_group.secrets ++ hub_secrets, & &1.name)
+      else
+        hub_secrets
+      end
 
     dockerfile =
       Hubs.Dockerfile.build_dockerfile(

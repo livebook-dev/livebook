@@ -141,6 +141,9 @@ defprotocol Livebook.Hubs.Provider do
 
   @doc """
   Get the deployment groups for a given hub.
+
+  Returns `nil` if deployment groups are not applicable to this hub.
   """
+  @spec deployment_groups(t()) :: list(%{id: String.t(), name: String.t(), secrets: list(Secret.t())}) | nil
   def deployment_groups(hub)
 end
