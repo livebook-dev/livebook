@@ -3,6 +3,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   import Ecto.Changeset
   alias Livebook.Secrets.Secret
 
+  # If this list is updated, it must also be mirrored on Livebook Teams Server.
   @zta_providers ~w(cloudflare google_iap tailscale teleport)a
 
   @type t :: %__MODULE__{
