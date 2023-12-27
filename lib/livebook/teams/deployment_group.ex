@@ -11,7 +11,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           name: String.t() | nil,
           mode: :online | :offline,
           hub_id: String.t() | nil,
-          clustering: String.t(),
+          clustering: :fly_io | nil,
           zta_provider: :cloudflare | :google_iap | :tailscale | :teleport,
           zta_key: String.t(),
           secrets: [Secret.t()]
@@ -22,7 +22,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :name, :string
     field :mode, Ecto.Enum, values: [:online, :offline]
     field :hub_id, :string
-    field :clustering, :string
+    field :clustering, Ecto.Enum, values: [:fly_io]
     field :zta_provider, Ecto.Enum, values: @zta_providers
     field :zta_key, :string
     has_many :secrets, Secret

@@ -106,6 +106,12 @@ defmodule LivebookWeb.AppHelpers do
     """
   end
 
+  @doc """
+  Renders form fields for Deployment Group.
+  """
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :hub, :map, required: true
+
   def deployment_group_form_content(assigns) do
     ~H"""
     <div class="grid grid-cols-1 md:grid-cols-2">
