@@ -105,11 +105,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
               id="select_deployment_group_form"
             >
               <.select_field
-                help={
-                  ~S'''
-                  Share deployment credentials, secrets, and configuration with deployment groups.
-                  '''
-                }
+                help={deployment_group_help()}
                 field={@deployment_group_form[:deployment_group_id]}
                 options={deployment_group_options(@deployment_groups)}
                 label="Deployment Group"
@@ -119,7 +115,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
             </.form>
           <% else %>
             <p class="text-gray-700">
-              <.label>Deployment Group</.label>
+              <.label help={deployment_group_help()}>
+                Deployment Group
+              </.label>
               <span>No deployment groups available</span>
             </p>
           <% end %>
@@ -284,5 +282,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     else
       assigns.changeset
     end
+  end
+
+  defp deployment_group_help() do
+    "Share deployment credentials, secrets, and configuration with deployment groups."
   end
 end
