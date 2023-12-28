@@ -31,7 +31,7 @@ defmodule Livebook.Config do
       name: "Teleport",
       value: "Teleport cluster address",
       module: Livebook.ZTA.Teleport,
-      help: "Example: https://[cluster-name]:3080"
+      placeholder: "https://[cluster-name]:3080"
     }
   ]
 
