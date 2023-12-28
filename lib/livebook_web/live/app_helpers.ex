@@ -160,7 +160,7 @@ defmodule LivebookWeb.AppHelpers do
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
             label={zta_metadata.value}
-            placeholder={zta_help(zta_metadata)}
+            placeholder={zta_placeholder(zta_metadata)}
             phx-debounce
             disabled={@form[:ready_only].value}
             class="disabled:cursor-not-allowed"
@@ -301,6 +301,6 @@ defmodule LivebookWeb.AppHelpers do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
 
-  defp zta_help(%{placeholder: placeholder}), do: "#{placeholder}"
-  defp zta_help(_), do: nil
+  defp zta_placeholder(%{placeholder: placeholder}), do: "#{placeholder}"
+  defp zta_placeholder(_), do: nil
 end
