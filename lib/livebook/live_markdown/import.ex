@@ -354,7 +354,8 @@ defmodule Livebook.LiveMarkdown.Import do
       if is_nil(hub_id) or Hubs.hub_exists?(hub_id) do
         {attrs, true, messages}
       else
-        {Map.delete(attrs, :hub_id), false, messages ++ [@unknown_hub_message]}
+        {Map.drop(attrs, [:hub_id, :deployment_group_id]), false,
+         messages ++ [@unknown_hub_message]}
       end
 
     # We identify a single leading cell as the setup cell, in any
