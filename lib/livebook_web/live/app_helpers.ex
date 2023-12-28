@@ -301,6 +301,6 @@ defmodule LivebookWeb.AppHelpers do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
 
-  defp zta_placeholder(%{placeholder: placeholder}), do: "#{placeholder}"
+  defp zta_placeholder(%{placeholder: placeholder}), do: placeholder
   defp zta_placeholder(_), do: nil
 end
