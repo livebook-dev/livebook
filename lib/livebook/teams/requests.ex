@@ -169,7 +169,14 @@ defmodule Livebook.Teams.Requests do
   @spec create_deployment_group(Team.t(), DeploymentGroup.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_deployment_group(team, deployment_group) do
-    params = %{name: deployment_group.name, mode: deployment_group.mode}
+    params = %{
+      name: deployment_group.name,
+      mode: deployment_group.mode,
+      clustering: deployment_group.clustering,
+      zta_provider: deployment_group.zta_provider,
+      zta_key: deployment_group.zta_key
+    }
+
     post("/api/v1/org/deployment-groups", params, team)
   end
 
@@ -179,7 +186,15 @@ defmodule Livebook.Teams.Requests do
   @spec update_deployment_group(Team.t(), DeploymentGroup.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def update_deployment_group(team, deployment_group) do
-    params = %{id: deployment_group.id, name: deployment_group.name, mode: deployment_group.mode}
+    params = %{
+      id: deployment_group.id,
+      name: deployment_group.name,
+      mode: deployment_group.mode,
+      clustering: deployment_group.clustering,
+      zta_provider: deployment_group.zta_provider,
+      zta_key: deployment_group.zta_key
+    }
+
     put("/api/v1/org/deployment-groups", params, team)
   end
 
