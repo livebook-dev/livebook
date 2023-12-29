@@ -1365,7 +1365,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
           hub_secret_names: ["DB_PASSWORD"]
       }
 
-      expected_document = ~R"""
+      expected_document = ~r"""
       # My Notebook
 
       ## Section 1

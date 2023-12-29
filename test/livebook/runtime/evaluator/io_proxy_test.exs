@@ -34,7 +34,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
     end
 
     test "IO.read", %{io: io} do
-      assert IO.read(io, :all) == {:error, :enotsup}
+      assert IO.read(io, :eof) == {:error, :enotsup}
     end
 
     test "IO.gets", %{io: io} do

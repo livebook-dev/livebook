@@ -119,4 +119,18 @@ defmodule Livebook.TestHelpers do
       %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
     end
   end
+
+  def clean_message(message) do
+    message
+    |> remove_trailing_whitespace()
+    |> remove_ansi()
+  end
+
+  defp remove_trailing_whitespace(string) do
+    String.replace(string, ~r/ +$/m, "")
+  end
+
+  defp remove_ansi(string) do
+    String.replace(string, ~r/\e\[\d+m/, "")
+  end
 end

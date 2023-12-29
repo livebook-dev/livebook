@@ -229,7 +229,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "RuntimeError",
                  kind: :struct,
                  detail: "exception",
-                 documentation: "No documentation available",
+                 documentation: "An exception for a generic runtime error.",
                  insert_text: "RuntimeError"
                }
              ] = Intellisense.get_completion_items("RuntimeE", context, node())
@@ -512,7 +512,7 @@ defmodule Livebook.IntellisenseTest do
                  separator.
 
                  ```
-                 @spec join(t(), String.t()) :: String.t()
+                 @spec join(t(), binary()) :: binary()
                  ```\
                  """,
                  insert_text: "join($0)"
@@ -526,7 +526,7 @@ defmodule Livebook.IntellisenseTest do
                  separator.
 
                  ```
-                 @spec join(t(), String.t()) :: String.t()
+                 @spec join(t(), binary()) :: binary()
                  ```\
                  """,
                  insert_text: "join($0)"
