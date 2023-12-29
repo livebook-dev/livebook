@@ -229,7 +229,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "RuntimeError",
                  kind: :struct,
                  detail: "exception",
-                 documentation: "No documentation available",
+                 documentation: "An exception for a generic runtime error.",
                  insert_text: "RuntimeError"
                }
              ] = Intellisense.get_completion_items("RuntimeE", context, node())
@@ -504,34 +504,32 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 label: "join/1",
+                 label: "utc_today/0",
                  kind: :function,
-                 detail: ~S{Enum.join(enumerable, joiner \\ "")},
+                 detail: "Date.utc_today(calendar \\\\ Calendar.ISO)",
                  documentation: """
-                 Joins the given `enumerable` into a string using `joiner` as a
-                 separator.
+                 Returns the current date in UTC.
 
                  ```
-                 @spec join(t(), String.t()) :: String.t()
+                 @spec utc_today(Calendar.calendar()) :: t()
                  ```\
                  """,
-                 insert_text: "join($0)"
+                 insert_text: "utc_today()"
                },
                %{
-                 label: "join/2",
+                 label: "utc_today/1",
                  kind: :function,
-                 detail: ~S{Enum.join(enumerable, joiner \\ "")},
+                 detail: "Date.utc_today(calendar \\\\ Calendar.ISO)",
                  documentation: """
-                 Joins the given `enumerable` into a string using `joiner` as a
-                 separator.
+                 Returns the current date in UTC.
 
                  ```
-                 @spec join(t(), String.t()) :: String.t()
+                 @spec utc_today(Calendar.calendar()) :: t()
                  ```\
                  """,
-                 insert_text: "join($0)"
+                 insert_text: "utc_today($0)"
                }
-             ] = Intellisense.get_completion_items("Enum.jo", context, node())
+             ] = Intellisense.get_completion_items("Date.utc", context, node())
     end
 
     test "function completion using a variable bound to a module" do

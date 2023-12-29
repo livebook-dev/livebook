@@ -1,6 +1,8 @@
 defmodule Livebook.Runtime.DependenciesTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Runtime.Dependencies
 
   doctest Dependencies
@@ -197,20 +199,25 @@ defmodule Livebook.Runtime.DependenciesTest do
     end
 
     test "returns an error if the code has a syntax error" do
-      assert Dependencies.add_mix_deps(
+      {:error, message} =
+        Dependencies.add_mix_deps(
+          """
+          # Comment
+          [,1]
+          """,
+          [@jason]
+        )
+
+      assert clean_message(message) ==
                """
-               # Comment
-               [,1]
-               """,
-               [@jason]
-             ) ==
-               {:error,
-                """
-                ** (SyntaxError) nofile:2:2: syntax error before: ','
-                    |
-                  2 | [,1]
-                    |  ^\
-                """}
+               ** (SyntaxError) invalid syntax found on nofile:2:2:
+                   error: syntax error before: ','
+                   │
+                 2 │ [,1]
+                   │  ^
+                   │
+                   └─ nofile:2:2\
+               """
     end
 
     test "adds config if specified" do

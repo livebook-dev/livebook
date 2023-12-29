@@ -1,6 +1,8 @@
 defmodule Livebook.Runtime.EvaluatorTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Runtime.Evaluator
 
   setup ctx do
@@ -38,12 +40,6 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
   defmacrop ansi_number(number), do: "\e[34m#{number}\e[0m"
   defmacrop ansi_string(string), do: "\e[32m\"#{string}\"\e[0m"
-
-  defmacrop terminal_text(text, chunk \\ false) do
-    quote do
-      %{type: :terminal_text, text: unquote(text), chunk: unquote(chunk)}
-    end
-  end
 
   defmacrop error(message) do
     quote do
@@ -223,10 +219,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
 
       assert clean_message(message) === """
-             ** (TokenMissingError) file.ex:1:2: syntax error: expression is incomplete
-                 |
-               1 | 1+
-                 |  ^\
+             ** (TokenMissingError) token missing on file.ex:1:2:
+                 error: syntax error: expression is incomplete
+                 │
+               1 │ 1+
+                 │  ^
+                 │
+                 └─ file.ex:1:2\
              """
     end
 
@@ -1373,19 +1372,5 @@ defmodule Livebook.Runtime.EvaluatorTest do
       {:widget_pid, widget_pid} -> widget_pid
     end
     """
-  end
-
-  defp clean_message(message) do
-    message
-    |> remove_trailing_whitespace()
-    |> remove_ansi()
-  end
-
-  defp remove_trailing_whitespace(string) do
-    String.replace(string, ~r/ +$/m, "")
-  end
-
-  defp remove_ansi(string) do
-    String.replace(string, ~r/\e\[\d+m/, "")
   end
 end
