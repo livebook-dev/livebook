@@ -614,6 +614,7 @@ defmodule LivebookWeb.SessionLive do
         id="export"
         session={@session}
         tab={@tab}
+        has_stale_cell?={@has_stale_cell?}
       />
     </.modal>
 
@@ -1059,7 +1060,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) when socket.assigns.live_action == :export do
-    {:noreply, assign(socket, tab: tab)}
+    has_stale_cell? =
+      socket.assigns.data_view.section_views
+      |> Enum.flat_map(& &1.cell_views)
+      |> Enum.any?(&(&1.eval.validity == :stale))
+
+    {:noreply, assign(socket, tab: tab, has_stale_cell?: has_stale_cell?)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, socket)

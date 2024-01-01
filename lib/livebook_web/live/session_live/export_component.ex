@@ -31,6 +31,16 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
         <p class="text-gray-700">
           Here you can preview and directly export the notebook source.
         </p>
+        <div
+          :if={@has_stale_cell?}
+          class="flex items-center justify-between"
+          style="color: var(--ansi-color-red);"
+        >
+          <div class="flex space-x-2 font-editor">
+            <.remix_icon icon="close-circle-line" />
+            <p>There are stale section(s)</p>
+          </div>
+        </div>
         <div class="tabs">
           <.link
             patch={~p"/sessions/#{@session.id}/export/livemd"}
