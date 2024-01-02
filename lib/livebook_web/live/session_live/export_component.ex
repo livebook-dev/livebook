@@ -5,13 +5,15 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
 
   @impl true
   def update(assigns, socket) do
+    {any_stale_cell?, assigns} = Map.pop!(assigns, :any_stale_cell?)
     socket = assign(socket, assigns)
 
     {:ok,
      socket
      # Note: we need to load the notebook, because the local data
      # has cell contents stripped out
-     |> assign_new(:notebook, fn -> Session.get_notebook(socket.assigns.session.pid) end)}
+     |> assign_new(:notebook, fn -> Session.get_notebook(socket.assigns.session.pid) end)
+     |> assign_new(:any_stale_cell?, fn -> any_stale_cell? end)}
   end
 
   @impl true
@@ -25,16 +27,6 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
         <p class="text-gray-700">
           Here you can preview and directly export the notebook source.
         </p>
-        <div
-          :if={@any_stale_cell?}
-          class="flex items-center justify-between"
-          style="color: var(--ansi-color-red);"
-        >
-          <div class="flex space-x-2 font-editor">
-            <.remix_icon icon="close-circle-line" />
-            <p>There are stale section(s)</p>
-          </div>
-        </div>
         <div class="tabs">
           <.link
             patch={~p"/sessions/#{@session.id}/export/livemd"}
