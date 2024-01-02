@@ -31,6 +31,11 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
           <.switch_field name="include_outputs" label="Include outputs" value={@include_outputs} />
         </form>
       </div>
+      <.message_box
+        :if={@include_outputs and @any_stale_cell?}
+        kind={:warning}
+        message="There are stale cells, some outputs may be inaccurate."
+      />
       <div class="flex flex-col space-y-1">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-700 font-semibold">
