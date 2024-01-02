@@ -614,6 +614,7 @@ defmodule LivebookWeb.SessionLive do
         id="export"
         session={@session}
         tab={@tab}
+        any_stale_cell?={@any_stale_cell?}
       />
     </.modal>
 
@@ -1059,7 +1060,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) when socket.assigns.live_action == :export do
-    {:noreply, assign(socket, tab: tab)}
+    any_stale_cell? = any_stale_cell?(socket.private.data)
+    {:noreply, assign(socket, tab: tab, any_stale_cell?: any_stale_cell?)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, socket)
@@ -2964,4 +2966,12 @@ defmodule LivebookWeb.SessionLive do
 
   defp intellisense_node(%Cell.Smart{editor_intellisense_node: node_cookie}), do: node_cookie
   defp intellisense_node(_), do: nil
+
+  defp any_stale_cell?(data) do
+    data.notebook
+    |> Notebook.evaluable_cells_with_section()
+    |> Enum.any?(fn {cell, _section} ->
+      data.cell_infos[cell.id].eval.validity == :stale
+    end)
+  end
 end
