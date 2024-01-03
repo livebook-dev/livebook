@@ -300,7 +300,7 @@ defmodule Livebook.Hubs.TeamClientTest do
   end
 
   describe "handle agent_connected event" do
-    setup %{node: node, test: test} do
+    setup %{node: node} do
       {agent_key, org, deployment_group, team} = build_agent_team_hub(node)
       org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
 
