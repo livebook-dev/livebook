@@ -152,7 +152,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   def handle_call(:get_secrets, _caller, state) do
-    case Enum.find(state.deployment_groups, &(&1.id == state.deployment_group_id)) do
+    case find_deployment_group(state) do
       nil ->
         {:reply, state.secrets, state}
 
@@ -474,4 +474,10 @@ defmodule Livebook.Hubs.TeamClient do
         reduce: state,
         do: (acc -> handle_event(topic, event, acc))
   end
+
+  defp find_deployment_group(%{deployment_group_id: nil}),
+    do: nil
+
+  defp find_deployment_group(%{deployment_group_id: id, deployment_groups: groups}),
+    do: Enum.find(groups, &(&1.id == id))
 end

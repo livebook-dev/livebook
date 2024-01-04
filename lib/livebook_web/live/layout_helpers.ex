@@ -237,22 +237,22 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar_link_border_color(to, current) when to == current, do: "border-white"
   defp sidebar_link_border_color(_to, _current), do: "border-transparent"
 
-  defp hub_connection_link_opts(hub, to, current) do
+  defp hub_connection_link_opts(%{provider: hub}, to, current) do
     text_color = sidebar_link_text_color(to, current)
     border_color = sidebar_link_border_color(to, current)
 
     class =
       "h-7 flex items-center hover:text-white #{text_color} border-l-4 #{border_color} hover:border-white"
 
-    if hub.connected? do
-      [id: "hub-#{hub.id}", navigate: to, class: class]
-    else
+    if message = Provider.connection_status(hub) do
       [
         id: "hub-#{hub.id}",
         navigate: to,
-        "data-tooltip": Provider.connection_status(hub.provider),
+        "data-tooltip": message,
         class: "tooltip right " <> class
       ]
+    else
+      [id: "hub-#{hub.id}", navigate: to, class: class]
     end
   end
 

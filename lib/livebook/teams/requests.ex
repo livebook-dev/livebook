@@ -227,7 +227,12 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp auth_headers(team) do
-    token = "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+    token =
+      if team.user_id do
+        "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+      else
+        "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
+      end
 
     [
       {"x-lb-version", Livebook.Config.app_version()},
@@ -281,6 +286,10 @@ defmodule Livebook.Teams.Requests do
         if json?(headers),
           do: {:error, Jason.decode!(body)},
           else: {:transport_error, body}
+
+      {:ok, 401, _headers, _body} ->
+        {:transport_error,
+         "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"}
 
       _otherwise ->
         {:transport_error,
