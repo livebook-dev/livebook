@@ -7,18 +7,18 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   alias Livebook.Hubs
   alias Livebook.Teams.DeploymentGroup
 
-  setup %{user: user, node: node} do
-    Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
-    hub = create_team_hub(user, node)
-    id = hub.id
+  describe "user" do
+    setup %{user: user, node: node} do
+      Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
+      hub = create_team_hub(user, node)
+      id = hub.id
 
-    assert_receive {:hub_connected, ^id}
+      assert_receive {:hub_connected, ^id}
 
-    {:ok, hub: hub}
-  end
+      {:ok, hub: hub}
+    end
 
-  describe "team" do
     test "updates the hub", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -444,6 +444,99 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert_raise LivebookWeb.NotFoundError, fn ->
         live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/9999999")
       end
+    end
+  end
+
+  describe "agent" do
+    setup %{node: node} do
+      Livebook.Hubs.Broadcasts.subscribe([:crud, :connection])
+      {agent_key, org, deployment_group, hub} = create_agent_team_hub(node)
+      id = hub.id
+
+      assert_receive {:hub_changed, ^id}
+      assert_receive {:hub_connected, ^id}
+
+      {:ok, hub: hub, agent_key: agent_key, org: org, deployment_group: deployment_group}
+    end
+
+    test "shows an error when creating a secret", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+      secret = build(:secret, name: "TEAM_ADD_SECRET", hub_id: hub.id)
+
+      attrs = %{
+        secret: %{
+          name: secret.name,
+          value: secret.value,
+          hub_id: secret.hub_id
+        }
+      }
+
+      refute render(view) =~ secret.name
+
+      view
+      |> element("#add-secret")
+      |> render_click(%{})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/secrets/new")
+      assert render(view) =~ "Add secret"
+
+      view
+      |> element("#secrets-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#secrets-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#secrets-form")
+      |> render_submit(attrs)
+
+      refute_receive {:secret_created, ^secret}
+
+      assert render(view) =~
+               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"
+
+      refute secret in Livebook.Hubs.get_secrets(hub)
+    end
+
+    test "shows an error when creating a file system", %{conn: conn, hub: hub} do
+      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+      bypass = Bypass.open()
+      file_system = build_bypass_file_system(bypass, hub.id)
+      id = file_system.id
+      attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
+
+      expect_s3_listing(bypass)
+
+      refute render(view) =~ file_system.bucket_url
+
+      view
+      |> element("#add-file-system")
+      |> render_click(%{})
+
+      assert_patch(view, ~p"/hub/#{hub.id}/file-systems/new")
+      assert render(view) =~ "Add file storage"
+
+      view
+      |> element("#file-systems-form")
+      |> render_change(attrs)
+
+      refute view
+             |> element("#file-systems-form button[disabled]")
+             |> has_element?()
+
+      view
+      |> element("#file-systems-form")
+      |> render_submit(attrs)
+
+      refute_receive {:file_system_created, %{id: ^id}}
+
+      assert render(view) =~
+               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"
+
+      refute file_system in Livebook.Hubs.get_file_systems(hub)
     end
   end
 

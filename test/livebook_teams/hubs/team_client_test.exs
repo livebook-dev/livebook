@@ -444,7 +444,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
       # updates the deployment group
-      updated_deployment_group = %{deployment_group | mode: "online"}
+      updated_deployment_group = %{deployment_group | mode: "offline"}
 
       updated_livebook_proto_deployment_group = %{
         livebook_proto_deployment_group

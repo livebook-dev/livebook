@@ -27,6 +27,14 @@ defmodule Livebook.HubHelpers do
     Livebook.Hubs.save_hub(hub)
   end
 
+  def create_agent_team_hub(node) do
+    {agent_key, org, deployment_group, hub} = build_agent_team_hub(node)
+    erpc_call(node, :create_org_key_pair, [[org: org]])
+    ^hub = Livebook.Hubs.save_hub(hub)
+
+    {agent_key, org, deployment_group, hub}
+  end
+
   def build_team_headers(user, node) do
     hub = build_team_hub(user, node)
 
@@ -73,8 +81,8 @@ defmodule Livebook.HubHelpers do
     deployment_group =
       erpc_call(node, :create_deployment_group, [
         [
-          name: "sleepy-cat-#{System.unique_integer([:positive])}",
-          mode: :offline,
+          name: "sleepy-cat-#{Ecto.UUID.generate()}",
+          mode: :online,
           org: org
         ]
       ])
