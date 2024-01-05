@@ -261,8 +261,14 @@ defmodule Livebook.Application do
     cond do
       teams_key && auth ->
         case String.split(auth, ":") do
-          ["offline", name, public_key] -> create_offline_hub(teams_key, name, public_key)
-          _ -> Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
+          ["offline", name, public_key] ->
+            create_offline_hub(teams_key, name, public_key)
+
+          ["online", name, org_id, org_key_id, agent_key] ->
+            create_online_hub(teams_key, name, org_id, org_key_id, agent_key)
+
+          _ ->
+            Livebook.Config.abort!("Invalid LIVEBOOK_TEAMS_AUTH configuration.")
         end
 
       teams_key || auth ->
@@ -321,9 +327,9 @@ defmodule Livebook.Application do
       id: "team-#{name}",
       hub_name: name,
       hub_emoji: "⭐️",
-      user_id: 0,
-      org_id: 0,
-      org_key_id: 0,
+      user_id: nil,
+      org_id: nil,
+      org_key_id: nil,
       session_token: "",
       teams_key: teams_key,
       org_public_key: public_key,
@@ -331,6 +337,21 @@ defmodule Livebook.Application do
         secrets: secrets,
         file_systems: file_systems
       }
+    })
+  end
+
+  defp create_online_hub(teams_key, name, org_id, org_key_id, agent_key) do
+    Livebook.Hubs.save_hub(%Livebook.Hubs.Team{
+      id: "team-#{name}",
+      hub_name: name,
+      hub_emoji: "💡",
+      user_id: nil,
+      org_id: org_id,
+      org_key_id: org_key_id,
+      session_token: agent_key,
+      teams_key: teams_key,
+      org_public_key: nil,
+      offline: nil
     })
   end
 

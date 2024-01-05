@@ -403,11 +403,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         hub_id: team_id
       )
 
-      insert_deployment_group(
-        name: "DEPLOYMENT_GROUP_TOBIAS",
-        mode: "online",
-        hub_id: team_id
-      )
+      deployment_group =
+        insert_deployment_group(
+          name: "DEPLOYMENT_GROUP_TOBIAS",
+          mode: "online",
+          hub_id: team_id
+        )
 
       Session.subscribe(session.id)
       Session.set_notebook_hub(session.pid, team_id)
@@ -426,11 +427,13 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert render(view) =~ "Deployment Group"
       assert has_element?(view, "#select_deployment_group_form")
 
+      id = deployment_group.id
+
       view
-      |> form("#select_deployment_group_form", %{id: "2"})
+      |> form("#select_deployment_group_form", %{deployment_group_id: id})
       |> render_change()
 
-      assert_receive {:operation, {:set_notebook_deployment_group, _client, "2"}}
+      assert_receive {:operation, {:set_notebook_deployment_group, _client, ^id}}
     end
 
     @tag :tmp_dir

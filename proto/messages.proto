@@ -83,6 +83,17 @@ message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
   repeated FileSystem file_systems = 3;
+  repeated DeploymentGroup deployment_groups = 4;
+}
+
+message AgentConnected {
+  int32 id = 1;
+  string name = 2;
+  string public_key = 3;
+  int32 deployment_group_id = 4;
+  repeated Secret secrets = 5;
+  repeated FileSystem file_systems = 6;
+  repeated DeploymentGroup deployment_groups = 7;
 }
 
 message Event {
@@ -97,5 +108,6 @@ message Event {
     DeploymentGroupCreated deployment_group_created = 8;
     DeploymentGroupUpdated deployment_group_updated = 9;
     DeploymentGroupDeleted deployment_group_deleted = 10;
+    AgentConnected agent_connected = 11;
   }
 }

@@ -30,7 +30,7 @@ defmodule Livebook.Hubs.Team do
           offline: Offline.t() | nil
         }
 
-  @enforce_keys [:user_id, :org_id, :org_key_id, :session_token, :org_public_key, :teams_key]
+  @enforce_keys [:org_id, :org_key_id, :session_token, :teams_key]
 
   embedded_schema do
     field :org_id, :integer
@@ -140,12 +140,15 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def disconnect(team), do: TeamClient.stop(team.id)
 
-  def connection_error(team) do
+  def connection_status(team) do
     cond do
       team.offline ->
         "You are running an offline Hub for deployment. You cannot modify its settings."
 
-      reason = TeamClient.get_connection_error(team.id) ->
+      team.user_id == nil ->
+        "You are running a Livebook Agent instance with online Hub for deployment. You are in read-only mode."
+
+      reason = TeamClient.get_connection_status(team.id) ->
         "Cannot connect to Hub: #{reason}.\nWill attempt to reconnect automatically..."
 
       true ->

@@ -64,11 +64,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
       saved_hubs={@saved_hubs}
     >
       <div>
-        <LayoutHelpers.topbar
-          :if={not @hub_metadata.connected? && Provider.connection_error(@hub)}
-          variant={:warning}
-        >
-          <%= Provider.connection_error(@hub) %>
+        <LayoutHelpers.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
+          <%= Provider.connection_status(@hub) %>
         </LayoutHelpers.topbar>
 
         <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">

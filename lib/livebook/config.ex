@@ -221,6 +221,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the configured name for the Livebook Agent session.
+  """
+  @spec agent_name() :: String.t()
+  def agent_name() do
+    Application.fetch_env!(:livebook, :agent_name)
+  end
+
+  @doc """
   Returns if aws_credentials is enabled.
   """
   @spec aws_credentials?() :: boolean()
@@ -570,6 +578,13 @@ defmodule Livebook.Config do
   Parses teams url from env.
   """
   def teams_url!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses agent name from env.
+  """
+  def agent_name!(env) do
     System.get_env(env)
   end
 

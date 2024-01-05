@@ -22,9 +22,10 @@ if File.exists?(data_path) do
   File.rm_rf!(data_path)
 end
 
-config :livebook, :data_path, data_path
-
-config :livebook, :feature_flags, deployment_groups: true
+config :livebook,
+  data_path: data_path,
+  feature_flags: [deployment_groups: true],
+  agent_name: "chonky-cat"
 
 # Use longnames when running tests in CI, so that no host resolution is required,
 # see https://github.com/livebook-dev/livebook/pull/173#issuecomment-819468549

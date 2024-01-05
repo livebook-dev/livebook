@@ -230,7 +230,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
     :ok = Broadcasts.secret_deleted(secret)
   end
 
-  def connection_error(_personal), do: raise("not implemented")
+  def connection_status(_personal), do: raise("not implemented")
 
   def notebook_stamp(_hub, _notebook_source, metadata) when metadata == %{} do
     :skip
