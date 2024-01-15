@@ -6,6 +6,6 @@ defmodule LivebookProto.DeploymentGroupCreated do
   field :mode, 3, type: :string
   field :secrets, 4, repeated: true, type: LivebookProto.DeploymentGroupSecret
   field :clustering, 5, type: :string
-  field :zta_provider, 6, type: :string
-  field :zta_key, 7, type: :string
+  field :zta_provider, 6, type: :string, json_name: "ztaProvider"
+  field :zta_key, 7, type: :string, json_name: "ztaKey"
 end

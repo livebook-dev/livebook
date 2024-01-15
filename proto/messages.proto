@@ -59,6 +59,9 @@ message DeploymentGroup {
   string name = 2;
   string mode = 3;
   repeated DeploymentGroupSecret secrets = 4;
+  string clustering = 5;
+  string zta_provider = 6;
+  string zta_key = 7;
 }
 
 message DeploymentGroupCreated {
@@ -66,6 +69,9 @@ message DeploymentGroupCreated {
   string name = 2;
   string mode = 3;
   repeated DeploymentGroupSecret secrets = 4;
+  string clustering = 5;
+  string zta_provider = 6;
+  string zta_key = 7;
 }
 
 message DeploymentGroupUpdated {
@@ -73,6 +79,9 @@ message DeploymentGroupUpdated {
   string name = 2;
   string mode = 3;
   repeated DeploymentGroupSecret secrets = 4;
+  string clustering = 5;
+  string zta_provider = 6;
+  string zta_key = 7;
 }
 
 message DeploymentGroupDeleted {
