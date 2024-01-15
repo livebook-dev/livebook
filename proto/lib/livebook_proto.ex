@@ -1,5 +1,6 @@
 defmodule LivebookProto do
   alias LivebookProto.{
+    AgentConnected,
     Event,
     FileSystemCreated,
     FileSystemDeleted,
@@ -10,7 +11,7 @@ defmodule LivebookProto do
     DeploymentGroupCreated,
     DeploymentGroupDeleted,
     DeploymentGroupUpdated,
-    UserSynchronized
+    UserConnected
   }
 
   @event_mapping (for {_id, field_prop} <- Event.__message_props__().field_props,
@@ -19,7 +20,8 @@ defmodule LivebookProto do
                   end)
 
   @type event_proto ::
-          FileSystemCreated.t()
+          AgentConnected.t()
+          | FileSystemCreated.t()
           | FileSystemDeleted.t()
           | FileSystemUpdated.t()
           | SecretCreated.t()
@@ -28,7 +30,7 @@ defmodule LivebookProto do
           | DeploymentGroupCreated.t()
           | DeploymentGroupDeleted.t()
           | DeploymentGroupUpdated.t()
-          | UserSynchronized.t()
+          | UserConnected.t()
 
   @doc """
   Builds an event with given data.
