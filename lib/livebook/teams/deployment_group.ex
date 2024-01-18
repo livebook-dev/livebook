@@ -1,7 +1,9 @@
 defmodule Livebook.Teams.DeploymentGroup do
   use Ecto.Schema
   import Ecto.Changeset
+
   alias Livebook.Secrets.Secret
+  alias Livebook.Teams.AgentKey
 
   # If this list is updated, it must also be mirrored on Livebook Teams Server.
   @zta_providers ~w(cloudflare google_iap tailscale teleport)a
@@ -14,7 +16,8 @@ defmodule Livebook.Teams.DeploymentGroup do
           clustering: :fly_io | nil,
           zta_provider: :cloudflare | :google_iap | :tailscale | :teleport,
           zta_key: String.t(),
-          secrets: [Secret.t()]
+          secrets: [Secret.t()],
+          agent_keys: [AgentKey.t()]
         }
 
   @primary_key {:id, :string, autogenerate: false}
@@ -25,7 +28,9 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :clustering, Ecto.Enum, values: [:fly_io]
     field :zta_provider, Ecto.Enum, values: @zta_providers
     field :zta_key, :string
+
     has_many :secrets, Secret
+    has_many :agent_keys, AgentKey
   end
 
   def changeset(deployment_group, attrs \\ %{}) do

@@ -7,7 +7,6 @@ defmodule Livebook.Hubs.TeamClient do
   alias Livebook.Hubs
   alias Livebook.Secrets
   alias Livebook.Teams
-  alias Livebook.Teams.DeploymentGroup
 
   @registry Livebook.HubsRegistry
   @supervisor Livebook.HubsSupervisor
@@ -74,7 +73,7 @@ defmodule Livebook.Hubs.TeamClient do
   @doc """
   Returns a list of cached deployment groups.
   """
-  @spec get_deployment_groups(String.t()) :: list(DeploymentGroup.t())
+  @spec get_deployment_groups(String.t()) :: list(Teams.DeploymentGroup.t())
   def get_deployment_groups(id) do
     GenServer.call(registry_name(id), :get_deployment_groups)
   end
@@ -152,7 +151,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   def handle_call(:get_secrets, _caller, state) do
-    case find_deployment_group(state) do
+    case find_deployment_group(state.deployment_group_id, state.deployment_groups) do
       nil ->
         {:reply, state.secrets, state}
 
@@ -266,15 +265,25 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp build_agent_key(agent_key) do
+    %Teams.AgentKey{
+      id: to_string(agent_key.id),
+      key: agent_key.key,
+      deployment_group_id: to_string(agent_key.deployment_group_id)
+    }
+  end
+
   defp build_deployment_group(state, deployment_group) do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
+    agent_keys = for agent_key <- deployment_group.agent_keys, do: build_agent_key(agent_key)
 
-    %DeploymentGroup{
+    %Teams.DeploymentGroup{
       id: deployment_group.id,
       name: deployment_group.name,
       mode: deployment_group.mode,
       hub_id: state.hub.id,
       secrets: secrets,
+      agent_keys: agent_keys,
       clustering: deployment_group.clustering,
       zta_provider: String.to_atom(deployment_group.zta_provider),
       zta_key: deployment_group.zta_key
@@ -344,7 +353,7 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
-  defp handle_event(:deployment_group_created, %DeploymentGroup{} = deployment_group, state) do
+  defp handle_event(:deployment_group_created, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_created(deployment_group)
 
     put_deployment_group(state, deployment_group)
@@ -358,7 +367,7 @@ defmodule Livebook.Hubs.TeamClient do
     )
   end
 
-  defp handle_event(:deployment_group_updated, %DeploymentGroup{} = deployment_group, state) do
+  defp handle_event(:deployment_group_updated, %Teams.DeploymentGroup{} = deployment_group, state) do
     Teams.Broadcasts.deployment_group_updated(deployment_group)
 
     put_deployment_group(state, deployment_group)
@@ -395,6 +404,34 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_secrets(agent_connected)
     |> dispatch_file_systems(agent_connected)
     |> dispatch_deployment_groups(agent_connected)
+  end
+
+  defp handle_event(:agent_key_created, agent_key_created, state) do
+    agent_key = build_agent_key(agent_key_created)
+
+    case find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
+      nil ->
+        state
+
+      deployment_group ->
+        agent_keys = Enum.uniq([agent_key | deployment_group.agent_keys])
+        deployment_group = %{deployment_group | agent_keys: Enum.reverse(agent_keys)}
+        handle_event(:deployment_group_updated, deployment_group, state)
+    end
+  end
+
+  defp handle_event(:agent_key_deleted, agent_key_deleted, state) do
+    agent_key = build_agent_key(agent_key_deleted)
+
+    case find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
+      nil ->
+        state
+
+      deployment_group ->
+        agent_keys = Enum.reject(deployment_group.agent_keys, &(&1 == agent_key))
+        deployment_group = %{deployment_group | agent_keys: agent_keys}
+        handle_event(:deployment_group_updated, deployment_group, state)
+    end
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
@@ -451,8 +488,9 @@ defmodule Livebook.Hubs.TeamClient do
   defp update_hub(state, %{public_key: org_public_key}) do
     hub = %{state.hub | org_public_key: org_public_key}
 
-    # TODO: Fix this before merging
-    # ^hub = Hubs.save_hub(hub)
+    if Livebook.Hubs.hub_exists?(hub.id) do
+      Hubs.save_hub(hub)
+    end
 
     %{state | hub: hub}
   end
@@ -475,9 +513,6 @@ defmodule Livebook.Hubs.TeamClient do
         do: (acc -> handle_event(topic, event, acc))
   end
 
-  defp find_deployment_group(%{deployment_group_id: nil}),
-    do: nil
-
-  defp find_deployment_group(%{deployment_group_id: id, deployment_groups: groups}),
-    do: Enum.find(groups, &(&1.id == id))
+  defp find_deployment_group(nil, _), do: nil
+  defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
 end
