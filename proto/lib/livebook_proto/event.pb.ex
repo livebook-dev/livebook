@@ -57,4 +57,14 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AgentConnected,
     json_name: "agentConnected",
     oneof: 0
+
+  field :agent_key_created, 12,
+    type: LivebookProto.AgentKeyCreated,
+    json_name: "agentKeyCreated",
+    oneof: 0
+
+  field :agent_key_deleted, 13,
+    type: LivebookProto.AgentKeyDeleted,
+    json_name: "agentKeyDeleted",
+    oneof: 0
 end

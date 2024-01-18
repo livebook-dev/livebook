@@ -1,6 +1,8 @@
 defmodule LivebookProto do
   alias LivebookProto.{
     AgentConnected,
+    AgentKeyCreated,
+    AgentKeyDeleted,
     Event,
     FileSystemCreated,
     FileSystemDeleted,
@@ -21,6 +23,8 @@ defmodule LivebookProto do
 
   @type event_proto ::
           AgentConnected.t()
+          | AgentKeyCreated.t()
+          | AgentKeyDeleted.t()
           | FileSystemCreated.t()
           | FileSystemDeleted.t()
           | FileSystemUpdated.t()
