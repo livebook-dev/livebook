@@ -37,7 +37,7 @@ defmodule LivebookProto do
   """
   @spec build_event(event_proto()) :: Event.t()
   def build_event(%struct{} = data) do
-    Event.new!(type: {event_type(struct), data})
+    %Event{type: {event_type(struct), data}}
   end
 
   defp event_type(module), do: Map.fetch!(@event_mapping, module)

@@ -17,7 +17,7 @@ defmodule LivebookProto.MixProject do
   end
 
   defp deps do
-    [{:protobuf, "~> 0.8.0"}]
+    [{:protobuf, "~> 0.12.0"}]
   end
 
   defp aliases do

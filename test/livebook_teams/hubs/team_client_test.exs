@@ -138,12 +138,12 @@ defmodule Livebook.Hubs.TeamClientTest do
       team = build_team_hub(user, node)
 
       user_connected =
-        LivebookProto.UserConnected.new!(
+        %LivebookProto.UserConnected{
           name: team.hub_name,
           secrets: [],
           file_systems: [],
           deployment_groups: []
-        )
+        }
 
       {:ok, team: team, user_connected: user_connected}
     end
@@ -158,7 +158,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
+      livebook_proto_secret = %LivebookProto.Secret{name: secret.name, value: secret_value}
 
       # creates the secret
       user_connected = %{user_connected | secrets: [livebook_proto_secret]}
@@ -202,12 +202,12 @@ defmodule Livebook.Hubs.TeamClientTest do
       value = Livebook.Teams.encrypt(credentials, secret_key)
 
       livebook_proto_file_system =
-        LivebookProto.FileSystem.new!(
+        %LivebookProto.FileSystem{
           id: file_system.external_id,
           name: name,
           type: to_string(type),
           value: value
-        )
+        }
 
       # creates the file system
       user_connected = %{user_connected | file_systems: [livebook_proto_file_system]}
@@ -258,12 +258,12 @@ defmodule Livebook.Hubs.TeamClientTest do
         )
 
       livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
+        %LivebookProto.DeploymentGroup{
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: []
-        )
+        }
 
       # creates the deployment group
       user_connected = %{user_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -305,7 +305,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       org_key_pair = erpc_call(node, :create_org_key_pair, [[org: org]])
 
       agent_connected =
-        LivebookProto.AgentConnected.new!(
+        %LivebookProto.AgentConnected{
           id: agent_key.id,
           name: Livebook.Config.agent_name(),
           public_key: org_key_pair.public_key,
@@ -313,7 +313,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           secrets: [],
           file_systems: [],
           deployment_groups: []
-        )
+        }
 
       {:ok, team: team, deployment_group: deployment_group, agent_connected: agent_connected}
     end
@@ -328,7 +328,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
+      livebook_proto_secret = %LivebookProto.Secret{name: secret.name, value: secret_value}
 
       # creates the secret
       agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
@@ -372,12 +372,12 @@ defmodule Livebook.Hubs.TeamClientTest do
       value = Livebook.Teams.encrypt(credentials, secret_key)
 
       livebook_proto_file_system =
-        LivebookProto.FileSystem.new!(
+        %LivebookProto.FileSystem{
           id: file_system.external_id,
           name: name,
           type: to_string(type),
           value: value
-        )
+        }
 
       # creates the file system
       agent_connected = %{agent_connected | file_systems: [livebook_proto_file_system]}
@@ -429,12 +429,12 @@ defmodule Livebook.Hubs.TeamClientTest do
         )
 
       livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
+        %LivebookProto.DeploymentGroup{
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: []
-        )
+        }
 
       # creates the deployment group
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -479,7 +479,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       secret_value = Livebook.Teams.encrypt(secret.value, secret_key)
-      livebook_proto_secret = LivebookProto.Secret.new!(name: secret.name, value: secret_value)
+      livebook_proto_secret = %LivebookProto.Secret{name: secret.name, value: secret_value}
 
       # creates the secret
       agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
@@ -499,11 +499,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       secret_value = Livebook.Teams.encrypt(override_secret.value, secret_key)
 
       livebook_proto_deployment_group_secret =
-        LivebookProto.DeploymentGroupSecret.new!(
+        %LivebookProto.DeploymentGroupSecret{
           name: override_secret.name,
           value: secret_value,
           deployment_group_id: override_secret.deployment_group_id
-        )
+        }
 
       deployment_group =
         build(:deployment_group,
@@ -515,12 +515,12 @@ defmodule Livebook.Hubs.TeamClientTest do
         )
 
       livebook_proto_deployment_group =
-        LivebookProto.DeploymentGroup.new!(
+        %LivebookProto.DeploymentGroup{
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [livebook_proto_deployment_group_secret]
-        )
+        }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
       send(pid, {:event, :agent_connected, agent_connected})
