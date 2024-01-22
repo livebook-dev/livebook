@@ -348,7 +348,6 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :error, message: message}, %{id: id}) do
     assigns = %{id: id, message: message}
-    # render_formatted_error_message(message, id)
     ~H"""
     <div id={@id} class="relative group/error">
       <div
