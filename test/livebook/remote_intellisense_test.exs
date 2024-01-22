@@ -91,6 +91,7 @@ defmodule Livebook.RemoteIntellisenseTest do
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
     end
 
+    @tag :erl_docs
     test "find modules from apps", %{node: node} do
       context = eval(do: nil)
 

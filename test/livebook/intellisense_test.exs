@@ -1481,6 +1481,11 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context, node())
       assert type =~ "Date.t()"
+    end
+
+    @tag :erl_docs
+    test "returns module-prepended Erlang type signatures" do
+      context = eval(do: nil)
 
       assert %{contents: [type]} =
                Intellisense.get_details(":code.load_error_rsn", 8, context, node())
@@ -1494,16 +1499,21 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [type]} = Intellisense.get_details("Date.t", 6, context, node())
       assert type =~ "@type t() :: %Date"
 
-      assert %{contents: [type]} =
-               Intellisense.get_details(":code.load_error_rsn", 8, context, node())
-
-      assert type =~ "@type load_error_rsn() ::"
-
       # opaque types are listed without internal definition
       assert %{contents: [type]} =
                Intellisense.get_details("MapSet.internal", 10, context, node())
 
       assert type =~ "@opaque internal(value)\n"
+    end
+
+    @tag :erl_docs
+    test "includes Erlang type specs" do
+      context = eval(do: nil)
+
+      assert %{contents: [type]} =
+               Intellisense.get_details(":code.load_error_rsn", 8, context, node())
+
+      assert type =~ "@type load_error_rsn() ::"
     end
 
     test "returns link to online documentation" do
