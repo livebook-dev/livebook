@@ -348,8 +348,26 @@ defmodule LivebookWeb.Output do
 
   defp render_output(%{type: :error, message: message}, %{id: id}) do
     assigns = %{id: id, message: message}
+    # render_formatted_error_message(message, id)
     ~H"""
-    <.live_component module={Output.TerminalTextComponent} id={@id} text={@message} />
+    <div id={@id} class="relative group/error">
+      <div
+        id={"#{@id}-message"}
+        class="whitespace-pre-wrap break-words font-editor text-gray-500"
+        role="complementary"
+        aria-label="error"
+        phx-no-format
+      ><%= ansi_string_to_html(@message) %></div>
+      <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
+        <button
+          class="icon-button bg-gray-100"
+          data-el-clipcopy
+          phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}
+        >
+          <.remix_icon icon="clipboard-line" class="text-lg" />
+        </button>
+      </div>
+    </div>
     """
   end
 
