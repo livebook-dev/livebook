@@ -257,9 +257,9 @@ defmodule LivebookWeb.Output do
 
   defp render_output(
          %{type: :error, context: {:missing_secret, secret_name}} = output,
-         %{session_id: session_id}
+         %{session_id: session_id, id: id}
        ) do
-    assigns = %{message: output.message, secret_name: secret_name, session_id: session_id}
+    assigns = %{message: output.message, secret_name: secret_name, session_id: session_id, id: id}
 
     ~H"""
     <div class="-m-4 space-x-4 py-4">
@@ -278,16 +278,21 @@ defmodule LivebookWeb.Output do
           Add secret
         </.link>
       </div>
-      <%= render_formatted_error_message(@message) %>
+      <%= render_formatted_error_message(@id, @message) %>
     </div>
     """
   end
 
   defp render_output(
          %{type: :error, context: {:file_entry_forbidden, file_entry_name}} = output,
-         %{session_id: session_id}
+         %{session_id: session_id, id: id}
        ) do
-    assigns = %{message: output.message, file_entry_name: file_entry_name, session_id: session_id}
+    assigns = %{
+      message: output.message,
+      file_entry_name: file_entry_name,
+      session_id: session_id,
+      id: id
+    }
 
     ~H"""
     <div class="-m-4 space-x-4 py-4">
@@ -306,7 +311,7 @@ defmodule LivebookWeb.Output do
           Review access
         </button>
       </div>
-      <%= render_formatted_error_message(@message) %>
+      <%= render_formatted_error_message(@id, @message) %>
     </div>
     """
   end
@@ -347,27 +352,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output(%{type: :error, message: message}, %{id: id}) do
-    assigns = %{id: id, message: message}
-    ~H"""
-    <div id={@id} class="relative group/error">
-      <div
-        id={"#{@id}-message"}
-        class="whitespace-pre-wrap break-words font-editor text-gray-500"
-        role="complementary"
-        aria-label="error"
-        phx-no-format
-      ><%= ansi_string_to_html(@message) %></div>
-      <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
-        <button
-          class="icon-button bg-gray-100"
-          data-el-clipcopy
-          phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}
-        >
-          <.remix_icon icon="clipboard-line" class="text-lg" />
-        </button>
-      </div>
-    </div>
-    """
+    render_formatted_error_message(id, message)
   end
 
   defp render_output(output, %{}) do
@@ -393,16 +378,28 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_formatted_error_message(formatted) do
-    assigns = %{message: formatted}
+  defp render_formatted_error_message(id, message) do
+    assigns = %{id: id, message: message}
 
     ~H"""
-    <div
-      class="whitespace-pre-wrap break-words font-editor text-gray-500"
-      role="complementary"
-      aria-label="error"
-      phx-no-format
-    ><%= ansi_string_to_html(@message) %></div>
+    <div id={@id} class="relative group/error">
+      <div
+        id={"#{@id}-message"}
+        class="whitespace-pre-wrap break-words font-editor text-gray-500"
+        role="complementary"
+        aria-label="error"
+        phx-no-format
+      ><%= ansi_string_to_html(@message) %></div>
+      <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
+        <button
+          class="icon-button bg-gray-100"
+          data-el-clipcopy
+          phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}
+        >
+          <.remix_icon icon="clipboard-line" class="text-lg" />
+        </button>
+      </div>
+    </div>
     """
   end
 end
