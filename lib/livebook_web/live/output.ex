@@ -346,8 +346,11 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output(%{type: :error, message: message}, %{}) do
-    render_formatted_error_message(message)
+  defp render_output(%{type: :error, message: message}, %{id: id}) do
+    assigns = %{id: id, message: message}
+    ~H"""
+    <.live_component module={Output.TerminalTextComponent} id={@id} text={@message} />
+    """
   end
 
   defp render_output(output, %{}) do
