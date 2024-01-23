@@ -13,7 +13,7 @@ defmodule Livebook.TeamsServer do
 
   def setup do
     if available?() do
-      mix(%{"MIX_ENV" => "livebook"}, ["compile"])
+      mix(%__MODULE__{}, ["compile"])
     end
   end
 
