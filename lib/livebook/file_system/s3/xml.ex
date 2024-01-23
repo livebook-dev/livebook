@@ -18,7 +18,6 @@ defmodule Livebook.FileSystem.S3.XML do
     map
     |> Map.to_list()
     |> Enum.map(&encode_xml_key_value/1)
-    |> :erlang.iolist_to_binary()
   end
 
   @doc """
