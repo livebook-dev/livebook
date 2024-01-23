@@ -62,7 +62,9 @@ defmodule Livebook.Factory do
       mode: "offline",
       clustering: "",
       zta_key: "",
-      zta_provider: :""
+      zta_provider: :"",
+      agent_keys: [],
+      secrets: []
     }
   end
 
