@@ -65,10 +65,10 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                             hub_id: secret.hub_id,
                             deployment_group_id: secret.deployment_group_id,
                             return_to: @return_to
-                          }
+                          },
+                          target: @myself
                         )
                       }
-                      phx-target={@myself}
                       role="menuitem"
                       class="text-gray-600 hover:text-red-700"
                     >
