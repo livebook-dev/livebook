@@ -1,5 +1,5 @@
 import { parseHookProps } from "../lib/attribute";
-import { globalPubSub } from "../lib/pub_sub";
+import { globalPubsub } from "../lib/pubsub";
 import { smoothlyScrollToElement } from "../lib/utils";
 
 /**
@@ -26,11 +26,9 @@ const Headline = {
 
     this.initializeHeadingEl();
 
-    this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+    this.navigationSubscription = globalPubsub.subscribe(
       "navigation",
-      (event) => {
-        this.handleNavigationEvent(event);
-      }
+      this.handleNavigationEvent.bind(this)
     );
   },
 
@@ -40,7 +38,7 @@ const Headline = {
   },
 
   destroyed() {
-    this.unsubscribeFromNavigationEvents();
+    this.navigationSubscription.destroy();
   },
 
   getProps() {

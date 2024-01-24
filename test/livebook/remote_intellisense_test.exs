@@ -87,7 +87,7 @@ defmodule Livebook.RemoteIntellisenseTest do
                kind: :function,
                detail: "RemoteModule.hello(message)",
                documentation: "Hello doc",
-               insert_text: "hello($0)"
+               insert_text: "hello(${})"
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
     end
 
@@ -101,7 +101,7 @@ defmodule Livebook.RemoteIntellisenseTest do
                  kind: :function,
                  detail: ":mnesia.all_keys/1",
                  documentation: _all_keys_doc,
-                 insert_text: "all_keys($0)"
+                 insert_text: "all_keys(${})"
                }
              ] = Intellisense.get_completion_items(":mnesia.all", context, node)
     end

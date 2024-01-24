@@ -7,7 +7,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Code notebooks with Markdown support and Code cells where Elixir code is evaluated on demand.
 
-  * Rich code editor through [Monaco](https://microsoft.github.io/monaco-editor/): with support for autocompletion, inline documentation, code formatting, etc.
+  * Rich code editor through [Code Mirror](https://codemirror.net/): with support for autocompletion, inline documentation, code formatting, etc.
 
   * Interactive results via [Kino](https://github.com/elixir-nx/kino): display [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, maps, and more.
 

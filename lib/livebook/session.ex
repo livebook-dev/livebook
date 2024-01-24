@@ -85,7 +85,7 @@ defmodule Livebook.Session do
 
   alias Livebook.NotebookManager
   alias Livebook.Session.{Data, FileGuard}
-  alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown, FileSystem}
+  alias Livebook.{Utils, Notebook, Text, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
@@ -526,11 +526,12 @@ defmodule Livebook.Session do
           pid(),
           Cell.id(),
           Data.cell_source_tag(),
-          Delta.t(),
+          Text.Delta.t(),
+          Selection.t() | nil,
           Data.cell_revision()
         ) :: :ok
-  def apply_cell_delta(pid, cell_id, tag, delta, revision) do
-    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, revision})
+  def apply_cell_delta(pid, cell_id, tag, delta, selection, revision) do
+    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, selection, revision})
   end
 
   @doc """
@@ -1258,9 +1259,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, client_pid, cell_id, tag, delta, revision}, state) do
+  def handle_cast(
+        {:apply_cell_delta, client_pid, cell_id, tag, delta, selection, revision},
+        state
+      ) do
     client_id = client_id(state, client_pid)
-    operation = {:apply_cell_delta, client_id, cell_id, tag, delta, revision}
+    operation = {:apply_cell_delta, client_id, cell_id, tag, delta, selection, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1669,7 +1673,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         chunks = info[:chunks]
-        delta = Livebook.JSInterop.diff(cell.source, info.source)
+        delta = Livebook.Text.Delta.diff(cell.source, info.source)
 
         operation =
           {:smart_cell_started, @client_id, id, delta, chunks, info.js_view, info.editor}
@@ -1690,7 +1694,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         chunks = info[:chunks]
-        delta = Livebook.JSInterop.diff(cell.source, source)
+        delta = Livebook.Text.Delta.diff(cell.source, source)
         operation = {:update_smart_cell, @client_id, id, attrs, delta, chunks}
         state = handle_operation(state, operation)
 
@@ -2001,12 +2005,12 @@ defmodule Livebook.Session do
         state
 
       {:ok, new_source} ->
-        delta = Livebook.JSInterop.diff(cell.source, new_source)
-        revision = state.data.cell_infos[cell.id].sources.primary.revision + 1
+        delta = Livebook.Text.Delta.diff(cell.source, new_source)
+        revision = state.data.cell_infos[cell.id].sources.primary.revision
 
         handle_operation(
           state,
-          {:apply_cell_delta, @client_id, cell.id, :primary, delta, revision}
+          {:apply_cell_delta, @client_id, cell.id, :primary, delta, nil, revision}
         )
 
       {:error, message} ->
@@ -2143,7 +2147,7 @@ defmodule Livebook.Session do
   defp after_operation(
          state,
          _prev_state,
-         {:apply_cell_delta, _client_id, cell_id, tag, _delta, _revision}
+         {:apply_cell_delta, _client_id, cell_id, tag, _delta, _selection, _revision}
        ) do
     hydrate_cell_source_digest(state, cell_id, tag)
 
@@ -2161,7 +2165,7 @@ defmodule Livebook.Session do
          _prev_state,
          {:smart_cell_started, _client_id, cell_id, delta, _chunks, _js_view, _editor}
        ) do
-    unless Delta.empty?(delta) do
+    unless Text.Delta.empty?(delta) do
       hydrate_cell_source_digest(state, cell_id, :primary)
     end
 

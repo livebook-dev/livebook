@@ -1,4 +1,4 @@
-defmodule Livebook.Delta.Transformation do
+defmodule Livebook.Text.Delta.Transformation do
   # Implementation of the Operational Transformation algorithm for
   # deltas.
   #
@@ -19,8 +19,8 @@ defmodule Livebook.Delta.Transformation do
   # all the clients send deltas, as it naturally imposes the necessary
   # ordering.
 
-  alias Livebook.Delta
-  alias Livebook.Delta.Operation
+  alias Livebook.Text.Delta
+  alias Livebook.Text.Delta.Operation
 
   @type priority :: :left | :right
 
@@ -106,5 +106,47 @@ defmodule Livebook.Delta.Transformation do
     op
     |> Operation.length()
     |> Operation.retain()
+  end
+
+  @doc """
+  Transforms `index` against `delta`.
+
+  The primary usage of this function is to transform text selections.
+  This transformation maps the position into a matching location in
+  any text that this delta would be applied to.
+
+  Note that OT guarantees documents to converge, however transforming
+  positions does not provide the same guarantee. In practice, convergence
+  is achieved most of the time, except certain edge cases where inserts
+  and deletions happen around the transformed position. For more context
+  see [this writeup](https://marijnhaverbeke.nl/blog/collaborative-editing-cm.html#position-mapping).
+
+  In the implementation, one decision we need to make is whether the
+  position should shift when an insert happens at that position. Since
+  either way we do not get convergence in all cases, we can choose any
+  behaviour and we choose no to shift the position. With this variant
+  replacements adjacent to the transformed position do not move the
+  position across the replacement, which is a more intuitive behaviour.
+  """
+  @spec transform_position(Delta.t(), non_neg_integer()) :: non_neg_integer()
+  def transform_position(delta, index) do
+    do_transform_position(Delta.operations(delta), index, 0)
+  end
+
+  defp do_transform_position([], index, _offset), do: index
+  defp do_transform_position(_ops, index, offset) when offset >= index, do: index
+
+  defp do_transform_position([{:delete, length} | ops], index, offset) do
+    index = index - min(length, index - offset)
+    do_transform_position(ops, index, offset)
+  end
+
+  defp do_transform_position([{:insert, _} = op | ops], index, offset) do
+    length = Operation.length(op)
+    do_transform_position(ops, index + length, offset + length)
+  end
+
+  defp do_transform_position([{:retain, length} | ops], index, offset) do
+    do_transform_position(ops, index, offset + length)
   end
 end

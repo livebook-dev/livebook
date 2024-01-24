@@ -56,8 +56,7 @@ Livebook.TeamsServer.setup()
 windows? = match?({:win32, _}, :os.type())
 
 erl_docs_exclude =
-  if match?({:error, _}, Code.fetch_docs(:gen_server)) or
-       match?({:error, _}, Code.fetch_docs(:odbc)) do
+  if match?({:error, _}, Code.fetch_docs(:gen_server)) do
     [erl_docs: true]
   else
     []

@@ -1,9 +1,9 @@
-defmodule Livebook.Delta.TransformationText do
+defmodule Livebook.Text.Delta.TransformationText do
   use ExUnit.Case, async: true
 
-  alias Livebook.Delta
+  alias Livebook.Text.Delta
 
-  describe "transform" do
+  describe "transform/3" do
     test "insert against insert" do
       a =
         Delta.new()
@@ -268,6 +268,75 @@ defmodule Livebook.Delta.TransformationText do
 
       assert Delta.transform(a, b, :right) == b_prime
       assert Delta.transform(b, a, :left) == a_prime
+    end
+
+    test "uses utf16 code units as lengths" do
+      a =
+        Delta.new()
+        |> Delta.insert("🚀")
+
+      b =
+        Delta.new()
+        |> Delta.insert("B")
+
+      b_prime =
+        Delta.new()
+        |> Delta.retain(2)
+        |> Delta.insert("B")
+
+      assert Delta.transform(a, b, :left) == b_prime
+    end
+  end
+
+  describe "transform_position/2" do
+    test "insert before position" do
+      delta = Delta.new() |> Delta.insert("A")
+      assert Delta.transform_position(delta, 2) == 3
+    end
+
+    test "insert after position" do
+      delta = Delta.new() |> Delta.retain(2) |> Delta.insert("A")
+      assert Delta.transform_position(delta, 1) == 1
+    end
+
+    test "insert at position" do
+      delta = Delta.new() |> Delta.retain(2) |> Delta.insert("A")
+      assert Delta.transform_position(delta, 2) == 2
+    end
+
+    test "delete before position" do
+      delta = Delta.new() |> Delta.delete(2)
+      assert Delta.transform_position(delta, 4) == 2
+    end
+
+    test "delete after position" do
+      delta = Delta.new() |> Delta.retain(4) |> Delta.delete(2)
+      assert Delta.transform_position(delta, 2) == 2
+    end
+
+    test "delete across position" do
+      delta = Delta.new() |> Delta.retain(1) |> Delta.delete(4)
+      assert Delta.transform_position(delta, 2) == 1
+    end
+
+    test "insert and delete before position" do
+      delta = Delta.new() |> Delta.retain(2) |> Delta.insert("A") |> Delta.delete(2)
+      assert Delta.transform_position(delta, 4) == 3
+    end
+
+    test "insert before and delete across position" do
+      delta = Delta.new() |> Delta.retain(2) |> Delta.insert("A") |> Delta.delete(4)
+      assert Delta.transform_position(delta, 4) == 3
+    end
+
+    test "delete before and delete across position" do
+      delta = Delta.new() |> Delta.delete(1) |> Delta.retain(1) |> Delta.delete(4)
+      assert Delta.transform_position(delta, 4) == 1
+    end
+
+    test "uses utf16 code units as lengths" do
+      delta = Delta.new() |> Delta.insert("🚀")
+      assert Delta.transform_position(delta, 2) == 4
     end
   end
 end

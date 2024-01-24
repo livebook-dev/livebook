@@ -19,8 +19,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       },
       %{
         seq: ["ctrl", "shift", "i"],
-        seq_mac: ["⇧", "⌥", "f"],
-        seq_windows: ["shift", "alt", "f"],
+        seq_mac: ["⌥", "⇧", "f"],
+        seq_windows: ["alt", "shift", "f"],
         press_all: true,
         desc: "Format Elixir code",
         basic: true

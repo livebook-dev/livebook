@@ -446,6 +446,9 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.split_at_last_occurrence("1,2,3", ",")
       {:ok, "1,2", "3"}
 
+      iex> Livebook.Utils.split_at_last_occurrence("1<>2<>3", "<>")
+      {:ok, "1<>2", "3"}
+
       iex> Livebook.Utils.split_at_last_occurrence("123", ",")
       :error
 
@@ -458,9 +461,9 @@ defmodule Livebook.Utils do
         :error
 
       parts ->
-        {start, _} = List.last(parts)
-        size = byte_size(string)
-        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+        {start, length} = List.last(parts)
+        <<left::binary-size(start), _::binary-size(length), right::binary>> = string
+        {:ok, left, right}
     end
   end
 

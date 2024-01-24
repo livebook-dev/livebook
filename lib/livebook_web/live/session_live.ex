@@ -6,9 +6,8 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.FileSystemHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{Sessions, Session, Text, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.{Cell, ContentLoader}
-  alias Livebook.JSInterop
 
   on_mount LivebookWeb.SidebarHook
 
@@ -46,6 +45,7 @@ defmodule LivebookWeb.SessionLive do
         socket =
           if connected?(socket) do
             payload = %{
+              client_id: client_id,
               clients:
                 Enum.map(data.clients_map, fn {client_id, user_id} ->
                   client_info(client_id, data.users_map[user_id])
@@ -1246,12 +1246,37 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "apply_cell_delta",
-        %{"cell_id" => cell_id, "tag" => tag, "delta" => delta, "revision" => revision},
+        %{
+          "cell_id" => cell_id,
+          "tag" => tag,
+          "delta" => delta,
+          "selection" => selection,
+          "revision" => revision
+        },
         socket
       ) do
     tag = String.to_atom(tag)
-    delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, revision)
+    delta = Text.Delta.from_compressed(delta)
+    selection = selection && Text.Selection.from_compressed(selection)
+    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, selection, revision)
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "report_cell_selection",
+        %{"cell_id" => cell_id, "tag" => tag, "selection" => selection, "revision" => revision},
+        socket
+      ) do
+    selection = selection && Text.Selection.from_compressed(selection)
+    tag = String.to_atom(tag)
+
+    Phoenix.PubSub.broadcast_from(
+      Livebook.PubSub,
+      self(),
+      "sessions:#{socket.assigns.session.id}",
+      {:report_cell_selection, socket.assigns.client_id, cell_id, tag, selection, revision}
+    )
 
     {:noreply, socket}
   end
@@ -1473,7 +1498,7 @@ defmodule LivebookWeb.SessionLive do
           {:completion, hint}
 
         %{"type" => "details", "line" => line, "column" => column} ->
-          column = JSInterop.js_column_to_elixir(column, line)
+          column = Text.JS.js_column_to_elixir(column, line)
           {:details, line, column}
 
         %{"type" => "signature", "hint" => hint} ->
@@ -1821,6 +1846,37 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:location_report, client_id, report}, socket) do
     report = Map.put(report, :client_id, client_id)
     {:noreply, push_event(socket, "location_report", report)}
+  end
+
+  def handle_info({:report_cell_selection, client_id, cell_id, tag, selection, revision}, socket) do
+    # Note that we transform the delta separately in each client's LV.
+    # This way we avoid a race condition with session sending us a new
+    # delta. We either acknowledge such delta and use it to transform
+    # the incoming selection, or send the selection as is and only then
+    # acknowledge the delta.
+
+    case Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
+      {:ok, _cell, _section} ->
+        selection =
+          selection &&
+            Session.Data.transform_selection(
+              socket.private.data,
+              cell_id,
+              tag,
+              selection,
+              revision
+            )
+
+        payload = %{
+          "client_id" => client_id,
+          "selection" => selection && Text.Selection.to_compressed(selection)
+        }
+
+        {:noreply, push_event(socket, "cell_selection:#{cell_id}:#{tag}", payload)}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_info({:set_input_values, values, local}, socket) do
@@ -2243,11 +2299,15 @@ defmodule LivebookWeb.SessionLive do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta}) do
+  defp handle_action(socket, {:report_delta, client_id, cell, tag, delta, selection}) do
     if client_id == socket.assigns.client_id do
       push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
-      push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
+      push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{
+        client_id: client_id,
+        delta: Text.Delta.to_compressed(delta),
+        selection: selection && Text.Selection.to_compressed(selection)
+      })
     end
   end
 
@@ -2356,19 +2416,23 @@ defmodule LivebookWeb.SessionLive do
     %{
       response
       | range: %{
-          from: JSInterop.elixir_column_to_js(from, line),
-          to: JSInterop.elixir_column_to_js(to, line)
+          from: Text.JS.elixir_column_to_js(from, line),
+          to: Text.JS.elixir_column_to_js(to, line)
         }
     }
   end
 
-  # Currently we don't use signature docs, so we optimise the response
-  # to exclude them
-  defp process_intellisense_response(
-         %{signature_items: signature_items} = response,
-         {:signature, _hint}
-       ) do
-    %{response | signature_items: Enum.map(signature_items, &%{&1 | documentation: nil})}
+  defp process_intellisense_response(%{code: code} = response, {:format, original_code}) do
+    delta =
+      if code do
+        original_code
+        |> Text.Delta.diff(code)
+        |> Text.Delta.to_compressed()
+      end
+
+    response
+    |> Map.delete(:code)
+    |> Map.put(:delta, delta)
   end
 
   defp process_intellisense_response(response, _request), do: response
@@ -2566,8 +2630,8 @@ defmodule LivebookWeb.SessionLive do
   defp doctest_report_payload(doctest_report) do
     Map.replace_lazy(doctest_report, :details, fn details ->
       details
-      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines()
-      |> Enum.map(&Phoenix.HTML.safe_to_string/1)
+      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html()
+      |> Phoenix.HTML.safe_to_string()
     end)
   end
 
@@ -2838,7 +2902,7 @@ defmodule LivebookWeb.SessionLive do
       {:report_cell_revision, _client_id, _cell_id, _tag, _revision} ->
         data_view
 
-      {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
+      {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _selection, _revision} ->
         update_dirty_status(data_view, data)
 
       {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks} ->

@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         />
       </div>
       <div
-        class="markdown"
+        class="markdown break-words"
         data-el-markdown-container
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore"
@@ -629,8 +629,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-read-only={hook_prop(@read_only)}
     >
       <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
-        <div class="px-8" data-el-skeleton>
-          <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
+        <div data-el-skeleton>
+          <div class="px-8">
+            <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-defmodule Livebook.Delta.Operation do
+defmodule Livebook.Text.Delta.Operation do
   # An operation represents an atomic change applicable to a text.
   #
   # For plain-text (our use case) an operation can be either of:
@@ -36,7 +36,7 @@ defmodule Livebook.Delta.Operation do
   Returns length of text affected by a given operation.
   """
   @spec length(t()) :: non_neg_integer()
-  def length({:insert, string}), do: String.length(string)
+  def length({:insert, string}), do: Livebook.Text.JS.length(string)
   def length({:retain, length}), do: length
   def length({:delete, length}), do: length
 
@@ -47,7 +47,7 @@ defmodule Livebook.Delta.Operation do
   def split_at(op, position)
 
   def split_at({:insert, string}, position) do
-    {part_one, part_two} = String.split_at(string, position)
+    {part_one, part_two} = Livebook.Text.JS.split_at(string, position)
     {insert(part_one), insert(part_two)}
   end
 
@@ -83,7 +83,7 @@ defmodule Livebook.Delta.Operation do
 
       iex> left = [{:insert, "cat"}]
       iex> right = [{:retain, 2}, {:delete, 2}]
-      iex> Livebook.Delta.Operation.align_heads(left, right)
+      iex> Livebook.Text.Delta.Operation.align_heads(left, right)
       {
         [{:insert, "ca"}, {:insert, "t"}],
         [{:retain, 2}, {:delete, 2}]

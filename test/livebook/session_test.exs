@@ -4,7 +4,7 @@ defmodule Livebook.SessionTest do
   import Livebook.HubHelpers
   import Livebook.TestHelpers
 
-  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem, Apps, App}
+  alias Livebook.{Session, Text, Runtime, Utils, Notebook, FileSystem, Apps, App}
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Session.Data
   alias Livebook.NotebookManager
@@ -223,7 +223,8 @@ defmodule Livebook.SessionTest do
 
       Session.add_dependencies(session.pid, [%{dep: {:jason, "~> 1.3.0"}, config: []}])
 
-      assert_receive {:operation, {:apply_cell_delta, "__server__", "setup", :primary, _delta, 1}}
+      assert_receive {:operation,
+                      {:apply_cell_delta, "__server__", "setup", :primary, _delta, _selection, 0}}
 
       assert %{
                notebook: %{
@@ -338,13 +339,15 @@ defmodule Livebook.SessionTest do
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
 
-      delta = Delta.new() |> Delta.insert("cats")
-      revision = 1
+      delta = Text.Delta.new() |> Text.Delta.insert("cats")
+      selection = Text.Selection.new([{1, 1}])
+      revision = 0
 
-      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, revision)
+      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, selection, revision)
 
       assert_receive {:operation,
-                      {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^revision}}
+                      {:apply_cell_delta, _client_id, ^cell_id, :primary, ^delta, ^selection,
+                       ^revision}}
 
       # Sends new digest to clients
       digest = :erlang.md5("cats")
@@ -947,7 +950,7 @@ defmodule Livebook.SessionTest do
          %{source: "content!", js_view: %{}, editor: nil}}
       )
 
-      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      delta = Text.Delta.new() |> Text.Delta.retain(7) |> Text.Delta.insert("!")
       cell_id = smart_cell.id
 
       assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, nil, %{}, nil}}
@@ -981,8 +984,8 @@ defmodule Livebook.SessionTest do
 
       Session.register_client(session.pid, self(), Livebook.Users.User.new())
 
-      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
-      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, 1)
+      delta = Text.Delta.new() |> Text.Delta.retain(7) |> Text.Delta.insert("!")
+      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, nil, 0)
 
       assert_receive {:editor_source, "content!"}
     end
