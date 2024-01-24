@@ -58,7 +58,7 @@ defmodule Livebook.IntellisenseTest do
         @spec length(list()) :: non_neg_integer()
         ```\
         """,
-        insert_text: "length($0)"
+        insert_text: "length(${})"
       }
 
       assert length_item in Intellisense.get_completion_items("", context, node())
@@ -75,8 +75,7 @@ defmodule Livebook.IntellisenseTest do
                  label: ":zlib",
                  kind: :module,
                  detail: "module",
-                 documentation:
-                   "This module provides an API for the zlib library ([www.zlib.net](http://www.zlib.net)). It is used to compress and decompress data. The data format is described by [RFC 1950](https://www.ietf.org/rfc/rfc1950.txt), [RFC 1951](https://www.ietf.org/rfc/rfc1951.txt), and [RFC 1952](https://www.ietf.org/rfc/rfc1952.txt).",
+                 documentation: "zlib compression interface.",
                  insert_text: "zlib"
                }
              ] = Intellisense.get_completion_items(":zl", context, node())
@@ -117,7 +116,7 @@ defmodule Livebook.IntellisenseTest do
         label: ":lists",
         kind: :module,
         detail: "module",
-        documentation: "This module contains functions for list processing.",
+        documentation: "List processing functions.",
         insert_text: "lists"
       }
 
@@ -142,7 +141,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: ":erlang.open_port/2",
                  documentation: _open_port_doc,
-                 insert_text: "open_port($0)"
+                 insert_text: "open_port(${})"
                }
              ] = Intellisense.get_completion_items(":erlang.open_por", context, node())
     end
@@ -178,7 +177,7 @@ defmodule Livebook.IntellisenseTest do
                @opaque iterator(key, value)
                ```\
                """,
-               insert_text: "iterator($0)"
+               insert_text: "iterator(${})"
              } in items
     end
 
@@ -288,7 +287,7 @@ defmodule Livebook.IntellisenseTest do
                  @opaque internal(value)
                  ```\
                  """,
-                 insert_text: "internal($0)"
+                 insert_text: "internal(${})"
                }
              ] = Intellisense.get_completion_items("MapSet.intern", context, node())
     end
@@ -436,7 +435,7 @@ defmodule Livebook.IntellisenseTest do
                           compressed: binary()
                ```\
                """,
-               insert_text: "gzip($0)"
+               insert_text: "gzip(${})"
              } in Intellisense.get_completion_items(":zlib.gz", context, node())
     end
 
@@ -455,7 +454,7 @@ defmodule Livebook.IntellisenseTest do
                @spec concat(t()) :: t()
                ```\
                """,
-               insert_text: "concat($0)"
+               insert_text: "concat(${})"
              } in Intellisense.get_completion_items("Enum.concat/", context, node())
 
       assert [
@@ -480,7 +479,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec concat(t()) :: t()
                  ```\
                  """,
-                 insert_text: "concat($0)"
+                 insert_text: "concat(${})"
                },
                %{
                  label: "concat/2",
@@ -494,7 +493,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec concat(t(), t()) :: t()
                  ```\
                  """,
-                 insert_text: "concat($0)"
+                 insert_text: "concat(${})"
                }
              ] = Intellisense.get_completion_items("Enum.concat", context, node())
     end
@@ -527,7 +526,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec utc_today(Calendar.calendar()) :: t()
                  ```\
                  """,
-                 insert_text: "utc_today($0)"
+                 insert_text: "utc_today(${})"
                }
              ] = Intellisense.get_completion_items("Date.utc", context, node())
     end
@@ -754,7 +753,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.is_nil(term)",
                  documentation: "Returns `true` if `term` is `nil`, `false` otherwise.",
-                 insert_text: "is_nil($0)"
+                 insert_text: "is_nil(${})"
                }
              ] = Intellisense.get_completion_items("Kernel.is_ni", context, node())
     end
@@ -782,7 +781,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.put_in(path, value)",
                  documentation: "Puts a value in a nested structure via the given `path`.",
-                 insert_text: "put_in($0)"
+                 insert_text: "put_in(${})"
                },
                %{
                  label: "put_in/3",
@@ -799,7 +798,7 @@ defmodule Livebook.IntellisenseTest do
                        ) :: Access.t()
                  ```\
                  """,
-                 insert_text: "put_in($0)"
+                 insert_text: "put_in(${})"
                }
              ] = Intellisense.get_completion_items("put_i", context, node())
     end
@@ -1039,7 +1038,7 @@ defmodule Livebook.IntellisenseTest do
                      when list: [t, ...], max: t, t: term()
                ```\
                """,
-               insert_text: "max($0)"
+               insert_text: "max(${})"
              } in Intellisense.get_completion_items("EList.", context, node())
 
       assert [] = Intellisense.get_completion_items("EList.Invalid", context, node())
@@ -1258,14 +1257,14 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 label: "do",
+                 label: "nil",
                  kind: :keyword,
-                 detail: "do-end block",
+                 detail: "special atom",
                  documentation: nil,
-                 insert_text: "do\n  $0\nend"
+                 insert_text: "nil"
                }
                | _
-             ] = Intellisense.get_completion_items("do", context, node())
+             ] = Intellisense.get_completion_items("nil", context, node())
     end
 
     test "includes space instead of parentheses for def* macros" do
@@ -1318,7 +1317,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  detail: "bitstring option",
                  documentation: nil,
-                 insert_text: "size($0)",
+                 insert_text: "size(${})",
                  kind: :bitstring_option,
                  label: "size"
                }
@@ -1432,10 +1431,10 @@ defmodule Livebook.IntellisenseTest do
     test "properly renders Erlang signature types list" do
       context = eval(do: nil)
 
-      assert %{contents: [file_read]} =
-               Intellisense.get_details(":odbc.connect()", 8, context, node())
+      assert %{contents: [xmerl_callbacks]} =
+               Intellisense.get_details(":xmerl.callbacks(Mod)", 8, context, node())
 
-      assert file_read =~ "Ref = connection_reference()"
+      assert xmerl_callbacks =~ "Result = [atom()]"
     end
 
     test "properly parses unicode" do
@@ -1581,21 +1580,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "map(enumerable, fun)",
-                   arguments: ["enumerable", "fun"],
-                   documentation: """
-                   Returns a list where each element is the result of invoking
-                   `fun` on each corresponding element of `enumerable`.
-
-                   ---
-
-                   ```
-                   @spec map(t(), (element() -> any())) ::
-                           list()
-                   ```\
-                   """
+                   arguments: ["enumerable", "fun"]
                  }
                ]
              } = Intellisense.get_signature_items("Enum.map(", context, node())
@@ -1606,19 +1594,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "length(list)",
-                   arguments: ["list"],
-                   documentation: """
-                   Returns the length of `list`.
-
-                   ---
-
-                   ```
-                   @spec length(list()) :: non_neg_integer()
-                   ```\
-                   """
+                   arguments: ["list"]
                  }
                ]
              } = Intellisense.get_signature_items("length(", context, node())
@@ -1633,22 +1612,20 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "map(enumerable, fun)",
-                   arguments: ["enumerable", "fun"],
-                   documentation: _map_doc
+                   arguments: ["enumerable", "fun"]
                  }
                ]
              } = Intellisense.get_signature_items("map(", context, node())
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: ~S"derive(protocol, module, options \\ [])",
-                   arguments: ["protocol", "module", ~S"options \\ []"],
-                   documentation: _derive_doc
+                   arguments: ["protocol", "module", ~S"options \\ []"]
                  }
                ]
              } = Intellisense.get_signature_items("derive(", context, node())
@@ -1662,11 +1639,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "map(enumerable, fun)",
-                   arguments: ["enumerable", "fun"],
-                   documentation: _map_doc
+                   arguments: ["enumerable", "fun"]
                  }
                ]
              } = Intellisense.get_signature_items("MyEnum.map(", context, node())
@@ -1680,13 +1656,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "add.(arg1, arg2)",
-                   arguments: ["arg1", "arg2"],
-                   documentation: """
-                   No documentation available\
-                   """
+                   arguments: ["arg1", "arg2"]
                  }
                ]
              } = Intellisense.get_signature_items("add.(", context, node())
@@ -1700,11 +1673,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "map(enumerable, fun)",
-                   arguments: ["enumerable", "fun"],
-                   documentation: _map_doc
+                   arguments: ["enumerable", "fun"]
                  }
                ]
              } = Intellisense.get_signature_items("map.(", context, node())
@@ -1716,11 +1688,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "map(fun, list1)",
-                   arguments: ["fun", "list1"],
-                   documentation: _map_doc
+                   arguments: ["fun", "list1"]
                  }
                ]
              } = Intellisense.get_signature_items(":lists.map(", context, node())
@@ -1732,82 +1703,95 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
-                   signature: "connect(ConnectStr, Options)",
-                   arguments: ["ConnectStr", "Options"],
-                   documentation: _connect_doc
+                   signature: "callbacks(Module)",
+                   arguments: ["Module"]
                  }
                ]
-             } = Intellisense.get_signature_items(":odbc.connect(", context, node())
+             } = Intellisense.get_signature_items(":xmerl.callbacks(", context, node())
+    end
+
+    test "shows signature with default argument being an anonymous function" do
+      context = eval(do: nil)
+
+      assert %{
+               active_argument: 3,
+               items: [
+                 %{
+                   signature:
+                     ~S"max_by(enumerable, fun, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)",
+                   arguments: [
+                     "enumerable",
+                     "fun",
+                     ~S"sorter \\ &>=/2",
+                     ~S"empty_fallback \\ fn -> raise Enum.EmptyError end"
+                   ]
+                 }
+               ]
+             } =
+               Intellisense.get_signature_items(
+                 "Enum.max_by([1, 2], &Kernel.-/1, &>=/2, ",
+                 context,
+                 node()
+               )
     end
 
     test "returns call active argument" do
       context = eval(do: nil)
 
-      assert %{active_argument: 0, signature_items: [_item]} =
+      assert %{active_argument: 0, items: [_item]} =
                Intellisense.get_signature_items("Enum.map([1, ", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("Enum.map([1, 2], ", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("Enum.map([1, 2], fn", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items(
                  "Enum.map([1, 2], fn x -> x * x end",
                  context,
                  node()
                )
 
-      assert %{active_argument: 2, signature_items: [_item]} =
+      assert %{active_argument: 2, items: [_item]} =
                Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("elem(x, 1 + ", context, node())
     end
 
     test "returns correct active argument when using pipe operator" do
       context = eval(do: nil)
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("[1, 2] |> Enum.map(", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("[1, 2] |> Enum.map(fn", context, node())
 
-      assert %{active_argument: 1, signature_items: [_item]} =
+      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items(
                  "[1, 2] |> Enum.map(fn x -> x * x end",
                  context,
                  node()
                )
 
-      assert %{active_argument: 2, signature_items: [_item]} =
+      assert %{active_argument: 2, items: [_item]} =
                Intellisense.get_signature_items("1 |> IO.ANSI.color(2, 3", context, node())
     end
 
-    test "returns a single signature for fnuctions with default arguments" do
+    test "returns a single signature for functions with default arguments" do
       context = eval(do: nil)
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: ~S"to_string(integer, base \\ 10)",
-                   arguments: ["integer", ~S"base \\ 10"],
-                   documentation: """
-                   Returns a binary which corresponds to the text representation
-                   of `integer` in the given `base`.
-
-                   ---
-
-                   ```
-                   @spec to_string(integer(), 2..36) ::
-                           String.t()
-                   ```\
-                   """
+                   arguments: ["integer", ~S"base \\ 10"]
                  }
                ]
              } = Intellisense.get_signature_items("Integer.to_string(", context, node())
@@ -1818,16 +1802,14 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    signature: "concat(enumerables)",
-                   arguments: ["enumerables"],
-                   documentation: _concat_1_docs
+                   arguments: ["enumerables"]
                  },
                  %{
                    signature: "concat(left, right)",
-                   arguments: ["left", "right"],
-                   documentation: _concat_2_docs
+                   arguments: ["left", "right"]
                  }
                ]
              } = Intellisense.get_signature_items("Enum.concat(", context, node())
@@ -1838,11 +1820,10 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 1,
-               signature_items: [
+               items: [
                  %{
                    signature: "concat(left, right)",
-                   arguments: ["left", "right"],
-                   documentation: _concat_1_docs
+                   arguments: ["left", "right"]
                  }
                ]
              } = Intellisense.get_signature_items("Enum.concat([1, 2], ", context, node())
@@ -1865,10 +1846,9 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{
                active_argument: 0,
-               signature_items: [
+               items: [
                  %{
                    arguments: ["list"],
-                   documentation: _length_doc,
                    signature: "length(list)"
                  }
                ]

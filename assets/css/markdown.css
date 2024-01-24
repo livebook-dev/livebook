@@ -119,7 +119,7 @@
 }
 
 .markdown pre {
-  @apply flex overflow-hidden;
+  @apply my-4 flex overflow-hidden;
 }
 
 .markdown pre > code {

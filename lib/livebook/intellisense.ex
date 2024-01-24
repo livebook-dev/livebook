@@ -91,7 +91,7 @@ defmodule Livebook.Intellisense do
       {:ok, signature_infos, active_argument} ->
         %{
           active_argument: active_argument,
-          signature_items:
+          items:
             signature_infos
             |> Enum.map(&format_signature_item/1)
             |> Enum.uniq()
@@ -102,15 +102,10 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_signature_item({name, signature, documentation, specs}),
+  defp format_signature_item({_name, signature, _documentation, _specs}),
     do: %{
       signature: signature,
-      arguments: arguments_from_signature(signature),
-      documentation:
-        join_with_divider([
-          format_documentation(documentation, :short),
-          format_specs(specs, name, @line_length) |> code()
-        ])
+      arguments: arguments_from_signature(signature)
     }
 
   defp arguments_from_signature(signature) do
@@ -254,7 +249,7 @@ defmodule Livebook.Intellisense do
 
              true ->
                # A snippet with cursor in parentheses
-               "#{display_name}($0)"
+               "#{display_name}(${})"
            end
        }
 
@@ -278,7 +273,7 @@ defmodule Livebook.Intellisense do
          insert_text:
            cond do
              arity == 0 -> "#{Atom.to_string(name)}()"
-             true -> "#{Atom.to_string(name)}($0)"
+             true -> "#{Atom.to_string(name)}(${})"
            end
        }
 
@@ -296,7 +291,7 @@ defmodule Livebook.Intellisense do
       if arity == 0 do
         Atom.to_string(name)
       else
-        "#{name}($0)"
+        "#{name}(${})"
       end
 
     %{
@@ -342,13 +337,6 @@ defmodule Livebook.Intellisense do
 
   defp extra_completion_items(hint) do
     items = [
-      %{
-        label: "do",
-        kind: :keyword,
-        detail: "do-end block",
-        documentation: nil,
-        insert_text: "do\n  $0\nend"
-      },
       %{
         label: "true",
         kind: :keyword,

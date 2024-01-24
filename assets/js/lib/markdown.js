@@ -17,7 +17,7 @@ import { visit } from "unist-util-visit";
 import { toText } from "hast-util-to-text";
 import { removePosition } from "unist-util-remove-position";
 
-import { highlight } from "../hooks/cell_editor/live_editor/monaco";
+import { highlight } from "../hooks/cell_editor/live_editor/highlight";
 import { renderMermaid } from "./markdown/mermaid";
 import { escapeHtml } from "../lib/utils";
 
@@ -28,24 +28,34 @@ class Markdown {
   constructor(
     container,
     content,
-    { baseUrl = null, emptyText = "", allowedUriSchemes = [] } = {}
+    {
+      baseUrl = null,
+      defaultCodeLanguage = null,
+      emptyText = "",
+      allowedUriSchemes = [],
+    } = {}
   ) {
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
+    this.defaultCodeLanguage = defaultCodeLanguage;
     this.emptyText = emptyText;
     this.allowedUriSchemes = allowedUriSchemes;
 
-    this._render();
+    this.render();
   }
 
+  /**
+   * Sets new markdown content to be rendered in the container.
+   */
   setContent(content) {
     this.content = content;
-    this._render();
+    this.render();
   }
 
-  _render() {
-    this._getHtml().then((html) => {
+  /** @private */
+  render() {
+    this.getHtml().then((html) => {
       // Wrap the HTML in another element, so that we
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
@@ -53,14 +63,18 @@ class Markdown {
     });
   }
 
-  _getHtml() {
+  /** @private */
+  getHtml() {
     return (
       unified()
         .use(remarkParse)
         .use(remarkGfm)
         .use(remarkMath)
         .use(remarkPrepareMermaid)
-        .use(remarkSyntaxHiglight, { highlight })
+        .use(remarkSyntaxHiglight, {
+          highlight,
+          defaultLanguage: this.defaultCodeLanguage,
+        })
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
@@ -117,13 +131,15 @@ function remarkSyntaxHiglight(options) {
     const promises = [];
 
     visit(ast, "code", (node) => {
-      if (node.lang) {
+      const language = node.lang || options.defaultLanguage;
+
+      if (language) {
         function updateNode(html) {
           node.type = "html";
           node.value = `<pre><code>${html}</code></pre>`;
         }
 
-        const result = options.highlight(node.value, node.lang);
+        const result = options.highlight(node.value, language);
 
         if (result && typeof result.then === "function") {
           const promise = Promise.resolve(result).then(updateNode);

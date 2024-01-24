@@ -4,8 +4,9 @@ import {
   isElementVisibleInViewport,
   randomId,
   randomToken,
+  waitUntilInViewport,
 } from "../lib/utils";
-import { globalPubSub } from "../lib/pub_sub";
+import { globalPubsub } from "../lib/pubsub";
 import {
   getChannel,
   transportDecode,
@@ -130,10 +131,16 @@ const JSView = {
       this.channel.off(`pong:${this.props.ref}`, pongRef);
     };
 
-    this.unsubscribeFromJSViewEvents = globalPubSub.subscribe(
-      `js_views:${this.props.ref}`,
-      (event) => this.handleJSViewEvent(event)
-    );
+    this.subscriptions = [
+      globalPubsub.subscribe(
+        `js_views:${this.props.ref}`,
+        this.handleJSViewEvent.bind(this)
+      ),
+      globalPubsub.subscribe(
+        "navigation",
+        this.handleNavigationEvent.bind(this)
+      ),
+    ];
 
     this.channel.push(
       "connect",
@@ -145,11 +152,6 @@ const JSView = {
       // If the client is very busy with executing JS we may reach the
       // default timeout of 10s, so we increase it
       30_000
-    );
-
-    this.unsubscribeFromCellEvents = globalPubSub.subscribe(
-      "navigation",
-      (event) => this.handleNavigationEvent(event)
     );
   },
 
@@ -170,8 +172,7 @@ const JSView = {
     this.unsubscribeFromChannelEvents();
     this.channel.push("disconnect", { ref: this.props.ref });
 
-    this.unsubscribeFromJSViewEvents();
-    this.unsubscribeFromCellEvents();
+    this.subscriptions.forEach((subscription) => subscription.destroy());
   },
 
   getProps() {
@@ -232,14 +233,11 @@ const JSView = {
     // dispatched to trigger reposition. This way we don't need to
     // use deep MutationObserver, which would be expensive, especially
     // with code editor
-    const unsubscribeFromJSViewsEvents = globalPubSub.subscribe(
-      "js_views",
-      (event) => {
-        if (event.type === "reposition") {
-          this.repositionIframe();
-        }
+    const jsViewSubscription = globalPubsub.subscribe("js_views", (event) => {
+      if (event.type === "reposition") {
+        this.repositionIframe();
       }
-    );
+    });
 
     // Emulate mouse enter and leave on the placeholder. Note that we
     // intentionally use bubbling to notify all parents that may have
@@ -260,21 +258,7 @@ const JSView = {
     // We detect when the placeholder enters viewport and becomes visible,
     // based on that we can load the iframe contents lazily
 
-    let viewportIntersectionObserver = null;
-
-    const visibilityPromise = new Promise((resolve, reject) => {
-      if (isElementVisibleInViewport(this.iframePlaceholder)) {
-        resolve();
-      } else {
-        viewportIntersectionObserver = new IntersectionObserver((entries) => {
-          if (isElementVisibleInViewport(this.iframePlaceholder)) {
-            viewportIntersectionObserver.disconnect();
-            resolve();
-          }
-        });
-        viewportIntersectionObserver.observe(this.iframePlaceholder);
-      }
-    });
+    const visibility = waitUntilInViewport(this.iframePlaceholder);
 
     // Reflect focus based on whether there is a focused parent, this
     // is later synced on "element_focused" events
@@ -287,13 +271,13 @@ const JSView = {
 
     const remove = () => {
       resizeObserver.disconnect();
-      unsubscribeFromJSViewsEvents();
-      viewportIntersectionObserver && viewportIntersectionObserver.disconnect();
+      jsViewSubscription.destroy();
+      visibility.cancel();
       this.iframe.remove();
       this.iframePlaceholder.remove();
     };
 
-    return { visibilityPromise, remove };
+    return { visibilityPromise: visibility.promise, remove };
   },
 
   repositionIframe() {

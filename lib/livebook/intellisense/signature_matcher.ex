@@ -70,7 +70,11 @@ defmodule Livebook.Intellisense.SignatureMatcher do
 
   defp fix_erlang_signature(signature, specs) do
     # Erlang signatures may include "->" followed by return type
-    signature = signature |> String.split("->") |> hd() |> String.trim()
+    signature =
+      case String.split(signature, ") ->") do
+        [signature] -> signature
+        [signature, _rest] -> signature <> ")"
+      end
 
     case parse_erlang_signature(signature) do
       {:ok, fun, arity} ->

@@ -1,4 +1,4 @@
-defmodule Livebook.Delta do
+defmodule Livebook.Text.Delta do
   # Delta is a format used to represent a set of changes introduced
   # to a text document.
   #
@@ -9,18 +9,29 @@ defmodule Livebook.Delta do
   # https://quilljs.com/guides/designing-the-delta-format. The
   # specification covers rich-text editing, while we only need to
   # work with plain-text, so we use a subset of the specification
-  # with operations listed in `Livebook.Delta.Operation`.
+  # with operations listed in `Livebook.Text.Delta.Operation`.
   #
   # An implementation of the full Delta specification is available in
   # the :text_delta package (https://github.com/deltadoc/text_delta)
   # by Konstantin Kudryashov under the MIT license. This module builds
   # directly on that package, and is simplified to better fit our not
   # rich-text use case.
+  #
+  # ## Lengths and offsets
+  #
+  # Delta operations involve strings and string lengths. The exact
+  # definition of these depends on the string representation in the
+  # given programming language. This module is implemented for
+  # compatibility with JavaScript, hence all lengths match the length
+  # as defined by JavaScript (the number of UTF-16 code units).
+  #
+  # All places with calls to the `Livebook.Text.JS` module are the
+  # ones where the implementation is affected by this distinction.
 
   defstruct ops: []
 
-  alias Livebook.Delta
-  alias Livebook.Delta.{Operation, Transformation}
+  alias Livebook.Text.{Delta, JS}
+  alias Livebook.Text.Delta.{Operation, Transformation}
 
   @typedoc """
   Delta carries a list of consecutive operations.
@@ -135,12 +146,12 @@ defmodule Livebook.Delta do
 
   @doc """
   Converts the given delta to a compact representation, suitable for
-  sending over the network.
+  JSON serialization.
 
   ## Examples
 
       iex> delta = Delta.new([retain: 2, insert: "hey", delete: 3])
-      iex> Livebook.Delta.to_compressed(delta)
+      iex> Livebook.Text.Delta.to_compressed(delta)
       [2, "hey", -3]
 
   """
@@ -156,8 +167,8 @@ defmodule Livebook.Delta do
 
   ## Examples
 
-      iex> delta = Livebook.Delta.from_compressed([2, "hey", -3])
-      iex> Livebook.Delta.operations(delta)
+      iex> delta = Livebook.Text.Delta.from_compressed([2, "hey", -3])
+      iex> Livebook.Text.Delta.operations(delta)
       [retain: 2, insert: "hey", delete: 3]
 
   """
@@ -172,4 +183,47 @@ defmodule Livebook.Delta do
   end
 
   defdelegate transform(left, right, priority), to: Transformation
+
+  defdelegate transform_position(delta, index), to: Transformation
+
+  @doc """
+  Returns the result of applying `delta` to `string`.
+  """
+  @spec apply(Delta.t(), String.t()) :: String.t()
+  def apply(delta, string) do
+    do_apply(operations(delta), <<>>, string)
+  end
+
+  defp do_apply([{:retain, n} | ops], result, string) do
+    {left, right} = JS.split_at(string, n)
+    do_apply(ops, <<result::binary, left::binary>>, right)
+  end
+
+  defp do_apply([{:insert, inserted} | ops], result, string) do
+    do_apply(ops, <<result::binary, inserted::binary>>, string)
+  end
+
+  defp do_apply([{:delete, n} | ops], result, string) do
+    do_apply(ops, result, JS.slice(string, n))
+  end
+
+  defp do_apply([], result, string) do
+    <<result::binary, string::binary>>
+  end
+
+  @doc """
+  Computes Myers Difference between the given strings and returns its
+  `Delta` representation.
+  """
+  @spec diff(String.t(), String.t()) :: Delta.t()
+  def diff(string1, string2) do
+    string1
+    |> String.myers_difference(string2)
+    |> Enum.reduce(Delta.new(), fn
+      {:eq, string}, delta -> Delta.retain(delta, JS.length(string))
+      {:ins, string}, delta -> Delta.insert(delta, string)
+      {:del, string}, delta -> Delta.delete(delta, JS.length(string))
+    end)
+    |> Delta.trim()
+  end
 end

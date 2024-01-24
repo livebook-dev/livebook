@@ -1,5 +1,5 @@
 import { parseHookProps } from "../lib/attribute";
-import { highlight } from "./cell_editor/live_editor/monaco";
+import { highlight } from "./cell_editor/live_editor/highlight";
 import { findChildOrThrow } from "../lib/utils";
 
 /**

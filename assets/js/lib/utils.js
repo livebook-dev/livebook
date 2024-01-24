@@ -22,21 +22,46 @@ export function isElementHidden(element) {
 }
 
 export function waitUntilVisible(element) {
-  let viewportIntersectionObserver = null;
+  let observer = null;
 
   return new Promise((resolve, reject) => {
     if (isElementHidden(element)) {
-      viewportIntersectionObserver = new ResizeObserver((entries) => {
+      observer = new ResizeObserver((entries) => {
         if (!isElementHidden(element)) {
-          viewportIntersectionObserver.disconnect();
+          observer.disconnect();
           resolve();
         }
       });
-      viewportIntersectionObserver.observe(element);
+      observer.observe(element);
     } else {
       resolve();
     }
   });
+}
+
+export function waitUntilInViewport(element) {
+  let observer = null;
+
+  const promise = new Promise((resolve, reject) => {
+    if (isElementVisibleInViewport(element)) {
+      resolve();
+    } else {
+      observer = new IntersectionObserver((entries) => {
+        if (isElementVisibleInViewport(element)) {
+          observer.disconnect();
+          observer = null;
+          resolve();
+        }
+      });
+      observer.observe(element);
+    }
+  });
+
+  const cancel = () => {
+    observer && observer.disconnect();
+  };
+
+  return { promise, cancel };
 }
 
 export function isElementVisibleInViewport(element) {
@@ -260,4 +285,23 @@ export function cookieOptions() {
   } else {
     return ";SameSite=Lax";
   }
+}
+
+/**
+ * Removes `key` from `object` and returns the associated value and
+ * the updated object.
+ */
+export function pop(object, key, defaultValue = undefined) {
+  if (object.hasOwnProperty(key)) {
+    const { [key]: value, ...newObject } = object;
+    return [value, newObject];
+  }
+
+  return [defaultValue, object];
+}
+
+export function wait(milliseconds) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => resolve(), milliseconds);
+  });
 }

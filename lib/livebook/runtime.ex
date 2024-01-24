@@ -485,12 +485,13 @@ defprotocol Livebook.Runtime do
   @type doctest_report ::
           %{
             status: :running | :success,
-            line: pos_integer()
+            line: pos_integer(),
+            column: pos_integer()
           }
           | %{
               status: :failed,
-              column: pos_integer(),
               line: pos_integer(),
+              column: pos_integer(),
               end_line: pos_integer(),
               details: String.t()
             }
@@ -562,13 +563,12 @@ defprotocol Livebook.Runtime do
 
   @type signature_response :: %{
           active_argument: non_neg_integer(),
-          signature_items: list(signature_item())
+          items: list(signature_item())
         }
 
   @type signature_item :: %{
           signature: String.t(),
-          arguments: list(String.t()),
-          documentation: String.t() | nil
+          arguments: list(String.t())
         }
 
   @typedoc """

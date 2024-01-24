@@ -15,18 +15,6 @@ const outDir = path.resolve(
 );
 
 async function main() {
-  await esbuild.build({
-    entryPoints: [
-      "./node_modules/monaco-editor/esm/vs/language/json/json.worker.js",
-      "./node_modules/monaco-editor/esm/vs/editor/editor.worker.js",
-    ],
-    outdir: outDir,
-    bundle: true,
-    target: "es2017",
-    format: "iife",
-    minify: deploy,
-  });
-
   const ctx = await esbuild.context({
     entryPoints: ["js/app.js"],
     outdir: outDir,
