@@ -72,7 +72,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                       role="menuitem"
                       class="text-gray-600 hover:text-red-700"
                     >
-                      <.remix_icon icon="stop-circle-line" class="text-lg" />
+                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
                     </button>
                   </span>
                 </td>
