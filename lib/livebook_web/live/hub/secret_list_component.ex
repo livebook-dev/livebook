@@ -48,7 +48,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                       patch={"/#{@edit_path}/#{secret.name}"}
                       type="button"
                       role="menuitem"
-                      class="text-gray-600 hover:text-blue-600"
+                      class="icon-button"
                     >
                       <.remix_icon icon="edit-fill" class="text-lg" />
                     </.link>
