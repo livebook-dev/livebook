@@ -18,64 +18,67 @@ defmodule LivebookWeb.Hub.SecretListComponent do
         <.no_entries :if={@secrets == []}>
           No secrets here... yet!
         </.no_entries>
-        <div
-          :for={secret <- @secrets}
-          class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 w-full">
-            <div class="place-content-start">
-              <.labeled_text label="Name">
-                <%= secret.name %>
-              </.labeled_text>
-            </div>
-
-            <div class="flex items-center place-content-end">
-              <.menu id={"hub-secret-#{secret.name}-menu"}>
-                <:toggle>
-                  <button
-                    class="icon-button"
-                    aria-label="open environment variable menu"
-                    type="button"
-                  >
-                    <.remix_icon icon="more-2-fill" class="text-xl" />
-                  </button>
-                </:toggle>
-                <.menu_item>
-                  <.link
-                    id={"hub-secret-#{secret.name}-edit"}
-                    patch={"/#{@edit_path}/#{secret.name}"}
-                    type="button"
-                    role="menuitem"
-                  >
-                    <.remix_icon icon="file-edit-line" />
-                    <span>Edit</span>
-                  </.link>
-                </.menu_item>
-                <.menu_item variant={:danger}>
-                  <button
-                    id={"hub-secret-#{secret.name}-delete"}
-                    type="button"
-                    phx-click={
-                      JS.push("delete_hub_secret",
-                        value: %{
-                          name: secret.name,
-                          value: secret.value,
-                          hub_id: secret.hub_id,
-                          deployment_group_id: secret.deployment_group_id,
-                          return_to: @return_to
-                        }
-                      )
-                    }
-                    phx-target={@myself}
-                    role="menuitem"
-                  >
-                    <.remix_icon icon="delete-bin-line" />
-                    <span>Delete</span>
-                  </button>
-                </.menu_item>
-              </.menu>
-            </div>
-          </div>
+        <div :if={@secrets != []}>
+          <table class="min-w-full divide-y divide-gray-300">
+            <thead>
+              <tr>
+                <th
+                  scope="col"
+                  class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  class="py-3.5 pl-3 pr-4 text-right text-sm font-semibold text-gray-900 sm:pr-6"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+              <tr :for={secret <- @secrets}>
+                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                  <%= secret.name %>
+                </td>
+                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 flex justify-end items-center gap-4 text-sm font-medium sm:pr-6">
+                  <span class="tooltip left" data-tooltip="Edit">
+                    <.link
+                      id={"hub-secret-#{secret.name}-edit"}
+                      patch={"/#{@edit_path}/#{secret.name}"}
+                      type="button"
+                      role="menuitem"
+                      class="icon-button"
+                    >
+                      <.remix_icon icon="edit-fill" class="text-lg" />
+                    </.link>
+                  </span>
+                  <span class="tooltip left" data-tooltip="Delete">
+                    <button
+                      id={"hub-secret-#{secret.name}-delete"}
+                      type="button"
+                      phx-click={
+                        JS.push("delete_hub_secret",
+                          value: %{
+                            name: secret.name,
+                            value: secret.value,
+                            hub_id: secret.hub_id,
+                            deployment_group_id: secret.deployment_group_id,
+                            return_to: @return_to
+                          },
+                          target: @myself
+                        )
+                      }
+                      role="menuitem"
+                      class="icon-button"
+                    >
+                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <div class="flex">

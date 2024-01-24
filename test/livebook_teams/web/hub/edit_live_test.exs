@@ -171,7 +171,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> element("#hub-secret-#{secret.name}-delete", "Delete")
+      |> element("#hub-secret-#{secret.name}-delete")
       |> render_click()
 
       render_confirm(view)
