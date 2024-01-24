@@ -12,12 +12,12 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_vega_lite = %{
     name: "kino_vega_lite",
-    dependency: %{dep: {:kino_vega_lite, "~> 0.1.10"}, config: []}
+    dependency: %{dep: {:kino_vega_lite, "~> 0.1.11"}, config: []}
   }
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.3"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.5"}, config: []}
   }
 
   exqlite = %{
@@ -27,7 +27,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_maplibre = %{
     name: "kino_maplibre",
-    dependency: %{dep: {:kino_maplibre, "~> 0.1.10"}, config: []}
+    dependency: %{dep: {:kino_maplibre, "~> 0.1.11"}, config: []}
   }
 
   kino_slack = %{
