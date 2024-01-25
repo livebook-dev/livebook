@@ -65,7 +65,10 @@ const CellEditor = {
           })
         );
 
-        this.visibility = waitUntilInViewport(this.el);
+        this.visibility = waitUntilInViewport(this.el, {
+          root: document.querySelector("[data-el-notebook]"),
+          proximity: 2000,
+        });
 
         // We mount the editor lazily once it enters the viewport
         this.visibility.promise.then(() => {
