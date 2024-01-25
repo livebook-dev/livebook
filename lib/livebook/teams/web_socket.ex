@@ -21,7 +21,14 @@ defmodule Livebook.Teams.WebSocket do
     uri = URI.parse(Livebook.Config.teams_url())
     {http_scheme, ws_scheme} = parse_scheme(uri)
     state = %{status: nil, headers: [], body: []}
-    opts = [protocols: [:http1], transport_opts: [cacerts: :public_key.cacerts_get()]]
+    opts = [protocols: [:http1]]
+
+    opts =
+      if http_scheme == :https do
+        put_in(opts[:transport_opts][:cacerts], :public_key.cacerts_get())
+      else
+        opts
+      end
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
          {:ok, conn, ref} <- Mint.WebSocket.upgrade(ws_scheme, conn, @ws_path, headers) do
