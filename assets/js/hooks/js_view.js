@@ -1,7 +1,6 @@
 import { parseHookProps } from "../lib/attribute";
 import {
   isElementHidden,
-  isElementVisibleInViewport,
   randomId,
   randomToken,
   waitUntilInViewport,
@@ -258,7 +257,10 @@ const JSView = {
     // We detect when the placeholder enters viewport and becomes visible,
     // based on that we can load the iframe contents lazily
 
-    const visibility = waitUntilInViewport(this.iframePlaceholder);
+    const visibility = waitUntilInViewport(this.iframePlaceholder, {
+      root: notebookEl,
+      proximity: 2000,
+    });
 
     // Reflect focus based on whether there is a focused parent, this
     // is later synced on "element_focused" events

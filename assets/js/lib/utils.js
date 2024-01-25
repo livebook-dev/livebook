@@ -12,9 +12,9 @@ export function isEditableElement(element) {
   );
 }
 
-export function isElementInViewport(element) {
+export function isElementInViewport(element, proximity = 0) {
   const box = element.getBoundingClientRect();
-  return box.bottom >= 0 && box.top <= window.innerHeight;
+  return box.bottom >= -proximity && box.top <= window.innerHeight + proximity;
 }
 
 export function isElementHidden(element) {
@@ -39,20 +39,46 @@ export function waitUntilVisible(element) {
   });
 }
 
-export function waitUntilInViewport(element) {
+/**
+ * Returns a promise that resolves when the element enters the viewport.
+ *
+ * ## Options
+ *
+ *   * `root` - a scrollable ancestor that should be used for observing
+ *     the intersection, instead of the viewport
+ *
+ *   * `proximity` - the number of pixels around `root` used to expand
+ *     the intersection box, which effectively resolves the promise when
+ *     `element` is in certain proximity of the viewport. Note that if
+ *     the element is inside a scrollable ancestor, the ancestor must
+ *     be set as `root`.
+ *
+ *     > NOTE: rootMargin only applies to the intersection root itself.
+ *     > If a target Element is clipped by an ancestor other than the
+ *     > intersection root, that clipping is unaffected by rootMargin.
+ *     > ~ https://w3c.github.io/IntersectionObserver
+ *
+ */
+export function waitUntilInViewport(
+  element,
+  { root = null, proximity = 0 } = {}
+) {
   let observer = null;
 
   const promise = new Promise((resolve, reject) => {
-    if (isElementVisibleInViewport(element)) {
+    if (isElementVisibleInViewport(element, proximity)) {
       resolve();
     } else {
-      observer = new IntersectionObserver((entries) => {
-        if (isElementVisibleInViewport(element)) {
-          observer.disconnect();
-          observer = null;
-          resolve();
-        }
-      });
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            observer.disconnect();
+            observer = null;
+            resolve();
+          }
+        },
+        { root, rootMargin: `${proximity}px` }
+      );
       observer.observe(element);
     }
   });
@@ -64,8 +90,8 @@ export function waitUntilInViewport(element) {
   return { promise, cancel };
 }
 
-export function isElementVisibleInViewport(element) {
-  return !isElementHidden(element) && isElementInViewport(element);
+export function isElementVisibleInViewport(element, proximity = 0) {
+  return !isElementHidden(element) && isElementInViewport(element, proximity);
 }
 
 export function clamp(n, x, y) {
