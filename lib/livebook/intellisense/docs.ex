@@ -1,6 +1,12 @@
 defmodule Livebook.Intellisense.Docs do
   # This module is responsible for extracting and normalizing
   # information like documentation, signatures and specs.
+  #
+  # Note that we only extract the docs information when requested for
+  # for the current node. For remote nodes, making several requests
+  # for docs (which may be necessary if there are multiple modules)
+  # adds to the overall latency. Remote intellisense is primarily used
+  # with remote release nodes, which have docs stripped out anyway.
 
   @type member_info :: %{
           kind: member_kind(),
@@ -38,6 +44,8 @@ defmodule Livebook.Intellisense.Docs do
   Fetches documentation for the given module if available.
   """
   @spec get_module_documentation(module(), node()) :: documentation()
+  def get_module_documentation(_module, node) when node != node(), do: nil
+
   def get_module_documentation(module, node) do
     case :erpc.call(node, Code, :fetch_docs, [module]) do
       {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
@@ -75,7 +83,11 @@ defmodule Livebook.Intellisense.Docs do
           node(),
           keyword()
         ) :: list(member_info())
-  def lookup_module_members(module, members, node, opts \\ []) do
+  def lookup_module_members(module, members, node, opts \\ [])
+
+  def lookup_module_members(_module, _members, node, _opts) when node != node(), do: []
+
+  def lookup_module_members(module, members, node, opts) do
     members = MapSet.new(members)
     kinds = opts[:kinds] || [:function, :macro, :type]
 

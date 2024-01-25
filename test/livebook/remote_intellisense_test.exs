@@ -74,7 +74,7 @@ defmodule Livebook.RemoteIntellisenseTest do
                label: "RemoteModule",
                kind: :module,
                detail: "module",
-               documentation: "RemoteModule module docs",
+               documentation: "No documentation available",
                insert_text: "RemoteModule"
              } in Intellisense.get_completion_items("RemoteModule", context, node)
     end
@@ -85,8 +85,8 @@ defmodule Livebook.RemoteIntellisenseTest do
       assert %{
                label: "hello/1",
                kind: :function,
-               detail: "RemoteModule.hello(message)",
-               documentation: "Hello doc",
+               detail: nil,
+               documentation: "No documentation available",
                insert_text: "hello(${})"
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
     end
@@ -97,20 +97,20 @@ defmodule Livebook.RemoteIntellisenseTest do
 
       assert [
                %{
-                 label: "all_keys/1",
+                 label: "unsubscribe/1",
                  kind: :function,
-                 detail: ":mnesia.all_keys/1",
-                 documentation: _all_keys_doc,
-                 insert_text: "all_keys(${})"
+                 detail: nil,
+                 documentation: "No documentation available",
+                 insert_text: "unsubscribe(${})"
                }
-             ] = Intellisense.get_completion_items(":mnesia.all", context, node)
+             ] = Intellisense.get_completion_items(":mnesia.unsub", context, node)
     end
 
     test "get details", %{node: node} do
       context = eval(do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
-      assert content =~ "RemoteModule module docs"
+      assert content =~ "No documentation available"
     end
   end
 end
