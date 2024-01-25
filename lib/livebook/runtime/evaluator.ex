@@ -818,6 +818,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp extra_diagnostic?(%SyntaxError{}), do: true
   defp extra_diagnostic?(%TokenMissingError{}), do: true
+  defp extra_diagnostic?(%MismatchedDelimiterError{}), do: true
 
   defp extra_diagnostic?(%CompileError{description: description}) do
     not String.contains?(description, "(errors have been logged)")
