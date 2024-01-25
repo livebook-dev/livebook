@@ -39,10 +39,9 @@ const Highlight = {
   updateDOM() {
     const code = this.sourceEl.innerText;
 
-    highlight(code, this.props.language).then((html) => {
-      this.targetEl.innerHTML = html;
-      this.el.setAttribute("data-highlighted", "");
-    });
+    const html = highlight(code, this.props.language);
+    this.targetEl.innerHTML = html;
+    this.el.setAttribute("data-highlighted", "");
   },
 };
 
