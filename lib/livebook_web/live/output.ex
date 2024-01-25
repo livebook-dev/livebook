@@ -393,7 +393,6 @@ defmodule LivebookWeb.Output do
       <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
         <button
           class="icon-button bg-gray-100"
-          data-el-clipcopy
           phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}
         >
           <.remix_icon icon="clipboard-line" class="text-lg" />

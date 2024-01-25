@@ -51,7 +51,7 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
     ~H"""
     <div
       id={@id}
-      class="relative"
+      class="relative group/root"
       phx-hook="VirtualizedLines"
       data-p-max-height={hook_prop(300)}
       data-p-follow={hook_prop(true)}
@@ -74,10 +74,9 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
         phx-update="ignore"
       >
       </div>
-      <div class="absolute right-2 top-0 z-10">
+      <div class="absolute right-2 top-0 z-10 invisible group-hover/root:visible">
         <button
           class="icon-button bg-gray-100"
-          data-el-clipcopy
           phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-template")}
         >
           <.remix_icon icon="clipboard-line" class="text-lg" />

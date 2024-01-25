@@ -167,7 +167,6 @@ defmodule LivebookWeb.Hub.NewLive do
 
       <button
         class="icon-button ml-4"
-        data-el-clipcopy
         phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
         type="button"
       >

@@ -294,10 +294,6 @@ solely client-side operations.
   @apply hidden;
 }
 
-[phx-hook="VirtualizedLines"]:not(:hover) [data-el-clipcopy] {
-  @apply hidden;
-}
-
 /* === Session views === */
 
 [data-el-session][data-js-view="code-zen"] [data-el-view-toggle="code-zen"] {
