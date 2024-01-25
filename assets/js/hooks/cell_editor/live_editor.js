@@ -430,10 +430,13 @@ export default class LiveEditor {
         // to not distract the user too much as they are typing
         return wait(350).then(() => {
           const node = document.createElement("div");
-          const detail = document.createElement("div");
-          detail.classList.add("cm-completionInfoDetail");
-          detail.innerHTML = highlight(item.detail, this.language);
-          node.appendChild(detail);
+
+          if (item.detail) {
+            const detail = document.createElement("div");
+            detail.classList.add("cm-completionInfoDetail");
+            detail.innerHTML = highlight(item.detail, this.language);
+            node.appendChild(detail);
+          }
 
           if (item.documentation) {
             const docs = document.createElement("div");

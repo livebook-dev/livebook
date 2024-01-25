@@ -238,8 +238,11 @@ function buildEditorTheme(colors, { dark }) {
         },
 
         "& .cm-completionInfoDocs": {
-          borderTop: `1px solid ${colors.separator}`,
           padding: "6px",
+
+          "&:not(:first-child)": {
+            borderTop: `1px solid ${colors.separator}`,
+          },
         },
       },
 
