@@ -232,7 +232,7 @@ export default class LiveEditor {
       const doc = this.view.state.doc;
 
       const diagnostics = codeMarkers.map((marker) => {
-        const line = doc.lineAt(marker.line);
+        const line = doc.line(marker.line);
 
         const [, leadingWhitespace, trailingWhitespace] =
           line.text.match(/^(\s*).*?(\s*)$/);
