@@ -380,6 +380,22 @@ defmodule Livebook.Config do
     Application.get_env(:livebook, :warn_on_live_teams_server, false)
   end
 
+  @app_version Mix.Project.config()[:version]
+
+  @doc """
+  Returns the current version of running Livebook.
+  """
+  def app_version(), do: @app_version
+
+  @doc """
+  Aborts booting due to a configuration error.
+  """
+  @spec abort!(String.t()) :: no_return()
+  def abort!(message) do
+    IO.puts("\nERROR!!! [Livebook] " <> message)
+    System.halt(1)
+  end
+
   ## Parsing
 
   @doc """
@@ -387,18 +403,11 @@ defmodule Livebook.Config do
   """
   def writable_dir!(env) do
     if dir = System.get_env(env) do
-      writable_dir!(env, dir)
-    end
-  end
-
-  @doc """
-  Validates `dir` within context.
-  """
-  def writable_dir!(context, dir) do
-    if writable_dir?(dir) do
-      Path.expand(dir)
-    else
-      abort!("expected #{context} to be a writable directory: #{dir}")
+      if writable_dir?(dir) do
+        Path.expand(dir)
+      else
+        abort!("expected #{env} to be a writable directory: #{dir}")
+      end
     end
   end
 
@@ -592,16 +601,10 @@ defmodule Livebook.Config do
   Parses and validates default runtime from env.
   """
   def default_runtime!(env) do
-    if runtime = System.get_env(env) do
-      default_runtime!(env, runtime)
-    end
-  end
+    case System.get_env(env) do
+      nil ->
+        nil
 
-  @doc """
-  Parses and validates default runtime within context.
-  """
-  def default_runtime!(context, runtime) do
-    case runtime do
       "standalone" ->
         Livebook.Runtime.ElixirStandalone.new()
 
@@ -614,25 +617,28 @@ defmodule Livebook.Config do
 
       other ->
         abort!(
-          ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
+          ~s{expected #{env} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
     end
+  end
+
+  defp parse_connection_config!(config) do
+    {:ok, node, cookie} = Livebook.Utils.split_at_last_occurrence(config, ":")
+
+    node = String.to_atom(node)
+    cookie = String.to_atom(cookie)
+
+    {node, cookie}
   end
 
   @doc """
   Parses and validates apps warmup mode from env.
   """
   def apps_path_warmup!(env) do
-    if warmup = System.get_env(env) do
-      apps_path_warmup!(env, warmup)
-    end
-  end
+    case System.get_env(env) do
+      nil ->
+        nil
 
-  @doc """
-  Parses and validates apps warmup mode within context.
-  """
-  def apps_path_warmup!(context, warmup) do
-    case warmup do
       "auto" ->
         :auto
 
@@ -640,7 +646,7 @@ defmodule Livebook.Config do
         :manual
 
       other ->
-        abort!(~s{expected #{context} to be either "auto" or "manual", got: #{inspect(other)}})
+        abort!(~s{expected #{env} to be either "auto" or "manual", got: #{inspect(other)}})
     end
   end
 
@@ -668,68 +674,31 @@ defmodule Livebook.Config do
     end
   end
 
-  @app_version Mix.Project.config()[:version]
-
-  @doc """
-  Returns the current version of running Livebook.
-  """
-  def app_version(), do: @app_version
-
-  defp parse_connection_config!(config) do
-    {:ok, node, cookie} = Livebook.Utils.split_at_last_occurrence(config, ":")
-
-    node = String.to_atom(node)
-    cookie = String.to_atom(cookie)
-
-    {node, cookie}
-  end
-
-  @doc """
-  Aborts booting due to a configuration error.
-  """
-  @spec abort!(String.t()) :: no_return()
-  def abort!(message) do
-    IO.puts("\nERROR!!! [Livebook] " <> message)
-    System.halt(1)
-  end
-
   @doc """
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    if provider = System.get_env(env) do
-      identity_provider!(env, provider)
-    else
-      {:session, LivebookWeb.SessionIdentity, :unused}
-    end
-  end
+    case System.get_env(env) do
+      nil ->
+        {:session, LivebookWeb.SessionIdentity, :unused}
 
-  @doc """
-  Parses and validates zero trust identity provider within context.
+      "custom:" <> module_key ->
+        destructure [module, key], String.split(module_key, ":", parts: 2)
+        module = Module.concat([module])
 
-      iex> Livebook.Config.identity_provider!("ENV_VAR", "custom:Module")
-      {:custom, Module, nil}
+        if Code.ensure_loaded?(module) do
+          {:custom, module, key}
+        else
+          abort!("module given as custom identity provider in #{env} could not be found")
+        end
 
-      iex> Livebook.Config.identity_provider!("ENV_VAR", "custom:LivebookWeb.SessionIdentity:extra")
-      {:custom, LivebookWeb.SessionIdentity, "extra"}
-  """
-  def identity_provider!(context, "custom:" <> module_key) do
-    destructure [module, key], String.split(module_key, ":", parts: 2)
-    module = Module.concat([module])
-
-    if Code.ensure_loaded?(module) do
-      {:custom, module, key}
-    else
-      abort!("module given as custom identity provider in #{context} could not be found")
-    end
-  end
-
-  def identity_provider!(context, provider) do
-    with [type, key] <- String.split(provider, ":", parts: 2),
-         %{^type => module} <- identity_provider_type_to_module() do
-      {module, key}
-    else
-      _ -> abort!("invalid configuration for identity provider given in #{context}")
+      provider ->
+        with [type, key] <- String.split(provider, ":", parts: 2),
+             %{^type => module} <- identity_provider_type_to_module() do
+          {module, key}
+        else
+          _ -> abort!("invalid configuration for identity provider given in #{env}")
+        end
     end
   end
 

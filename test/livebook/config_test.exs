@@ -33,6 +33,19 @@ defmodule Livebook.ConfigTest do
     end
   end
 
+  describe "identity_provider!/1" do
+    test "parses custom provider" do
+      with_env([TEST_IDENTITY_PROVIDER: "custom:Module"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") == {:custom, Module, nil}
+      end)
+
+      with_env([TEST_IDENTITY_PROVIDER: "custom:LivebookWeb.SessionIdentity:extra"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
+                 {:custom, LivebookWeb.SessionIdentity, "extra"}
+      end)
+    end
+  end
+
   defp with_env(env_vars, fun) do
     existing =
       Enum.map(env_vars, fn {env, _value} ->
