@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.SessionHelpers
+  import LivebookWeb.NotebookComponents
 
   defguardp is_many(list) when tl(list) != []
 

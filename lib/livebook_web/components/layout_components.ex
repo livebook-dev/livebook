@@ -1,7 +1,7 @@
-defmodule LivebookWeb.LayoutHelpers do
+defmodule LivebookWeb.LayoutComponents do
   use LivebookWeb, :html
 
-  import LivebookWeb.UserHelpers
+  import LivebookWeb.UserComponents
 
   alias Livebook.Hubs.Provider
 

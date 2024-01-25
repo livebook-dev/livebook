@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AppLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) when socket.assigns.app_authenticated? do

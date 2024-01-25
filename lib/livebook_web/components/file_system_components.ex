@@ -1,4 +1,4 @@
-defmodule LivebookWeb.FileSystemHelpers do
+defmodule LivebookWeb.FileSystemComponents do
   use LivebookWeb, :html
 
   alias Livebook.FileSystem

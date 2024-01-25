@@ -4,7 +4,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
   alias Livebook.Teams
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
   alias LivebookWeb.TeamsComponents
   alias LivebookWeb.NotFoundError
 
@@ -65,9 +65,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <LayoutHelpers.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
+      <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
         <%= Provider.connection_status(@hub) %>
-      </LayoutHelpers.topbar>
+      </LayoutComponents.topbar>
 
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <div id={"#{@id}-component"}>

@@ -70,7 +70,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 {"Online", "online"}
               ]}
             />
-            <LivebookWeb.AppHelpers.deployment_group_form_content hub={@hub} form={f} />
+            <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
                 <.remix_icon icon={@button.icon} class="align-middle mr-1" />

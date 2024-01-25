@@ -1,7 +1,7 @@
 defmodule LivebookWeb.UserComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.UserHelpers
+  import LivebookWeb.UserComponents
 
   alias Livebook.EctoTypes.HexColor
   alias Livebook.Users

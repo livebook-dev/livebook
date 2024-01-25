@@ -1,7 +1,7 @@
 defmodule LivebookWeb.AppSessionLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
   alias Livebook.Session
   alias Livebook.Notebook

@@ -1,9 +1,9 @@
 defmodule LivebookWeb.AppsDashboardLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
 
   on_mount LivebookWeb.SidebarHook
 
@@ -21,14 +21,14 @@ defmodule LivebookWeb.AppsDashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={~p"/apps-dashboard"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <div class="flex items-center justify-between">
-          <LayoutHelpers.title text="Apps" />
+          <LayoutComponents.title text="Apps" />
           <.link navigate={~p"/apps"} class="flex items-center text-blue-600">
             <span class="font-semibold">Listing</span>
             <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
@@ -38,7 +38,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           <.app_list apps={@apps} />
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 

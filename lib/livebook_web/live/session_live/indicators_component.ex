@@ -261,7 +261,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   defp insert_mode_indicator(assigns) do
     ~H"""
-    <% # Note: this indicator is shown/hidden using CSS based on the current mode %>
+    <%!-- Note: this indicator is shown/hidden using CSS based on the current mode --%>
     <span class="tooltip left" data-tooltip="Insert mode" data-el-insert-mode-indicator>
       <span class="text-sm font-medium text-gray-400 cursor-default">
         ins

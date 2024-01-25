@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LearnHelpers, LayoutHelpers}
+  alias LivebookWeb.LayoutComponents
   alias Livebook.{Sessions, Notebook}
 
   on_mount LivebookWeb.SidebarHook
@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={@self_path}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
@@ -63,7 +63,7 @@ defmodule LivebookWeb.HomeLive do
 
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <LayoutHelpers.title text="Home" />
+          <LayoutComponents.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
             <.link
               navigate={~p"/open/storage"}
@@ -107,9 +107,14 @@ defmodule LivebookWeb.HomeLive do
               </:actions>
             </.no_entries>
             <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <% # Note: it's fine to use stateless components in this comprehension,
-              # because @notebook_infos never change %>
-              <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
+              <%!--
+              Note: it's fine to use stateless components in this comprehension,
+              because @notebook_infos never change
+              --%>
+              <LivebookWeb.NotebookComponents.learn_notebook_card
+                :for={info <- @notebook_infos}
+                notebook_info={info}
+              />
             </div>
           <% else %>
             <.live_component
@@ -143,7 +148,7 @@ defmodule LivebookWeb.HomeLive do
           />
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
 
     <.modal :if={@live_action == :import} id="import-modal" show width={:big} patch={@self_path}>
       <.live_component
@@ -160,7 +165,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp update_notification(assigns) do
     ~H"""
-    <LayoutHelpers.topbar>
+    <LayoutComponents.topbar>
       <span>
         Livebook v<%= @version %> available!
         <%= if @instructions_url do %>
@@ -192,13 +197,13 @@ defmodule LivebookWeb.HomeLive do
         <% end %>
         🚀
       </span>
-    </LayoutHelpers.topbar>
+    </LayoutComponents.topbar>
     """
   end
 
   defp memory_notification(assigns) do
     ~H"""
-    <LayoutHelpers.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
+    <LayoutComponents.topbar :if={@app_service_url && @memory.free < 30_000_000} variant={:error}>
       <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
       Less than 30 MB of memory left, consider
       <a
@@ -215,7 +220,7 @@ defmodule LivebookWeb.HomeLive do
       >
         running sessions
       </a>
-    </LayoutHelpers.topbar>
+    </LayoutComponents.topbar>
     """
   end
 

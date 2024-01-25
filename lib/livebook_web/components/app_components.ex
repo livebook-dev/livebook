@@ -1,4 +1,4 @@
-defmodule LivebookWeb.AppHelpers do
+defmodule LivebookWeb.AppComponents do
   use LivebookWeb, :html
 
   alias Livebook.Hubs

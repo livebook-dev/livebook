@@ -300,7 +300,7 @@ defmodule Livebook.Hubs.Dockerfile do
             end,
             if used_hub_file_systems != [] do
               %module{} = hd(used_hub_file_systems)
-              name = LivebookWeb.FileSystemHelpers.file_system_name(module)
+              name = LivebookWeb.FileSystemComponents.file_system_name(module)
 
               "The #{name} file storage, defined in your personal hub, will not be available in the Docker image." <>
                 " You must either download all references as attachments or use Livebook Teams to automatically" <>

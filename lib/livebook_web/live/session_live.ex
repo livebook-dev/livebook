@@ -1,9 +1,9 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
+  import LivebookWeb.UserComponents
   import LivebookWeb.SessionHelpers
-  import LivebookWeb.FileSystemHelpers
+  import LivebookWeb.FileSystemComponents
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias Livebook.{Sessions, Session, Text, Notebook, Runtime, LiveMarkdown}
@@ -715,8 +715,10 @@ defmodule LivebookWeb.SessionLive do
           >
             <span class="flex items-center space-x-1">
               <span><%= section_item.name %></span>
-              <% # Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-              # consequently we show the tooltip wrapped to a fixed number of characters %>
+              <%!--
+              Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+              consequently we show the tooltip wrapped to a fixed number of characters
+              --%>
               <span
                 :if={section_item.parent}
                 {branching_tooltip_attrs(section_item.name, section_item.parent.name)}
