@@ -7,19 +7,11 @@ defmodule LivebookWeb.Output.FrameComponent do
   end
 
   @impl true
-  def update(assigns, socket) do
-    {update_type, assigns} = Map.pop(assigns, :update_type, nil)
-    {outputs, assigns} = Map.pop!(assigns, :outputs)
-
-    socket = assign(socket, assigns)
-
-    socket = assign_new(socket, :num_outputs, fn -> length(outputs) end)
+  def update(%{event: {:update, update_type, outputs, input_views}}, socket) do
+    socket = assign(socket, input_views: input_views)
 
     socket =
       case update_type do
-        nil ->
-          stream(socket, :outputs, stream_items(outputs))
-
         :replace ->
           socket
           |> assign(num_outputs: length(outputs))
@@ -30,6 +22,17 @@ defmodule LivebookWeb.Output.FrameComponent do
           |> update(:num_outputs, &(length(outputs) + &1))
           |> stream(:outputs, stream_items(outputs))
       end
+
+    {:ok, socket}
+  end
+
+  def update(assigns, socket) do
+    {outputs, assigns} = Map.pop!(assigns, :outputs)
+
+    socket = assign(socket, assigns)
+
+    socket = assign_new(socket, :num_outputs, fn -> length(outputs) end)
+    socket = stream(socket, :outputs, stream_items(outputs))
 
     {:ok, socket}
   end

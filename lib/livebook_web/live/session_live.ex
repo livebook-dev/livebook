@@ -2923,14 +2923,14 @@ defmodule LivebookWeb.SessionLive do
         changed_input_ids = Session.Data.changed_input_ids(data)
 
         for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
+          # Note that we are not updating data_view to avoid re-render,
+          # but any change that causes frame to re-render will update
+          # data_view first
+          input_views = input_views_for_cell(cell, data, changed_input_ids)
+
           send_update(LivebookWeb.Output.FrameComponent,
             id: "outputs-#{idx}-output",
-            outputs: frame.outputs,
-            update_type: update_type,
-            # Note that we are not updating data_view to avoid re-render,
-            # but any change that causes frame to re-render will update
-            # data_view first
-            input_views: input_views_for_cell(cell, data, changed_input_ids)
+            event: {:update, update_type, frame.outputs, input_views}
           )
         end
 
@@ -2948,7 +2948,7 @@ defmodule LivebookWeb.SessionLive do
                 :markdown -> LivebookWeb.Output.MarkdownComponent
               end
 
-            send_update(module, id: "outputs-#{idx}-output", text: output.text)
+            send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
             data_view
 
           _ ->

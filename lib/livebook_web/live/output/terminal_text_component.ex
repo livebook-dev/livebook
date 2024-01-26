@@ -5,45 +5,55 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
   def mount(socket) do
     {:ok,
      socket
-     |> assign(modifiers: [], last_line: nil, last_html_line: nil)
+     |> assign(modifiers: [], last_line: nil, last_html_line: nil, initialized: false)
      |> stream(:html_lines, [])}
   end
 
   @impl true
+  def update(%{event: {:append, text}}, socket) do
+    {:ok, append_text(socket, text)}
+  end
+
   def update(assigns, socket) do
     {text, assigns} = Map.pop(assigns, :text)
     socket = assign(socket, assigns)
 
-    if text do
-      text = (socket.assigns.last_line || "") <> text
-
-      text = Livebook.Notebook.normalize_terminal_text(text)
-
-      last_line =
-        case Livebook.Utils.split_at_last_occurrence(text, "\n") do
-          :error -> text
-          {:ok, _, last_line} -> last_line
-        end
-
-      {html_lines, modifiers} =
-        LivebookWeb.ANSIHelpers.ansi_string_to_html_lines_step(text, socket.assigns.modifiers)
-
-      {html_lines, [last_html_line]} = Enum.split(html_lines, -1)
-
-      stream_items =
-        for html_line <- html_lines, do: %{id: Livebook.Utils.random_long_id(), html: html_line}
-
-      socket = stream(socket, :html_lines, stream_items)
-
-      {:ok,
-       assign(socket,
-         last_html_line: last_html_line,
-         last_line: last_line,
-         modifiers: modifiers
-       )}
-    else
+    if socket.assigns.initialized do
       {:ok, socket}
+    else
+      {:ok,
+       socket
+       |> append_text(text)
+       |> assign(:initialized, true)}
     end
+  end
+
+  defp append_text(socket, text) do
+    text = (socket.assigns.last_line || "") <> text
+
+    text = Livebook.Notebook.normalize_terminal_text(text)
+
+    last_line =
+      case Livebook.Utils.split_at_last_occurrence(text, "\n") do
+        :error -> text
+        {:ok, _, last_line} -> last_line
+      end
+
+    {html_lines, modifiers} =
+      LivebookWeb.ANSIHelpers.ansi_string_to_html_lines_step(text, socket.assigns.modifiers)
+
+    {html_lines, [last_html_line]} = Enum.split(html_lines, -1)
+
+    stream_items =
+      for html_line <- html_lines, do: %{id: Livebook.Utils.random_long_id(), html: html_line}
+
+    socket = stream(socket, :html_lines, stream_items)
+
+    assign(socket,
+      last_html_line: last_html_line,
+      last_line: last_line,
+      modifiers: modifiers
+    )
   end
 
   @impl true

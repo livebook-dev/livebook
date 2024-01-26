@@ -410,11 +410,11 @@ defmodule LivebookWeb.AppSessionLive do
         changed_input_ids = Session.Data.changed_input_ids(data)
 
         for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
+          input_views = input_views_for_cell(cell, data, changed_input_ids)
+
           send_update(LivebookWeb.Output.FrameComponent,
             id: "outputs-#{idx}-output",
-            outputs: frame.outputs,
-            update_type: update_type,
-            input_views: input_views_for_cell(cell, data, changed_input_ids)
+            event: {:update, update_type, frame.outputs, input_views}
           )
         end
 
@@ -432,7 +432,7 @@ defmodule LivebookWeb.AppSessionLive do
                 :markdown -> LivebookWeb.Output.MarkdownComponent
               end
 
-            send_update(module, id: "outputs-#{idx}-output", text: output.text)
+            send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
             data_view
 
           _ ->
