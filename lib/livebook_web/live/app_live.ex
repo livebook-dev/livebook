@@ -79,7 +79,7 @@ defmodule LivebookWeb.AppLive do
                 by
                 <span class="font-semibold"><%= app_session.started_by.name || "Anonymous" %></span>
               </span>
-              <%= format_datetime_relatively(app_session.created_at) %> ago
+              <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at) %> ago
             </span>
             <div class="mr-0.5 flex">
               <.app_status status={app_session.app_status} show_label={false} />

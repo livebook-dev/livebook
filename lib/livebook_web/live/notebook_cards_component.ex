@@ -21,7 +21,8 @@ defmodule LivebookWeb.NotebookCardsComponent do
             <%= @card_icon && render_slot(@card_icon, {info, idx}) %>
           </div>
           <div class="mt-1 flex-grow text-gray-600 text-sm">
-            <%= @added_at_label %> <%= format_datetime_relatively(info.added_at) %> ago
+            <%= @added_at_label %>
+            <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(info.added_at) %> ago
           </div>
           <div class="mt-2 flex space-x-6">
             <%= if session = session_by_file(info.file, @sessions) do %>

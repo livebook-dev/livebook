@@ -1,4 +1,4 @@
-defmodule LivebookWeb.Helpers.Codec do
+defmodule LivebookWeb.CodecHelpers do
   @wav_header_size 44
 
   @doc """

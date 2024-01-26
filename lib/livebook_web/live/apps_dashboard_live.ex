@@ -125,7 +125,7 @@ defmodule LivebookWeb.AppsDashboardLive do
                     </a>
                   </:col>
                   <:col :let={app_session} label="Uptime">
-                    <%= format_datetime_relatively(app_session.created_at) %>
+                    <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(app_session.created_at) %>
                   </:col>
                   <:col :let={app_session} label="Version">
                     v<%= app_session.version %>

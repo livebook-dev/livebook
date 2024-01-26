@@ -57,7 +57,10 @@ defmodule LivebookWeb.Output.FileInputComponent do
         </div>
         <.live_file_input upload={@uploads.file} class="hidden" accept={@accept} />
       </label>
-      <p :for={msg <- upload_error_messages(@uploads.file)} class="mt-0.5 text-red-600 text-sm">
+      <p
+        :for={msg <- LivebookWeb.HTMLHelpers.upload_error_messages(@uploads.file)}
+        class="mt-0.5 text-red-600 text-sm"
+      >
         <%= msg %>
       </p>
     </form>

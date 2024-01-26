@@ -3,6 +3,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   import Livebook.Utils, only: [format_bytes: 1]
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.HTMLHelpers
 
   alias Livebook.{Session, Notebook}
 

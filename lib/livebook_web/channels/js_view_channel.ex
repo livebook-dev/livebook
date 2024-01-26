@@ -1,7 +1,7 @@
 defmodule LivebookWeb.JSViewChannel do
   use Phoenix.Channel
 
-  alias LivebookWeb.Helpers.Codec
+  alias LivebookWeb.CodecHelpers
 
   @impl true
   def join("js_view", %{"session_token" => session_token}, socket) do
@@ -166,7 +166,7 @@ defmodule LivebookWeb.JSViewChannel do
   # payload accordingly
 
   defp transport_encode!(meta, {:binary, info, binary}) do
-    {:binary, Codec.encode_annotated_binary!([meta, info], binary)}
+    {:binary, CodecHelpers.encode_annotated_binary!([meta, info], binary)}
   end
 
   defp transport_encode!(meta, payload) do
@@ -174,7 +174,7 @@ defmodule LivebookWeb.JSViewChannel do
   end
 
   defp transport_decode!({:binary, raw}) do
-    {[meta, info], binary} = Codec.decode_annotated_binary!(raw)
+    {[meta, info], binary} = CodecHelpers.decode_annotated_binary!(raw)
     {meta, {:binary, info, binary}}
   end
 

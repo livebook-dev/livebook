@@ -1,30 +1,32 @@
-defmodule LivebookWeb.HelpersTest do
+defmodule LivebookWeb.HTMLHelpersTest do
   use ExUnit.Case, async: true
 
-  alias LivebookWeb.Helpers
+  alias LivebookWeb.HTMLHelpers
 
-  doctest Helpers
+  doctest HTMLHelpers
 
   describe "names_to_html_ids/1" do
     test "title case" do
-      assert(Helpers.names_to_html_ids(["Title of a Section"]) == ["title-of-a-section"])
+      assert(HTMLHelpers.names_to_html_ids(["Title of a Section"]) == ["title-of-a-section"])
     end
 
     # Contains a couple of unicode spaces to ensure that we handle those
     test "space characters" do
-      assert Helpers.names_to_html_ids(["  slug \n   with  spaces \t  "]) == ["slug-with-spaces"]
+      assert HTMLHelpers.names_to_html_ids(["  slug \n   with  spaces \t  "]) == [
+               "slug-with-spaces"
+             ]
     end
 
     test "emoji at end" do
-      assert Helpers.names_to_html_ids(["Test 🦦 "]) == ["test-🦦"]
+      assert HTMLHelpers.names_to_html_ids(["Test 🦦 "]) == ["test-🦦"]
     end
 
     test "emoji in middle" do
-      assert Helpers.names_to_html_ids(["One 🥮 Two"]) == ["one-🥮-two"]
+      assert HTMLHelpers.names_to_html_ids(["One 🥮 Two"]) == ["one-🥮-two"]
     end
 
     test "returns empty list for an empty list" do
-      assert Helpers.names_to_html_ids([]) == []
+      assert HTMLHelpers.names_to_html_ids([]) == []
     end
 
     test "returns id-ified strings for different kinds of names" do
@@ -33,7 +35,7 @@ defmodule LivebookWeb.HelpersTest do
         "  something with \n  many  space  characters \t  "
       ]
 
-      assert Helpers.names_to_html_ids(names) == [
+      assert HTMLHelpers.names_to_html_ids(names) == [
                "title-of-a-section",
                "something-with-many-space-characters"
              ]
@@ -49,7 +51,7 @@ defmodule LivebookWeb.HelpersTest do
         "Title  of a Section "
       ]
 
-      assert Helpers.names_to_html_ids(names) == [
+      assert HTMLHelpers.names_to_html_ids(names) == [
                "title-of-a-section",
                "some-other-title",
                "title-of-a-section-2",
