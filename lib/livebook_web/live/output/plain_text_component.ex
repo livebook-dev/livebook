@@ -3,21 +3,34 @@ defmodule LivebookWeb.Output.PlainTextComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, stream(socket, :chunks, [])}
+    {:ok,
+     socket
+     |> assign(initialized: false)
+     |> stream(:chunks, [])}
   end
 
   @impl true
+  def update(%{event: {:append, text}}, socket) do
+    {:ok, append_text(socket, text)}
+  end
+
   def update(assigns, socket) do
     {text, assigns} = Map.pop(assigns, :text)
-
     socket = assign(socket, assigns)
 
-    if text do
-      chunk = %{id: Livebook.Utils.random_long_id(), text: text}
-      {:ok, stream_insert(socket, :chunks, chunk)}
-    else
+    if socket.assigns.initialized do
       {:ok, socket}
+    else
+      {:ok,
+       socket
+       |> append_text(text)
+       |> assign(:initialized, true)}
     end
+  end
+
+  defp append_text(socket, text) do
+    chunk = %{id: Livebook.Utils.random_long_id(), text: text}
+    stream_insert(socket, :chunks, chunk)
   end
 
   @impl true
