@@ -8,6 +8,23 @@ defmodule LivebookWeb.SessionHelpers do
   alias Livebook.FileSystem
 
   @doc """
+  Determines user platform based on the given *User-Agent* header.
+  """
+  @spec platform_from_user_agent(String.t()) :: :linux | :mac | :windows | :other
+  def platform_from_user_agent(user_agent) when is_binary(user_agent) do
+    cond do
+      linux?(user_agent) -> :linux
+      mac?(user_agent) -> :mac
+      windows?(user_agent) -> :windows
+      true -> :other
+    end
+  end
+
+  defp linux?(user_agent), do: String.match?(user_agent, ~r/Linux/)
+  defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
+  defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
+
+  @doc """
   Creates a new session, redirects on success,
   puts an error flash message on failure.
 

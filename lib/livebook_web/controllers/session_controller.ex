@@ -2,7 +2,7 @@ defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
   alias Livebook.{Sessions, Session, FileSystem}
-  alias LivebookWeb.Helpers.Codec
+  alias LivebookWeb.CodecHelpers
 
   def show_file(conn, %{"id" => id, "name" => name}) do
     with {:ok, session} <- Sessions.fetch_session(id),
@@ -190,12 +190,12 @@ defmodule LivebookWeb.SessionController do
           :pcm_f32 ->
             %{size: file_size} = File.stat!(path)
 
-            total_size = Codec.pcm_as_wav_size(file_size)
+            total_size = CodecHelpers.pcm_as_wav_size(file_size)
 
             case parse_byte_range(conn, total_size) do
               {range_start, range_end} when range_start > 0 or range_end < total_size - 1 ->
                 stream =
-                  Codec.encode_pcm_as_wav_stream!(
+                  CodecHelpers.encode_pcm_as_wav_stream!(
                     path,
                     file_size,
                     value.num_channels,
@@ -210,7 +210,7 @@ defmodule LivebookWeb.SessionController do
 
               _ ->
                 stream =
-                  Codec.encode_pcm_as_wav_stream!(
+                  CodecHelpers.encode_pcm_as_wav_stream!(
                     path,
                     file_size,
                     value.num_channels,

@@ -65,9 +65,6 @@ defmodule LivebookWeb do
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
 
-      # Custom helpers
-      import LivebookWeb.Helpers
-
       # Routes generation with the ~p sigil
       unquote(verified_routes())
     end

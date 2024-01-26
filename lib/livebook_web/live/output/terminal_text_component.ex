@@ -26,7 +26,7 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
         end
 
       {html_lines, modifiers} =
-        LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines_step(text, socket.assigns.modifiers)
+        LivebookWeb.ANSIHelpers.ansi_string_to_html_lines_step(text, socket.assigns.modifiers)
 
       {html_lines, [last_html_line]} = Enum.split(html_lines, -1)
 

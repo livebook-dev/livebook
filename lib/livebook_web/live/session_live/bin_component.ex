@@ -103,7 +103,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   </div>
                   <div class="flex justify-end space-x-2">
                     <span class="text-sm text-gray-500">
-                      <%= format_datetime_relatively(entry.deleted_at) %> ago
+                      <%= LivebookWeb.HTMLHelpers.format_datetime_relatively(entry.deleted_at) %> ago
                     </span>
                   </div>
                 </div>

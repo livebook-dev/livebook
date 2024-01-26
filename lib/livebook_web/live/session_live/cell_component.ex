@@ -654,7 +654,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp doctest_summary_message(%{doctests_count: total, failures_count: failed}) do
-    doctests_pl = pluralize(total, "doctest", "doctests")
+    doctests_pl = LivebookWeb.HTMLHelpers.pluralize(total, "doctest", "doctests")
     failures_pl = if failed == 1, do: "failure has", else: "failures have"
 
     "#{failed} out of #{doctests_pl} failed (#{failures_pl} been reported above)"

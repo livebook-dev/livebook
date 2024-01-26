@@ -1,24 +1,7 @@
-defmodule LivebookWeb.Helpers do
+defmodule LivebookWeb.HTMLHelpers do
   use Phoenix.Component
 
   use LivebookWeb, :verified_routes
-
-  @doc """
-  Determines user platform based on the given *User-Agent* header.
-  """
-  @spec platform_from_user_agent(String.t()) :: :linux | :mac | :windows | :other
-  def platform_from_user_agent(user_agent) when is_binary(user_agent) do
-    cond do
-      linux?(user_agent) -> :linux
-      mac?(user_agent) -> :mac
-      windows?(user_agent) -> :windows
-      true -> :other
-    end
-  end
-
-  defp linux?(user_agent), do: String.match?(user_agent, ~r/Linux/)
-  defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
-  defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
   @doc """
   Returns path to specific process dialog within LiveDashboard.
@@ -56,18 +39,15 @@ defmodule LivebookWeb.Helpers do
     |> String.replace(~r/\s+/u, "-")
   end
 
-  defdelegate ansi_string_to_html(string), to: LivebookWeb.Helpers.ANSI
-  defdelegate ansi_string_to_html_lines(string), to: LivebookWeb.Helpers.ANSI
-
   @doc """
   Returns the text in singular or plural depending on the quantity
 
   ## Examples
 
-      iex> LivebookWeb.Helpers.pluralize(1, "notebook is not persisted", "notebooks are not persisted")
+      iex> LivebookWeb.HTMLHelpers.pluralize(1, "notebook is not persisted", "notebooks are not persisted")
       "1 notebook is not persisted"
 
-      iex> LivebookWeb.Helpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
+      iex> LivebookWeb.HTMLHelpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
       "3 notebooks are not persisted"
 
   """

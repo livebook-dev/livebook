@@ -1,8 +1,6 @@
 defmodule LivebookWeb.Output do
   use LivebookWeb, :html
 
-  import LivebookWeb.Helpers
-
   alias LivebookWeb.Output
 
   @doc """
@@ -389,7 +387,7 @@ defmodule LivebookWeb.Output do
         role="complementary"
         aria-label="error"
         phx-no-format
-      ><%= ansi_string_to_html(@message) %></div>
+      ><%= LivebookWeb.ANSIHelpers.ansi_string_to_html(@message) %></div>
       <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
         <button
           class="icon-button bg-gray-100"

@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
   use LivebookWeb, :live_component
 
   import Ecto.Changeset
+  import LivebookWeb.HTMLHelpers
 
   alias Livebook.FileSystem
 

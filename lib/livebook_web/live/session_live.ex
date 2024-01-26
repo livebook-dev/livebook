@@ -326,7 +326,11 @@ defmodule LivebookWeb.SessionLive do
                   </button>
                 </.menu_item>
                 <.menu_item>
-                  <a role="menuitem" href={live_dashboard_process_path(@session.pid)} target="_blank">
+                  <a
+                    role="menuitem"
+                    href={LivebookWeb.HTMLHelpers.live_dashboard_process_path(@session.pid)}
+                    target="_blank"
+                  >
                     <.remix_icon icon="dashboard-2-line" />
                     <span>See on Dashboard</span>
                   </a>
@@ -2632,7 +2636,7 @@ defmodule LivebookWeb.SessionLive do
   defp doctest_report_payload(doctest_report) do
     Map.replace_lazy(doctest_report, :details, fn details ->
       details
-      |> LivebookWeb.Helpers.ANSI.ansi_string_to_html()
+      |> LivebookWeb.ANSIHelpers.ansi_string_to_html()
       |> Phoenix.HTML.safe_to_string()
     end)
   end
@@ -2787,7 +2791,7 @@ defmodule LivebookWeb.SessionLive do
   defp section_views(sections, data, changed_input_ids) do
     sections
     |> Enum.map(& &1.name)
-    |> names_to_html_ids()
+    |> LivebookWeb.HTMLHelpers.names_to_html_ids()
     |> Enum.zip(sections)
     |> Enum.map(fn {html_id, section} ->
       %{
