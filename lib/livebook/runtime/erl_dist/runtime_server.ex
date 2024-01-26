@@ -180,7 +180,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             {:transfer, target_path, target_pid} ->
               try do
                 path
-                |> File.stream!([], 2048)
+                |> File.stream!(2048, [])
                 |> Enum.each(fn chunk -> IO.binwrite(target_pid, chunk) end)
 
                 target_path
@@ -910,7 +910,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp file_md5(path) do
-    File.stream!(path, [], 2048)
+    File.stream!(path, 2048, [])
     |> Enum.reduce(:erlang.md5_init(), &:erlang.md5_update(&2, &1))
     |> :erlang.md5_final()
   end

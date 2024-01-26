@@ -382,7 +382,7 @@ defmodule LivebookWeb.FormComponents do
             id={"#{@id}-button"}
             type="button"
             data-emoji-button
-            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] bg-white flex justify-center items-center cursor-pointer"
+            class="p-1 pl-3 pr-3 rounded-tr-lg rounded-br-lg bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border-l-[1px] flex justify-center items-center cursor-pointer"
           >
             <.remix_icon icon="emotion-line" class="text-xl" />
           </button>
@@ -478,7 +478,7 @@ defmodule LivebookWeb.FormComponents do
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="mb-1 block text-sm text-gray-800 font-medium flex items-center gap-1">
+    <label for={@for} class="mb-1 flex items-center gap-1 text-sm text-gray-800 font-medium">
       <%= render_slot(@inner_block) %>
       <.help :if={@help} text={@help} />
     </label>

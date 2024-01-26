@@ -218,10 +218,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def write_stream_chunk(_file_system, state, chunk) when is_binary(chunk) do
-    case IO.binwrite(state.device, chunk) do
-      :ok -> {:ok, state}
-      {:error, error} -> FileSystem.Utils.posix_error(error)
-    end
+    :ok = IO.binwrite(state.device, chunk)
+    {:ok, state}
   end
 
   def write_stream_finish(_file_system, state) do
@@ -249,7 +247,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     try do
       result =
         path
-        |> File.stream!([], @stream_chunk_size_in_bytes)
+        |> File.stream!(@stream_chunk_size_in_bytes, [])
         |> Enum.into(collectable)
 
       {:ok, result}
