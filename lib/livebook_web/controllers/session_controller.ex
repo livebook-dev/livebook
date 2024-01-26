@@ -26,20 +26,6 @@ defmodule LivebookWeb.SessionController do
     end)
   end
 
-  # Legacy endpoint for resolving images/
-  # TODO: remove on Livebook v0.12
-  def show_image(conn, %{"id" => id, "name" => name}) do
-    case Sessions.fetch_session(id) do
-      {:ok, session} ->
-        images_dir = FileSystem.File.resolve(session.files_dir, "../images/")
-        file = FileSystem.File.resolve(images_dir, name)
-        serve_static(conn, file)
-
-      {:error, _} ->
-        send_resp(conn, 404, "Not found")
-    end
-  end
-
   def download_file(conn, %{"id" => id, "name" => name}) do
     with {:ok, session} <- Sessions.fetch_session(id),
          {:ok, path} <- Session.fetch_file_entry_path(session.pid, name) do

@@ -68,41 +68,6 @@ defmodule LivebookWeb.SessionControllerTest do
     end
   end
 
-  # Legacy endpoint for resolving images/
-  describe "show_image" do
-    test "returns not found when the given session does not exist", %{conn: conn} do
-      id = Livebook.Utils.random_node_aware_id()
-      conn = get(conn, ~p"/sessions/#{id}/images/image.jpg")
-
-      assert conn.status == 404
-      assert conn.resp_body == "Not found"
-    end
-
-    test "returns not found when the given image does not exist", %{conn: conn} do
-      {:ok, session} = Sessions.create_session()
-
-      conn = get(conn, ~p"/sessions/#{session.id}/images/nonexistent.jpg")
-
-      assert conn.status == 404
-      assert conn.resp_body == "No such file or directory"
-
-      Session.close(session.pid)
-    end
-
-    test "returns the image when it does exist", %{conn: conn} do
-      {:ok, session} = Sessions.create_session()
-      images_dir = FileSystem.File.resolve(session.files_dir, "../images/")
-      :ok = FileSystem.File.resolve(images_dir, "test.jpg") |> FileSystem.File.write("")
-
-      conn = get(conn, ~p"/sessions/#{session.id}/images/test.jpg")
-
-      assert conn.status == 200
-      assert get_resp_header(conn, "content-type") == ["image/jpeg"]
-
-      Session.close(session.pid)
-    end
-  end
-
   describe "download_file" do
     test "returns not found when the given session does not exist", %{conn: conn} do
       id = Livebook.Utils.random_node_aware_id()

@@ -119,7 +119,6 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/insert-file", SessionLive, :insert_file
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/files/:name", SessionController, :show_file
-      get "/sessions/:id/images/:name", SessionController, :show_image
       get "/sessions/:id/download/files/:name", SessionController, :download_file
       get "/sessions/audio-input/:token", SessionController, :show_input_audio
       get "/sessions/image-input/:token", SessionController, :show_input_image
