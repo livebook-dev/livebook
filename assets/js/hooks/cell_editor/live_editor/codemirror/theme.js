@@ -365,6 +365,40 @@ function buildEditorTheme(colors, { dark }) {
           fontWeight: "600",
         },
 
+        "& ul": {
+          marginTop: "1rem",
+          marginBottom: "1rem",
+          marginLeft: "2rem",
+          listStylePosition: "outside",
+          listStyleType: "disc",
+
+          "& ul": {
+            listStyleType: "circle",
+
+            "& ul": {
+              listStyleType: "square",
+            },
+          },
+        },
+
+        "& li": {
+          marginTop: "0.25rem",
+          marginBottom: "0.25rem",
+
+          "& > ul, & > ol": {
+            marginTop: "0",
+            marginBottom: "0",
+          },
+        },
+
+        "& ol": {
+          marginTop: "1rem",
+          marginBottom: "1rem",
+          marginLeft: "2rem",
+          listStylePosition: "outside",
+          listStyleType: "decimal",
+        },
+
         "& code": {
           background: colors.selectionBackground,
           borderRadius: "3px",
