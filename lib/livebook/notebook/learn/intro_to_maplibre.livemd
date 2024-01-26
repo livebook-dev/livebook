@@ -2,8 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:kino_maplibre, "~> 0.1.10"},
-  {:req, "~> 0.3.0"}
+  {:kino_maplibre, "~> 0.1.11"},
+  {:req, "~> 0.4.0"}
 ])
 ```
 
@@ -11,10 +11,10 @@ Mix.install([
 
 To work with maps in Livebook we need two libraries:
 
-* The [`maplibre`](https://github.com/livebook-dev/maplibre)
+* The [`maplibre`](https://hexdocs.pm/maplibre/MapLibre.html)
   package allows us to define our map style specifications
 
-* The [`kino_maplibre`](https://github.com/livebook-dev/kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js/docs/api/events/#evented)
+* The [`kino_maplibre`](https://hexdocs.pm/kino_maplibre/components.html) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/maplibregl.Evented/)
 
 We will make extensive use of MapLibre's functions, so it's handy to alias the module to something shorter.
 
@@ -42,7 +42,7 @@ earthquakes = %{
 }
 ```
 
-<!-- livebook:{"attrs":{"center":null,"layers":[{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lng_lat","layer_color":"#db1920","layer_id":"urban_areas","layer_opacity":1,"layer_radius":10,"layer_source":"urban_areas","layer_type":"fill","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":null},{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lat_lng","layer_color":"#000000","layer_id":"earthquakes","layer_opacity":1,"layer_radius":5,"layer_source":"earthquakes","layer_type":"circle","source_coordinates":"coordinates","source_latitude":null,"source_longitude":null,"source_type":"table"},{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lng_lat","layer_color":"#3e64ff","layer_id":"conference","layer_opacity":1,"layer_radius":10,"layer_source":"conference","layer_type":"circle","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":"geo"}],"ml_alias":"Elixir.Ml","style":"default","zoom":0},"kind":"Elixir.KinoMapLibre.MapCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":"eyJjZW50ZXIiOm51bGwsImxheWVycyI6W3siY2x1c3Rlcl9jb2xvcnMiOlsiIzUxYmJkNiIsIiNmMWYwNzUiLCIjZjI4Y2IxIl0sImNsdXN0ZXJfbWF4Ijo3NTAsImNsdXN0ZXJfbWluIjoxMDAsImNvb3JkaW5hdGVzX2Zvcm1hdCI6ImxuZ19sYXQiLCJsYXllcl9jb2xvciI6IiNkYjE5MjAiLCJsYXllcl9pZCI6InVyYmFuX2FyZWFzIiwibGF5ZXJfb3BhY2l0eSI6MSwibGF5ZXJfcmFkaXVzIjoxMCwibGF5ZXJfc291cmNlIjoidXJiYW5fYXJlYXMiLCJsYXllcl90eXBlIjoiZmlsbCIsInNvdXJjZV9jb29yZGluYXRlcyI6bnVsbCwic291cmNlX2xhdGl0dWRlIjpudWxsLCJzb3VyY2VfbG9uZ2l0dWRlIjpudWxsLCJzb3VyY2VfdHlwZSI6bnVsbH0seyJjbHVzdGVyX2NvbG9ycyI6WyIjNTFiYmQ2IiwiI2YxZjA3NSIsIiNmMjhjYjEiXSwiY2x1c3Rlcl9tYXgiOjc1MCwiY2x1c3Rlcl9taW4iOjEwMCwiY29vcmRpbmF0ZXNfZm9ybWF0IjoibGF0X2xuZyIsImxheWVyX2NvbG9yIjoiIzAwMDAwMCIsImxheWVyX2lkIjoiZWFydGhxdWFrZXMiLCJsYXllcl9vcGFjaXR5IjoxLCJsYXllcl9yYWRpdXMiOjUsImxheWVyX3NvdXJjZSI6ImVhcnRocXVha2VzIiwibGF5ZXJfdHlwZSI6ImNpcmNsZSIsInNvdXJjZV9jb29yZGluYXRlcyI6ImNvb3JkaW5hdGVzIiwic291cmNlX2xhdGl0dWRlIjpudWxsLCJzb3VyY2VfbG9uZ2l0dWRlIjpudWxsLCJzb3VyY2VfdHlwZSI6InRhYmxlIn0seyJjbHVzdGVyX2NvbG9ycyI6WyIjNTFiYmQ2IiwiI2YxZjA3NSIsIiNmMjhjYjEiXSwiY2x1c3Rlcl9tYXgiOjc1MCwiY2x1c3Rlcl9taW4iOjEwMCwiY29vcmRpbmF0ZXNfZm9ybWF0IjoibG5nX2xhdCIsImxheWVyX2NvbG9yIjoiIzNlNjRmZiIsImxheWVyX2lkIjoiY29uZmVyZW5jZSIsImxheWVyX29wYWNpdHkiOjEsImxheWVyX3JhZGl1cyI6MTAsImxheWVyX3NvdXJjZSI6ImNvbmZlcmVuY2UiLCJsYXllcl90eXBlIjoiY2lyY2xlIiwic291cmNlX2Nvb3JkaW5hdGVzIjpudWxsLCJzb3VyY2VfbGF0aXR1ZGUiOm51bGwsInNvdXJjZV9sb25naXR1ZGUiOm51bGwsInNvdXJjZV90eXBlIjoiZ2VvIn1dLCJtbF9hbGlhcyI6IkVsaXhpci5NbCIsInN0eWxlIjoiZGVmYXVsdCIsInpvb20iOjB9","chunks":null,"kind":"Elixir.KinoMapLibre.MapCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 Ml.new()
@@ -97,13 +97,13 @@ Quite succinctly, sources specify the map's data while layers define how this da
 
 > Adding a source isn't enough to make data appear on the map because sources don't contain styling details like color or width. Layers refer to a source and give it a visual representation. This makes it possible to style the same source in different ways, like differentiating between types of roads in a highways layer.
 >
-> -- <cite>[Sources documentation](https://maplibre.org/maplibre-gl-js/docs/style-spec/sources/)</cite>
+> -- <cite>[Sources documentation](https://maplibre.org/maplibre-style-spec/sources/)</cite>
 
 > A style's layers property lists all the layers available in that style. The type of layer is specified by the "type" property, and must be one of background, fill, line, symbol, raster, circle, fill-extrusion, heatmap, hillshade.
 >
 > Except for layers of the background type, each layer needs to refer to a source. Layers take the data that they get from a source, optionally filter features, and then define how those features are styled.
 >
-> -- <cite>[Layers documentation](https://maplibre.org/maplibre-gl-js/docs/style-spec/layers/)
+> -- <cite>[Layers documentation](https://maplibre.org/maplibre-style-spec/layers)
 
 Sources and layers are the core of a map. For this reason, we have a set of functions to make it straightforward to work with them.
 
@@ -231,7 +231,7 @@ Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 5, style: :street
 
 ## Expressions
 
-[Expressions](https://maplibre.org/maplibre-gl-js/docs/style-spec/expressions/) are a powerful way to render quite complex maps solely through style specifications.
+[Expressions](https://maplibre.org/maplibre-style-spec/expressions/) are a powerful way to render quite complex maps solely through style specifications.
 We can use expressions to define a formula for computing the value for any `layout`, `paint` or `filter` property.
 
 If the layer you want to make more dynamic through expressions already exists on the map, you can use `Ml.update_layer/3` to update the respective layer.
@@ -351,7 +351,7 @@ Ml.new(
 
 ## Interactive maps
 
-As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js/docs/api/events/#evented) we need `Kino.MapLibre`.
+As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/maplibregl.Evented/) we need `Kino.MapLibre`.
 
 `Kino.MapLibre` supports two types of maps: static and dynamic. Essentially, a dynamic map can be updated on the fly without having to be re-evaluated. To make a map dynamic you need to wrap it in `Kino.MapLibre.new/1`
 
