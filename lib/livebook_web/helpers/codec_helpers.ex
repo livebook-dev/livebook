@@ -27,20 +27,19 @@ defmodule LivebookWeb.CodecHelpers do
           pos_integer()
         ) :: Enumerable.t()
   def encode_pcm_as_wav_stream!(path, file_size, num_channels, sampling_rate, offset, length) do
-    {header_enum, file_length} =
+    header_enum =
       if offset < @wav_header_size do
         header = encode_pcm_as_wav_header(file_size, num_channels, sampling_rate)
         header_length = min(@wav_header_size - offset, length)
         header_slice = binary_slice(header, offset, header_length)
-        {[header_slice], length - header_length}
+        [header_slice]
       else
-        {[], length}
+        []
       end
 
     file_offset = max(offset - @wav_header_size, 0)
 
-    # TODO: use File.stream!(path, [{:read_offset, file_offset}]) once we require Elixir v1.16+
-    file_stream = raw_file_range_stream!(path, file_offset, file_length)
+    file_stream = File.stream!(path, 64_000, [{:read_offset, file_offset}])
 
     file_stream =
       case System.endianness() do
@@ -84,29 +83,6 @@ defmodule LivebookWeb.CodecHelpers do
       "data",
       data_size::32-unsigned-integer-little
     >>
-  end
-
-  # We assume a local path and open a raw file for efficiency
-  defp raw_file_range_stream!(path, offset, length) do
-    chunk_size = 64_000
-
-    Stream.resource(
-      fn ->
-        {:ok, fd} = :file.open(path, [:raw, :binary, :read, :read_ahead])
-        {:ok, _} = :file.position(fd, offset)
-        {fd, length}
-      end,
-      fn
-        {fd, 0} ->
-          {:halt, {fd, 0}}
-
-        {fd, length} ->
-          size = min(chunk_size, length)
-          {:ok, chunk} = :file.read(fd, size)
-          {[chunk], {fd, length - size}}
-      end,
-      fn {fd, _} -> :file.close(fd) end
-    )
   end
 
   @doc """
