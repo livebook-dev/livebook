@@ -85,6 +85,12 @@ function buildEditorTheme(colors, { dark }) {
         backgroundColor: colors.selectionMatchBackground,
       },
 
+      // Vim cursor
+
+      "&:not(.cm-focused) .cm-fat-cursor": {
+        outline: "none !important",
+      },
+
       // Base components
 
       ".cm-gutters": {
