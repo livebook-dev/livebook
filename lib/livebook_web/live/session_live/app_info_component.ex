@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.AppInfoComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.AppHelpers
+  import LivebookWeb.AppComponents
 
   @impl true
   def render(assigns) do

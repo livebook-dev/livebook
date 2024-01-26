@@ -3,7 +3,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
   alias Livebook.Teams
   alias Livebook.Teams.Org
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
 
   on_mount LivebookWeb.SidebarHook
 
@@ -35,15 +35,15 @@ defmodule LivebookWeb.Hub.NewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
-      <LayoutHelpers.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
+    <LayoutComponents.layout current_page="/hub" current_user={@current_user} saved_hubs={@saved_hubs}>
+      <LayoutComponents.topbar :if={Livebook.Config.warn_on_live_teams_server?()} variant={:warning}>
         <strong>Beware!</strong>
         You are running Livebook in development but this page communicates with production servers.
-      </LayoutHelpers.topbar>
+      </LayoutComponents.topbar>
 
       <div class="flex flex-col p-4 md:px-12 md:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
-          <LayoutHelpers.title text="Add organization" />
+          <LayoutComponents.title text="Add organization" />
           <p class="mt-4 text-gray-700">
             <a
               class="font-medium underline text-gray-900 hover:no-underline"
@@ -145,7 +145,7 @@ defmodule LivebookWeb.Hub.NewLive do
           </.form>
         </div>
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 

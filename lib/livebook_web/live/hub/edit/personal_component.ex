@@ -3,7 +3,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
 
   alias Livebook.Hubs
   alias Livebook.Hubs.Personal
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -47,7 +47,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
       <div id={"#{@id}-component"}>
         <div class="mb-8 flex flex-col space-y-10">
           <div class="flex flex-col space-y-2">
-            <LayoutHelpers.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+            <LayoutComponents.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
             <p class="text-gray-700 text-sm">
               Your personal hub. All data is stored on your machine and only you can access it.

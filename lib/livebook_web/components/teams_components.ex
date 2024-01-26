@@ -1,7 +1,7 @@
 defmodule LivebookWeb.TeamsComponents do
   use Phoenix.Component
 
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
 
   @doc """
   Renders the teams header with the badges.
@@ -12,7 +12,7 @@ defmodule LivebookWeb.TeamsComponents do
 
   def header(assigns) do
     ~H"""
-    <LayoutHelpers.title>
+    <LayoutComponents.title>
       <div class="flex gap-2 items-center">
         <div class="flex justify-center">
           <span class="relative">
@@ -33,7 +33,7 @@ defmodule LivebookWeb.TeamsComponents do
           </span>
         <% end %>
       </div>
-    </LayoutHelpers.title>
+    </LayoutComponents.title>
     """
   end
 end

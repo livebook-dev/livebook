@@ -28,7 +28,7 @@ defmodule LivebookWeb.FileSelectComponent do
   # To force the component to refetch the displayed files you can
   # `send_update` with `force_reload: true` to the component.
 
-  import LivebookWeb.FileSystemHelpers
+  import LivebookWeb.FileSystemComponents
 
   alias Livebook.FileSystem
 

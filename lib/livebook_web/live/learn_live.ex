@@ -2,8 +2,9 @@ defmodule LivebookWeb.LearnLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.NotebookComponents
 
-  alias LivebookWeb.{LayoutHelpers, LearnHelpers}
+  alias LivebookWeb.LayoutComponents
   alias Livebook.Notebook.Learn
 
   on_mount LivebookWeb.SidebarHook
@@ -23,14 +24,14 @@ defmodule LivebookWeb.LearnLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={~p"/learn"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
-          <LayoutHelpers.title text="Learn" />
+          <LayoutComponents.title text="Learn" />
           <p class="mt-4 mb-8 text-gray-700">
             Check out a number of examples showcasing various parts of the Elixir ecosystem.<br />
             Click on any notebook you like and start playing around with it!
@@ -40,11 +41,7 @@ defmodule LivebookWeb.LearnLive do
           id="welcome-to-livebook"
           class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center"
         >
-          <img
-            src={LearnHelpers.learn_img_src(@lead_notebook_info.details.cover)}
-            width="100"
-            alt="livebook"
-          />
+          <img src={learn_img_src(@lead_notebook_info.details.cover)} width="100" alt="livebook" />
           <div>
             <h3 class="text-xl text-gray-50 font-semibold">
               <%= @lead_notebook_info.title %>
@@ -63,13 +60,15 @@ defmodule LivebookWeb.LearnLive do
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          <% # Note: it's fine to use stateless components in this comprehension,
-          # because @notebook_infos never change %>
-          <LearnHelpers.notebook_card :for={info <- @notebook_infos} notebook_info={info} />
+          <%!--
+          Note: it's fine to use stateless components in this comprehension,
+          because @notebook_infos never change
+          --%>
+          <.learn_notebook_card :for={info <- @notebook_infos} notebook_info={info} />
         </div>
         <.notebook_group :for={group_info <- Learn.group_infos()} group_info={group_info} />
       </div>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 
@@ -77,7 +76,7 @@ defmodule LivebookWeb.LearnLive do
     ~H"""
     <div>
       <div class="p-8 mt-16 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
-        <img src={LearnHelpers.learn_img_src(@group_info.cover)} width="100" />
+        <img src={learn_img_src(@group_info.cover)} width="100" />
         <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
             <%= length(@group_info.notebook_infos) %> notebooks

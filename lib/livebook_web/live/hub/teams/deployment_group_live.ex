@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
   use LivebookWeb, :live_view
 
-  alias LivebookWeb.LayoutHelpers
+  alias LivebookWeb.LayoutComponents
   alias LivebookWeb.TeamsComponents
   alias Livebook.Hubs
   alias Livebook.Teams
@@ -58,15 +58,15 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <LayoutHelpers.layout
+    <LayoutComponents.layout
       current_page={~p"/hub/#{@hub.id}"}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <div>
-        <LayoutHelpers.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
+        <LayoutComponents.topbar :if={Provider.connection_status(@hub)} variant={:warning}>
           <%= Provider.connection_status(@hub) %>
-        </LayoutHelpers.topbar>
+        </LayoutComponents.topbar>
 
         <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
           <div id={"#{@hub.id}-component"}>
@@ -127,14 +127,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                   </p>
 
                   <.form :let={f} for={@config_changeset} as={:data} phx-change="validate_dockerfile">
-                    <LivebookWeb.AppHelpers.docker_config_form_content
+                    <LivebookWeb.AppComponents.docker_config_form_content
                       hub={@hub}
                       form={f}
                       show_deploy_all={false}
                     />
                   </.form>
 
-                  <LivebookWeb.AppHelpers.docker_instructions
+                  <LivebookWeb.AppComponents.docker_instructions
                     hub={@hub}
                     dockerfile={@dockerfile}
                     dockerfile_config={Ecto.Changeset.apply_changes(@config_changeset)}
@@ -162,7 +162,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
           return_to={~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}"}
         />
       </.modal>
-    </LayoutHelpers.layout>
+    </LayoutComponents.layout>
     """
   end
 

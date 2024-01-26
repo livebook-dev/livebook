@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.BinComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.SessionHelpers
+  import LivebookWeb.NotebookComponents
 
   alias Livebook.Notebook.Cell
 

@@ -58,8 +58,10 @@ defmodule LivebookWeb.Output.TerminalTextComponent do
       data-p-max-lines={hook_prop(Livebook.Notebook.max_terminal_lines())}
       data-p-ignore-trailing-empty-line={hook_prop(true)}
     >
-      <% # Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>
-      <% # Note 2: We glue the tags together to avoid inserting unintended whitespace %>
+      <%!--
+      Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent
+      Note 2: We glue the tags together to avoid inserting unintended whitespace
+      --%>
       <div data-template class="hidden" id={"#{@id}-template"} phx-no-format><div
         id={"#{@id}-template-append"}
         phx-update="stream"

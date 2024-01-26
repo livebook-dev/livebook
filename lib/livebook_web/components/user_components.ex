@@ -1,4 +1,4 @@
-defmodule LivebookWeb.UserHelpers do
+defmodule LivebookWeb.UserComponents do
   use LivebookWeb, :html
 
   @doc """

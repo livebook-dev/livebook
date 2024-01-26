@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
   alias Livebook.Hubs
   alias Livebook.FileSystem
-  alias LivebookWeb.AppHelpers
+  alias LivebookWeb.AppComponents
   alias Livebook.Hubs.Provider
 
   @impl true
@@ -136,14 +136,14 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         phx-target={@myself}
       >
         <div class="flex flex-col space-y-4">
-          <AppHelpers.deployment_group_form_content hub={@hub} form={f} />
+          <AppComponents.deployment_group_form_content hub={@hub} form={f} />
         </div>
       </.form>
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
-        <AppHelpers.docker_config_form_content hub={@hub} form={f} />
+        <AppComponents.docker_config_form_content hub={@hub} form={f} />
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
-      <AppHelpers.docker_instructions
+      <AppComponents.docker_instructions
         hub={@hub}
         dockerfile={@dockerfile}
         dockerfile_config={apply_changes(@changeset)}
@@ -160,7 +160,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
             <span class="font-normal text-xs">Save alongside notebook</span>
           </button>
         </:dockerfile_actions>
-      </AppHelpers.docker_instructions>
+      </AppComponents.docker_instructions>
     </div>
     """
   end

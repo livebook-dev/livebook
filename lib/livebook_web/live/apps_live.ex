@@ -86,7 +86,7 @@ defmodule LivebookWeb.AppsLive do
   @impl true
   def handle_info({type, _app} = event, socket)
       when type in [:app_created, :app_updated, :app_closed] do
-    {:noreply, update(socket, :apps, &LivebookWeb.AppHelpers.update_app_list(&1, event))}
+    {:noreply, update(socket, :apps, &LivebookWeb.AppComponents.update_app_list(&1, event))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

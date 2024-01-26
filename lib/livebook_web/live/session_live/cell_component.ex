@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.SessionHelpers
+  import LivebookWeb.NotebookComponents
 
   @impl true
   def mount(socket) do
