@@ -30,7 +30,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                 </th>
                 <th
                   scope="col"
-                  class="py-3.5 pl-3 pr-4 text-right text-sm font-semibold text-gray-900 sm:pr-6"
+                  class="py-3.5 pl-3 pr-6 text-right text-sm font-semibold text-gray-900 sm:pr-8"
                 >
                   Actions
                 </th>
