@@ -376,4 +376,26 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
 
     refute render(view) =~ agent_key.key
   end
+
+  test "doesn't show agent key section for offline deployment groups",
+       %{conn: conn, hub: hub} do
+    insert_deployment_group(
+      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
+      mode: "online",
+      hub_id: hub.id
+    )
+
+    hub_id = hub.id
+
+    assert_receive {:deployment_group_created,
+                    %DeploymentGroup{
+                      id: id,
+                      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
+                      hub_id: ^hub_id
+                    }}
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{id}")
+
+    refute render(view) =~ "#add-agent-key"
+  end
 end

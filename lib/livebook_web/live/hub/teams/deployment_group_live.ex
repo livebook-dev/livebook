@@ -121,7 +121,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                   />
                 </div>
 
-                <div class="flex flex-col space-y-4">
+                <div :if={@deployment_group.mode == "online"} class="flex flex-col space-y-4">
                   <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                     Agent Keys
                   </h2>
