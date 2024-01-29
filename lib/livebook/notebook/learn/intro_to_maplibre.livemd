@@ -347,6 +347,17 @@ Ml.new(
 )
 ```
 
+## Controls
+
+The controls allow you to personalize the experience of using the maps that best suits you.
+In addition to navigation controls, terrain, scale, location and geocode controls are available.
+
+The geocode control is particularly interesting. It allows you to use [Nominatim](https://nominatim.org) queries to search for any address directly from the map.
+
+```elixir
+Ml.new() |> Kino.MapLibre.add_geocode_control()
+```
+
 <!-- livebook:{"branch_parent_index":2} -->
 
 ## Interactive maps
