@@ -117,6 +117,16 @@ defmodule Livebook.Factory do
     %{deployment_group | id: to_string(id)}
   end
 
+  def insert_agent_key(attrs \\ %{}) do
+    deployment_group = build(:deployment_group, attrs)
+    hub = Livebook.Hubs.fetch_hub!(deployment_group.hub_id)
+    {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+    deployment_group = %{deployment_group | id: to_string(id)}
+    :ok = Livebook.Teams.create_agent_key(hub, deployment_group)
+
+    deployment_group
+  end
+
   def insert_env_var(factory_name, attrs \\ %{}) do
     env_var = build(factory_name, attrs)
     attributes = env_var |> Map.from_struct() |> Map.to_list()

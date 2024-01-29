@@ -129,6 +129,31 @@ defmodule Livebook.Hubs.TeamClientTest do
       # receives `{:deployment_group_deleted, deployment_group}` event
       assert_receive {:deployment_group_deleted, ^updated_deployment_group}
     end
+
+    test "receives the agent key events", %{team: team} do
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_AGENT_KEY_#{team.id}", mode: "online")
+
+      assert {:ok, _} = Livebook.Teams.create_deployment_group(team, deployment_group)
+
+      # receives `{:event, :deployment_group_created, :deployment_group}` event
+      assert_receive {:deployment_group_created, deployment_group}
+      id = deployment_group.id
+
+      # creates the agent key
+      assert Livebook.Teams.create_agent_key(team, deployment_group) == :ok
+
+      # since the `agent_key` belongs to a deployment group,
+      # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
+      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [agent_key]}}
+
+      # deletes the agent key
+      assert Livebook.Teams.delete_agent_key(team, agent_key) == :ok
+
+      # since the `agent_key` belongs to a deployment group,
+      # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
+      assert_receive {:deployment_group_updated, %{agent_keys: []}}
+    end
   end
 
   describe "handle user_connected event" do
