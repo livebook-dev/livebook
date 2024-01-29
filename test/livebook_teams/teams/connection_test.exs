@@ -79,7 +79,7 @@ defmodule Livebook.Teams.ConnectionTest do
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
 
-      # creates a new deployment_group
+      # creates a new deployment group
       deployment_group = build(:deployment_group, name: "FOO", mode: "offline")
 
       assert {:ok, _id} =

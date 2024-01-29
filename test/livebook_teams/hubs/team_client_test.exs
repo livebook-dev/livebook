@@ -49,7 +49,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       name = secret.name
       value = secret.value
 
-      # receives `{:secret_created, secret_created}` event
+      # receives `{:secret_created, secret}` event
       # with the value decrypted
       assert_receive {:secret_created, %{name: ^name, value: ^value}}
 
@@ -59,14 +59,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       new_value = updated_secret.value
 
-      # receives `{:secret_updated, secret_updated}` event
+      # receives `{:secret_updated, secret}` event
       # with the value decrypted
       assert_receive {:secret_updated, %{name: ^name, value: ^new_value}}
 
       # deletes the secret
       assert Livebook.Hubs.delete_secret(team, updated_secret) == :ok
 
-      # receives `{:secret_deleted, secret_deleted}` event
+      # receives `{:secret_deleted, secret}` event
       assert_receive {:secret_deleted, %{name: ^name, value: ^new_value}}
     end
 
@@ -79,7 +79,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       bucket_url = file_system.bucket_url
       region = file_system.region
 
-      # receives `{:file_system_created, file_system_created}` event
+      # receives `{:file_system_created, file_system}` event
       assert_receive {:file_system_created,
                       %{external_id: id, bucket_url: ^bucket_url, region: ^region}}
 
@@ -89,47 +89,45 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       new_region = updated_file_system.region
 
-      # receives `{:file_system_updated, file_system_updated}` event
+      # receives `{:file_system_updated, file_system}` event
       assert_receive {:file_system_updated,
                       %{external_id: ^id, bucket_url: ^bucket_url, region: ^new_region}}
 
       # deletes the file system
       assert Livebook.Hubs.delete_file_system(team, updated_file_system) == :ok
 
-      # receives `{:file_system_deleted, file_system_deleted}` event
+      # receives `{:file_system_deleted, file_system}` event
       assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}
     end
 
     test "receives the deployment group events", %{team: team} do
-      deployment_group = build(:deployment_group, name: "DEPLOYMENT_GROUP", mode: "online")
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: "online")
 
       assert {:ok, id} =
                Livebook.Teams.create_deployment_group(team, deployment_group)
 
       %{name: name, mode: mode} = deployment_group
 
-      # receives `{:event, :deployment_group_created, deployment_group_created}` event
-      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
+      # receives `{:event, :deployment_group_created, deployment_group}` event
+      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode} = deployment_group}
 
-      # updates the deployment group
-      update_deployment_group = %{deployment_group | id: id, mode: "online"}
+      updated_deployment_group = %{deployment_group | mode: "offline"}
 
       assert {:ok, ^id} =
                Livebook.Teams.update_deployment_group(
                  team,
-                 update_deployment_group
+                 updated_deployment_group
                )
 
-      new_mode = update_deployment_group.mode
-
-      # receives `{:deployment_group_updated, deployment_group_updated}` event
-      assert_receive {:deployment_group_updated, %{name: ^name, mode: ^new_mode}}
+      # receives `{:deployment_group_updated, deployment_group}` event
+      assert_receive {:deployment_group_updated, ^updated_deployment_group}
 
       # deletes the deployment group
-      assert Livebook.Teams.delete_deployment_group(team, update_deployment_group) == :ok
+      assert Livebook.Teams.delete_deployment_group(team, updated_deployment_group) == :ok
 
-      # receives `{:deployment_group_deleted, deployment_group_deleted}` event
-      assert_receive {:deployment_group_deleted, %{name: ^name, mode: ^new_mode}}
+      # receives `{:deployment_group_deleted, deployment_group}` event
+      assert_receive {:deployment_group_deleted, ^updated_deployment_group}
     end
   end
 
