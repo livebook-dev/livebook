@@ -687,59 +687,6 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  # JS commands
-
-  @doc """
-  Toggles classes on elements.
-  """
-  def toggle_class(js \\ %JS{}, names, opts \\ []) do
-    opts = Keyword.validate!(opts, [:to])
-
-    to = Keyword.fetch!(opts, :to)
-
-    names
-    |> String.split()
-    |> Enum.reduce(js, fn name, js ->
-      js
-      |> JS.remove_class(name, to: "#{to}.#{name}")
-      |> JS.add_class(name, to: "#{to}:not(.#{name})")
-    end)
-  end
-
-  @doc """
-  Pushes and executes the given `%Phoenix.LiveView.JS{}` on the client.
-
-  ## Options
-
-    * `:to` - selector for elements to execute against. Defaults to
-      document body
-
-  """
-  def exec_js(socket, js, opts \\ []) do
-    opts = Keyword.validate!(opts, [:to])
-
-    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
-  end
-
-  @doc """
-  Encodes value for hook prop attribute.
-
-  ## Examples
-
-      <div id="hook" phx-hook={MyHook} data-p-value={hook_prop(@value)}>
-      </div>
-
-  """
-  def hook_prop(value)
-
-  def hook_prop(%Phoenix.LiveComponent.CID{} = value) do
-    hook_prop(to_string(value))
-  end
-
-  def hook_prop(value) do
-    Jason.encode!(value)
-  end
-
   @doc ~S"""
   Renders a table with generic styling.
 
@@ -815,5 +762,58 @@ defmodule LivebookWeb.CoreComponents do
       </table>
     </div>
     """
+  end
+
+  # JS commands
+
+  @doc """
+  Toggles classes on elements.
+  """
+  def toggle_class(js \\ %JS{}, names, opts \\ []) do
+    opts = Keyword.validate!(opts, [:to])
+
+    to = Keyword.fetch!(opts, :to)
+
+    names
+    |> String.split()
+    |> Enum.reduce(js, fn name, js ->
+      js
+      |> JS.remove_class(name, to: "#{to}.#{name}")
+      |> JS.add_class(name, to: "#{to}:not(.#{name})")
+    end)
+  end
+
+  @doc """
+  Pushes and executes the given `%Phoenix.LiveView.JS{}` on the client.
+
+  ## Options
+
+    * `:to` - selector for elements to execute against. Defaults to
+      document body
+
+  """
+  def exec_js(socket, js, opts \\ []) do
+    opts = Keyword.validate!(opts, [:to])
+
+    Phoenix.LiveView.push_event(socket, "lb:exec_js", %{js: Jason.encode!(js.ops), to: opts[:to]})
+  end
+
+  @doc """
+  Encodes value for hook prop attribute.
+
+  ## Examples
+
+      <div id="hook" phx-hook={MyHook} data-p-value={hook_prop(@value)}>
+      </div>
+
+  """
+  def hook_prop(value)
+
+  def hook_prop(%Phoenix.LiveComponent.CID{} = value) do
+    hook_prop(to_string(value))
+  end
+
+  def hook_prop(value) do
+    Jason.encode!(value)
   end
 end
