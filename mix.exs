@@ -118,6 +118,7 @@ defmodule Livebook.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
+      {:gettext, "~> 0.20"},
       # ZTA deps
       {:jose, "~> 1.11.5"},
       {:req, "~> 0.4.4"},
