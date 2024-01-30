@@ -22,9 +22,7 @@ defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
                 <button
                   id={"env-var-#{env_var.name}-edit"}
                   type="button"
-                  phx-click={JS.push("edit_env_var", value: %{env_var: env_var.name})}
-                  phx-target={@target}
-                  role="menuitem"
+                  phx-click={JS.push("edit_env_var", value: %{env_var: env_var.name}, target: @target)}
                 >
                   <.remix_icon icon="edit-fill" class="text-lg" />
                 </button>
@@ -35,9 +33,7 @@ defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
                 <button
                   id={"env-var-#{env_var.name}-delete"}
                   type="button"
-                  phx-click={JS.push("delete_env_var", value: %{env_var: env_var.name})}
-                  phx-target={@target}
-                  role="menuitem"
+                  phx-click={JS.push("delete_env_var", value: %{env_var: env_var.name}, target: @target)}
                 >
                   <.remix_icon icon="delete-bin-6-line" class="text-lg" />
                 </button>
