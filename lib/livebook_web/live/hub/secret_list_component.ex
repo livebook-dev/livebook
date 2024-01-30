@@ -19,7 +19,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
           No secrets here... yet!
         </.no_entries>
         <div :if={@secrets != []}>
-          <.table id="hub-secrets-table" rows={@secrets} show_action_label={true}>
+          <.table id="hub-secrets-table" rows={@secrets}>
             <:col :let={secret} label="Name"><%= secret.name %></:col>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Edit">
@@ -33,6 +33,8 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                   <.remix_icon icon="edit-fill" class="text-lg" />
                 </.link>
               </span>
+            </:action>
+            <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Delete">
                 <button
                   id={"hub-secret-#{secret.name}-delete"}

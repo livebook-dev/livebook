@@ -2,7 +2,6 @@ defmodule LivebookWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  import LivebookWeb.Gettext
 
   @doc """
   Renders [Remix](https://remixicon.com) icon.
@@ -760,8 +759,6 @@ defmodule LivebookWeb.CoreComponents do
     default: &Function.identity/1,
     doc: "the function for mapping each row before calling the :col and :action slots"
 
-  attr :show_action_label, :boolean, default: false
-
   slot :col, required: true do
     attr :label, :string
   end
@@ -789,9 +786,7 @@ defmodule LivebookWeb.CoreComponents do
               :if={@action != []}
               class="py-3.5 pl-3 pr-5 text-right text-sm font-semibold text-gray-900 sm:pr-7"
             >
-              <%= if @show_action_label,
-                do: "Action",
-                else: "<span class=\"sr-only\">#{gettext("Actions")}</span>" %>
+              <span>Actions</span>
             </th>
           </tr>
         </thead>
@@ -814,12 +809,9 @@ defmodule LivebookWeb.CoreComponents do
               </div>
             </td>
             <td :if={@action != []} class="relative p-0">
-              <div class="relative whitespace-nowrap py-4 pl-3 pr-4 text-sm font-medium sm:pr-6">
+              <div class="relative whitespace-nowrap py-4 pl-3 pr-4 text-sm font-medium sm:pr-6 flex justify-end items-center">
                 <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-gray-100 sm:rounded-r-xl" />
-                <span
-                  :for={action <- @action}
-                  class="relative ml-4 flex justify-end items-center gap-4"
-                >
+                <span :for={action <- @action} class="relative ml-4">
                   <%= render_slot(action, @row_item.(row)) %>
                 </span>
               </div>
