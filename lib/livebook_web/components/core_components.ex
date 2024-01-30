@@ -774,18 +774,12 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
       <table class="min-w-full divide-y divide-gray-300">
-        <thead>
+        <thead class="text-sm text-left font-semibold leading-6 text-gray-900">
           <tr>
-            <th
-              :for={col <- @col}
-              class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-            >
+            <th :for={col <- @col} class="py-3.5 pl-4 pr-3 sm:pl-6">
               <%= col[:label] %>
             </th>
-            <th
-              :if={@action != []}
-              class="py-3.5 pl-3 pr-5 text-right text-sm font-semibold text-gray-900 sm:pr-7"
-            >
+            <th :if={@action != []} class="py-3.5 pl-3 pr-5 text-right sm:pr-7">
               <span>Actions</span>
             </th>
           </tr>
@@ -793,23 +787,23 @@ defmodule LivebookWeb.CoreComponents do
         <tbody
           id={@id}
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="divide-y divide-gray-200 bg-white"
+          class="relative divide-y divide-gray-200 bg-white text-sm font-medium leading-6 text-gray-900"
         >
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-gray-50">
             <td
-              :for={{col, i} <- Enum.with_index(@col)}
+              :for={col <- @col}
               phx-click={@row_click && @row_click.(row)}
               class={["relative p-0", @row_click && "hover:cursor-pointer"]}
             >
               <div class="block p-4 sm:px-6">
                 <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-gray-100 sm:rounded-l-xl" />
-                <span class={["relative", i == 0 && "text-sm font-medium text-gray-900"]}>
+                <span class="relative">
                   <%= render_slot(col, @row_item.(row)) %>
                 </span>
               </div>
             </td>
             <td :if={@action != []} class="relative p-0">
-              <div class="relative whitespace-nowrap py-4 pl-3 pr-4 text-sm font-medium sm:pr-6 flex justify-end items-center">
+              <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
                 <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-gray-100 sm:rounded-r-xl" />
                 <span :for={action <- @action} class="relative ml-4">
                   <%= render_slot(action, @row_item.(row)) %>
