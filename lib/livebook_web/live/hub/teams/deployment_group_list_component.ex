@@ -9,53 +9,44 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@deployment_groups == []}>
-          No deployment groups in this Hub yet.
+          No deployment groups in this Hub... yet!
         </.no_entries>
-        <div
-          :for={deployment_group <- @deployment_groups}
-          class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
-        >
-          <div class="flex items-center space-x-12">
-            <.labeled_text label="Name"><%= deployment_group.name %></.labeled_text>
-            <.labeled_text label="Mode"><%= deployment_group.mode %></.labeled_text>
-          </div>
-          <div class="flex items-center space-x-2">
-            <.menu id={"hub-deployment-group-#{deployment_group.id}-menu"}>
-              <:toggle>
-                <button class="icon-button" aria-label="open deployment group menu" type="button">
-                  <.remix_icon icon="more-2-fill" class="text-xl" />
-                </button>
-              </:toggle>
-              <.menu_item>
+        <div :if={@deployment_groups != []}>
+          <.table id="hub-deployment-groups-table" rows={@deployment_groups}>
+            <:col :let={deployment_group} label="Name"><%= deployment_group.name %></:col>
+            <:col :let={deployment_group} label="Mode">
+              <%= deployment_group.mode %>
+            </:col>
+            <:action :let={deployment_group}>
+              <span class="tooltip left" data-tooltip="Edit">
                 <.link
                   id={"hub-deployment-group-#{deployment_group.id}-edit"}
                   patch={~p"/hub/#{@hub_id}/deployment-groups/edit/#{deployment_group.id}"}
                   type="button"
-                  role="menuitem"
+                  class="icon-button"
                 >
-                  <.remix_icon icon="file-edit-line" />
-                  <span>Edit</span>
+                  <.remix_icon icon="edit-fill" class="text-lg" />
                 </.link>
-              </.menu_item>
-              <.menu_item variant={:danger}>
+              </span>
+            </:action>
+            <:action :let={deployment_group}>
+              <span class="tooltip left" data-tooltip="Delete">
                 <button
                   id={"hub-deployment-group-#{deployment_group.id}-delete"}
                   type="button"
-                  role="menuitem"
-                  class="text-red-600"
                   phx-click={
                     JS.push("delete_deployment_group",
                       value: %{id: deployment_group.id, name: deployment_group.name}
                     )
                   }
                   phx-target={@myself}
+                  class="icon-button"
                 >
-                  <.remix_icon icon="delete-bin-line" />
-                  <span>Delete</span>
+                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
                 </button>
-              </.menu_item>
-            </.menu>
-          </div>
+              </span>
+            </:action>
+          </.table>
         </div>
       </div>
       <div class="flex">
