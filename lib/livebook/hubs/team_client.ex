@@ -267,7 +267,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp put_agent_key(deployment_group, agent_key) do
     deployment_group = remove_agent_key(deployment_group, agent_key)
-    agent_keys = Enum.uniq([agent_key | deployment_group.agent_keys])
+    agent_keys = [agent_key | deployment_group.agent_keys]
 
     %{deployment_group | agent_keys: Enum.sort_by(agent_keys, & &1.id)}
   end
