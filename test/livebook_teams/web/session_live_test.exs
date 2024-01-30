@@ -369,7 +369,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       insert_deployment_group(
         name: "DEPLOYMENT_GROUP_SUSIE",
-        mode: "online",
+        mode: :online,
         hub_id: team_id
       )
 
@@ -399,14 +399,14 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       insert_deployment_group(
         name: "DEPLOYMENT_GROUP_SUSIE",
-        mode: "online",
+        mode: :online,
         hub_id: team_id
       )
 
       deployment_group =
         insert_deployment_group(
           name: "DEPLOYMENT_GROUP_TOBIAS",
-          mode: "online",
+          mode: :online,
           hub_id: team_id
         )
 

@@ -121,13 +121,13 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                   />
                 </div>
 
-                <div :if={@deployment_group.mode == "online"} class="flex flex-col space-y-4">
+                <div :if={@deployment_group.mode == :online} class="flex flex-col space-y-4">
                   <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                     Agent Keys
                   </h2>
 
                   <p class="text-gray-700">
-                    Deployment group agent keys for Airgapped deployments
+                    Deployment group agent keys for online deployments
                   </p>
 
                   <.live_component
@@ -241,7 +241,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     {:noreply,
      confirm(socket, on_confirm,
        title: "Create agent key",
-       description: "Are you sure you want to create a new agent key?",
+       description: "This will create a new agent key for this deployment group.",
        confirm_text: "Create",
        confirm_icon: "plus-6-line",
        danger: false

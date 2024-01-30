@@ -66,8 +66,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               }
               field={f[:mode]}
               options={[
-                {"Offline", "offline"},
-                {"Online", "online"}
+                {"Offline", :offline},
+                {"Online", :online}
               ]}
             />
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />

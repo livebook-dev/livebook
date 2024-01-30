@@ -212,7 +212,7 @@ defmodule Livebook.Teams.Requests do
   @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def create_agent_key(team, deployment_group) do
-    params = %{deployment_group_id: String.to_integer(deployment_group.id)}
+    params = %{deployment_group_id: deployment_group.id}
     post("/api/v1/org/deployment-groups/agent-keys", params, team)
   end
 

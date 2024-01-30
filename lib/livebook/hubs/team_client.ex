@@ -265,6 +265,20 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp put_agent_key(deployment_group, agent_key) do
+    deployment_group = remove_agent_key(deployment_group, agent_key)
+    agent_keys = Enum.uniq([agent_key | deployment_group.agent_keys])
+
+    %{deployment_group | agent_keys: Enum.sort_by(agent_keys, & &1.id)}
+  end
+
+  defp remove_agent_key(deployment_group, agent_key) do
+    %{
+      deployment_group
+      | agent_keys: Enum.reject(deployment_group.agent_keys, &(&1.id == agent_key.id))
+    }
+  end
+
   defp build_agent_key(agent_key) do
     %Teams.AgentKey{
       id: to_string(agent_key.id),
@@ -275,18 +289,18 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_deployment_group(state, deployment_group) do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
-    agent_keys = for agent_key <- deployment_group.agent_keys, do: build_agent_key(agent_key)
+    agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
       name: deployment_group.name,
-      mode: deployment_group.mode,
+      mode: String.to_existing_atom(deployment_group.mode),
       hub_id: state.hub.id,
       secrets: secrets,
       agent_keys: agent_keys,
-      clustering: deployment_group.clustering,
-      zta_provider: String.to_atom(deployment_group.zta_provider),
-      zta_key: deployment_group.zta_key
+      clustering: nullify(deployment_group.clustering),
+      zta_provider: atomize(deployment_group.zta_provider),
+      zta_key: nullify(deployment_group.zta_key)
     }
   end
 
@@ -409,28 +423,26 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:agent_key_created, agent_key_created, state) do
     agent_key = build_agent_key(agent_key_created)
 
-    case find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
-      nil ->
-        state
-
-      deployment_group ->
-        agent_keys = Enum.uniq([agent_key | deployment_group.agent_keys])
-        deployment_group = %{deployment_group | agent_keys: Enum.reverse(agent_keys)}
-        handle_event(:deployment_group_updated, deployment_group, state)
+    if deployment_group =
+         find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
+      handle_event(:deployment_group_updated, put_agent_key(deployment_group, agent_key), state)
+    else
+      state
     end
   end
 
   defp handle_event(:agent_key_deleted, agent_key_deleted, state) do
     agent_key = build_agent_key(agent_key_deleted)
 
-    case find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
-      nil ->
+    if deployment_group =
+         find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
+      handle_event(
+        :deployment_group_updated,
+        remove_agent_key(deployment_group, agent_key),
         state
-
-      deployment_group ->
-        agent_keys = Enum.reject(deployment_group.agent_keys, &(&1 == agent_key))
-        deployment_group = %{deployment_group | agent_keys: agent_keys}
-        handle_event(:deployment_group_updated, deployment_group, state)
+      )
+    else
+      state
     end
   end
 
@@ -515,4 +527,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp find_deployment_group(nil, _), do: nil
   defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
+
+  defp atomize(value) when value in [nil, ""], do: nil
+  defp atomize(value), do: String.to_existing_atom(value)
+
+  defp nullify(""), do: nil
+  defp nullify(value), do: value
 end

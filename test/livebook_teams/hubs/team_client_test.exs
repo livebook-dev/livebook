@@ -102,7 +102,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
     test "receives the deployment group events", %{team: team} do
       deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: "online")
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
       assert {:ok, id} =
                Livebook.Teams.create_deployment_group(team, deployment_group)
@@ -112,7 +112,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # receives `{:event, :deployment_group_created, deployment_group}` event
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode} = deployment_group}
 
-      updated_deployment_group = %{deployment_group | mode: "offline"}
+      updated_deployment_group = %{deployment_group | mode: :offline}
 
       assert {:ok, ^id} =
                Livebook.Teams.update_deployment_group(
@@ -132,13 +132,13 @@ defmodule Livebook.Hubs.TeamClientTest do
 
     test "receives the agent key events", %{team: team} do
       deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_AGENT_KEY_#{team.id}", mode: "online")
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_AGENT_KEY_#{team.id}", mode: :online)
 
-      assert {:ok, _} = Livebook.Teams.create_deployment_group(team, deployment_group)
+      assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
+      id = to_string(id)
 
       # receives `{:event, :deployment_group_created, :deployment_group}` event
-      assert_receive {:deployment_group_created, deployment_group}
-      id = deployment_group.id
+      assert_receive {:deployment_group_created, %{id: ^id} = deployment_group}
 
       # creates the agent key
       assert Livebook.Teams.create_agent_key(team, deployment_group) == :ok
@@ -152,7 +152,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # since the `agent_key` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated, %{agent_keys: []}}
+      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: []}}
     end
   end
 
@@ -275,7 +275,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group,
           id: "1",
           name: "sleepy-cat-#{System.unique_integer([:positive])}",
-          mode: "offline",
+          mode: :offline,
           hub_id: team.id,
           secrets: []
         )
@@ -297,11 +297,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
       # updates the deployment group
-      updated_deployment_group = %{deployment_group | mode: "online"}
+      updated_deployment_group = %{deployment_group | mode: :online}
 
       updated_livebook_proto_deployment_group = %{
         livebook_proto_deployment_group
-        | mode: updated_deployment_group.mode
+        | mode: to_string(updated_deployment_group.mode)
       }
 
       user_connected = %{
@@ -446,7 +446,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group,
           id: to_string(teams_deployment_group.id),
           name: teams_deployment_group.name,
-          mode: to_string(teams_deployment_group.mode),
+          mode: teams_deployment_group.mode,
           hub_id: team.id,
           secrets: []
         )
@@ -467,11 +467,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
       # updates the deployment group
-      updated_deployment_group = %{deployment_group | mode: "offline"}
+      updated_deployment_group = %{deployment_group | mode: :offline}
 
       updated_livebook_proto_deployment_group = %{
         livebook_proto_deployment_group
-        | mode: updated_deployment_group.mode
+        | mode: to_string(updated_deployment_group.mode)
       }
 
       agent_connected = %{
@@ -532,7 +532,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         build(:deployment_group,
           id: to_string(teams_deployment_group.id),
           name: teams_deployment_group.name,
-          mode: to_string(teams_deployment_group.mode),
+          mode: teams_deployment_group.mode,
           hub_id: team.id,
           secrets: [override_secret]
         )

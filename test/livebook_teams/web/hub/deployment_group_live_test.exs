@@ -21,7 +21,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
     deployment_group =
       build(:deployment_group,
         name: "TEAMS_ADD_DEPLOYMENT_GROUP",
-        mode: "offline",
+        mode: :offline,
         hub_id: hub.id
       )
 
@@ -70,7 +70,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "updates an existing deployment group", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -86,7 +86,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
       }
     }
 
-    new_mode = "offline"
+    new_mode = :offline
 
     {:ok, view, html} =
       live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
@@ -117,7 +117,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "creates a secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -197,7 +197,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "updates an existing secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -270,7 +270,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "deletes an existing secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -317,7 +317,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "creates an agent key", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -347,7 +347,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "deletes an agent key", %{conn: conn, hub: hub} do
     insert_agent_key(
       name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP_DELETE",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -381,7 +381,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
        %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 

@@ -80,7 +80,7 @@ defmodule Livebook.Teams.ConnectionTest do
       assert_receive :connected
 
       # creates a new deployment group
-      deployment_group = build(:deployment_group, name: "FOO", mode: "offline")
+      deployment_group = build(:deployment_group, name: "FOO", mode: :offline)
 
       assert {:ok, _id} =
                Livebook.Teams.create_deployment_group(hub, deployment_group)
@@ -88,7 +88,7 @@ defmodule Livebook.Teams.ConnectionTest do
       # deployment_group name and mode are not encrypted
       assert_receive {:event, :deployment_group_created, deployment_group_created}
       assert deployment_group_created.name == deployment_group.name
-      assert deployment_group_created.mode == deployment_group.mode
+      assert String.to_existing_atom(deployment_group_created.mode) == deployment_group.mode
     end
 
     test "receives the agent_key_created event", %{user: user, node: node} do
@@ -98,7 +98,7 @@ defmodule Livebook.Teams.ConnectionTest do
       assert_receive :connected
 
       # creates a new deployment group
-      deployment_group = build(:deployment_group, name: "FOO", mode: "online")
+      deployment_group = build(:deployment_group, name: "FOO", mode: :online)
 
       assert {:ok, deployment_group_id} =
                Livebook.Teams.create_deployment_group(hub, deployment_group)

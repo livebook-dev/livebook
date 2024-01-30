@@ -59,10 +59,7 @@ defmodule Livebook.Factory do
   def build(:deployment_group) do
     %Livebook.Teams.DeploymentGroup{
       name: "FOO",
-      mode: "offline",
-      clustering: "",
-      zta_key: "",
-      zta_provider: :"",
+      mode: :offline,
       agent_keys: [],
       secrets: []
     }

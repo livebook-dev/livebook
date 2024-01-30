@@ -246,6 +246,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of deployment groups for a given Hub.
   """
+  @spec get_deployment_groups(Team.t()) :: list(DeploymentGroup.t())
   def get_deployment_groups(team) do
     TeamClient.get_deployment_groups(team.id)
   end
@@ -253,6 +254,7 @@ defmodule Livebook.Teams do
   @doc """
   Gets a list of agent keys for a given Hub and deployment group id.
   """
+  @spec get_agent_keys(Team.t(), String.t()) :: list(AgentKey.t())
   def get_agent_keys(team, deployment_group_id) do
     deployment_groups = TeamClient.get_deployment_groups(team.id)
 
