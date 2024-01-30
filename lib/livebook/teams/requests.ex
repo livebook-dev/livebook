@@ -4,9 +4,8 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
-  alias Livebook.Teams.Org
+  alias Livebook.Teams.{AgentKey, DeploymentGroup, Org}
   alias Livebook.Utils.HTTP
-  alias Livebook.Teams.DeploymentGroup
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -205,6 +204,26 @@ defmodule Livebook.Teams.Requests do
           {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def delete_deployment_group(team, deployment_group) do
     delete("/api/v1/org/deployment-groups", %{id: deployment_group.id}, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to create an agent key.
+  """
+  @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def create_agent_key(team, deployment_group) do
+    params = %{deployment_group_id: deployment_group.id}
+    post("/api/v1/org/deployment-groups/agent-keys", params, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to delete an agent key.
+  """
+  @spec delete_agent_key(Team.t(), AgentKey.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_agent_key(team, agent_key) do
+    params = %{id: agent_key.id, deployment_group_id: agent_key.deployment_group_id}
+    delete("/api/v1/org/deployment-groups/agent-keys", params, team)
   end
 
   @doc """

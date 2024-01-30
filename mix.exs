@@ -113,7 +113,7 @@ defmodule Livebook.MixProject do
       {:aws_credentials, "~> 0.2.0", runtime: false},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
-      {:protobuf, "~> 0.8.0"},
+      {:protobuf, "~> 0.12.0"},
       {:dns_cluster, "~> 0.1.2"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},

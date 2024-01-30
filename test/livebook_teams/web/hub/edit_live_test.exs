@@ -302,7 +302,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       deployment_group =
         build(:deployment_group,
           name: "TEAM_ADD_DEPLOYMENT_GROUP",
-          mode: "offline",
+          mode: :offline,
           hub_id: hub.id
         )
 
@@ -357,7 +357,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     test "updates an existing deployment group", %{conn: conn, hub: hub} do
       insert_deployment_group(
         name: "TEAM_EDIT_DEPLOYMENT_GROUP",
-        mode: "online",
+        mode: :online,
         hub_id: hub.id
       )
 
@@ -375,7 +375,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
         }
       }
 
-      new_mode = "offline"
+      new_mode = :offline
 
       view
       |> element("#hub-deployment-group-#{deployment_group.id}-edit")
@@ -412,7 +412,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     test "deletes existing deployment group", %{conn: conn, hub: hub} do
       insert_deployment_group(
         name: "TEAM_DELETE_DEPLOYMENT_GROUP",
-        mode: "online",
+        mode: :online,
         hub_id: hub.id
       )
 

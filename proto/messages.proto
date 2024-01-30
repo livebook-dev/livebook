@@ -62,6 +62,7 @@ message DeploymentGroup {
   string clustering = 5;
   string zta_provider = 6;
   string zta_key = 7;
+  repeated AgentKey agent_keys = 8;
 }
 
 message DeploymentGroupCreated {
@@ -72,6 +73,7 @@ message DeploymentGroupCreated {
   string clustering = 5;
   string zta_provider = 6;
   string zta_key = 7;
+  repeated AgentKey agent_keys = 8;
 }
 
 message DeploymentGroupUpdated {
@@ -82,10 +84,29 @@ message DeploymentGroupUpdated {
   string clustering = 5;
   string zta_provider = 6;
   string zta_key = 7;
+  repeated AgentKey agent_keys = 8;
 }
 
 message DeploymentGroupDeleted {
   string id = 1;
+}
+
+message AgentKey {
+  string id = 1;
+  string key = 2;
+  string deployment_group_id = 3;
+}
+
+message AgentKeyCreated {
+  string id = 1;
+  string key = 2;
+  string deployment_group_id = 3;
+}
+
+message AgentKeyDeleted {
+  string id = 1;
+  string key = 2;
+  string deployment_group_id = 3;
 }
 
 message UserConnected {
@@ -118,5 +139,7 @@ message Event {
     DeploymentGroupUpdated deployment_group_updated = 9;
     DeploymentGroupDeleted deployment_group_deleted = 10;
     AgentConnected agent_connected = 11;
+    AgentKeyCreated agent_key_created = 12;
+    AgentKeyDeleted agent_key_deleted = 13;
   }
 }

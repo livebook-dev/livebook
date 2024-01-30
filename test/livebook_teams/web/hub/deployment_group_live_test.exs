@@ -21,7 +21,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
     deployment_group =
       build(:deployment_group,
         name: "TEAMS_ADD_DEPLOYMENT_GROUP",
-        mode: "offline",
+        mode: :offline,
         hub_id: hub.id
       )
 
@@ -70,7 +70,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "updates an existing deployment group", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -86,7 +86,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
       }
     }
 
-    new_mode = "offline"
+    new_mode = :offline
 
     {:ok, view, html} =
       live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
@@ -117,7 +117,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "creates a secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -197,7 +197,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "updates an existing secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -270,7 +270,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
   test "deletes an existing secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-      mode: "online",
+      mode: :online,
       hub_id: hub.id
     )
 
@@ -312,5 +312,90 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
     assert render(view) =~ "Secret DEPLOYMENT_GROUP_DELETE_SECRET deleted successfully"
     refute render(element(view, "#deployment-group-secrets-list")) =~ secret.name
     refute secret in deployment_group.secrets
+  end
+
+  test "creates an agent key", %{conn: conn, hub: hub} do
+    insert_deployment_group(
+      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
+      mode: :online,
+      hub_id: hub.id
+    )
+
+    hub_id = hub.id
+
+    assert_receive {:deployment_group_created,
+                    %DeploymentGroup{name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP", hub_id: ^hub_id} =
+                      deployment_group}
+
+    id = deployment_group.id
+
+    {:ok, view, _html} =
+      live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+
+    view
+    |> element("#add-agent-key")
+    |> render_click()
+
+    render_confirm(view)
+
+    assert_receive {:deployment_group_updated,
+                    %Livebook.Teams.DeploymentGroup{id: ^id, agent_keys: [agent_key]}}
+
+    assert render(view) =~ agent_key.key
+  end
+
+  test "deletes an agent key", %{conn: conn, hub: hub} do
+    insert_agent_key(
+      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP_DELETE",
+      mode: :online,
+      hub_id: hub.id
+    )
+
+    hub_id = hub.id
+
+    assert_receive {:deployment_group_updated,
+                    %DeploymentGroup{
+                      id: id,
+                      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP_DELETE",
+                      hub_id: ^hub_id,
+                      agent_keys: [%{deployment_group_id: id} = agent_key]
+                    }}
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{id}")
+
+    assert render(view) =~ agent_key.key
+
+    view
+    |> element("#hub-agent-key-#{agent_key.id}-delete")
+    |> render_click()
+
+    render_confirm(view)
+
+    assert_receive {:deployment_group_updated,
+                    %Livebook.Teams.DeploymentGroup{id: ^id, agent_keys: []}}
+
+    refute render(view) =~ agent_key.key
+  end
+
+  test "doesn't show agent key section for offline deployment groups",
+       %{conn: conn, hub: hub} do
+    insert_deployment_group(
+      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
+      mode: :online,
+      hub_id: hub.id
+    )
+
+    hub_id = hub.id
+
+    assert_receive {:deployment_group_created,
+                    %DeploymentGroup{
+                      id: id,
+                      name: "TEAMS_AGENT_KEY_DEPLOYMENT_GROUP",
+                      hub_id: ^hub_id
+                    }}
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{id}")
+
+    refute render(view) =~ "#add-agent-key"
   end
 end

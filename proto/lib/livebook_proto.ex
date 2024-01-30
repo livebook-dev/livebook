@@ -1,6 +1,8 @@
 defmodule LivebookProto do
   alias LivebookProto.{
     AgentConnected,
+    AgentKeyCreated,
+    AgentKeyDeleted,
     Event,
     FileSystemCreated,
     FileSystemDeleted,
@@ -21,6 +23,8 @@ defmodule LivebookProto do
 
   @type event_proto ::
           AgentConnected.t()
+          | AgentKeyCreated.t()
+          | AgentKeyDeleted.t()
           | FileSystemCreated.t()
           | FileSystemDeleted.t()
           | FileSystemUpdated.t()
@@ -37,7 +41,7 @@ defmodule LivebookProto do
   """
   @spec build_event(event_proto()) :: Event.t()
   def build_event(%struct{} = data) do
-    Event.new!(type: {event_type(struct), data})
+    %Event{type: {event_type(struct), data}}
   end
 
   defp event_type(module), do: Map.fetch!(@event_mapping, module)

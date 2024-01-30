@@ -32,6 +32,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
         do: deployment_group.secrets,
         else: []
 
+    agent_keys =
+      if socket.assigns.live_action != :new_deployment_group,
+        do: deployment_group.agent_keys,
+        else: []
+
     secret_value =
       if socket.assigns.live_action == :edit_secret do
         Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
@@ -49,7 +54,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
        secret_name: secret_name,
        secret_value: secret_value,
        default?: default?,
-       secrets: secrets
+       secrets: secrets,
+       agent_keys: agent_keys
      )
      |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
      |> update_dockerfile()}
@@ -114,6 +120,36 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                     return_to={~p"/hub/#{@hub.id}/deployment-groups/edit/#{@deployment_group.id}"}
                   />
                 </div>
+
+                <div :if={@deployment_group.mode == :online} class="flex flex-col space-y-4">
+                  <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                    Agent Keys
+                  </h2>
+
+                  <p class="text-gray-700">
+                    Deployment group agent keys for online deployments
+                  </p>
+
+                  <.live_component
+                    module={LivebookWeb.Hub.Teams.AgentKeyListComponent}
+                    id="agent-keys-list"
+                    hub={@hub}
+                    agent_keys={@agent_keys}
+                    deployment_group={@deployment_group}
+                  />
+
+                  <div class="flex">
+                    <button
+                      id="add-agent-key"
+                      type="button"
+                      class="button-base button-blue"
+                      phx-click="add_agent_key"
+                    >
+                      <span>Add agent key</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div class="flex flex-col space-y-4">
                   <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                     Airgapped deployment
@@ -177,6 +213,39 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
      socket
      |> assign(config_changeset: changeset)
      |> update_dockerfile()}
+  end
+
+  def handle_event("add_agent_key", _, socket) do
+    on_confirm = fn socket ->
+      hub = Livebook.Hubs.fetch_hub!(socket.assigns.hub.id)
+      deployment_group = socket.assigns.deployment_group
+
+      case Teams.create_agent_key(hub, deployment_group) do
+        :ok ->
+          socket
+          |> put_flash(:success, "Agent key created successfully")
+          |> push_patch(to: ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+
+        {:error, _changeset} ->
+          put_flash(
+            socket,
+            :error,
+            "Something went wrong, try again later or please file a bug if it persists"
+          )
+
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
+      end
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Create agent key",
+       description: "This will create a new agent key for this deployment group.",
+       confirm_text: "Create",
+       confirm_icon: "plus-6-line",
+       danger: false
+     )}
   end
 
   defp default_hub?(hub) do

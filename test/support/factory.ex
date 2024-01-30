@@ -59,10 +59,9 @@ defmodule Livebook.Factory do
   def build(:deployment_group) do
     %Livebook.Teams.DeploymentGroup{
       name: "FOO",
-      mode: "offline",
-      clustering: "",
-      zta_key: "",
-      zta_provider: :""
+      mode: :offline,
+      agent_keys: [],
+      secrets: []
     }
   end
 
@@ -113,6 +112,16 @@ defmodule Livebook.Factory do
     {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
 
     %{deployment_group | id: to_string(id)}
+  end
+
+  def insert_agent_key(attrs \\ %{}) do
+    deployment_group = build(:deployment_group, attrs)
+    hub = Livebook.Hubs.fetch_hub!(deployment_group.hub_id)
+    {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+    deployment_group = %{deployment_group | id: to_string(id)}
+    :ok = Livebook.Teams.create_agent_key(hub, deployment_group)
+
+    deployment_group
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

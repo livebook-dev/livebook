@@ -4,7 +4,7 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams.{Requests, Org, DeploymentGroup}
+  alias Livebook.Teams.{AgentKey, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
@@ -177,14 +177,9 @@ defmodule Livebook.Teams do
           | {:transport_error, String.t()}
   def update_deployment_group(%Team{} = team, deployment_group) do
     case Requests.update_deployment_group(team, deployment_group) do
-      {:ok, %{"id" => id}} ->
-        {:ok, id}
-
-      {:error, %{"errors" => errors}} ->
-        {:error, Requests.add_errors(deployment_group, errors)}
-
-      any ->
-        any
+      {:ok, %{"id" => id}} -> {:ok, id}
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
+      any -> any
     end
   end
 
@@ -197,14 +192,9 @@ defmodule Livebook.Teams do
           | {:transport_error, String.t()}
   def create_deployment_group(%Team{} = team, deployment_group) do
     case Requests.create_deployment_group(team, deployment_group) do
-      {:ok, %{"id" => id}} ->
-        {:ok, id}
-
-      {:error, %{"errors" => errors}} ->
-        {:error, Requests.add_errors(deployment_group, errors)}
-
-      any ->
-        any
+      {:ok, %{"id" => id}} -> {:ok, id}
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
+      any -> any
     end
   end
 
@@ -217,21 +207,61 @@ defmodule Livebook.Teams do
           | {:transport_error, String.t()}
   def delete_deployment_group(%Team{} = team, deployment_group) do
     case Requests.delete_deployment_group(team, deployment_group) do
-      {:ok, _} ->
-        :ok
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
+      any -> any
+    end
+  end
 
-      {:error, %{"errors" => errors}} ->
-        {:error, Requests.add_errors(deployment_group, errors)}
+  @doc """
+  Creates an Agent Key.
+  """
+  @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::
+          {:ok, pos_integer()}
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def create_agent_key(%Team{} = team, deployment_group) do
+    case Requests.create_agent_key(team, deployment_group) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
+      any -> any
+    end
+  end
 
-      any ->
-        any
+  @doc """
+  Deletes an Agent Key.
+  """
+  @spec delete_agent_key(Team.t(), AgentKey.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_agent_key(%Team{} = team, agent_key) do
+    case Requests.delete_agent_key(team, agent_key) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(agent_key, errors)}
+      any -> any
     end
   end
 
   @doc """
   Gets a list of deployment groups for a given Hub.
   """
+  @spec get_deployment_groups(Team.t()) :: list(DeploymentGroup.t())
   def get_deployment_groups(team) do
     TeamClient.get_deployment_groups(team.id)
+  end
+
+  @doc """
+  Gets a list of agent keys for a given Hub and deployment group id.
+  """
+  @spec get_agent_keys(Team.t(), String.t()) :: list(AgentKey.t())
+  def get_agent_keys(team, deployment_group_id) do
+    deployment_groups = TeamClient.get_deployment_groups(team.id)
+
+    if deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id)) do
+      deployment_group.agent_keys
+    else
+      []
+    end
   end
 end

@@ -161,7 +161,7 @@ defmodule Livebook.HubHelpers do
     {:ok, pid} = hub_pid(hub)
     secret_key = Livebook.Teams.derive_key(hub.teams_key)
     value = Livebook.Teams.encrypt(secret.value, secret_key)
-    secret_created = LivebookProto.SecretCreated.new(name: secret.name, value: value)
+    secret_created = %LivebookProto.SecretCreated{name: secret.name, value: value}
 
     send(pid, {:event, :secret_created, secret_created})
   end
@@ -169,7 +169,7 @@ defmodule Livebook.HubHelpers do
   def remove_offline_hub_secret(secret) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)
-    secret_deleted = LivebookProto.SecretDeleted.new(name: secret.name)
+    secret_deleted = %LivebookProto.SecretDeleted{name: secret.name}
 
     send(pid, {:event, :secret_deleted, secret_deleted})
   end
@@ -179,11 +179,11 @@ defmodule Livebook.HubHelpers do
     {:ok, pid} = hub_pid(hub)
 
     deployment_group_created =
-      LivebookProto.DeploymentGroupCreated.new(
+      %LivebookProto.DeploymentGroupCreated{
         id: deployment_group.id,
         name: deployment_group.name,
         mode: deployment_group.mode
-      )
+      }
 
     send(pid, {:event, :deployment_group_created, deployment_group_created})
   end
@@ -193,7 +193,7 @@ defmodule Livebook.HubHelpers do
     {:ok, pid} = hub_pid(hub)
 
     deployment_group_deleted =
-      LivebookProto.DeploymentGroupDeleted.new(id: deployment_group.id)
+      %LivebookProto.DeploymentGroupDeleted{id: deployment_group.id}
 
     send(pid, {:event, :deployment_group_deleted, deployment_group_deleted})
   end
@@ -208,12 +208,12 @@ defmodule Livebook.HubHelpers do
     value = Livebook.Teams.encrypt(json, secret_key)
 
     file_system_created =
-      LivebookProto.FileSystemCreated.new(
+      %LivebookProto.FileSystemCreated{
         id: file_system.external_id,
         name: name,
         type: Livebook.FileSystems.type(file_system),
         value: value
-      )
+      }
 
     send(pid, {:event, :file_system_created, file_system_created})
   end
@@ -221,7 +221,7 @@ defmodule Livebook.HubHelpers do
   def remove_offline_hub_file_system(file_system) do
     hub = offline_hub()
     {:ok, pid} = hub_pid(hub)
-    file_system_deleted = LivebookProto.FileSystemDeleted.new(id: file_system.external_id)
+    file_system_deleted = %LivebookProto.FileSystemDeleted{id: file_system.external_id}
 
     send(pid, {:event, :file_system_deleted, file_system_deleted})
   end
