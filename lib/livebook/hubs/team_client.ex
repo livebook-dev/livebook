@@ -281,9 +281,9 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp build_agent_key(agent_key) do
     %Teams.AgentKey{
-      id: to_string(agent_key.id),
+      id: agent_key.id,
       key: agent_key.key,
-      deployment_group_id: to_string(agent_key.deployment_group_id)
+      deployment_group_id: agent_key.deployment_group_id
     }
   end
 
