@@ -791,13 +791,13 @@ defmodule LivebookWeb.CoreComponents do
         >
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-gray-50">
             <td
-              :for={{col, i} <- Enum.with_index(@col)}
+              :for={col <- @col}
               phx-click={@row_click && @row_click.(row)}
               class={["relative p-0", @row_click && "hover:cursor-pointer"]}
             >
               <div class="block p-4 sm:px-6">
                 <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-gray-100 sm:rounded-l-xl" />
-                <span class={["relative", i == 0]}>
+                <span class="relative">
                   <%= render_slot(col, @row_item.(row)) %>
                 </span>
               </div>
