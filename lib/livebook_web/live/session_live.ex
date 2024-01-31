@@ -858,23 +858,6 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
   end
 
-  def handle_event(
-        "set_smart_cell_editor_intellisense_node",
-        %{"js_view_ref" => cell_id, "node" => node, "cookie" => cookie},
-        socket
-      ) do
-    node =
-      if is_binary(node) and node =~ "@" and is_binary(cookie) and cookie != "" do
-        {node, cookie}
-      end
-
-    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{
-      editor_intellisense_node: node
-    })
-
-    {:noreply, socket}
-  end
-
   @impl true
   def handle_call({:get_input_value, input_id}, _from, socket) do
     reply =
@@ -2105,7 +2088,7 @@ defmodule LivebookWeb.SessionLive do
     "#{notebook_name} - Livebook"
   end
 
-  defp intellisense_node(%Cell.Smart{editor_intellisense_node: node_cookie}), do: node_cookie
+  defp intellisense_node(%Cell.Smart{editor: %{intellisense_node: node_cookie}}), do: node_cookie
   defp intellisense_node(_), do: nil
 
   defp any_stale_cell?(data) do

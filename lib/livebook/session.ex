@@ -1661,6 +1661,8 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    info = normalize_smart_cell_started_info(info)
+
     info =
       if info.editor do
         normalize_newlines = &String.replace(&1, "\r\n", "\n")
@@ -1672,11 +1674,10 @@ defmodule Livebook.Session do
 
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
-        chunks = info[:chunks]
         delta = Livebook.Text.Delta.diff(cell.source, info.source)
 
         operation =
-          {:smart_cell_started, @client_id, id, delta, chunks, info.js_view, info.editor}
+          {:smart_cell_started, @client_id, id, delta, info.chunks, info.js_view, info.editor}
 
         {:noreply, handle_operation(state, operation)}
 
@@ -1710,6 +1711,42 @@ defmodule Livebook.Session do
         {:noreply, state}
 
       :error ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_info({:runtime_smart_cell_editor_update, id, options}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} when cell.editor != nil ->
+        state =
+          case options do
+            %{source: source} ->
+              delta = Livebook.Text.Delta.diff(cell.editor.source, source)
+              revision = state.data.cell_infos[cell.id].sources.secondary.revision
+
+              operation =
+                {:apply_cell_delta, @client_id, cell.id, :secondary, delta, nil, revision}
+
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
+
+        state =
+          case options do
+            %{intellisense_node: intellisense_node} ->
+              editor = %{cell.editor | intellisense_node: intellisense_node}
+              operation = {:set_cell_attributes, @client_id, cell.id, %{editor: editor}}
+              handle_operation(state, operation)
+
+            %{} ->
+              state
+          end
+
+        {:noreply, state}
+
+      _ ->
         {:noreply, state}
     end
   end
@@ -3070,4 +3107,17 @@ defmodule Livebook.Session do
     %{type: :unknown, output: other}
     |> normalize_runtime_output()
   end
+
+  # Normalizes :runtime_smart_cell_started info to match the latest
+  # specification.
+  defp normalize_smart_cell_started_info(info) when not is_map_key(info, :chunks) do
+    normalize_smart_cell_started_info(put_in(info[:chunks], nil))
+  end
+
+  defp normalize_smart_cell_started_info(info)
+       when info.editor != nil and not is_map_key(info.editor, :intellisense_node) do
+    normalize_smart_cell_started_info(put_in(info.editor[:intellisense_node], nil))
+  end
+
+  defp normalize_smart_cell_started_info(info), do: info
 end

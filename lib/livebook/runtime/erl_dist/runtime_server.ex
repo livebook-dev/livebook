@@ -130,7 +130,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           pid(),
           Runtime.intellisense_request(),
           Runtime.Runtime.parent_locators(),
-          {String.t(), String.t()} | nil
+          {atom(), atom()} | nil
         ) :: reference()
   def handle_intellisense(pid, send_to, request, parent_locators, node) do
     ref = make_ref()
@@ -921,7 +921,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp intellisense_node({node, cookie}) do
-    {node, cookie} = {String.to_atom(node), String.to_atom(cookie)}
     Node.set_cookie(node, cookie)
     if Node.connect(node), do: node, else: node()
   end

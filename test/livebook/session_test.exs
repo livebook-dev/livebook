@@ -1033,6 +1033,54 @@ defmodule Livebook.SessionTest do
              } = Session.get_data(session.pid)
     end
 
+    test "handles smart cell editor updates" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions,
+         [%{kind: "text", name: "Text", requirement_presets: []}]}
+      )
+
+      Session.subscribe(session.id)
+
+      editor = %{language: nil, placement: :bottom, source: "", intellisense_node: nil}
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "1", js_view: %{pid: self(), ref: "ref"}, editor: editor}}
+      )
+
+      # Update editor source
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id, %{source: "new source"}}
+      )
+
+      assert %{
+               notebook: %{sections: [%{cells: [%{editor: %{source: "new source"}}]}]}
+             } = Session.get_data(session.pid)
+
+      # Update intellisense node
+      send(
+        session.pid,
+        {:runtime_smart_cell_editor_update, smart_cell.id,
+         %{intellisense_node: {:test@test, :test}}}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [%{cells: [%{editor: %{intellisense_node: {:test@test, :test}}}]}]
+               }
+             } = Session.get_data(session.pid)
+    end
+
     test "pings the smart cell before evaluation to await all incoming messages" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
