@@ -466,7 +466,6 @@ function buildHighlightStyle({
     { tag: t.link, color: blue },
     { tag: t.heading, color: lightRed },
     { tag: t.monospace, color: green },
-    { tag: t.name, color: purple },
 
     // JSON specific
     { tag: t.propertyName, color: lightRed },
