@@ -18,8 +18,7 @@ defmodule Livebook.Notebook.Cell.Smart do
     :kind,
     :attrs,
     :js_view,
-    :editor,
-    :editor_intellisense_node
+    :editor
   ]
 
   alias Livebook.Utils
@@ -33,8 +32,7 @@ defmodule Livebook.Notebook.Cell.Smart do
           kind: String.t() | nil,
           attrs: attrs() | :__pruned__,
           js_view: Livebook.Runtime.js_view() | nil,
-          editor: Livebook.Runtime.editor() | nil,
-          editor_intellisense_node: {String.t(), String.t()} | nil
+          editor: Livebook.Runtime.editor() | nil
         }
 
   @type attrs :: map()
@@ -52,8 +50,7 @@ defmodule Livebook.Notebook.Cell.Smart do
       kind: nil,
       attrs: %{},
       js_view: nil,
-      editor: nil,
-      editor_intellisense_node: nil
+      editor: nil
     }
   end
 end

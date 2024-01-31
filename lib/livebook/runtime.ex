@@ -704,7 +704,12 @@ defprotocol Livebook.Runtime do
   @typedoc """
   Smart cell editor configuration.
   """
-  @type editor :: %{language: String.t() | nil, placement: :bottom | :top, source: String.t()}
+  @type editor :: %{
+          language: String.t() | nil,
+          placement: :bottom | :top,
+          source: String.t(),
+          intellisense_node: {atom(), atom()} | nil
+        }
 
   @typedoc """
   An opaque file reference.
@@ -876,7 +881,7 @@ defprotocol Livebook.Runtime do
           pid(),
           intellisense_request(),
           parent_locators(),
-          {String.t(), String.t()} | nil
+          {atom(), atom()} | nil
         ) :: reference()
   def handle_intellisense(runtime, send_to, request, parent_locators, node)
 
@@ -945,6 +950,17 @@ defprotocol Livebook.Runtime do
   The attrs are persisted and may be used to restore the smart cell
   state later. Note that for persistence they get serialized and
   deserialized as JSON.
+
+  When the smart cell editor is enabled, the runtime owner sends the
+  new editor source whenever it changes as:
+
+    * `{:editor_source, source :: String.t()}`
+
+  The cell can also update some of the editor configuration or source
+  by sending:
+
+    * `{:runtime_smart_cell_editor_update, ref, %{optional(:source) => String.t(), optional(:intellisense_node) => {atom(), atom()} | nil}}`
+
   """
   @spec start_smart_cell(
           t(),

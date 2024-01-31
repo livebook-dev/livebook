@@ -364,12 +364,6 @@ const JSView = {
           preselect_name: message.preselectName,
           options: message.options,
         });
-      } else if (message.type === "setSmartCellEditorIntellisenseNode") {
-        this.pushEvent("set_smart_cell_editor_intellisense_node", {
-          js_view_ref: this.props.ref,
-          node: message.node,
-          cookie: message.cookie,
-        });
       }
     }
   },
