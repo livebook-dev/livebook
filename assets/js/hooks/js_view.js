@@ -364,10 +364,6 @@ const JSView = {
           preselect_name: message.preselectName,
           options: message.options,
         });
-      } else if (message.type === "setSmartCellEditorIntellisenseNode") {
-        console.warn(
-          "A smart cell tried setting editor intellisense node via JavaScript, which is no longer supported. If you are using the Remote execution cell, you should update your Kino version."
-        );
       }
     }
   },
