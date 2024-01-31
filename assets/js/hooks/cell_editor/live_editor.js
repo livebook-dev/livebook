@@ -276,11 +276,9 @@ export default class LiveEditor {
     const lineWrappingEnabled =
       this.language === "markdown" && settings.editor_markdown_word_wrap;
 
-    const language = LanguageDescription.matchLanguageName(
-      languages,
-      this.language,
-      false
-    );
+    const language =
+      this.language &&
+      LanguageDescription.matchLanguageName(languages, this.language, false);
 
     const customKeymap = [{ key: "Escape", run: exitMulticursor }];
 
@@ -335,7 +333,7 @@ export default class LiveEditor {
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
-        language && language.support,
+        language ? language.support : [],
         EditorView.domEventHandlers({
           keydown: this.handleEditorKeydown.bind(this),
           blur: this.handleEditorBlur.bind(this),
