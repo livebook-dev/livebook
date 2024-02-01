@@ -24,7 +24,7 @@ export function highlight(code, language) {
     tree,
     getHighlightStyle(),
     (code, classes) => {
-      html += `<span class="${classes}">${code}</span>`;
+      html += `<span class="${classes}">${escapeHtml(code)}</span>`;
     },
     () => {
       html += "<br />";
