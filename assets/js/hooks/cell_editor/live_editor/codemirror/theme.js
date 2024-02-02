@@ -239,16 +239,8 @@ function buildEditorTheme(colors, { dark }) {
           marginRight: "4px",
         },
 
-        "& .cm-completionInfoDetail": {
-          padding: "6px",
-        },
-
         "& .cm-completionInfoDocs": {
           padding: "6px",
-
-          "&:not(:first-child)": {
-            borderTop: `1px solid ${colors.separator}`,
-          },
         },
       },
 
@@ -404,8 +396,14 @@ function buildEditorTheme(colors, { dark }) {
           borderRadius: "3px",
         },
 
-        "& pre code": {
-          background: "transparent",
+        "& pre": {
+          marginTop: "0.5rem",
+          marginBottom: "0.5rem",
+
+          "& code": {
+            background: "transparent",
+            whiteSpace: "pre-wrap",
+          },
         },
 
         "& > :first-child": {
