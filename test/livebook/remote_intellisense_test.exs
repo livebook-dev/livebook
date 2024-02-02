@@ -73,8 +73,11 @@ defmodule Livebook.RemoteIntellisenseTest do
       assert %{
                label: "RemoteModule",
                kind: :module,
-               detail: "module",
-               documentation: "No documentation available",
+               documentation: """
+               No documentation available
+
+               (module)\
+               """,
                insert_text: "RemoteModule"
              } in Intellisense.get_completion_items("RemoteModule", context, node)
     end
@@ -85,7 +88,6 @@ defmodule Livebook.RemoteIntellisenseTest do
       assert %{
                label: "hello/1",
                kind: :function,
-               detail: nil,
                documentation: "No documentation available",
                insert_text: "hello(${})"
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
@@ -99,7 +101,6 @@ defmodule Livebook.RemoteIntellisenseTest do
                %{
                  label: "unsubscribe/1",
                  kind: :function,
-                 detail: nil,
                  documentation: "No documentation available",
                  insert_text: "unsubscribe(${})"
                }

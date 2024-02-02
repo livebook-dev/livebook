@@ -531,7 +531,6 @@ defprotocol Livebook.Runtime do
   @type completion_item :: %{
           label: String.t(),
           kind: completion_item_kind(),
-          detail: String.t() | nil,
           documentation: String.t() | nil,
           insert_text: String.t()
         }

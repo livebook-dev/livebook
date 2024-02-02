@@ -424,28 +424,17 @@ export default class LiveEditor {
       label: item.label,
       type: item.kind,
       info: (completion) => {
+        if (item.documentation === null) return null;
+
         // The info popup is shown automatically, we delay it a bit
         // to not distract the user too much as they are typing
         return wait(350).then(() => {
           const node = document.createElement("div");
-
-          if (item.detail) {
-            const detail = document.createElement("div");
-            detail.classList.add("cm-completionInfoDetail");
-            detail.innerHTML = highlight(item.detail, this.language);
-            node.appendChild(detail);
-          }
-
-          if (item.documentation) {
-            const docs = document.createElement("div");
-            docs.classList.add("cm-completionInfoDocs");
-            docs.classList.add("cm-markdown");
-            node.appendChild(docs);
-            new Markdown(docs, item.documentation, {
-              defaultCodeLanguage: this.language,
-            });
-          }
-
+          node.classList.add("cm-completionInfoDocs");
+          node.classList.add("cm-markdown");
+          new Markdown(node, item.documentation, {
+            defaultCodeLanguage: this.language,
+          });
           return node;
         });
       },

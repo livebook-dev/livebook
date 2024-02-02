@@ -50,12 +50,11 @@ defmodule Livebook.IntellisenseTest do
       length_item = %{
         label: "length/1",
         kind: :function,
-        detail: "Kernel.length(list)",
         documentation: """
         Returns the length of `list`.
 
         ```
-        @spec length(list()) :: non_neg_integer()
+        Kernel.length(list)
         ```\
         """,
         insert_text: "length(${})"
@@ -74,8 +73,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: ":zlib",
                  kind: :module,
-                 detail: "module",
-                 documentation: "zlib compression interface.",
+                 documentation: """
+                 zlib compression interface.
+
+                 (module)\
+                 """,
                  insert_text: "zlib"
                }
              ] = Intellisense.get_completion_items(":zl", context, node())
@@ -94,14 +96,12 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: ":orddict",
                  kind: :module,
-                 detail: "module",
                  documentation: _orddict_doc,
                  insert_text: "orddict"
                },
                %{
                  label: ":ordsets",
                  kind: :module,
-                 detail: "module",
                  documentation: _ordsets_doc,
                  insert_text: "ordsets"
                }
@@ -115,8 +115,11 @@ defmodule Livebook.IntellisenseTest do
       lists_item = %{
         label: ":lists",
         kind: :module,
-        detail: "module",
-        documentation: "List processing functions.",
+        documentation: """
+        List processing functions.
+
+        (module)\
+        """,
         insert_text: "lists"
       }
 
@@ -139,7 +142,6 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "open_port/2",
                  kind: :function,
-                 detail: ":erlang.open_port/2",
                  documentation: _open_port_doc,
                  insert_text: "open_port(${})"
                }
@@ -155,7 +157,6 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "iterator/0",
                kind: :type,
-               detail: ":maps.iterator()",
                documentation: """
                No documentation available
 
@@ -169,7 +170,6 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "iterator/2",
                kind: :type,
-               detail: ":maps.iterator(key, value)",
                documentation: """
                An iterator representing the associations in a map with keys of type `Key` and values of type `Value`.
 
@@ -187,8 +187,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "Elixir",
                kind: :module,
-               detail: "module",
-               documentation: "No documentation available",
+               documentation: """
+               No documentation available
+
+               (module)\
+               """,
                insert_text: "Elixir"
              } in Intellisense.get_completion_items("Eli", context, node())
     end
@@ -200,15 +203,21 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "Enum",
                  kind: :module,
-                 detail: "module",
-                 documentation: "Functions for working with collections (known as enumerables).",
+                 documentation: """
+                 Functions for working with collections (known as enumerables).
+
+                 (module)\
+                 """,
                  insert_text: "Enum"
                },
                %{
                  label: "Enumerable",
                  kind: :interface,
-                 detail: "protocol",
-                 documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
+                 documentation: """
+                 Enumerable protocol used by `Enum` and `Stream` modules.
+
+                 (protocol)\
+                 """,
                  insert_text: "Enumerable"
                }
              ] = Intellisense.get_completion_items("En", context, node())
@@ -217,8 +226,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "Enumerable",
                  kind: :interface,
-                 detail: "protocol",
-                 documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
+                 documentation: """
+                 Enumerable protocol used by `Enum` and `Stream` modules.
+
+                 (protocol)\
+                 """,
                  insert_text: "Enumerable"
                }
              ] = Intellisense.get_completion_items("Enumera", context, node())
@@ -227,8 +239,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "RuntimeError",
                  kind: :struct,
-                 detail: "exception",
-                 documentation: "An exception for a generic runtime error.",
+                 documentation: """
+                 An exception for a generic runtime error.
+
+                 (exception)\
+                 """,
                  insert_text: "RuntimeError"
                }
              ] = Intellisense.get_completion_items("RuntimeE", context, node())
@@ -250,8 +265,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "File.Stat",
                kind: :struct,
-               detail: "struct",
-               documentation: "A struct that holds file information.",
+               documentation: """
+               A struct that holds file information.
+
+               (struct)\
+               """,
                insert_text: "File.Stat"
              } in Intellisense.get_completion_items("%Fi", context, node())
     end
@@ -263,7 +281,6 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "from/0",
                  kind: :type,
-                 detail: "GenServer.from()",
                  documentation: """
                  Tuple describing the client of a call request.
 
@@ -279,7 +296,6 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "internal/1",
                  kind: :type,
-                 detail: "MapSet.internal(value)",
                  documentation: """
                  No documentation available
 
@@ -299,8 +315,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "Enumerable",
                  kind: :interface,
-                 detail: "protocol",
-                 documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
+                 documentation: """
+                 Enumerable protocol used by `Enum` and `Stream` modules.
+
+                 (protocol)\
+                 """,
                  insert_text: "Enumerable"
                }
              ] = Intellisense.get_completion_items("Enumerable", context, node())
@@ -312,8 +331,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "Jason",
                kind: :module,
-               detail: "module",
-               documentation: "A blazing fast JSON parser and generator in pure Elixir.",
+               documentation: """
+               A blazing fast JSON parser and generator in pure Elixir.
+
+               (module)\
+               """,
                insert_text: "Jason"
              } in Intellisense.get_completion_items("Jas", context, node())
     end
@@ -338,11 +360,16 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 detail: "Livebook.TestModules.Hidden.visible()",
-                 documentation: "No documentation available",
-                 insert_text: "visible()",
+                 label: "visible/0",
                  kind: :function,
-                 label: "visible/0"
+                 documentation: """
+                 No documentation available
+
+                 ```
+                 Livebook.TestModules.Hidden.visible()
+                 ```\
+                 """,
+                 insert_text: "visible()"
                }
              ] =
                Intellisense.get_completion_items("Livebook.TestModules.Hidden.", context, node())
@@ -355,8 +382,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "Access",
                  kind: :interface,
-                 detail: "behaviour",
-                 documentation: "Key-based access to data structures.",
+                 documentation: """
+                 Key-based access to data structures.
+
+                 (behaviour)\
+                 """,
                  insert_text: "Access"
                }
              ] = Intellisense.get_completion_items("Elixir.Acce", context, node())
@@ -369,8 +399,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "ANSI",
                  kind: :module,
-                 detail: "module",
-                 documentation: "Functionality to render ANSI escape sequences.",
+                 documentation: """
+                 Functionality to render ANSI escape sequences.
+
+                 (module)\
+                 """,
                  insert_text: "ANSI"
                }
              ] = Intellisense.get_completion_items("IO.AN", context, node())
@@ -389,12 +422,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "version/0",
                  kind: :function,
-                 detail: "System.version()",
                  documentation: """
                  Elixir version information.
 
                  ```
-                 @spec version() :: String.t()
+                 System.version()
                  ```\
                  """,
                  insert_text: "version()"
@@ -408,8 +440,13 @@ defmodule Livebook.IntellisenseTest do
       regex_item = %{
         label: "~r/2",
         kind: :function,
-        detail: "Kernel.sigil_r(term, modifiers)",
-        documentation: "Handles the sigil `~r` for regular expressions.",
+        documentation: """
+        Handles the sigil `~r` for regular expressions.
+
+        ```
+        Kernel.sigil_r(term, modifiers)
+        ```\
+        """,
         insert_text: "~r"
       }
 
@@ -425,14 +462,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "gzip/1",
                kind: :function,
-               detail: ":zlib.gzip/1",
                documentation: """
                Compresses data with gz headers and checksum.
 
                ```
-               @spec gzip(data) :: compressed
-                     when data: iodata(),
-                          compressed: binary()
+               :zlib.gzip/1
                ```\
                """,
                insert_text: "gzip(${})"
@@ -445,13 +479,12 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "concat/1",
                kind: :function,
-               detail: "Enum.concat(enumerables)",
                documentation: """
                Given an enumerable of enumerables, concatenates the `enumerables` into
                a single list.
 
                ```
-               @spec concat(t()) :: t()
+               Enum.concat(enumerables)
                ```\
                """,
                insert_text: "concat(${})"
@@ -470,13 +503,12 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "concat/1",
                  kind: :function,
-                 detail: "Enum.concat(enumerables)",
                  documentation: """
                  Given an enumerable of enumerables, concatenates the `enumerables` into
                  a single list.
 
                  ```
-                 @spec concat(t()) :: t()
+                 Enum.concat(enumerables)
                  ```\
                  """,
                  insert_text: "concat(${})"
@@ -484,13 +516,12 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "concat/2",
                  kind: :function,
-                 detail: "Enum.concat(left, right)",
                  documentation: """
                  Concatenates the enumerable on the `right` with the enumerable on the
                  `left`.
 
                  ```
-                 @spec concat(t(), t()) :: t()
+                 Enum.concat(left, right)
                  ```\
                  """,
                  insert_text: "concat(${})"
@@ -505,12 +536,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "utc_today/0",
                  kind: :function,
-                 detail: "Date.utc_today(calendar \\\\ Calendar.ISO)",
                  documentation: """
                  Returns the current date in UTC.
 
                  ```
-                 @spec utc_today(Calendar.calendar()) :: t()
+                 Date.utc_today(calendar \\\\ Calendar.ISO)
                  ```\
                  """,
                  insert_text: "utc_today()"
@@ -518,12 +548,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "utc_today/1",
                  kind: :function,
-                 detail: "Date.utc_today(calendar \\\\ Calendar.ISO)",
                  documentation: """
                  Returns the current date in UTC.
 
                  ```
-                 @spec utc_today(Calendar.calendar()) :: t()
+                 Date.utc_today(calendar \\\\ Calendar.ISO)
                  ```\
                  """,
                  insert_text: "utc_today(${})"
@@ -541,12 +570,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "version/0",
                  kind: :function,
-                 detail: "System.version()",
                  documentation: """
                  Elixir version information.
 
                  ```
-                 @spec version() :: String.t()
+                 System.version()
                  ```\
                  """,
                  insert_text: "version()"
@@ -561,13 +589,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "++/2",
                  kind: :function,
-                 detail: "left ++ right",
                  documentation: """
                  List concatenation operator. Concatenates a proper list and a term, returning a list.
 
                  ```
-                 @spec list() ++ term() ::
-                         maybe_improper_list()
+                 left ++ right
                  ```\
                  """,
                  insert_text: "++"
@@ -575,13 +601,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "+/1",
                  kind: :function,
-                 detail: "+value",
                  documentation: """
                  Arithmetic positive unary operator.
 
                  ```
-                 @spec +integer() :: integer()
-                 @spec +float() :: float()
+                 +value
                  ```\
                  """,
                  insert_text: "+"
@@ -589,15 +613,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "+/2",
                  kind: :function,
-                 detail: "left + right",
                  documentation: """
                  Arithmetic addition operator.
 
                  ```
-                 @spec integer() + integer() :: integer()
-                 @spec float() + float() :: float()
-                 @spec integer() + float() :: float()
-                 @spec float() + integer() :: float()
+                 left + right
                  ```\
                  """,
                  insert_text: "+"
@@ -628,22 +648,19 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "bar_1",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "bar_1"
                },
                %{
                  label: "bar_2",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "bar_2"
                },
                %{
                  label: "foo",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.", context, node())
@@ -652,8 +669,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "foo",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.f", context, node())
@@ -678,8 +694,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "nested",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "nested"
                }
              ] = Intellisense.get_completion_items("map.nest", context, node())
@@ -688,8 +703,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "foo",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.nested.deeply.f", context, node())
@@ -698,12 +712,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "version/0",
                  kind: :function,
-                 detail: "System.version()",
                  documentation: """
                  Elixir version information.
 
                  ```
-                 @spec version() :: String.t()
+                 System.version()
                  ```\
                  """,
                  insert_text: "version()"
@@ -751,8 +764,13 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "is_nil/1",
                  kind: :function,
-                 detail: "Kernel.is_nil(term)",
-                 documentation: "Returns `true` if `term` is `nil`, `false` otherwise.",
+                 documentation: """
+                 Returns `true` if `term` is `nil`, `false` otherwise.
+
+                 ```
+                 Kernel.is_nil(term)
+                 ```\
+                 """,
                  insert_text: "is_nil(${})"
                }
              ] = Intellisense.get_completion_items("Kernel.is_ni", context, node())
@@ -765,8 +783,13 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "quote/2",
                  kind: :function,
-                 detail: "Kernel.SpecialForms.quote(opts, block)",
-                 documentation: "Gets the representation of any expression.",
+                 documentation: """
+                 Gets the representation of any expression.
+
+                 ```
+                 Kernel.SpecialForms.quote(opts, block)
+                 ```\
+                 """,
                  insert_text: "quote "
                }
              ] = Intellisense.get_completion_items("quot", context, node())
@@ -779,23 +802,23 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "put_in/2",
                  kind: :function,
-                 detail: "Kernel.put_in(path, value)",
-                 documentation: "Puts a value in a nested structure via the given `path`.",
+                 documentation: """
+                 Puts a value in a nested structure via the given `path`.
+
+                 ```
+                 Kernel.put_in(path, value)
+                 ```\
+                 """,
                  insert_text: "put_in(${})"
                },
                %{
                  label: "put_in/3",
                  kind: :function,
-                 detail: "Kernel.put_in(data, keys, value)",
                  documentation: """
                  Puts a value in a nested structure.
 
                  ```
-                 @spec put_in(
-                         Access.t(),
-                         [term(), ...],
-                         term()
-                       ) :: Access.t()
+                 Kernel.put_in(data, keys, value)
                  ```\
                  """,
                  insert_text: "put_in(${})"
@@ -815,8 +838,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "numbats",
                  kind: :variable,
-                 detail: "variable",
-                 documentation: nil,
+                 documentation: "(variable)",
                  insert_text: "numbats"
                }
              ] = Intellisense.get_completion_items("numba", context, node())
@@ -825,15 +847,13 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "numbats",
                  kind: :variable,
-                 detail: "variable",
-                 documentation: nil,
+                 documentation: "(variable)",
                  insert_text: "numbats"
                },
                %{
                  label: "number",
                  kind: :variable,
-                 detail: "variable",
-                 documentation: nil,
+                 documentation: "(variable)",
                  insert_text: "number"
                }
              ] = Intellisense.get_completion_items("num", context, node())
@@ -842,8 +862,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "nothing",
                  kind: :variable,
-                 detail: "variable",
-                 documentation: nil,
+                 documentation: "(variable)",
                  insert_text: "nothing"
                },
                %{label: "node/0"},
@@ -870,12 +889,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "version/0",
                kind: :function,
-               detail: "System.version()",
                documentation: """
                Elixir version information.
 
                ```
-               @spec version() :: String.t()
+               System.version()
                ```\
                """,
                insert_text: "version()"
@@ -1029,13 +1047,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "max/1",
                kind: :function,
-               detail: ":lists.max/1",
                documentation: """
                Returns the first element of `List` that compares greater than or equal to all other elements of `List`.
 
                ```
-               @spec max(list) :: max
-                     when list: [t, ...], max: t, t: term()
+               :lists.max/1
                ```\
                """,
                insert_text: "max(${})"
@@ -1116,8 +1132,15 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "my_val",
                  kind: :field,
-                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
-                 documentation: "```\nmy_val\n```\n\n---\n\n**Default**\n\n```\nnil\n```\n",
+                 documentation: """
+                 `%Livebook.IntellisenseTest.MyStruct{}` struct field.
+
+                 **Default**
+
+                 ```
+                 nil
+                 ```\
+                 """,
                  insert_text: "my_val: "
                }
              ] =
@@ -1154,7 +1177,6 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "my_val",
                  kind: :field,
-                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
                  documentation: _my_val_doc,
                  insert_text: "my_val: "
                }
@@ -1169,7 +1191,6 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "my_val",
                  kind: :field,
-                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
                  documentation: _my_val_doc,
                  insert_text: "my_val: "
                }
@@ -1198,8 +1219,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "foo",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "foo: "
                }
              ] = Intellisense.get_completion_items("%{map | ", context, node())
@@ -1208,8 +1228,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "foo",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
+                 documentation: "(field)",
                  insert_text: "foo: "
                }
              ] = Intellisense.get_completion_items("%{map | fo", context, node())
@@ -1240,8 +1259,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "moduledoc",
                  kind: :variable,
-                 detail: "module attribute",
-                 documentation: "Provides documentation for the current module.",
+                 documentation: """
+                 Provides documentation for the current module.
+
+                 (module attribute)\
+                 """,
                  insert_text: "moduledoc"
                }
              ] = Intellisense.get_completion_items("@modu", context, node())
@@ -1259,8 +1281,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "nil",
                  kind: :keyword,
-                 detail: "special atom",
-                 documentation: nil,
+                 documentation: "(special atom)",
                  insert_text: "nil"
                }
                | _
@@ -1305,30 +1326,27 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 detail: "bitstring option",
-                 documentation: nil,
-                 insert_text: "integer",
-                 kind: :bitstring_option,
-                 label: "integer"
+                 label: "integer",
+                 kind: :type,
+                 documentation: "(bitstring option)",
+                 insert_text: "integer"
                }
              ] = Intellisense.get_completion_items("<<a::intege", context, node())
 
       assert [
                %{
-                 detail: "bitstring option",
-                 documentation: nil,
-                 insert_text: "size(${})",
-                 kind: :bitstring_option,
-                 label: "size"
+                 label: "size",
+                 kind: :type,
+                 documentation: "(bitstring option)",
+                 insert_text: "size(${})"
                }
              ] = Intellisense.get_completion_items("<<a::siz", context, node())
 
       assert %{
-               detail: "bitstring option",
-               documentation: nil,
-               insert_text: "integer",
-               kind: :bitstring_option,
-               label: "integer"
+               label: "integer",
+               kind: :type,
+               documentation: "(bitstring option)",
+               insert_text: "integer"
              } in Intellisense.get_completion_items("<<a::", context, node())
     end
 
@@ -1339,8 +1357,11 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "Range",
                  kind: :struct,
-                 detail: "struct",
-                 documentation: "Returns an inclusive range between dates.",
+                 documentation: """
+                 Returns an inclusive range between dates.
+
+                 (struct)\
+                 """,
                  insert_text: "Range"
                }
              ] = Intellisense.get_completion_items("alias Date.", context, node())
@@ -1348,8 +1369,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "Atom",
                kind: :module,
-               detail: "module",
-               documentation: "Atoms are constants whose values are their own name.",
+               documentation: """
+               Atoms are constants whose values are their own name.
+
+               (module)\
+               """,
                insert_text: "Atom"
              } in Intellisense.get_completion_items("alias ", context, node())
 
