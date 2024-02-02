@@ -293,7 +293,7 @@ export default class CollabClient {
  * Holds information about a collaborative peer, including their
  * selection and details.
  */
-class Peer {
+export class Peer {
   constructor(id, meta, selection) {
     this.id = id;
     this.meta = meta;
