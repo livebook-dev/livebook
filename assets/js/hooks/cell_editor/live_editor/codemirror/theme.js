@@ -268,6 +268,38 @@ function buildEditorTheme(colors, { dark }) {
         },
       },
 
+      // Diagnostics
+
+      ".cm-tooltip-lint": {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        maxWidth: "600px",
+
+        "& .cm-diagnostic": {
+          display: "flex",
+          border: "none",
+          margin: "0",
+
+          "&::before": {
+            content: "'➜'",
+            fontVariantLigatures: "common-ligatures",
+            fontSize: "1.5em",
+            lineHeight: "1",
+            whiteSpace: "nowrap",
+            marginRight: "6px",
+          },
+
+          "&.cm-diagnostic-error::before": {
+            color: "#be5046",
+          },
+
+          "&.cm-diagnostic-warning::before": {
+            color: "#d19a66",
+          },
+        },
+      },
+
       // Search
       //
       // It is possible to build a fully custom panel and hook into the
