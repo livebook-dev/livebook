@@ -39,6 +39,35 @@ describe("when synchronized", () => {
     jest.runOnlyPendingTimers();
     expect(connection.sendRevision).toHaveBeenCalledWith(1);
   });
+
+  test("sends local selection when there are peers", () => {
+    const connection = buildMockConnection();
+    connection.getClients.mockReturnValue({
+      client1: { name: "Jake" },
+    });
+    connection.getClientId.mockReturnValue("client1");
+    const collabClient = new CollabClient(connection, 0);
+
+    const selection = cursorSelection(3);
+    collabClient.handleClientSelection(selection);
+
+    expect(connection.sendSelection).not.toHaveBeenCalled();
+  });
+
+  test("does not send local selection when there are no peers", () => {
+    const connection = buildMockConnection();
+    connection.getClients.mockReturnValue({
+      client1: { name: "Jake" },
+      client2: { name: "Amy" },
+    });
+    connection.getClientId.mockReturnValue("client1");
+    const collabClient = new CollabClient(connection, 0);
+
+    const selection = cursorSelection(3);
+    collabClient.handleClientSelection(selection);
+
+    expect(connection.sendSelection).toHaveBeenCalledWith(selection, 0);
+  });
 });
 
 describe("with inflight delta", () => {
