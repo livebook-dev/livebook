@@ -80,7 +80,7 @@ const formatterPlugin = ViewPlugin.fromClass(
         this.query = null;
       }
     }
-  }
+  },
 );
 
 function startFormat(view) {

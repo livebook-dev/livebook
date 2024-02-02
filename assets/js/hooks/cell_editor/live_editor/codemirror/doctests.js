@@ -72,11 +72,11 @@ const doctestsField = StateField.define({
         decorations = decorations.update({
           filter: (from, to, decoration) => {
             return !reports.some(
-              (report) => decoration.spec.report.line === report.line
+              (report) => decoration.spec.report.line === report.line,
             );
           },
           add: reports.flatMap((report) =>
-            decorationsForDoctest(report, tr.state.doc)
+            decorationsForDoctest(report, tr.state.doc),
           ),
           sort: true,
         });
@@ -113,7 +113,7 @@ function decorationsForDoctest(report, doc) {
         widget: new DoctestDetailsWidget(report),
         block: true,
         report,
-      }).range(detailsLine.from)
+      }).range(detailsLine.from),
     );
   }
 

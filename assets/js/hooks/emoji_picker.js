@@ -15,7 +15,7 @@ const EmojiPicker = {
         triggerElement: button,
         referenceElement: button,
         position: "bottom",
-      }
+      },
     );
 
     picker.addEventListener("emoji:select", ({ emoji }) => {

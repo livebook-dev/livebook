@@ -47,7 +47,7 @@ function connect() {
       },
       hooks: hooks,
       dom: morphdomOptions,
-    }
+    },
   );
 
   // Show progress bar on live navigation and form submits

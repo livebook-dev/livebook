@@ -82,7 +82,7 @@ const VirtualizedLines = {
 
     const height = Math.min(
       this.props.maxHeight,
-      this.lineHeight * numberOfLines
+      this.lineHeight * numberOfLines,
     );
 
     return {
@@ -127,7 +127,7 @@ const VirtualizedLines = {
   capLines() {
     if (this.props.maxLines) {
       const lineEls = Array.from(
-        this.templateEl.querySelectorAll("[data-line]")
+        this.templateEl.querySelectorAll("[data-line]"),
       );
       const ignoredLineEls = lineEls.slice(0, -this.props.maxLines);
 

@@ -33,7 +33,7 @@ class Markdown {
       defaultCodeLanguage = null,
       emptyText = "",
       allowedUriSchemes = [],
-    } = {}
+    } = {},
   ) {
     this.container = container;
     this.content = content;

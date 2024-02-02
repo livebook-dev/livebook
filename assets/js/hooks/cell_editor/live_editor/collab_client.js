@@ -229,7 +229,7 @@ export default class CollabClient {
     this.connection.sendDelta(
       this.inflightDelta,
       this.selection,
-      this.revision
+      this.revision,
     );
 
     this.selectionChanged = false;

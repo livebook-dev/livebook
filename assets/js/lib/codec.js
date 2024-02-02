@@ -73,14 +73,14 @@ export function encodeAnnotatedBuffer(meta, buffer) {
   const metaArray = encoder.encode(JSON.stringify(meta));
 
   const raw = new ArrayBuffer(
-    HEADER_LENGTH + metaArray.byteLength + buffer.byteLength
+    HEADER_LENGTH + metaArray.byteLength + buffer.byteLength,
   );
   const view = new DataView(raw);
 
   view.setUint32(0, metaArray.byteLength);
   new Uint8Array(raw, HEADER_LENGTH, metaArray.byteLength).set(metaArray);
   new Uint8Array(raw, HEADER_LENGTH + metaArray.byteLength).set(
-    new Uint8Array(buffer)
+    new Uint8Array(buffer),
   );
 
   return raw;

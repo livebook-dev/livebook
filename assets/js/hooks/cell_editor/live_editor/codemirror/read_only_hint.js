@@ -76,7 +76,7 @@ const hintPlugin = ViewPlugin.fromClass(
         }
       },
     },
-  }
+  },
 );
 
 function closeHint(view) {

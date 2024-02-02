@@ -11,7 +11,7 @@ const CellEditor = {
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
       ({ source, revision, doctest_reports, code_markers }) => {
         const editorContainer = this.el.querySelector(
-          `[data-el-editor-container]`
+          `[data-el-editor-container]`,
         );
 
         const editorEl = document.createElement("div");
@@ -20,7 +20,7 @@ const CellEditor = {
         this.connection = new Connection(
           this,
           this.props.cellId,
-          this.props.tag
+          this.props.tag,
         );
 
         this.liveEditor = new LiveEditor(
@@ -30,7 +30,7 @@ const CellEditor = {
           revision,
           this.props.language,
           this.props.intellisense,
-          this.props.readOnly
+          this.props.readOnly,
         );
 
         this.liveEditor.setCodeMarkers(code_markers);
@@ -48,7 +48,7 @@ const CellEditor = {
           "whitespace-pre",
           "text-editor",
           "font-editor",
-          "px-12"
+          "px-12",
         );
         sourceEl.textContent = source;
         skeletonEl.replaceChildren(sourceEl);
@@ -62,7 +62,7 @@ const CellEditor = {
           new CustomEvent("lb:cell:editor_created", {
             detail: { tag: this.props.tag, liveEditor: this.liveEditor },
             bubbles: true,
-          })
+          }),
         );
 
         this.visibility = waitUntilInViewport(this.el, {
@@ -76,7 +76,7 @@ const CellEditor = {
             this.liveEditor.mount();
           }
         });
-      }
+      },
     );
   },
 
@@ -98,7 +98,7 @@ const CellEditor = {
         new CustomEvent("lb:cell:editor_removed", {
           detail: { tag: this.props.tag },
           bubbles: true,
-        })
+        }),
       );
       this.liveEditor.destroy();
     }

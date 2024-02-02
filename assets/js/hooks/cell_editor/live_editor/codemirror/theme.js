@@ -415,7 +415,7 @@ function buildEditorTheme(colors, { dark }) {
         },
       },
     },
-    { dark }
+    { dark },
   );
 }
 
@@ -495,7 +495,7 @@ const editorTheme = buildEditorTheme(
     searchMatchActiveBackground: "#54789e",
     separator: "#464b57",
   },
-  { dark: true }
+  { dark: true },
 );
 
 export const highlightStyle = buildHighlightStyle({
@@ -532,7 +532,7 @@ const lightEditorTheme = buildEditorTheme(
     searchMatchActiveBackground: "#9daeec",
     separator: "#c9c9ca",
   },
-  { dark: false }
+  { dark: false },
 );
 
 export const lightHighlightStyle = buildHighlightStyle({

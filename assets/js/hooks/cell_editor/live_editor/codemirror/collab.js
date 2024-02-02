@@ -48,7 +48,7 @@ const collabPlugin = ViewPlugin.fromClass(
     update(update) {
       // Skip changes dispatched by ourselves
       const isRemoteChange = update.transactions.some((tr) =>
-        tr.annotation(remoteTransaction)
+        tr.annotation(remoteTransaction),
       );
 
       if (isRemoteChange) return;
@@ -69,7 +69,7 @@ const collabPlugin = ViewPlugin.fromClass(
     destroy() {
       this.deltaSubscription.destroy();
     }
-  }
+  },
 );
 
 export function deltaToChanges(delta) {
@@ -136,8 +136,8 @@ export function transformSelection(selection, delta) {
   const ranges = selection.ranges.map((range) =>
     EditorSelection.range(
       delta.transformPosition(range.anchor),
-      delta.transformPosition(range.head)
-    )
+      delta.transformPosition(range.head),
+    ),
   );
 
   return EditorSelection.create(ranges, selection.mainIndex);

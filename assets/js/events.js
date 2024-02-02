@@ -55,7 +55,7 @@ export function registerGlobalEventHandlers() {
       }
     } else {
       alert(
-        "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."
+        "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost.",
       );
     }
   });
@@ -82,25 +82,25 @@ export function registerGlobalEventHandlers() {
 
   window.addEventListener("lb:session_list:on_selection_change", () => {
     const anySessionSelected = !!document.querySelector(
-      "[name='session_ids[]']:checked"
+      "[name='session_ids[]']:checked",
     );
     const disconnect = document.querySelector(
-      "#edit-sessions [name='disconnect']"
+      "#edit-sessions [name='disconnect']",
     );
     const closeAll = document.querySelector(
-      "#edit-sessions [name='close_all']"
+      "#edit-sessions [name='close_all']",
     );
     disconnect.parentElement.classList.toggle(
       "pointer-events-none",
-      !anySessionSelected
+      !anySessionSelected,
     );
     disconnect.parentElement.classList.toggle(
       "opacity-50",
-      !anySessionSelected
+      !anySessionSelected,
     );
     closeAll.parentElement.classList.toggle(
       "pointer-events-none",
-      !anySessionSelected
+      !anySessionSelected,
     );
     closeAll.parentElement.classList.toggle("opacity-50", !anySessionSelected);
   });
@@ -125,7 +125,7 @@ export function registerGlobalEventHandlers() {
         event.stopPropagation();
       }
     },
-    { capture: true }
+    { capture: true },
   );
 }
 

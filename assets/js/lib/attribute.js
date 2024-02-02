@@ -6,7 +6,7 @@ export function parseHookProps(element, names) {
 
     if (!element.hasAttribute(attr)) {
       throw new Error(
-        `Missing attribute "${attr}" on element <${element.tagName}:${element.id}>`
+        `Missing attribute "${attr}" on element <${element.tagName}:${element.id}>`,
       );
     }
 

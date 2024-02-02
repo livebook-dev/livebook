@@ -104,7 +104,7 @@ const JSView = {
       (raw) => {
         const [, payload] = transportDecode(raw);
         this.handleServerInit(payload);
-      }
+      },
     );
 
     const eventRef = this.channel.on(`event:${this.props.ref}`, (raw) => {
@@ -116,7 +116,7 @@ const JSView = {
       `error:${this.props.ref}`,
       ({ message, init }) => {
         this.handleServerError(message, init);
-      }
+      },
     );
 
     const pongRef = this.channel.on(`pong:${this.props.ref}`, () => {
@@ -133,11 +133,11 @@ const JSView = {
     this.subscriptions = [
       globalPubsub.subscribe(
         `js_views:${this.props.ref}`,
-        this.handleJSViewEvent.bind(this)
+        this.handleJSViewEvent.bind(this),
       ),
       globalPubsub.subscribe(
         "navigation",
-        this.handleNavigationEvent.bind(this)
+        this.handleNavigationEvent.bind(this),
       ),
     ];
 
@@ -150,7 +150,7 @@ const JSView = {
       },
       // If the client is very busy with executing JS we may reach the
       // default timeout of 10s, so we increase it
-      30_000
+      30_000,
     );
   },
 
@@ -213,7 +213,7 @@ const JSView = {
 
     const notebookEl = document.querySelector(`[data-el-notebook]`);
     const notebookContentEl = notebookEl.querySelector(
-      `[data-el-notebook-content]`
+      `[data-el-notebook-content]`,
     );
 
     // Most placeholder position changes are accompanied by changes to the
@@ -244,13 +244,13 @@ const JSView = {
 
     this.iframe.addEventListener("mouseenter", (event) => {
       this.iframePlaceholder.dispatchEvent(
-        new MouseEvent("mouseenter", { bubbles: true })
+        new MouseEvent("mouseenter", { bubbles: true }),
       );
     });
 
     this.iframe.addEventListener("mouseleave", (event) => {
       this.iframePlaceholder.dispatchEvent(
-        new MouseEvent("mouseleave", { bubbles: true })
+        new MouseEvent("mouseleave", { bubbles: true }),
       );
     });
 
@@ -266,7 +266,7 @@ const JSView = {
     // is later synced on "element_focused" events
     this.iframe.toggleAttribute(
       "data-js-focused",
-      !!this.el.closest(`[data-js-focused]`)
+      !!this.el.closest(`[data-js-focused]`),
     );
 
     // Cleanup
@@ -308,7 +308,7 @@ const JSView = {
     initializeIframeSource(
       this.iframe,
       this.props.iframePort,
-      this.props.iframeUrl
+      this.props.iframeUrl,
     ).then(() => {
       iframesEl.appendChild(this.iframe);
     });
@@ -477,7 +477,7 @@ const JSView = {
 
       this.iframe.toggleAttribute(
         "data-js-focused",
-        focusableId === event.focusableId
+        focusableId === event.focusableId,
       );
     }
   },

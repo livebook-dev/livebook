@@ -130,14 +130,14 @@ export default class Connection {
         delta = Delta.fromCompressed(delta);
         selection = selection && selectionFromCompressed(selection);
         this._onDelta.dispatch(delta, selection, client_id);
-      }
+      },
     );
 
     this.hook.handleEvent(
       `cell_acknowledgement:${this.cellId}:${this.tag}`,
       () => {
         this._onAcknowledgement.dispatch();
-      }
+      },
     );
 
     this.hook.handleEvent(
@@ -145,7 +145,7 @@ export default class Connection {
       ({ selection, client_id }) => {
         selection = selection && selectionFromCompressed(selection);
         this._onSelection.dispatch(selection, client_id);
-      }
+      },
     );
   }
 
@@ -192,19 +192,19 @@ export default class Connection {
               } else {
                 reject(
                   new IntellisenseError(
-                    "No relevant intellisense response for the given parameters"
-                  )
+                    "No relevant intellisense response for the given parameters",
+                  ),
                 );
               }
             };
           } else {
             reject(
               new IntellisenseError(
-                "Intellisense request could not be completed"
-              )
+                "Intellisense request could not be completed",
+              ),
             );
           }
-        }
+        },
       );
     });
   }
@@ -216,7 +216,7 @@ function selectionToCompressed(selection) {
 
 function selectionFromCompressed(list) {
   const ranges = list.map(([anchor, head]) =>
-    EditorSelection.range(anchor, head)
+    EditorSelection.range(anchor, head),
   );
 
   return EditorSelection.create(ranges);

@@ -38,7 +38,7 @@ const characterSetsConfig = Facet.define({}).from(
     triggerCharacters: new Set(triggerCharacters),
     // Note: all trigger characters are also retrigger characters
     retriggerCharacters: new Set(triggerCharacters.concat(retriggerCharacters)),
-  })
+  }),
 );
 
 const setSignatureResultEffect = StateEffect.define();
@@ -139,7 +139,7 @@ function shouldRequestSignature(tr, isOpen) {
   if (!tr.docChanged && startCursorPos !== cursorPos) {
     const movedOver = tr.state.doc.sliceString(
       Math.min(startCursorPos, cursorPos),
-      Math.max(startCursorPos, cursorPos)
+      Math.max(startCursorPos, cursorPos),
     );
 
     if (isOpen) {
@@ -255,7 +255,7 @@ class SignatureTooltip {
     this.contentLeft.textContent = item.signature.slice(0, idx);
     this.contentActive.textContent = activeArgument;
     this.contentRight.textContent = item.signature.slice(
-      idx + activeArgument.length
+      idx + activeArgument.length,
     );
   }
 }
@@ -327,7 +327,7 @@ const signaturePlugin = ViewPlugin.fromClass(
         }
       },
     },
-  }
+  },
 );
 
 function startSignature(view) {
@@ -378,7 +378,7 @@ export function signature(
     closeOnBlur = true,
     triggerCharacters = ["(", ","],
     retriggerCharacters = [")"],
-  } = {}
+  } = {},
 ) {
   return [
     signatureField,

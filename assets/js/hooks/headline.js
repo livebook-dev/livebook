@@ -28,7 +28,7 @@ const Headline = {
 
     this.navigationSubscription = globalPubsub.subscribe(
       "navigation",
-      this.handleNavigationEvent.bind(this)
+      this.handleNavigationEvent.bind(this),
     );
   },
 

@@ -73,7 +73,7 @@ const collabMarkersPlugin = ViewPlugin.fromClass(
 
       this.decorations = RangeSet.of(
         Object.values(this.peers).flatMap(decorationsForPeer),
-        true
+        true,
       );
 
       this.peersSubscription = collabClient.onPeersChange((peers) => {
@@ -118,7 +118,7 @@ const collabMarkersPlugin = ViewPlugin.fromClass(
       this.peersSubscription.destroy();
     }
   },
-  { decorations: (plugin) => plugin.decorations }
+  { decorations: (plugin) => plugin.decorations },
 );
 
 class CursorWidget extends WidgetType {

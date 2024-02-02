@@ -195,7 +195,7 @@ const AudioInput = {
       return encodePcmAsWav(
         audioInfo.data,
         audioInfo.numChannels,
-        audioInfo.samplingRate
+        audioInfo.samplingRate,
       );
     }
   },

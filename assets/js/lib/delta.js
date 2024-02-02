@@ -130,7 +130,7 @@ export default class Delta {
   transform(other, priority) {
     if (priority !== "left" && priority !== "right") {
       throw new Error(
-        `Invalid priority "${priority}", should be either "left" or "right"`
+        `Invalid priority "${priority}", should be either "left" or "right"`,
       );
     }
 

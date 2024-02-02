@@ -61,7 +61,7 @@ function verifyIframeSource(iframeUrl) {
       .then((html) => {
         if (sha256Base64(html) !== IFRAME_SHA256) {
           throw new Error(
-            `The iframe loaded from ${iframeUrl} doesn't have the expected checksum ${IFRAME_SHA256}`
+            `The iframe loaded from ${iframeUrl} doesn't have the expected checksum ${IFRAME_SHA256}`,
           );
         }
       });

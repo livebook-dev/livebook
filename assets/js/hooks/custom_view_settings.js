@@ -8,16 +8,16 @@ const CustomViewSettings = {
     const settings = settingsStore.get();
 
     const customSectionCheckbox = this.el.querySelector(
-      `[name="show_section"][value="true"]`
+      `[name="show_section"][value="true"]`,
     );
     const customMarkdownCheckbox = this.el.querySelector(
-      `[name="show_markdown"][value="true"]`
+      `[name="show_markdown"][value="true"]`,
     );
     const customOutputCheckbox = this.el.querySelector(
-      `[name="show_output"][value="true"]`
+      `[name="show_output"][value="true"]`,
     );
     const customSpotlightCheckbox = this.el.querySelector(
-      `[name="spotlight"][value="true"]`
+      `[name="spotlight"][value="true"]`,
     );
 
     customSectionCheckbox.checked = settings.custom_view_show_section;

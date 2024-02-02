@@ -8,7 +8,7 @@ import { settingsStore } from "../../../lib/settings";
 export function highlight(code, language) {
   const languageDesc = LanguageDescription.matchLanguageName(
     languages,
-    language
+    language,
   );
 
   if (!languageDesc) {
@@ -28,7 +28,7 @@ export function highlight(code, language) {
     },
     () => {
       html += "<br />";
-    }
+    },
   );
 
   return html;

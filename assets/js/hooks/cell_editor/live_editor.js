@@ -100,7 +100,7 @@ export default class LiveEditor {
     revision,
     language,
     intellisense,
-    readOnly
+    readOnly,
   ) {
     this.container = container;
     this.source = source;
@@ -264,7 +264,7 @@ export default class LiveEditor {
       const node = document.createElement("i");
       node.classList.add(
         open ? "ri-arrow-down-s-line" : "ri-arrow-right-s-line",
-        open ? "cm-gutterFoldMarker-open" : null
+        open ? "cm-gutterFoldMarker-open" : null,
       );
       return node;
     };
@@ -351,7 +351,7 @@ export default class LiveEditor {
 
     if (event.key === "Escape") {
       this.container.dispatchEvent(
-        new CustomEvent("lb:editor_escape", { bubbles: true })
+        new CustomEvent("lb:editor_escape", { bubbles: true }),
       );
     }
 
@@ -406,7 +406,7 @@ export default class LiveEditor {
 
         const replaceLength = replacedSuffixLength(
           lineUntilCursor.text,
-          response.items[0].insert_text
+          response.items[0].insert_text,
         );
 
         return {
@@ -526,7 +526,7 @@ export default class LiveEditor {
   setInitialWidgets() {
     if (this.initialWidgets.doctestReportsByLine) {
       const doctestReports = Object.values(
-        this.initialWidgets.doctestReportsByLine
+        this.initialWidgets.doctestReportsByLine,
       );
       this.updateDoctests(doctestReports);
     }

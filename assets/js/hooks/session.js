@@ -112,39 +112,39 @@ const Session = {
     });
 
     this.getElement("clients-list").addEventListener("click", (event) =>
-      this.handleClientsListClick(event)
+      this.handleClientsListClick(event),
     );
 
     this.getElement("sections-list-toggle").addEventListener("click", (event) =>
-      this.toggleSectionsList()
+      this.toggleSectionsList(),
     );
 
     this.getElement("clients-list-toggle").addEventListener("click", (event) =>
-      this.toggleClientsList()
+      this.toggleClientsList(),
     );
 
     this.getElement("secrets-list-toggle").addEventListener("click", (event) =>
-      this.toggleSecretsList()
+      this.toggleSecretsList(),
     );
 
     this.getElement("runtime-info-toggle").addEventListener("click", (event) =>
-      this.toggleRuntimeInfo()
+      this.toggleRuntimeInfo(),
     );
 
     this.getElement("app-info-toggle").addEventListener("click", (event) =>
-      this.toggleAppInfo()
+      this.toggleAppInfo(),
     );
 
     this.getElement("files-list-toggle").addEventListener("click", (event) =>
-      this.toggleFilesList()
+      this.toggleFilesList(),
     );
 
     this.getElement("notebook").addEventListener("scroll", (event) =>
-      this.updateSectionListHighlight()
+      this.updateSectionListHighlight(),
     );
 
     this.getElement("notebook-indicators").addEventListener("click", (event) =>
-      this.handleCellIndicatorsClick(event)
+      this.handleCellIndicatorsClick(event),
     );
 
     this.getElement("views").addEventListener("click", (event) => {
@@ -153,7 +153,7 @@ const Session = {
 
     this.getElement("section-toggle-collapse-all-button").addEventListener(
       "click",
-      (event) => this.toggleCollapseAllSections()
+      (event) => this.toggleCollapseAllSections(),
     );
 
     this.initializeDragAndDrop();
@@ -163,7 +163,7 @@ const Session = {
       () => {
         this.initializeFocus();
       },
-      { once: true }
+      { once: true },
     );
 
     // Server events
@@ -190,7 +190,7 @@ const Session = {
       "cell_deleted",
       ({ cell_id: cellId, sibling_cell_id: siblingCellId }) => {
         this.handleCellDeleted(cellId, siblingCellId);
-      }
+      },
     );
 
     this.handleEvent("cell_restored", ({ cell_id: cellId }) => {
@@ -229,7 +229,7 @@ const Session = {
       "secret_selected",
       ({ select_secret_ref, secret_name }) => {
         this.handleSecretSelected(select_secret_ref, secret_name);
-      }
+      },
     );
 
     this.handleEvent("location_report", ({ client_id, focusable_id }) => {
@@ -392,7 +392,7 @@ const Session = {
       } else if (
         keyBuffer.tryMatch(["i"]) ||
         (event.target.matches(
-          `body, [data-el-cell-body], [data-el-heading], [data-focusable-id]`
+          `body, [data-el-cell-body], [data-el-heading], [data-focusable-id]`,
         ) &&
           this.focusedId &&
           key === "Enter")
@@ -493,7 +493,7 @@ const Session = {
   editableElementClicked(event, focusableEl) {
     if (focusableEl) {
       const editableElement = event.target.closest(
-        `[data-el-editor-container], [data-el-heading]`
+        `[data-el-editor-container], [data-el-heading]`,
       );
       return editableElement && focusableEl.contains(editableElement);
     }
@@ -530,12 +530,12 @@ const Session = {
     }
 
     const evalButton = event.target.closest(
-      `[data-el-queue-cell-evaluation-button]`
+      `[data-el-queue-cell-evaluation-button]`,
     );
     if (evalButton) {
       const cellId = evalButton.getAttribute("data-cell-id");
       const disableDependenciesCache = evalButton.hasAttribute(
-        "data-disable-dependencies-cache"
+        "data-disable-dependencies-cache",
       );
       this.queueCellEvaluation(cellId, disableDependenciesCache);
     }
@@ -551,7 +551,7 @@ const Session = {
         history.pushState(
           null,
           document.title,
-          window.location.pathname + window.location.search
+          window.location.pathname + window.location.search,
         );
       }
     }
@@ -584,7 +584,7 @@ const Session = {
       }
 
       const clientFollowToggle = event.target.closest(
-        `[data-el-client-follow-toggle]`
+        `[data-el-client-follow-toggle]`,
       );
       if (clientFollowToggle) {
         this.handleClientFollowToggleClick(clientId, clientListItem);
@@ -598,7 +598,7 @@ const Session = {
 
   handleClientFollowToggleClick(clientId, clientListItem) {
     const followedClientListItem = this.el.querySelector(
-      `[data-el-clients-list-item][data-js-followed]`
+      `[data-el-clients-list-item][data-js-followed]`,
     );
 
     if (followedClientListItem) {
@@ -666,7 +666,7 @@ const Session = {
    */
   updateSectionListHighlight() {
     const currentListItem = this.el.querySelector(
-      `[data-el-sections-list-item][data-js-is-viewed]`
+      `[data-el-sections-list-item][data-js-is-viewed]`,
     );
 
     if (currentListItem) {
@@ -685,7 +685,7 @@ const Session = {
     if (viewedSection) {
       const sectionId = viewedSection.getAttribute("data-section-id");
       const listItem = this.el.querySelector(
-        `[data-el-sections-list-item][data-section-id="${sectionId}"]`
+        `[data-el-sections-list-item][data-section-id="${sectionId}"]`,
       );
       listItem.setAttribute("data-js-is-viewed", "");
     }
@@ -778,7 +778,7 @@ const Session = {
 
     this.handleEvent("finish_file_drop", (event) => {
       const inputEl = document.querySelector(
-        `#add-file-entry-modal input[type="file"]`
+        `#add-file-entry-modal input[type="file"]`,
       );
 
       if (inputEl) {
@@ -966,7 +966,7 @@ const Session = {
       if (focusableIds.length > 0) {
         this.insertCellBelowFocusableId(
           focusableIds[focusableIds.length - 1],
-          type
+          type,
         );
       }
     }
@@ -1097,7 +1097,7 @@ const Session = {
             showOutput: settings.custom_view_show_output,
             spotlight: settings.custom_view_spotlight,
           });
-        }
+        },
       );
 
       this.pushEvent("open_custom_view_settings");
@@ -1162,7 +1162,7 @@ const Session = {
 
   toggleCollapseAllSections() {
     const allCollapsed = this.getSections().every((section) =>
-      section.hasAttribute("data-js-collapsed")
+      section.hasAttribute("data-js-collapsed"),
     );
 
     this.getSections().forEach((section) => {
@@ -1338,7 +1338,7 @@ const Session = {
   ensureVisibleFocusableEl(cellId) {
     const focusableEl = this.getFocusableEl(cellId);
     const allFocusableEls = Array.from(
-      this.el.querySelectorAll(`[data-focusable-id]`)
+      this.el.querySelectorAll(`[data-focusable-id]`),
     );
     const idx = allFocusableEls.indexOf(focusableEl);
     const visibleSibling = [
@@ -1370,13 +1370,13 @@ const Session = {
 
   getFocusableEls() {
     return Array.from(this.el.querySelectorAll(`[data-focusable-id]`)).filter(
-      (el) => !isElementHidden(el)
+      (el) => !isElementHidden(el),
     );
   },
 
   getFocusableIds() {
     return this.getFocusableEls().map((el) =>
-      el.getAttribute("data-focusable-id")
+      el.getAttribute("data-focusable-id"),
     );
   },
 
@@ -1397,7 +1397,7 @@ const Session = {
 
   getSectionById(sectionId) {
     return this.el.querySelector(
-      `[data-el-section][data-section-id="${sectionId}"]`
+      `[data-el-section][data-section-id="${sectionId}"]`,
     );
   },
 

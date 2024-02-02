@@ -43,7 +43,7 @@ const ImageInput = {
     this.uploadButton = this.el.querySelector(`[data-btn-upload]`);
     this.openCameraButton = this.el.querySelector(`[data-btn-open-camera]`);
     this.captureCameraButton = this.el.querySelector(
-      `[data-btn-capture-camera]`
+      `[data-btn-capture-camera]`,
     );
     this.cancelButton = this.el.querySelector(`[data-btn-cancel]`);
 
@@ -116,7 +116,7 @@ const ImageInput = {
       const canvas = this.toCanvas(
         this.cameraVideoEl,
         this.cameraVideoEl.videoWidth,
-        this.cameraVideoEl.videoHeight
+        this.cameraVideoEl.videoHeight,
       );
       this.pushImage(canvas);
       this.closeCameraView();
@@ -153,7 +153,7 @@ const ImageInput = {
         this.props.imageUrl,
         this.props.valueHeight,
         this.props.valueWidth,
-        this.props.format
+        this.props.format,
       ).then((element) => {
         this.setPreview(element);
       });
@@ -331,7 +331,7 @@ const ImageInput = {
         0,
         0,
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else if (this.props.fit === "crop") {
       const widthScale = boundWidth / width;
@@ -353,7 +353,7 @@ const ImageInput = {
         0,
         0,
         boundWidth,
-        boundHeight
+        boundHeight,
       );
     } else if (this.props.fit === "pad") {
       const widthScale = boundWidth / width;
@@ -378,7 +378,7 @@ const ImageInput = {
         Math.round((boundWidth - scaledWidth) / 2),
         Math.round((boundHeight - scaledHeight) / 2),
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
     } else {
       canvas.width = boundWidth;
@@ -393,7 +393,7 @@ const ImageInput = {
         0,
         0,
         boundWidth,
-        boundHeight
+        boundHeight,
       );
     }
 

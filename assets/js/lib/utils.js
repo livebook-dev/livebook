@@ -61,7 +61,7 @@ export function waitUntilVisible(element) {
  */
 export function waitUntilInViewport(
   element,
-  { root = null, proximity = 0 } = {}
+  { root = null, proximity = 0 } = {},
 ) {
   let observer = null;
 
@@ -77,7 +77,7 @@ export function waitUntilInViewport(
             resolve();
           }
         },
-        { root, rootMargin: `${proximity}px` }
+        { root, rootMargin: `${proximity}px` },
       );
       observer.observe(element);
     }
@@ -234,7 +234,7 @@ export function findChildOrThrow(element, selector) {
 
   if (!child) {
     throw new Error(
-      `expected a child matching ${selector}, but none was found`
+      `expected a child matching ${selector}, but none was found`,
     );
   }
 

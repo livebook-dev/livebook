@@ -149,7 +149,7 @@ describe("with buffer delta", () => {
     expect(connection.sendDelta).toHaveBeenCalledWith(
       bufferDelta,
       bufferSelection,
-      1
+      1,
     );
   });
 
@@ -196,7 +196,7 @@ describe("with buffer delta", () => {
     expect(connection.sendDelta).toHaveBeenCalledWith(
       bufferDelta,
       bufferSelection,
-      2
+      2,
     );
   });
 });
@@ -254,7 +254,7 @@ describe("peers", () => {
     getListener(connection, "onDelta")(
       remoteDelta2,
       remoteSelection2,
-      "client3"
+      "client3",
     );
 
     expect(onPeersChange).toHaveBeenCalledWith({

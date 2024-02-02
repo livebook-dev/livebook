@@ -47,7 +47,7 @@ const Cell = {
 
     if (["code", "smart"].includes(this.props.type)) {
       const amplifyButton = this.el.querySelector(
-        `[data-el-amplify-outputs-button]`
+        `[data-el-amplify-outputs-button]`,
       );
       amplifyButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-amplified");
@@ -56,7 +56,7 @@ const Cell = {
 
     if (this.props.type === "smart") {
       const toggleSourceButton = this.el.querySelector(
-        `[data-el-toggle-source-button]`
+        `[data-el-toggle-source-button]`,
       );
       toggleSourceButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-source-visible");
@@ -90,12 +90,12 @@ const Cell = {
     this.subscriptions = [
       globalPubsub.subscribe(
         "navigation",
-        this.handleNavigationEvent.bind(this)
+        this.handleNavigationEvent.bind(this),
       ),
       globalPubsub.subscribe("cells", this.handleCellsEvent.bind(this)),
       globalPubsub.subscribe(
         `cells:${this.props.cellId}`,
-        this.handleCellEvent.bind(this)
+        this.handleCellEvent.bind(this),
       ),
     ];
 
@@ -104,7 +104,7 @@ const Cell = {
     this._handleViewportResize = this.handleViewportResize.bind(this);
     window.visualViewport.addEventListener(
       "resize",
-      this._handleViewportResize
+      this._handleViewportResize,
     );
   },
 
@@ -118,7 +118,7 @@ const Cell = {
 
     window.visualViewport.removeEventListener(
       "resize",
-      this._handleViewportResize
+      this._handleViewportResize,
     );
   },
 
@@ -215,7 +215,7 @@ const Cell = {
       // Setup markdown rendering
       if (this.props.type === "markdown") {
         const markdownContainer = this.el.querySelector(
-          `[data-el-markdown-container]`
+          `[data-el-markdown-container]`,
         );
         const markdown = new Markdown(markdownContainer, source, {
           baseUrl: this.props.sessionPath,
@@ -240,7 +240,7 @@ const Cell = {
           `evaluation_finished:${this.props.cellId}`,
           ({ code_markers }) => {
             liveEditor.setCodeMarkers(code_markers);
-          }
+          },
         );
 
         this.handleEvent(`start_evaluation:${this.props.cellId}`, () => {
@@ -251,7 +251,7 @@ const Cell = {
           `doctest_report:${this.props.cellId}`,
           (doctestReport) => {
             liveEditor.updateDoctests([doctestReport]);
-          }
+          },
         );
 
         this.handleEvent(`erase_outputs`, () => {
@@ -288,7 +288,7 @@ const Cell = {
   updateInsertModeAvailability() {
     this.el.toggleAttribute(
       "data-js-insert-mode-disabled",
-      !this.currentEditor()
+      !this.currentEditor(),
     );
   },
 
