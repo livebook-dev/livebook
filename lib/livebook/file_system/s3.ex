@@ -114,7 +114,9 @@ defmodule Livebook.FileSystem.S3 do
             %{access_key_id: nil, secret_access_key: nil, token: nil}
 
           credentials ->
-            Map.take(credentials, [:access_key_id, :secret_access_key, :token])
+            credentials
+            |> Map.take([:access_key_id, :secret_access_key, :token])
+            |> then(&Map.merge(%{token: nil, access_key_id: nil, secret_access_key: nil}, &1))
         end
 
       _ ->
