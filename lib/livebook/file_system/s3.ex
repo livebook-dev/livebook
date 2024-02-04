@@ -109,12 +109,15 @@ defmodule Livebook.FileSystem.S3 do
   def credentials(%__MODULE__{} = file_system) do
     case {file_system.access_key_id, file_system.secret_access_key} do
       {nil, nil} ->
+        defaults = %{token: nil, access_key_id: nil, secret_access_key: nil}
+
         case get_credentials() do
           :undefined ->
-            %{access_key_id: nil, secret_access_key: nil, token: nil}
+            defaults
 
           credentials ->
-            Map.take(credentials, [:access_key_id, :secret_access_key, :token])
+            credentials = Map.take(credentials, [:access_key_id, :secret_access_key, :token])
+            Map.merge(defaults, credentials)
         end
 
       _ ->
