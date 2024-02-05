@@ -80,6 +80,20 @@ To try out features from the main branch you can alternatively
 use the `ghcr.io/livebook-dev/livebook:edge` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
+### Podman
+
+[Podman](https://podman.io/) should work as drop-in Docker replacement, though it's not officially supported. One difference could be change from:
+
+```shell
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data ghcr.io/livebook-dev/livebook
+```
+
+To:
+
+```shell
+docker run -p 8080:8080 -p 8081:8081 --pull always --userns=keep-id:uid=$(id -u),gid=$(id -g) -v $(pwd):/data ghcr.io/livebook-dev/livebook
+```
+
 ### Embedded devices
 
 If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
