@@ -60,8 +60,6 @@
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.1",
-    "@babel/preset-env": "^7.22.2",
     "autoprefixer": "^10.2.0",
     "esbuild": "^0.20.0",
     "esbuild-style-plugin": "^1.6.2",
