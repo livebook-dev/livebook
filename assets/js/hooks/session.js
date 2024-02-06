@@ -461,6 +461,15 @@ const Session = {
       return;
     }
 
+    // If the click is inside an editor tooltip, exit insert mode to
+    // allow for text selection within the tooltip
+    if (event.target.closest(`.cm-tooltip`)) {
+      if (this.insertMode) {
+        this.setInsertMode(false);
+      }
+      return;
+    }
+
     // When clicking an insert button, keep focus and insert mode as is.
     // This is relevant for markdown cells, since we show the markdown
     // preview in insert mode and exiting insert mode on mousedown would
