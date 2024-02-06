@@ -108,12 +108,16 @@ defmodule LivebookWeb.Confirm do
             />
           </div>
         </div>
-        <label :if={@opt_out_id} class="mt-6 text-gray-700 flex items-center">
-          <input class="checkbox mr-3" type="checkbox" name="opt_out_id" value={@opt_out_id} />
-          <span class="text-sm">
-            Don't show this message again
-          </span>
-        </label>
+        <div :if={@opt_out_id} class="mt-6">
+          <.checkbox_field
+            name="opt_out_id"
+            value={nil}
+            checked_value={@opt_out_id}
+            unchecked_value={nil}
+            label="Don't show this message again"
+            small
+          />
+        </div>
         <div class="mt-8 flex justify-end">
           <div class={["flex gap-2", @danger && "flex-row-reverse"]}>
             <button class="button-base button-outlined-gray" type="button" phx-click={hide_modal(@id)}>

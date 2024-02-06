@@ -236,6 +236,8 @@ defmodule LivebookWeb.FormComponents do
     default: "false",
     doc: "when set to `nil`, unchecked value is not sent"
 
+  attr :small, :boolean, default: false
+
   attr :rest, :global
 
   def checkbox_field(assigns) do
@@ -247,14 +249,19 @@ defmodule LivebookWeb.FormComponents do
         <input :if={@unchecked_value} type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
-          class="checkbox shrink-0"
+          class="peer hidden"
           value={@checked_value}
           name={@name}
           id={@id || @name}
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <span :if={@label} class="text-gray-700 flex gap-1 items-center">
+        <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded">
+          <svg viewBox="0 0 16 16" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z" />
+          </svg>
+        </div>
+        <span :if={@label} class={["text-gray-700 flex gap-1 items-center", @small && "text-sm"]}>
           <%= @label %>
           <.help :if={@help} text={@help} />
         </span>
@@ -289,12 +296,15 @@ defmodule LivebookWeb.FormComponents do
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
-            class="radio"
+            class="peer hidden"
             name={@name}
             value={value}
             checked={to_string(@value) == value}
             {@rest}
           />
+          <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-blue-600 text-white peer-checked:text-blue-600 bg-white rounded-full">
+            <div class="w-3 h-3 rounded-full bg-current"></div>
+          </div>
           <span><%= description %></span>
         </label>
       </div>
@@ -423,10 +433,23 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <select id={@id} name={@name} class={["input", @class]} {@rest}>
-        <option :if={@prompt} value=""><%= @prompt %></option>
-        <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
-      </select>
+      <div class="block relative">
+        <select
+          id={@id}
+          name={@name}
+          class={[
+            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300",
+            @class
+          ]}
+          {@rest}
+        >
+          <option :if={@prompt} value=""><%= @prompt %></option>
+          <%= Phoenix.HTML.Form.options_for_select(@options, @value) %>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+          <.remix_icon icon="arrow-down-s-line" />
+        </div>
+      </div>
     </.field_wrapper>
     """
   end

@@ -67,12 +67,6 @@
     @apply rounded-full border-2;
   }
 
-  /* Links */
-
-  .link {
-    @apply font-medium underline text-gray-900 hover:no-underline;
-  }
-
   /* Form fields */
 
   .input {
@@ -102,43 +96,6 @@
     width: 20px;
     height: 20px;
     @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
-  }
-
-  select.input {
-    appearance: none;
-    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik01Ljk5OTg5IDQuOTc2NzFMMTAuMTI0OSAwLjg1MTcwOEwxMS4zMDMyIDIuMDMwMDRMNS45OTk4OSA3LjMzMzM3TDAuNjk2NTU1IDIuMDMwMDRMMS44NzQ4OSAwLjg1MTcwOEw1Ljk5OTg5IDQuOTc2NzFaIiBmaWxsPSIjNjE3NThBIi8+Cjwvc3ZnPgo=");
-    background-repeat: no-repeat;
-    background-position: center right 10px;
-    background-size: 10px;
-    padding-right: 28px;
-  }
-
-  .radio {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%23CAD5E0' fill='white' /%3e%3c/svg%3e");
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-
-  .radio:checked {
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%233E64FF' fill='white' /%3e%3ccircle cx='10' cy='10' r='6' fill='%233E64FF' /%3e%3c/svg%3e");
-  }
-
-  .checkbox {
-    @apply h-5 w-5 appearance-none border border-gray-300 rounded text-blue-600 cursor-pointer;
-  }
-
-  .checkbox:checked {
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
-    border-color: transparent;
-    background-color: currentColor;
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
   }
 
   /* Custom scrollbars */

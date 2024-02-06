@@ -112,15 +112,16 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         data-test-session-id={session.id}
       >
         <div id={"#{session.id}-checkbox"} phx-update="ignore">
-          <input
-            type="checkbox"
-            name="session_ids[]"
-            value={session.id}
-            aria-label={session.notebook_name}
-            class="checkbox hidden mr-3"
-            data-el-bulk-edit-member
-            phx-click={JS.dispatch("lb:session_list:on_selection_change")}
-          />
+          <div class="hidden mr-3" data-el-bulk-edit-member>
+            <.checkbox_field
+              name="session_ids[]"
+              value={nil}
+              checked_value={session.id}
+              unchecked_value={nil}
+              aria-label={session.notebook_name}
+              phx-click={JS.dispatch("lb:session_list:on_selection_change")}
+            />
+          </div>
         </div>
         <div class="grow flex flex-col items-start">
           <.link

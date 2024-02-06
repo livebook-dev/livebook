@@ -147,15 +147,14 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp input_output(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select data-el-input class="input w-60" name="html_value">
-      <option
-        :for={{{key, label}, idx} <- Enum.with_index(@attrs.options)}
-        value={idx}
-        selected={@value == key}
-      >
-        <%= label %>
-      </option>
-    </select>
+    <div class="w-60">
+      <.select_field
+        name="html_value"
+        value={Enum.find_index(@attrs.options, fn {key, _label} -> key == @value end)}
+        options={Enum.with_index(@attrs.options, fn {_key, label}, idx -> {label, idx} end)}
+        data-el-input
+      />
+    </div>
     """
   end
 
