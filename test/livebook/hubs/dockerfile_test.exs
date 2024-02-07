@@ -292,8 +292,8 @@ defmodule Livebook.Hubs.DockerfileTest do
   end
 
   defp dockerfile_config(attrs \\ %{}) do
-    attrs
-    |> Dockerfile.config_changeset()
+    Dockerfile.config_new()
+    |> Dockerfile.config_changeset(attrs)
     |> Ecto.Changeset.apply_changes()
   end
 

@@ -57,7 +57,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
        secrets: secrets,
        agent_keys: agent_keys
      )
-     |> assign_new(:config_changeset, fn -> Hubs.Dockerfile.config_changeset() end)
+     |> assign_new(:config_changeset, fn ->
+       Hubs.Dockerfile.config_changeset(Hubs.Dockerfile.config_new())
+     end)
      |> update_dockerfile()}
   end
 
@@ -206,7 +208,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
   def handle_event("validate_dockerfile", %{"data" => data}, socket) do
     changeset =
       data
-      |> Hubs.Dockerfile.config_changeset()
+      |> Hubs.Dockerfile.config_changeset(Hubs.Dockerfile.config_new())
       |> Map.replace!(:action, :validate)
 
     {:noreply,
@@ -252,11 +254,22 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     Hubs.get_default_hub().id == hub.id
   end
 
+  defp update_dockerfile(socket) when socket.assigns.deployment_group == nil, do: socket
+
   defp update_dockerfile(socket) do
     config =
       socket.assigns.config_changeset
       |> Ecto.Changeset.apply_changes()
       |> Map.replace!(:deploy_all, true)
+
+    deployment_group = socket.assigns.deployment_group
+
+    config = %{
+      config
+      | clustering: deployment_group.clustering,
+        zta_provider: deployment_group.zta_provider,
+        zta_key: deployment_group.zta_key
+    }
 
     %{hub: hub, secrets: deployment_group_secrets} = socket.assigns
 

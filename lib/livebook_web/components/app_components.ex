@@ -111,6 +111,7 @@ defmodule LivebookWeb.AppComponents do
   """
   attr :form, Phoenix.HTML.Form, required: true
   attr :hub, :map, required: true
+  attr :disabled, :boolean, default: false
 
   def deployment_group_form_content(assigns) do
     ~H"""
@@ -134,8 +135,7 @@ defmodule LivebookWeb.AppComponents do
           {"Single instance", ""},
           {"Fly.io", "fly_io"}
         ]}
-        disabled={@form[:ready_only].value}
-        class="disabled:cursor-not-allowed"
+        disabled={@disabled}
       />
     </div>
     <%= if Hubs.Provider.type(@hub) == "team" do %>
@@ -153,8 +153,7 @@ defmodule LivebookWeb.AppComponents do
             }
             prompt="None"
             options={zta_options()}
-            disabled={@form[:ready_only].value}
-            class="disabled:cursor-not-allowed"
+            disabled={@disabled}
           />
           <.text_field
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
@@ -162,8 +161,7 @@ defmodule LivebookWeb.AppComponents do
             label={zta_metadata.value}
             placeholder={zta_placeholder(zta_metadata)}
             phx-debounce
-            disabled={@form[:ready_only].value}
-            class="disabled:cursor-not-allowed"
+            disabled={@disabled}
           />
         </div>
         <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">

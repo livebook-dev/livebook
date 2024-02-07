@@ -10,22 +10,48 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
   @impl true
   def update(assigns, socket) do
+    deployment_group_changed? =
+      not Map.has_key?(socket.assigns, :deployment_group_id) or
+        socket.assigns.deployment_group_id != assigns.deployment_group_id
+
     socket = assign(socket, assigns)
     deployment_groups = Provider.deployment_groups(assigns.hub)
 
-    {:ok,
-     socket
-     |> assign(settings_valid?: Livebook.Notebook.AppSettings.valid?(socket.assigns.settings))
-     |> assign(
-       hub_secrets: Hubs.get_secrets(assigns.hub),
-       hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
-       deployment_groups: deployment_groups,
-       deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
-       deployment_group_id: assigns.deployment_group_id
-     )
-     |> assign_new(:changeset, fn -> Hubs.Dockerfile.config_changeset() end)
-     |> assign_new(:save_result, fn -> nil end)
-     |> update_dockerfile()}
+    socket =
+      socket
+      |> assign(settings_valid?: Livebook.Notebook.AppSettings.valid?(socket.assigns.settings))
+      |> assign(
+        hub_secrets: Hubs.get_secrets(assigns.hub),
+        hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
+        deployment_groups: deployment_groups,
+        deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
+        deployment_group_id: assigns.deployment_group_id
+      )
+      |> assign_new(:save_result, fn -> nil end)
+
+    socket =
+      if deployment_group_changed? do
+        assign(socket, :changeset, Hubs.Dockerfile.config_changeset(base_config(socket)))
+      else
+        socket
+      end
+
+    {:ok, update_dockerfile(socket)}
+  end
+
+  defp base_config(socket) do
+    if id = socket.assigns.deployment_group_id do
+      deployment_group = Enum.find(socket.assigns.deployment_groups, &(&1.id == id))
+
+      %{
+        Hubs.Dockerfile.config_new()
+        | clustering: deployment_group.clustering,
+          zta_provider: deployment_group.zta_provider,
+          zta_key: deployment_group.zta_key
+      }
+    else
+      Hubs.Dockerfile.config_new()
+    end
   end
 
   @impl true
@@ -128,19 +154,15 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <%= raw(warning) %>
         </.message_box>
       </div>
-      <.form
-        :let={f}
-        for={deployment_group_form_content(assigns)}
-        as={:data}
-        phx-change="validate"
-        phx-target={@myself}
-      >
-        <div class="flex flex-col space-y-4">
-          <AppComponents.deployment_group_form_content hub={@hub} form={f} />
-        </div>
-      </.form>
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
-        <AppComponents.docker_config_form_content hub={@hub} form={f} />
+        <div class="flex flex-col space-y-4">
+          <AppComponents.deployment_group_form_content
+            hub={@hub}
+            form={f}
+            disabled={@deployment_group_id != nil}
+          />
+          <AppComponents.docker_config_form_content hub={@hub} form={f} />
+        </div>
       </.form>
       <.save_result :if={@save_result} save_result={@save_result} />
       <AppComponents.docker_instructions
@@ -184,8 +206,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
-      data
-      |> Hubs.Dockerfile.config_changeset()
+      socket
+      |> base_config()
+      |> Hubs.Dockerfile.config_changeset(data)
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset) |> update_dockerfile()}
@@ -204,6 +227,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   def handle_event("select_deployment_group", %{"deployment_group_id" => id}, socket) do
+    id = if(id != "", do: id)
     Livebook.Session.set_notebook_deployment_group(socket.assigns.session.pid, id)
 
     {:noreply, socket}
@@ -266,22 +290,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   defp deployment_group_options(deployment_groups) do
     for deployment_group <- [%{name: "none", id: nil}] ++ deployment_groups,
         do: {deployment_group.name, deployment_group.id}
-  end
-
-  defp deployment_group_form_content(%{deployment_group_id: id} = assigns) do
-    deployment_group = if id, do: Enum.find(assigns.deployment_groups, &(&1.id == id))
-
-    if deployment_group do
-      %{
-        "deployment_group_id" => deployment_group.id,
-        "clustering" => deployment_group.clustering,
-        "zta_provider" => deployment_group.zta_provider,
-        "zta_key" => deployment_group.zta_key,
-        "ready_only" => true
-      }
-    else
-      assigns.changeset
-    end
   end
 
   defp deployment_group_help() do
