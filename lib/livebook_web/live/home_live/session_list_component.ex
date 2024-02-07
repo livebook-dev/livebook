@@ -114,6 +114,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <div id={"#{session.id}-checkbox"} phx-update="ignore">
           <div class="hidden mr-3" data-el-bulk-edit-member>
             <.checkbox_field
+              id={"#{session.id}-checkbox-field"}
               name="session_ids[]"
               value={nil}
               checked_value={session.id}
