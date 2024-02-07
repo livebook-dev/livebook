@@ -1,5 +1,6 @@
 import { LanguageDescription } from "@codemirror/language";
 import { highlightCode } from "@lezer/highlight";
+import { StyleModule } from "style-mod";
 import { languages } from "./codemirror/languages";
 import { highlightStyle, lightHighlightStyle } from "./codemirror/theme";
 import { escapeHtml } from "../../../lib/utils";
@@ -15,6 +16,11 @@ export function highlight(code, language) {
     return escapeHtml(code);
   }
 
+  const highlightStyle = getHighlightStyle();
+
+  // Ensure the highlighter CSS is added to the page
+  StyleModule.mount(window.document, highlightStyle.module);
+
   const tree = languageDesc.support.language.parser.parse(code);
 
   let html = "";
@@ -22,7 +28,7 @@ export function highlight(code, language) {
   highlightCode(
     code,
     tree,
-    getHighlightStyle(),
+    highlightStyle,
     (code, classes) => {
       html += `<span class="${classes}">${escapeHtml(code)}</span>`;
     },
