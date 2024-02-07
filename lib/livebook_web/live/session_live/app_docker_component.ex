@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-8">
+    <div class="p-6 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         App deployment
       </h3>
