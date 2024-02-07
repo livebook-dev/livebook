@@ -421,12 +421,11 @@ defmodule LivebookWeb.FormComponents do
   attr :class, :string, default: ""
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
-  attr :disabled, :boolean, default: false
 
   attr :options, :list, default: []
   attr :prompt, :string, default: nil
 
-  attr :rest, :global
+  attr :rest, :global, include: ~w(disabled)
 
   def select_field(assigns) do
     assigns = assigns_from_field(assigns)
@@ -438,7 +437,7 @@ defmodule LivebookWeb.FormComponents do
           id={@id}
           name={@name}
           class={[
-            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300",
+            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300 disabled:opacity-70 disabled:cursor-not-allowed",
             @class
           ]}
           {@rest}
