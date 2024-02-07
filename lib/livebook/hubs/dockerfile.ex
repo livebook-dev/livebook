@@ -14,20 +14,26 @@ defmodule Livebook.Hubs.Dockerfile do
         }
 
   @doc """
-  Builds a changeset for app Dockerfile configuration.
+  Builds the default Dockerfile configuration.
   """
-  @spec config_changeset(map()) :: Ecto.Changeset.t()
-  def config_changeset(attrs \\ %{}) do
+  @spec config_new() :: config()
+  def config_new() do
     default_image = Livebook.Config.docker_images() |> hd()
 
-    data = %{
+    %{
       deploy_all: false,
       docker_tag: default_image.tag,
       clustering: nil,
       zta_provider: nil,
       zta_key: nil
     }
+  end
 
+  @doc """
+  Builds a changeset for app Dockerfile configuration.
+  """
+  @spec config_changeset(config(), map()) :: Ecto.Changeset.t()
+  def config_changeset(config, attrs \\ %{}) do
     zta_types =
       for provider <- Livebook.Config.identity_providers(),
           do: provider.type
@@ -40,7 +46,7 @@ defmodule Livebook.Hubs.Dockerfile do
       zta_key: :string
     }
 
-    cast({data, types}, attrs, [:deploy_all, :docker_tag, :clustering, :zta_provider, :zta_key])
+    cast({config, types}, attrs, [:deploy_all, :docker_tag, :clustering, :zta_provider, :zta_key])
     |> validate_required([:deploy_all, :docker_tag])
   end
 

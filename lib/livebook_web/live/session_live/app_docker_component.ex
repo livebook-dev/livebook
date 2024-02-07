@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
     socket =
       if deployment_group_changed? do
-        assign(socket, :changeset, config_changeset(%{}, socket))
+        assign(socket, :changeset, Hubs.Dockerfile.config_changeset(base_config(socket)))
       else
         socket
       end
@@ -39,22 +39,19 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     {:ok, update_dockerfile(socket)}
   end
 
-  defp config_changeset(attrs, socket) do
-    fixed_attrs =
-      if id = socket.assigns.deployment_group_id do
-        deployment_group = Enum.find(socket.assigns.deployment_groups, &(&1.id == id))
+  defp base_config(socket) do
+    if id = socket.assigns.deployment_group_id do
+      deployment_group = Enum.find(socket.assigns.deployment_groups, &(&1.id == id))
 
-        %{
-          "deployment_group_id" => deployment_group.id,
-          "clustering" => deployment_group.clustering,
-          "zta_provider" => deployment_group.zta_provider,
-          "zta_key" => deployment_group.zta_key
-        }
-      else
-        %{}
-      end
-
-    Hubs.Dockerfile.config_changeset(Map.merge(attrs, fixed_attrs))
+      %{
+        Hubs.Dockerfile.config_new()
+        | clustering: deployment_group.clustering,
+          zta_provider: deployment_group.zta_provider,
+          zta_key: deployment_group.zta_key
+      }
+    else
+      Hubs.Dockerfile.config_new()
+    end
   end
 
   @impl true
@@ -209,8 +206,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
-      data
-      |> config_changeset(socket)
+      socket
+      |> base_config()
+      |> Hubs.Dockerfile.config_changeset(data)
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset) |> update_dockerfile()}
