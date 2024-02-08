@@ -57,20 +57,21 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               autocomplete="off"
               phx-debounce
             />
-              <.select_field
-                :if={@mode == :new}
-                label="Mode"
-                help={
-                  ~S'''
-                  Deployment group mode.
-                  '''
-                }
-                field={f[:mode]}
-                options={[
-                  {"Offline", :offline},
-                  {"Online", :online}
-                ]}
-              />
+            <.select_field
+              :if={@mode == :new}
+              label="Mode"
+              help={
+                ~S'''
+                Deployment group mode.
+                '''
+              }
+              field={f[:mode]}
+              options={[
+                {"Offline", :offline},
+                {"Online", :online}
+              ]}
+            />
+            <.hidden_field :if={@mode != :new} field={f[:mode]} value={@deployment_group.mode} />
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>

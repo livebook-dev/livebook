@@ -36,6 +36,6 @@ defmodule Livebook.Teams.DeploymentGroup do
   def changeset(deployment_group, attrs \\ %{}) do
     deployment_group
     |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key])
-    |> validate_required([:name])
+    |> validate_required([:name, :mode])
   end
 end
