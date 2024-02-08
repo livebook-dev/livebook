@@ -57,8 +57,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               autocomplete="off"
               phx-debounce
             />
-            <%= if @mode == :new do %>
               <.select_field
+                :if={@mode == :new}
                 label="Mode"
                 help={
                   ~S'''
