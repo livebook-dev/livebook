@@ -26,15 +26,18 @@ defmodule LivebookWeb.AppsDashboardLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
+      <div class="space-y-2 p-4 md:px-12 md:py-7 max-w-screen-lg mx-auto">
         <div class="flex items-center justify-between">
-          <LayoutComponents.title text="Apps" />
+          <LayoutComponents.title text="Local apps" />
           <.link navigate={~p"/apps"} class="flex items-center text-blue-600">
             <span class="font-semibold">Listing</span>
             <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
           </.link>
         </div>
-        <div class="mt-10">
+        <p class="text-gray-700 text-sm">
+          An overview of all deployed applications and previews running on this node.
+        </p>
+        <div class="pt-6">
           <.app_list apps={@apps} />
         </div>
       </div>
@@ -46,7 +49,7 @@ defmodule LivebookWeb.AppsDashboardLive do
     ~H"""
     <.no_entries>
       You do not have any apps running. <br />
-      You can deploy new apps by opening a notebook and clicking
+      You can preview and deploy new apps by opening a notebook and clicking
       <.remix_icon icon="rocket-line" class="align-top text-lg" /> in the sidebar.
     </.no_entries>
     """
@@ -70,10 +73,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           </div>
           <div class="flex-col mb-8">
             <div class="p-4 border-x border-t border-gray-200 rounded-t-lg ">
-              <div class="uppercase text-gray-500 text-sm font-medium leading-normal tracking-wider">
-                App Info
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4 mt-3">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
                 <div class="break-words">
                   <.labeled_text label="Name">
                     <%= app.notebook_name %>

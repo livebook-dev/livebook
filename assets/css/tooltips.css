@@ -82,7 +82,14 @@ otherwise there's a tiny space between them.
   transform: translate(-50%, calc(1px - var(--arrow-size) - var(--distance)));
 }
 
-.tooltip.top:after {
+.tooltip.top-right:before {
+  bottom: 100%;
+  left: 0;
+  transform: translate(0%, calc(1px - var(--arrow-size) - var(--distance)));
+}
+
+.tooltip.top:after,
+.tooltip.top-right:after {
   bottom: 100%;
   left: 50%;
   transform: translate(-50%, calc(0px - var(--distance)));

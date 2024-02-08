@@ -323,20 +323,11 @@ defmodule LivebookWeb.SessionLive.Render do
         button_attrs={["data-el-files-list-toggle": true]}
       />
 
-      <div class="relative">
-        <.button_item
-          icon="rocket-line"
-          label="App settings (sa)"
-          button_attrs={["data-el-app-info-toggle": true]}
-        />
-        <div
-          data-el-app-indicator
-          class={[
-            "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
-            app_status_color(app_status(@app))
-          ]}
-        />
-      </div>
+      <.button_item
+        icon="rocket-line"
+        label="App settings (sa)"
+        button_attrs={["data-el-app-info-toggle": true]}
+      />
 
       <div class="grow"></div>
 
@@ -372,17 +363,6 @@ defmodule LivebookWeb.SessionLive.Render do
     </nav>
     """
   end
-
-  defp app_status(%{sessions: [app_session | _]}), do: app_session.app_status
-  defp app_status(_), do: nil
-
-  defp app_status_color(nil), do: "bg-gray-400"
-  defp app_status_color(%{lifecycle: :shutting_down}), do: "bg-gray-500"
-  defp app_status_color(%{lifecycle: :deactivated}), do: "bg-gray-500"
-  defp app_status_color(%{execution: :executing}), do: "bg-blue-500"
-  defp app_status_color(%{execution: :executed}), do: "bg-green-bright-400"
-  defp app_status_color(%{execution: :error}), do: "bg-red-400"
-  defp app_status_color(%{execution: :interrupted}), do: "bg-gray-400"
 
   def side_panel(assigns) do
     ~H"""
@@ -605,9 +585,17 @@ defmodule LivebookWeb.SessionLive.Render do
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Runtime
         </h3>
-        <.link patch={~p"/sessions/#{@session.id}/settings/runtime"} class="icon-button p-0">
-          <.remix_icon icon="settings-3-line text-xl" />
-        </.link>
+        <span
+          class="icon-button p-0 cursor-pointer tooltip bottom-left"
+          data-tooltip={
+            ~S'''
+            The runtime configures which Erlang VM
+            instance the notebook code runs on.
+            '''
+          }
+        >
+          <.remix_icon icon="question-line" class="text-xl leading-none" />
+        </span>
       </div>
       <div class="flex flex-col mt-2 space-y-4">
         <div class="flex flex-col space-y-3">
@@ -621,42 +609,47 @@ defmodule LivebookWeb.SessionLive.Render do
         </div>
         <div class="flex space-x-2">
           <%= if Runtime.connected?(@data_view.runtime) do %>
-            <button class="button-base button-blue" phx-click="reconnect_runtime">
+            <button class="button-base grow justify-center button-blue" phx-click="reconnect_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Reconnect</span>
             </button>
-            <button
-              class="button-base button-outlined-red"
-              type="button"
-              phx-click="disconnect_runtime"
-            >
-              Disconnect
-            </button>
           <% else %>
-            <button class="button-base button-blue" phx-click="connect_runtime">
+            <button class="button-base grow justify-center button-blue" phx-click="connect_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
             </button>
-            <.link
-              patch={~p"/sessions/#{@session.id}/settings/runtime"}
-              class="button-base button-outlined-gray bg-transparent"
-            >
-              Configure
-            </.link>
           <% end %>
+          <.link
+            patch={~p"/sessions/#{@session.id}/settings/runtime"}
+            class="button-base grow justify-center button-outlined-gray bg-transparent"
+          >
+            Configure
+          </.link>
         </div>
-        <%= if uses_memory?(@session.memory_usage) do %>
-          <.memory_info memory_usage={@session.memory_usage} />
-        <% else %>
-          <div class="mb-1 text-sm text-gray-800 py-6 flex flex-col">
-            <span class="w-full uppercase font-semibold text-gray-500">Memory</span>
-            <p class="py-1">
-              <%= format_bytes(@session.memory_usage.system.free) %> available out of <%= format_bytes(
-                @session.memory_usage.system.total
-              ) %>
-            </p>
-          </div>
-        <% end %>
+
+        <div class="flex flex-col pt-6 space-y-2">
+          <%= if uses_memory?(@session.memory_usage) do %>
+            <.memory_info memory_usage={@session.memory_usage} />
+          <% else %>
+            <div class="text-sm text-gray-800 flex flex-col">
+              <span class="w-full uppercase font-semibold text-gray-500">Memory</span>
+              <p class="py-1">
+                <%= format_bytes(@session.memory_usage.system.free) %> available out of <%= format_bytes(
+                  @session.memory_usage.system.total
+                ) %>
+              </p>
+            </div>
+          <% end %>
+
+          <button
+            :if={Runtime.connected?(@data_view.runtime)}
+            class="button-base button-outlined-red justify-center"
+            type="button"
+            phx-click="disconnect_runtime"
+          >
+            Disconnect
+          </button>
+        </div>
       </div>
     </div>
     """
@@ -666,7 +659,7 @@ defmodule LivebookWeb.SessionLive.Render do
     assigns = assign(assigns, :runtime_memory, runtime_memory(assigns.memory_usage))
 
     ~H"""
-    <div class="py-6 flex flex-col justify-center">
+    <div class="flex flex-col justify-center">
       <div class="mb-1 text-sm text-gray-800 flex flex-row justify-between">
         <span class="text-gray-500 font-semibold uppercase">Memory</span>
         <span class="text-right">

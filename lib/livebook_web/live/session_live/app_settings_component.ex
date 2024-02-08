@@ -24,7 +24,14 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
       </h3>
-      <.form :let={f} for={@changeset} phx-change="validate" phx-target={@myself} autocomplete="off">
+      <.form
+        :let={f}
+        for={@changeset}
+        phx-change="validate"
+        phx-submit="save"
+        phx-target={@myself}
+        autocomplete="off"
+      >
         <div class="flex flex-col space-y-4">
           <.text_field field={f[:slug]} label="Slug" spellcheck="false" phx-debounce />
           <div class="flex flex-col space-y-1">
@@ -118,14 +125,8 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <button
-            class="button-base button-blue"
-            type="button"
-            phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
-            disabled={not @changeset.valid?}
-          >
-            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
-            <span>Deploy</span>
+          <button class="button-base button-blue" disabled={not @changeset.valid?}>
+            <span>Save</span>
           </button>
           <button class="button-base button-outlined-gray" type="reset" name="reset">
             Reset
@@ -149,10 +150,14 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       |> AppSettings.change(params)
       |> Map.put(:action, :validate)
 
+    {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  def handle_event("save", %{"app_settings" => params}, socket) do
     with {:ok, settings} <- AppSettings.update(socket.assigns.settings, params) do
       Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
     end
 
-    {:noreply, assign(socket, changeset: changeset)}
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
   end
 end

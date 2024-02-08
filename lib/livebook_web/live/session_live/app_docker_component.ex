@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     ~H"""
     <div class="p-6 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
-        App deployment
+        App deployment with Docker
       </h3>
       <.content
         file={@file}
@@ -149,7 +149,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <% end %>
         <% end %>
       </div>
-      <div class="flex flex-col gap-2">
+      <div :if={@warnings != []} class="flex flex-col gap-2">
         <.message_box :for={warning <- @warnings} kind={:warning}>
           <%= raw(warning) %>
         </.message_box>
