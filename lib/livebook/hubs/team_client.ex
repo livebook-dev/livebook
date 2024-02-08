@@ -294,7 +294,7 @@ defmodule Livebook.Hubs.TeamClient do
     %Teams.DeploymentGroup{
       id: deployment_group.id,
       name: deployment_group.name,
-      mode: String.to_existing_atom(deployment_group.mode),
+      mode: atomize(deployment_group.mode),
       hub_id: state.hub.id,
       secrets: secrets,
       agent_keys: agent_keys,
@@ -528,8 +528,11 @@ defmodule Livebook.Hubs.TeamClient do
   defp find_deployment_group(nil, _), do: nil
   defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
 
+  # We cannot use to_existing_atom because the atoms
+  # may not have been loaded. Luckily, we can trust
+  # on Livebook Teams as a source.
   defp atomize(value) when value in [nil, ""], do: nil
-  defp atomize(value), do: String.to_existing_atom(value)
+  defp atomize(value), do: String.to_atom(value)
 
   defp nullify(""), do: nil
   defp nullify(value), do: value
