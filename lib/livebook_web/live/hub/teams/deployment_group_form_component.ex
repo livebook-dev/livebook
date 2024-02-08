@@ -58,19 +58,19 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               phx-debounce
             />
             <%= if @mode == :new do %>
-            <.select_field
-              label="Mode"
-              help={
-                ~S'''
-                Deployment group mode.
-                '''
-              }
-              field={f[:mode]}
-              options={[
-                {"Offline", :offline},
-                {"Online", :online}
-              ]}
-            />
+              <.select_field
+                label="Mode"
+                help={
+                  ~S'''
+                  Deployment group mode.
+                  '''
+                }
+                field={f[:mode]}
+                options={[
+                  {"Offline", :offline},
+                  {"Online", :online}
+                ]}
+              />
             <% end %>
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
