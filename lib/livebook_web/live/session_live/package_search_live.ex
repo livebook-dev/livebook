@@ -39,9 +39,10 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
           autofocus
         />
       </form>
-      <div class={
-        "flex flex-col divide-y h-[20rem] pr-2 -mr-2 overflow-y-auto tiny-scrollbar #{if @search_ref, do: "opacity-75"}"
-      }>
+      <div class={[
+        "flex flex-col divide-y h-[20rem] pr-2 -mr-2 overflow-y-auto tiny-scrollbar",
+        if(@search_ref, do: "opacity-30 transition-opacity duration-300")
+      ]}>
         <%= cond do %>
           <% @error_message -> %>
             <div class="error-box">
