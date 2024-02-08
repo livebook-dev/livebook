@@ -18,7 +18,7 @@ defmodule LivebookWeb.FormComponents do
   attr :type, :string, default: "text"
   attr :class, :string, default: nil
 
-  attr :rest, :global, include: ~w(autocomplete readonly disabled)
+  attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
 
   def text_field(assigns) do
     assigns = assigns_from_field(assigns)
@@ -30,11 +30,15 @@ defmodule LivebookWeb.FormComponents do
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class={["input", @class]}
+        class={[input_classes(), @class]}
         {@rest}
       />
     </.field_wrapper>
     """
+  end
+
+  defp input_classes() do
+    "w-full px-3 py-2 bg-gray-50 text-sm font-normal border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 disabled:opacity-70 disabled:cursor-not-allowed phx-form-error:bg-red-50 phx-form-error:border-red-600 phx-form-error:text-red-600 invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
   end
 
   @doc """
@@ -47,8 +51,9 @@ defmodule LivebookWeb.FormComponents do
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
+  attr :class, :string, default: nil
 
-  attr :resizable, :boolean, default: false
+  attr :monospace, :boolean, default: false
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled rows cols)
 
@@ -60,7 +65,7 @@ defmodule LivebookWeb.FormComponents do
       <textarea
         id={@id || @name}
         name={@name}
-        class={["input", not @resizable && "resize-none"]}
+        class={[input_classes(), "resize-none tiny-scrollbar", @monospace && "font-mono", @class]}
         {@rest}
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
     </.field_wrapper>
@@ -104,16 +109,45 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <.with_password_toggle id={@id <> "-toggle"}>
+      <div id={"#{@id}-toggle"} class="relative flex">
         <input
           type="password"
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={["input pr-8", @class]}
+          class={[input_classes(), "pr-8", @class]}
           {@rest}
         />
-      </.with_password_toggle>
+        <div class="flex items-center absolute inset-y-0 right-1">
+          <.icon_button
+            data-show
+            type="button"
+            aria-label="show password"
+            tabindex="-1"
+            phx-click={
+              JS.set_attribute({"type", "text"}, to: "##{@id}-toggle input")
+              |> JS.add_class("hidden", to: "##{@id}-toggle [data-show]")
+              |> JS.remove_class("hidden", to: "##{@id}-toggle [data-hide]")
+            }
+          >
+            <.remix_icon icon="eye-line" />
+          </.icon_button>
+          <.icon_button
+            class="hidden"
+            data-hide
+            type="button"
+            aria-label="hide password"
+            tabindex="-1"
+            phx-click={
+              JS.set_attribute({"type", "password"}, to: "##{@id}-toggle input")
+              |> JS.remove_class("hidden", to: "##{@id}-toggle [data-show]")
+              |> JS.add_class("hidden", to: "##{@id}-toggle [data-hide]")
+            }
+          >
+            <.remix_icon icon="eye-off-line" />
+          </.icon_button>
+        </div>
+      </div>
     </.field_wrapper>
     """
   end
@@ -150,7 +184,7 @@ defmodule LivebookWeb.FormComponents do
             name={@name}
             id={@id || @name}
             value={@value}
-            class="input"
+            class={input_classes()}
             spellcheck="false"
             maxlength="7"
             {@rest}
@@ -528,62 +562,6 @@ defmodule LivebookWeb.FormComponents do
     <span class="cursor-pointer tooltip top" data-tooltip={@text}>
       <.remix_icon icon="question-line" class="text-sm leading-none" />
     </span>
-    """
-  end
-
-  @doc """
-  Renders a wrapper around password input with an added visibility
-  toggle button.
-
-  The toggle switches the input's type between `password` and `text`.
-
-  ## Examples
-
-      <.with_password_toggle id="secret-password-toggle">
-        <input type="password" ...>
-      </.with_password_toggle>
-
-  """
-  attr :id, :string, required: true
-
-  slot :inner_block, required: true
-
-  def with_password_toggle(assigns) do
-    ~H"""
-    <div id={@id} class="relative flex">
-      <%= render_slot(@inner_block) %>
-      <div class="flex items-center absolute inset-y-0 right-1">
-        <.icon_button
-          data-show
-          type="button"
-          aria-label="show password"
-          tabindex="-1"
-          phx-click={
-            JS.remove_attribute("type", to: "##{@id} input")
-            |> JS.set_attribute({"type", "text"}, to: "##{@id} input")
-            |> JS.add_class("hidden", to: "##{@id} [data-show]")
-            |> JS.remove_class("hidden", to: "##{@id} [data-hide]")
-          }
-        >
-          <.remix_icon icon="eye-line" />
-        </.icon_button>
-        <.icon_button
-          class="hidden"
-          data-hide
-          type="button"
-          aria-label="hide password"
-          tabindex="-1"
-          phx-click={
-            JS.remove_attribute("type", to: "##{@id} input")
-            |> JS.set_attribute({"type", "password"}, to: "##{@id} input")
-            |> JS.remove_class("hidden", to: "##{@id} [data-show]")
-            |> JS.add_class("hidden", to: "##{@id} [data-hide]")
-          }
-        >
-          <.remix_icon icon="eye-off-line" />
-        </.icon_button>
-      </div>
-    </div>
     """
   end
 

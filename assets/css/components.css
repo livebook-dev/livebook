@@ -1,33 +1,20 @@
 @layer components {
-  /* Form fields */
-
-  .input {
-    @apply w-full px-3 py-2 bg-gray-50 text-sm font-normal border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300 disabled:opacity-70 disabled:cursor-not-allowed;
-  }
-
-  .input[type="color"] {
-    @apply py-0 w-16;
-  }
-
-  .input--error {
-    @apply bg-red-50 border-red-600 text-red-600;
-  }
-
-  .input-range {
+  .range-input {
     height: 8px;
     @apply appearance-none bg-gray-200 rounded-lg;
   }
 
-  .input-range::-webkit-slider-thumb {
-    width: 20px;
-    height: 20px;
-    @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+  /*
+  Note that we need separate selectors, because at most one of these
+  pseudo-selectors is valid in the given browser, and an invalid one
+  would cause the whole rule to be invalid and ignored
+  */
+  .range-input::-moz-range-thumb {
+    @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
   }
 
-  .input-range::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+  .range-input::-webkit-slider-thumb {
+    @apply w-5 h-5 appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
   }
 
   /* Custom scrollbars */

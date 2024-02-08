@@ -37,7 +37,6 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
         <.textarea_field
           field={f[:source]}
           label="Notebook source"
-          resizable={false}
           autofocus
           aria-labelledby="import-from-source"
           spellcheck="false"
