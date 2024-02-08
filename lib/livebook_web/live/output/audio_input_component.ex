@@ -76,38 +76,26 @@ defmodule LivebookWeb.Output.AudioInputComponent do
         />
         <audio controls data-preview></audio>
         <div class="flex items-center justify-center gap-4">
-          <button
-            class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
-            data-btn-record
-          >
-            <.remix_icon icon="mic-line" class="text-lg leading-none mr-2" />
+          <.button color="gray" data-btn-record>
+            <.remix_icon icon="mic-line" />
             <span>Record</span>
-          </button>
-          <button
-            class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500 items-center"
-            data-btn-stop
-          >
-            <span class="mr-2 flex h-3 w-3 relative">
+          </.button>
+          <.button color="gray" class="hidden" data-btn-stop>
+            <span class="flex h-2 w-2 relative">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75">
               </span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
             </span>
             <span>Stop recording</span>
-          </button>
-          <button
-            class="hidden button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
-            data-btn-cancel
-          >
-            <.remix_icon icon="close-circle-line" class="text-lg leading-none mr-2" />
+          </.button>
+          <.button color="gray" class="hidden" data-btn-cancel>
+            <.remix_icon icon="close-circle-line" />
             <span>Cancel</span>
-          </button>
-          <button
-            class="button-base button-gray border-transparent py-2 px-4 inline-flex text-gray-500"
-            data-btn-upload
-          >
-            <.remix_icon icon="upload-2-line" class="text-lg leading-none mr-2" />
+          </.button>
+          <.button color="gray" data-btn-upload>
+            <.remix_icon icon="upload-2-line" />
             <span>Upload</span>
-          </button>
+          </.button>
         </div>
       </div>
       <form phx-change="validate" class="hidden" phx-target={@myself}>

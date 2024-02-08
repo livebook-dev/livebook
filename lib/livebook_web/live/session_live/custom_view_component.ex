@@ -27,9 +27,9 @@ defmodule LivebookWeb.SessionLive.CustomViewComponent do
         <.switch_field name="spotlight" label="Spotlight focused" value={false} />
       </div>
       <div class="mt-8 flex justify-end space-x-2">
-        <.link patch={@return_to} class="button-base button-outlined-gray">
+        <.button color="gray" outlined patch={@return_to}>
           Close
-        </.link>
+        </.button>
       </div>
     </div>
     """

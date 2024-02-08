@@ -11,95 +11,52 @@ defmodule LivebookWeb.Hub.Teams.AgentKeyListComponent do
         <.no_entries :if={@agent_keys == []}>
           No agent keys in this deployment group yet.
         </.no_entries>
-        <div
-          :for={agent_key <- @agent_keys}
-          class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
-        >
-          <div class="flex items-center space-x-12">
-            <.labeled_text label="ID">
-              <div class="flex h-[40px] items-center text-center">
-                <%= agent_key.id %>
-              </div>
-            </.labeled_text>
-
-            <.labeled_text label="Key">
-              <div id="agent-key-toggle" class="relative lg:w-[480px] w-full">
-                <input
-                  type="password"
-                  id="agent-key"
-                  readonly
-                  value={agent_key.key}
-                  class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
-                />
-
-                <div class="flex items-center absolute inset-y-0 right-1">
-                  <button
-                    class="icon-button"
-                    data-tooltip="Copied to clipboard"
-                    type="button"
-                    aria-label="copy to clipboard"
-                    phx-click={
-                      JS.dispatch("lb:clipcopy", to: "#agent-key")
-                      |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
-                    }
-                  >
-                    <.remix_icon icon="clipboard-line" class="text-xl" />
-                  </button>
-
-                  <button
-                    class="icon-button"
-                    data-show
-                    type="button"
-                    aria-label="show password"
-                    phx-click={
-                      JS.remove_attribute("type", to: "#agent-key-toggle input")
-                      |> JS.set_attribute({"type", "text"}, to: "#agent-key-toggle input")
-                      |> toggle_class("hidden", to: "#agent-key-toggle [data-show]")
-                      |> toggle_class("hidden", to: "#agent-key-toggle [data-hide]")
-                    }
-                  >
-                    <.remix_icon icon="eye-line" class="text-xl" />
-                  </button>
-                  <button
-                    class="icon-button hidden"
-                    data-hide
-                    type="button"
-                    aria-label="hide password"
-                    phx-click={
-                      JS.remove_attribute("type", to: "#agent-key-toggle input")
-                      |> JS.set_attribute({"type", "password"}, to: "#agent-key-toggle input")
-                      |> toggle_class("hidden", to: "#agent-key-toggle [data-show]")
-                      |> toggle_class("hidden", to: "#agent-key-toggle [data-hide]")
-                    }
-                  >
-                    <.remix_icon icon="eye-off-line" class="text-xl" />
-                  </button>
+        <div :if={@agent_keys != []}>
+          <.table id="hub-agent-keys-table" rows={@agent_keys}>
+            <:col :let={agent_key} label="ID"><%= agent_key.id %></:col>
+            <:col :let={agent_key} label="Key">
+              <div class="flex flex-nowrap gap-2">
+                <div class="grow">
+                  <.password_field
+                    id={"agent-key-#{agent_key.id}"}
+                    name="agent_key"
+                    value={agent_key.key}
+                    readonly
+                  />
                 </div>
+
+                <span
+                  data-tooltip="Copied to clipboard"
+                  aria-label="copy to clipboard"
+                  phx-click={
+                    JS.dispatch("lb:clipcopy", to: "#agent-key-#{agent_key.id}")
+                    |> JS.add_class("", transition: {"tooltip left", "", ""}, time: 2000)
+                  }
+                >
+                  <.button color="gray" small type="button">
+                    <.remix_icon icon="clipboard-line" class="text-xl leading-none py-1" />
+                  </.button>
+                </span>
               </div>
-            </.labeled_text>
-          </div>
-          <div class="flex items-center space-x-2">
-            <.menu id={"hub-agent-key-#{agent_key.id}-menu"}>
-              <:toggle>
-                <button class="icon-button" aria-label="open deployment group menu" type="button">
-                  <.remix_icon icon="more-2-fill" class="text-xl" />
-                </button>
-              </:toggle>
-              <.menu_item variant={:danger}>
-                <button
+            </:col>
+            <:action :let={agent_key}>
+              <span class="tooltip left" data-tooltip="Delete">
+                <.icon_button
                   id={"hub-agent-key-#{agent_key.id}-delete"}
                   type="button"
+                  phx-click={
+                    JS.push("delete_agent_key",
+                      value: %{id: agent_key.id},
+                      target: @myself
+                    )
+                  }
                   role="menuitem"
-                  class="text-red-600"
-                  phx-click={JS.push("delete_agent_key", value: %{id: agent_key.id})}
-                  phx-target={@myself}
                 >
-                  <.remix_icon icon="delete-bin-line" />
-                  <span>Delete</span>
-                </button>
-              </.menu_item>
-            </.menu>
-          </div>
+                  <.remix_icon icon="delete-bin-6-line" />
+                </.icon_button>
+              </span>
+            </:action>
+          </.table>
         </div>
       </div>
     </div>

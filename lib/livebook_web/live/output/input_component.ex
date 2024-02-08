@@ -92,20 +92,23 @@ defmodule LivebookWeb.Output.InputComponent do
         changed={@changed}
         help="Choose the time in your local time zone"
       />
-      <input
-        id={@id}
-        type="datetime-local"
-        data-el-input
-        class="input w-auto invalid:input--error"
-        name="html_value"
-        step="60"
-        autocomplete="off"
-        phx-hook="UtcDateTimeInput"
-        data-p-utc-value={hook_prop(@value && NaiveDateTime.to_iso8601(@value))}
-        data-p-utc-min={hook_prop(@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min))}
-        data-p-utc-max={hook_prop(@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max))}
-        data-p-phx-target={hook_prop(@myself)}
-      />
+      <div class="inline-flex">
+        <.text_field
+          class="w-auto"
+          id={@id}
+          type="datetime-local"
+          data-el-input
+          name="html_value"
+          step="60"
+          autocomplete="off"
+          phx-hook="UtcDateTimeInput"
+          value={nil}
+          data-p-utc-value={hook_prop(@value && NaiveDateTime.to_iso8601(@value))}
+          data-p-utc-min={hook_prop(@input.attrs.min && NaiveDateTime.to_iso8601(@input.attrs.min))}
+          data-p-utc-max={hook_prop(@input.attrs.max && NaiveDateTime.to_iso8601(@input.attrs.max))}
+          data-p-phx-target={hook_prop(@myself)}
+        />
+      </div>
     </div>
     """
   end
@@ -118,20 +121,22 @@ defmodule LivebookWeb.Output.InputComponent do
         changed={@changed}
         help="Choose the time in your local time zone"
       />
-      <input
-        id={@id}
-        type="time"
-        data-el-input
-        class="input w-auto invalid:input--error"
-        name="html_value"
-        step="60"
-        autocomplete="off"
-        phx-hook="UtcTimeInput"
-        data-p-utc-value={hook_prop(@value && Time.to_iso8601(@value))}
-        data-p-utc-min={hook_prop(@input.attrs.min && Time.to_iso8601(@input.attrs.min))}
-        data-p-utc-max={hook_prop(@input.attrs.max && Time.to_iso8601(@input.attrs.max))}
-        data-p-phx-target={hook_prop(@myself)}
-      />
+      <div class="inline-flex">
+        <.text_field
+          id={@id}
+          type="time"
+          data-el-input
+          name="html_value"
+          step="60"
+          autocomplete="off"
+          phx-hook="UtcTimeInput"
+          value={nil}
+          data-p-utc-value={hook_prop(@value && Time.to_iso8601(@value))}
+          data-p-utc-min={hook_prop(@input.attrs.min && Time.to_iso8601(@input.attrs.min))}
+          data-p-utc-max={hook_prop(@input.attrs.max && Time.to_iso8601(@input.attrs.max))}
+          data-p-phx-target={hook_prop(@myself)}
+        />
+      </div>
     </div>
     """
   end
@@ -173,7 +178,7 @@ defmodule LivebookWeb.Output.InputComponent do
       <input
         type="range"
         data-el-input
-        class="input-range"
+        class="range-input"
         name="html_value"
         value={@value}
         phx-debounce={@attrs.debounce}
@@ -191,26 +196,27 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp input_output(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
-    <textarea
+    <.textarea_field
       id={@id}
+      class="min-h-[38px] max-h-[300px]"
+      monospace={@attrs.monospace}
       data-el-input
-      class={["input min-h-[38px] max-h-[300px] tiny-scrollbar", @attrs.monospace && "font-mono"]}
       name="html_value"
+      value={@value}
       phx-hook="TextareaAutosize"
       phx-debounce={@attrs.debounce}
       phx-target={@myself}
       spellcheck="false"
-    ><%= [?\n, @value] %></textarea>
+    />
     """
   end
 
   defp input_output(%{attrs: %{type: :password}} = assigns) do
     ~H"""
-    <.with_password_toggle id={"#{@id}-password-toggle"}>
-      <input
-        type="password"
+    <div class="inline-flex">
+      <.password_field
+        id={@id}
         data-el-input
-        class="input w-auto bg-gray-50"
         name="html_value"
         value={@value}
         phx-debounce={@attrs.debounce}
@@ -218,41 +224,61 @@ defmodule LivebookWeb.Output.InputComponent do
         spellcheck="false"
         autocomplete="off"
       />
-    </.with_password_toggle>
+    </div>
     """
   end
 
   defp input_output(%{attrs: %{type: :date}} = assigns) do
     ~H"""
-    <input
-      type="date"
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={@value}
-      phx-debounce="blur"
-      phx-target={@myself}
-      min={@attrs.min}
-      max={@attrs.max}
-      autocomplete="off"
-    />
+    <div class="inline-flex">
+      <.text_field
+        type="date"
+        data-el-input
+        name="html_value"
+        value={@value}
+        phx-debounce="blur"
+        phx-target={@myself}
+        min={@attrs.min}
+        max={@attrs.max}
+        autocomplete="off"
+      />
+    </div>
+    """
+  end
+
+  defp input_output(%{attrs: %{type: :color}} = assigns) do
+    ~H"""
+    <div class="w-16">
+      <.text_field
+        type="color"
+        class="h-12"
+        data-el-input
+        name="html_value"
+        value={to_string(@value)}
+        phx-debounce={@attrs.debounce}
+        phx-target={@myself}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </div>
     """
   end
 
   defp input_output(%{attrs: %{type: type}} = assigns)
-       when type in [:number, :color, :url, :text] do
+       when type in [:number, :url, :text] do
     ~H"""
-    <input
-      type={html_input_type(@attrs.type)}
-      data-el-input
-      class="input w-auto invalid:input--error"
-      name="html_value"
-      value={to_string(@value)}
-      phx-debounce={@attrs.debounce}
-      phx-target={@myself}
-      spellcheck="false"
-      autocomplete="off"
-    />
+    <div class="inline-flex">
+      <.text_field
+        type={html_input_type(@attrs.type)}
+        data-el-input
+        name="html_value"
+        value={to_string(@value)}
+        phx-debounce={@attrs.debounce}
+        phx-target={@myself}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </div>
     """
   end
 
@@ -282,7 +308,6 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp html_input_type(:number), do: "number"
-  defp html_input_type(:color), do: "color"
   defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
 

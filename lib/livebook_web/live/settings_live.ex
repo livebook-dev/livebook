@@ -68,10 +68,10 @@ defmodule LivebookWeb.SettingsLive do
               </div>
 
               <div class="self-center">
-                <.link navigate={~p"/dashboard"} class="button-base button-outlined-gray">
-                  <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                <.button navigate={~p"/dashboard"} color="gray" outlined>
+                  <.remix_icon icon="dashboard-2-line" />
                   <span>Open dashboard</span>
-                </.link>
+                </.button>
               </div>
             </div>
           </div>
@@ -210,20 +210,19 @@ defmodule LivebookWeb.SettingsLive do
         file_system_select_disabled={true}
         target={self()}
       >
-        <button class="button-base button-gray" phx-click="cancel_autosave_path" tabindex="-1">
+        <.button color="gray" phx-click="cancel_autosave_path" tabindex="-1">
           Cancel
-        </button>
-        <button class="button-base button-gray" phx-click="reset_autosave_path" tabindex="-1">
+        </.button>
+        <.button color="gray" phx-click="reset_autosave_path" tabindex="-1">
           Reset
-        </button>
-        <button
-          class="button-base button-blue"
+        </.button>
+        <.button
           phx-click="set_autosave_path"
           disabled={not Livebook.FileSystem.File.dir?(@state.file)}
           tabindex="-1"
         >
           Save
-        </button>
+        </.button>
       </.live_component>
     </div>
     """
@@ -231,11 +230,13 @@ defmodule LivebookWeb.SettingsLive do
 
   defp autosave_path_select(assigns) do
     ~H"""
-    <div class="flex">
-      <input class="input mr-2" readonly value={@state.file.path} />
-      <button class="button-base button-gray" phx-click="open_autosave_path_select">
+    <div class="flex gap-2">
+      <div class="grow">
+        <.text_field name={nil} readonly value={@state.file.path} />
+      </div>
+      <.button color="gray" phx-click="open_autosave_path_select">
         Change
-      </button>
+      </.button>
     </div>
     """
   end

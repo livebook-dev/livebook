@@ -78,13 +78,13 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         autocomplete="off"
         spellcheck="false"
       >
-        <div class="flex flex-col space-y-4">
+        <div class="flex flex-col space-y-4 mb-5">
           <.text_field field={f[:name]} label="Name" placeholder={name_placeholder()} />
           <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>
-        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
+        <.button type="submit" disabled={not @changeset.valid?}>
           <%= if(reconnecting?(@changeset), do: "Reconnect", else: "Connect") %>
-        </button>
+        </.button>
       </.form>
     </div>
     """

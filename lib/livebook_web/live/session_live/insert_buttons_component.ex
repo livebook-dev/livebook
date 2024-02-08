@@ -27,7 +27,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       }>
         <.menu id={"cell-#{@id}-insert"} position={:bottom_left} distant>
           <:toggle>
-            <button class="button-base button-small flex items-center pr-1">
+            <.insert_button>
               <div
                 class="pr-2"
                 phx-click="insert_cell_below"
@@ -37,10 +37,10 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               >
                 + <%= @default_language |> Atom.to_string() |> String.capitalize() %>
               </div>
-              <div class="pl-1 flex items-center border-l border-gray-200">
+              <div class="-mr-1 pl-1 flex items-center border-l border-gray-200 group-hover:border-gray-300 group-focus:border-gray-300">
                 <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
               </div>
-            </button>
+            </.insert_button>
           </:toggle>
           <.menu_item>
             <button
@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         </.menu>
         <.menu id={"#{@id}-block-menu"} position={:bottom_left}>
           <:toggle>
-            <button class="button-base button-small">+ Block</button>
+            <.insert_button>+ Block</.insert_button>
           </:toggle>
           <.menu_item>
             <button
@@ -149,24 +149,21 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         </.menu>
         <%= cond do %>
           <% not Livebook.Runtime.connected?(@runtime) -> %>
-            <button
-              class="button-base button-small"
-              phx-click={
-                JS.push("setup_default_runtime",
-                  value: %{reason: "To see the available smart cells, you need a connected runtime."}
-                )
-              }
-            >
+            <.insert_button phx-click={
+              JS.push("setup_default_runtime",
+                value: %{reason: "To see the available smart cells, you need a connected runtime."}
+              )
+            }>
               + Smart
-            </button>
+            </.insert_button>
           <% @smart_cell_definitions == [] -> %>
             <span class="tooltip right" data-tooltip="No smart cells available">
-              <button class="button-base button-small" disabled>+ Smart</button>
+              <.insert_button disabled>+ Smart</.insert_button>
             </span>
           <% true -> %>
             <.menu id={"#{@id}-smart-menu"} position={:bottom_left}>
               <:toggle>
-                <button class="button-base button-small">+ Smart</button>
+                <.insert_button>+ Smart</.insert_button>
               </:toggle>
               <.menu_item :for={definition <- @smart_cell_definitions}>
                 <.smart_cell_insert_button
@@ -179,6 +176,29 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         <% end %>
       </div>
     </div>
+    """
+  end
+
+  attr :disabled, :boolean, default: false
+  attr :rest, :global
+
+  slot :inner_block
+
+  def insert_button(assigns) do
+    ~H"""
+    <button
+      {@rest}
+      class={[
+        "inline-flex items-center px-2 py-1 rounded-lg font-medium text-sm whitespace-nowrap border",
+        if @disabled do
+          "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
+        else
+          "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 focus:bg-gray-100"
+        end
+      ]}
+    >
+      <%= render_slot(@inner_block) %>
+    </button>
     """
   end
 

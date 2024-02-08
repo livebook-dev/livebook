@@ -39,9 +39,9 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
         you restart Livebook. Furthermore, code in one notebook
         may interfere with code from another notebook.
       </p>
-      <button class="button-base button-blue" phx-click="init">
+      <.button phx-click="init">
         <%= if(matching_runtime?(@current_runtime), do: "Reconnect", else: "Connect") %>
-      </button>
+      </.button>
     </div>
     """
   end

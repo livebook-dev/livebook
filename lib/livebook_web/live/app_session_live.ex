@@ -172,13 +172,10 @@ defmodule LivebookWeb.AppSessionLive do
                   </.link>
                 </span>
                 <button
-                  class={[
-                    "button-base bg-transparent",
-                    "border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
-                  ]}
+                  class="px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1 border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
                   phx-click="queue_errored_cells_evaluation"
                 >
-                  <.remix_icon icon="play-circle-fill" class="align-middle mr-1" />
+                  <.remix_icon icon="play-circle-fill" />
                   <span>Retry</span>
                 </button>
               </div>
@@ -201,9 +198,9 @@ defmodule LivebookWeb.AppSessionLive do
             '''
           }
         >
-          <button phx-click="queue_full_evaluation" class="icon-button">
-            <.remix_icon icon="play-circle-fill" class="text-3xl" />
-          </button>
+          <.icon_button phx-click="queue_full_evaluation">
+            <.remix_icon icon="play-circle-fill" class="text-3xl leading-none" />
+          </.icon_button>
         </span>
         <.app_status_circle status={@data_view.app_status} />
       </div>

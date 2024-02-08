@@ -696,6 +696,7 @@ defmodule LivebookWeb.CoreComponents do
         <:col :let={user} label="id"><%= user.id %></:col>
         <:col :let={user} label="username"><%= user.username %></:col>
       </.table>
+
   """
   attr :id, :string, required: true
   attr :rows, :list, required: true
@@ -742,17 +743,15 @@ defmodule LivebookWeb.CoreComponents do
               phx-click={@row_click && @row_click.(row)}
               class={["relative p-0", @row_click && "hover:cursor-pointer"]}
             >
-              <div class="block p-4 sm:px-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-gray-100 sm:rounded-l-xl" />
-                <span class="relative">
-                  <%= render_slot(col, @row_item.(row)) %>
-                </span>
+              <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-gray-100 rounded-l-xl" />
+              <div class="relative block p-4 sm:px-6">
+                <%= render_slot(col, @row_item.(row)) %>
               </div>
             </td>
             <td :if={@action != []} class="relative p-0">
+              <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-gray-100 rounded-r-xl" />
               <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
-                <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-gray-100 sm:rounded-r-xl" />
-                <span :for={action <- @action} class="relative ml-4">
+                <span :for={action <- @action} class="ml-4">
                   <%= render_slot(action, @row_item.(row)) %>
                 </span>
               </div>
@@ -762,6 +761,134 @@ defmodule LivebookWeb.CoreComponents do
       </table>
     </div>
     """
+  end
+
+  @doc ~S"""
+  Renders a button.
+
+  ## Examples
+
+      <.button>Click</.button>
+
+      <.button color="gray" outlined>Click</.button>
+
+      <.button color="gray" small>Click</.button>
+
+  """
+  attr :disabled, :boolean, default: false
+  attr :color, :string, default: "blue", values: ~w(blue gray red)
+  attr :outlined, :boolean, default: false
+  attr :small, :boolean, default: false
+  attr :class, :string, default: nil
+
+  attr :rest, :global, include: ~w(href patch navigate download name)
+
+  slot :inner_block
+
+  def button(assigns)
+      when is_map_key(assigns.rest, :href) or is_map_key(assigns.rest, :patch) or
+             is_map_key(assigns.rest, :navigate) do
+    ~H"""
+    <.link class={[button_classes(@small, @disabled, @color, @outlined), @class]} {@rest}>
+      <%= render_slot(@inner_block) %>
+    </.link>
+    """
+  end
+
+  def button(assigns) do
+    ~H"""
+    <button
+      class={[button_classes(@small, @disabled, @color, @outlined), @class]}
+      disabled={@disabled}
+      {@rest}
+    >
+      <%= render_slot(@inner_block) %>
+    </button>
+    """
+  end
+
+  defp button_classes(small, disabled, color, outlined) do
+    [
+      if small do
+        "px-2 py-1 font-normal text-xs"
+      else
+        "px-5 py-2 font-medium text-sm"
+      end,
+      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1.5",
+      if disabled do
+        "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
+      else
+        case {color, outlined} do
+          {"blue", false} ->
+            "border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700"
+
+          {"red", false} ->
+            "border-transparent bg-red-600 text-white hover:bg-red-700 focus:bg-red-700"
+
+          {"gray", false} ->
+            "border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200 focus:bg-gray-200"
+
+          {"blue", true} ->
+            "bg-blue-50 border-blue-600 text-blue-600 hover:bg-blue-100 focus:bg-blue-100"
+
+          {"red", true} ->
+            "bg-red-50 border-red-600 text-red-600 hover:bg-red-100 focus:bg-red-100"
+
+          {"gray", true} ->
+            "bg-transparent border-gray-300 text-gray-600 hover:bg-gray-100 focus:bg-gray-100"
+        end
+      end
+    ]
+  end
+
+  @doc ~S"""
+  Renders an icon button.
+
+  ## Examples
+
+      <.icon_button>
+        <.remix_icon icon="refresh-line" />
+      </.icon_button>
+
+  """
+  attr :disabled, :boolean, default: false
+  attr :small, :boolean, default: false
+  attr :class, :string, default: nil
+
+  attr :rest, :global, include: ~w(href patch navigate download name)
+
+  slot :inner_block
+
+  def icon_button(assigns)
+      when is_map_key(assigns.rest, :href) or is_map_key(assigns.rest, :patch) or
+             is_map_key(assigns.rest, :navigate) do
+    ~H"""
+    <.link class={[icon_button_classes(@small, @disabled), @class]} {@rest}>
+      <%= render_slot(@inner_block) %>
+    </.link>
+    """
+  end
+
+  def icon_button(assigns) do
+    ~H"""
+    <button class={[icon_button_classes(@small, @disabled), @class]} disabled={@disabled} {@rest}>
+      <%= render_slot(@inner_block) %>
+    </button>
+    """
+  end
+
+  defp icon_button_classes(small, disabled) do
+    [
+      unless small do
+        "text-xl"
+      end,
+      "p-1 flex items-center justify-center rounded-full leading-none",
+      if disabled do
+        "cursor-default text-gray-300"
+      else
+        "text-gray-500 hover:text-gray-900 focus:bg-gray-100"
+      end
+    ]
   end
 
   # JS commands

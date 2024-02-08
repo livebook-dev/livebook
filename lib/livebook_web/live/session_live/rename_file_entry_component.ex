@@ -47,13 +47,13 @@ defmodule LivebookWeb.SessionLive.RenameFileEntryComponent do
           autofocus
         />
         <div class="mt-6 flex space-x-3">
-          <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
+          <.button type="submit" disabled={not @changeset.valid?}>
             <.spinner class="hidden phx-submit-loading:block mr-2" />
             <span>Rename</span>
-          </button>
-          <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+          </.button>
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
             Cancel
-          </.link>
+          </.button>
         </div>
       </.form>
     </div>

@@ -50,17 +50,12 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
           <.text_field field={f[:value]} label="Value" autofocus={@operation == :edit} />
           <.hidden_field field={f[:operation]} value={@operation} />
           <div class="flex space-x-2">
-            <button
-              class="button-base button-blue"
-              type="submit"
-              phx-disable-with="Adding..."
-              disabled={not @changeset.valid?}
-            >
+            <.button type="submit" phx-disable-with="Adding..." disabled={not @changeset.valid?}>
               Save
-            </button>
-            <.link patch={@return_to} class="button-base button-outlined-gray">
+            </.button>
+            <.button color="gray" outlined patch={@return_to}>
               Cancel
-            </.link>
+            </.button>
           </div>
         </div>
       </.form>

@@ -87,16 +87,17 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
           <span class="text-sm font-mono break-all">
             *****
           </span>
-          <button
+          <.icon_button
+            small
             id={"session-secret-#{@secret.name}-copy"}
             type="button"
             phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
-            class="icon-button"
           >
             <.remix_icon icon="clipboard-line" />
-          </button>
+          </.icon_button>
         </div>
-        <button
+        <.icon_button
+          small
           id={"session-secret-#{@secret.name}-delete"}
           type="button"
           phx-click={
@@ -105,10 +106,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               target: @myself
             )
           }
-          class="icon-button"
         >
           <.remix_icon icon="delete-bin-line" />
-        </button>
+        </.icon_button>
       </div>
     </div>
     """
@@ -138,16 +138,15 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
                 '''
               }
             >
-              <button
+              <.icon_button
                 :if={Session.Data.secret_outdated?(@secret, @secrets)}
-                class="icon-button"
                 aria-label="load latest value"
                 phx-click={
                   JS.push("update_outdated", value: %{"name" => @secret.name}, target: @myself)
                 }
               >
-                <.remix_icon icon="refresh-line" class="text-xl leading-none" />
-              </button>
+                <.remix_icon icon="refresh-line" />
+              </.icon_button>
             </span>
             <.form
               :let={f}
@@ -166,23 +165,23 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               <span class="text-sm font-mono break-all">
                 *****
               </span>
-              <button
+              <.icon_button
+                small
                 id={"#{@id}-copy-button"}
                 type="button"
                 phx-click={JS.dispatch("lb:clipcopy", detail: %{content: @secret.value})}
-                class="icon-button"
               >
                 <.remix_icon icon="clipboard-line" />
-              </button>
+              </.icon_button>
             </div>
-            <.link
+            <.icon_button
+              small
               id={"#{@id}-edit-button"}
               navigate={~p"/hub/#{@secret.hub_id}/secrets/edit/#{@secret.name}"}
-              class="icon-button"
               role="button"
             >
               <.remix_icon icon="pencil-line" />
-            </.link>
+            </.icon_button>
           </div>
         </div>
       </div>
@@ -193,7 +192,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
   defp secrets_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button p-0 cursor-pointer tooltip bottom-left"
+      class="tooltip bottom-left"
       data-tooltip={
         ~S'''
         Secrets are a safe way to share credentials
@@ -203,7 +202,9 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         '''
       }
     >
-      <.remix_icon icon="question-line" class="text-xl leading-none" />
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end

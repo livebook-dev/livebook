@@ -47,9 +47,9 @@ defmodule LivebookWeb.Output.ControlFormComponent do
         local={true}
       />
       <div :if={@control.attrs.submit}>
-        <button class="button-base button-blue" type="button" phx-click="submit" phx-target={@myself}>
+        <.button type="button" phx-click="submit" phx-target={@myself}>
           <%= @control.attrs.submit %>
-        </button>
+        </.button>
       </div>
     </div>
     """

@@ -106,12 +106,10 @@ defmodule LivebookWeb.FileSelectComponent do
             phx-nosubmit={!@submit_event}
             phx-target={@myself}
           >
-            <input
-              class="input"
+            <.text_field
               id={"#{@id}-input-path"}
               aria-label="file path"
               phx-hook="FocusOnUpdate"
-              type="text"
               name="path"
               placeholder="File"
               value={@file.path}
@@ -126,9 +124,9 @@ defmodule LivebookWeb.FileSelectComponent do
           position={:bottom_right}
         >
           <:toggle>
-            <button class="icon-button" tabindex="-1" aria-label="add">
-              <.remix_icon icon="add-line" class="text-xl" />
-            </button>
+            <.icon_button tabindex="-1" aria-label="add">
+              <.remix_icon icon="add-line" />
+            </.icon_button>
           </:toggle>
           <.menu_item>
             <button role="menuitem" phx-click={js_show_new_item_section("#{@id}-new-dir-section")}>
@@ -216,6 +214,20 @@ defmodule LivebookWeb.FileSelectComponent do
           />
 
           <div
+            :if={@uploads.folder.entries != []}
+            class="border-b border-dashed border-grey-200 mb-2 pb-2"
+          >
+            <div :for={file <- @uploads.folder.entries} class="p-2 flex gap-2 items-center">
+              <.spinner />
+              <span class="font-medium text-gray-500"><%= file.client_name %></span>
+              <div class="grow" />
+              <.icon_button type="button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
+                <.remix_icon icon="close-line" />
+              </.icon_button>
+            </div>
+          </div>
+
+          <div
             :if={any_highlighted?(@file_infos)}
             class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
@@ -240,18 +252,6 @@ defmodule LivebookWeb.FileSelectComponent do
                 renamed_name={@renamed_name}
               />
             <% end %>
-            <div :for={file <- @uploads.folder.entries} class="flex items-center justify-between">
-              <span class="font-medium text-gray-400"><%= file.client_name %></span>
-              <button
-                type="button"
-                class="icon-button"
-                phx-click="clear-file"
-                phx-target={@myself}
-                tabindex="-1"
-              >
-                <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
-              </button>
-            </div>
           </div>
         </form>
       </div>
@@ -297,9 +297,10 @@ defmodule LivebookWeb.FileSelectComponent do
     ~H"""
     <.menu id={@id} disabled={@file_system_select_disabled} position={:bottom_left}>
       <:toggle>
-        <button
+        <.button
+          color="gray"
           type="button"
-          class="button-base button-gray pl-3 pr-2"
+          class="pl-3 pr-2"
           aria-label="switch file storage"
           disabled={@file_system_select_disabled}
         >
@@ -307,7 +308,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <div class="pl-0.5 flex items-center">
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none" />
           </div>
-        </button>
+        </.button>
       </:toggle>
       <%= for file_system <- @file_systems do %>
         <%= if file_system.id == @file.file_system_id do %>

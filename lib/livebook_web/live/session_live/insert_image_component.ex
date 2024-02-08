@@ -69,16 +69,12 @@ defmodule LivebookWeb.SessionLive.InsertImageComponent do
           />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <.link patch={@return_to} class="button-base button-outlined-gray">
+          <.button color="gray" outlined patch={@return_to}>
             Cancel
-          </.link>
-          <button
-            class="button-base button-blue"
-            type="submit"
-            disabled={not @changeset.valid? or upload_disabled?(@uploads.image)}
-          >
+          </.button>
+          <.button type="submit" disabled={not @changeset.valid? or upload_disabled?(@uploads.image)}>
             Upload
-          </button>
+          </.button>
         </div>
       </.form>
     </div>

@@ -42,10 +42,9 @@ defmodule LivebookWeb.AppAuthLive do
         <div class="text-2xl text-gray-800 w-full pt-2">
           <form class="flex flex-col space-y-4 items-center" phx-submit="authenticate">
             <div phx-feedback-for="password" class={["w-[20ch]", @errors != [] && "show-errors"]}>
-              <input
+              <.text_field
                 type="password"
                 name="password"
-                class="input"
                 value={@password}
                 placeholder="Password"
                 autofocus
@@ -57,9 +56,9 @@ defmodule LivebookWeb.AppAuthLive do
                 <%= translate_error(error) %>
               </span>
             </div>
-            <button type="submit" class="button-base button-blue">
+            <.button type="submit">
               Authenticate
-            </button>
+            </.button>
           </form>
         </div>
       </div>

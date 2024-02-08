@@ -69,16 +69,12 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUnlistedComponent do
             />
           </div>
           <div class="mt-6 flex space-x-3">
-            <button
-              class="button-base button-blue"
-              type="submit"
-              disabled={Enum.empty?(@selected_indices)}
-            >
+            <.button type="submit" disabled={Enum.empty?(@selected_indices)}>
               Add
-            </button>
-            <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+            </.button>
+            <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
               Cancel
-            </.link>
+            </.button>
           </div>
         </form>
       </div>
