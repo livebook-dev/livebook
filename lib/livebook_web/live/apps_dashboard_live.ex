@@ -35,7 +35,7 @@ defmodule LivebookWeb.AppsDashboardLive do
           </.link>
         </div>
         <p class="text-gray-700 text-sm">
-          An overview of all deployed applications and previews running on this node.
+          An overview of all deployed applications and previews running on this instance.
         </p>
         <div class="pt-6">
           <.app_list apps={@apps} />
