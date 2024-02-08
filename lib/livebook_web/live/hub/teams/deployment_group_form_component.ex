@@ -57,6 +57,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               autocomplete="off"
               phx-debounce
             />
+            <%= if @mode == :new do %>
             <.select_field
               label="Mode"
               help={
@@ -69,8 +70,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 {"Offline", :offline},
                 {"Online", :online}
               ]}
-              disabled={@mode != :new}
             />
+            <% end %>
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
@@ -143,8 +144,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
   defp subtitle(%DeploymentGroup{name: nil}, hub_name),
     do: "Add a new deployment group to #{hub_name}"
 
-  defp subtitle(%DeploymentGroup{name: deployment_group}, _),
-    do: "Manage the #{deployment_group} deployment group"
+  defp subtitle(%DeploymentGroup{name: deployment_group, mode: mode}, _),
+    do: "Manage the #{deployment_group} (#{mode}) deployment group"
 
   defp button(%DeploymentGroup{name: nil}), do: %{icon: "add-line", label: "Add"}
   defp button(_), do: %{icon: "save-line", label: "Save"}
