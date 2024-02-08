@@ -63,16 +63,17 @@ config :livebook, LivebookWeb.Endpoint,
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 
+# Include HEEx debug annotations as HTML comments in rendered markup
+config :phoenix_live_view, :debug_heex_annotations, true
+
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
-config :phoenix, :stacktrace_depth, 20
+config :phoenix,
+  stacktrace_depth: 20,
+  plug_init_mode: :runtime
 
-# Initialize plugs at runtime for faster development compilation
-config :phoenix, :plug_init_mode, :runtime
-
-# Disable authentication mode during dev
-config :livebook, :authentication_mode, :disabled
-
-config :livebook, :data_path, Path.expand("tmp/livebook_data/dev")
+config :livebook,
+  authentication_mode: :disabled,
+  data_path: Path.expand("tmp/livebook_data/dev")
 
 config :livebook, :feature_flags, deployment_groups: true
