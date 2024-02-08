@@ -76,8 +76,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             class="button-base justify-center button-outlined-gray bg-transparent"
             patch={~p"/sessions/#{@session.id}/app-docker"}
           >
-            <.remix_icon icon="ship-line" class="mr-1" />
-            <span>Manual Docker deployment</span>
+            <.remix_icon icon="ship-line" class="mr-1" /> Manual Docker deployment
           </.link>
         </div>
 
