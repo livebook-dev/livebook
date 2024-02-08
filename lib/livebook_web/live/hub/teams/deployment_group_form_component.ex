@@ -69,6 +69,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 {"Offline", :offline},
                 {"Online", :online}
               ]}
+              disabled={@mode != :new}
             />
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
