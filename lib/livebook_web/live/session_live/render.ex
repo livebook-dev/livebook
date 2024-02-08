@@ -289,21 +289,40 @@ defmodule LivebookWeb.SessionLive.Render do
         </.link>
       </span>
 
+      <%!-- Local functionality --%>
+
       <.button_item
         icon="booklet-fill"
         label="Sections (ss)"
         button_attrs={["data-el-sections-list-toggle": true]}
       />
+
       <.button_item
-        icon="folder-open-fill"
-        label="Files (sf)"
-        button_attrs={["data-el-files-list-toggle": true]}
+        icon="group-fill"
+        label="Connected users (su)"
+        button_attrs={["data-el-clients-list-toggle": true]}
       />
+
+      <.button_item
+        icon="cpu-line"
+        label="Runtime settings (sr)"
+        button_attrs={["data-el-runtime-info-toggle": true]}
+      />
+
+      <%!-- Hub functionality --%>
+
       <.button_item
         icon="lock-password-line"
         label="Secrets (se)"
         button_attrs={["data-el-secrets-list-toggle": true]}
       />
+
+      <.button_item
+        icon="folder-open-fill"
+        label="Files (sf)"
+        button_attrs={["data-el-files-list-toggle": true]}
+      />
+
       <div class="relative">
         <.button_item
           icon="rocket-line"
@@ -318,17 +337,6 @@ defmodule LivebookWeb.SessionLive.Render do
           ]}
         />
       </div>
-      <.button_item
-        icon="group-fill"
-        label="Connected users (su)"
-        button_attrs={["data-el-clients-list-toggle": true]}
-      />
-
-      <.button_item
-        icon="cpu-line"
-        label="Runtime settings (sr)"
-        button_attrs={["data-el-runtime-info-toggle": true]}
-      />
 
       <div class="grow"></div>
 
