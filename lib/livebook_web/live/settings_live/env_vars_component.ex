@@ -19,39 +19,37 @@ defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
             <:col :let={env_var} label="Name"><%= env_var.name %></:col>
             <:action :let={env_var}>
               <span class="tooltip left" data-tooltip="Edit">
-                <button
+                <.icon_button
                   id={"env-var-#{env_var.name}-edit"}
                   type="button"
                   phx-click={
                     JS.push("edit_env_var", value: %{env_var: env_var.name}, target: @target)
                   }
-                  class="icon-button"
                 >
-                  <.remix_icon icon="edit-fill" class="text-lg" />
-                </button>
+                  <.remix_icon icon="edit-fill" />
+                </.icon_button>
               </span>
             </:action>
             <:action :let={env_var}>
               <span class="tooltip left" data-tooltip="Delete">
-                <button
+                <.icon_button
                   id={"env-var-#{env_var.name}-delete"}
                   type="button"
                   phx-click={
                     JS.push("delete_env_var", value: %{env_var: env_var.name}, target: @target)
                   }
-                  class="icon-button"
                 >
-                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                </button>
+                  <.remix_icon icon="delete-bin-6-line" />
+                </.icon_button>
               </span>
             </:action>
           </.table>
         </div>
       </div>
       <div class="flex">
-        <.link patch={@add_env_var_path} class="button-base button-blue" id="add-env-var">
+        <.button patch={@add_env_var_path} id="add-env-var">
           Add environment variable
-        </.link>
+        </.button>
       </div>
     </div>
     """

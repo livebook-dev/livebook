@@ -205,8 +205,9 @@ defmodule LivebookWeb.AppComponents do
           <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
           <div class="grow" />
           <%= render_slot(@dockerfile_actions) %>
-          <button
-            class="button-base button-gray whitespace-nowrap py-1 px-2"
+          <.button
+            color="gray"
+            small
             data-tooltip="Copied to clipboard"
             type="button"
             aria-label="copy to clipboard"
@@ -215,9 +216,9 @@ defmodule LivebookWeb.AppComponents do
               |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
             }
           >
-            <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
-            <span class="font-normal text-xs">Copy source</span>
-          </button>
+            <.remix_icon icon="clipboard-line" />
+            <span>Copy source</span>
+          </.button>
         </div>
 
         <.code_preview source_id="dockerfile-source" source={@dockerfile} language="dockerfile" />

@@ -15,6 +15,7 @@ defmodule LivebookWeb.FormComponents do
   attr :errors, :list, default: []
   attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
   attr :help, :string, default: nil
+  attr :type, :string, default: "text"
   attr :class, :string, default: nil
 
   attr :rest, :global, include: ~w(autocomplete readonly disabled)
@@ -25,7 +26,7 @@ defmodule LivebookWeb.FormComponents do
     ~H"""
     <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
       <input
-        type="text"
+        type={@type}
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
@@ -154,9 +155,11 @@ defmodule LivebookWeb.FormComponents do
             maxlength="7"
             {@rest}
           />
-          <button class="icon-button absolute right-2 top-1" type="button" phx-click={@randomize}>
-            <.remix_icon icon="refresh-line" class="text-xl" />
-          </button>
+          <div class="absolute right-2 top-1">
+            <.icon_button type="button" phx-click={@randomize}>
+              <.remix_icon icon="refresh-line" />
+            </.icon_button>
+          </div>
         </div>
       </div>
     </.field_wrapper>
@@ -550,8 +553,7 @@ defmodule LivebookWeb.FormComponents do
     <div id={@id} class="relative flex">
       <%= render_slot(@inner_block) %>
       <div class="flex items-center absolute inset-y-0 right-1">
-        <button
-          class="icon-button"
+        <.icon_button
           data-show
           type="button"
           aria-label="show password"
@@ -563,10 +565,10 @@ defmodule LivebookWeb.FormComponents do
             |> JS.remove_class("hidden", to: "##{@id} [data-hide]")
           }
         >
-          <.remix_icon icon="eye-line" class="text-xl" />
-        </button>
-        <button
-          class="icon-button hidden"
+          <.remix_icon icon="eye-line" />
+        </.icon_button>
+        <.icon_button
+          class="hidden"
           data-hide
           type="button"
           aria-label="hide password"
@@ -578,8 +580,8 @@ defmodule LivebookWeb.FormComponents do
             |> JS.add_class("hidden", to: "##{@id} [data-hide]")
           }
         >
-          <.remix_icon icon="eye-off-line" class="text-xl" />
-        </button>
+          <.remix_icon icon="eye-off-line" />
+        </.icon_button>
       </div>
     </div>
     """

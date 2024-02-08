@@ -45,13 +45,12 @@ defmodule LivebookWeb.AppSessionLive.SourceComponent do
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">
-              <button
-                class="icon-button"
+              <.icon_button
                 aria-label="copy source"
                 phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}
               >
-                <.remix_icon icon="clipboard-line" class="text-lg" />
-              </button>
+                <.remix_icon icon="clipboard-line" />
+              </.icon_button>
             </span>
           </div>
         </div>

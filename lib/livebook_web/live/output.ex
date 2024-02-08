@@ -269,12 +269,9 @@ defmodule LivebookWeb.Output do
           <.remix_icon icon="close-circle-line" />
           <span>Missing secret <%= inspect(@secret_name) %></span>
         </div>
-        <.link
-          patch={~p"/sessions/#{@session_id}/secrets?secret_name=#{@secret_name}"}
-          class="button-base button-gray"
-        >
+        <.button color="gray" patch={~p"/sessions/#{@session_id}/secrets?secret_name=#{@secret_name}"}>
           Add secret
-        </.link>
+        </.button>
       </div>
       <%= render_formatted_error_message(@id, @message) %>
     </div>
@@ -302,12 +299,12 @@ defmodule LivebookWeb.Output do
           <.remix_icon icon="close-circle-line" />
           <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
         </div>
-        <button
-          class="button-base button-gray"
+        <.button
+          color="gray"
           phx-click={JS.push("review_file_entry_access", value: %{name: @file_entry_name})}
         >
           Review access
-        </button>
+        </.button>
       </div>
       <%= render_formatted_error_message(@id, @message) %>
     </div>
@@ -333,7 +330,7 @@ defmodule LivebookWeb.Output do
       </div>
       <button
         class={[
-          "button-base bg-transparent",
+          "px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1",
           case @variant do
             :error -> "border-red-400 text-red-400 hover:bg-red-50 focus:bg-red-50"
             :normal -> "border-gray-300 text-gray-500 hover:bg-gray-100 focus:bg-gray-100"
@@ -342,7 +339,7 @@ defmodule LivebookWeb.Output do
         phx-click="queue_interrupted_cell_evaluation"
         phx-value-cell_id={@cell_id}
       >
-        <.remix_icon icon="play-circle-fill" class="align-middle mr-1" />
+        <.remix_icon icon="play-circle-fill" />
         <span>Continue</span>
       </button>
     </div>
@@ -389,12 +386,9 @@ defmodule LivebookWeb.Output do
         phx-no-format
       ><%= LivebookWeb.ANSIHelpers.ansi_string_to_html(@message) %></div>
       <div class="absolute right-2 top-0 z-10 invisible group-hover/error:visible">
-        <button
-          class="icon-button bg-gray-100"
-          phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}
-        >
-          <.remix_icon icon="clipboard-line" class="text-lg" />
-        </button>
+        <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "##{@id}-message")}>
+          <.remix_icon icon="clipboard-line" />
+        </.icon_button>
       </div>
     </div>
     """

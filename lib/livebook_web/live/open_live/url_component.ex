@@ -58,9 +58,11 @@ defmodule LivebookWeb.OpenLive.UrlComponent do
           aria-labelledby="import-from-url"
           spellcheck="false"
         />
-        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-          Import
-        </button>
+        <div class="mt-5">
+          <.button type="submit" disabled={not @changeset.valid?}>
+            Import
+          </.button>
+        </div>
       </.form>
     </div>
     """

@@ -50,12 +50,9 @@ defmodule LivebookWeb.LearnLive do
               <%= @lead_notebook_info.details.description %>
             </p>
             <div class="mt-4">
-              <.link
-                patch={~p"/learn/notebooks/#{@lead_notebook_info.slug}"}
-                class="button-base button-blue"
-              >
+              <.button patch={~p"/learn/notebooks/#{@lead_notebook_info.slug}"}>
                 Open notebook
-              </.link>
+              </.button>
             </div>
           </div>
         </div>
@@ -101,12 +98,9 @@ defmodule LivebookWeb.LearnLive do
             <div class="grow text-gray-800 font-semibold">
               <%= notebook_info.title %>
             </div>
-            <.link
-              navigate={~p"/learn/notebooks/#{notebook_info.slug}"}
-              class="button-base button-outlined-gray"
-            >
-              <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open
-            </.link>
+            <.button color="gray" outlined navigate={~p"/learn/notebooks/#{notebook_info.slug}"}>
+              <.remix_icon icon="play-circle-line" /> Open
+            </.button>
           </li>
         </ul>
       </div>

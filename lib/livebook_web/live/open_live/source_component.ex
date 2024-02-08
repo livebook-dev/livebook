@@ -43,9 +43,11 @@ defmodule LivebookWeb.OpenLive.SourceComponent do
           spellcheck="false"
           rows="5"
         />
-        <button class="mt-5 button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-          Import
-        </button>
+        <div class="mt-5">
+          <.button type="submit" disabled={not @changeset.valid?}>
+            Import
+          </.button>
+        </div>
       </.form>
     </div>
     """

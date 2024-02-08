@@ -98,13 +98,12 @@ defmodule LivebookWeb.AppsDashboardLive do
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center justify-start lg:justify-end">
                   <span class="tooltip top" data-tooltip="Terminate">
-                    <button
-                      class="icon-button text-right"
+                    <.icon_button
                       aria-label="terminate app"
                       phx-click={JS.push("terminate_app", value: %{slug: app.slug})}
                     >
-                      <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                    </button>
+                      <.remix_icon icon="delete-bin-6-line" />
+                    </.icon_button>
                   </span>
                 </div>
               </div>
@@ -135,30 +134,22 @@ defmodule LivebookWeb.AppsDashboardLive do
                   </:col>
                   <:actions :let={app_session}>
                     <span class="tooltip left" data-tooltip="Open">
-                      <a
-                        class={[
-                          "icon-button",
-                          app_session.app_status.lifecycle != :active && "disabled"
-                        ]}
+                      <.icon_button
+                        disabled={app_session.app_status.lifecycle}
                         aria-label="open app"
                         href={~p"/apps/#{app.slug}/#{app_session.id}"}
                       >
-                        <.remix_icon icon="link" class="text-lg" />
-                      </a>
+                        <.remix_icon icon="link" />
+                      </.icon_button>
                     </span>
                     <span class="tooltip left" data-tooltip="Debug">
-                      <a
-                        class="icon-button"
-                        aria-label="debug app"
-                        href={~p"/sessions/#{app_session.id}"}
-                      >
-                        <.remix_icon icon="terminal-line" class="text-lg" />
-                      </a>
+                      <.icon_button aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
+                        <.remix_icon icon="terminal-line" />
+                      </.icon_button>
                     </span>
                     <%= if app_session.app_status.lifecycle == :active do %>
                       <span class="tooltip left" data-tooltip="Deactivate">
-                        <button
-                          class="icon-button"
+                        <.icon_button
                           aria-label="deactivate app session"
                           phx-click={
                             JS.push("deactivate_app_session",
@@ -166,13 +157,12 @@ defmodule LivebookWeb.AppsDashboardLive do
                             )
                           }
                         >
-                          <.remix_icon icon="stop-circle-line" class="text-lg" />
-                        </button>
+                          <.remix_icon icon="stop-circle-line" />
+                        </.icon_button>
                       </span>
                     <% else %>
                       <span class="tooltip left" data-tooltip="Terminate">
-                        <button
-                          class="icon-button"
+                        <.icon_button
                           aria-label="terminate app session"
                           phx-click={
                             JS.push("terminate_app_session",
@@ -180,8 +170,8 @@ defmodule LivebookWeb.AppsDashboardLive do
                             )
                           }
                         >
-                          <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                        </button>
+                          <.remix_icon icon="delete-bin-6-line" />
+                        </.icon_button>
                       </span>
                     <% end %>
                   </:actions>

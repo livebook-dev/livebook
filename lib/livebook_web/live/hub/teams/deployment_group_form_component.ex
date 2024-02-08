@@ -20,7 +20,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
        changeset: changeset,
        mode: mode(deployment_group),
        title: title(deployment_group),
-       button: button(deployment_group),
+       button: button_attrs(deployment_group),
        subtitle: subtitle(deployment_group, hub.hub_name),
        error_message: nil
      )}
@@ -72,14 +72,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
             />
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
-              <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                <.remix_icon icon={@button.icon} class="align-middle mr-1" />
+              <.button type="submit" disabled={not @changeset.valid?}>
+                <.remix_icon icon={@button.icon} />
                 <span class="font-normal"><%= @button.label %></span>
-              </button>
+              </.button>
               <%= if @mode == :new do %>
-                <.link patch={@return_to} class="button-base button-outlined-gray">
+                <.button color="gray" outlined patch={@return_to}>
                   Cancel
-                </.link>
+                </.button>
               <% end %>
             </div>
           </div>
@@ -145,6 +145,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
   defp subtitle(%DeploymentGroup{name: deployment_group}, _),
     do: "Manage the #{deployment_group} deployment group"
 
-  defp button(%DeploymentGroup{name: nil}), do: %{icon: "add-line", label: "Add"}
-  defp button(_), do: %{icon: "save-line", label: "Save"}
+  defp button_attrs(%DeploymentGroup{name: nil}), do: %{icon: "add-line", label: "Add"}
+  defp button_attrs(_), do: %{icon: "save-line", label: "Save"}
 end

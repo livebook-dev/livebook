@@ -23,20 +23,19 @@ defmodule LivebookWeb.Hub.SecretListComponent do
             <:col :let={secret} label="Name"><%= secret.name %></:col>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Edit">
-                <.link
+                <.icon_button
                   id={"hub-secret-#{secret.name}-edit"}
                   patch={"/#{@edit_path}/#{secret.name}"}
                   type="button"
                   role="menuitem"
-                  class="icon-button"
                 >
-                  <.remix_icon icon="edit-fill" class="text-lg" />
-                </.link>
+                  <.remix_icon icon="edit-fill" />
+                </.icon_button>
               </span>
             </:action>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Delete">
-                <button
+                <.icon_button
                   id={"hub-secret-#{secret.name}-delete"}
                   type="button"
                   phx-click={
@@ -52,19 +51,18 @@ defmodule LivebookWeb.Hub.SecretListComponent do
                     )
                   }
                   role="menuitem"
-                  class="icon-button"
                 >
-                  <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-                </button>
+                  <.remix_icon icon="delete-bin-6-line" />
+                </.icon_button>
               </span>
             </:action>
           </.table>
         </div>
       </div>
       <div class="flex">
-        <.link patch={@add_path} class="button-base button-blue" id="add-secret">
+        <.button patch={@add_path} id="add-secret">
           Add secret
-        </.link>
+        </.button>
       </div>
     </div>
     """

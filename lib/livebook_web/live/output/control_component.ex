@@ -20,16 +20,15 @@ defmodule LivebookWeb.Output.ControlComponent do
       data-p-target={hook_prop(@myself)}
     >
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
-        <button
-          class={
-            "button-base #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"
-          }
+        <.button
+          color={if(@keyboard_enabled, do: "blue", else: "gray")}
+          small
           type="button"
           aria-label="toggle keyboard control"
           phx-click={JS.push("toggle_keyboard", target: @myself)}
         >
-          <.remix_icon icon="keyboard-line" />
-        </button>
+          <.remix_icon icon="keyboard-line" class="text-xl leading-none py-1" />
+        </.button>
       </span>
     </div>
     """
@@ -38,13 +37,9 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(assigns) when assigns.control.attrs.type == :button do
     ~H"""
     <div class="flex">
-      <button
-        class="button-base button-gray"
-        type="button"
-        phx-click={JS.push("button_click", target: @myself)}
-      >
+      <.button color="gray" type="button" phx-click={JS.push("button_click", target: @myself)}>
         <%= @control.attrs.label %>
-      </button>
+      </.button>
     </div>
     """
   end

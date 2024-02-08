@@ -245,12 +245,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               <span>
                 The Smart cell crashed unexpectedly, this is most likely a bug.
               </span>
-              <button
-                class="button-base button-gray"
+              <.button
+                color="gray"
                 phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
               >
                 Restart Smart cell
-              </button>
+              </.button>
             </div>
           <% :starting -> %>
             <div class="delay-200">
@@ -450,9 +450,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp enable_insert_mode_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Edit content" data-el-enable-insert-mode-button>
-      <button class="icon-button" aria-label="edit content">
-        <.remix_icon icon="pencil-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="edit content">
+        <.remix_icon icon="pencil-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -460,9 +460,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp toggle_source_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Toggle source" data-el-toggle-source-button>
-      <button class="icon-button" aria-label="toggle source">
-        <.remix_icon icon="code-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="toggle source">
+        <.remix_icon icon="code-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -470,14 +470,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp convert_smart_cell_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Convert to Code cell">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="toggle source"
         data-link-package-search
         phx-click={JS.push("convert_smart_cell", value: %{cell_id: @cell_id})}
       >
-        <.remix_icon icon="pencil-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="pencil-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -489,20 +488,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         class="tooltip top"
         data-tooltip="The current runtime does not support adding dependencies"
       >
-        <button class="icon-button" disabled>
-          <.remix_icon icon="play-list-add-line" class="text-xl" />
-        </button>
+        <.icon_button disabled>
+          <.remix_icon icon="play-list-add-line" />
+        </.icon_button>
       </span>
     <% else %>
       <span class="tooltip top" data-tooltip="Add package (sp)">
-        <.link
+        <.icon_button
           patch={~p"/sessions/#{@session_id}/package-search"}
-          class="icon-button"
           role="button"
           data-btn-package-search
         >
-          <.remix_icon icon="play-list-add-line" class="text-xl" />
-        </.link>
+          <.remix_icon icon="play-list-add-line" />
+        </.icon_button>
       </span>
     <% end %>
     """
@@ -511,9 +509,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_link_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
-      <a href={"#cell-#{@cell_id}"} class="icon-button" role="button" aria-label="link to cell">
-        <.remix_icon icon="link" class="text-xl" />
-      </a>
+      <.icon_button href={"#cell-#{@cell_id}"} role="button" aria-label="link to cell">
+        <.remix_icon icon="link" />
+      </.icon_button>
     </span>
     """
   end
@@ -521,9 +519,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def amplify_output_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
-      <button class="icon-button" aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" class="text-xl" />
-      </button>
+      <.icon_button aria-label="amplify outputs">
+        <.remix_icon icon="zoom-in-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -531,14 +529,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_settings_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Cell settings">
-      <.link
+      <.icon_button
         patch={~p"/sessions/#{@session_id}/cell-settings/#{@cell_id}"}
-        class="icon-button"
         aria-label="cell settings"
         role="button"
       >
-        <.remix_icon icon="settings-3-line" class="text-xl" />
-      </.link>
+        <.remix_icon icon="settings-3-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -546,15 +543,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp move_cell_up_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Move up">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="move cell up"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="-1"
       >
-        <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="arrow-up-s-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -562,15 +558,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp move_cell_down_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Move down">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="move cell down"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="1"
       >
-        <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="arrow-down-s-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -578,13 +573,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp delete_cell_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Delete">
-      <button
-        class="icon-button"
+      <.icon_button
         aria-label="delete cell"
         phx-click={JS.push("delete_cell", value: %{cell_id: @cell_id})}
       >
-        <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-      </button>
+        <.remix_icon icon="delete-bin-6-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -601,9 +595,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         '''
       }
     >
-      <span class="icon-button">
-        <.remix_icon icon="question-line" class="text-xl" />
-      </span>
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end

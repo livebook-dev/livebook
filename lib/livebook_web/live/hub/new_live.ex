@@ -105,13 +105,11 @@ defmodule LivebookWeb.Hub.NewLive do
               label="Livebook Teams key"
             />
 
-            <button
-              :if={!@requested_code}
-              class="button-base button-blue self-start"
-              phx-disable-with="Loading..."
-            >
-              <%= @button_label %>
-            </button>
+            <div>
+              <.button :if={!@requested_code} phx-disable-with="Loading...">
+                <%= @button_label %>
+              </.button>
+            </div>
             <div class="invisible"></div>
             <div :if={@requested_code} class="flex flex-col rounded-xl bg-gray-50 px-10 py-6 mt-10">
               <div class="flex flex-col items-center rounded-xl bg-gray-50">
@@ -130,14 +128,10 @@ defmodule LivebookWeb.Hub.NewLive do
                   <span class="text-sm">
                     2. Sign in to Livebook Teams and paste the code:
                   </span>
-                  <div>
-                    <a
-                      href={@verification_uri}
-                      target="_blank"
-                      class="mt-3 button-base button-outlined-gray"
-                    >
+                  <div class="mt-2">
+                    <.button color="gray" outlined href={@verification_uri} target="_blank">
                       Go to Teams
-                    </a>
+                    </.button>
                   </div>
                 </div>
               </div>
@@ -155,23 +149,19 @@ defmodule LivebookWeb.Hub.NewLive do
       id="clipboard"
       class="flex items-center justify-between border rounded-lg px-4 py-2.5 bg-white"
     >
-      <div class="icon-button invisible">
-        <.remix_icon icon="clipboard-line" class="text-lg" />
-      </div>
+      <.icon_button class="invisible">
+        <.remix_icon icon="clipboard-line" />
+      </.icon_button>
 
       <div
-        class="text-brand-pink font-semibold text-xl leading-none"
+        class="mr-4 text-brand-pink font-semibold text-xl leading-none"
         id="clipboard-code"
         phx-no-format
       ><%= @content %></div>
 
-      <button
-        class="icon-button ml-4"
-        phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")}
-        type="button"
-      >
-        <.remix_icon icon="clipboard-line" class="text-lg text-blue-500" />
-      </button>
+      <.icon_button phx-click={JS.dispatch("lb:clipcopy", to: "#clipboard-code")} type="button">
+        <.remix_icon icon="clipboard-line" />
+      </.icon_button>
     </div>
     """
   end

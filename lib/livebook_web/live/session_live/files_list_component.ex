@@ -126,9 +126,9 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         <% else %>
           <.menu id={"file-entry-#{file_entry.type}-#{idx}-menu"} position={:bottom_right}>
             <:toggle>
-              <button class="icon-button" aria-label="menu">
+              <.icon_button small aria-label="menu">
                 <.remix_icon icon="more-2-line" />
-              </button>
+              </.icon_button>
             </:toggle>
             <.menu_item>
               <button
@@ -209,7 +209,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   defp references_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button cursor-pointer tooltip bottom-left"
+      class="tooltip bottom-left"
       data-tooltip={
         ~S'''
         References are files that point to
@@ -218,7 +218,9 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         '''
       }
     >
-      <.remix_icon icon="question-line" class="leading-none text-gray-700" />
+      <.icon_button small>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -226,7 +228,7 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
   defp attachments_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button cursor-pointer tooltip bottom-left"
+      class="tooltip bottom-left"
       data-tooltip={
         ~S'''
         Attachments are files stored in the
@@ -235,7 +237,9 @@ defmodule LivebookWeb.SessionLive.FilesListComponent do
         '''
       }
     >
-      <.remix_icon icon="question-line" class="leading-none text-gray-700" />
+      <.icon_button small>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end

@@ -118,18 +118,17 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <button
-            class="button-base button-blue"
+          <.button
             type="button"
             phx-click={JS.patch(~p"/sessions/#{@session.id}") |> JS.push("deploy_app")}
             disabled={not @changeset.valid?}
           >
-            <.remix_icon icon="rocket-line" class="align-middle mr-1" />
+            <.remix_icon icon="rocket-line" />
             <span>Deploy</span>
-          </button>
-          <button class="button-base button-outlined-gray" type="reset" name="reset">
+          </.button>
+          <.button color="gray" outlined type="reset" name="reset">
             Reset
-          </button>
+          </.button>
         </div>
       </.form>
     </div>

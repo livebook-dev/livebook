@@ -126,13 +126,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               ]}
             />
             <div class="flex space-x-2">
-              <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                <.remix_icon icon="add-line" class="align-middle" />
+              <.button type="submit" disabled={not @changeset.valid?}>
+                <.remix_icon icon="add-line" />
                 <span class="font-normal">Add</span>
-              </button>
-              <.link patch={@return_to} class="button-base button-outlined-gray">
+              </.button>
+              <.button color="gray" outlined patch={@return_to}>
                 Cancel
-              </.link>
+              </.button>
             </div>
           </div>
         </.form>
@@ -198,15 +198,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 in <%= hub_label(@hub) %>. Allow this session to access it?
               </span>
             </div>
-            <button
-              class="button-base button-gray"
+            <.button
+              color="gray"
               phx-click="select_secret"
               phx-value-name={@secret.name}
               phx-value-hub={true}
               phx-target={@target}
             >
               Grant access
-            </button>
+            </.button>
           </div>
         </div>
       </div>

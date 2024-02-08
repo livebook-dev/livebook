@@ -136,9 +136,7 @@ solely client-side operations.
   left: calc(-45vw + 50%);
 }
 
-[data-el-cell][data-js-amplified]
-  [data-el-amplify-outputs-button]
-  .icon-button {
+[data-el-cell][data-js-amplified] [data-el-amplify-outputs-button] > button {
   @apply bg-gray-100 text-gray-900;
 }
 
@@ -180,7 +178,7 @@ solely client-side operations.
 
 [data-el-cell][data-type="smart"][data-js-source-visible]
   [data-el-toggle-source-button]
-  .icon-button {
+  > button {
   @apply bg-gray-100 text-gray-900;
 }
 

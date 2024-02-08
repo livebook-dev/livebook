@@ -49,14 +49,10 @@ defmodule LivebookWeb.UserComponent do
             label="Cursor color"
             randomize={JS.push("randomize_color", target: @myself)}
           />
-          <button
-            class="button-base button-blue flex space-x-1 justify-center items-center"
-            type="submit"
-            disabled={not @changeset.valid?}
-          >
+          <.button type="submit" disabled={not @changeset.valid?}>
             <.remix_icon icon="save-line" />
             <span>Save</span>
-          </button>
+          </.button>
         </div>
       </.form>
     </div>

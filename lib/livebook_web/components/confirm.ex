@@ -120,16 +120,13 @@ defmodule LivebookWeb.Confirm do
         </div>
         <div class="mt-8 flex justify-end">
           <div class={["flex gap-2", @danger && "flex-row-reverse"]}>
-            <button class="button-base button-outlined-gray" type="button" phx-click={hide_modal(@id)}>
+            <.button color="gray" outlined type="button" phx-click={hide_modal(@id)}>
               Cancel
-            </button>
-            <button
-              class={["button-base", if(@danger, do: "button-red", else: "button-blue")]}
-              type="submit"
-            >
-              <.remix_icon :if={@confirm_icon} icon={@confirm_icon} class="align-middle mr-1" />
+            </.button>
+            <.button color={if(@danger, do: "red", else: "blue")} type="submit">
+              <.remix_icon :if={@confirm_icon} icon={@confirm_icon} />
               <span><%= @confirm_text %></span>
-            </button>
+            </.button>
           </div>
         </div>
       </form>
