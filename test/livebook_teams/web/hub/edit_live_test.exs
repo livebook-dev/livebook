@@ -407,7 +407,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
       assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-      assert render(view) =~ "Deployment group FOO updated successfully"
+      assert render(view) =~ "Deployment group #{new_name} updated successfully"
       assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 

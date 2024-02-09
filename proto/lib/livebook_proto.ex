@@ -11,6 +11,7 @@ defmodule LivebookProto do
     SecretDeleted,
     SecretUpdated,
     DeploymentGroupCreated,
+    DeploymentGroupDeleted,
     DeploymentGroupUpdated,
     UserConnected
   }
@@ -31,6 +32,7 @@ defmodule LivebookProto do
           | SecretDeleted.t()
           | SecretUpdated.t()
           | DeploymentGroupCreated.t()
+          | DeploymentGroupDeleted.t()
           | DeploymentGroupUpdated.t()
           | UserConnected.t()
 
