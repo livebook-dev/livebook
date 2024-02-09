@@ -68,15 +68,15 @@ defmodule LivebookWeb.AppComponents do
   @doc """
   Shows a confirmation modal and closes the app on confirm.
   """
-  def confirm_app_termination(socket, app_pid) do
+  def confirm_app_termination(socket, app_pid, title \\ "app") do
     on_confirm = fn socket ->
       Livebook.App.close(app_pid)
       socket
     end
 
     confirm(socket, on_confirm,
-      title: "Terminate app",
-      description: "All app sessions will be immediately terminated.",
+      title: "Terminate #{title}",
+      description: "All #{title} sessions will be immediately terminated.",
       confirm_text: "Terminate",
       confirm_icon: "delete-bin-6-line"
     )

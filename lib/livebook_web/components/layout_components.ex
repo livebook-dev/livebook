@@ -99,7 +99,7 @@ defmodule LivebookWeb.LayoutComponents do
             </div>
             <.sidebar_link title="Home" icon="home-6-line" to={~p"/"} current={@current_page} />
             <.sidebar_link
-              title="Apps"
+              title="Local apps"
               icon="rocket-line"
               to={~p"/apps-dashboard"}
               current={@current_page}
