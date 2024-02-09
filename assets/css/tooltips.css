@@ -14,6 +14,7 @@ Example usage:
   display: flex;
   --distance: 4px;
   --arrow-size: 5px;
+  --arrow-side-offset: 10px;
   --show-delay: 0.5s;
 }
 
@@ -84,8 +85,11 @@ otherwise there's a tiny space between them.
 
 .tooltip.top-right:before {
   bottom: 100%;
-  left: 0;
-  transform: translate(0%, calc(1px - var(--arrow-size) - var(--distance)));
+  left: 50%;
+  transform: translate(
+    calc(0px - var(--arrow-side-offset)),
+    calc(1px - var(--arrow-size) - var(--distance))
+  );
 }
 
 .tooltip.top:after,
@@ -107,8 +111,11 @@ otherwise there's a tiny space between them.
 
 .tooltip.bottom-left:before {
   top: 100%;
-  right: 0;
-  transform: translate(0%, calc(var(--arrow-size) - 1px + var(--distance)));
+  left: 50%;
+  transform: translate(
+    calc(-100% + var(--arrow-side-offset)),
+    calc(var(--arrow-size) - 1px + var(--distance))
+  );
 }
 
 .tooltip.bottom:after,

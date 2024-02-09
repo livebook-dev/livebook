@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             <span
               class={[
                 "flex flex-col",
-                not Livebook.Notebook.AppSettings.valid?(@settings) && "tooltip top-right"
+                not Livebook.Notebook.AppSettings.valid?(@settings) && "tooltip top"
               ]}
               data-tooltip="You must configure the app to preview it"
             >
