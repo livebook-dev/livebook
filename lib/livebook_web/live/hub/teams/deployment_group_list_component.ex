@@ -1,6 +1,8 @@
 defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Teams
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -35,6 +37,23 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
                   <span>Edit</span>
                 </.link>
               </.menu_item>
+              <.menu_item variant={:danger}>
+                <button
+                  id={"hub-deployment-group-#{deployment_group.id}-delete"}
+                  type="button"
+                  role="menuitem"
+                  class="text-red-600"
+                  phx-click={
+                    JS.push("delete_deployment_group",
+                      value: %{id: deployment_group.id, name: deployment_group.name}
+                    )
+                  }
+                  phx-target={@myself}
+                >
+                  <.remix_icon icon="delete-bin-line" />
+                  <span>Delete</span>
+                </button>
+              </.menu_item>
             </.menu>
           </div>
         </div>
@@ -46,5 +65,32 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
       </div>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("delete_deployment_group", %{"id" => id, "name" => name}, socket) do
+    on_confirm = fn socket ->
+      hub = Livebook.Hubs.fetch_hub!(socket.assigns.hub.id)
+      deployment_groups = Teams.get_deployment_groups(hub)
+      deployment_group = Enum.find(deployment_groups, &(&1.id == id))
+
+      case Teams.delete_deployment_group(hub, deployment_group) do
+        :ok ->
+          socket
+          |> put_flash(:success, "Deployment group #{deployment_group.name} deleted successfully")
+          |> push_patch(to: ~p"/hub/#{hub.id}")
+
+        {:transport_error, reason} ->
+          put_flash(socket, :error, reason)
+      end
+    end
+
+    {:noreply,
+     confirm(socket, on_confirm,
+       title: "Delete hub deployment group",
+       description: "Are you sure you want to delete #{name}?",
+       confirm_text: "delete",
+       confirm_icon: "delete-bin-6-line"
+     )}
   end
 end

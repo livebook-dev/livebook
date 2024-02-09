@@ -242,4 +242,16 @@ defmodule Livebook.TeamsTest do
       assert "is invalid" in errors_on(changeset).mode
     end
   end
+
+  describe "delete_deployment_group/2" do
+    test "deletes a deployment group", %{user: user, node: node} do
+      team = create_team_hub(user, node)
+      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
+
+      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+
+      delete_deployment_group = %{deployment_group | id: to_string(id)}
+      assert Teams.delete_deployment_group(team, delete_deployment_group) == :ok
+    end
+  end
 end

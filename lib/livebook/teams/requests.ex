@@ -198,6 +198,15 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to delete a deployment group.
+  """
+  @spec delete_deployment_group(Team.t(), DeploymentGroup.t()) ::
+          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def delete_deployment_group(team, deployment_group) do
+    delete("/api/v1/org/deployment-groups", %{id: deployment_group.id}, team)
+  end
+
+  @doc """
   Send a request to Livebook Team API to create an agent key.
   """
   @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::

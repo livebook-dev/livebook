@@ -199,6 +199,21 @@ defmodule Livebook.Teams do
   end
 
   @doc """
+  Deletes a Deployment Group.
+  """
+  @spec delete_deployment_group(Team.t(), DeploymentGroup.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def delete_deployment_group(%Team{} = team, deployment_group) do
+    case Requests.delete_deployment_group(team, deployment_group) do
+      {:ok, _} -> :ok
+      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
+      any -> any
+    end
+  end
+
+  @doc """
   Creates an Agent Key.
   """
   @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::
