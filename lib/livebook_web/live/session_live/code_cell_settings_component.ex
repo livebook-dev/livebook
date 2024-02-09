@@ -47,12 +47,12 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
           />
         </div>
         <div class="mt-8 flex justify-begin space-x-2">
-          <button class="button-base button-blue" type="submit">
+          <.button type="submit">
             Save
-          </button>
-          <.link patch={@return_to} class="button-base button-outlined-gray">
+          </.button>
+          <.button color="gray" outlined patch={@return_to}>
             Cancel
-          </.link>
+          </.button>
         </div>
       </form>
     </div>

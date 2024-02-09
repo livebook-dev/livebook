@@ -18,7 +18,7 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
     {:ok,
      assign(socket,
        title: title(socket),
-       button: button(socket),
+       button: button_attrs(socket),
        changeset: changeset,
        deployment_group_id: assigns[:deployment_group_id],
        error_message: nil
@@ -69,13 +69,13 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
             <.hidden_field field={f[:hub_id]} value={@hub.id} />
             <.hidden_field field={f[:deployment_group_id]} value={@deployment_group_id} />
             <div class="flex space-x-2">
-              <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-                <.remix_icon icon={@button.icon} class="align-middle mr-1" />
+              <.button type="submit" disabled={not @changeset.valid?}>
+                <.remix_icon icon={@button.icon} />
                 <span class="font-normal"><%= @button.label %></span>
-              </button>
-              <.link patch={@return_to} class="button-base button-outlined-gray">
+              </.button>
+              <.button color="gray" outlined patch={@return_to}>
                 Cancel
-              </.link>
+              </.button>
             </div>
           </div>
         </.form>
@@ -118,8 +118,8 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   defp title(%{assigns: %{secret_name: nil}}), do: "Add secret"
   defp title(_), do: "Edit secret"
 
-  defp button(%{assigns: %{secret_name: nil}}), do: %{icon: "add-line", label: "Add"}
-  defp button(_), do: %{icon: "save-line", label: "Save"}
+  defp button_attrs(%{assigns: %{secret_name: nil}}), do: %{icon: "add-line", label: "Add"}
+  defp button_attrs(_), do: %{icon: "save-line", label: "Save"}
 
   defp set_secret(%{assigns: %{secret_name: nil}} = socket, %Secret{} = secret) do
     Hubs.create_secret(socket.assigns.hub, secret)

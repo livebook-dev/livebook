@@ -171,16 +171,17 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         dockerfile_config={apply_changes(@changeset)}
       >
         <:dockerfile_actions>
-          <button
-            class="button-base button-gray whitespace-nowrap py-1 px-2"
+          <.button
+            color="gray"
+            small
             type="button"
             aria-label="save dockerfile alongside the notebook"
             phx-click="save_dockerfile"
             phx-target={@myself}
           >
-            <.remix_icon icon="save-line" class="align-middle mr-1 text-xs" />
-            <span class="font-normal text-xs">Save alongside notebook</span>
-          </button>
+            <.remix_icon icon="save-line" />
+            <span>Save alongside notebook</span>
+          </.button>
         </:dockerfile_actions>
       </AppComponents.docker_instructions>
     </div>

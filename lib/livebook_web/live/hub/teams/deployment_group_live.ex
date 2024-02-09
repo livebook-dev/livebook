@@ -141,14 +141,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                   />
 
                   <div class="flex">
-                    <button
-                      id="add-agent-key"
-                      type="button"
-                      class="button-base button-blue"
-                      phx-click="add_agent_key"
-                    >
+                    <.button id="add-agent-key" type="button" phx-click="add_agent_key">
                       <span>Add agent key</span>
-                    </button>
+                    </.button>
                   </div>
                 </div>
 

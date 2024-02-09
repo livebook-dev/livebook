@@ -20,10 +20,10 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             message="This session is a running app. To deploy a modified version, you can fork it."
           />
           <div class="mt-6">
-            <button class="button-base button-blue" phx-click="fork_session">
+            <.button phx-click="fork_session">
               <.remix_icon icon="git-branch-line" />
               <span>Fork</span>
-            </button>
+            </.button>
           </div>
         </div>
       <% else %>
@@ -52,12 +52,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </span>
           </div>
 
-          <.link
-            patch={~p"/sessions/#{@session.id}/settings/app"}
-            class="button-base justify-center button-outlined-gray bg-transparent"
-          >
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/app"}>
             Configure
-          </.link>
+          </.button>
         </div>
 
         <h3 class="mt-12 uppercase text-sm font-semibold text-gray-500">
@@ -65,19 +62,13 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </h3>
 
         <div class="mt-2 flex flex-col gap-2">
-          <.link
-            class="button-base justify-center button-blue"
-            patch={~p"/sessions/#{@session.id}/app-docker"}
-          >
-            <.remix_icon icon="rocket-line" class="mr-1" /> Deploy with Livebook Teams
-          </.link>
+          <.button color="blue" patch={~p"/sessions/#{@session.id}/app-docker"}>
+            <.remix_icon icon="rocket-line" /> Deploy with Livebook Teams
+          </.button>
 
-          <.link
-            class="button-base justify-center button-outlined-gray bg-transparent"
-            patch={~p"/sessions/#{@session.id}/app-docker"}
-          >
-            <.remix_icon icon="ship-line" class="mr-1" /> Manual Docker deployment
-          </.link>
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/app-docker"}>
+            <.remix_icon icon="ship-line" /> Manual Docker deployment
+          </.button>
         </div>
 
         <h3 class="mt-12 uppercase text-sm font-semibold text-gray-500">
@@ -113,31 +104,27 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               ]}
               data-tooltip="You must configure the app to preview it"
             >
-              <button
-                class={[
-                  "button-base w-full  justify-center",
-                  if(@app,
-                    do: "button-blue",
-                    else: "button-outlined-gray bg-transparent border-dashed"
-                  )
-                ]}
+              <.button
+                color={if(@app, do: "blue", else: "gray")}
+                outlined={!@app}
                 phx-click="deploy_app"
                 disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
               >
-                <.remix_icon icon="slideshow-4-line" class="align-middle mr-1" />
+                <.remix_icon icon="slideshow-4-line" />
                 <span><%= if @app, do: "Relaunch", else: "Launch preview" %></span>
-              </button>
+              </.button>
             </span>
 
-            <button
+            <.button
               :if={@app}
-              class="button-base grow button-outlined-red justify-center"
+              color="red"
+              outlined
               type="button"
               phx-click="terminate_app"
               phx-target={@myself}
             >
               Terminate
-            </button>
+            </.button>
           </div>
         </div>
       <% end %>
@@ -166,26 +153,22 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
       <div class="border-t border-gray-200 px-3 py-1 flex space-x-2">
         <div class="grow" />
         <span class="tooltip top" data-tooltip="Open">
-          <a
-            class={[
-              "icon-button",
-              app_session.app_status.lifecycle != :active && "disabled"
-            ]}
+          <.icon_button
+            disabled={app_session.app_status.lifecycle != :active}
             aria-label="open app"
             href={~p"/apps/#{@app.slug}/#{app_session.id}"}
           >
-            <.remix_icon icon="link" class="text-lg" />
-          </a>
+            <.remix_icon icon="link" />
+          </.icon_button>
         </span>
         <span class="tooltip top" data-tooltip="Debug">
-          <a class="icon-button" aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
-            <.remix_icon icon="terminal-line" class="text-lg" />
-          </a>
+          <.icon_button aria-label="debug app" href={~p"/sessions/#{app_session.id}"}>
+            <.remix_icon icon="terminal-line" />
+          </.icon_button>
         </span>
         <%= if app_session.app_status.lifecycle == :active do %>
           <span class="tooltip top" data-tooltip="Deactivate">
-            <button
-              class="icon-button"
+            <.icon_button
               aria-label="deactivate app session"
               phx-click={
                 JS.push("deactivate_app_session",
@@ -194,13 +177,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                 )
               }
             >
-              <.remix_icon icon="stop-circle-line" class="text-lg" />
-            </button>
+              <.remix_icon icon="stop-circle-line" />
+            </.icon_button>
           </span>
         <% else %>
           <span class="tooltip top" data-tooltip="Terminate">
-            <button
-              class="icon-button"
+            <.icon_button
               aria-label="terminate app session"
               phx-click={
                 JS.push("terminate_app_session",
@@ -209,8 +191,8 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
                 )
               }
             >
-              <.remix_icon icon="delete-bin-6-line" class="text-lg" />
-            </button>
+              <.remix_icon icon="delete-bin-6-line" />
+            </.icon_button>
           </span>
         <% end %>
       </div>
@@ -221,7 +203,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
   defp app_info_icon(assigns) do
     ~H"""
     <span
-      class="icon-button p-0 cursor-pointer tooltip bottom-left"
+      class="tooltip bottom-left"
       data-tooltip={
         ~S'''
         App deployment is a way to share your
@@ -231,7 +213,9 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         '''
       }
     >
-      <.remix_icon icon="question-line" class="text-xl leading-none" />
+      <.icon_button>
+        <.remix_icon icon="question-line" />
+      </.icon_button>
     </span>
     """
   end

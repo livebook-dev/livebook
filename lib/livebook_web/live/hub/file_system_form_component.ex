@@ -9,7 +9,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     {file_system, assigns} = Map.pop!(assigns, :file_system)
 
     mode = mode(file_system)
-    button = button(file_system)
+    button = button_attrs(file_system)
     title = title(file_system)
 
     file_system = file_system || %FileSystem.S3{hub_id: assigns.hub.id}
@@ -83,13 +83,13 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
             </p>
           <% end %>
           <div class="flex space-x-2">
-            <button class="button-base button-blue" type="submit" disabled={not @changeset.valid?}>
-              <.remix_icon icon={@button.icon} class="align-middle mr-1" />
+            <.button type="submit" disabled={not @changeset.valid?}>
+              <.remix_icon icon={@button.icon} />
               <span class="font-normal"><%= @button.label %></span>
-            </button>
-            <.link patch={@return_to} class="button-base button-outlined-gray">
+            </.button>
+            <.button color="gray" outlined patch={@return_to}>
               Cancel
-            </.link>
+            </.button>
           </div>
         </div>
       </.form>
@@ -160,6 +160,6 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   defp title(nil), do: "Add file storage"
   defp title(_), do: "Edit file storage"
 
-  defp button(nil), do: %{icon: "add-line", label: "Add"}
-  defp button(_), do: %{icon: "save-line", label: "Save"}
+  defp button_attrs(nil), do: %{icon: "add-line", label: "Add"}
+  defp button_attrs(_), do: %{icon: "save-line", label: "Save"}
 end

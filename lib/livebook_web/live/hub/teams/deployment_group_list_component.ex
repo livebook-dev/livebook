@@ -22,9 +22,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
           <div class="flex items-center space-x-2">
             <.menu id={"hub-deployment-group-#{deployment_group.id}-menu"}>
               <:toggle>
-                <button class="icon-button" aria-label="open deployment group menu" type="button">
-                  <.remix_icon icon="more-2-fill" class="text-xl" />
-                </button>
+                <.icon_button aria-label="open deployment group menu" type="button">
+                  <.remix_icon icon="more-2-fill" />
+                </.icon_button>
               </:toggle>
               <.menu_item>
                 <.link
@@ -59,13 +59,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
         </div>
       </div>
       <div class="flex">
-        <.link
-          patch={~p"/hub/#{@hub_id}/deployment-groups/new"}
-          class="button-base button-blue"
-          id="add-deployment-group"
-        >
+        <.button patch={~p"/hub/#{@hub_id}/deployment-groups/new"} id="add-deployment-group">
           Add deployment group
-        </.link>
+        </.button>
       </div>
     </div>
     """

@@ -135,9 +135,9 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 </div>
 
                 <div>
-                  <button class="button-base button-blue" type="submit" phx-disable-with="Updating...">
+                  <.button type="submit" phx-disable-with="Updating...">
                     Save
-                  </button>
+                  </.button>
                 </div>
               </.form>
             </div>
@@ -218,14 +218,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     This only removes the hub from this machine. You must rejoin to access its features once again.
                   </p>
                 </div>
-                <button
+                <.button
+                  color="red"
+                  outlined
                   id="delete-hub"
                   phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
-                  class="button-base button-outlined-red"
                 >
                   <span class="hidden sm:block">Delete hub</span>
                   <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
-                </button>
+                </.button>
               </div>
             </div>
           </div>
@@ -292,64 +293,27 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         required for you and invited users to join this organization.
         We recommend storing it somewhere safe:
       </div>
-      <div class="w-full">
-        <div id="teams-key-toggle" class="relative flex">
-          <input
-            type="password"
-            id="teams-key"
-            readonly
-            value={@teams_key}
-            class="input font-mono w-full border-neutral-200 bg-neutral-100 py-2 border-2 pr-8"
-          />
-
-          <div class="flex items-center absolute inset-y-0 right-1">
-            <button
-              class="icon-button"
-              data-tooltip="Copied to clipboard"
-              type="button"
-              aria-label="copy to clipboard"
-              phx-click={
-                JS.dispatch("lb:clipcopy", to: "#teams-key")
-                |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
-              }
-            >
-              <.remix_icon icon="clipboard-line" class="text-xl" />
-            </button>
-
-            <button
-              class="icon-button"
-              data-show
-              type="button"
-              aria-label="show password"
-              phx-click={
-                JS.remove_attribute("type", to: "#teams-key-toggle input")
-                |> JS.set_attribute({"type", "text"}, to: "#teams-key-toggle input")
-                |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
-                |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
-              }
-            >
-              <.remix_icon icon="eye-line" class="text-xl" />
-            </button>
-            <button
-              class="icon-button hidden"
-              data-hide
-              type="button"
-              aria-label="hide password"
-              phx-click={
-                JS.remove_attribute("type", to: "#teams-key-toggle input")
-                |> JS.set_attribute({"type", "password"}, to: "#teams-key-toggle input")
-                |> toggle_class("hidden", to: "#teams-key-toggle [data-show]")
-                |> toggle_class("hidden", to: "#teams-key-toggle [data-hide]")
-              }
-            >
-              <.remix_icon icon="eye-off-line" class="text-xl" />
-            </button>
-          </div>
+      <div class="flex gap-2">
+        <div class="grow">
+          <.password_field id="teams-key" name="teams_key" value={@teams_key} readonly />
         </div>
+
+        <span
+          data-tooltip="Copied to clipboard"
+          aria-label="copy to clipboard"
+          phx-click={
+            JS.dispatch("lb:clipcopy", to: "#teams-key")
+            |> JS.add_class("", transition: {"tooltip left", "", ""}, time: 2000)
+          }
+        >
+          <.button color="gray" small type="button">
+            <.remix_icon icon="clipboard-line" class="text-xl leading-none py-1" />
+          </.button>
+        </span>
       </div>
-      <.link :if={@confirm_url} patch={@confirm_url} class="button-base button-blue block text-center">
-        <.remix_icon class="mr-2" icon="thumb-up-fill" /> I've saved my Teams key in a secure location
-      </.link>
+      <.button :if={@confirm_url} patch={@confirm_url}>
+        <.remix_icon class="mr-1" icon="thumb-up-fill" /> I've saved my Teams key in a secure location
+      </.button>
     </div>
     """
   end

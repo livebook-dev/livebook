@@ -125,12 +125,12 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <button class="button-base button-blue" disabled={not @changeset.valid?}>
+          <.button disabled={not @changeset.valid?}>
             <span>Save</span>
-          </button>
-          <button class="button-base button-outlined-gray" type="reset" name="reset">
+          </.button>
+          <.button color="gray" outlined type="reset" name="reset">
             Reset
-          </button>
+          </.button>
         </div>
       </.form>
     </div>

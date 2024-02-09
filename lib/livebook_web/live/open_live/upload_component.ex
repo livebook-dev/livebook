@@ -29,13 +29,11 @@ defmodule LivebookWeb.OpenLive.UploadComponent do
             You can only upload files with .livemd extension.
           </div>
         <% end %>
-        <button
-          type="submit"
-          class="mt-5 button-base button-blue"
-          disabled={@error or upload_disabled?(@uploads.file)}
-        >
-          Import
-        </button>
+        <div class="mt-5">
+          <.button type="submit" disabled={@error or upload_disabled?(@uploads.file)}>
+            Import
+          </.button>
+        </div>
       </form>
     </div>
     """

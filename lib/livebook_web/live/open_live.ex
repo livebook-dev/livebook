@@ -38,19 +38,19 @@ defmodule LivebookWeb.OpenLive do
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>
-        <.link class="button-base button-blue" navigate={~p"/new"}>
-          <.remix_icon icon="add-line" class="align-middle mr-1" />
+        <.button color="blue" navigate={~p"/new"}>
+          <.remix_icon icon="add-line" />
           <span>New notebook</span>
-        </.link>
+        </.button>
       </:topbar_action>
       <div class="p-4 md:px-12 md:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutComponents.title text="Open notebook" back_navigate={~p"/"} />
           <div class="hidden md:flex" role="navigation" aria-label="new notebook">
-            <.link class="button-base button-blue" navigate={~p"/new"}>
-              <.remix_icon icon="add-line" class="align-middle mr-1" />
+            <.button color="blue" navigate={~p"/new"}>
+              <.remix_icon icon="add-line" />
               <span>New notebook</span>
-            </.link>
+            </.button>
           </div>
         </div>
 

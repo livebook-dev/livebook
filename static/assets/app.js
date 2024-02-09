@@ -572,7 +572,11 @@ This generally requires a secure origin \u2014 either HTTPS or localhost.`)}),wi
           third-party cookies.
         </div>
         <div class="mt-6">
-          <a id="open-app" class="button-base button-blue" target="_blank">
+          <a
+            id="open-app"
+            class="px-5 py-2 font-medium text-sm inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1 border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700"
+            target="_blank"
+          >
             Open app
           </a>
         </div>

@@ -73,14 +73,9 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
               <div>
-                <button
-                  class="button-base button-blue"
-                  type="submit"
-                  phx-disable-with="Updating..."
-                  disabled={not @changeset.valid?}
-                >
+                <.button type="submit" phx-disable-with="Updating..." disabled={not @changeset.valid?}>
                   Save
-                </button>
+                </.button>
               </div>
             </.form>
           </div>
@@ -149,32 +144,32 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               phx-change="stamp_validate"
               phx-target={@myself}
             >
-              <div class="flex space-x-2">
+              <div class="flex space-x-2 items-center">
                 <div class="grow">
                   <.password_field field={f[:secret_key]} label="Secret key" />
                 </div>
                 <div class="mt-6">
                   <span class="tooltip top" data-tooltip="Generate">
-                    <button
-                      class="button-base button-outlined-gray button-square-icon"
+                    <.button
+                      color="gray"
+                      small
                       type="button"
                       phx-click="generate_secret_key"
                       phx-target={@myself}
                     >
-                      <.remix_icon icon="refresh-line" class="text-xl" />
-                    </button>
+                      <.remix_icon icon="refresh-line" class="text-xl leading-none py-1" />
+                    </.button>
                   </span>
                 </div>
               </div>
               <div>
-                <button
-                  class="button-base button-blue"
+                <.button
                   type="submit"
                   phx-disable-with="Updating..."
                   disabled={not @stamp_changeset.valid?}
                 >
                   Save
-                </button>
+                </.button>
               </div>
             </.form>
           </div>

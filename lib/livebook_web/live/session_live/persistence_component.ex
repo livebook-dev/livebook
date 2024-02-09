@@ -119,26 +119,20 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       </div>
       <div class="flex justify-between">
         <div class="flex space-x-3">
-          <button
-            class="button-base button-blue"
+          <.button
             phx-click="save"
             phx-target={@myself}
             disabled={not savable?(@draft_file, @saved_file, @running_files)}
           >
             Save
-          </button>
-          <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+          </.button>
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
             Cancel
-          </.link>
+          </.button>
         </div>
-        <button
-          :if={@saved_file}
-          class="button-base button-outlined-red"
-          phx-click="stop_saving"
-          phx-target={@myself}
-        >
+        <.button :if={@saved_file} color="red" outlined phx-click="stop_saving" phx-target={@myself}>
           Stop saving to file
-        </button>
+        </.button>
       </div>
     </div>
     """

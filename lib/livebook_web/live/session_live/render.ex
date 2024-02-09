@@ -543,13 +543,9 @@ defmodule LivebookWeb.SessionLive.Render do
             </span>
           </button>
           <%= if client_id == @client_id do %>
-            <button
-              class="icon-button"
-              aria-label="edit profile"
-              phx-click={show_current_user_modal()}
-            >
-              <.remix_icon icon="user-settings-line" class="text-lg" />
-            </button>
+            <.icon_button aria-label="edit profile" phx-click={show_current_user_modal()}>
+              <.remix_icon icon="user-settings-line" />
+            </.icon_button>
           <% else %>
             <span
               class="tooltip left"
@@ -557,9 +553,9 @@ defmodule LivebookWeb.SessionLive.Render do
               data-el-client-follow-toggle
               data-meta="follow"
             >
-              <button class="icon-button" aria-label="follow this user">
-                <.remix_icon icon="pushpin-line" class="text-lg" />
-              </button>
+              <.icon_button aria-label="follow this user">
+                <.remix_icon icon="pushpin-line" />
+              </.icon_button>
             </span>
             <span
               class="tooltip left"
@@ -567,9 +563,9 @@ defmodule LivebookWeb.SessionLive.Render do
               data-el-client-follow-toggle
               data-meta="unfollow"
             >
-              <button class="icon-button" aria-label="unfollow this user">
-                <.remix_icon icon="pushpin-fill" class="text-lg" />
-              </button>
+              <.icon_button aria-label="unfollow this user">
+                <.remix_icon icon="pushpin-fill" />
+              </.icon_button>
             </span>
           <% end %>
         </div>
@@ -586,7 +582,7 @@ defmodule LivebookWeb.SessionLive.Render do
           Runtime
         </h3>
         <span
-          class="icon-button p-0 cursor-pointer tooltip bottom-left"
+          class="tooltip bottom-left"
           data-tooltip={
             ~S'''
             The runtime configures which Erlang VM
@@ -594,7 +590,9 @@ defmodule LivebookWeb.SessionLive.Render do
             '''
           }
         >
-          <.remix_icon icon="question-line" class="text-xl leading-none" />
+          <.icon_button>
+            <.remix_icon icon="question-line" />
+          </.icon_button>
         </span>
       </div>
       <div class="flex flex-col mt-2 space-y-4">
@@ -609,22 +607,19 @@ defmodule LivebookWeb.SessionLive.Render do
         </div>
         <div class="flex space-x-2">
           <%= if Runtime.connected?(@data_view.runtime) do %>
-            <button class="button-base grow justify-center button-blue" phx-click="reconnect_runtime">
+            <.button phx-click="reconnect_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Reconnect</span>
-            </button>
+            </.button>
           <% else %>
-            <button class="button-base grow justify-center button-blue" phx-click="connect_runtime">
+            <.button phx-click="connect_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
-            </button>
+            </.button>
           <% end %>
-          <.link
-            patch={~p"/sessions/#{@session.id}/settings/runtime"}
-            class="button-base grow justify-center button-outlined-gray bg-transparent"
-          >
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/runtime"}>
             Configure
-          </.link>
+          </.button>
         </div>
 
         <div class="flex flex-col pt-6 space-y-2">
@@ -641,14 +636,15 @@ defmodule LivebookWeb.SessionLive.Render do
             </div>
           <% end %>
 
-          <button
+          <.button
             :if={Runtime.connected?(@data_view.runtime)}
-            class="button-base button-outlined-red justify-center"
+            color="red"
+            outlined
             type="button"
             phx-click="disconnect_runtime"
           >
             Disconnect
-          </button>
+          </.button>
         </div>
       </div>
     </div>
@@ -730,9 +726,9 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <.menu id="session-menu">
       <:toggle>
-        <button class="icon-button" aria-label="open notebook menu">
-          <.remix_icon icon="more-2-fill" class="text-xl" />
-        </button>
+        <.icon_button aria-label="open notebook menu">
+          <.remix_icon icon="more-2-fill" />
+        </.icon_button>
       </:toggle>
       <.menu_item>
         <.link patch={~p"/sessions/#{@session.id}/export/livemd"} role="menuitem">
@@ -902,14 +898,14 @@ defmodule LivebookWeb.SessionLive.Render do
       <.menu id="views-menu" position={:bottom_right} sm_position={:top_right}>
         <:toggle>
           <button
-            class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+            class={status_button_classes(:gray)}
             aria-label="choose views to activate"
             data-el-views-disabled
           >
-            <.remix_icon icon="layout-5-line" class="text-xl text-gray-400" />
+            <.remix_icon icon="layout-5-line" />
           </button>
           <button
-            class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+            class={status_button_classes(:green)}
             aria-label="choose views to activate"
             data-el-views-enabled
           >
@@ -944,10 +940,10 @@ defmodule LivebookWeb.SessionLive.Render do
     <span class="tooltip left" data-tooltip="Choose a file to save the notebook">
       <.link
         patch={~p"/sessions/#{@session_id}/settings/file"}
-        class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+        class={status_button_classes(:gray)}
         aria-label="choose a file to save the notebook"
       >
-        <.remix_icon icon="save-line" class="text-xl text-gray-400" />
+        <.remix_icon icon="save-line" />
       </.link>
     </span>
     """
@@ -969,15 +965,17 @@ defmodule LivebookWeb.SessionLive.Render do
     >
       <.link
         patch={~p"/sessions/#{@session_id}/settings/file"}
-        class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50 relative"
+        class={status_button_classes(:green)}
         aria-label="notebook saved, click to open file settings"
       >
-        <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
-        <.remix_icon
-          :if={@persistence_warnings != []}
-          icon="error-warning-fill"
-          class="text-lg text-red-400 absolute -top-1.5 -right-2"
-        />
+        <div class="relative">
+          <.remix_icon icon="save-line" />
+          <.remix_icon
+            :if={@persistence_warnings != []}
+            icon="error-warning-fill"
+            class="text-lg text-red-400 absolute -top-1.5 -right-2"
+          />
+        </div>
       </.link>
     </span>
     """
@@ -988,10 +986,10 @@ defmodule LivebookWeb.SessionLive.Render do
     <span class="tooltip left" data-tooltip="No autosave configured, make sure to save manually">
       <.link
         patch={~p"/sessions/#{@session_id}/settings/file"}
-        class="icon-button icon-outlined-button border-yellow-bright-200 hover:bg-red-50 focus:bg-red-50"
+        class={status_button_classes(:yellow)}
         aria-label="no autosave configured, click to open file settings"
       >
-        <.remix_icon icon="save-line" class="text-xl text-yellow-bright-300" />
+        <.remix_icon icon="save-line" />
       </.link>
     </span>
     """
@@ -1002,10 +1000,10 @@ defmodule LivebookWeb.SessionLive.Render do
     <span class="tooltip left" data-tooltip="Autosave pending">
       <.link
         patch={~p"/sessions/#{@session_id}/settings/file"}
-        class="icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
+        class={status_button_classes(:blue)}
         aria-label="autosave pending, click to open file settings"
       >
-        <.remix_icon icon="save-line" class="text-xl text-blue-500" />
+        <.remix_icon icon="save-line" />
       </.link>
     </span>
     """
@@ -1019,10 +1017,10 @@ defmodule LivebookWeb.SessionLive.Render do
       <span class="tooltip left" data-tooltip="Choose a runtime to run the notebook in">
         <.link
           patch={~p"/sessions/#{@session_id}/settings/runtime"}
-          class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+          class={status_button_classes(:gray)}
           aria-label="choose a runtime to run the notebook in"
         >
-          <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
+          <.remix_icon icon="loader-3-line" />
         </.link>
       </span>
     <% end %>
@@ -1033,12 +1031,12 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to evaluating cell">
       <button
-        class="border-blue-400 icon-button icon-outlined-button hover:bg-blue-50 focus:bg-blue-50"
+        class={status_button_classes(:blue)}
         aria-label="go to evaluating cell"
         data-el-focus-cell-button
         data-target={@cell_id}
       >
-        <.remix_icon icon="loader-3-line" class="text-xl text-blue-500 animate-spin" />
+        <.remix_icon icon="loader-3-line" class="animate-spin" />
       </button>
     </span>
     """
@@ -1048,12 +1046,12 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to last evaluated cell">
       <button
-        class="border-green-bright-300 icon-button icon-outlined-button hover:bg-green-bright-50 focus:bg-green-bright-50"
+        class={status_button_classes(:green)}
         aria-label="go to last evaluated cell"
         data-el-focus-cell-button
         data-target={@cell_id}
       >
-        <.remix_icon icon="loader-3-line" class="text-xl text-green-bright-400" />
+        <.remix_icon icon="loader-3-line" />
       </button>
     </span>
     """
@@ -1063,12 +1061,12 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to last evaluated cell">
       <button
-        class="border-red-300 icon-button icon-outlined-button hover:bg-red-50 focus:bg-red-50"
+        class={status_button_classes(:red)}
         aria-label="go to last evaluated cell"
         data-el-focus-cell-button
         data-target={@cell_id}
       >
-        <.remix_icon icon="loader-3-line" class="text-xl text-red-400" />
+        <.remix_icon icon="loader-3-line" />
       </button>
     </span>
     """
@@ -1078,12 +1076,12 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to first stale cell">
       <button
-        class="border-yellow-bright-200 icon-button icon-outlined-button hover:bg-yellow-bright-50 focus:bg-yellow-bright-50"
+        class={status_button_classes(:yellow)}
         aria-label="go to first stale cell"
         data-el-focus-cell-button
         data-target={@cell_id}
       >
-        <.remix_icon icon="loader-3-line" class="text-xl text-yellow-bright-300" />
+        <.remix_icon icon="loader-3-line" />
       </button>
     </span>
     """
@@ -1092,14 +1090,33 @@ defmodule LivebookWeb.SessionLive.Render do
   defp global_status(%{status: :fresh} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Ready to evaluate">
-      <div
-        class="border-gray-200 icon-button icon-outlined-button hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="ready to evaluate"
-      >
-        <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
+      <div class={status_button_classes(:gray)} aria-label="ready to evaluate">
+        <.remix_icon icon="loader-3-line" />
       </div>
     </span>
     """
+  end
+
+  defp status_button_classes(color) do
+    [
+      "text-xl leading-none p-1 flex items-center justify-center rounded-full rounded-full border-2",
+      case color do
+        :gray ->
+          "text-gray-400 border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+
+        :blue ->
+          "text-blue-500 border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
+
+        :green ->
+          "text-green-bright-400 border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+
+        :yellow ->
+          "text-yellow-bright-300 border-yellow-bright-200 hover:bg-yellow-bright-50 focus:bg-yellow-bright-50"
+
+        :red ->
+          "text-red-400 border-red-300 hover:bg-red-50 focus:bg-red-50"
+      end
+    ]
   end
 
   defp insert_mode_indicator(assigns) do
@@ -1192,9 +1209,9 @@ defmodule LivebookWeb.SessionLive.Render do
       </div>
       <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
         <div :if={@data_view.section_views == []} class="flex justify-center">
-          <button class="button-base button-small" phx-click="append_section">
+          <LivebookWeb.SessionLive.InsertButtonsComponent.insert_button phx-click="append_section">
             + Section
-          </button>
+          </LivebookWeb.SessionLive.InsertButtonsComponent.insert_button>
         </div>
         <.live_component
           :for={{section_view, index} <- Enum.with_index(@data_view.section_views)}
@@ -1221,9 +1238,9 @@ defmodule LivebookWeb.SessionLive.Render do
   defp star_button(%{file: nil} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Save this notebook before starring it">
-      <button class="icon-button" disabled>
-        <.remix_icon icon="star-line text-lg" />
-      </button>
+      <.icon_button disabled>
+        <.remix_icon icon="star-line" />
+      </.icon_button>
     </span>
     """
   end
@@ -1232,15 +1249,15 @@ defmodule LivebookWeb.SessionLive.Render do
     ~H"""
     <%= if @file in @starred_files do %>
       <span class="tooltip left" data-tooltip="Unstar notebook">
-        <button class="icon-button" phx-click="unstar_notebook">
-          <.remix_icon icon="star-fill text-lg text-yellow-600" />
-        </button>
+        <.icon_button phx-click="unstar_notebook">
+          <.remix_icon icon="star-fill" class="text-yellow-600" />
+        </.icon_button>
       </span>
     <% else %>
       <span class="tooltip left" data-tooltip="Star notebook">
-        <button class="icon-button" phx-click="star_notebook">
-          <.remix_icon icon="star-line text-lg" />
-        </button>
+        <.icon_button phx-click="star_notebook">
+          <.remix_icon icon="star-line" />
+        </.icon_button>
       </span>
     <% end %>
     """

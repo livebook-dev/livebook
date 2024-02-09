@@ -17,8 +17,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         data-p-metadata={hook_prop(@section_view.id)}
       >
         <div class="absolute left-0 top-0 bottom-0 transform -translate-x-full w-10 flex justify-end items-center pr-2">
-          <button
-            class="icon-button"
+          <.icon_button
             aria-label="collapse section"
             data-el-section-collapse-button
             phx-click={
@@ -27,10 +26,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               )
             }
           >
-            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-          </button>
-          <button
-            class="icon-button"
+            <.remix_icon icon="arrow-down-s-line" />
+          </.icon_button>
+          <.icon_button
             aria-label="expand section"
             data-el-section-expand-button
             phx-click={
@@ -39,8 +37,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               )
             }
           >
-            <.remix_icon icon="arrow-right-s-line" class="text-xl" />
-          </button>
+            <.remix_icon icon="arrow-right-s-line" />
+          </.icon_button>
         </div>
         <h2
           class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1.5 rounded-lg border border-transparent whitespace-pre-wrap cursor-text scroll-mt-[50px] sm:scroll-mt-0"
@@ -66,52 +64,50 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               class="tooltip top"
               data-tooltip={cannot_branch_out_reason(@section_view) || "Branch out from"}
             >
-              <button
-                class={["icon-button", cannot_branch_out_reason(@section_view) && "disabled"]}
+              <.icon_button
+                disabled={cannot_branch_out_reason(@section_view)}
                 aria-label="branch out from other section"
               >
-                <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
-              </button>
+                <.remix_icon icon="git-branch-line" class="flip-horizontally" />
+              </.icon_button>
             </span>
           </.branching_menu>
           <span class="tooltip top" data-tooltip="Link">
-            <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
-              <.remix_icon icon="link" class="text-xl" />
-            </a>
+            <.icon_button href={"##{@section_view.html_id}"} aria-label="link to section">
+              <.remix_icon icon="link" />
+            </.icon_button>
           </span>
           <span class="tooltip top" data-tooltip="Move up">
-            <button
-              class="icon-button"
+            <.icon_button
               aria-label="move section up"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="-1"
             >
-              <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-            </button>
+              <.remix_icon icon="arrow-up-s-line" />
+            </.icon_button>
           </span>
           <span class="tooltip top" data-tooltip="Move down">
-            <button
-              class="icon-button"
+            <.icon_button
               aria-label="move section down"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="1"
             >
-              <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-            </button>
+              <.remix_icon icon="arrow-down-s-line" />
+            </.icon_button>
           </span>
           <span {if @section_view.has_children?,
                do: [class: "tooltip left", "data-tooltip": "Cannot delete this section because\nother sections branch from it"],
                else: [class: "tooltip top", "data-tooltip": "Delete"]}>
-            <button
-              class={["icon-button", @section_view.has_children? && "disabled"]}
+            <.icon_button
+              disabled={@section_view.has_children?}
               aria-label="delete section"
               phx-click="delete_section"
               phx-value-section_id={@section_view.id}
             >
-              <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-            </button>
+              <.remix_icon icon="delete-bin-6-line" />
+            </.icon_button>
           </span>
         </div>
       </div>

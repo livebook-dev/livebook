@@ -45,16 +45,13 @@ defmodule LivebookWeb.HomeLive do
     >
       <:topbar_action>
         <div class="flex space-x-2">
-          <.link
-            navigate={~p"/open/storage"}
-            class="button-base button-outlined-gray whitespace-nowrap"
-          >
+          <.button color="gray" outlined navigate={~p"/open/storage"}>
             Open
-          </.link>
-          <.link class="button-base button-blue" patch={~p"/new"}>
-            <.remix_icon icon="add-line" class="align-middle mr-1" />
+          </.button>
+          <.button color="blue" patch={~p"/new"}>
+            <.remix_icon icon="add-line" />
             <span>New notebook</span>
-          </.link>
+          </.button>
         </div>
       </:topbar_action>
 
@@ -65,16 +62,13 @@ defmodule LivebookWeb.HomeLive do
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <LayoutComponents.title text="Home" />
           <div class="hidden md:flex space-x-2" role="navigation" aria-label="new notebook">
-            <.link
-              navigate={~p"/open/storage"}
-              class="button-base button-outlined-gray whitespace-nowrap"
-            >
+            <.button color="gray" outlined navigate={~p"/open/storage"}>
               Open
-            </.link>
-            <.link class="button-base button-blue" patch={~p"/new"}>
-              <.remix_icon icon="add-line" class="align-middle mr-1" />
+            </.button>
+            <.button color="blue" patch={~p"/new"}>
+              <.remix_icon icon="add-line" />
               <span>New notebook</span>
-            </.link>
+            </.button>
           </div>
         </div>
 

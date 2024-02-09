@@ -37,44 +37,47 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     ~H"""
     <form id="bulk-action-form" phx-submit="bulk_action" phx-target={@myself}>
       <div class="mb-4 flex items-center md:items-end justify-between">
-        <div class="flex flex-row">
-          <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-            Running sessions (<%= length(@sessions) %>)
-          </h2>
-        </div>
-        <div class="flex flex-row">
-          <.memory_info memory={@memory} />
-          <%= if @sessions != [] do %>
-            <.edit_sessions sessions={@sessions} />
-          <% end %>
-          <.menu id="sessions-order-menu">
-            <:toggle>
-              <button
-                class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-                type="button"
-                aria-label={"order by - currently ordered by #{order_by_label(@order_by)}"}
-              >
-                <span><%= order_by_label(@order_by) %></span>
-                <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
-              </button>
-            </:toggle>
-            <.menu_item :for={order_by <- ["date", "title", "memory"]}>
-              <button
-                class={
+        <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
+          Running sessions (<%= length(@sessions) %>)
+        </h2>
+        <div class="flex items-center gap-4">
+          <div class="flex gap-2 w-48 justify-end">
+            <%= if @sessions != [] do %>
+              <.edit_sessions sessions={@sessions} />
+            <% end %>
+            <.menu id="sessions-order-menu">
+              <:toggle>
+                <.button
+                  color="gray"
+                  outlined
+                  small
+                  type="button"
+                  aria-label={"order by - currently ordered by #{order_by_label(@order_by)}"}
+                >
+                  <span><%= order_by_label(@order_by) %></span>
+                  <.remix_icon icon="arrow-down-s-line" class="text-base leading-none" />
+                </.button>
+              </:toggle>
+              <.menu_item :for={order_by <- ["date", "title", "memory"]}>
+                <button
+                  class={
                     "#{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"
                   }
-                type="button"
-                role="menuitem"
-                phx-click={
-                  JS.push("set_order", value: %{order_by: order_by}, target: @myself)
-                  |> sr_message("ordered by #{order_by}")
-                }
-              >
-                <.remix_icon icon={order_by_icon(order_by)} />
-                <span><%= order_by_label(order_by) %></span>
-              </button>
-            </.menu_item>
-          </.menu>
+                  type="button"
+                  role="menuitem"
+                  phx-click={
+                    JS.push("set_order", value: %{order_by: order_by}, target: @myself)
+                    |> sr_message("ordered by #{order_by}")
+                  }
+                >
+                  <.remix_icon icon={order_by_icon(order_by)} />
+                  <span><%= order_by_label(order_by) %></span>
+                </button>
+              </.menu_item>
+            </.menu>
+          </div>
+          <div class="border-r border-gray-300 h-5" />
+          <.memory_info memory={@memory} />
         </div>
       </div>
       <.session_list
@@ -147,9 +150,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </div>
         <.menu id={"session-#{session.id}-menu"}>
           <:toggle>
-            <button class="icon-button" aria-label="open session menu" type="button">
-              <.remix_icon icon="more-2-fill" class="text-xl" />
-            </button>
+            <.icon_button aria-label="open session menu" type="button">
+              <.remix_icon icon="more-2-fill" />
+            </.icon_button>
           </:toggle>
           <.menu_item>
             <a
@@ -216,7 +219,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
 
     ~H"""
-    <div class="pr-1 lg:pr-4" role="group" aria-label="memory information">
+    <div role="group" aria-label="memory information">
       <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
         <svg viewbox="-10 5 50 25" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
           <circle
@@ -250,31 +253,25 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div
-      class="mx-4 mr-2 text-gray-600 flex flex-row gap-1"
-      role="group"
-      aria-label="bulk actions for sessions"
-    >
+    <div class="text-gray-600 flex flex-row gap-1" role="group" aria-label="bulk actions for sessions">
       <.menu id="edit-sessions">
         <:toggle>
-          <button
+          <.button
             id="toggle-edit"
-            class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
+            color="gray"
+            outlined
+            small
             phx-click={toggle_edit(:on)}
             type="button"
             aria-label="toggle edit"
           >
-            <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
+            <.remix_icon icon="list-check-2" class="text-base leading-none" />
             <span>Edit</span>
-          </button>
-          <button
-            class="hidden w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-            data-el-bulk-edit-member
-            type="button"
-          >
+          </.button>
+          <.button color="gray" outlined small class="hidden" data-el-bulk-edit-member type="button">
             <span>Actions</span>
-            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
-          </button>
+            <.remix_icon icon="arrow-down-s-line" class="text-base leading-none" />
+          </.button>
         </:toggle>
         <.menu_item>
           <button class="text-gray-600" phx-click={toggle_edit(:off)} type="button">

@@ -64,17 +64,13 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
           />
         </div>
         <div class="mt-6 flex space-x-3">
-          <button
-            class="button-base button-blue"
-            type="submit"
-            disabled={not @changeset.valid? or upload_disabled?(@uploads.file)}
-          >
-            <.spinner class="hidden phx-submit-loading:block mr-2" />
+          <.button type="submit" disabled={not @changeset.valid? or upload_disabled?(@uploads.file)}>
+            <.spinner class="hidden phx-submit-loading:block mr-1" />
             <span>Add</span>
-          </button>
-          <.link patch={~p"/sessions/#{@session.id}"} class="button-base button-outlined-gray">
+          </.button>
+          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}"}>
             Cancel
-          </.link>
+          </.button>
         </div>
       </.form>
     </div>

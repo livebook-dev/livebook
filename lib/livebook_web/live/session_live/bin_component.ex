@@ -46,9 +46,8 @@ defmodule LivebookWeb.SessionLive.BinComponent do
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
               <.remix_icon icon="search-line" class="align-bottom text-gray-500" />
             </span>
-            <input
-              class="input block w-full pl-10"
-              type="text"
+            <.text_field
+              class="pl-10"
               name="search"
               value={@search}
               placeholder="Search"
@@ -113,30 +112,32 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   source={cell.source}
                 />
                 <div class="pt-1 pb-4 border-b border-gray-200">
-                  <button
-                    class="button-base button-gray whitespace-nowrap py-1 px-2"
+                  <.button
+                    color="gray"
+                    small
                     aria-label="restore"
                     phx-click="restore"
                     phx-value-cell_id={entry.cell.id}
                     phx-target={@myself}
                   >
-                    <.remix_icon icon="arrow-go-back-line" class="align-middle mr-1 text-xs" />
-                    <span class="font-normal text-xs">Restore</span>
-                  </button>
-                  <button
-                    class="button-base button-gray whitespace-nowrap py-1 px-2"
+                    <.remix_icon icon="arrow-go-back-line" />
+                    <span>Restore</span>
+                  </.button>
+                  <.button
+                    color="gray"
+                    small
                     aria-label="copy source"
                     phx-click={JS.dispatch("lb:clipcopy", to: "#bin-cell-#{cell.id}-source")}
                   >
-                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
-                    <span class="font-normal text-xs">Copy source</span>
-                  </button>
+                    <.remix_icon icon="clipboard-line" />
+                    <span>Copy source</span>
+                  </.button>
                 </div>
               </div>
               <div :if={length(@matching_entries) > @limit} class="flex justify-center">
-                <button class="button-base button-outlined-gray" phx-click="more" phx-target={@myself}>
+                <.button color="gray" outlined phx-click="more" phx-target={@myself}>
                   Older
-                </button>
+                </.button>
               </div>
             </div>
         <% end %>

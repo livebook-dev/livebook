@@ -29,8 +29,7 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
         Find external packages for your notebook
       </p>
       <form phx-submit="submit" phx-change="search">
-        <input
-          class="input"
+        <.text_field
           name="search"
           value={@search}
           phx-debounce="250"
@@ -40,9 +39,10 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
           autofocus
         />
       </form>
-      <div class={
-        "flex flex-col divide-y h-[20rem] pr-2 -mr-2 overflow-y-auto tiny-scrollbar #{if @search_ref, do: "opacity-75"}"
-      }>
+      <div class={[
+        "flex flex-col divide-y h-[20rem] pr-2 -mr-2 overflow-y-auto tiny-scrollbar",
+        if(@search_ref, do: "opacity-30 transition-opacity duration-300")
+      ]}>
         <%= cond do %>
           <% @error_message -> %>
             <div class="error-box">
@@ -78,14 +78,10 @@ defmodule LivebookWeb.SessionLive.PackageSearchLive do
         </div>
       </div>
       <div class="ml-2">
-        <button
-          class="button-base button-gray whitespace-nowrap py-1 px-2"
-          aria-label="add"
-          phx-click={JS.push("add", value: %{idx: @idx})}
-        >
-          <.remix_icon icon="add-line" class="align-middle mr-1 text-xs" />
-          <span class="font-normal text-xs">Add</span>
-        </button>
+        <.button color="gray" small aria-label="add" phx-click={JS.push("add", value: %{idx: @idx})}>
+          <.remix_icon icon="add-line" />
+          <span>Add</span>
+        </.button>
       </div>
     </div>
     """

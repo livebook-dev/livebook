@@ -62,10 +62,10 @@ defmodule LivebookWeb.AppLive do
           <% end %>
         </p>
         <div class="flex justify-end">
-          <.link class="button-base button-outlined-blue" patch={~p"/apps/#{@app.slug}/new"}>
-            <.remix_icon icon="add-line" class="align-middle mr-1" />
+          <.button outlined patch={~p"/apps/#{@app.slug}/new"}>
+            <.remix_icon icon="add-line" />
             <span>New session</span>
-          </.link>
+          </.button>
         </div>
         <div :if={@app_settings.show_existing_sessions} class="w-full flex flex-col space-y-4">
           <.link
