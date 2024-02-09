@@ -97,7 +97,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
+          <div class={["grid gap-2", @app && "grid-cols-2"]}>
             <span
               class={[
                 "flex flex-col",
