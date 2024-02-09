@@ -58,6 +58,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               phx-debounce
             />
             <.select_field
+              :if={@mode == :new}
               label="Mode"
               help={
                 ~S'''
@@ -70,6 +71,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 {"Online", :online}
               ]}
             />
+            <.hidden_field :if={@mode != :new} field={f[:mode]} value={@deployment_group.mode} />
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
             <div class="flex space-x-2">
               <.button type="submit" disabled={not @changeset.valid?}>
@@ -142,8 +144,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
   defp subtitle(%DeploymentGroup{name: nil}, hub_name),
     do: "Add a new deployment group to #{hub_name}"
 
-  defp subtitle(%DeploymentGroup{name: deployment_group}, _),
-    do: "Manage the #{deployment_group} deployment group"
+  defp subtitle(%DeploymentGroup{name: deployment_group, mode: mode}, _),
+    do: "Manage the #{deployment_group} (#{mode}) deployment group"
 
   defp button_attrs(%DeploymentGroup{name: nil}), do: %{icon: "add-line", label: "Add"}
   defp button_attrs(_), do: %{icon: "save-line", label: "Save"}

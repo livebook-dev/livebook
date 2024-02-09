@@ -92,7 +92,9 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
       live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
 
     assert html =~ "Edit deployment group"
-    assert html =~ "Manage the #{deployment_group.name} deployment group"
+
+    assert html =~
+             "Manage the #{deployment_group.name} (#{deployment_group.mode}) deployment group"
 
     view
     |> element("#deployment-groups-form")
