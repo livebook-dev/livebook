@@ -605,15 +605,15 @@ defmodule LivebookWeb.SessionLive.Render do
             <%= value %>
           </.labeled_text>
         </div>
-        <div class="flex space-x-2">
+        <div class="grid grid-cols-2 gap-2">
           <%= if Runtime.connected?(@data_view.runtime) do %>
             <.button phx-click="reconnect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+              <.remix_icon icon="wireless-charging-line" />
               <span>Reconnect</span>
             </.button>
           <% else %>
             <.button phx-click="connect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+              <.remix_icon icon="wireless-charging-line" />
               <span>Connect</span>
             </.button>
           <% end %>

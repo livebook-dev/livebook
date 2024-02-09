@@ -43,13 +43,13 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
               <%= if @settings.multi_session, do: "Multi", else: "Single" %>
             </.labeled_text>
 
-            <span class="text-sm text-gray-500">
+            <.labeled_text label="Access" one_line>
               <%= if @settings.access_type == :public do %>
-                <.remix_icon icon="lock-unlock-line" /> No password
+                No password <.remix_icon icon="lock-unlock-line" />
               <% else %>
-                <.remix_icon icon="lock-password-line" /> Password protected
+                Password protected <.remix_icon icon="lock-password-line" />
               <% end %>
-            </span>
+            </.labeled_text>
           </div>
 
           <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/app"}>
@@ -62,6 +62,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </h3>
 
         <div class="mt-2 flex flex-col gap-2">
+          <%!-- TODO: Livebook Teams flow --%>
           <.button color="blue" patch={~p"/sessions/#{@session.id}/app-docker"}>
             <.remix_icon icon="rocket-line" /> Deploy with Livebook Teams
           </.button>
@@ -96,25 +97,33 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
             </div>
           </div>
 
-          <div class="flex space-x-2">
+          <div class="grid grid-cols-2 gap-2">
             <span
               class={[
-                "grow",
+                "flex flex-col",
                 not Livebook.Notebook.AppSettings.valid?(@settings) && "tooltip top-right"
               ]}
               data-tooltip="You must configure the app to preview it"
             >
-              <.button
-                color={if(@app, do: "blue", else: "gray")}
-                outlined={!@app}
-                phx-click="deploy_app"
-                disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
-              >
-                <.remix_icon icon="slideshow-4-line" />
-                <span><%= if @app, do: "Relaunch", else: "Launch preview" %></span>
-              </.button>
+              <%= if @app do %>
+                <.button
+                  color="gray"
+                  outlined
+                  phx-click="deploy_app"
+                  disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
+                >
+                  <.remix_icon icon="slideshow-4-line" /> Relaunch
+                </.button>
+              <% else %>
+                <.button
+                  color="blue"
+                  phx-click="deploy_app"
+                  disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
+                >
+                  <.remix_icon icon="slideshow-4-line" /> Launch preview
+                </.button>
+              <% end %>
             </span>
-
             <.button
               :if={@app}
               color="red"

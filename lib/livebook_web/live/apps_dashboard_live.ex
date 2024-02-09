@@ -196,7 +196,10 @@ defmodule LivebookWeb.AppsDashboardLive do
         <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4 px-2">
           <div
             :for={col <- @col}
-            class={["text-gray-500 text-sm font-normal", align_to_class(col[:align])]}
+            class={[
+              "text-gray-500 text-sm font-normal flex items-center",
+              align_to_class(col[:align])
+            ]}
           >
             <%= col[:label] %>
           </div>
@@ -205,7 +208,10 @@ defmodule LivebookWeb.AppsDashboardLive do
           <div class="grid grid-cols-[minmax(0,_0.5fr)_minmax(0,_0.75fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)_minmax(0,_0.5fr)] md:grid-cols-[minmax(0,_2fr)_minmax(0,_2fr)_minmax(0,_1fr)_minmax(0,_1fr)_minmax(0,_1fr)] gap-4">
             <div
               :for={col <- @col}
-              class={["py-2 text-gray-800 text-sm font-semibold", align_to_class(col[:align])]}
+              class={[
+                "py-2 text-gray-800 text-sm font-semibold flex items-center",
+                align_to_class(col[:align])
+              ]}
             >
               <%= render_slot(col, row) %>
             </div>
