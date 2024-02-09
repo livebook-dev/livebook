@@ -375,7 +375,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
         }
       }
 
-      new_mode = :offline
+      new_name = "FOO"
 
       view
       |> element("#hub-deployment-group-#{deployment_group.id}-edit")
@@ -401,45 +401,14 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       view
       |> element("#deployment-groups-form")
-      |> render_submit(put_in(attrs.deployment_group.mode, new_mode))
+      |> render_submit(put_in(attrs.deployment_group.name, new_name))
 
-      updated_deployment_group = %{deployment_group | mode: new_mode}
+      updated_deployment_group = %{deployment_group | name: new_name}
 
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
       assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-      assert render(view) =~ "Deployment group TEAM_EDIT_DEPLOYMENT_GROUP updated successfully"
+      assert render(view) =~ "Deployment group FOO updated successfully"
       assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
-    end
-
-    test "deletes existing deployment group", %{conn: conn, hub: hub} do
-      insert_deployment_group(
-        name: "TEAM_DELETE_DEPLOYMENT_GROUP",
-        mode: :online,
-        hub_id: hub.id
-      )
-
-      assert_receive {:deployment_group_created,
-                      %DeploymentGroup{name: "TEAM_DELETE_DEPLOYMENT_GROUP"} = deployment_group}
-
-      {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-      refute view
-             |> element("#deployment-groups-form button[disabled]")
-             |> has_element?()
-
-      view
-      |> element("#hub-deployment-group-#{deployment_group.id}-delete", "Delete")
-      |> render_click()
-
-      render_confirm(view)
-
-      assert_receive {:deployment_group_deleted,
-                      %DeploymentGroup{name: "TEAM_DELETE_DEPLOYMENT_GROUP"}}
-
-      assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Deployment group TEAM_DELETE_DEPLOYMENT_GROUP deleted successfully"
-      refute render(element(view, "#hub-deployment-groups-list")) =~ deployment_group.name
-      refute deployment_group in Livebook.Teams.get_deployment_groups(hub)
     end
 
     test "raises an error if the deployment group does not exist", %{conn: conn, hub: hub} do

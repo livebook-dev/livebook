@@ -86,7 +86,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
       }
     }
 
-    new_mode = :offline
+    new_name = "FOO"
 
     {:ok, view, html} =
       live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
@@ -106,13 +106,13 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
 
     view
     |> element("#deployment-groups-form")
-    |> render_submit(put_in(attrs.deployment_group.mode, new_mode))
+    |> render_submit(put_in(attrs.deployment_group.name, new_name))
 
-    updated_deployment_group = %{deployment_group | mode: new_mode}
+    updated_deployment_group = %{deployment_group | name: new_name}
 
     assert_receive {:deployment_group_updated, ^updated_deployment_group}
     assert_patch(view, "/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
-    assert render(view) =~ "Deployment group TEAMS_EDIT_DEPLOYMENT_GROUP updated successfully"
+    assert render(view) =~ "Deployment group FOO updated successfully"
     assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
   end
 
