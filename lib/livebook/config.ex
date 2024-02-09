@@ -225,7 +225,7 @@ defmodule Livebook.Config do
   """
   @spec agent_name() :: String.t()
   def agent_name() do
-    Application.get_env(:livebook, :agent_name, to_string(node()))
+    Application.fetch_env!(:livebook, :agent_name)
   end
 
   @doc """
