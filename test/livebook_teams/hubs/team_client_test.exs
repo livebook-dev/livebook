@@ -123,9 +123,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       # receives `{:deployment_group_updated, deployment_group}` event
       assert_receive {:deployment_group_updated, ^updated_deployment_group}
 
-      # deletes the deployment group
-      assert Livebook.Teams.delete_deployment_group(team, updated_deployment_group) == :ok
-
       # receives `{:deployment_group_deleted, deployment_group}` event
       assert_receive {:deployment_group_deleted, ^updated_deployment_group}
     end
