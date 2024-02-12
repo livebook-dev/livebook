@@ -594,7 +594,25 @@ defmodule Livebook.Config do
   Parses agent name from env.
   """
   def agent_name!(env) do
-    System.get_env(env)
+    agent_name = System.get_env(env, "livebook-agent")
+
+    case Regex.match?(~r/^[a-z0-9_\-]+$/, agent_name) do
+      true -> agent_name
+      _ -> abort!("expected #{env} to match pattern /^[a-z0-9_\\-]+$/, got: #{agent_name}")
+    end
+  end
+
+  def default_runtime2!(env) do
+    agent_name = System.get_env(env, "livebook-agent")
+    reg = Regex.match?(~r/^[a-z0-9_\-]+$/, agent_name)
+
+    case reg do
+      true ->
+        nil
+
+      false ->
+        abort!("expected #{env} to match pattern /^[a-z0-9_\\-]+$/, got: #{agent_name}")
+    end
   end
 
   @doc """

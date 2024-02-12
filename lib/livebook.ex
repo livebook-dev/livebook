@@ -230,9 +230,7 @@ defmodule Livebook do
       config :livebook, :dns_cluster_query, dns_cluster_query
     end
 
-    if agent_name = Livebook.Config.agent_name!("LIVEBOOK_AGENT_NAME") do
-      config :livebook, :agent_name, agent_name
-    end
+    config :livebook, :agent_name, Livebook.Config.agent_name!("LIVEBOOK_AGENT_NAME")
   end
 
   @doc """
