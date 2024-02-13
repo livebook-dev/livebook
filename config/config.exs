@@ -25,7 +25,7 @@ config :mime, :types, %{
 
 config :livebook,
   teams_url: "https://teams.livebook.dev",
-  agent_name: nil,
+  agent_name: "livebook-agent",
   app_service_name: nil,
   app_service_url: nil,
   authentication_mode: :token,
