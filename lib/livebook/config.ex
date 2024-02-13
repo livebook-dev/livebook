@@ -596,10 +596,12 @@ defmodule Livebook.Config do
   def agent_name!(env) do
     agent_name = System.get_env(env, "livebook-agent")
 
-    if agent_name != nil and Regex.match?(~r/^[a-z0-9_\-]+$/, agent_name) == false do
-      abort!("expected #{env} to match pattern /^[a-z0-9_\\-]+$/, got: #{agent_name}")
-    else
+    if agent_name =~ ~r/^[a-z0-9_\-]+$/ do
       agent_name
+    else
+      abort!(
+        "expected #{env} to consist of lowercase alphanumeric characters, dashes and underscores, got: #{agent_name}"
+      )
     end
   end
 
