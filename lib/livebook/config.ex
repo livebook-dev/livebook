@@ -600,7 +600,7 @@ defmodule Livebook.Config do
           "expected #{env} to consist of lowercase alphanumeric characters, dashes and underscores, got: #{agent_name}"
         )
       end
-      
+
       agent_name
     end
   end
