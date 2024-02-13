@@ -43,22 +43,21 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div
       :if={message = Phoenix.Flash.get(@flash, @kind)}
-      class={[
-        "shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer",
-        @kind == :info && "border-blue-500",
-        @kind == :success && "border-blue-500",
-        @kind == :warning && "border-yellow-300",
-        @kind == :error && "border-red-500"
-      ]}
+      class="relative group shadow-lg max-w-xl px-3 py-2 flex items-center gap-2 rounded-lg bg-gray-900 text-gray-200 text-sm"
       role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key={@kind}
       {@rest}
     >
-      <.remix_icon :if={@kind == :info} icon="information-line" class="text-2xl text-blue-500" />
-      <.remix_icon :if={@kind == :success} icon="checkbox-circle-fill" class="text-2xl text-blue-500" />
-      <.remix_icon :if={@kind == :warning} icon="alert-line" class="text-2xl text-yellow-400" />
-      <.remix_icon :if={@kind == :error} icon="close-circle-line" class="text-2xl text-red-500" />
+      <div
+        class="opacity-0 group-hover:opacity-100 absolute -left-2 -top-2 bg-gray-900 border border-gray-600 rounded-full p-0.5 flex leading-none text-gray-200 hover:text-gray-100 hover:bg-gray-700 text-sm cursor-pointer"
+        phx-click="lv:clear-flash"
+        phx-value-key={@kind}
+      >
+        <.remix_icon icon="close-line" />
+      </div>
+      <.remix_icon :if={@kind == :info} icon="information-fill" class="text-xl text-blue-500" />
+      <.remix_icon :if={@kind == :success} icon="checkbox-circle-fill" class="text-xl text-blue-500" />
+      <.remix_icon :if={@kind == :warning} icon="alert-fill" class="text-xl text-yellow-500" />
+      <.remix_icon :if={@kind == :error} icon="error-warning-fill" class="text-xl text-red-500" />
       <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
     </div>
     """
