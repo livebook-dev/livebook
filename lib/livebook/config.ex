@@ -594,7 +594,15 @@ defmodule Livebook.Config do
   Parses agent name from env.
   """
   def agent_name!(env) do
-    System.get_env(env)
+    if agent_name = System.get_env(env) do
+      unless agent_name =~ ~r/^[a-z0-9_\-]+$/ do
+        abort!(
+          "expected #{env} to consist of lowercase alphanumeric characters, dashes and underscores, got: #{agent_name}"
+        )
+      end
+
+      agent_name
+    end
   end
 
   @doc """
