@@ -602,19 +602,6 @@ defmodule Livebook.Config do
     end
   end
 
-  def default_runtime2!(env) do
-    agent_name = System.get_env(env, "livebook-agent")
-    reg = Regex.match?(~r/^[a-z0-9_\-]+$/, agent_name)
-
-    case reg do
-      true ->
-        nil
-
-      false ->
-        abort!("expected #{env} to match pattern /^[a-z0-9_\\-]+$/, got: #{agent_name}")
-    end
-  end
-
   @doc """
   Parses and validates default runtime from env.
   """
