@@ -30,7 +30,7 @@ defmodule LivebookWeb.Hub.Teams.AgentKeyListComponent do
                   aria-label="copy to clipboard"
                   phx-click={
                     JS.dispatch("lb:clipcopy", to: "#agent-key-#{agent_key.id}")
-                    |> JS.add_class("", transition: {"tooltip left", "", ""}, time: 2000)
+                    |> JS.transition("tooltip top", time: 2000)
                   }
                 >
                   <.button color="gray" small type="button">

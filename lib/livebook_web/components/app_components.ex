@@ -213,7 +213,7 @@ defmodule LivebookWeb.AppComponents do
             aria-label="copy to clipboard"
             phx-click={
               JS.dispatch("lb:clipcopy", to: "#dockerfile-source")
-              |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
+              |> JS.transition("tooltip top", time: 2000)
             }
           >
             <.remix_icon icon="clipboard-line" />
