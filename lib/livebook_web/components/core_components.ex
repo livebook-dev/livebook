@@ -43,23 +43,42 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <div
       :if={message = Phoenix.Flash.get(@flash, @kind)}
-      class={[
-        "shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer",
-        @kind == :info && "border-blue-500",
-        @kind == :success && "border-blue-500",
-        @kind == :warning && "border-yellow-300",
-        @kind == :error && "border-red-500"
-      ]}
+      class="relative group shadow-md max-w-2xl flex rounded-r-lg"
       role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key={@kind}
       {@rest}
     >
-      <.remix_icon :if={@kind == :info} icon="information-line" class="text-2xl text-blue-500" />
-      <.remix_icon :if={@kind == :success} icon="checkbox-circle-fill" class="text-2xl text-blue-500" />
-      <.remix_icon :if={@kind == :warning} icon="alert-line" class="text-2xl text-yellow-400" />
-      <.remix_icon :if={@kind == :error} icon="close-circle-line" class="text-2xl text-red-500" />
-      <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
+      <div
+        class="opacity-0 group-hover:opacity-100 absolute -left-2 -top-2 bg-gray-50 border border-gray-200 rounded-full p-0.5 flex leading-none text-gray-500 hover:text-gray-900 text-sm cursor-pointer"
+        phx-click="lv:clear-flash"
+        phx-value-key={@kind}
+      >
+        <.remix_icon icon="close-line" />
+      </div>
+      <div class={[
+        "w-1",
+        @kind == :info && "bg-blue-500",
+        @kind == :success && "bg-blue-500",
+        @kind == :warning && "bg-yellow-300",
+        @kind == :error && "bg-red-500"
+      ]}>
+      </div>
+      <div
+        class={[
+          "flex items-center gap-3 px-4 py-2 rounded-r-lg border border-l-0 border-gray-100 bg-white text-gray-700"
+        ]}
+        role="alert"
+        {@rest}
+      >
+        <.remix_icon :if={@kind == :info} icon="information-line" class="text-2xl text-blue-500" />
+        <.remix_icon
+          :if={@kind == :success}
+          icon="checkbox-circle-fill"
+          class="text-2xl text-blue-500"
+        />
+        <.remix_icon :if={@kind == :warning} icon="alert-line" class="text-2xl text-yellow-400" />
+        <.remix_icon :if={@kind == :error} icon="error-warning-line" class="text-2xl text-red-500" />
+        <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
+      </div>
     </div>
     """
   end
