@@ -46,6 +46,7 @@ const CellEditor = {
 
         sourceEl.classList.add(
           "whitespace-pre",
+          "overflow-x-auto",
           "text-editor",
           "font-editor",
           "px-12",
