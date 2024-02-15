@@ -356,8 +356,11 @@ than the previous `Enum.reduce/3` call. While the call `Bench.sum()`
 itself is evaluated, the one million iterations of `Enum.reduce/3`
 happen inside a module, which is compiled.
 
-If a notebook is performing slower than expected, consider moving
-the bulk of the execution to inside modules.
+Another benefit is compiling code is that exceptions often have
+better stacktraces and error messages. Therefore, if a notebook is
+performing slower than expected or you need more information in case
+of failures, consider moving the bulk of the execution to inside
+modules.
 
 ## Running tests
 
