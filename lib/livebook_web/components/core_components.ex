@@ -893,23 +893,6 @@ defmodule LivebookWeb.CoreComponents do
   # JS commands
 
   @doc """
-  Toggles classes on elements.
-  """
-  def toggle_class(js \\ %JS{}, names, opts \\ []) do
-    opts = Keyword.validate!(opts, [:to])
-
-    to = Keyword.fetch!(opts, :to)
-
-    names
-    |> String.split()
-    |> Enum.reduce(js, fn name, js ->
-      js
-      |> JS.remove_class(name, to: "#{to}.#{name}")
-      |> JS.add_class(name, to: "#{to}:not(.#{name})")
-    end)
-  end
-
-  @doc """
   Pushes and executes the given `%Phoenix.LiveView.JS{}` on the client.
 
   ## Options

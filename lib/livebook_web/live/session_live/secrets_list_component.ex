@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
         class="text-sm font-mono break-all flex-row cursor-pointer"
         phx-click={
           JS.toggle(to: "#session-secret-#{@secret.name}-detail", display: "flex")
-          |> toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
+          |> JS.toggle_class("bg-gray-100", to: "#session-secret-#{@secret.name}")
         }
       >
         <%= @secret.name %>
@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
               class="text-sm font-mono w-full break-all flex-row cursor-pointer"
               phx-click={
                 JS.toggle(to: "##{@id}-detail", display: "flex")
-                |> toggle_class("bg-gray-100", to: "##{@id}")
+                |> JS.toggle_class("bg-gray-100", to: "##{@id}")
               }
             >
               <%= @secret.name %>
