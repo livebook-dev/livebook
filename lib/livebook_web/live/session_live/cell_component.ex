@@ -704,7 +704,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_status_indicator
       variant={if(@cell_view.eval.errored, do: :error, else: :success)}
       change_indicator={true}
-      tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
     >
       Evaluated
     </.cell_status_indicator>
@@ -713,7 +713,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:warning} change_indicator={true}>
+    <.cell_status_indicator
+      variant={:warning}
+      change_indicator={true}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
+    >
       Stale
     </.cell_status_indicator>
     """
@@ -721,7 +725,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
-    <.cell_status_indicator variant={:inactive}>
+    <.cell_status_indicator
+      variant={:inactive}
+      tooltip={duration_label(@cell_view.eval.evaluation_time_ms)}
+    >
       Aborted
     </.cell_status_indicator>
     """
@@ -749,7 +756,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp evaluated_label(time_ms) when is_integer(time_ms) do
+  defp duration_label(time_ms) when is_integer(time_ms) do
     evaluation_time =
       if time_ms > 100 do
         seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
@@ -761,7 +768,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     "Took " <> evaluation_time
   end
 
-  defp evaluated_label(_time_ms), do: nil
+  defp duration_label(_time_ms), do: nil
 
   defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil
