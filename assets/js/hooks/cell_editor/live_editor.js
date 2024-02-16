@@ -52,6 +52,7 @@ import CollabClient from "./live_editor/collab_client";
 import { languages } from "./live_editor/codemirror/languages";
 import { exitMulticursor } from "./live_editor/codemirror/commands";
 import { highlight } from "./live_editor/highlight";
+import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -513,7 +514,7 @@ export default class LiveEditor {
 
   /** @private */
   signatureSource({ state, pos }) {
-    const textUntilCursor = state.doc.sliceString(0, pos);
+    const textUntilCursor = this.getSignatureHint(state, pos);
 
     return this.connection
       .intellisenseRequest("signature", {
@@ -526,6 +527,33 @@ export default class LiveEditor {
         };
       })
       .catch(() => null);
+  }
+
+  /** @private */
+  getSignatureHint(state, pos) {
+    // By default we send all text until cursor as signature hint.
+    // We use the local AST to limit the hint to the relevanat call
+    // expression.
+
+    const tree = syntaxTree(state);
+    const node = tree.resolve(pos);
+
+    if (node && this.language === "elixir") {
+      let callNode = closestNode(node, [
+        "Call",
+        "FunctionDefinitionCall",
+        "KernelCall",
+      ]);
+
+      if (callNode) {
+        const pipeNode = ancestorNode(callNode, ["Right", "PipeOperator"]);
+        const boundaryNode = pipeNode || callNode;
+
+        return state.doc.sliceString(boundaryNode.from, pos);
+      }
+    }
+
+    return state.doc.sliceString(0, pos);
   }
 
   formatterSource(doc) {
@@ -559,16 +587,4 @@ export default class LiveEditor {
 
     this.initialWidgets = {};
   }
-}
-
-function closestNode(node, names) {
-  while (node) {
-    if (names.includes(node.type.name)) {
-      return node;
-    }
-
-    node = node.parent;
-  }
-
-  return null;
 }
