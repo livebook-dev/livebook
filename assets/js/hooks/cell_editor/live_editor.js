@@ -18,6 +18,7 @@ import {
   foldGutter,
   LanguageDescription,
   codeFolding,
+  syntaxTree,
 } from "@codemirror/language";
 import { history } from "@codemirror/commands";
 import { highlightSelectionMatches } from "@codemirror/search";
@@ -380,15 +381,16 @@ export default class LiveEditor {
 
     // Trigger completion implicitly only for identifiers and members
     const triggerBeforeCursor = context.matchBefore(/[\w?!.]$/);
-    const lineUntilCursor = context.matchBefore(/^.*/);
 
     if (!triggerBeforeCursor && !context.explicit) {
       return null;
     }
 
+    const textUntilCursor = this.getCompletionHint(context);
+
     return this.connection
       .intellisenseRequest("completion", {
-        hint: lineUntilCursor.text,
+        hint: textUntilCursor,
         editor_auto_completion: settings.editor_auto_completion,
       })
       .then((response) => {
@@ -405,17 +407,37 @@ export default class LiveEditor {
         });
 
         const replaceLength = replacedSuffixLength(
-          lineUntilCursor.text,
+          textUntilCursor,
           response.items[0].insert_text,
         );
 
         return {
-          from: lineUntilCursor.to - replaceLength,
+          from: context.pos - replaceLength,
           options: completions,
           validFor: /^\w*[!?]?$/,
         };
       })
       .catch(() => null);
+  }
+
+  /** @private */
+  getCompletionHint(context) {
+    // By default we only send the current line content until cursor
+    // as completion hint. We use the local AST to send more context
+    // for multiline expressions where we know it's relevant.
+
+    const tree = syntaxTree(context.state);
+    const node = tree.resolve(context.pos);
+
+    if (node && this.language === "elixir") {
+      const boundaryNode = closestNode(node, ["Map", "Bitstring"]);
+
+      if (boundaryNode) {
+        return context.state.doc.sliceString(boundaryNode.from, context.pos);
+      }
+    }
+
+    return context.matchBefore(/^.*/).text;
   }
 
   /** @private */
@@ -537,4 +559,16 @@ export default class LiveEditor {
 
     this.initialWidgets = {};
   }
+}
+
+function closestNode(node, names) {
+  while (node) {
+    if (names.includes(node.type.name)) {
+      return node;
+    }
+
+    node = node.parent;
+  }
+
+  return null;
 }
