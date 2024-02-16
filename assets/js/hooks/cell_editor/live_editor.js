@@ -52,6 +52,7 @@ import CollabClient from "./live_editor/collab_client";
 import { languages } from "./live_editor/codemirror/languages";
 import { exitMulticursor } from "./live_editor/codemirror/commands";
 import { highlight } from "./live_editor/highlight";
+import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -586,36 +587,4 @@ export default class LiveEditor {
 
     this.initialWidgets = {};
   }
-}
-
-/**
- * Finds the closest node with the given name (parent or self).
- */
-function closestNode(node, names) {
-  while (node) {
-    if (names.includes(node.type.name)) return node;
-
-    node = node.parent;
-  }
-
-  return null;
-}
-
-/**
- * Goes up the tree using the given path.
- *
- * Path is a list of parent node names, from innermost to outermost.
- * Returns null if the direct parents don't match the path.
- */
-function ancestorNode(node, path) {
-  let i = 0;
-
-  while (i < path.length && node.parent) {
-    if (node.parent.type.name !== path[i]) return null;
-
-    node = node.parent;
-    i++;
-  }
-
-  return i === path.length && node ? node : null;
 }
