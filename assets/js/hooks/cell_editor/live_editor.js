@@ -513,7 +513,7 @@ export default class LiveEditor {
 
   /** @private */
   signatureSource({ state, pos }) {
-    const textUntilCursor = state.doc.sliceString(0, pos);
+    const textUntilCursor = this.getSignatureHint(state, pos);
 
     return this.connection
       .intellisenseRequest("signature", {
@@ -526,6 +526,33 @@ export default class LiveEditor {
         };
       })
       .catch(() => null);
+  }
+
+  /** @private */
+  getSignatureHint(state, pos) {
+    // By default we send all text until cursor as signature hint.
+    // We use the local AST to limit the hint to the relevanat call
+    // expression.
+
+    const tree = syntaxTree(state);
+    const node = tree.resolve(pos);
+
+    if (node && this.language === "elixir") {
+      let callNode = closestNode(node, [
+        "Call",
+        "FunctionDefinitionCall",
+        "KernelCall",
+      ]);
+
+      if (callNode) {
+        const pipeNode = ancestorNode(callNode, ["Right", "PipeOperator"]);
+        const boundaryNode = pipeNode || callNode;
+
+        return state.doc.sliceString(boundaryNode.from, pos);
+      }
+    }
+
+    return state.doc.sliceString(0, pos);
   }
 
   formatterSource(doc) {
@@ -561,14 +588,34 @@ export default class LiveEditor {
   }
 }
 
+/**
+ * Finds the closest node with the given name (parent or self).
+ */
 function closestNode(node, names) {
   while (node) {
-    if (names.includes(node.type.name)) {
-      return node;
-    }
+    if (names.includes(node.type.name)) return node;
 
     node = node.parent;
   }
 
   return null;
+}
+
+/**
+ * Goes up the tree using the given path.
+ *
+ * Path is a list of parent node names, from innermost to outermost.
+ * Returns null if the direct parents don't match the path.
+ */
+function ancestorNode(node, path) {
+  let i = 0;
+
+  while (i < path.length && node.parent) {
+    if (node.parent.type.name !== path[i]) return null;
+
+    node = node.parent;
+    i++;
+  }
+
+  return i === path.length && node ? node : null;
 }
