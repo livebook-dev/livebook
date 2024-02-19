@@ -228,10 +228,10 @@ defmodule LivebookWeb.FileSelectComponent do
           </div>
 
           <div
-            :if={any_highlighted?(@file_infos)}
+            :if={@highlighted_file_infos != []}
             class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           >
-            <%= for file_info <- @file_infos, file_info.highlighted != "" do %>
+            <%= for file_info <- Enum.take(@highlighted_file_infos, visible_files_limit()) do %>
               <.file
                 id={"#{@id}-file-#{file_info.id}"}
                 file_info={file_info}
@@ -240,10 +240,11 @@ defmodule LivebookWeb.FileSelectComponent do
                 renamed_name={@renamed_name}
               />
             <% end %>
+            <.more_files_indicator length={length(@highlighted_file_infos)} />
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            <%= for file_info <- @file_infos, file_info.highlighted == "" do %>
+            <%= for file_info <- Enum.take(@unhighlighted_file_infos, visible_files_limit()) do %>
               <.file
                 id={"#{@id}-file-#{file_info.id}"}
                 file_info={file_info}
@@ -252,6 +253,7 @@ defmodule LivebookWeb.FileSelectComponent do
                 renamed_name={@renamed_name}
               />
             <% end %>
+            <.more_files_indicator length={length(@unhighlighted_file_infos)} />
           </div>
         </form>
       </div>
@@ -287,10 +289,6 @@ defmodule LivebookWeb.FileSelectComponent do
       </form>
     </div>
     """
-  end
-
-  defp any_highlighted?(file_infos) do
-    Enum.any?(file_infos, &(&1.highlighted != ""))
   end
 
   defp file_system_menu_button(assigns) do
@@ -447,6 +445,20 @@ defmodule LivebookWeb.FileSelectComponent do
     </.menu>
     """
   end
+
+  defp more_files_indicator(assigns) do
+    ~H"""
+    <div
+      :if={@length > visible_files_limit()}
+      class="col-span-full text-sm text-medium text-gray-500 flex flex-col items-center gap-1"
+    >
+      <.remix_icon icon="more-line" class="text-lg" />
+      <%= @length - visible_files_limit() %> more files (search to see)
+    </div>
+    """
+  end
+
+  defp visible_files_limit(), do: 200
 
   defp js_show_new_item_section(js \\ %JS{}, id) do
     js
@@ -620,7 +632,16 @@ defmodule LivebookWeb.FileSelectComponent do
         {current_file_infos, socket}
       end
 
-    assign(socket, :file_infos, annotate_matching(file_infos, prefix))
+    file_infos = annotate_matching(file_infos, prefix)
+
+    {unhighlighted_file_infos, highlighted_file_infos} =
+      Enum.split_with(file_infos, &(&1.highlighted == ""))
+
+    assign(socket,
+      file_infos: file_infos,
+      unhighlighted_file_infos: unhighlighted_file_infos,
+      highlighted_file_infos: highlighted_file_infos
+    )
   end
 
   defp annotate_matching(file_infos, prefix) do
