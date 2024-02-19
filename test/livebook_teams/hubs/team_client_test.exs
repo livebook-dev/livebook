@@ -112,7 +112,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       # receives `{:event, :deployment_group_created, deployment_group}` event
       assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode} = deployment_group}
 
-      updated_deployment_group = %{deployment_group | mode: :offline}
+      new_name = "ChonkyCat123"
+      updated_deployment_group = %{deployment_group | name: new_name}
 
       assert {:ok, ^id} =
                Livebook.Teams.update_deployment_group(
@@ -121,10 +122,7 @@ defmodule Livebook.Hubs.TeamClientTest do
                )
 
       # receives `{:deployment_group_updated, deployment_group}` event
-      assert_receive {:deployment_group_updated, ^updated_deployment_group}
-
-      # receives `{:deployment_group_deleted, deployment_group}` event
-      assert_receive {:deployment_group_deleted, ^updated_deployment_group}
+      assert_receive {:deployment_group_updated, %{name: ^new_name, mode: ^mode}}
     end
 
     test "receives the agent key events", %{team: team} do
@@ -135,21 +133,23 @@ defmodule Livebook.Hubs.TeamClientTest do
       id = to_string(id)
 
       # receives `{:event, :deployment_group_created, :deployment_group}` event
-      assert_receive {:deployment_group_created, %{id: ^id} = deployment_group}
+      assert_receive {:deployment_group_created,
+                      %{id: ^id, agent_keys: [built_in_agent_key]} = deployment_group}
 
       # creates the agent key
       assert Livebook.Teams.create_agent_key(team, deployment_group) == :ok
 
       # since the `agent_key` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [agent_key]}}
+      assert_receive {:deployment_group_updated,
+                      %{id: ^id, agent_keys: [^built_in_agent_key, agent_key]}}
 
       # deletes the agent key
       assert Livebook.Teams.delete_agent_key(team, agent_key) == :ok
 
       # since the `agent_key` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: []}}
+      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [^built_in_agent_key]}}
     end
   end
 
