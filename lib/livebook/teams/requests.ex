@@ -5,7 +5,6 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
   alias Livebook.Teams.{AgentKey, DeploymentGroup, Org}
-  alias Livebook.Utils.HTTP
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -251,53 +250,49 @@ defmodule Livebook.Teams.Requests do
   end
 
   defp post(path, json, team \\ nil) do
-    body = {"application/json", Jason.encode!(json)}
-    headers = if team, do: auth_headers(team), else: []
+    req =
+      if team,
+        do: Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team)),
+        else: Req.new(base_url: Livebook.Config.teams_url())
 
-    request(:post, path, body: body, headers: headers)
+    req
+    |> request(method: :post, url: path, json: json)
     |> dispatch_messages(team)
   end
 
   defp put(path, json, team) do
-    body = {"application/json", Jason.encode!(json)}
-
-    request(:put, path, body: body, headers: auth_headers(team))
+    Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team))
+    |> request(method: :put, url: path, json: json)
     |> dispatch_messages(team)
   end
 
   defp delete(path, json, team) do
-    body = {"application/json", Jason.encode!(json)}
-
-    request(:delete, path, body: body, headers: auth_headers(team))
+    Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team))
+    |> request(method: :delete, url: path, json: json)
     |> dispatch_messages(team)
   end
 
   defp get(path, params \\ %{}) do
-    query_string = URI.encode_query(params)
-    path = if query_string != "", do: "#{path}?#{query_string}", else: path
-
-    request(:get, path, headers: [])
+    Req.new(base_url: Livebook.Config.teams_url())
+    |> request(method: :get, url: path, params: params)
   end
 
-  defp request(method, path, opts) do
-    endpoint = Livebook.Config.teams_url()
-    url = endpoint <> path
-
-    case HTTP.request(method, url, opts) do
-      {:ok, 204, _headers, body} ->
+  defp request(req, opts) do
+    case Req.request(req, opts) do
+      {:ok, %{status: 204, body: body}} ->
         {:ok, body}
 
-      {:ok, status, headers, body} when status in 200..299 ->
-        if json?(headers),
-          do: {:ok, Jason.decode!(body)},
-          else: {:error, body}
+      {:ok, %{status: status} = response} when status in 200..299 ->
+        if json?(response),
+          do: {:ok, response.body},
+          else: {:error, response.body}
 
-      {:ok, status, headers, body} when status in [410, 422] ->
-        if json?(headers),
-          do: {:error, Jason.decode!(body)},
-          else: {:transport_error, body}
+      {:ok, %{status: status} = response} when status in [410, 422] ->
+        if json?(response),
+          do: {:error, response.body},
+          else: {:transport_error, response.body}
 
-      {:ok, 401, _headers, _body} ->
+      {:ok, %{status: 401}} ->
         {:transport_error,
          "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"}
 
@@ -324,7 +319,7 @@ defmodule Livebook.Teams.Requests do
 
   defp dispatch_messages(result, _), do: result
 
-  defp json?(headers) do
-    HTTP.fetch_content_type(headers) == {:ok, "application/json"}
+  defp json?(response) do
+    "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")
   end
 end
