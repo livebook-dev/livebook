@@ -171,13 +171,10 @@ defmodule Livebook.Hubs.Dockerfile do
     image_envs = format_envs(base_image.env)
 
     hub_config = """
-    ARG AGENT_KEY
-    ARG AGENT_NAME
-
     # Teams Hub configuration for Livebook Agent deployment
-    ENV LIVEBOOK_AGENT_NAME ${AGENT_NAME}
+    ENV LIVEBOOK_AGENT_NAME ""
     ENV LIVEBOOK_TEAMS_KEY "#{hub.teams_key}"
-    ENV LIVEBOOK_TEAMS_AUTH "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:${AGENT_KEY}"
+    ENV LIVEBOOK_TEAMS_AUTH "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:${LIVEBOOK_AGENT_KEY}"
     """
 
     apps_config = """
