@@ -355,14 +355,13 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     end
 
     test "updates an existing deployment group", %{conn: conn, hub: hub} do
-      insert_deployment_group(
-        name: "TEAM_EDIT_DEPLOYMENT_GROUP",
-        mode: :online,
-        hub_id: hub.id
-      )
+      name = "TEAM_EDIT_DEPLOYMENT_GROUP"
+      mode = :online
+      insert_deployment_group(name: name, mode: mode, hub_id: hub.id)
 
       assert_receive {:deployment_group_created,
-                      %DeploymentGroup{name: "TEAM_EDIT_DEPLOYMENT_GROUP"} = deployment_group}
+                      %DeploymentGroup{name: ^name, mode: ^mode, agent_keys: [_]} =
+                        deployment_group}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 

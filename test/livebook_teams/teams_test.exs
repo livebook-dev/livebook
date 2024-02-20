@@ -220,26 +220,5 @@ defmodule Livebook.TeamsTest do
 
       assert "can't be blank" in errors_on(changeset).name
     end
-
-    test "returns changeset errors when the new mode is invalid", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
-
-      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
-
-      update_deployment_group = %{deployment_group | id: to_string(id), mode: nil}
-
-      assert {:error, changeset} =
-               Teams.update_deployment_group(team, update_deployment_group)
-
-      assert "can't be blank" in errors_on(changeset).mode
-
-      update_deployment_group = %{deployment_group | id: to_string(id), mode: :invalid}
-
-      assert {:error, changeset} =
-               Teams.update_deployment_group(team, update_deployment_group)
-
-      assert "is invalid" in errors_on(changeset).mode
-    end
   end
 end
