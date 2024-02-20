@@ -152,9 +152,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                   </h2>
 
                   <p class="text-gray-700">
-                    It is possible to deploy notebooks that belong to this Hub connecting back to
-                    Livebook Teams server. Configure the deployment below and use the generated
-                    Dockerfile in your own server.
+                    You can deploy your team notebooks directly to a self-hosted agent instance.
+                    To do that, create an agent in the section above, then start an agent instance
+                    using the Dockerfile below. Once the agent connects to the Livebook Teams server
+                    and it will become available for app deployments.
                   </p>
 
                   <div class="flex flex-col gap-4">
