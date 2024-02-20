@@ -235,7 +235,42 @@ defmodule Livebook.Teams.Requests do
     value |> Ecto.Changeset.change() |> add_errors(struct.__schema__(:fields), errors_map)
   end
 
-  defp auth_headers(team) do
+  defp post(path, json, team \\ nil) do
+    build_req()
+    |> add_team_auth(team)
+    |> request(method: :post, url: path, json: json)
+    |> dispatch_messages(team)
+  end
+
+  defp put(path, json, team) do
+    build_req()
+    |> add_team_auth(team)
+    |> request(method: :put, url: path, json: json)
+    |> dispatch_messages(team)
+  end
+
+  defp delete(path, json, team) do
+    build_req()
+    |> add_team_auth(team)
+    |> request(method: :delete, url: path, json: json)
+    |> dispatch_messages(team)
+  end
+
+  defp get(path, params \\ %{}) do
+    build_req()
+    |> request(method: :get, url: path, params: params)
+  end
+
+  defp build_req() do
+    Req.new(
+      base_url: Livebook.Config.teams_url(),
+      headers: [{"x-lb-version", Livebook.Config.app_version()}]
+    )
+  end
+
+  defp add_team_auth(req, nil), do: req
+
+  defp add_team_auth(req, team) do
     token =
       if team.user_id do
         "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
@@ -243,38 +278,7 @@ defmodule Livebook.Teams.Requests do
         "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
       end
 
-    [
-      {"x-lb-version", Livebook.Config.app_version()},
-      {"authorization", "Bearer " <> token}
-    ]
-  end
-
-  defp post(path, json, team \\ nil) do
-    req =
-      if team,
-        do: Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team)),
-        else: Req.new(base_url: Livebook.Config.teams_url())
-
-    req
-    |> request(method: :post, url: path, json: json)
-    |> dispatch_messages(team)
-  end
-
-  defp put(path, json, team) do
-    Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team))
-    |> request(method: :put, url: path, json: json)
-    |> dispatch_messages(team)
-  end
-
-  defp delete(path, json, team) do
-    Req.new(base_url: Livebook.Config.teams_url(), headers: auth_headers(team))
-    |> request(method: :delete, url: path, json: json)
-    |> dispatch_messages(team)
-  end
-
-  defp get(path, params \\ %{}) do
-    Req.new(base_url: Livebook.Config.teams_url())
-    |> request(method: :get, url: path, params: params)
+    Req.Request.merge_options(req, auth: {:bearer, token})
   end
 
   defp request(req, opts) do
