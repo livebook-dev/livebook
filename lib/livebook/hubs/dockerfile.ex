@@ -177,17 +177,10 @@ defmodule Livebook.Hubs.Dockerfile do
     ENV LIVEBOOK_TEAMS_AUTH "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:${LIVEBOOK_AGENT_KEY}"
     """
 
-    apps_config = """
-    # Apps configuration
-    ENV LIVEBOOK_APPS_PATH "/apps"
-    ENV LIVEBOOK_APPS_PATH_HUB_ID "#{hub.id}"
-    """
-
     [
       image,
       image_envs,
-      hub_config,
-      apps_config
+      hub_config
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
