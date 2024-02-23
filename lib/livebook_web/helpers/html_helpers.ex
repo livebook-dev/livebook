@@ -37,6 +37,9 @@ defmodule LivebookWeb.HTMLHelpers do
     |> String.trim()
     |> String.downcase()
     |> String.replace(~r/[^\s\w]/u, "")
+    # We need to trim again after removing special characters
+    # in case of the last one was removed from the above regex
+    |> String.trim()
     |> String.replace(~r/\s+/u, "-")
     |> case do
       "" -> Base.url_encode64(name, padding: false)
