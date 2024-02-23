@@ -36,7 +36,12 @@ defmodule LivebookWeb.HTMLHelpers do
     name
     |> String.trim()
     |> String.downcase()
+    |> String.replace(~r/[\p{P}\p{S}]/, "")
     |> String.replace(~r/\s+/u, "-")
+    |> case do
+      "" -> Base.url_encode64(name, padding: false)
+      id -> id
+    end
   end
 
   @doc """
