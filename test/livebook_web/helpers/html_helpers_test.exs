@@ -18,11 +18,11 @@ defmodule LivebookWeb.HTMLHelpersTest do
     end
 
     test "emoji at end" do
-      assert HTMLHelpers.names_to_html_ids(["Test 🦦 "]) == ["test-🦦"]
+      assert HTMLHelpers.names_to_html_ids(["Test 🦦 "]) == ["test"]
     end
 
     test "emoji in middle" do
-      assert HTMLHelpers.names_to_html_ids(["One 🥮 Two"]) == ["one-🥮-two"]
+      assert HTMLHelpers.names_to_html_ids(["One 🥮 Two"]) == ["one-two"]
     end
 
     test "returns empty list for an empty list" do

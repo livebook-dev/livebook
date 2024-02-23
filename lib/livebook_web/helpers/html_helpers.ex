@@ -34,9 +34,14 @@ defmodule LivebookWeb.HTMLHelpers do
 
   defp name_to_html_id(name) do
     name
-    |> String.trim()
     |> String.downcase()
+    |> String.replace(~r/[^\s\w]/u, "")
+    |> String.trim()
     |> String.replace(~r/\s+/u, "-")
+    |> case do
+      "" -> Base.url_encode64(name, padding: false)
+      id -> id
+    end
   end
 
   @doc """
