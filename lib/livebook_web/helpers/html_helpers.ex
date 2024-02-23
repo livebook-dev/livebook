@@ -34,11 +34,8 @@ defmodule LivebookWeb.HTMLHelpers do
 
   defp name_to_html_id(name) do
     name
-    |> String.trim()
     |> String.downcase()
     |> String.replace(~r/[^\s\w]/u, "")
-    # We need to trim again after removing special characters
-    # in case of the last one was removed from the above regex
     |> String.trim()
     |> String.replace(~r/\s+/u, "-")
     |> case do
