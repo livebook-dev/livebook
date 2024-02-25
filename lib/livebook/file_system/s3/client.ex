@@ -252,7 +252,7 @@ defmodule Livebook.FileSystem.S3.Client do
   end
 
   defp build_url(file_system, path, query) do
-    query_string = URI.encode_query(query)
+    query_string = URI.encode_query(query, :rfc3986)
     query_string = if query_string != "", do: "?#{query_string}", else: ""
 
     file_system.bucket_url <> path <> query_string
