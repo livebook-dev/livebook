@@ -37,7 +37,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_bumblebee = %{
     name: "kino_bumblebee",
-    dependency: %{dep: {:kino_bumblebee, "~> 0.4.0"}, config: []}
+    dependency: %{dep: {:kino_bumblebee, "~> 0.5.0"}, config: []}
   }
 
   exla = %{
