@@ -7,6 +7,8 @@ defmodule Livebook.Config do
   #
   # There are still a :session and :custom identity providers,
   # but those are handled internally.
+  #
+  # IMPORTANT: this list must be in sync with Livebook Teams.
   @identity_providers [
     %{
       type: :cloudflare,
