@@ -1996,45 +1996,10 @@ defmodule LivebookWeb.SessionLive do
       {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _chunks} ->
         update_dirty_status(data_view, data)
 
-      # For outputs that update existing outputs we send the update directly
-      # to the corresponding component, so the DOM patch is isolated and fast.
-      # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
-        %{ref: ref, update: {update_type, _new_outputs}} = output
-
-        changed_input_ids = Session.Data.changed_input_ids(data)
-
-        for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
-          # Note that we are not updating data_view to avoid re-render,
-          # but any change that causes frame to re-render will update
-          # data_view first
-          input_views = input_views_for_cell(cell, data, changed_input_ids)
-
-          send_update(LivebookWeb.Output.FrameComponent,
-            id: "outputs-#{idx}-output",
-            event: {:update, update_type, frame.outputs, input_views}
-          )
-        end
-
-        data_view
-
-      {:add_cell_evaluation_output, _client_id, cell_id, %{type: type, chunk: true} = output}
-      when type in [:terminal_text, :plain_text, :markdown] ->
-        # Lookup in previous data to see if the output is already there
-        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
-            module =
-              case type do
-                :terminal_text -> LivebookWeb.Output.TerminalTextComponent
-                :plain_text -> LivebookWeb.Output.PlainTextComponent
-                :markdown -> LivebookWeb.Output.MarkdownComponent
-              end
-
-            send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
-            data_view
-
-          _ ->
-            data_to_view(data)
+      {:add_cell_evaluation_output, _client_id, cell_id, output} ->
+        case send_output_update(prev_data, data, cell_id, output) do
+          :ok -> data_view
+          :continue -> data_to_view(data)
         end
 
       {:add_cell_doctest_report, _client_id, _cell_id, _doctest_report} ->
@@ -2043,6 +2008,70 @@ defmodule LivebookWeb.SessionLive do
       _ ->
         data_to_view(data)
     end
+  end
+
+  # For outputs that update existing outputs we send the update directly
+  # to the corresponding component, so the DOM patch is isolated and fast.
+  # This is important for intensive output updates
+  def send_output_update(prev_data, data, _cell_id, %{type: :frame_update} = output) do
+    %{ref: ref, update: {update_type, new_outputs}} = output
+
+    changed_input_ids = Session.Data.changed_input_ids(data)
+
+    # Lookup in previous data to see if there is a chunked output,
+    # and if so, send the chunk update directly to its component
+    with :append <- update_type,
+         [{{_idx, frame}, _cell} | _] <- Notebook.find_frame_outputs(prev_data.notebook, ref),
+         %{outputs: [{idx, %{type: type, chunk: true}} | _]} <- frame do
+      new_outputs
+      |> Enum.reverse()
+      |> Enum.take_while(&match?(%{type: ^type, chunk: true}, &1))
+      |> Enum.each(fn output ->
+        send_chunk_output_update(idx, output)
+      end)
+    end
+
+    for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
+      # Note that we are not updating data_view to avoid re-render,
+      # but any change that causes frame to re-render will update
+      # data_view first
+      input_views = input_views_for_cell(cell, data, changed_input_ids)
+
+      send_update(LivebookWeb.Output.FrameComponent,
+        id: "outputs-#{idx}-output",
+        event: {:update, update_type, frame.outputs, input_views}
+      )
+    end
+
+    :ok
+  end
+
+  def send_output_update(prev_data, _data, cell_id, %{type: type, chunk: true} = output)
+      when type in [:terminal_text, :plain_text, :markdown] do
+    # Lookup in previous data to see if the output is already there
+    case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+      {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
+        send_chunk_output_update(idx, output)
+        :ok
+
+      _ ->
+        :continue
+    end
+  end
+
+  def send_output_update(_prev_data, _data, _cell_id, _output) do
+    :continue
+  end
+
+  defp send_chunk_output_update(idx, output) do
+    module =
+      case output.type do
+        :terminal_text -> LivebookWeb.Output.TerminalTextComponent
+        :plain_text -> LivebookWeb.Output.PlainTextComponent
+        :markdown -> LivebookWeb.Output.MarkdownComponent
+      end
+
+    send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
   end
 
   defp prune_outputs(%{private: %{data: data}} = socket) do

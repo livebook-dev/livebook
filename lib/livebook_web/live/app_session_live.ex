@@ -401,39 +401,10 @@ defmodule LivebookWeb.AppSessionLive do
   defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       # See LivebookWeb.SessionLive for more details
-      {:add_cell_evaluation_output, _client_id, _cell_id, %{type: :frame_update} = output} ->
-        %{ref: ref, update: {update_type, _}} = output
-
-        changed_input_ids = Session.Data.changed_input_ids(data)
-
-        for {{idx, frame}, cell} <- Notebook.find_frame_outputs(data.notebook, ref) do
-          input_views = input_views_for_cell(cell, data, changed_input_ids)
-
-          send_update(LivebookWeb.Output.FrameComponent,
-            id: "outputs-#{idx}-output",
-            event: {:update, update_type, frame.outputs, input_views}
-          )
-        end
-
-        data_view
-
-      {:add_cell_evaluation_output, _client_id, cell_id, %{type: type, chunk: true} = output}
-      when type in [:terminal_text, :plain_text, :markdown] ->
-        # Lookup in previous data to see if the output is already there
-        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
-          {:ok, %{outputs: [{idx, %{type: ^type, chunk: true}} | _]}, _section} ->
-            module =
-              case type do
-                :terminal_text -> LivebookWeb.Output.TerminalTextComponent
-                :plain_text -> LivebookWeb.Output.PlainTextComponent
-                :markdown -> LivebookWeb.Output.MarkdownComponent
-              end
-
-            send_update(module, id: "outputs-#{idx}-output", event: {:append, output.text})
-            data_view
-
-          _ ->
-            data_to_view(data)
+      {:add_cell_evaluation_output, _client_id, cell_id, output} ->
+        case LivebookWeb.SessionLive.send_output_update(prev_data, data, cell_id, output) do
+          :ok -> data_view
+          :continue -> data_to_view(data)
         end
 
       _ ->
