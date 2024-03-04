@@ -799,7 +799,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp report_transient_state(state) do
     # We propagate Mix.install/2 project dir in the transient state,
-    # so that future runtimes can mark it as the starting point for
+    # so that future runtimes can set it as the starting point for
     # Mix.install/2
     if dir = state.mix_install_project_dir == nil && install_project_dir() do
       send(state.owner, {:runtime_transient_state, %{mix_install_project_dir: dir}})
