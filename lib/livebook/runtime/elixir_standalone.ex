@@ -190,4 +190,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def delete_system_envs(runtime, names) do
     RuntimeServer.delete_system_envs(runtime.server_pid, names)
   end
+
+  def restore_transient_state(runtime, transient_state) do
+    RuntimeServer.restore_transient_state(runtime.server_pid, transient_state)
+  end
 end

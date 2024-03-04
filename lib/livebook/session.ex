@@ -1763,6 +1763,11 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_transient_state, transient_state}, state) do
+    operation = {:set_runtime_transient_state, @client_id, transient_state}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:env_var_set, env_var}, state) do
     if Runtime.connected?(state.data.runtime) do
       Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
@@ -2030,6 +2035,11 @@ defmodule Livebook.Session do
 
   defp own_runtime(runtime, state) do
     runtime_monitor_ref = Runtime.take_ownership(runtime, runtime_broadcast_to: state.worker_pid)
+
+    if state.data.runtime_transient_state != %{} do
+      Runtime.restore_transient_state(runtime, state.data.runtime_transient_state)
+    end
+
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
 

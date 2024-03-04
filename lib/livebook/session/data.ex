@@ -27,6 +27,7 @@ defmodule Livebook.Session.Data do
     :input_infos,
     :bin_entries,
     :runtime,
+    :runtime_transient_state,
     :smart_cell_definitions,
     :clients_map,
     :users_map,
@@ -53,6 +54,7 @@ defmodule Livebook.Session.Data do
           input_infos: %{input_id() => input_info()},
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t(),
+          runtime_transient_state: Runtime.transient_state(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
@@ -211,6 +213,7 @@ defmodule Livebook.Session.Data do
           | {:set_cell_attributes, client_id(), Cell.id(), map()}
           | {:set_input_value, client_id(), input_id(), value :: term()}
           | {:set_runtime, client_id(), Runtime.t()}
+          | {:set_runtime_transient_state, client_id(), Runtime.transient_state()}
           | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
@@ -299,6 +302,7 @@ defmodule Livebook.Session.Data do
       input_infos: initial_input_infos(notebook),
       bin_entries: [],
       runtime: default_runtime,
+      runtime_transient_state: %{},
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
@@ -857,6 +861,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_runtime(data, runtime)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_runtime_transient_state, _client_id, transient_state}) do
+    data
+    |> with_actions()
+    |> set!(runtime_transient_state: transient_state)
     |> wrap_ok()
   end
 
