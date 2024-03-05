@@ -64,6 +64,10 @@ function buildEditorTheme(colors, { dark }) {
         backgroundColor: "transparent",
       },
 
+      "&.cm-focused:not(.cm-selecting) .cm-activeLine": {
+        backgroundColor: colors.activeLine,
+      },
+
       ".cm-cursor, .cm-dropCursor": {
         borderLeft: "1px solid",
         borderRight: "1px solid",
@@ -101,6 +105,10 @@ function buildEditorTheme(colors, { dark }) {
 
       ".cm-gutters .cm-activeLineGutter": {
         backgroundColor: "transparent",
+      },
+
+      "&.cm-focused:not(.cm-selecting) .cm-gutters .cm-activeLineGutter": {
+        backgroundColor: colors.activeLine,
       },
 
       ".cm-tooltip": {
@@ -516,6 +524,7 @@ const editorTheme = buildEditorTheme(
     backgroundLightest: "#454a56",
     border: "#363c46",
     cursor: "#73ade8",
+    activeLine: "#2d323b",
     selectionBackground: "#394c5f",
     inactiveSelectionBackground: "#29333d",
     selectionMatchBackground: "#343f4d",
@@ -553,6 +562,7 @@ const lightEditorTheme = buildEditorTheme(
     backgroundLightest: "#cacaca",
     border: "#dfdfe0",
     cursor: "#5c79e2",
+    activeLine: "#efeff0",
     selectionBackground: "#d4dbf4",
     inactiveSelectionBackground: "#ebeef9",
     selectionMatchBackground: "#d3d5e1",
