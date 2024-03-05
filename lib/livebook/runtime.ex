@@ -727,6 +727,25 @@ defprotocol Livebook.Runtime do
   """
   @type file_ref :: {:file, id :: String.t()}
 
+  @typedoc """
+  A state that can optionally be passed from one runtime to another.
+
+  To report a new transition state, the runtime may send:
+
+      {:runtime_transition_state, transition_state()}
+
+  The runtime owner can then use `restore_transient_state/2` when
+  starting another instance of this runtime.
+
+  The state should be considered complementary, it is not guaranteed
+  that any future runtime will receive it. Therefore, a transient state
+  should never point to resources with the expectation that a future
+  runtime will clean them. One valid use case is for the transient state
+  to point to some global cache, that is not managed by the runtime
+  itself.
+  """
+  @type transient_state :: %{atom() => term()}
+
   @doc """
   Returns relevant information about the runtime.
 
@@ -1045,4 +1064,12 @@ defprotocol Livebook.Runtime do
   """
   @spec delete_system_envs(t(), list(String.t())) :: :ok
   def delete_system_envs(runtime, names)
+
+  @doc """
+  Restores information from a past runtime.
+
+  See `t:transient_state/0` for details.
+  """
+  @spec restore_transient_state(t(), transient_state()) :: :ok
+  def restore_transient_state(runtime, transient_state)
 end

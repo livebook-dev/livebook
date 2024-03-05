@@ -1281,6 +1281,20 @@ defmodule Livebook.SessionTest do
     assert :ok = Session.fetch_assets(session.pid, hash)
   end
 
+  test "restores transient state when restarting runtimes" do
+    session = start_session()
+
+    runtime = connected_noop_runtime(self())
+    Session.set_runtime(session.pid, runtime)
+    transient_state = %{state: "anything"}
+    send(session.pid, {:runtime_transient_state, transient_state})
+
+    runtime = connected_noop_runtime(self())
+    Session.set_runtime(session.pid, runtime)
+
+    assert_receive {:runtime_trace, :restore_transient_state, [^transient_state]}
+  end
+
   describe "deploy_app/1" do
     test "deploys current notebook and keeps track of the deployed app" do
       session = start_session()

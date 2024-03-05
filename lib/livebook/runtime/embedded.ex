@@ -159,6 +159,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.delete_system_envs(runtime.server_pid, names)
   end
 
+  def restore_transient_state(runtime, transient_state) do
+    RuntimeServer.restore_transient_state(runtime.server_pid, transient_state)
+  end
+
   defp config() do
     Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end

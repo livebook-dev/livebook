@@ -294,6 +294,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Restores information from a past runtime.
+  """
+  @spec restore_transient_state(pid(), Runtime.transient_state()) :: :ok
+  def restore_transient_state(pid, transient_state) do
+    GenServer.cast(pid, {:restore_transient_state, transient_state})
+  end
+
+  @doc """
   Stops the runtime server.
 
   This results in all Livebook-related modules being unloaded
@@ -335,7 +343,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
          Keyword.get_lazy(opts, :base_env_path, fn -> System.get_env("PATH", "") end),
        ebin_path: Keyword.get(opts, :ebin_path),
        io_proxy_registry: Keyword.get(opts, :io_proxy_registry),
-       tmp_dir: Keyword.get(opts, :tmp_dir)
+       tmp_dir: Keyword.get(opts, :tmp_dir),
+       mix_install_project_dir: nil
      }}
   end
 
@@ -371,6 +380,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply,
      state
      |> report_smart_cell_definitions()
+     |> report_transient_state()
      |> scan_binding_after_evaluation(locator)}
   end
 
@@ -638,6 +648,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_cast({:restore_transient_state, transient_state}, state) do
+    if dir = transient_state[:mix_install_project_dir] do
+      System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", dir)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_cast({:relabel_file, file_id, new_file_id}, state) do
     path = file_path(state, file_id)
     new_path = file_path(state, new_file_id)
@@ -776,6 +794,28 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       module.definitions()
     else
       []
+    end
+  end
+
+  defp report_transient_state(state) do
+    # We propagate Mix.install/2 project dir in the transient state,
+    # so that future runtimes can set it as the starting point for
+    # Mix.install/2
+    if dir = state.mix_install_project_dir == nil && install_project_dir() do
+      send(state.owner, {:runtime_transient_state, %{mix_install_project_dir: dir}})
+      %{state | mix_install_project_dir: dir}
+    else
+      state
+    end
+  end
+
+  # TODO: remove once CI runs Elixir v1.16.2
+  @compile {:no_warn_undefined, {Mix, :install_project_dir, 0}}
+
+  defp install_project_dir() do
+    # TODO: remove the check once we require Elixir v1.16.2
+    if Code.ensure_loaded?(Mix) && function_exported?(Mix, :install_project_dir, 0) do
+      Mix.install_project_dir()
     end
   end
 

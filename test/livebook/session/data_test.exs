@@ -3838,6 +3838,21 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_runtime_transient_state" do
+    test "sets the definitions and starts dead cells with matching kinds" do
+      data =
+        data_after_operations!([
+          {:set_runtime, @cid, connected_noop_runtime()}
+        ])
+
+      transient_state = %{state: "anything"}
+      operation = {:set_runtime_transient_state, @cid, transient_state}
+
+      assert {:ok, %{runtime_transient_state: ^transient_state}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_smart_cell_definitions" do
     test "sets the definitions and starts dead cells with matching kinds" do
       data =
