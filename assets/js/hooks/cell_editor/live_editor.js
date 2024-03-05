@@ -53,6 +53,7 @@ import { languages } from "./live_editor/codemirror/languages";
 import { exitMulticursor } from "./live_editor/codemirror/commands";
 import { highlight } from "./live_editor/highlight";
 import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
+import { selectingClass } from "./live_editor/codemirror/selecting_class";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -298,6 +299,7 @@ export default class LiveEditor {
         drawSelection(),
         dropCursor(),
         rectangularSelection(),
+        selectingClass(),
         crosshairCursor(),
         EditorState.allowMultipleSelections.of(true),
         bracketMatching(),
