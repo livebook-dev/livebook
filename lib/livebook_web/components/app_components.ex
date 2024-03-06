@@ -168,7 +168,7 @@ defmodule LivebookWeb.AppComponents do
           See the
           <a
             class="text-blue-800 hover:text-blue-600"
-            href={"https://hexdocs.pm/livebook/#{zta_metadata.type}"}
+            href={"https://hexdocs.pm/livebook/#{zta_metadata.type}.html"}
           >
             Authentication with <%= zta_metadata.name %> docs
           </a>
