@@ -396,12 +396,10 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:deployment_group_deleted, deployment_group_deleted, state) do
-    if deployment_group =
-         Enum.find(state.deployment_groups, &(&1.id == deployment_group_deleted.id)) do
+    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_deleted.id, state) do
       Teams.Broadcasts.deployment_group_deleted(deployment_group)
+
       remove_deployment_group(state, deployment_group)
-    else
-      state
     end
   end
 
@@ -423,26 +421,18 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:agent_key_created, agent_key_created, state) do
     agent_key = build_agent_key(agent_key_created)
 
-    if deployment_group =
-         find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
-      handle_event(:deployment_group_updated, put_agent_key(deployment_group, agent_key), state)
-    else
-      state
+    with {:ok, deployment_group} <- fetch_deployment_group(agent_key.deployment_group_id, state) do
+      deployment_group = put_agent_key(deployment_group, agent_key)
+      handle_event(:deployment_group_updated, deployment_group, state)
     end
   end
 
   defp handle_event(:agent_key_deleted, agent_key_deleted, state) do
     agent_key = build_agent_key(agent_key_deleted)
 
-    if deployment_group =
-         find_deployment_group(agent_key.deployment_group_id, state.deployment_groups) do
-      handle_event(
-        :deployment_group_updated,
-        remove_agent_key(deployment_group, agent_key),
-        state
-      )
-    else
-      state
+    with {:ok, deployment_group} <- fetch_deployment_group(agent_key.deployment_group_id, state) do
+      deployment_group = remove_agent_key(deployment_group, agent_key)
+      handle_event(:deployment_group_updated, deployment_group, state)
     end
   end
 
@@ -527,6 +517,14 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp find_deployment_group(nil, _), do: nil
   defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
+
+  defp fetch_deployment_group(id, state) do
+    if deployment_group = find_deployment_group(id, state.deployment_groups) do
+      {:ok, deployment_group}
+    else
+      state
+    end
+  end
 
   # We cannot use to_existing_atom because the atoms
   # may not have been loaded. Luckily, we can trust
