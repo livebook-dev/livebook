@@ -206,14 +206,6 @@ defmodule Livebook.TeamsServer do
     System.get_env("TEAMS_PORT", "4123")
   end
 
-  defp debug do
-    System.get_env("TEAMS_DEBUG", "false")
-  end
-
-  defp proto do
-    System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
-  end
-
   defp wait_on_start(state, port) do
     url = state.url || fetch_url(state)
 
@@ -253,13 +245,16 @@ defmodule Livebook.TeamsServer do
   end
 
   defp env(app_port, state_env) do
-    env = %{
-      "MIX_ENV" => "livebook",
-      "PORT" => to_string(app_port),
-      "DEBUG" => debug()
-    }
-
-    env = if proto(), do: Map.merge(env, %{"LIVEBOOK_PROTO_PATH" => proto()}), else: env
+    env =
+      :maps.filter(
+        fn _key, value -> value not in ["", nil] end,
+        %{
+          "MIX_ENV" => "livebook",
+          "PORT" => to_string(app_port),
+          "DEBUG" => System.get_env("TEAMS_DEBUG", "false"),
+          "LIVEBOOK_PROTO_PATH" => System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
+        }
+      )
 
     if state_env do
       Map.merge(env, state_env)
