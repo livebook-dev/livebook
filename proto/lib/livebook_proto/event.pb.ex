@@ -67,4 +67,9 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AgentKeyDeleted,
     json_name: "agentKeyDeleted",
     oneof: 0
+
+  field :app_deployment_created, 14,
+    type: LivebookProto.AppDeploymentCreated,
+    json_name: "appDeploymentCreated",
+    oneof: 0
 end
