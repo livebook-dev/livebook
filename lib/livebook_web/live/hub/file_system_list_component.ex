@@ -10,7 +10,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@file_systems == []}>
-          No file storages in this Hub yet.
+          No file storages here... yet!
         </.no_entries>
         <div
           :for={file_system <- @file_systems}
