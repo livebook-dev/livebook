@@ -96,7 +96,7 @@ defmodule Livebook.Teams.Requests do
   Send a request to Livebook Team API to delete a secret.
   """
   @spec delete_secret(Team.t(), Secret.t()) ::
-          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def delete_secret(team, %{deployment_group_id: nil} = secret) do
     delete("/api/v1/org/secrets", %{name: secret.name}, team)
   end
@@ -156,7 +156,7 @@ defmodule Livebook.Teams.Requests do
   Send a request to Livebook Team API to delete a file system.
   """
   @spec delete_file_system(Team.t(), FileSystem.t()) ::
-          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def delete_file_system(team, file_system) do
     delete("/api/v1/org/file-systems", %{id: file_system.external_id}, team)
   end
@@ -210,7 +210,7 @@ defmodule Livebook.Teams.Requests do
   Send a request to Livebook Team API to delete an agent key.
   """
   @spec delete_agent_key(Team.t(), AgentKey.t()) ::
-          {:ok, String.t()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
   def delete_agent_key(team, agent_key) do
     params = %{id: agent_key.id, deployment_group_id: agent_key.deployment_group_id}
     delete("/api/v1/org/deployment-groups/agent-keys", params, team)
