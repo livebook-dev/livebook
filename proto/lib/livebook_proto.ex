@@ -3,7 +3,7 @@ defmodule LivebookProto do
     AgentConnected,
     AgentKeyCreated,
     AgentKeyDeleted,
-    Event,
+    AppDeploymentCreated,
     FileSystemCreated,
     FileSystemDeleted,
     FileSystemUpdated,
@@ -16,7 +16,7 @@ defmodule LivebookProto do
     UserConnected
   }
 
-  @event_mapping (for {_id, field_prop} <- Event.__message_props__().field_props,
+  @event_mapping (for {_id, field_prop} <- LivebookProto.Event.__message_props__().field_props,
                       into: %{} do
                     {field_prop.type, field_prop.name_atom}
                   end)
@@ -25,6 +25,7 @@ defmodule LivebookProto do
           AgentConnected.t()
           | AgentKeyCreated.t()
           | AgentKeyDeleted.t()
+          | AppDeploymentCreated.t()
           | FileSystemCreated.t()
           | FileSystemDeleted.t()
           | FileSystemUpdated.t()
@@ -39,9 +40,9 @@ defmodule LivebookProto do
   @doc """
   Builds an event with given data.
   """
-  @spec build_event(event_proto()) :: Event.t()
+  @spec build_event(event_proto()) :: LivebookProto.Event.t()
   def build_event(%struct{} = data) do
-    %Event{type: {event_type(struct), data}}
+    %LivebookProto.Event{type: {event_type(struct), data}}
   end
 
   defp event_type(module), do: Map.fetch!(@event_mapping, module)

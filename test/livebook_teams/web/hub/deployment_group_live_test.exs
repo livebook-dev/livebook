@@ -116,6 +116,65 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupLiveTest do
     assert updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
   end
 
+  test "returns error if something goes wrong", %{conn: conn, hub: hub, node: node} do
+    name = "TEAMS_ERROR_DEPLOYMENT_GROUP"
+    mode = :online
+    insert_deployment_group(name: name, mode: mode, hub_id: hub.id)
+
+    assert_receive {:deployment_group_created,
+                    %DeploymentGroup{name: ^name, mode: ^mode} = deployment_group}
+
+    attrs = %{
+      deployment_group: %{
+        id: deployment_group.id,
+        name: deployment_group.name,
+        mode: deployment_group.mode,
+        hub_id: deployment_group.hub_id
+      }
+    }
+
+    new_name = "FOO"
+
+    {:ok, view, html} =
+      live(conn, ~p"/hub/#{hub.id}/deployment-groups/edit/#{deployment_group.id}")
+
+    assert html =~ "Edit deployment group"
+
+    assert html =~
+             "Manage the #{deployment_group.name} (#{deployment_group.mode}) deployment group"
+
+    view
+    |> element("#deployment-groups-form")
+    |> render_change(attrs)
+
+    refute view
+           |> element("#deployment-groups-form button[disabled]")
+           |> has_element?()
+
+    # Forces the server to delete the deployment group
+    teams_deployment_group =
+      erpc_call(node, :get_deployment_group!, [String.to_integer(deployment_group.id)])
+
+    {:ok, _} = erpc_call(node, :delete_deployment_group, [teams_deployment_group])
+
+    view
+    |> element("#deployment-groups-form")
+    |> render_submit(put_in(attrs.deployment_group.name, new_name))
+
+    updated_deployment_group = %{deployment_group | name: new_name}
+
+    refute_receive {:deployment_group_updated, ^updated_deployment_group}
+
+    assert render(view) =~
+             "Something went wrong, try again later or please file a bug if it persists"
+
+    refute updated_deployment_group in Livebook.Teams.get_deployment_groups(hub)
+
+    # In this case, we aren't expecting the delete message,
+    # so the old deployment group remains in the list
+    assert deployment_group in Livebook.Teams.get_deployment_groups(hub)
+  end
+
   test "creates a secret", %{conn: conn, hub: hub} do
     insert_deployment_group(
       name: "TEAMS_EDIT_DEPLOYMENT_GROUP",

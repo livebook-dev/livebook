@@ -9,4 +9,9 @@ defmodule LivebookProto.DeploymentGroupCreated do
   field :zta_provider, 6, type: :string, json_name: "ztaProvider"
   field :zta_key, 7, type: :string, json_name: "ztaKey"
   field :agent_keys, 8, repeated: true, type: LivebookProto.AgentKey, json_name: "agentKeys"
+
+  field :deployed_apps, 9,
+    repeated: true,
+    type: LivebookProto.DeployedApp,
+    json_name: "deployedApps"
 end

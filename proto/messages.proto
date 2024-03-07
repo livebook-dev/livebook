@@ -63,6 +63,7 @@ message DeploymentGroup {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
+  repeated DeployedApp deployed_apps = 9;
 }
 
 message DeploymentGroupCreated {
@@ -74,6 +75,7 @@ message DeploymentGroupCreated {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
+  repeated DeployedApp deployed_apps = 9;
 }
 
 message DeploymentGroupUpdated {
@@ -85,6 +87,7 @@ message DeploymentGroupUpdated {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
+  repeated DeployedApp deployed_apps = 9;
 }
 
 message DeploymentGroupDeleted {
@@ -126,6 +129,30 @@ message AgentConnected {
   repeated DeploymentGroup deployment_groups = 7;
 }
 
+message DeployedApp {
+  string id = 1;
+  string title = 2;
+  string sha = 3;
+  string archive_url = 4;
+  string app_id = 5;
+  string slug = 6;
+  string deployment_group_id = 7;
+  string deployed_by = 8;
+  string deployed_at = 9;
+}
+
+message AppDeploymentCreated {
+  string id = 1;
+  string title = 2;
+  string sha = 3;
+  string archive_url = 4;
+  string app_id = 5;
+  string slug = 6;
+  string deployment_group_id = 7;
+  string deployed_by = 8;
+  string deployed_at = 9;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -141,5 +168,6 @@ message Event {
     AgentConnected agent_connected = 11;
     AgentKeyCreated agent_key_created = 12;
     AgentKeyDeleted agent_key_deleted = 13;
+    AppDeploymentCreated app_deployment_created = 14;
   }
 }

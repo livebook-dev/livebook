@@ -37,6 +37,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       <p class="text-gray-700">
         <%= @subtitle %>
       </p>
+
+      <div :if={@error_message} class="error-box">
+        <%= @error_message %>
+      </div>
+
       <div class="flex flex-columns gap-4">
         <.form
           :let={f}
