@@ -7,7 +7,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupListComponent do
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@deployment_groups == []}>
-          No deployment groups in this Hub yet.
+          No deployment groups here... yet!
         </.no_entries>
         <div
           :for={deployment_group <- @deployment_groups}
