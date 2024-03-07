@@ -246,14 +246,14 @@ defmodule Livebook.TeamsServer do
 
   defp env(app_port, state_env) do
     env =
-      :maps.filter(
-        fn _key, value -> value not in ["", nil] end,
+      Map.filter(
         %{
           "MIX_ENV" => "livebook",
           "PORT" => to_string(app_port),
           "DEBUG" => System.get_env("TEAMS_DEBUG", "false"),
           "LIVEBOOK_PROTO_PATH" => System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
-        }
+        },
+        fn {_key, value} -> value not in ["", nil] end
       )
 
     if state_env do
