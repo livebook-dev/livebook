@@ -349,26 +349,29 @@ For Windows, run:
 
 ## Sponsors
 
+<a href="https://fly.io">
+  <img height="175" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
+</a>
+
 Fly is a platform for running full stack apps and databases close to your users.
 
-<a href="https://fly.io">
-  <img align="center" height="175" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
-</a>
-
 <br />
-Machine Learning and Neural Network models hosted by Hugging Face.
+<br />
 
 <a href="https://huggingface.co/">
-  <img align="center" height="100" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
+  <img height="100" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
 </a>
+
+Machine Learning and Neural Network models hosted by Hugging Face.
 
 <br />
-
-Tigris is a globally distributed S3-compatible object storage service that provides low latency anywhere in the world.
+<br />
 
 <a href="https://www.tigrisdata.com/">
-  <img align="center" height="100" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+  <img height="100" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
 </a>
+
+Tigris is a globally distributed S3-compatible object storage service that provides low latency anywhere in the world.
 
 ## License
 
