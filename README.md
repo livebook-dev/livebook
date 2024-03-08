@@ -347,17 +347,31 @@ For Windows, run:
 .github/scripts/app/build_windows.sh
 ```
 
+## Platinum sponsors
+
+<a href="https://fly.io">
+  <img height="130" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
+</a>
+
+Fly is a platform for running full stack apps and databases close to your users.
+
 ## Sponsors
 
-Livebook development is sponsored by:
+<a href="https://huggingface.co/">
+  <img height="70" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
+</a>
 
-<a href="https://fly.io" target=_blank><img src="https://fly.io/public/images/brand/logo.svg" width="320" /></a>
+The platform where the machine learning community<br />
+collaborates on models, datasets, and applications.
 
-## Supporters
+<br />
 
-Machine Learning and Neural Network models hosted by:
+<a href="https://www.tigrisdata.com/">
+  <img height="50" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+</a>
 
-<a href="https://huggingface.co/" target=_blank><img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" width="320" /></a>
+Tigris is a globally distributed S3-compatible object storage<br />
+service that provides low latency anywhere in the world.
 
 ## License
 
