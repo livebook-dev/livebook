@@ -349,15 +349,26 @@ For Windows, run:
 
 ## Sponsors
 
-Livebook development is sponsored by:
+Fly is a platform for running full stack apps and databases close to your users.
 
-<a href="https://fly.io" target=_blank><img src="https://fly.io/public/images/brand/logo.svg" width="320" /></a>
+<a href="https://fly.io">
+  <img align="center" height="175" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
+</a>
 
-## Supporters
+<br />
+Machine Learning and Neural Network models hosted by Hugging Face.
 
-Machine Learning and Neural Network models hosted by:
+<a href="https://huggingface.co/">
+  <img align="center" height="100" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
+</a>
 
-<a href="https://huggingface.co/" target=_blank><img src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" width="320" /></a>
+<br />
+
+Tigris is a globally distributed S3-compatible object storage service that provides low latency anywhere in the world.
+
+<a href="https://www.tigrisdata.com/">
+  <img align="center" height="100" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+</a>
 
 ## License
 
