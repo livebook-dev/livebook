@@ -362,7 +362,7 @@ Fly is a platform for running full stack apps and databases close to your users.
   <img height="100" src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo-with-title.png" alt="Hugging Face">
 </a>
 
-Machine Learning and Neural Network models hosted by Hugging Face.
+The platform where the machine learning community collaborates on models, datasets, and applications.
 
 <br />
 <br />
