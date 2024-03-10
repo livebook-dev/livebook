@@ -809,9 +809,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  # TODO: remove once CI runs Elixir v1.16.2
-  @compile {:no_warn_undefined, {Mix, :install_project_dir, 0}}
-
   defp install_project_dir() do
     # TODO: remove the check once we require Elixir v1.16.2
     if Code.ensure_loaded?(Mix) && function_exported?(Mix, :install_project_dir, 0) do
