@@ -60,7 +60,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
      |> assign_new(:config_changeset, fn ->
        Hubs.Dockerfile.config_changeset(Hubs.Dockerfile.config_new())
      end)
-     |> update_dockerfile()}
+     |> update_dockerfile(:airgapped)
+     |> update_dockerfile(:agent)}
   end
 
   @impl true
@@ -145,6 +146,46 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                       <span>Add agent key</span>
                     </.button>
                   </div>
+
+                  <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                    Agent deployment
+                  </h2>
+
+                  <p class="text-gray-700">
+                    You can deploy your team notebooks directly to a self-hosted agent instance.
+                    To do that, create an agent in the section above, then start an agent instance
+                    using the Dockerfile below. Once the agent connects to the Livebook Teams server
+                    and it will become available for app deployments.
+                  </p>
+
+                  <div class="flex flex-col gap-4">
+                    <div>
+                      <div class="flex items-end mb-1 gap-1">
+                        <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
+                        <div class="grow" />
+                        <.button
+                          color="gray"
+                          small
+                          data-tooltip="Copied to clipboard"
+                          type="button"
+                          aria-label="copy to clipboard"
+                          phx-click={
+                            JS.dispatch("lb:clipcopy", to: "#agent-dockerfile-source")
+                            |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
+                          }
+                        >
+                          <.remix_icon icon="clipboard-line" />
+                          <span>Copy source</span>
+                        </.button>
+                      </div>
+
+                      <.code_preview
+                        source_id="agent-dockerfile-source"
+                        source={@agent_dockerfile}
+                        language="dockerfile"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div class="flex flex-col space-y-4">
@@ -209,7 +250,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     {:noreply,
      socket
      |> assign(config_changeset: changeset)
-     |> update_dockerfile()}
+     |> update_dockerfile(:airgapped)}
   end
 
   def handle_event("add_agent_key", _, socket) do
@@ -249,9 +290,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     Hubs.get_default_hub().id == hub.id
   end
 
-  defp update_dockerfile(socket) when socket.assigns.deployment_group == nil, do: socket
+  defp update_dockerfile(socket, _) when socket.assigns.deployment_group == nil, do: socket
 
-  defp update_dockerfile(socket) do
+  defp update_dockerfile(socket, :airgapped) do
     config =
       socket.assigns.config_changeset
       |> Ecto.Changeset.apply_changes()
@@ -277,5 +318,12 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
       Hubs.Dockerfile.build_dockerfile(config, hub, secrets, hub_file_systems, nil, [], %{})
 
     assign(socket, :dockerfile, dockerfile)
+  end
+
+  defp update_dockerfile(%{assigns: %{hub: hub}} = socket, :agent) do
+    config = Hubs.Dockerfile.config_new()
+    dockerfile = Hubs.Dockerfile.build_agent_dockerfile(config, hub)
+
+    assign(socket, :agent_dockerfile, dockerfile)
   end
 end

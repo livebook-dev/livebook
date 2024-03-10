@@ -157,6 +157,35 @@ defmodule Livebook.Hubs.Dockerfile do
     |> Enum.join("\n")
   end
 
+  @doc """
+  Builds Dockerfile definition for Livebook Agent app deployment.
+  """
+  @spec build_agent_dockerfile(config(), Hubs.Provider.t()) :: String.t()
+  def build_agent_dockerfile(config, hub) do
+    base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
+
+    image = """
+    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
+    """
+
+    image_envs = format_envs(base_image.env)
+
+    hub_config = """
+    # Teams Hub configuration for Livebook Agent deployment
+    ENV LIVEBOOK_AGENT_NAME ""
+    ENV LIVEBOOK_TEAMS_KEY "#{hub.teams_key}"
+    ENV LIVEBOOK_TEAMS_AUTH "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:${LIVEBOOK_AGENT_KEY}"
+    """
+
+    [
+      image,
+      image_envs,
+      hub_config
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n")
+  end
+
   defp format_hub_config("team", config, hub, hub_file_systems, used_secrets) do
     base_env =
       """
