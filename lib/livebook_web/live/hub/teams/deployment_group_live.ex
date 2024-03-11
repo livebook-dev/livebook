@@ -37,6 +37,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
         do: deployment_group.agent_keys,
         else: []
 
+    app_deployments =
+      if socket.assigns.live_action != :new_deployment_group,
+        do: deployment_group.app_deployments,
+        else: []
+
     secret_value =
       if socket.assigns.live_action == :edit_secret do
         Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
@@ -55,7 +60,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
        secret_value: secret_value,
        default?: default?,
        secrets: secrets,
-       agent_keys: agent_keys
+       agent_keys: agent_keys,
+       app_deployments: app_deployments
      )
      |> assign_new(:config_changeset, fn ->
        Hubs.Dockerfile.config_changeset(Hubs.Dockerfile.config_new())
@@ -186,6 +192,24 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                       />
                     </div>
                   </div>
+                </div>
+
+                <div :if={@deployment_group.mode == :online} class="flex flex-col space-y-4">
+                  <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                    Deployed Apps
+                  </h2>
+
+                  <p class="text-gray-700">
+                    Deployment group agent keys for online deployments
+                  </p>
+
+                  <.live_component
+                    module={LivebookWeb.Hub.Teams.AppDeploymentListComponent}
+                    id="deployed-apps-list"
+                    hub={@hub}
+                    app_deployments={@app_deployments}
+                    deployment_group={@deployment_group}
+                  />
                 </div>
 
                 <div class="flex flex-col space-y-4">
