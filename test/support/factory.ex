@@ -61,7 +61,8 @@ defmodule Livebook.Factory do
       name: "FOO",
       mode: :offline,
       agent_keys: [],
-      secrets: []
+      secrets: [],
+      app_deployments: []
     }
   end
 
