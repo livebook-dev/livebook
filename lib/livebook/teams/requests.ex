@@ -4,7 +4,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
-  alias Livebook.Teams.{AgentKey, DeploymentGroup, Org}
+  alias Livebook.Teams.{AgentKey, AppDeployment, DeploymentGroup, Org}
 
   @doc """
   Send a request to Livebook Team API to create a new org.
@@ -217,6 +217,28 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
+  Send a request to Livebook Team API to deploy an app.
+  """
+  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def deploy_app(team, app_deployment) do
+    secret_key = Teams.derive_key(team.teams_key)
+
+    params = %{
+      filename: app_deployment.filename,
+      title: app_deployment.title,
+      slug: app_deployment.slug,
+      deployment_group_id: app_deployment.deployment_group_id,
+      sha: app_deployment.sha
+    }
+
+    with {:ok, content} <- FileSystem.File.read(app_deployment.file) do
+      encrypted_content = Teams.encrypt(content, secret_key)
+      upload("/api/v1/org/apps", encrypted_content, params, team)
+    end
+  end
+
+  @doc """
   Add requests errors to a `changeset` for the given `fields`.
   """
   def add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
@@ -259,6 +281,14 @@ defmodule Livebook.Teams.Requests do
   defp get(path, params \\ %{}) do
     build_req()
     |> request(method: :get, url: path, params: params)
+  end
+
+  defp upload(path, content, params, team) do
+    build_req()
+    |> add_team_auth(team)
+    |> Req.Request.put_header("content-length", "#{String.length(content)}")
+    |> request(method: :post, url: path, params: params, body: content)
+    |> dispatch_messages(team)
   end
 
   defp build_req() do

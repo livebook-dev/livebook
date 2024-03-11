@@ -4,7 +4,7 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams.{AgentKey, DeploymentGroup, Org, Requests}
+  alias Livebook.Teams.{AgentKey, AppDeployment, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
@@ -247,6 +247,21 @@ defmodule Livebook.Teams do
       deployment_group.agent_keys
     else
       []
+    end
+  end
+
+  def deploy_app(%Team{} = team, %Livebook.Session{} = session) do
+    data = Livebook.Session.get_data(session.pid)
+
+    with {:ok, app_deployment} <- AppDeployment.new(data),
+         {:ok, _} <- Requests.deploy_app(team, app_deployment) do
+      :ok
+    else
+      {:error, %{"errors" => _}} ->
+        {:error, "Something went wrong, try again later or please file a bug if it persists"}
+
+      any ->
+        any
     end
   end
 end
