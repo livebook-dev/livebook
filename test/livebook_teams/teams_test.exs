@@ -1,7 +1,8 @@
 defmodule Livebook.TeamsTest do
+  alias Livebook.FileSystem
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.Teams
+  alias Livebook.{Notebook, Teams, Utils}
   alias Livebook.Teams.Org
 
   describe "create_org/1" do
@@ -219,6 +220,38 @@ defmodule Livebook.TeamsTest do
                Teams.update_deployment_group(team, update_deployment_group)
 
       assert "can't be blank" in errors_on(changeset).name
+    end
+  end
+
+  describe "deploy_app/2" do
+    @tag :tmp_dir
+    test "deploys app to Teams from a session",
+         %{tmp_dir: tmp_dir, user: user, node: node} do
+      team = create_team_hub(user, node)
+      deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
+
+      {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+
+      local = FileSystem.Local.new()
+      path = Path.join(tmp_dir, "MyNotebook.livemd")
+      file = FileSystem.File.new(local, path)
+
+      notebook = %{
+        Notebook.new()
+        | app_settings: %{Notebook.AppSettings.new() | slug: Utils.random_short_id()},
+          name: "MyNotebook",
+          hub_id: team.id,
+          deployment_group_id: to_string(id)
+      }
+
+      session_id = Utils.random_id()
+      opts = [id: session_id, autosave_path: tmp_dir, file: file, notebook: notebook]
+      pid = start_supervised!({Livebook.Session, opts}, id: session_id)
+      Livebook.Session.save_sync(pid)
+      session = Livebook.Session.get_by_pid(pid)
+
+      assert Teams.deploy_app(team, session) == :ok
+      Livebook.Session.close(session.pid)
     end
   end
 end

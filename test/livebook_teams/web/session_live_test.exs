@@ -460,5 +460,40 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert render(view) =~ "No deployment groups available"
       refute has_element?(view, "#select_deployment_group_form")
     end
+
+    @tag :tmp_dir
+    test "deploys the app to livebook teams api",
+         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
+      team = create_team_hub(user, node)
+      Session.set_notebook_hub(session.pid, team.id)
+
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      file = Livebook.FileSystem.File.local(notebook_path)
+      Session.set_file(session.pid, file)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
+      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+
+      assert has_element?(view, "#select-deployment-type-form")
+
+      view
+      |> form("#select-deployment-type-form", %{deployment_type: "agent"})
+      |> render_change()
+
+      assert render(view) =~ "Deploy to Livebook Agent"
+
+      view
+      |> element("#deploy-livebook-agent-button")
+      |> render_click()
+
+      assert render(view) =~
+               "App deployment for #{slug} with title Untitled notebook created successfully"
+    end
   end
 end
