@@ -251,7 +251,10 @@ defmodule Livebook.TeamsServer do
           "MIX_ENV" => "livebook",
           "PORT" => to_string(app_port),
           "DEBUG" => System.get_env("TEAMS_DEBUG", "false"),
-          "LIVEBOOK_PROTO_PATH" => System.get_env("TEAMS_LIVEBOOK_PROTO_PATH")
+          "LIVEBOOK_PROTO_PATH" => System.get_env("TEAMS_LIVEBOOK_PROTO_PATH"),
+          "BUCKET_NAME" => System.get_env("TEAMS_BUCKET"),
+          "AWS_ACCESS_KEY_ID" => System.get_env("TEAMS_ACCESS_KEY_ID"),
+          "AWS_SECRET_ACCESS_KEY" => System.get_env("TEAMS_SECRET_ACCESS_KEY")
         },
         fn {_key, value} -> value not in ["", nil] end
       )
