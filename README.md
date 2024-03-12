@@ -367,7 +367,11 @@ collaborates on models, datasets, and applications.
 <br />
 
 <a href="https://www.tigrisdata.com/">
-  <img height="50" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+  <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://www.tigrisdata.com/docs/logo/dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="https://www.tigrisdata.com/docs/logo/light.png">
+   <img height="50" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+  </picture>
 </a>
 
 Tigris is a globally distributed S3-compatible object storage<br />
