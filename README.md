@@ -350,7 +350,11 @@ For Windows, run:
 ## Platinum sponsors
 
 <a href="https://fly.io">
-  <img height="130" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
+ <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://fly.io/public/images/brand/logo-inverted.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://fly.io/public/images/brand/logo.svg">
+    <img height="130" src="https://fly.io/public/images/brand/logo.svg" alt="Fly.io">
+  </picture>
 </a>
 
 Fly is a platform for running full stack apps and databases close to your users.
@@ -368,9 +372,9 @@ collaborates on models, datasets, and applications.
 
 <a href="https://www.tigrisdata.com/">
   <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://www.tigrisdata.com/docs/logo/dark.png">
-   <source media="(prefers-color-scheme: light)" srcset="https://www.tigrisdata.com/docs/logo/light.png">
-   <img height="50" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
+    <source media="(prefers-color-scheme: dark)" srcset="https://www.tigrisdata.com/docs/logo/dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://www.tigrisdata.com/docs/logo/light.png">
+    <img height="50" src="https://www.tigrisdata.com/docs/logo/light.png" alt="Tigris">
   </picture>
 </a>
 
