@@ -171,14 +171,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     end
 
     if socket.assigns.live_action == :app_settings_and_launch do
-      updated_socket =
-        deploy_app(
-          socket,
-          app_settings,
-          deployed_app_slug
-        )
-
-      {:noreply, push_patch(updated_socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+      {:noreply, deploy_app(socket, app_settings, deployed_app_slug)}
     else
       {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
     end
@@ -187,7 +180,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   def deploy_app(socket, app_settings, deployed_app_slug) do
     on_confirm = fn socket ->
       Livebook.Session.deploy_app(socket.assigns.session.pid)
-      socket
+      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")
     end
 
     slug = app_settings.slug
