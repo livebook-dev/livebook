@@ -135,7 +135,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
             <.button type="submit" disabled={not @changeset.valid?}>Save</.button>
           <% end %>
           <%= if @live_action == :app_settings_and_launch do %>
-            <.button phx-click="deploy_app" disabled={not @changeset.valid?}>Launch</.button>
+            <.button disabled={not @changeset.valid?}>Launch</.button>
           <% end %>
           <.button color="gray" outlined type="reset" name="reset">
             Reset
