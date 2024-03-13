@@ -13,8 +13,7 @@ defmodule LivebookWeb.FileSelectComponent do
   #
   #   * `:extnames` - a list of file extensions that should be shown
   #
-  #   * `:submit_event` - the process event sent on form submission,
-  #     use `nil` for no action
+  #   * `:on_submit` - `%JS{}` to execute on form submission
   #
   #   * `:target` - either a pid or `{component_module, id}` to send
   #     events to
@@ -41,7 +40,7 @@ defmodule LivebookWeb.FileSelectComponent do
        # Component default attribute values
        inner_block: nil,
        file_system_select_disabled: false,
-       submit_event: nil,
+       on_submit: nil,
        # State
        current_dir: nil,
        deleting_file: nil,
@@ -100,14 +99,14 @@ defmodule LivebookWeb.FileSelectComponent do
             myself={@myself}
           />
           <form
+            id={"#{@id}-path-form"}
             class="grow"
-            phx-change="set_path"
-            phx-submit={if @submit_event, do: "submit"}
-            phx-nosubmit={!@submit_event}
-            phx-target={@myself}
+            phx-change={JS.push("set_path", target: @myself)}
+            phx-submit={@on_submit}
+            phx-nosubmit={@on_submit == nil}
           >
             <.text_field
-              id={"#{@id}-input-path"}
+              id={"#{@id}-path-input"}
               aria-label="file path"
               phx-hook="FocusOnUpdate"
               name="path"
@@ -514,14 +513,6 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     send_event(socket, {:set_file, file, info})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("submit", %{}, socket) do
-    if submit_event = socket.assigns.submit_event do
-      send_event(socket, submit_event)
-    end
 
     {:noreply, socket}
   end

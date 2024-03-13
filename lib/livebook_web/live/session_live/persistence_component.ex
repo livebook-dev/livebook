@@ -32,10 +32,6 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
      |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
   end
 
-  def update(%{event: :confirm_file}, socket) do
-    {:ok, save(socket)}
-  end
-
   def update(assigns, socket) do
     {file, assigns} = Map.pop!(assigns, :file)
     {persist_outputs, assigns} = Map.pop!(assigns, :persist_outputs)
@@ -80,7 +76,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             hub={@hub}
             extnames={[LiveMarkdown.extension()]}
             running_files={@running_files}
-            submit_event={:confirm_file}
+            on_submit={JS.push("save", target: @myself)}
             target={{__MODULE__, @id}}
           />
         </div>
@@ -181,10 +177,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
     Session.save_sync(assigns.session.pid)
 
-    # We can't do push_patch from update/2, so we ask the LV to do so
-    send(self(), {:push_patch, return_to(assigns)})
-
-    socket
+    push_patch(socket, to: return_to(assigns))
   end
 
   defp return_to(assigns) do

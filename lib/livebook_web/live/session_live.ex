@@ -867,15 +867,6 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:error, error}, socket) do
     message = error |> to_string() |> upcase_first()
     socket = put_flash(socket, :error, message)
-
-    # If there is an immediate patch, we apply it to keep the flash
-    socket =
-      receive do
-        {:push_patch, to} -> push_patch(socket, to: to)
-      after
-        0 -> socket
-      end
-
     {:noreply, socket}
   end
 
@@ -1012,10 +1003,6 @@ defmodule LivebookWeb.SessionLive do
       nil ->
         {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
     end
-  end
-
-  def handle_info({:push_patch, to}, socket) do
-    {:noreply, push_patch(socket, to: to)}
   end
 
   def handle_info({:put_flash, kind, message}, socket) do
