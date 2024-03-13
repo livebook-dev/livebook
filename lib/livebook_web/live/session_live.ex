@@ -83,8 +83,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           select_secret_ref: nil,
-           select_secret_options: nil,
+           action_assigns: %{},
            allowed_uri_schemes: Livebook.Config.allowed_uri_schemes(),
            starred_files: Livebook.NotebookManager.starred_notebooks() |> starred_files()
          )
@@ -127,35 +126,60 @@ defmodule LivebookWeb.SessionLive do
   defdelegate render(assigns), to: LivebookWeb.SessionLive.Render
 
   @impl true
-  def handle_params(%{"cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action == :cell_settings do
+  def handle_params(params, url, socket) do
+    {socket, action_assigns} = handle_params(socket.assigns.live_action, params, url, socket)
+    socket = assign(socket, :action_assigns, action_assigns)
+    {:noreply, socket}
+  end
+
+  defp handle_params(:cell_settings, %{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
-    {:noreply, assign(socket, cell: cell)}
+    {socket, %{cell: cell}}
   end
 
-  def handle_params(%{}, _url, socket)
-      when socket.assigns.live_action == :insert_image and
-             not is_map_key(socket.assigns, :insert_image_metadata) do
-    {:noreply, redirect_to_self(socket)}
-  end
-
-  def handle_params(%{}, _url, socket)
-      when socket.assigns.live_action == :insert_file and
-             not is_map_key(socket.assigns, :insert_file_metadata) do
-    {:noreply, redirect_to_self(socket)}
-  end
-
-  def handle_params(%{"name" => name}, _url, socket)
-      when socket.assigns.live_action == :rename_file_entry do
-    if file_entry = find_file_entry(socket, name) do
-      {:noreply, assign(socket, renaming_file_entry: file_entry)}
-    else
-      {:noreply, redirect_to_self(socket)}
+  defp handle_params(:insert_image, %{}, _url, socket) do
+    case pop_in(socket.assigns[:insert_image_metadata]) do
+      {nil, socket} -> {redirect_to_self(socket), %{}}
+      {metadata, socket} -> {socket, %{insert_image_metadata: metadata}}
     end
   end
 
-  def handle_params(%{"path_parts" => path_parts}, requested_url, socket)
-      when socket.assigns.live_action == :catch_all do
+  defp handle_params(:insert_file, %{}, _url, socket) do
+    case pop_in(socket.assigns[:insert_file_metadata]) do
+      {nil, socket} -> {redirect_to_self(socket), %{}}
+      {metadata, socket} -> {socket, %{insert_file_metadata: metadata}}
+    end
+  end
+
+  defp handle_params(:rename_file_entry, %{"name" => name}, _url, socket) do
+    if file_entry = find_file_entry(socket, name) do
+      {socket, %{renaming_file_entry: file_entry}}
+    else
+      {redirect_to_self(socket), %{}}
+    end
+  end
+
+  defp handle_params(:export, %{"tab" => tab}, _url, socket) do
+    any_stale_cell? = any_stale_cell?(socket.private.data)
+    {socket, %{tab: tab, any_stale_cell?: any_stale_cell?}}
+  end
+
+  defp handle_params(:add_file_entry, %{"tab" => tab}, _url, socket) do
+    {file_drop_metadata, socket} = pop_in(socket.assigns[:file_drop_metadata])
+    {socket, %{tab: tab, file_drop_metadata: file_drop_metadata}}
+  end
+
+  defp handle_params(:secrets, _params, _url, socket) do
+    {select_secret_metadata, socket} = pop_in(socket.assigns[:select_secret_metadata])
+    {socket, %{select_secret_metadata: select_secret_metadata}}
+  end
+
+  defp handle_params(live_action, params, _url, socket)
+       when live_action in [:app_settings, :file_settings] do
+    {socket, %{context: params["context"]}}
+  end
+
+  defp handle_params(:catch_all, %{"path_parts" => path_parts}, requested_url, socket) do
     path_parts =
       Enum.map(path_parts, fn
         "__parent__" -> ".."
@@ -163,46 +187,12 @@ defmodule LivebookWeb.SessionLive do
       end)
 
     path = Path.join(path_parts)
-    {:noreply, handle_relative_path(socket, path, requested_url)}
+    socket = handle_relative_path(socket, path, requested_url)
+    {socket, %{}}
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket) when socket.assigns.live_action == :export do
-    any_stale_cell? = any_stale_cell?(socket.private.data)
-    {:noreply, assign(socket, tab: tab, any_stale_cell?: any_stale_cell?)}
-  end
-
-  def handle_params(%{"tab" => tab} = params, _url, socket)
-      when socket.assigns.live_action == :add_file_entry do
-    file_drop_metadata =
-      if(params["file_drop"] == "true", do: socket.assigns[:file_drop_metadata])
-
-    {:noreply, assign(socket, tab: tab, file_drop_metadata: file_drop_metadata)}
-  end
-
-  def handle_params(params, _url, socket)
-      when socket.assigns.live_action == :secrets do
-    socket =
-      if params["preselect_name"] do
-        assign(socket, prefill_secret_name: params["preselect_name"])
-      else
-        # Erase any previously stored reference
-        assign(socket,
-          prefill_secret_name: params["secret_name"],
-          select_secret_ref: nil,
-          select_secret_options: nil
-        )
-      end
-
-    {:noreply, socket}
-  end
-
-  def handle_params(params, _url, socket)
-      when socket.assigns.live_action in [:app_settings, :file_settings] do
-    {:noreply, assign(socket, route_params: Map.take(params, ["context"]))}
-  end
-
-  def handle_params(_params, _url, socket) do
-    {:noreply, socket}
+  defp handle_params(_live_action, _params, _url, socket) do
+    {socket, %{}}
   end
 
   @impl true
@@ -695,14 +685,14 @@ defmodule LivebookWeb.SessionLive do
       ) do
     socket =
       assign(socket,
-        select_secret_ref: select_secret_ref,
-        select_secret_options: select_secret_options
+        select_secret_metadata: %{
+          ref: select_secret_ref,
+          options: select_secret_options,
+          preselect_name: preselect_name
+        }
       )
 
-    {:noreply,
-     push_patch(socket,
-       to: ~p"/sessions/#{socket.assigns.session.id}/secrets?preselect_name=#{preselect_name}"
-     )}
+    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/secrets")}
   end
 
   def handle_event("select_hub", %{"id" => id}, socket) do
@@ -792,7 +782,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("insert_file_action", %{"idx" => idx}, socket) do
     %{section_id: section_id, cell_id: cell_id, file_entry: file_entry, handlers: handlers} =
-      socket.assigns.insert_file_metadata
+      socket.assigns.action_assigns.insert_file_metadata
 
     handler = Enum.fetch!(handlers, idx)
     source = String.replace(handler.definition.source, "{{NAME}}", file_entry.name)
@@ -834,9 +824,7 @@ defmodule LivebookWeb.SessionLive do
       {:noreply,
        socket
        |> assign(file_drop_metadata: %{section_id: section_id, cell_id: cell_id})
-       |> push_patch(
-         to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload?file_drop=true"
-       )
+       |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
        |> push_event("finish_file_drop", %{})}
     else
       reason = "To see the available options, you need a connected runtime."
@@ -847,8 +835,7 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("handle_file_drop", %{}, socket) do
     {:noreply,
      socket
-     |> assign(file_drop_metadata: nil)
-     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload?file_drop=true")
+     |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
      |> push_event("finish_file_drop", %{})}
   end
 
@@ -1004,7 +991,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:file_entry_uploaded, file_entry}, socket) do
-    case socket.assigns.file_drop_metadata do
+    case socket.assigns.action_assigns[:file_drop_metadata] do
       %{section_id: section_id, cell_id: cell_id} ->
         {:noreply,
          socket
@@ -1019,7 +1006,7 @@ defmodule LivebookWeb.SessionLive do
          |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
 
       nil ->
-        {:noreply, socket}
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
     end
   end
 

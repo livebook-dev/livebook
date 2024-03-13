@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
-    secret_name = socket.assigns[:prefill_secret_name]
+    secret_name = socket.assigns.select_secret_metadata[:preselect_name]
 
     socket =
       socket
@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         hub={@hub}
       />
       <div class="flex flex-columns gap-4">
-        <div :if={@select_secret_ref} class="basis-1/2 grow-0 pr-4 border-r">
+        <div :if={@select_secret_metadata} class="basis-1/2 grow-0 pr-4 border-r">
           <div class="flex flex-col space-y-4">
             <p class="text-gray-800">
               Choose a secret
@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 secret_name={secret.name}
                 hub?={false}
                 stored="Session"
-                active={secret.name == @prefill_secret_name}
+                active={secret.name == @select_secret_metadata.preselect_name}
                 target={@myself}
               />
               <.secret_with_badge
@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 hub?={true}
                 stored={hub_label(@hub)}
                 active={
-                  secret.name == @prefill_secret_name and
+                  secret.name == @select_secret_metadata.preselect_name and
                     Session.Data.secret_toggled?(secret, @secrets)
                 }
                 target={@myself}
@@ -98,13 +98,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
-            <p :if={@select_secret_ref} class="text-gray-700">
+            <p :if={@select_secret_metadata} class="text-gray-700">
               Add new secret
             </p>
             <.text_field
               field={f[:name]}
               label="Name (alphanumeric and underscore)"
-              autofocus={@prefill_secret_name == nil}
+              autofocus={@select_secret_metadata[:preselect_name] == nil}
               spellcheck="false"
               autocomplete="off"
               phx-debounce
@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <.password_field
               field={f[:value]}
               label="Value"
-              autofocus={@prefill_secret_name != nil}
+              autofocus={@select_secret_metadata[:preselect_name] != nil}
               spellcheck="false"
               autocomplete="off"
               phx-debounce
@@ -258,14 +258,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
      |> push_secret_selected(secret_name)}
   end
 
-  defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
+  defp push_secret_selected(%{assigns: %{select_secret_metadata: nil}} = socket, _), do: socket
 
-  defp push_secret_selected(%{assigns: %{select_secret_ref: ref}} = socket, secret_name) do
+  defp push_secret_selected(
+         %{assigns: %{select_secret_metadata: %{ref: ref}}} = socket,
+         secret_name
+       ) do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
-  defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
+  defp title(%{assigns: %{select_secret_metadata: nil}}), do: "Add secret"
+  defp title(%{assigns: %{select_secret_metadata: %{options: %{"title" => title}}}}), do: title
   defp title(_), do: "Select secret"
 
   defp set_secret(socket, %Secret{hub_id: nil} = secret) do
