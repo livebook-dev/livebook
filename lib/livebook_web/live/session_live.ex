@@ -169,9 +169,11 @@ defmodule LivebookWeb.SessionLive do
     {socket, %{tab: tab, file_drop_metadata: file_drop_metadata}}
   end
 
-  defp handle_params(:secrets, _params, _url, socket) do
+  defp handle_params(:secrets, params, _url, socket) do
     {select_secret_metadata, socket} = pop_in(socket.assigns[:select_secret_metadata])
-    {socket, %{select_secret_metadata: select_secret_metadata}}
+
+    {socket,
+     %{select_secret_metadata: select_secret_metadata, prefill_secret_name: params["secret_name"]}}
   end
 
   defp handle_params(live_action, params, _url, socket)
@@ -687,12 +689,14 @@ defmodule LivebookWeb.SessionLive do
       assign(socket,
         select_secret_metadata: %{
           ref: select_secret_ref,
-          options: select_secret_options,
-          preselect_name: preselect_name
+          options: select_secret_options
         }
       )
 
-    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/secrets")}
+    {:noreply,
+     push_patch(socket,
+       to: ~p"/sessions/#{socket.assigns.session.id}/secrets?secret_name=#{preselect_name}"
+     )}
   end
 
   def handle_event("select_hub", %{"id" => id}, socket) do

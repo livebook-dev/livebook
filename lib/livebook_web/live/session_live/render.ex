@@ -142,7 +142,7 @@ defmodule LivebookWeb.SessionLive.Render do
         module={LivebookWeb.SessionLive.RenameFileEntryComponent}
         id="rename-file-entry"
         session={@session}
-        file_entry={@renaming_file_entry}
+        file_entry={@action_assigns.renaming_file_entry}
       />
     </.modal>
 
@@ -259,6 +259,7 @@ defmodule LivebookWeb.SessionLive.Render do
         hub_secrets={@data_view.hub_secrets}
         hub={@data_view.hub}
         select_secret_metadata={@action_assigns.select_secret_metadata}
+        prefill_secret_name={@action_assigns.prefill_secret_name}
         return_to={@self_path}
       />
     </.modal>

@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
-    secret_name = socket.assigns.select_secret_metadata[:preselect_name]
+    secret_name = socket.assigns.prefill_secret_name
 
     socket =
       socket
@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 secret_name={secret.name}
                 hub?={false}
                 stored="Session"
-                active={secret.name == @select_secret_metadata.preselect_name}
+                active={secret.name == @prefill_secret_name}
                 target={@myself}
               />
               <.secret_with_badge
@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 hub?={true}
                 stored={hub_label(@hub)}
                 active={
-                  secret.name == @select_secret_metadata.preselect_name and
+                  secret.name == @prefill_secret_name and
                     Session.Data.secret_toggled?(secret, @secrets)
                 }
                 target={@myself}
@@ -104,7 +104,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <.text_field
               field={f[:name]}
               label="Name (alphanumeric and underscore)"
-              autofocus={@select_secret_metadata[:preselect_name] == nil}
+              autofocus={@prefill_secret_name == nil}
               spellcheck="false"
               autocomplete="off"
               phx-debounce
@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <.password_field
               field={f[:value]}
               label="Value"
-              autofocus={@select_secret_metadata[:preselect_name] != nil}
+              autofocus={@prefill_secret_name != nil}
               spellcheck="false"
               autocomplete="off"
               phx-debounce
