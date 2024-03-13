@@ -78,7 +78,7 @@ defmodule LivebookWeb.SessionLive.Render do
     </.modal>
 
     <.modal
-      :if={@live_action == :app_settings || @live_action == :app_settings_and_launch}
+      :if={@live_action in [:app_settings, :app_settings_and_launch]}
       id="app-settings-modal"
       show
       width={:medium}
