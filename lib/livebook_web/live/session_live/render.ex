@@ -72,13 +72,14 @@ defmodule LivebookWeb.SessionLive.Render do
         session={@session}
         file={@data_view.file}
         hub={@data_view.hub}
+        context={@route_params["context"]}
         persist_outputs={@data_view.persist_outputs}
         autosave_interval_s={@data_view.autosave_interval_s}
       />
     </.modal>
 
     <.modal
-      :if={@live_action in [:app_settings, :app_settings_and_launch]}
+      :if={@live_action == :app_settings}
       id="app-settings-modal"
       show
       width={:medium}
@@ -89,7 +90,7 @@ defmodule LivebookWeb.SessionLive.Render do
         id="app-settings"
         session={@session}
         settings={@data_view.app_settings}
-        live_action={@live_action}
+        context={@route_params["context"]}
         deployed_app_slug={@data_view.deployed_app_slug}
       />
     </.modal>

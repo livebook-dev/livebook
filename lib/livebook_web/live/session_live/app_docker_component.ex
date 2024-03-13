@@ -85,7 +85,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       <p class="text-gray-700">
         To deploy this app, make sure to save the notebook first.
       </p>
-      <.link class="text-blue-600 font-medium" patch={~p"/sessions/#{@session.id}/settings/file"}>
+      <.link
+        class="text-blue-600 font-medium"
+        patch={~p"/sessions/#{@session.id}/settings/file?context=app-docker"}
+      >
         <span>Save</span>
         <.remix_icon icon="arrow-right-line" />
       </.link>
@@ -99,7 +102,10 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       <p class="text-gray-700">
         To deploy this app, make sure to specify valid settings.
       </p>
-      <.link class="text-blue-600 font-medium" patch={~p"/sessions/#{@session.id}/settings/app"}>
+      <.link
+        class="text-blue-600 font-medium"
+        patch={~p"/sessions/#{@session.id}/settings/app?context=app-docker"}
+      >
         <span>Configure</span>
         <.remix_icon icon="arrow-right-line" />
       </.link>
