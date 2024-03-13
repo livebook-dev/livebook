@@ -148,8 +148,6 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUrlComponent do
 
   defp add_file_entry(socket, file_entry) do
     Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-    # We can't do push_patch from update/2, so we ask the LV to do so
-    send(self(), {:push_patch, ~p"/sessions/#{socket.assigns.session.id}"})
-    socket
+    push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")
   end
 end

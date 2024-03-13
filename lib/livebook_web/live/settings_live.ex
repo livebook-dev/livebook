@@ -206,7 +206,7 @@ defmodule LivebookWeb.SettingsLive do
         file={@state.file}
         extnames={[]}
         running_files={[]}
-        submit_event={:set_autosave_path}
+        on_submit={JS.push("set_autosave_path")}
         file_system_select_disabled={true}
         target={self()}
       >
@@ -326,10 +326,6 @@ defmodule LivebookWeb.SettingsLive do
   @impl true
   def handle_info({:set_file, file, _info}, socket) do
     {:noreply, update(socket, :autosave_path_state, &%{&1 | file: file})}
-  end
-
-  def handle_info(:set_autosave_path, socket) do
-    handle_event("set_autosave_path", %{}, socket)
   end
 
   def handle_info({:env_var_set, env_var}, socket) do

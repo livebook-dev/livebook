@@ -941,7 +941,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
@@ -971,7 +971,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
@@ -1832,7 +1832,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       # Validations
@@ -1862,7 +1862,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/add-file/storage")
 
       view
-      |> element(~s{form[phx-change="set_path"]})
+      |> element(~s{form[id*="path-form"]})
       |> render_change(%{path: path})
 
       view
