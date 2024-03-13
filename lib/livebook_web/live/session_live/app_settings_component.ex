@@ -24,12 +24,12 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     <div class="p-6 max-w-4xl flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
-        <%= if @live_action == :app_settings_and_launch do %>
-          <span class="mt-1 block font-normal text-xs text-blue-500">
-            You must configure your app before launch it.
-          </span>
-        <% end %>
       </h3>
+      <%= if @live_action == :app_settings_and_launch do %>
+        <.message_box kind={:info}>
+          You must configure your app before launch it.
+        </.message_box>
+      <% end %>
       <.form
         :let={f}
         for={@changeset}
