@@ -63,11 +63,26 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
 
         <div class="mt-2 flex flex-col gap-2">
           <%!-- TODO: Livebook Teams flow --%>
-          <.button color="blue" patch={~p"/sessions/#{@session.id}/app-docker"}>
+          <.button
+            color="blue"
+            patch={
+              if Livebook.Notebook.AppSettings.valid?(@settings),
+                do: ~p"/sessions/#{@session.id}/app-docker",
+                else: ~p"/sessions/#{@session.id}/settings/app?context=app-docker"
+            }
+          >
             <.remix_icon icon="rocket-line" /> Deploy with Livebook Teams
           </.button>
 
-          <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/app-docker"}>
+          <.button
+            color="gray"
+            outlined
+            patch={
+              if Livebook.Notebook.AppSettings.valid?(@settings),
+                do: ~p"/sessions/#{@session.id}/app-docker",
+                else: ~p"/sessions/#{@session.id}/settings/app?context=app-docker"
+            }
+          >
             <.remix_icon icon="ship-line" /> Manual Docker deployment
           </.button>
         </div>

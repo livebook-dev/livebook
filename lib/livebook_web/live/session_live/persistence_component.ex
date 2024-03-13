@@ -182,9 +182,17 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     Session.save_sync(assigns.session.pid)
 
     # We can't do push_patch from update/2, so we ask the LV to do so
-    send(self(), {:push_patch, ~p"/sessions/#{assigns.session.id}"})
+    send(self(), {:push_patch, return_to(assigns)})
 
     socket
+  end
+
+  defp return_to(assigns) do
+    if context = assigns.context do
+      ~p"/sessions/#{assigns.session.id}/#{context}"
+    else
+      ~p"/sessions/#{assigns.session.id}"
+    end
   end
 
   defp parse_optional_integer(string) do

@@ -25,11 +25,13 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
       </h3>
-      <%= if @live_action == :app_settings_and_launch do %>
-        <.message_box kind={:info}>
-          You must configure your app before launch it.
-        </.message_box>
-      <% end %>
+      <.message_box :if={@context == "preview"} kind={:info}>
+        You must configure your app before previewing it.
+      </.message_box>
+      <.message_box :if={@context && @context != "preview"} kind={:info}>
+        You must configure your app before deploying it.
+      </.message_box>
+
       <.form
         :let={f}
         for={@changeset}
@@ -131,12 +133,10 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <%= if @live_action == :app_settings do %>
-            <.button type="submit" disabled={not @changeset.valid?}>Save</.button>
-          <% end %>
-          <%= if @live_action == :app_settings_and_launch do %>
-            <.button disabled={not @changeset.valid?}>Launch</.button>
-          <% end %>
+          <.button disabled={not @changeset.valid?}>
+            <%= if @context == "preview", do: "Launch", else: "Save" %>
+          </.button>
+
           <.button color="gray" outlined type="reset" name="reset">
             Reset
           </.button>
@@ -170,14 +170,19 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
       Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
     end
 
-    if socket.assigns.live_action == :app_settings_and_launch do
-      {:noreply, deploy_app(socket, app_settings, deployed_app_slug)}
-    else
-      {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    case socket.assigns.context do
+      "preview" ->
+        {:noreply, preview_app(socket, app_settings, deployed_app_slug)}
+
+      redirect when is_binary(redirect) ->
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/#{redirect}")}
+
+      nil ->
+        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
     end
   end
 
-  def deploy_app(socket, app_settings, deployed_app_slug) do
+  def preview_app(socket, app_settings, deployed_app_slug) do
     on_confirm = fn socket ->
       Livebook.Session.deploy_app(socket.assigns.session.pid)
       push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")

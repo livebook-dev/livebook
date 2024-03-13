@@ -196,6 +196,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_params(params, _url, socket)
+      when socket.assigns.live_action in [:app_settings, :file_settings] do
+    {:noreply, assign(socket, route_params: Map.take(params, ["context"]))}
+  end
+
   def handle_params(_params, _url, socket) do
     {:noreply, socket}
   end
@@ -579,14 +584,16 @@ defmodule LivebookWeb.SessionLive do
 
     if Livebook.Notebook.AppSettings.valid?(app_settings) do
       {:noreply,
-       LivebookWeb.SessionLive.AppSettingsComponent.deploy_app(
+       LivebookWeb.SessionLive.AppSettingsComponent.preview_app(
          socket,
          app_settings,
          data.deployed_app_slug
        )}
     else
       {:noreply,
-       push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/launch-app")}
+       push_patch(socket,
+         to: ~p"/sessions/#{socket.assigns.session.id}/settings/app?context=preview"
+       )}
     end
   end
 
