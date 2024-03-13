@@ -98,28 +98,13 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           </div>
 
           <div class={["grid gap-2", @app && "grid-cols-2"]}>
-            <span
-              class={[
-                "flex flex-col",
-                not Livebook.Notebook.AppSettings.valid?(@settings) && "tooltip top"
-              ]}
-              data-tooltip="You must configure the app to preview it"
-            >
+            <span class="flex flex-col">
               <%= if @app do %>
-                <.button
-                  color="gray"
-                  outlined
-                  phx-click="deploy_app"
-                  disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
-                >
+                <.button color="gray" outlined phx-click="deploy_app">
                   <.remix_icon icon="slideshow-4-line" /> Relaunch
                 </.button>
               <% else %>
-                <.button
-                  color="blue"
-                  phx-click="deploy_app"
-                  disabled={not Livebook.Notebook.AppSettings.valid?(@settings)}
-                >
+                <.button color="blue" phx-click="deploy_app">
                   <.remix_icon icon="slideshow-4-line" /> Launch preview
                 </.button>
               <% end %>

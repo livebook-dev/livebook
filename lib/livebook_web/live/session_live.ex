@@ -573,29 +573,21 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("deploy_app", %{}, socket) do
-    on_confirm = fn socket ->
-      Livebook.Session.deploy_app(socket.assigns.session.pid)
-      socket
-    end
-
+  def handle_event("deploy_app", _, socket) do
     data = socket.private.data
-    slug = data.notebook.app_settings.slug
-    slug_taken? = slug != data.deployed_app_slug and Livebook.Apps.exists?(slug)
+    app_settings = data.notebook.app_settings
 
-    socket =
-      if slug_taken? do
-        confirm(socket, on_confirm,
-          title: "Deploy app",
-          description:
-            "An app with this slug already exists, do you want to deploy a new version?",
-          confirm_text: "Replace"
-        )
-      else
-        on_confirm.(socket)
-      end
-
-    {:noreply, socket}
+    if Livebook.Notebook.AppSettings.valid?(app_settings) do
+      {:noreply,
+       LivebookWeb.SessionLive.AppSettingsComponent.deploy_app(
+         socket,
+         app_settings,
+         data.deployed_app_slug
+       )}
+    else
+      {:noreply,
+       push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/launch-app")}
+    end
   end
 
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do

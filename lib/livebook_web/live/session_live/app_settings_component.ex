@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Notebook.AppSettings
+  import LivebookWeb.Confirm
 
   @impl true
   def update(assigns, socket) do
@@ -23,6 +24,11 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     <div class="p-6 max-w-4xl flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         App settings
+        <%= if @live_action == :app_settings_and_launch do %>
+          <span class="mt-1 block font-normal text-xs text-blue-500">
+            You must configure your app before launch it.
+          </span>
+        <% end %>
       </h3>
       <.form
         :let={f}
@@ -125,9 +131,12 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
           <% end %>
         </div>
         <div class="mt-8 flex space-x-2">
-          <.button type="submit" disabled={not @changeset.valid?}>
-            <span>Save</span>
-          </.button>
+          <%= if @live_action == :app_settings do %>
+            <.button type="submit" disabled={not @changeset.valid?}>Save</.button>
+          <% end %>
+          <%= if @live_action == :app_settings_and_launch do %>
+            <.button phx-click="deploy_app" disabled={not @changeset.valid?}>Launch</.button>
+          <% end %>
           <.button color="gray" outlined type="reset" name="reset">
             Reset
           </.button>
@@ -154,10 +163,44 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
   end
 
   def handle_event("save", %{"app_settings" => params}, socket) do
-    with {:ok, settings} <- AppSettings.update(socket.assigns.settings, params) do
+    app_settings = socket.assigns.settings
+    deployed_app_slug = socket.assigns.deployed_app_slug
+
+    with {:ok, settings} <- AppSettings.update(app_settings, params) do
       Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
     end
 
-    {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    if socket.assigns.live_action == :app_settings_and_launch do
+      updated_socket =
+        deploy_app(
+          socket,
+          app_settings,
+          deployed_app_slug
+        )
+
+      {:noreply, push_patch(updated_socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    else
+      {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+    end
+  end
+
+  def deploy_app(socket, app_settings, deployed_app_slug) do
+    on_confirm = fn socket ->
+      Livebook.Session.deploy_app(socket.assigns.session.pid)
+      socket
+    end
+
+    slug = app_settings.slug
+    slug_taken? = slug != deployed_app_slug and Livebook.Apps.exists?(slug)
+
+    if slug_taken? do
+      confirm(socket, on_confirm,
+        title: "Deploy app",
+        description: "An app with this slug already exists, do you want to deploy a new version?",
+        confirm_text: "Replace"
+      )
+    else
+      on_confirm.(socket)
+    end
   end
 end
