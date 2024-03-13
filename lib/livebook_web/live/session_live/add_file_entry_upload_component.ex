@@ -120,7 +120,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
         file_entry = %{name: data.name, type: :attachment}
         Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
         send(self(), {:file_entry_uploaded, file_entry})
-        {:noreply, push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}")}
+        {:noreply, socket}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}

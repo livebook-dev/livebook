@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.Render do
         session={@session}
         file={@data_view.file}
         hub={@data_view.hub}
-        context={@route_params["context"]}
+        context={@action_assigns.context}
         persist_outputs={@data_view.persist_outputs}
         autosave_interval_s={@data_view.autosave_interval_s}
       />
@@ -90,7 +90,7 @@ defmodule LivebookWeb.SessionLive.Render do
         id="app-settings"
         session={@session}
         settings={@data_view.app_settings}
-        context={@route_params["context"]}
+        context={@action_assigns.context}
         deployed_app_slug={@data_view.deployed_app_slug}
       />
     </.modal>
@@ -127,7 +127,7 @@ defmodule LivebookWeb.SessionLive.Render do
         session={@session}
         hub={@data_view.hub}
         file_entries={@data_view.file_entries}
-        tab={@tab}
+        tab={@action_assigns.tab}
       />
     </.modal>
 
@@ -142,7 +142,7 @@ defmodule LivebookWeb.SessionLive.Render do
         module={LivebookWeb.SessionLive.RenameFileEntryComponent}
         id="rename-file-entry"
         session={@session}
-        file_entry={@renaming_file_entry}
+        file_entry={@action_assigns.renaming_file_entry}
       />
     </.modal>
 
@@ -168,11 +168,11 @@ defmodule LivebookWeb.SessionLive.Render do
       patch={@self_path}
     >
       <.live_component
-        module={settings_component_for(@cell)}
+        module={settings_component_for(@action_assigns.cell)}
         id="cell-settings"
         session={@session}
         return_to={@self_path}
-        cell={@cell}
+        cell={@action_assigns.cell}
       />
     </.modal>
 
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SessionLive.Render do
         id="insert-image"
         session={@session}
         return_to={@self_path}
-        insert_image_metadata={@insert_image_metadata}
+        insert_image_metadata={@action_assigns.insert_image_metadata}
       />
     </.modal>
 
@@ -204,7 +204,7 @@ defmodule LivebookWeb.SessionLive.Render do
         id="insert-file"
         session={@session}
         return_to={@self_path}
-        insert_file_metadata={@insert_file_metadata}
+        insert_file_metadata={@action_assigns.insert_file_metadata}
       />
     </.modal>
 
@@ -223,8 +223,8 @@ defmodule LivebookWeb.SessionLive.Render do
         module={LivebookWeb.SessionLive.ExportComponent}
         id="export"
         session={@session}
-        tab={@tab}
-        any_stale_cell?={@any_stale_cell?}
+        tab={@action_assigns.tab}
+        any_stale_cell?={@action_assigns.any_stale_cell?}
       />
     </.modal>
 
@@ -248,7 +248,7 @@ defmodule LivebookWeb.SessionLive.Render do
       :if={@live_action == :secrets}
       id="secrets-modal"
       show
-      width={if(@select_secret_ref, do: :large, else: :medium)}
+      width={if(@action_assigns.select_secret_metadata, do: :large, else: :medium)}
       patch={@self_path}
     >
       <.live_component
@@ -258,9 +258,8 @@ defmodule LivebookWeb.SessionLive.Render do
         secrets={@data_view.secrets}
         hub_secrets={@data_view.hub_secrets}
         hub={@data_view.hub}
-        prefill_secret_name={@prefill_secret_name}
-        select_secret_ref={@select_secret_ref}
-        select_secret_options={@select_secret_options}
+        select_secret_metadata={@action_assigns.select_secret_metadata}
+        prefill_secret_name={@action_assigns.prefill_secret_name}
         return_to={@self_path}
       />
     </.modal>
