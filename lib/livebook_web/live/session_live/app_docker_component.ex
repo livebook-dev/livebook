@@ -22,27 +22,17 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         Enum.find(deployment_groups, &(&1.id == assigns.deployment_group_id))
       end
 
-    app_deployment =
-      if deployment_group do
-        Enum.find(deployment_group.app_deployments, &(&1.slug == assigns.app_settings.slug))
-      end
-
     socket =
       socket
       |> assign(settings_valid?: Livebook.Notebook.AppSettings.valid?(socket.assigns.settings))
       |> assign(
         hub_secrets: Hubs.get_secrets(assigns.hub),
         hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
-        app_deployment: app_deployment,
         deployment_groups: deployment_groups,
         deployment_group: deployment_group,
         deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
         deployment_group_id: assigns.deployment_group_id
       )
-      |> assign_new(:deployment_type, fn -> assigns[:deployment_type] || :dockerfile end)
-      |> assign_new(:deployment_type_form, fn ->
-        %{"deployment_type" => assigns[:deployment_type] || :dockerfile}
-      end)
       |> assign_new(:message_kind, fn -> :info end)
       |> assign_new(:message, fn -> nil end)
 
@@ -83,7 +73,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         file={@file}
         settings_valid?={@settings_valid?}
         hub={@hub}
-        app_deployment={@app_deployment}
         deployment_group={@deployment_group}
         deployment_groups={@deployment_groups}
         deployment_group_form={@deployment_group_form}
@@ -94,8 +83,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         warnings={@warnings}
         message_kind={@message_kind}
         message={@message}
-        deployment_type={@deployment_type}
-        deployment_type_form={@deployment_type_form}
         myself={@myself}
       />
     </div>
@@ -186,31 +173,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         </.message_box>
       </div>
 
-      <div class="flex flex-col space-y-4">
-        <.form
-          for={@deployment_type_form}
-          phx-change="select_deployment_type"
-          phx-target={@myself}
-          id="select-deployment-type-form"
-        >
-          <.radio_field
-            name="deployment_type"
-            field={@deployment_type_form[:deployment_type]}
-            value={@deployment_type}
-            label="Deployment type"
-            options={deployment_type_options(@deployment_group)}
-          />
-        </.form>
-      </div>
-
-      <.form
-        :let={f}
-        :if={@deployment_type == :dockerfile}
-        for={@changeset}
-        as={:data}
-        phx-change="validate"
-        phx-target={@myself}
-      >
+      <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
         <div class="flex flex-col space-y-4">
           <AppComponents.deployment_group_form_content
             hub={@hub}
@@ -224,7 +187,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       <.message_box :if={@message} kind={@message_kind} message={@message} />
 
       <AppComponents.docker_instructions
-        :if={@deployment_type == :dockerfile}
         hub={@hub}
         dockerfile={@dockerfile}
         dockerfile_config={apply_changes(@changeset)}
@@ -243,35 +205,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           </.button>
         </:dockerfile_actions>
       </AppComponents.docker_instructions>
-
-      <div :if={@app_deployment && @deployment_type == :agent} class="space-y-3 pb-4">
-        <p class="text-gray-700">Current deployed version:</p>
-
-        <ul class="text-gray-700 space-y-3">
-          <li class="flex gap-2">
-            <div class="font-bold">Title:</div>
-            <span><%= @app_deployment.title %></span>
-          </li>
-          <li class="flex gap-2">
-            <div class="font-bold">Deployed by:</div>
-            <span><%= @app_deployment.deployed_by %></span>
-          </li>
-          <li class="flex gap-2">
-            <div class="font-bold">Deployed at:</div>
-            <span><%= @app_deployment.deployed_at %></span>
-          </li>
-        </ul>
-      </div>
-
-      <.button
-        :if={@deployment_type == :agent}
-        id="deploy-livebook-agent-button"
-        color="blue"
-        phx-click="deploy_app"
-        phx-target={@myself}
-      >
-        <.remix_icon icon="rocket-line" /> Deploy to Livebook Agent
-      </.button>
     </div>
     """
   end
@@ -302,40 +235,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     Livebook.Session.set_notebook_deployment_group(socket.assigns.session.pid, id)
 
     {:noreply, socket}
-  end
-
-  def handle_event("select_deployment_type", %{"deployment_type" => "agent"}, socket) do
-    {:noreply, assign(socket, deployment_type: :agent)}
-  end
-
-  def handle_event("select_deployment_type", %{"deployment_type" => "dockerfile"}, socket) do
-    {:noreply, assign(socket, deployment_type: :dockerfile)}
-  end
-
-  def handle_event("deploy_app", _, socket) do
-    session = socket.assigns.session
-    deployment_group = socket.assigns.deployment_group
-    app_settings = socket.assigns.app_settings
-
-    case Livebook.Teams.deploy_app(socket.assigns.hub, session) do
-      :ok ->
-        deployment_groups = Provider.deployment_groups(socket.assigns.hub)
-        deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group.id))
-
-        app_deployment =
-          Enum.find(deployment_group.app_deployments, &(&1.slug == app_settings.slug))
-
-        message =
-          "App deployment for #{app_deployment.slug} with title #{app_deployment.title} created successfully"
-
-        {:noreply, assign(socket, message_kind: :info, message: message)}
-
-      {:error, error} ->
-        {:noreply, assign(socket, message_kind: :error, message: error)}
-
-      {:transport_error, error} ->
-        {:noreply, assign(socket, message_kind: :error, message: error)}
-    end
   end
 
   defp update_dockerfile(socket) when socket.assigns.file == nil do
@@ -395,14 +294,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   defp deployment_group_options(deployment_groups) do
     for deployment_group <- [%{name: "none", id: nil}] ++ deployment_groups,
         do: {deployment_group.name, deployment_group.id}
-  end
-
-  defp deployment_type_options(%{mode: :online}) do
-    [{"dockerfile", "Generated Dockerfile"}, {"agent", "Livebook Agent"}]
-  end
-
-  defp deployment_type_options(_) do
-    [{"dockerfile", "Generated Dockerfile"}]
   end
 
   defp deployment_group_help() do

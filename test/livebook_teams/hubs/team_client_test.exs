@@ -152,8 +152,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [^built_in_agent_key]}}
     end
 
-    @tag :tmp_dir
-    test "receives the app events", %{team: team, tmp_dir: tmp_dir} do
+    test "receives the app events", %{team: team} do
       deployment_group = build(:deployment_group, name: team.id, mode: :online)
       assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
 
@@ -162,35 +161,27 @@ defmodule Livebook.Hubs.TeamClientTest do
       # receives `{:event, :deployment_group_created, :deployment_group}` event
       assert_receive {:deployment_group_created, %{id: ^id, app_deployments: []}}
 
-      # creates a session to simulate the deploy
-      local = Livebook.FileSystem.Local.new()
-      path = Path.join(tmp_dir, "MyNotebook2.livemd")
-      file = Livebook.FileSystem.File.new(local, path)
+      # creates the app deployment
       slug = Livebook.Utils.random_short_id()
+      title = "MyNotebook-#{slug}"
 
       notebook = %{
         Livebook.Notebook.new()
         | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
-          name: "MyNotebook",
+          name: title,
           hub_id: team.id,
           deployment_group_id: id
       }
 
-      session_id = Livebook.Utils.random_id()
-      opts = [id: session_id, autosave_path: tmp_dir, file: file, notebook: notebook]
-      pid = start_supervised!({Livebook.Session, opts}, id: session_id)
-      Livebook.Session.save_sync(pid)
-      session = Livebook.Session.get_by_pid(pid)
+      {notebook_source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
+      files = [{"mynotebook.livemd", notebook_source}]
 
-      # creates the app deployment
-      assert Livebook.Teams.deploy_app(team, session) == :ok
+      assert Livebook.Teams.deploy_app(team, title, slug, id, files) == :ok
 
       # since the `app_deployment` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
       assert_receive {:deployment_group_updated,
                       %{id: ^id, app_deployments: [%Livebook.Teams.AppDeployment{slug: ^slug}]}}
-
-      Livebook.Session.close(session.pid)
     end
   end
 
@@ -712,30 +703,27 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_created, ^deployment_group}
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
-      local = Livebook.FileSystem.Local.new()
-      path = Path.join(tmp_dir, "MyNotebook2.livemd")
-      file = Livebook.FileSystem.File.new(local, path)
+      # creates a new app deployment
+      deployment_group_id = to_string(deployment_group.id)
       slug = Livebook.Utils.random_short_id()
+      title = "MyNotebook2-#{slug}"
 
       notebook = %{
         Livebook.Notebook.new()
         | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
-          name: "MyNotebook2",
+          name: title,
           hub_id: team.id,
-          deployment_group_id: to_string(deployment_group.id)
+          deployment_group_id: deployment_group_id
       }
 
-      {notebook_content, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
-      :ok = Livebook.FileSystem.File.write(file, notebook_content)
+      {notebook_source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
+      files = [{"MyNotebook2.livemd", notebook_source}]
 
-      data = %Livebook.Session.Data{file: file, notebook: notebook}
-
-      {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(data)
-      :ok = Livebook.FileSystem.File.remove(file)
-      {:ok, zip_content} = Livebook.FileSystem.File.read(app_deployment.file)
+      {:ok, app_deployment} =
+        Livebook.Teams.AppDeployment.new(title, slug, deployment_group_id, files)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
-      encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
+      encrypted_content = Livebook.Teams.encrypt(app_deployment.file, secret_key)
 
       bypass = Bypass.open()
 

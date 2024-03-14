@@ -1,5 +1,4 @@
 defmodule Livebook.TeamsTest do
-  alias Livebook.FileSystem
   use Livebook.TeamsIntegrationCase, async: true
 
   alias Livebook.{Notebook, Teams, Utils}
@@ -224,17 +223,13 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "deploy_app/2" do
-    @tag :tmp_dir
-    test "deploys app to Teams from a session",
-         %{tmp_dir: tmp_dir, user: user, node: node} do
+    test "deploys app to Teams from a session", %{user: user, node: node} do
       team = create_team_hub(user, node)
       deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
 
       {:ok, id} = Teams.create_deployment_group(team, deployment_group)
 
-      local = FileSystem.Local.new()
-      path = Path.join(tmp_dir, "MyNotebook.livemd")
-      file = FileSystem.File.new(local, path)
+      filename = "MyNotebook.livemd"
 
       notebook = %{
         Notebook.new()
@@ -244,14 +239,11 @@ defmodule Livebook.TeamsTest do
           deployment_group_id: to_string(id)
       }
 
-      session_id = Utils.random_id()
-      opts = [id: session_id, autosave_path: tmp_dir, file: file, notebook: notebook]
-      pid = start_supervised!({Livebook.Session, opts}, id: session_id)
-      Livebook.Session.save_sync(pid)
-      session = Livebook.Session.get_by_pid(pid)
+      {content, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
+      files = [{filename, content}]
+      slug = notebook.app_settings.slug
 
-      assert Teams.deploy_app(team, session) == :ok
-      Livebook.Session.close(session.pid)
+      assert Teams.deploy_app(team, notebook.name, slug, to_string(id), files) == :ok
     end
   end
 end

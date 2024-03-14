@@ -478,13 +478,31 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
       Session.set_notebook_deployment_group(session.pid, deployment_group.id)
 
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
 
-      assert has_element?(view, "#select-deployment-type-form")
+      assert render(view) =~ "Deploy to Livebook Agent"
 
       view
-      |> form("#select-deployment-type-form", %{deployment_type: "agent"})
-      |> render_change()
+      |> element("#deploy-livebook-agent-button")
+      |> render_click()
+
+      assert render(view) =~
+               "App deployment for #{slug} with title Untitled notebook created successfully"
+    end
+
+    test "deploys the app to livebook teams api without saving the file",
+         %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+      Session.set_notebook_hub(session.pid, team.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
+      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
 
       assert render(view) =~ "Deploy to Livebook Agent"
 

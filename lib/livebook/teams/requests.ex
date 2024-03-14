@@ -6,6 +6,8 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Teams
   alias Livebook.Teams.{AgentKey, AppDeployment, DeploymentGroup, Org}
 
+  @error_message "Something went wrong, try again later or please file a bug if it persists"
+
   @doc """
   Send a request to Livebook Team API to create a new org.
   """
@@ -232,10 +234,9 @@ defmodule Livebook.Teams.Requests do
       sha: app_deployment.sha
     }
 
-    with {:ok, content} <- FileSystem.File.read(app_deployment.file) do
-      encrypted_content = Teams.encrypt(content, secret_key)
-      upload("/api/v1/org/apps", encrypted_content, params, team)
-    end
+    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
+
+    upload("/api/v1/org/apps", encrypted_content, params, team)
   end
 
   @doc """
@@ -256,6 +257,9 @@ defmodule Livebook.Teams.Requests do
   def add_errors(%struct{} = value, errors_map) do
     value |> Ecto.Changeset.change() |> add_errors(struct.__schema__(:fields), errors_map)
   end
+
+  @doc false
+  def error_message(), do: @error_message
 
   defp post(path, json, team \\ nil) do
     build_req()
@@ -331,8 +335,7 @@ defmodule Livebook.Teams.Requests do
          "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"}
 
       _otherwise ->
-        {:transport_error,
-         "Something went wrong, try again later or please file a bug if it persists"}
+        {:transport_error, @error_message}
     end
   end
 

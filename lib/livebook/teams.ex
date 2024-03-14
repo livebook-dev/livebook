@@ -250,18 +250,18 @@ defmodule Livebook.Teams do
     end
   end
 
-  def deploy_app(%Team{} = team, %Livebook.Session{} = session) do
-    data = Livebook.Session.get_data(session.pid)
-
-    with {:ok, app_deployment} <- AppDeployment.new(data),
-         {:ok, _} <- Requests.deploy_app(team, app_deployment) do
-      :ok
-    else
-      {:error, %{"errors" => _}} ->
-        {:error, "Something went wrong, try again later or please file a bug if it persists"}
-
-      any ->
-        any
+  @doc """
+  Creates a new app deployment.
+  """
+  @spec deploy_app(Team.t(), String.t(), String.t(), String.t(), AppDeployment.zip_files()) ::
+          :ok | {:error, String.t()} | {:transport_error, String.t()}
+  def deploy_app(%Team{} = team, title, slug, deployment_group_id, files) do
+    with {:ok, app_deployment} <- AppDeployment.new(title, slug, deployment_group_id, files) do
+      case Requests.deploy_app(team, app_deployment) do
+        {:ok, %{"id" => _id}} -> :ok
+        {:error, %{"errors" => _}} -> {:error, Requests.error_message()}
+        any -> any
+      end
     end
   end
 end
