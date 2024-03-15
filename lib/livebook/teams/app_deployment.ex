@@ -4,9 +4,6 @@ defmodule Livebook.Teams.AppDeployment do
 
   @file_extension ".zip"
 
-  @type zip_file :: {filename :: String.t(), content :: String.t()}
-  @type zip_files :: list(zip_file())
-
   @type t :: %__MODULE__{
           id: String.t() | nil,
           filename: String.t() | nil,
