@@ -223,13 +223,12 @@ defmodule Livebook.TeamsTest do
   end
 
   describe "deploy_app/2" do
-    test "deploys app to Teams from a session", %{user: user, node: node} do
+    @tag :tmp_dir
+    test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
       team = create_team_hub(user, node)
       deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
 
       {:ok, id} = Teams.create_deployment_group(team, deployment_group)
-
-      filename = "MyNotebook.livemd"
 
       notebook = %{
         Notebook.new()
@@ -239,11 +238,8 @@ defmodule Livebook.TeamsTest do
           deployment_group_id: to_string(id)
       }
 
-      {content, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
-      files = [{filename, content}]
-      slug = notebook.app_settings.slug
-
-      assert Teams.deploy_app(team, notebook.name, slug, to_string(id), files) == :ok
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
+      assert Teams.deploy_app(team, notebook, "MyNotebook.livemd", files_dir) == :ok
     end
   end
 end

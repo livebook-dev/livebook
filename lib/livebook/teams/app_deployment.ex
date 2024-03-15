@@ -14,7 +14,7 @@ defmodule Livebook.Teams.AppDeployment do
           sha: String.t() | nil,
           title: String.t() | nil,
           deployment_group_id: String.t() | nil,
-          file: binary() | nil,
+          file: {:url, String.t()} | {:content, binary()} | nil,
           deployed_by: String.t() | nil,
           deployed_at: NaiveDateTime.t() | nil
         }
@@ -33,45 +33,59 @@ defmodule Livebook.Teams.AppDeployment do
   end
 
   @doc """
-  Creates a new app deployment from session with compressed file.
+  Creates a new app deployment from notebook.
   """
-  @spec new(String.t(), String.t(), String.t(), zip_files()) ::
-          {:ok, t()} | {:error, FileSystem.error()}
-  def new(title, slug, deployment_group_id, files) do
-    files =
-      Enum.map(files, fn {filename, content} ->
-        {to_charlist(filename), content}
-      end)
+  @spec new(Livebook.Notebook.t(), String.t(), Livebook.FileSystem.File.t()) ::
+          {:ok, t()} | {:warning, list(String.t())} | {:error, FileSystem.error()}
+  def new(notebook, filename, files_dir) do
+    filename = ensure_notebook_extension(filename)
 
-    with {:ok, content} <- zip_files(files),
-         :ok <- validate_size(content) do
-      md5_hash = :crypto.hash(:md5, content)
+    with {:ok, source} <- fetch_notebook_source(notebook),
+         {:ok, files} <- build_and_check_file_entries(notebook, {filename, source}, files_dir),
+         {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]) do
+      md5_hash = :crypto.hash(:md5, zip_content)
       shasum = Base.encode16(md5_hash, case: :lower)
 
       {:ok,
        %__MODULE__{
          filename: shasum <> @file_extension,
-         slug: slug,
+         slug: notebook.app_settings.slug,
          sha: shasum,
-         title: title,
-         deployment_group_id: deployment_group_id,
-         file: content
+         title: notebook.name,
+         deployment_group_id: notebook.deployment_group_id,
+         file: {:content, zip_content}
        }}
     end
   end
 
-  defp zip_files(files) do
-    case :zip.create(~c"app_deployment.zip", files, [:memory]) do
-      {:ok, {_filename, content}} -> {:ok, content}
-      {:error, error} -> FileSystem.Utils.posix_error(error)
+  defp ensure_notebook_extension(filename) do
+    if String.ends_with?(filename, Livebook.LiveMarkdown.extension()) do
+      to_charlist(filename)
+    else
+      to_charlist(filename <> Livebook.LiveMarkdown.extension())
     end
   end
 
-  defp validate_size(data) do
-    if byte_size(data) <= 20 * 1024 * 1024 do
-      :ok
-    else
-      {:error, "file size too large"}
+  defp fetch_notebook_source(notebook) do
+    case Livebook.LiveMarkdown.notebook_to_livemd(notebook) do
+      {source, []} -> {:ok, source}
+      {_, warnings} -> {:warning, warnings}
     end
+  end
+
+  defp build_and_check_file_entries(notebook, notebook_file_entry, files_dir) do
+    notebook.file_entries
+    |> Enum.filter(&(&1.type == :attachment))
+    |> Enum.reduce_while({:ok, [notebook_file_entry]}, fn %{name: name}, {:ok, acc} ->
+      file = Livebook.FileSystem.File.resolve(files_dir, name)
+
+      with {:ok, true} <- Livebook.FileSystem.File.exists?(file),
+           {:ok, content} <- Livebook.FileSystem.File.read(file) do
+        {:cont, {:ok, [{to_charlist("files/" <> name), content} | acc]}}
+      else
+        {:ok, false} -> {:halt, {:error, "files/#{name}: doesn't exist"}}
+        {:error, reason} -> {:halt, {:error, "files/#{name}: #{reason}"}}
+      end
+    end)
   end
 end

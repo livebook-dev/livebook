@@ -331,7 +331,7 @@ defmodule Livebook.Hubs.TeamClient do
       sha: app_deployment.sha,
       title: app_deployment.title,
       deployment_group_id: app_deployment.deployment_group_id,
-      file: app_deployment.archive_url,
+      file: {:url, app_deployment.archive_url},
       deployed_by: app_deployment.deployed_by,
       deployed_at: NaiveDateTime.from_iso8601!(app_deployment.deployed_at)
     }
@@ -613,9 +613,8 @@ defmodule Livebook.Hubs.TeamClient do
     app_deployment
   end
 
-  defp download_and_deploy(app_deployment, derived_key) do
+  defp download_and_deploy(%{file: {:url, archive_url}} = app_deployment, derived_key) do
     destination_path = app_deployment_path(app_deployment.slug)
-    archive_url = app_deployment.file
 
     with {:ok, %{status: 200} = response} <- Req.get(archive_url),
          :ok <- undeploy_app(app_deployment.slug),

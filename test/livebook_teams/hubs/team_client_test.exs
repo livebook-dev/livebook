@@ -152,7 +152,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [^built_in_agent_key]}}
     end
 
-    test "receives the app events", %{team: team} do
+    @tag :tmp_dir
+    test "receives the app events", %{team: team, tmp_dir: tmp_dir} do
       deployment_group = build(:deployment_group, name: team.id, mode: :online)
       assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
 
@@ -173,15 +174,18 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployment_group_id: id
       }
 
-      {notebook_source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
-      files = [{"mynotebook.livemd", notebook_source}]
-
-      assert Livebook.Teams.deploy_app(team, title, slug, id, files) == :ok
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
+      assert Livebook.Teams.deploy_app(team, notebook, "mynotebook.livemd", files_dir) == :ok
 
       # since the `app_deployment` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
       assert_receive {:deployment_group_updated,
-                      %{id: ^id, app_deployments: [%Livebook.Teams.AppDeployment{slug: ^slug}]}}
+                      %{
+                        id: ^id,
+                        app_deployments: [
+                          %Livebook.Teams.AppDeployment{title: ^title, slug: ^slug}
+                        ]
+                      }}
     end
   end
 
@@ -716,22 +720,13 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployment_group_id: deployment_group_id
       }
 
-      {notebook_source, []} = Livebook.LiveMarkdown.notebook_to_livemd(notebook)
-      files = [{"MyNotebook2.livemd", notebook_source}]
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
 
-      {:ok, app_deployment} =
-        Livebook.Teams.AppDeployment.new(title, slug, deployment_group_id, files)
+      {:ok, %{file: {:content, zip_content}} = app_deployment} =
+        Livebook.Teams.AppDeployment.new(notebook, "MyNotebook2.livemd", files_dir)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
-      encrypted_content = Livebook.Teams.encrypt(app_deployment.file, secret_key)
-
-      bypass = Bypass.open()
-
-      Bypass.expect_once(bypass, "GET", "/#{app_deployment.filename}", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("text/plain")
-        |> Plug.Conn.resp(200, encrypted_content)
-      end)
+      encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
 
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
@@ -739,9 +734,18 @@ defmodule Livebook.Hubs.TeamClientTest do
       app_deployment = %{
         app_deployment
         | id: "1",
+          filename: app_deployment.filename <> ".encrypted",
           deployed_by: "Jake Peralta",
           deployed_at: NaiveDateTime.utc_now()
       }
+
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/#{app_deployment.filename}", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/octet-stream")
+        |> Plug.Conn.resp(200, encrypted_content)
+      end)
 
       # updates the deployment group with an app deployment
       # and after we deploy, the `:file` key turns to `nil` value

@@ -223,20 +223,22 @@ defmodule Livebook.Teams.Requests do
   """
   @spec deploy_app(Team.t(), AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def deploy_app(team, app_deployment) do
+  def deploy_app(team, %{file: {:content, content}} = app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
-      filename: app_deployment.filename,
+      filename: app_deployment.filename <> ".encrypted",
       title: app_deployment.title,
       slug: app_deployment.slug,
       deployment_group_id: app_deployment.deployment_group_id,
       sha: app_deployment.sha
     }
 
-    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
+    encrypted_content = Teams.encrypt(content, secret_key)
 
-    upload("/api/v1/org/apps", encrypted_content, params, team)
+    with :ok <- validate_upload_size(encrypted_content) do
+      upload("/api/v1/org/apps", encrypted_content, params, team)
+    end
   end
 
   @doc """
@@ -358,5 +360,13 @@ defmodule Livebook.Teams.Requests do
 
   defp json?(response) do
     "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")
+  end
+
+  defp validate_upload_size(data) do
+    if byte_size(data) <= 20 * 1024 * 1024 do
+      :ok
+    else
+      {:error, "file size too large"}
+    end
   end
 end
