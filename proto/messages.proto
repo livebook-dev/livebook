@@ -153,6 +153,10 @@ message AppDeploymentCreated {
   string deployed_at = 9;
 }
 
+message UserDeleted {
+  string id = 1;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -169,5 +173,6 @@ message Event {
     AgentKeyCreated agent_key_created = 12;
     AgentKeyDeleted agent_key_deleted = 13;
     AppDeploymentCreated app_deployment_created = 14;
+    UserDeleted user_deleted = 15;
   }
 }

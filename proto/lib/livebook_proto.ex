@@ -13,7 +13,8 @@ defmodule LivebookProto do
     DeploymentGroupCreated,
     DeploymentGroupDeleted,
     DeploymentGroupUpdated,
-    UserConnected
+    UserConnected,
+    UserDeleted
   }
 
   @event_mapping (for {_id, field_prop} <- LivebookProto.Event.__message_props__().field_props,
@@ -36,6 +37,7 @@ defmodule LivebookProto do
           | DeploymentGroupDeleted.t()
           | DeploymentGroupUpdated.t()
           | UserConnected.t()
+          | UserDeleted.t()
 
   @doc """
   Builds an event with given data.

@@ -72,4 +72,9 @@ defmodule LivebookProto.Event do
     type: LivebookProto.AppDeploymentCreated,
     json_name: "appDeploymentCreated",
     oneof: 0
+
+  field :user_deleted, 15,
+    type: LivebookProto.UserDeleted,
+    json_name: "userDeleted",
+    oneof: 0
 end
