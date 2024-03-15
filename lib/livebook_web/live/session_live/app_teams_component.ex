@@ -170,14 +170,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
 
   def handle_event("deploy_app", _, socket) do
     notebook = Livebook.Session.get_notebook(socket.assigns.session.pid)
-    filename = Livebook.Session.file_name_for_download(socket.assigns.session)
 
-    case Livebook.Teams.deploy_app(
-           socket.assigns.hub,
-           notebook,
-           filename,
-           socket.assigns.session.files_dir
-         ) do
+    case Livebook.Teams.deploy_app(socket.assigns.hub, notebook, socket.assigns.session.files_dir) do
       :ok ->
         deployment_groups = Provider.deployment_groups(socket.assigns.hub)
         deployment_group = Enum.find(deployment_groups, &(&1.id == notebook.deployment_group_id))

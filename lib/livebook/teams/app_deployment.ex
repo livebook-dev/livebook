@@ -32,13 +32,11 @@ defmodule Livebook.Teams.AppDeployment do
   @doc """
   Creates a new app deployment from notebook.
   """
-  @spec new(Livebook.Notebook.t(), String.t(), Livebook.FileSystem.File.t()) ::
+  @spec new(Livebook.Notebook.t(), Livebook.FileSystem.File.t()) ::
           {:ok, t()} | {:warning, list(String.t())} | {:error, FileSystem.error()}
-  def new(notebook, filename, files_dir) do
-    filename = ensure_notebook_extension(filename)
-
+  def new(notebook, files_dir) do
     with {:ok, source} <- fetch_notebook_source(notebook),
-         {:ok, files} <- build_and_check_file_entries(notebook, {filename, source}, files_dir),
+         {:ok, files} <- build_and_check_file_entries(notebook, source, files_dir),
          {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]) do
       md5_hash = :crypto.hash(:md5, zip_content)
       shasum = Base.encode16(md5_hash, case: :lower)
@@ -55,14 +53,6 @@ defmodule Livebook.Teams.AppDeployment do
     end
   end
 
-  defp ensure_notebook_extension(filename) do
-    if String.ends_with?(filename, Livebook.LiveMarkdown.extension()) do
-      to_charlist(filename)
-    else
-      to_charlist(filename <> Livebook.LiveMarkdown.extension())
-    end
-  end
-
   defp fetch_notebook_source(notebook) do
     case Livebook.LiveMarkdown.notebook_to_livemd(notebook) do
       {source, []} -> {:ok, source}
@@ -70,10 +60,10 @@ defmodule Livebook.Teams.AppDeployment do
     end
   end
 
-  defp build_and_check_file_entries(notebook, notebook_file_entry, files_dir) do
+  defp build_and_check_file_entries(notebook, source, files_dir) do
     notebook.file_entries
     |> Enum.filter(&(&1.type == :attachment))
-    |> Enum.reduce_while({:ok, [notebook_file_entry]}, fn %{name: name}, {:ok, acc} ->
+    |> Enum.reduce_while({:ok, [{~c"notebook.livemd", source}]}, fn %{name: name}, {:ok, acc} ->
       file = Livebook.FileSystem.File.resolve(files_dir, name)
 
       with {:ok, true} <- Livebook.FileSystem.File.exists?(file),

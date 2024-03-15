@@ -401,7 +401,6 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:deployment_group_created, %Teams.DeploymentGroup{} = deployment_group, state) do
-    deployment_group = deploy_apps(state.deployment_group_id, deployment_group, state.derived_key)
     Teams.Broadcasts.deployment_group_created(deployment_group)
 
     put_deployment_group(state, deployment_group)
@@ -634,7 +633,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp app_deployment_path(slug) do
-    Path.join(Livebook.Config.tmp_path(), slug <> Base.url_encode64(:crypto.strong_rand_bytes(6)))
+    Path.join([Livebook.Config.tmp_path(), "apps", slug <> Livebook.Utils.random_short_id()])
   end
 
   defp unzip_app(content, destination_path) do

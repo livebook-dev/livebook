@@ -175,7 +175,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
-      assert Livebook.Teams.deploy_app(team, notebook, "mynotebook.livemd", files_dir) == :ok
+      assert Livebook.Teams.deploy_app(team, notebook, files_dir) == :ok
 
       # since the `app_deployment` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
@@ -383,10 +383,12 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # Since we aren't deploying the app because isn't a Livebook Agent instance
       # we will change the `:file` key to string
+      url = "http://localhost/123456.zip"
+
       app_deployment =
         build(:app_deployment,
           filename: "123456.zip",
-          file: "http://localhost/123456.zip",
+          file: {:url, url},
           deployment_group_id: deployment_group.id
         )
 
@@ -399,7 +401,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           title: app_deployment.title,
           slug: app_deployment.slug,
           sha: app_deployment.sha,
-          archive_url: app_deployment.file,
+          archive_url: url,
           deployed_by: app_deployment.deployed_by,
           deployed_at: to_string(app_deployment.deployed_at),
           app_id: "1",
@@ -723,7 +725,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
 
       {:ok, %{file: {:content, zip_content}} = app_deployment} =
-        Livebook.Teams.AppDeployment.new(notebook, "MyNotebook2.livemd", files_dir)
+        Livebook.Teams.AppDeployment.new(notebook, files_dir)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)

@@ -239,7 +239,7 @@ defmodule Livebook.TeamsTest do
       }
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
-      assert Teams.deploy_app(team, notebook, "MyNotebook.livemd", files_dir) == :ok
+      assert Teams.deploy_app(team, notebook, files_dir) == :ok
     end
   end
 end
