@@ -28,9 +28,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
         deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
         deployment_group_id: assigns.deployment_group_id
       )
-      |> assign_new(:warnings, fn -> [] end)
-      |> assign_new(:message_kind, fn -> :info end)
-      |> assign_new(:message, fn -> nil end)
+      |> assign_new(:messages, fn -> [] end)
 
     {:ok, socket}
   end
@@ -51,9 +49,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
         deployment_group_form={@deployment_group_form}
         deployment_group_id={@deployment_group_id}
         session={@session}
-        warnings={@warnings}
-        message_kind={@message_kind}
-        message={@message}
+        messages={@messages}
         myself={@myself}
       />
     </div>
@@ -121,13 +117,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
         <% end %>
       </div>
 
-      <div :if={@warnings != []} class="flex flex-col gap-2">
-        <.message_box :for={warning <- @warnings} kind={:warning}>
-          <%= raw(warning) %>
+      <div :if={@messages != []} class="flex flex-col gap-2">
+        <.message_box :for={{kind, message} <- @messages} kind={kind}>
+          <%= raw(message) %>
         </.message_box>
       </div>
-
-      <.message_box :if={@message} kind={@message_kind} message={@message} />
 
       <div :if={@app_deployment} class="space-y-3 pb-4">
         <p class="text-gray-700">Current deployed version:</p>
@@ -169,29 +163,44 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
   end
 
   def handle_event("deploy_app", _, socket) do
+    with {:ok, app_deployment} <- pack_app(socket),
+         :ok <- deploy_app(socket, app_deployment) do
+      message =
+        "App deployment for #{app_deployment.slug} with title #{app_deployment.title} created successfully"
+
+      {:noreply, assign(socket, messages: [{:info, message}])}
+    end
+  end
+
+  defp pack_app(socket) do
     notebook = Livebook.Session.get_notebook(socket.assigns.session.pid)
+    files_dir = socket.assigns.session.files_dir
 
-    case Livebook.Teams.deploy_app(socket.assigns.hub, notebook, socket.assigns.session.files_dir) do
-      :ok ->
-        deployment_groups = Provider.deployment_groups(socket.assigns.hub)
-        deployment_group = Enum.find(deployment_groups, &(&1.id == notebook.deployment_group_id))
-
-        app_deployment =
-          Enum.find(deployment_group.app_deployments, &(&1.slug == notebook.app_settings.slug))
-
-        message =
-          "App deployment for #{app_deployment.slug} with title #{app_deployment.title} created successfully"
-
-        {:noreply, assign(socket, message_kind: :info, message: message, warnings: [])}
+    case Livebook.Teams.AppDeployment.new(notebook, files_dir) do
+      {:ok, app_deployment} ->
+        {:ok, app_deployment}
 
       {:warning, warnings} ->
-        {:noreply, assign(socket, warnings: warnings)}
+        warnings = Enum.map(warnings, &{:warning, &1})
+        {:noreply, assign(socket, messages: warnings)}
 
       {:error, error} ->
-        {:noreply, assign(socket, message_kind: :error, message: error, warnings: [])}
+        error = "Failed to pack files: #{error}"
+        {:noreply, assign(socket, messages: [{:error, error}])}
+    end
+  end
+
+  defp deploy_app(socket, app_deployment) do
+    case Livebook.Teams.deploy_app(socket.assigns.hub, app_deployment) do
+      :ok ->
+        :ok
+
+      {:error, _changeset} ->
+        errors = []
+        {:noreply, assign(socket, messages: errors)}
 
       {:transport_error, error} ->
-        {:noreply, assign(socket, message_kind: :error, message: error, warnings: [])}
+        {:noreply, assign(socket, messages: [{:error, error}])}
     end
   end
 

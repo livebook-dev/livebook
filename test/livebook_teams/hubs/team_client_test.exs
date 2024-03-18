@@ -175,7 +175,8 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
-      assert Livebook.Teams.deploy_app(team, notebook, files_dir) == :ok
+      {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
+      :ok = Livebook.Teams.deploy_app(team, app_deployment)
 
       # since the `app_deployment` belongs to a deployment group,
       # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
@@ -381,8 +382,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:deployment_group_created, ^deployment_group}
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
-      # Since we aren't deploying the app because isn't a Livebook Agent instance
-      # we will change the `:file` key to string
       url = "http://localhost/123456.zip"
 
       app_deployment =

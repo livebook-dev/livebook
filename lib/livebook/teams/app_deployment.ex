@@ -3,6 +3,7 @@ defmodule Livebook.Teams.AppDeployment do
   alias Livebook.FileSystem
 
   @file_extension ".zip"
+  @max_size 20 * 1024 * 1024
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
@@ -37,7 +38,8 @@ defmodule Livebook.Teams.AppDeployment do
   def new(notebook, files_dir) do
     with {:ok, source} <- fetch_notebook_source(notebook),
          {:ok, files} <- build_and_check_file_entries(notebook, source, files_dir),
-         {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]) do
+         {:ok, {_, zip_content}} <- :zip.create(~c"app_deployment.zip", files, [:memory]),
+         :ok <- validate_size(zip_content) do
       md5_hash = :crypto.hash(:md5, zip_content)
       shasum = Base.encode16(md5_hash, case: :lower)
 
@@ -74,5 +76,13 @@ defmodule Livebook.Teams.AppDeployment do
         {:error, reason} -> {:halt, {:error, "files/#{name}: #{reason}"}}
       end
     end)
+  end
+
+  defp validate_size(data) do
+    if byte_size(data) <= @max_size do
+      :ok
+    else
+      {:error, "the notebook and its attachments have exceeded the maximum size"}
+    end
   end
 end

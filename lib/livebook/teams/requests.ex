@@ -235,16 +235,15 @@ defmodule Livebook.Teams.Requests do
     }
 
     encrypted_content = Teams.encrypt(content, secret_key)
-
-    with :ok <- validate_upload_size(encrypted_content) do
-      upload("/api/v1/org/apps", encrypted_content, params, team)
-    end
+    upload("/api/v1/org/apps", encrypted_content, params, team)
   end
 
   @doc """
   Add requests errors to a `changeset` for the given `fields`.
   """
   def add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
+    IO.inspect(errors_map)
+
     for {key, errors} <- errors_map,
         field = String.to_atom(key),
         field in fields,
@@ -292,7 +291,7 @@ defmodule Livebook.Teams.Requests do
   defp upload(path, content, params, team) do
     build_req()
     |> add_team_auth(team)
-    |> Req.Request.put_header("content-length", "#{String.length(content)}")
+    |> Req.Request.put_header("content-length", "#{byte_size(content)}")
     |> request(method: :post, url: path, params: params, body: content)
     |> dispatch_messages(team)
   end
@@ -360,13 +359,5 @@ defmodule Livebook.Teams.Requests do
 
   defp json?(response) do
     "application/json; charset=utf-8" in Req.Response.get_header(response, "content-type")
-  end
-
-  defp validate_upload_size(data) do
-    if byte_size(data) <= 20 * 1024 * 1024 do
-      :ok
-    else
-      {:error, "file size too large"}
-    end
   end
 end
