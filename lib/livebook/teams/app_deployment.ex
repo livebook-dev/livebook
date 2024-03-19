@@ -82,7 +82,7 @@ defmodule Livebook.Teams.AppDeployment do
     if byte_size(data) <= @max_size do
       :ok
     else
-      {:error, "the notebook and its attachments have exceeded the maximum size"}
+      {:error, "the notebook and its attachments have exceeded the maximum size of 20MB"}
     end
   end
 end

@@ -181,8 +181,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
         {:ok, app_deployment}
 
       {:warning, warnings} ->
-        warnings = Enum.map(warnings, &{:warning, &1})
-        {:noreply, assign(socket, messages: warnings)}
+        messages = Enum.map(warnings, &{:error, &1})
+        {:noreply, assign(socket, messages: messages)}
 
       {:error, error} ->
         error = "Failed to pack files: #{error}"
@@ -191,17 +191,25 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
   end
 
   defp deploy_app(socket, app_deployment) do
+    app_deployment = Map.replace!(app_deployment, :slug, "@bc")
+
     case Livebook.Teams.deploy_app(socket.assigns.hub, app_deployment) do
       :ok ->
         :ok
 
-      {:error, _changeset} ->
-        errors = []
+      {:error, %{errors: errors}} ->
+        errors = Enum.map(errors, fn {key, error} -> "#{key}: #{normalize_error(error)}" end)
         {:noreply, assign(socket, messages: errors)}
 
       {:transport_error, error} ->
         {:noreply, assign(socket, messages: [{:error, error}])}
     end
+  end
+
+  defp normalize_error({msg, opts}) do
+    Enum.reduce(opts, msg, fn {key, value}, acc ->
+      String.replace(acc, "%{#{key}}", to_string(value))
+    end)
   end
 
   defp deployment_group_options(deployment_groups) do

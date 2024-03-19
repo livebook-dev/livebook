@@ -4,7 +4,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   import Phoenix.LiveViewTest
   import Livebook.SessionHelpers
 
-  alias Livebook.{Sessions, Session}
+  alias Livebook.{FileSystem, Sessions, Session}
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -291,7 +291,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       team_file_system =
         build(:fs_s3,
-          id: Livebook.FileSystem.S3.id(team_id, bucket_url),
+          id: FileSystem.S3.id(team_id, bucket_url),
           bucket_url: bucket_url,
           hub_id: team_id
         )
@@ -334,7 +334,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       file_system =
         build(:fs_s3,
-          id: Livebook.FileSystem.S3.id(hub_id, bucket_url),
+          id: FileSystem.S3.id(hub_id, bucket_url),
           bucket_url: bucket_url,
           hub_id: hub_id,
           external_id: "123"
@@ -378,7 +378,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
-      file = Livebook.FileSystem.File.local(notebook_path)
+      file = FileSystem.File.local(notebook_path)
       Session.set_file(session.pid, file)
 
       slug = Livebook.Utils.random_short_id()
@@ -415,7 +415,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
-      file = Livebook.FileSystem.File.local(notebook_path)
+      file = FileSystem.File.local(notebook_path)
       Session.set_file(session.pid, file)
 
       slug = Livebook.Utils.random_short_id()
@@ -447,7 +447,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
-      file = Livebook.FileSystem.File.local(notebook_path)
+      file = FileSystem.File.local(notebook_path)
       Session.set_file(session.pid, file)
 
       slug = Livebook.Utils.random_short_id()
@@ -468,7 +468,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       Session.set_notebook_hub(session.pid, team.id)
 
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
-      file = Livebook.FileSystem.File.local(notebook_path)
+      file = FileSystem.File.local(notebook_path)
       Session.set_file(session.pid, file)
 
       slug = Livebook.Utils.random_short_id()
@@ -512,6 +512,35 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert render(view) =~
                "App deployment for #{slug} with title Untitled notebook created successfully"
+    end
+
+    test "returns error when the deployment size is higher than the maximum size of 20MB",
+         %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+      Session.set_notebook_hub(session.pid, team.id)
+
+      slug = Livebook.Utils.random_short_id()
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
+      Session.set_app_settings(session.pid, app_settings)
+
+      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
+      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
+
+      %{files_dir: files_dir} = session
+      image_file = FileSystem.File.resolve(files_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, :crypto.strong_rand_bytes(20 * 1024 * 1024))
+      Session.add_file_entries(session.pid, [%{type: :attachment, name: "image.jpg"}])
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
+
+      assert render(view) =~ "Deploy to Livebook Agent"
+
+      view
+      |> element("#deploy-livebook-agent-button")
+      |> render_click()
+
+      assert render(view) =~
+               "Failed to pack files: the notebook and its attachments have exceeded the maximum size of 20MB"
     end
   end
 end

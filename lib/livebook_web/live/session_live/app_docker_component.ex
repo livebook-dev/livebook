@@ -33,8 +33,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
         deployment_group_id: assigns.deployment_group_id
       )
-      |> assign_new(:message_kind, fn -> :info end)
-      |> assign_new(:message, fn -> nil end)
+      |> assign_new(:messages, fn -> [] end)
 
     socket =
       if deployment_group_changed? do
@@ -80,9 +79,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
-        warnings={@warnings}
-        message_kind={@message_kind}
-        message={@message}
+        messages={@messages}
         myself={@myself}
       />
     </div>
@@ -167,9 +164,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         <% end %>
       </div>
 
-      <div :if={@warnings != []} class="flex flex-col gap-2">
-        <.message_box :for={warning <- @warnings} kind={:warning}>
-          <%= raw(warning) %>
+      <div :if={@messages != []} class="flex flex-col gap-2">
+        <.message_box :for={{kind, message} <- @messages} kind={kind}>
+          <%= raw(message) %>
         </.message_box>
       </div>
 
@@ -183,8 +180,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <AppComponents.docker_config_form_content hub={@hub} form={f} />
         </div>
       </.form>
-
-      <.message_box :if={@message} kind={@message_kind} message={@message} />
 
       <AppComponents.docker_instructions
         hub={@hub}
@@ -225,8 +220,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     file_path_message = "File saved at #{dockerfile_file.path}"
 
     case FileSystem.File.write(dockerfile_file, socket.assigns.dockerfile) do
-      :ok -> {:noreply, assign(socket, message_kind: :info, message: file_path_message)}
-      {:error, message} -> {:noreply, assign(socket, message_kind: :error, message: message)}
+      :ok -> {:noreply, assign(socket, messages: [{:info, file_path_message}])}
+      {:error, message} -> {:noreply, assign(socket, messages: [{:error, message}])}
     end
   end
 
@@ -238,7 +233,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   defp update_dockerfile(socket) when socket.assigns.file == nil do
-    assign(socket, dockerfile: nil, warnings: [])
+    assign(socket, dockerfile: nil, messages: [])
   end
 
   defp update_dockerfile(socket) do
@@ -288,7 +283,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         secrets
       )
 
-    assign(socket, dockerfile: dockerfile, warnings: warnings)
+    messages = Enum.map(warnings, &{:warning, &1})
+
+    assign(socket, dockerfile: dockerfile, messages: messages)
   end
 
   defp deployment_group_options(deployment_groups) do
