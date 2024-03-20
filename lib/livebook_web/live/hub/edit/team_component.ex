@@ -18,7 +18,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     deployment_groups = Teams.get_deployment_groups(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
-    deployment_group_id = assigns.params["deployment_group_id"]
     default? = default_hub?(assigns.hub)
 
     secret_value =
@@ -33,15 +32,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           raise(NotFoundError, "could not find file system matching #{inspect(file_system_id)}")
       end
 
-    deployment_group =
-      if assigns.live_action == :edit_deployment_group do
-        Enum.find_value(deployment_groups, &(&1.id == deployment_group_id && &1)) ||
-          raise(
-            NotFoundError,
-            "could not find deployment group matching #{inspect(deployment_group_id)}"
-          )
-      end
-
     {:ok,
      socket
      |> assign(
@@ -49,8 +39,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        file_system: file_system,
        file_system_id: file_system_id,
        file_systems: file_systems,
-       deployment_group_id: deployment_group_id,
-       deployment_group: deployment_group,
        deployment_groups: deployment_groups,
        show_key: show_key,
        secret_name: secret_name,
