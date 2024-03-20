@@ -1,7 +1,7 @@
 defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.Teams
+  alias Livebook.{Notebook, Teams, Utils}
   alias Livebook.Teams.Org
 
   describe "create_org/1" do
@@ -219,6 +219,29 @@ defmodule Livebook.TeamsTest do
                Teams.update_deployment_group(team, update_deployment_group)
 
       assert "can't be blank" in errors_on(changeset).name
+    end
+  end
+
+  describe "deploy_app/2" do
+    @tag :tmp_dir
+    test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
+      team = create_team_hub(user, node)
+      deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
+
+      {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+
+      notebook = %{
+        Notebook.new()
+        | app_settings: %{Notebook.AppSettings.new() | slug: Utils.random_short_id()},
+          name: "MyNotebook",
+          hub_id: team.id,
+          deployment_group_id: to_string(id)
+      }
+
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+      assert {:ok, app_deployment} = Teams.AppDeployment.new(notebook, files_dir)
+      assert Teams.deploy_app(team, app_deployment) == :ok
     end
   end
 end

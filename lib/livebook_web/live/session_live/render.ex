@@ -117,6 +117,24 @@ defmodule LivebookWeb.SessionLive.Render do
     </.modal>
 
     <.modal
+      :if={@live_action == :app_teams}
+      id="app-teams-modal"
+      show
+      width={:medium}
+      patch={@self_path}
+    >
+      <.live_component
+        module={LivebookWeb.SessionLive.AppTeamsComponent}
+        id="app-teams"
+        session={@session}
+        hub={@data_view.hub}
+        file={@data_view.file}
+        app_settings={@data_view.app_settings}
+        deployment_group_id={@data_view.deployment_group_id}
+      />
+    </.modal>
+
+    <.modal
       :if={@live_action == :add_file_entry}
       id="add-file-entry-modal"
       show

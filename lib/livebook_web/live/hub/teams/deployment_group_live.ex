@@ -37,6 +37,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
         do: deployment_group.agent_keys,
         else: []
 
+    app_deployments =
+      if socket.assigns.live_action != :new_deployment_group,
+        do: deployment_group.app_deployments,
+        else: []
+
     secret_value =
       if socket.assigns.live_action == :edit_secret do
         Enum.find_value(secrets, &(&1.name == secret_name and &1.value)) ||
@@ -55,7 +60,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
        secret_value: secret_value,
        default?: default?,
        secrets: secrets,
-       agent_keys: agent_keys
+       agent_keys: agent_keys,
+       app_deployments: app_deployments
      )
      |> assign_new(:config_changeset, fn ->
        Hubs.Dockerfile.config_changeset(Hubs.Dockerfile.config_new())
@@ -184,6 +190,36 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
                         source={@agent_dockerfile}
                         language="dockerfile"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <div :if={@deployment_group.mode == :online} class="flex flex-col space-y-4">
+                  <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
+                    Deployed Apps
+                  </h2>
+
+                  <p class="text-gray-700">
+                    Apps currently deployed in this group.
+                  </p>
+
+                  <div id="deployed-apps-list" class="flex flex-col space-y-4">
+                    <div class="flex flex-col space-y-4">
+                      <.no_entries :if={@app_deployments == []}>
+                        No deployed apps in this deployment group yet.
+                      </.no_entries>
+                      <div :if={@app_deployments != []}>
+                        <.table id="hub-deployed-apps-table" rows={@app_deployments}>
+                          <:col :let={app_deployment} label="ID"><%= app_deployment.id %></:col>
+                          <:col :let={app_deployment} label="Slug"><%= app_deployment.slug %></:col>
+                          <:col :let={app_deployment} label="Deployed By">
+                            <%= app_deployment.deployed_by %>
+                          </:col>
+                          <:col :let={app_deployment} label="Deployed At">
+                            <%= app_deployment.deployed_at %>
+                          </:col>
+                        </.table>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -17,6 +17,11 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     socket = assign(socket, assigns)
     deployment_groups = Provider.deployment_groups(assigns.hub)
 
+    deployment_group =
+      if assigns.deployment_group_id do
+        Enum.find(deployment_groups, &(&1.id == assigns.deployment_group_id))
+      end
+
     socket =
       socket
       |> assign(settings_valid?: Livebook.Notebook.AppSettings.valid?(socket.assigns.settings))
@@ -24,14 +29,18 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         hub_secrets: Hubs.get_secrets(assigns.hub),
         hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
         deployment_groups: deployment_groups,
+        deployment_group: deployment_group,
         deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
         deployment_group_id: assigns.deployment_group_id
       )
-      |> assign_new(:save_result, fn -> nil end)
+      |> assign_new(:messages, fn -> [] end)
 
     socket =
       if deployment_group_changed? do
-        assign(socket, :changeset, Hubs.Dockerfile.config_changeset(base_config(socket)))
+        assign(socket,
+          changeset: Hubs.Dockerfile.config_changeset(base_config(socket)),
+          deployment_type: :dockerfile
+        )
       else
         socket
       end
@@ -40,9 +49,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   defp base_config(socket) do
-    if id = socket.assigns.deployment_group_id do
-      deployment_group = Enum.find(socket.assigns.deployment_groups, &(&1.id == id))
-
+    if deployment_group = socket.assigns.deployment_group do
       %{
         Hubs.Dockerfile.config_new()
         | clustering: deployment_group.clustering,
@@ -65,14 +72,14 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         file={@file}
         settings_valid?={@settings_valid?}
         hub={@hub}
+        deployment_group={@deployment_group}
         deployment_groups={@deployment_groups}
         deployment_group_form={@deployment_group_form}
         deployment_group_id={@deployment_group_id}
         changeset={@changeset}
         session={@session}
         dockerfile={@dockerfile}
-        warnings={@warnings}
-        save_result={@save_result}
+        messages={@messages}
         myself={@myself}
       />
     </div>
@@ -120,6 +127,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         You can deploy this app in the cloud using Docker. To do that, configure
         the deployment and then use the generated Dockerfile.
       </p>
+
       <div class="flex gap-12">
         <p class="text-gray-700">
           <.label>Hub</.label>
@@ -155,11 +163,13 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <% end %>
         <% end %>
       </div>
-      <div :if={@warnings != []} class="flex flex-col gap-2">
-        <.message_box :for={warning <- @warnings} kind={:warning}>
-          <%= raw(warning) %>
+
+      <div :if={@messages != []} class="flex flex-col gap-2">
+        <.message_box :for={{kind, message} <- @messages} kind={kind}>
+          <%= raw(message) %>
         </.message_box>
       </div>
+
       <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
         <div class="flex flex-col space-y-4">
           <AppComponents.deployment_group_form_content
@@ -170,7 +180,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
           <AppComponents.docker_config_form_content hub={@hub} form={f} />
         </div>
       </.form>
-      <.save_result :if={@save_result} save_result={@save_result} />
+
       <AppComponents.docker_instructions
         hub={@hub}
         dockerfile={@dockerfile}
@@ -194,22 +204,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     """
   end
 
-  defp save_result(%{save_result: {:ok, file}}) do
-    assigns = %{path: file.path}
-
-    ~H"""
-    <.message_box kind={:info} message={"File saved at #{@path}"} />
-    """
-  end
-
-  defp save_result(%{save_result: {:error, message}}) do
-    assigns = %{message: message}
-
-    ~H"""
-    <.message_box kind={:error} message={@message} />
-    """
-  end
-
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
@@ -223,14 +217,12 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
   def handle_event("save_dockerfile", %{}, socket) do
     dockerfile_file = FileSystem.File.resolve(socket.assigns.file, "./Dockerfile")
+    file_path_message = "File saved at #{dockerfile_file.path}"
 
-    save_result =
-      case FileSystem.File.write(dockerfile_file, socket.assigns.dockerfile) do
-        :ok -> {:ok, dockerfile_file}
-        {:error, message} -> {:error, message}
-      end
-
-    {:noreply, assign(socket, save_result: save_result)}
+    case FileSystem.File.write(dockerfile_file, socket.assigns.dockerfile) do
+      :ok -> {:noreply, assign(socket, messages: [{:info, file_path_message}])}
+      {:error, message} -> {:noreply, assign(socket, messages: [{:error, message}])}
+    end
   end
 
   def handle_event("select_deployment_group", %{"deployment_group_id" => id}, socket) do
@@ -241,7 +233,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   defp update_dockerfile(socket) when socket.assigns.file == nil do
-    assign(socket, dockerfile: nil, warnings: [])
+    assign(socket, dockerfile: nil, messages: [])
   end
 
   defp update_dockerfile(socket) do
@@ -291,7 +283,9 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         secrets
       )
 
-    assign(socket, dockerfile: dockerfile, warnings: warnings)
+    messages = Enum.map(warnings, &{:warning, &1})
+
+    assign(socket, dockerfile: dockerfile, messages: messages)
   end
 
   defp deployment_group_options(deployment_groups) do

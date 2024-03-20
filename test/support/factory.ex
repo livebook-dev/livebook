@@ -61,7 +61,8 @@ defmodule Livebook.Factory do
       name: "FOO",
       mode: :offline,
       agent_keys: [],
-      secrets: []
+      secrets: [],
+      app_deployments: []
     }
   end
 
@@ -88,6 +89,37 @@ defmodule Livebook.Factory do
       access_key_id: "key",
       secret_access_key: "secret",
       hub_id: hub_id
+    }
+  end
+
+  def build(:agent_key) do
+    %Livebook.Teams.AgentKey{
+      id: "1",
+      key: "lb_ak_zj9tWM1rEVeweYR7DbH_2VK5_aKtWfptcL07dBncqg",
+      deployment_group_id: "1"
+    }
+  end
+
+  def build(:app_deployment) do
+    slug = Livebook.Utils.random_short_id()
+    path = Plug.Upload.random_file!(slug)
+    local = Livebook.FileSystem.Local.new()
+    file = Livebook.FileSystem.File.new(local, path)
+    {:ok, content} = Livebook.FileSystem.File.read(file)
+
+    md5_hash = :crypto.hash(:md5, content)
+    shasum = Base.encode16(md5_hash, case: :lower)
+
+    %Livebook.Teams.AppDeployment{
+      id: "1",
+      title: "MyNotebook",
+      sha: shasum,
+      slug: slug,
+      file: file,
+      filename: Path.basename(file.path),
+      deployment_group_id: "1",
+      deployed_by: "Ada Lovelace",
+      deployed_at: NaiveDateTime.utc_now()
     }
   end
 

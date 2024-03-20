@@ -4,7 +4,7 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams.{AgentKey, DeploymentGroup, Org, Requests}
+  alias Livebook.Teams.{AgentKey, AppDeployment, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
@@ -247,6 +247,29 @@ defmodule Livebook.Teams do
       deployment_group.agent_keys
     else
       []
+    end
+  end
+
+  @doc """
+  Creates a new app deployment.
+  """
+  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+          :ok
+          | {:error, Ecto.Changeset.t()}
+          | {:transport_error, String.t()}
+  def deploy_app(%Team{} = team, %AppDeployment{} = app_deployment) do
+    case Requests.deploy_app(team, app_deployment) do
+      {:ok, %{"id" => _id}} ->
+        :ok
+
+      {:error, %{"errors" => %{"detail" => error}}} ->
+        {:error, Requests.add_errors(app_deployment, %{"file" => [error]})}
+
+      {:error, %{"errors" => errors}} ->
+        {:error, Requests.add_errors(app_deployment, errors)}
+
+      any ->
+        any
     end
   end
 end
