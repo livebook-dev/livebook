@@ -191,8 +191,6 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
   end
 
   defp deploy_app(socket, app_deployment) do
-    app_deployment = Map.replace!(app_deployment, :slug, "@bc")
-
     case Livebook.Teams.deploy_app(socket.assigns.hub, app_deployment) do
       :ok ->
         :ok
