@@ -537,12 +537,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     |> expand_alias(ctx)
   end
 
-  defp expand_alias([name | rest], ctx) do
-    case Macro.Env.fetch_alias(ctx.intellisense_context.env, name) do
-      {:ok, name} when rest == [] -> name
-      {:ok, name} -> Module.concat([name | rest])
-      :error -> Module.concat([name | rest])
-    end
+  defp expand_alias([_ | _] = parts, ctx) do
+    Macro.expand({:__aliases__, [], parts}, ctx.intellisense_context.env)
   end
 
   defp match_env_alias(hint, ctx) do
