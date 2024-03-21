@@ -3,7 +3,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   import Ecto.Changeset
 
   alias Livebook.Secrets.Secret
-  alias Livebook.Teams.{AgentKey, AppDeployment}
+  alias Livebook.Teams.AgentKey
 
   # If this list is updated, it must also be mirrored on Livebook Teams Server.
   @zta_providers ~w(cloudflare google_iap tailscale teleport)a
@@ -17,8 +17,7 @@ defmodule Livebook.Teams.DeploymentGroup do
           zta_provider: :cloudflare | :google_iap | :tailscale | :teleport,
           zta_key: String.t(),
           secrets: [Secret.t()],
-          agent_keys: [AgentKey.t()],
-          app_deployments: [AppDeployment.t()]
+          agent_keys: [AgentKey.t()]
         }
 
   @primary_key {:id, :string, autogenerate: false}
@@ -32,7 +31,6 @@ defmodule Livebook.Teams.DeploymentGroup do
 
     has_many :secrets, Secret
     has_many :agent_keys, AgentKey
-    has_many :app_deployments, AppDeployment
   end
 
   def changeset(deployment_group, attrs \\ %{}) do

@@ -19,7 +19,8 @@ defmodule Livebook.Hubs.TeamClient do
     connected?: false,
     secrets: [],
     file_systems: [],
-    deployment_groups: []
+    deployment_groups: [],
+    app_deployments: []
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
@@ -265,32 +266,17 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp put_agent_key(deployment_group, agent_key) do
-    deployment_group = remove_agent_key(deployment_group, agent_key)
-    agent_keys = [agent_key | deployment_group.agent_keys]
+  defp put_app_deployment(state, app_deployment) do
+    state = remove_app_deployment(state, app_deployment)
+    app_deployments = [app_deployment | state.app_deployments]
 
-    %{deployment_group | agent_keys: Enum.sort_by(agent_keys, & &1.id)}
+    %{state | app_deployments: Enum.sort_by(app_deployments, & &1.slug)}
   end
 
-  defp remove_agent_key(deployment_group, agent_key) do
+  defp remove_app_deployment(state, app_deployment) do
     %{
-      deployment_group
-      | agent_keys: Enum.reject(deployment_group.agent_keys, &(&1.id == agent_key.id))
-    }
-  end
-
-  defp put_app_deployment(deployment_group, app_deployment) do
-    deployment_group = remove_app_deployment(deployment_group, app_deployment)
-    app_deployments = [app_deployment | deployment_group.app_deployments]
-
-    %{deployment_group | app_deployments: Enum.sort_by(app_deployments, & &1.slug)}
-  end
-
-  defp remove_app_deployment(deployment_group, app_deployment) do
-    %{
-      deployment_group
-      | app_deployments:
-          Enum.reject(deployment_group.app_deployments, &(&1.slug == app_deployment.slug))
+      state
+      | app_deployments: Enum.reject(state.app_deployments, &(&1.id == app_deployment.id))
     }
   end
 
@@ -302,10 +288,9 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp build_deployment_group(state, deployment_group) do
+  defp build_deployment_group(state, %LivebookProto.DeploymentGroup{} = deployment_group) do
     secrets = Enum.map(deployment_group.secrets, &build_secret(state, &1))
     agent_keys = Enum.map(deployment_group.agent_keys, &build_agent_key/1)
-    app_deployments = Enum.map(deployment_group.deployed_apps, &build_app_deployment/1)
 
     %Teams.DeploymentGroup{
       id: deployment_group.id,
@@ -314,24 +299,55 @@ defmodule Livebook.Hubs.TeamClient do
       hub_id: state.hub.id,
       secrets: secrets,
       agent_keys: agent_keys,
-      app_deployments: app_deployments,
       clustering: nullify(deployment_group.clustering),
       zta_provider: atomize(deployment_group.zta_provider),
       zta_key: nullify(deployment_group.zta_key)
     }
   end
 
-  defp build_app_deployment(app_deployment) do
-    path = URI.parse(app_deployment.archive_url).path
+  defp build_deployment_group(state, %{mode: _} = deployment_group_created) do
+    agent_keys = Enum.map(deployment_group_created.agent_keys, &build_agent_key/1)
 
+    %Teams.DeploymentGroup{
+      id: deployment_group_created.id,
+      name: deployment_group_created.name,
+      mode: atomize(deployment_group_created.mode),
+      hub_id: state.hub.id,
+      secrets: [],
+      agent_keys: agent_keys,
+      clustering: nullify(deployment_group_created.clustering),
+      zta_provider: atomize(deployment_group_created.zta_provider),
+      zta_key: nullify(deployment_group_created.zta_key)
+    }
+  end
+
+  defp build_deployment_group(state, deployment_group_updated) do
+    secrets = Enum.map(deployment_group_updated.secrets, &build_secret(state, &1))
+    agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
+    {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
+
+    %Teams.DeploymentGroup{
+      id: deployment_group_updated.id,
+      name: deployment_group_updated.name,
+      mode: deployment_group.mode,
+      hub_id: deployment_group.hub_id,
+      secrets: secrets,
+      agent_keys: agent_keys,
+      clustering: nullify(deployment_group_updated.clustering),
+      zta_provider: atomize(deployment_group_updated.zta_provider),
+      zta_key: nullify(deployment_group_updated.zta_key)
+    }
+  end
+
+  defp build_app_deployment(%LivebookProto.AppDeployment{} = app_deployment) do
     %Teams.AppDeployment{
       id: app_deployment.id,
-      filename: Path.basename(path),
+      filename: nil,
       slug: app_deployment.slug,
       sha: app_deployment.sha,
       title: app_deployment.title,
       deployment_group_id: app_deployment.deployment_group_id,
-      file: {:url, app_deployment.archive_url},
+      file: nil,
       deployed_by: app_deployment.deployed_by,
       deployed_at: NaiveDateTime.from_iso8601!(app_deployment.deployed_at)
     }
@@ -415,9 +431,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp handle_event(:deployment_group_updated, %Teams.DeploymentGroup{} = deployment_group, state) do
-    deployment_group = deploy_apps(state.deployment_group_id, deployment_group, state.derived_key)
     Teams.Broadcasts.deployment_group_updated(deployment_group)
-
     put_deployment_group(state, deployment_group)
   end
 
@@ -431,18 +445,20 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:deployment_group_deleted, deployment_group_deleted, state) do
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_deleted.id, state) do
-      undeploy_apps(state.deployment_group_id, deployment_group)
       Teams.Broadcasts.deployment_group_deleted(deployment_group)
 
-      remove_deployment_group(state, deployment_group)
+      state
+      |> undeploy_apps(deployment_group)
+      |> remove_deployment_group(deployment_group)
     end
   end
 
-  defp handle_event(:user_connected, connected, state) do
+  defp handle_event(:user_connected, user_connected, state) do
     state
-    |> dispatch_secrets(connected)
-    |> dispatch_file_systems(connected)
-    |> dispatch_deployment_groups(connected)
+    |> dispatch_secrets(user_connected)
+    |> dispatch_file_systems(user_connected)
+    |> dispatch_deployment_groups(user_connected)
+    |> dispatch_app_deployments(user_connected)
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
@@ -451,42 +467,27 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_secrets(agent_connected)
     |> dispatch_file_systems(agent_connected)
     |> dispatch_deployment_groups(agent_connected)
+    |> dispatch_app_deployments(agent_connected)
   end
 
-  defp handle_event(:agent_key_created, agent_key_created, state) do
-    agent_key = build_agent_key(agent_key_created)
+  defp handle_event(:app_deployment_created, %Teams.AppDeployment{} = app_deployment, state) do
+    deployment_group_id = app_deployment.deployment_group_id
 
-    with {:ok, deployment_group} <- fetch_deployment_group(agent_key.deployment_group_id, state) do
-      deployment_group = put_agent_key(deployment_group, agent_key)
-      handle_event(:deployment_group_updated, deployment_group, state)
-    end
-  end
+    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
+      if deployment_group.id == state.deployment_group_id do
+        :ok = download_and_deploy(state.hub, app_deployment, state.derived_key)
+      end
 
-  defp handle_event(:agent_key_deleted, agent_key_deleted, state) do
-    agent_key = build_agent_key(agent_key_deleted)
-
-    with {:ok, deployment_group} <- fetch_deployment_group(agent_key.deployment_group_id, state) do
-      deployment_group = remove_agent_key(deployment_group, agent_key)
-      handle_event(:deployment_group_updated, deployment_group, state)
+      put_app_deployment(state, app_deployment)
     end
   end
 
   defp handle_event(:app_deployment_created, app_deployment_created, state) do
-    app_deployment = build_app_deployment(app_deployment_created)
-    deployment_group_id = app_deployment.deployment_group_id
-
-    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      app_deployment =
-        if deployment_group_id == state.deployment_group_id do
-          {:ok, app_deployment} = download_and_deploy(app_deployment, state.derived_key)
-          app_deployment
-        else
-          app_deployment
-        end
-
-      deployment_group = put_app_deployment(deployment_group, app_deployment)
-      handle_event(:deployment_group_updated, deployment_group, state)
-    end
+    handle_event(
+      :app_deployment_created,
+      build_app_deployment(app_deployment_created.app_deployment),
+      state
+    )
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
@@ -525,19 +526,24 @@ defmodule Livebook.Hubs.TeamClient do
     )
   end
 
-  defp dispatch_file_systems(state, _), do: state
-
   defp dispatch_deployment_groups(state, %{deployment_groups: deployment_groups}) do
-    decrypted_deployment_groups = Enum.map(deployment_groups, &build_deployment_group(state, &1))
+    deployment_groups = Enum.map(deployment_groups, &build_deployment_group(state, &1))
 
     {created, deleted, updated} =
-      diff(state.deployment_groups, decrypted_deployment_groups, &(&1.id == &2.id))
+      diff(state.deployment_groups, deployment_groups, &(&1.id == &2.id))
 
     dispatch_events(state,
       deployment_group_deleted: deleted,
       deployment_group_created: created,
       deployment_group_updated: updated
     )
+  end
+
+  defp dispatch_app_deployments(state, %{app_deployments: app_deployments}) do
+    app_deployments = Enum.map(app_deployments, &build_app_deployment/1)
+    {created, _, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
+
+    dispatch_events(state, app_deployment_created: created)
   end
 
   defp update_hub(state, %{public_key: org_public_key}) do
@@ -588,39 +594,33 @@ defmodule Livebook.Hubs.TeamClient do
   defp nullify(""), do: nil
   defp nullify(value), do: value
 
-  defp deploy_apps(id, %{id: id} = deployment_group, derived_key) do
-    app_deployments =
-      for app_deployment <- deployment_group.app_deployments do
-        {:ok, app_deployment} = download_and_deploy(app_deployment, derived_key)
-        app_deployment
-      end
+  defp undeploy_apps(%{deployment_group_id: id} = state, %{id: id}) do
+    fun = &(&1.deployment_group_id == id)
+    app_deployments = Enum.filter(state.app_deployments, fun)
 
-    %{deployment_group | app_deployments: app_deployments}
-  end
-
-  defp deploy_apps(_, deployment_group, _), do: deployment_group
-
-  defp undeploy_apps(id, %{id: id} = deployment_group) do
-    for %{slug: slug} <- deployment_group.app_deployments do
+    for %{slug: slug} <- app_deployments do
       :ok = undeploy_app(slug)
     end
+
+    %{state | deployment_group_id: nil, app_deployments: Enum.reject(state.app_deployments, fun)}
   end
 
-  defp undeploy_apps(_, _), do: :noop
-
-  defp download_and_deploy(%{file: nil} = app_deployment, _) do
-    app_deployment
+  defp undeploy_apps(state, %{id: id}) do
+    %{
+      state
+      | app_deployments: Enum.reject(state.app_deployments, &(&1.deployment_group_id == id))
+    }
   end
 
-  defp download_and_deploy(%{file: {:url, archive_url}} = app_deployment, derived_key) do
+  defp download_and_deploy(team, %Teams.AppDeployment{} = app_deployment, derived_key) do
     destination_path = app_deployment_path(app_deployment.slug)
 
-    with {:ok, %{status: 200} = response} <- Req.get(archive_url),
+    with {:ok, file_content} <- Teams.Requests.download_revision(team, app_deployment),
          :ok <- undeploy_app(app_deployment.slug),
-         {:ok, decrypted_content} <- Teams.decrypt(response.body, derived_key),
+         {:ok, decrypted_content} <- Teams.decrypt(file_content, derived_key),
          :ok <- unzip_app(decrypted_content, destination_path),
          :ok <- Livebook.Apps.deploy_apps_in_dir(destination_path) do
-      {:ok, %{app_deployment | file: nil}}
+      :ok
     end
   end
 

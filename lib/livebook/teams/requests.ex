@@ -223,7 +223,7 @@ defmodule Livebook.Teams.Requests do
   """
   @spec deploy_app(Team.t(), AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def deploy_app(team, %{file: {:content, content}} = app_deployment) do
+  def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
@@ -234,7 +234,7 @@ defmodule Livebook.Teams.Requests do
       sha: app_deployment.sha
     }
 
-    encrypted_content = Teams.encrypt(content, secret_key)
+    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
     upload("/api/v1/org/apps", encrypted_content, params, team)
   end
 

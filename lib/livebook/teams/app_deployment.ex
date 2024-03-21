@@ -12,7 +12,7 @@ defmodule Livebook.Teams.AppDeployment do
           sha: String.t() | nil,
           title: String.t() | nil,
           deployment_group_id: String.t() | nil,
-          file: {:url, String.t()} | {:content, binary()} | nil,
+          file: binary() | nil,
           deployed_by: String.t() | nil,
           deployed_at: NaiveDateTime.t() | nil
         }
@@ -50,7 +50,7 @@ defmodule Livebook.Teams.AppDeployment do
          sha: shasum,
          title: notebook.name,
          deployment_group_id: notebook.deployment_group_id,
-         file: {:content, zip_content}
+         file: zip_content
        }}
     end
   end
