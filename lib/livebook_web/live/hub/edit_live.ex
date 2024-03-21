@@ -88,7 +88,7 @@ defmodule LivebookWeb.Hub.EditLive do
 
       socket
       |> put_flash(:success, "Hub deleted successfully")
-      |> push_navigate(to: "/")
+      |> push_navigate(to: ~p"/")
     end
 
     {:noreply,

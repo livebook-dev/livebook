@@ -65,7 +65,7 @@ defmodule LivebookWeb.AuthController do
         |> delete_session(:redirect_to)
         |> redirect(to: redirect_to)
       else
-        redirect(conn, to: "/")
+        redirect(conn, to: ~p"/")
       end
     end)
     |> halt()
