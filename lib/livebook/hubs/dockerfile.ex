@@ -132,16 +132,8 @@ defmodule Livebook.Hubs.Dockerfile do
         # Set the same Livebook secrets across all nodes
         ENV LIVEBOOK_SECRET_KEY_BASE "#{random_secret_key_base}"
         ENV LIVEBOOK_COOKIE "#{random_cookie}"
-
-        """ <>
-          ~S"""
-          # Runtime configuration to cluster multiple Livebook nodes on Fly.io
-          RUN printf '\
-          export ERL_AFLAGS="-proto_dist inet6_tcp"\n\
-          export LIVEBOOK_NODE="${FLY_APP_NAME}-${FLY_IMAGE_REF##*-}@${FLY_PRIVATE_IP}"\n\
-          export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"\n\
-          ' > /app/user/env.sh
-          """
+        ENV LIVEBOOK_CLUSTER "fly"
+        """
       end
 
     [
