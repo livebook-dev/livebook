@@ -202,7 +202,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.build_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/export LIVEBOOK_CLUSTER="dns:${FLY_APP_NAME}.internal"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "fly"/
     end
   end
 

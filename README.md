@@ -201,8 +201,9 @@ The following environment variables can be used to configure Livebook on boot:
     accesses files from external sources.
 
   * `LIVEBOOK_CLUSTER` - configures clustering strategy when running multiple
-    instances of Livebook. See the "Clustering" section of our Docker Deployment
-    guide for more information: https://hexdocs.pm/livebook/docker.html
+    instances of Livebook using either the Docker image or an Elixir release.
+    See the "Clustering" section of our Docker Deployment guide for more
+    information: https://hexdocs.pm/livebook/docker.html
 
   * `LIVEBOOK_COOKIE` - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.

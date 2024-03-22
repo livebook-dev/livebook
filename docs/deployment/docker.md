@@ -50,16 +50,18 @@ If you are using [Livebook Teams](https://livebook.dev/teams/), you will also ha
 
 ## Clustering
 
-If you plan to run several Livebook instances behind a load balancer, you need to enable clustering via the `LIVEBOOK_CLUSTER` environment variable. Currently the only supported value is `dns:QUERY`, in which case nodes ask DNS for A/AAAA records using the given query and try to connect to peer nodes on the discovered IPs.
+If you plan to run several Livebook instances behind a load balancer, you need to enable clustering via the `LIVEBOOK_CLUSTER` environment variable. Depending on the strategy of your choice, you must set additional environment variables, oftentimes, at runtime. When using the Livebook Docker image, you can create a file at `/app/user/env.sh` that exports the necessary environment variables. This file is invoked right before booting Livebook. `LIVEBOOK_DISTRIBUTION` is automatically set to `name` if clustering is enabled.
 
-When clustering is enabled, you must additionally set the following env vars:
+### `LIVEBOOK_CLUSTER=fly`
+
+It automatically sets up a cluster to run on Fly using DNS configuration. It automatically sets up the environment variables based on your Fly Application name and enables IPv6 support.
+
+### `LIVEBOOK_CLUSTER=dns:QUERY`
+
+Sets up a cluster using DNS for queries for A/AAAA records to discover new nodes. Additionally, you must additionally set the following env vars:
 
   * `LIVEBOOK_NODE=livebook_server@IP`, where `IP` is the machine IP of each deployed node
 
   * You must set `LIVEBOOK_SECRET_KEY_BASE` and `LIVEBOOK_COOKIE` to different random values (use `openssl rand -base64 48` to generate said values)
 
   * If your cloud requires IPv6, also set `ERL_AFLAGS="-proto_dist inet6_tcp"`
-
-`LIVEBOOK_DISTRIBUTION` is automatically set to `name` if clustering is enabled.
-
-Some variables, like `LIVEBOOK_NODE`, are oftentimes computed at runtime. When using the Livebook Docker image, you can create a file at `/app/user/env.sh` that exports the necessary environment variables. This file is invoked right before booting Livebook.
