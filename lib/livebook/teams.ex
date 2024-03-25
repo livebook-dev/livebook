@@ -272,4 +272,12 @@ defmodule Livebook.Teams do
         any
     end
   end
+
+  @doc """
+  Gets a list of app deployments for a given Hub.
+  """
+  @spec get_app_deployments(Team.t()) :: list(AppDeployment.t())
+  def get_app_deployments(team) do
+    TeamClient.get_app_deployments(team.id)
+  end
 end

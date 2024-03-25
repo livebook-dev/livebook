@@ -1,26 +1,25 @@
 defmodule Livebook.Teams.Broadcasts do
-  alias Livebook.Teams.{AgentKey, DeploymentGroup}
+  alias Livebook.Teams.{AppDeployment, DeploymentGroup}
 
   @type broadcast :: :ok | {:error, term()}
 
   @deployment_groups_topic "teams:deployment_groups"
-  @agent_keys_topic "teams:agent_keys"
+  @app_deployments_topic "teams:app_deployments"
 
   @doc """
   Subscribes to one or more subtopics in `"teams"`.
 
   ## Messages
 
-  Topic `teams:deployment_groups`:
+  Topic `#{@deployment_groups_topic}`:
 
     * `{:deployment_group_created, DeploymentGroup.t()}`
     * `{:deployment_group_updated, DeploymentGroup.t()}`
     * `{:deployment_group_deleted, DeploymentGroup.t()}`
 
-  Topic `teams:agent_keys`:
+  Topic `#{@app_deployments_topic}`:
 
-    * `{:agent_key_created, AgentKey.t()}`
-    * `{:agent_key_deleted, AgentKey.t()}`
+    * `{:app_deployment_created, AppDeployment.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -73,19 +72,11 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@agent_keys_topic}` topic when hub received a new agent key.
+  Broadcasts under `#{@app_deployments_topic}` topic when hub received a new app deployment.
   """
-  @spec agent_key_created(AgentKey.t()) :: broadcast()
-  def agent_key_created(%AgentKey{} = agent_key) do
-    broadcast(@agent_keys_topic, {:agent_key_created, agent_key})
-  end
-
-  @doc """
-  Broadcasts under `#{@agent_keys_topic}` topic when hub received a deleted agent key.
-  """
-  @spec agent_key_deleted(AgentKey.t()) :: broadcast()
-  def agent_key_deleted(%AgentKey{} = agent_key) do
-    broadcast(@agent_keys_topic, {:agent_key_deleted, agent_key})
+  @spec app_deployment_created(AppDeployment.t()) :: broadcast()
+  def app_deployment_created(%AppDeployment{} = app_deployment) do
+    broadcast(@app_deployments_topic, {:app_deployment_created, app_deployment})
   end
 
   defp broadcast(topic, message) do

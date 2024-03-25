@@ -1,12 +1,11 @@
 defmodule LivebookWeb.SessionLive.AppTeamsComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs.Provider
-
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    deployment_groups = Provider.deployment_groups(assigns.hub)
+    deployment_groups = Livebook.Teams.get_deployment_groups(assigns.hub)
+    app_deployments = Livebook.Teams.get_app_deployments(assigns.hub)
 
     deployment_group =
       if assigns.deployment_group_id do
@@ -15,7 +14,10 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
 
     app_deployment =
       if deployment_group do
-        Enum.find(deployment_group.app_deployments, &(&1.slug == assigns.app_settings.slug))
+        Enum.find(
+          app_deployments,
+          &(&1.slug == assigns.app_settings.slug and &1.deployment_group_id == deployment_group.id)
+        )
       end
 
     socket =

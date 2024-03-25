@@ -79,7 +79,7 @@ defmodule Livebook.Teams.ConnectionTest do
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
 
-      # creates a new deployment group
+      # creates a new deployment group with offline mode
       deployment_group = build(:deployment_group, name: "FOO", mode: :offline)
 
       assert {:ok, _id} =
@@ -89,28 +89,132 @@ defmodule Livebook.Teams.ConnectionTest do
       assert_receive {:event, :deployment_group_created, deployment_group_created}
       assert deployment_group_created.name == deployment_group.name
       assert String.to_existing_atom(deployment_group_created.mode) == deployment_group.mode
+
+      # since the deployment group is with offline mode, the agent key shouldn't exists
+      assert deployment_group_created.agent_keys == []
+
+      # creates a new deployment group with online mode
+      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
+      {:ok, _id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+
+      # deployment_group name and mode are not encrypted
+      assert_receive {:event, :deployment_group_created, deployment_group_created}
+      assert deployment_group_created.name == deployment_group.name
+      assert String.to_existing_atom(deployment_group_created.mode) == deployment_group.mode
+
+      # receives the built-in agent key
+      assert [agent_key] = deployment_group_created.agent_keys
+      assert is_binary(agent_key.key)
+      assert agent_key.deployment_group_id == deployment_group_created.id
     end
 
-    test "receives the agent_key_created event", %{user: user, node: node} do
+    @tag :tmp_dir
+    test "receives the app deployments list from user_connected event",
+         %{user: user, node: node, tmp_dir: tmp_dir} do
       {hub, headers} = build_team_headers(user, node)
+
+      # creates a new deployment group
+      deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
+      {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+
+      # creates a new app deployment
+      deployment_group_id = to_string(id)
+      slug = Livebook.Utils.random_short_id()
+      title = "MyNotebook3-#{slug}"
+
+      notebook = %{
+        Livebook.Notebook.new()
+        | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+          name: title,
+          hub_id: hub.id,
+          deployment_group_id: deployment_group_id
+      }
+
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+      {:ok, %Livebook.Teams.AppDeployment{} = app_deployment} =
+        Livebook.Teams.AppDeployment.new(notebook, files_dir)
+
+      # since we want to fetch the app deployment from connection event,
+      # we need to persist it before we connect to the WebSocket
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
 
+      assert_receive {:event, :user_connected, user_connected}
+      assert [app_deployment2] = user_connected.app_deployments
+      assert app_deployment2.title == title
+      assert app_deployment2.slug == slug
+      assert app_deployment2.sha == app_deployment.sha
+      assert app_deployment2.deployment_group_id == deployment_group_id
+    end
+
+    @tag :tmp_dir
+    test "receives the app deployments list from agent_connected event",
+         %{user: user, node: node, tmp_dir: tmp_dir} do
+      # To create a new app deployment, we need use the User connection
+      {hub, _headers} = build_team_headers(user, node)
+
       # creates a new deployment group
-      deployment_group = build(:deployment_group, name: "FOO", mode: :online)
+      deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
+      {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
+      teams_deployment_group = erpc_call(node, :get_deployment_group!, [id])
+      [teams_agent_key] = teams_deployment_group.agent_keys
 
-      assert {:ok, deployment_group_id} =
-               Livebook.Teams.create_deployment_group(hub, deployment_group)
+      # creates a new app deployment
+      slug = Livebook.Utils.random_short_id()
+      title = "MyNotebook3-#{slug}"
 
-      # creates a new agent key
-      deployment_group = %{deployment_group | id: to_string(deployment_group_id)}
-      assert Livebook.Teams.create_agent_key(hub, deployment_group) == :ok
+      notebook = %{
+        Livebook.Notebook.new()
+        | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+          name: title,
+          hub_id: hub.id,
+          deployment_group_id: to_string(id)
+      }
 
-      # agent_key key is not encrypted
-      assert_receive {:event, :agent_key_created, agent_key_created}
-      assert "lb_ak_" <> _ = agent_key_created.key
-      assert agent_key_created.deployment_group_id == deployment_group.id
+      files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+      {:ok, %Livebook.Teams.AppDeployment{} = app_deployment} =
+        Livebook.Teams.AppDeployment.new(notebook, files_dir)
+
+      # since we want to fetch the app deployment from connection event,
+      # we need to persist it before we connect to the WebSocket
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+
+      # As we need to be Agent to receive the app deployments list to be deployed,
+      # we will create another connection here
+      public_key = hub.org_public_key
+
+      hub = %{
+        hub
+        | user_id: nil,
+          org_public_key: nil,
+          session_token: teams_agent_key.key
+      }
+
+      agent_name = Livebook.Config.agent_name()
+
+      headers = [
+        {"x-lb-version", Livebook.Config.app_version()},
+        {"x-org", to_string(hub.org_id)},
+        {"x-org-key", to_string(hub.org_key_id)},
+        {"x-agent-name", agent_name},
+        {"x-agent-key", hub.session_token}
+      ]
+
+      assert {:ok, _conn} = Connection.start_link(self(), headers)
+      assert_receive :connected
+
+      assert_receive {:event, :agent_connected, agent_connected}
+      assert agent_connected.name == agent_name
+      assert agent_connected.public_key == public_key
+      assert [app_deployment2] = agent_connected.app_deployments
+      assert app_deployment2.title == title
+      assert app_deployment2.slug == slug
+      assert app_deployment2.sha == app_deployment.sha
+      assert app_deployment2.deployment_group_id == to_string(id)
     end
   end
 end

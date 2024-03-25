@@ -223,19 +223,28 @@ defmodule Livebook.Teams.Requests do
   """
   @spec deploy_app(Team.t(), AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def deploy_app(team, %{file: {:content, content}} = app_deployment) do
+  def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
-      filename: app_deployment.filename <> ".encrypted",
       title: app_deployment.title,
       slug: app_deployment.slug,
       deployment_group_id: app_deployment.deployment_group_id,
       sha: app_deployment.sha
     }
 
-    encrypted_content = Teams.encrypt(content, secret_key)
+    encrypted_content = Teams.encrypt(app_deployment.file, secret_key)
     upload("/api/v1/org/apps", encrypted_content, params, team)
+  end
+
+  @doc """
+  Send a request to Livebook Team API to download an app revision.
+  """
+  @spec download_revision(Team.t(), AppDeployment.t()) ::
+          {:ok, binary()} | {:error, map() | String.t()} | {:transport_error, String.t()}
+  def download_revision(team, app_deployment) do
+    params = %{id: app_deployment.id, deployment_group_id: app_deployment.deployment_group_id}
+    get("/api/v1/org/apps", params, team)
   end
 
   @doc """
@@ -281,8 +290,9 @@ defmodule Livebook.Teams.Requests do
     |> dispatch_messages(team)
   end
 
-  defp get(path, params \\ %{}) do
+  defp get(path, params \\ %{}, team \\ nil) do
     build_req()
+    |> add_team_auth(team)
     |> request(method: :get, url: path, params: params)
   end
 
@@ -320,9 +330,7 @@ defmodule Livebook.Teams.Requests do
         {:ok, body}
 
       {:ok, %{status: status} = response} when status in 200..299 ->
-        if json?(response),
-          do: {:ok, response.body},
-          else: {:error, response.body}
+        {:ok, response.body}
 
       {:ok, %{status: status} = response} when status in [410, 422] ->
         if json?(response),

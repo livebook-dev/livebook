@@ -63,31 +63,26 @@ message DeploymentGroup {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
-  repeated DeployedApp deployed_apps = 9;
 }
 
 message DeploymentGroupCreated {
   string id = 1;
   string name = 2;
   string mode = 3;
-  repeated DeploymentGroupSecret secrets = 4;
   string clustering = 5;
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
-  repeated DeployedApp deployed_apps = 9;
 }
 
 message DeploymentGroupUpdated {
   string id = 1;
   string name = 2;
-  string mode = 3;
-  repeated DeploymentGroupSecret secrets = 4;
-  string clustering = 5;
-  string zta_provider = 6;
-  string zta_key = 7;
-  repeated AgentKey agent_keys = 8;
-  repeated DeployedApp deployed_apps = 9;
+  repeated DeploymentGroupSecret secrets = 3;
+  string clustering = 4;
+  string zta_provider = 5;
+  string zta_key = 6;
+  repeated AgentKey agent_keys = 7;
 }
 
 message DeploymentGroupDeleted {
@@ -100,23 +95,12 @@ message AgentKey {
   string deployment_group_id = 3;
 }
 
-message AgentKeyCreated {
-  string id = 1;
-  string key = 2;
-  string deployment_group_id = 3;
-}
-
-message AgentKeyDeleted {
-  string id = 1;
-  string key = 2;
-  string deployment_group_id = 3;
-}
-
 message UserConnected {
   string name = 1;
   repeated Secret secrets = 2;
   repeated FileSystem file_systems = 3;
   repeated DeploymentGroup deployment_groups = 4;
+  repeated AppDeployment app_deployments = 5;
 }
 
 message AgentConnected {
@@ -127,30 +111,22 @@ message AgentConnected {
   repeated Secret secrets = 5;
   repeated FileSystem file_systems = 6;
   repeated DeploymentGroup deployment_groups = 7;
+  repeated AppDeployment app_deployments = 8;
 }
 
-message DeployedApp {
+message AppDeployment {
   string id = 1;
   string title = 2;
   string sha = 3;
-  string archive_url = 4;
-  string app_id = 5;
-  string slug = 6;
-  string deployment_group_id = 7;
-  string deployed_by = 8;
-  string deployed_at = 9;
+  string revision_id = 4;
+  string slug = 5;
+  string deployment_group_id = 6;
+  string deployed_by = 7;
+  int64 deployed_at = 8;
 }
 
 message AppDeploymentCreated {
-  string id = 1;
-  string title = 2;
-  string sha = 3;
-  string archive_url = 4;
-  string app_id = 5;
-  string slug = 6;
-  string deployment_group_id = 7;
-  string deployed_by = 8;
-  string deployed_at = 9;
+  AppDeployment app_deployment = 1;
 }
 
 message UserDeleted {
@@ -170,9 +146,7 @@ message Event {
     DeploymentGroupUpdated deployment_group_updated = 9;
     DeploymentGroupDeleted deployment_group_deleted = 10;
     AgentConnected agent_connected = 11;
-    AgentKeyCreated agent_key_created = 12;
-    AgentKeyDeleted agent_key_deleted = 13;
-    AppDeploymentCreated app_deployment_created = 14;
-    UserDeleted user_deleted = 15;
+    AppDeploymentCreated app_deployment_created = 12;
+    UserDeleted user_deleted = 13;
   }
 }
