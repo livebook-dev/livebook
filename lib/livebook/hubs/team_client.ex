@@ -354,7 +354,6 @@ defmodule Livebook.Hubs.TeamClient do
   defp build_app_deployment(%LivebookProto.AppDeployment{} = app_deployment) do
     %Teams.AppDeployment{
       id: app_deployment.id,
-      filename: nil,
       slug: app_deployment.slug,
       sha: app_deployment.sha,
       title: app_deployment.title,
@@ -490,6 +489,7 @@ defmodule Livebook.Hubs.TeamClient do
         :ok = download_and_deploy(state.hub, app_deployment, state.derived_key)
       end
 
+      Teams.Broadcasts.app_deployment_created(app_deployment)
       put_app_deployment(state, app_deployment)
     end
   end

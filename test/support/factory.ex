@@ -61,8 +61,7 @@ defmodule Livebook.Factory do
       name: "FOO",
       mode: :offline,
       agent_keys: [],
-      secrets: [],
-      app_deployments: []
+      secrets: []
     }
   end
 
@@ -102,11 +101,7 @@ defmodule Livebook.Factory do
 
   def build(:app_deployment) do
     slug = Livebook.Utils.random_short_id()
-    path = Plug.Upload.random_file!(slug)
-    local = Livebook.FileSystem.Local.new()
-    file = Livebook.FileSystem.File.new(local, path)
-    {:ok, content} = Livebook.FileSystem.File.read(file)
-
+    content = :crypto.strong_rand_bytes(1024 * 1024)
     md5_hash = :crypto.hash(:md5, content)
     shasum = Base.encode16(md5_hash, case: :lower)
 
@@ -115,8 +110,7 @@ defmodule Livebook.Factory do
       title: "MyNotebook",
       sha: shasum,
       slug: slug,
-      file: file,
-      filename: Path.basename(file.path),
+      file: content,
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",
       deployed_at: NaiveDateTime.utc_now()

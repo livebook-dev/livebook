@@ -227,7 +227,6 @@ defmodule Livebook.Teams.Requests do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
-      filename: app_deployment.filename <> ".encrypted",
       title: app_deployment.title,
       slug: app_deployment.slug,
       deployment_group_id: app_deployment.deployment_group_id,

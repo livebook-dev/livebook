@@ -2,12 +2,10 @@ defmodule Livebook.Teams.AppDeployment do
   use Ecto.Schema
   alias Livebook.FileSystem
 
-  @file_extension ".zip"
   @max_size 20 * 1024 * 1024
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
-          filename: String.t() | nil,
           slug: String.t() | nil,
           sha: String.t() | nil,
           title: String.t() | nil,
@@ -19,7 +17,6 @@ defmodule Livebook.Teams.AppDeployment do
 
   @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
-    field :filename, :string
     field :slug, :string
     field :sha, :string
     field :title, :string
@@ -45,7 +42,6 @@ defmodule Livebook.Teams.AppDeployment do
 
       {:ok,
        %__MODULE__{
-         filename: shasum <> @file_extension,
          slug: notebook.app_settings.slug,
          sha: shasum,
          title: notebook.name,

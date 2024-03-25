@@ -7,7 +7,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments])
     :ok
   end
 
@@ -159,8 +159,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       id = to_string(id)
 
-      # receives `{:event, :deployment_group_created, :deployment_group}` event
-      assert_receive {:deployment_group_created, %{id: ^id, app_deployments: []}}
+      assert_receive {:deployment_group_created, %{id: ^id}}
 
       # creates the app deployment
       slug = Livebook.Utils.random_short_id()
@@ -178,14 +177,14 @@ defmodule Livebook.Hubs.TeamClientTest do
       {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
       :ok = Livebook.Teams.deploy_app(team, app_deployment)
 
-      # since the `app_deployment` belongs to a deployment group,
-      # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated,
-                      %{
-                        id: ^id,
-                        app_deployments: [
-                          %Livebook.Teams.AppDeployment{title: ^title, slug: ^slug}
-                        ]
+      sha = app_deployment.sha
+
+      assert_receive {:app_deployment_created,
+                      %Livebook.Teams.AppDeployment{
+                        slug: ^slug,
+                        sha: ^sha,
+                        title: ^title,
+                        deployment_group_id: ^id
                       }}
     end
   end
@@ -199,7 +198,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: team.hub_name,
           secrets: [],
           file_systems: [],
-          deployment_groups: []
+          deployment_groups: [],
+          app_deployments: []
         }
 
       {:ok, team: team, user_connected: user_connected}
@@ -319,8 +319,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: [],
-          deployed_apps: []
+          agent_keys: []
         }
 
       # creates the deployment group
@@ -357,6 +356,8 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     test "dispatches the app deployments list", %{team: team, user_connected: user_connected} do
+      pid = connect_to_teams(team)
+
       deployment_group =
         build(:deployment_group,
           id: "1",
@@ -371,56 +372,32 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: [],
-          deployed_apps: []
+          agent_keys: []
         }
 
-      user_connected = %{user_connected | deployment_groups: [livebook_proto_deployment_group]}
-      pid = connect_to_teams(team)
-      refute_receive {:deployment_group_created, ^deployment_group}
-      send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:deployment_group_created, ^deployment_group}
-      assert deployment_group in TeamClient.get_deployment_groups(team.id)
-
-      url = "http://localhost/123456.zip"
-
-      app_deployment =
-        build(:app_deployment,
-          filename: "123456.zip",
-          file: {:url, url},
-          deployment_group_id: deployment_group.id
-        )
-
-      # updates the deployment group with an app deployment
-      updated_deployment_group = %{deployment_group | app_deployments: [app_deployment]}
+      app_deployment = build(:app_deployment, file: nil, deployment_group_id: deployment_group.id)
 
       livebook_proto_app_deployment =
-        %LivebookProto.DeployedApp{
+        %LivebookProto.AppDeployment{
           id: app_deployment.id,
           title: app_deployment.title,
           slug: app_deployment.slug,
           sha: app_deployment.sha,
-          archive_url: url,
           deployed_by: app_deployment.deployed_by,
           deployed_at: to_string(app_deployment.deployed_at),
-          app_id: "1",
+          revision_id: "1",
           deployment_group_id: app_deployment.deployment_group_id
         }
 
-      updated_livebook_proto_deployment_group = %{
-        livebook_proto_deployment_group
-        | deployed_apps: [livebook_proto_app_deployment]
-      }
-
       user_connected = %{
         user_connected
-        | deployment_groups: [updated_livebook_proto_deployment_group]
+        | deployment_groups: [livebook_proto_deployment_group],
+          app_deployments: [livebook_proto_app_deployment]
       }
 
       send(pid, {:event, :user_connected, user_connected})
-      assert_receive {:deployment_group_updated, ^updated_deployment_group}
-      refute deployment_group in TeamClient.get_deployment_groups(team.id)
-      assert updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+      assert_receive {:app_deployment_created, ^app_deployment}, 5000
+      assert app_deployment in TeamClient.get_app_deployments(team.id)
     end
   end
 
@@ -437,11 +414,13 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployment_group_id: deployment_group.id,
           secrets: [],
           file_systems: [],
-          deployment_groups: []
+          deployment_groups: [],
+          app_deployments: []
         }
 
       {:ok,
        team: team,
+       org: org,
        deployment_group: deployment_group,
        agent_connected: agent_connected,
        agent_key: agent_key}
@@ -662,10 +641,12 @@ defmodule Livebook.Hubs.TeamClientTest do
     test "dispatches the app deployments list",
          %{
            team: team,
+           org: teams_org,
            deployment_group: teams_deployment_group,
            agent_key: teams_agent_key,
            agent_connected: agent_connected,
-           tmp_dir: tmp_dir
+           tmp_dir: tmp_dir,
+           node: node
          } do
       agent_key =
         build(:agent_key,
@@ -696,8 +677,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
           secrets: [],
-          agent_keys: [livebook_proto_agent_key],
-          deployed_apps: []
+          agent_keys: [livebook_proto_agent_key]
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
@@ -723,60 +703,44 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
 
-      {:ok, %{file: {:content, zip_content}} = app_deployment} =
+      {:ok, %Livebook.Teams.AppDeployment{file: zip_content} = app_deployment} =
         Livebook.Teams.AppDeployment.new(notebook, files_dir)
 
       secret_key = Livebook.Teams.derive_key(team.teams_key)
       encrypted_content = Livebook.Teams.encrypt(zip_content, secret_key)
+
+      teams_app_deployment =
+        erpc_call(node, :upload_app_deployment, [
+          teams_org,
+          teams_deployment_group,
+          app_deployment,
+          encrypted_content
+        ])
 
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
       # so we need to add it ourselves
       app_deployment = %{
         app_deployment
-        | id: "1",
-          filename: app_deployment.filename <> ".encrypted",
-          deployed_by: "Jake Peralta",
-          deployed_at: NaiveDateTime.utc_now()
-      }
-
-      bypass = Bypass.open()
-
-      Bypass.expect_once(bypass, "GET", "/#{app_deployment.filename}", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/octet-stream")
-        |> Plug.Conn.resp(200, encrypted_content)
-      end)
-
-      # updates the deployment group with an app deployment
-      # and after we deploy, the `:file` key turns to `nil` value
-      updated_deployment_group = %{
-        deployment_group
-        | app_deployments: [%{app_deployment | file: nil}]
+        | id: to_string(teams_app_deployment.id),
+          file: nil,
+          deployed_by: teams_app_deployment.app_revision.created_by.name,
+          deployed_at: teams_app_deployment.updated_at
       }
 
       livebook_proto_app_deployment =
-        %LivebookProto.DeployedApp{
+        %LivebookProto.AppDeployment{
           id: app_deployment.id,
           title: app_deployment.title,
           slug: app_deployment.slug,
           sha: app_deployment.sha,
-          archive_url: "http://localhost:#{bypass.port}/#{app_deployment.filename}",
           deployed_by: app_deployment.deployed_by,
           deployed_at: to_string(app_deployment.deployed_at),
-          app_id: "1",
+          revision_id: to_string(teams_app_deployment.app_revision.id),
           deployment_group_id: app_deployment.deployment_group_id
         }
 
-      updated_livebook_proto_deployment_group = %{
-        livebook_proto_deployment_group
-        | deployed_apps: [livebook_proto_app_deployment]
-      }
-
-      agent_connected = %{
-        agent_connected
-        | deployment_groups: [updated_livebook_proto_deployment_group]
-      }
+      agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}
 
       apps_path = Path.join(tmp_dir, "apps")
       app_path = Path.join(apps_path, slug)
@@ -789,15 +753,13 @@ defmodule Livebook.Hubs.TeamClientTest do
       Livebook.Apps.subscribe()
 
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:deployment_group_updated, ^updated_deployment_group}
-
+      assert_receive {:app_deployment_created, ^app_deployment}
       assert_receive {:app_created, %{pid: app_pid, slug: ^slug}}
 
       assert_receive {:app_updated,
                       %{slug: ^slug, sessions: [%{app_status: %{execution: :executed}}]}}
 
-      refute deployment_group in TeamClient.get_deployment_groups(team.id)
-      assert updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+      assert app_deployment in TeamClient.get_app_deployments(team.id)
 
       Livebook.App.close(app_pid)
       Application.put_env(:livebook, :apps_path, nil)
