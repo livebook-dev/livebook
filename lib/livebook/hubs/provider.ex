@@ -147,13 +147,4 @@ defprotocol Livebook.Hubs.Provider do
   @spec deployment_groups(t()) ::
           list(%{id: String.t(), name: String.t(), secrets: list(Secret.t())}) | nil
   def deployment_groups(hub)
-
-  @doc """
-  Get the app deployments for a given hub.
-
-  Returns `nil` if app deployments are not applicable to this hub.
-  """
-  @spec app_deployments(t()) ::
-          list(%{id: String.t(), title: String.t(), slug: String.t(), sha: String.t()}) | nil
-  def app_deployments(hub)
 end

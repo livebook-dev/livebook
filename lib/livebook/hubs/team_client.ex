@@ -338,16 +338,14 @@ defmodule Livebook.Hubs.TeamClient do
     agent_keys = Enum.map(deployment_group_updated.agent_keys, &build_agent_key/1)
     {:ok, deployment_group} = fetch_deployment_group(deployment_group_updated.id, state)
 
-    %Teams.DeploymentGroup{
-      id: deployment_group_updated.id,
-      name: deployment_group_updated.name,
-      mode: deployment_group.mode,
-      hub_id: deployment_group.hub_id,
-      secrets: secrets,
-      agent_keys: agent_keys,
-      clustering: nullify(deployment_group_updated.clustering),
-      zta_provider: atomize(deployment_group_updated.zta_provider),
-      zta_key: nullify(deployment_group_updated.zta_key)
+    %{
+      deployment_group
+      | name: deployment_group_updated.name,
+        secrets: secrets,
+        agent_keys: agent_keys,
+        clustering: nullify(deployment_group_updated.clustering),
+        zta_provider: atomize(deployment_group_updated.zta_provider),
+        zta_key: nullify(deployment_group_updated.zta_key)
     }
   end
 
