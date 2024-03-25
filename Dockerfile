@@ -93,6 +93,6 @@ RUN chmod -R go=u /app
 # Make all home files available (specifically .mix/)
 RUN chmod -R go=u $HOME
 
-HEALTHCHECK CMD sh -c "wget --no-verbose --tries=1 --spider http://localhost:\\$LIVEBOOK_PORT/public/health"
+HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:${LIVEBOOK_PORT-8080}/public/health || exit 1
 
 CMD [ "/app/bin/livebook", "start" ]
