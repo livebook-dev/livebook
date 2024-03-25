@@ -80,6 +80,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached app deployments.
+  """
+  @spec get_app_deployments(String.t()) :: list(Teams.AppDeployment.t())
+  def get_app_deployments(id) do
+    GenServer.call(registry_name(id), :get_app_deployments)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -167,6 +175,10 @@ defmodule Livebook.Hubs.TeamClient do
 
   def handle_call(:get_deployment_groups, _caller, state) do
     {:reply, state.deployment_groups, state}
+  end
+
+  def handle_call(:get_app_deployments, _caller, state) do
+    {:reply, state.app_deployments, state}
   end
 
   @impl true

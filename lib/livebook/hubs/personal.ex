@@ -279,4 +279,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Personal do
   end
 
   def deployment_groups(_personal), do: nil
+
+  def app_deployments(_personal), do: nil
 end

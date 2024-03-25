@@ -16,6 +16,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
     deployment_group_id = params["deployment_group_id"]
     secret_name = params["secret_name"]
     deployment_groups = Teams.get_deployment_groups(hub)
+    app_deployments = Teams.get_app_deployments(hub)
     default? = default_hub?(hub)
 
     deployment_group =
@@ -38,9 +39,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupLive do
         else: []
 
     app_deployments =
-      if socket.assigns.live_action != :new_deployment_group,
-        do: deployment_group.app_deployments,
-        else: []
+      if socket.assigns.live_action != :new_deployment_group do
+        Enum.filter(app_deployments, &(&1.deployment_group_id == deployment_group.id))
+      else
+        []
+      end
 
     secret_value =
       if socket.assigns.live_action == :edit_secret do
