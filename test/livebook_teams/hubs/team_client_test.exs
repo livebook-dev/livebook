@@ -376,6 +376,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         }
 
       app_deployment = build(:app_deployment, file: nil, deployment_group_id: deployment_group.id)
+      {seconds, 0} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
 
       livebook_proto_app_deployment =
         %LivebookProto.AppDeployment{
@@ -384,7 +385,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           slug: app_deployment.slug,
           sha: app_deployment.sha,
           deployed_by: app_deployment.deployed_by,
-          deployed_at: to_string(app_deployment.deployed_at),
+          deployed_at: seconds,
           revision_id: "1",
           deployment_group_id: app_deployment.deployment_group_id
         }
@@ -728,6 +729,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployed_at: teams_app_deployment.updated_at
       }
 
+      {seconds, 0} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
+
       livebook_proto_app_deployment =
         %LivebookProto.AppDeployment{
           id: app_deployment.id,
@@ -735,7 +738,7 @@ defmodule Livebook.Hubs.TeamClientTest do
           slug: app_deployment.slug,
           sha: app_deployment.sha,
           deployed_by: app_deployment.deployed_by,
-          deployed_at: to_string(app_deployment.deployed_at),
+          deployed_at: seconds,
           revision_id: to_string(teams_app_deployment.app_revision.id),
           deployment_group_id: app_deployment.deployment_group_id
         }

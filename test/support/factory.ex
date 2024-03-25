@@ -104,6 +104,7 @@ defmodule Livebook.Factory do
     content = :crypto.strong_rand_bytes(1024 * 1024)
     md5_hash = :crypto.hash(:md5, content)
     shasum = Base.encode16(md5_hash, case: :lower)
+    deployed_at = NaiveDateTime.utc_now()
 
     %Livebook.Teams.AppDeployment{
       id: "1",
@@ -113,7 +114,7 @@ defmodule Livebook.Factory do
       file: content,
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",
-      deployed_at: NaiveDateTime.utc_now()
+      deployed_at: NaiveDateTime.truncate(deployed_at, :second)
     }
   end
 

@@ -122,7 +122,7 @@ message AppDeployment {
   string slug = 5;
   string deployment_group_id = 6;
   string deployed_by = 7;
-  string deployed_at = 8;
+  int64 deployed_at = 8;
 }
 
 message AppDeploymentCreated {
