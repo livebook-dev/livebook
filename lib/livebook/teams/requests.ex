@@ -304,14 +304,22 @@ defmodule Livebook.Teams.Requests do
   defp add_team_auth(req, nil), do: req
 
   defp add_team_auth(req, team) do
-    token =
-      if team.user_id do
-        "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
-      else
-        "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
-      end
+    if team.offline do
+      Req.Request.append_request_steps(req,
+        unauthorized: fn req ->
+          {req, Req.Response.new(status: 401)}
+        end
+      )
+    else
+      token =
+        if team.user_id do
+          "#{team.user_id}:#{team.org_id}:#{team.org_key_id}:#{team.session_token}"
+        else
+          "#{team.session_token}:#{Livebook.Config.agent_name()}:#{team.org_id}:#{team.org_key_id}"
+        end
 
-    Req.Request.merge_options(req, auth: {:bearer, token})
+      Req.Request.merge_options(req, auth: {:bearer, token})
+    end
   end
 
   defp request(req, opts) do
@@ -331,7 +339,7 @@ defmodule Livebook.Teams.Requests do
 
       {:ok, %{status: 401}} ->
         {:transport_error,
-         "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"}
+         "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"}
 
       _otherwise ->
         {:transport_error, @error_message}
