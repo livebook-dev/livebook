@@ -154,6 +154,7 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <div class="w-60">
       <.select_field
+        id={@id}
         name="html_value"
         value={Enum.find_index(@attrs.options, fn {key, _label} -> key == @value end)}
         options={Enum.with_index(@attrs.options, fn {_key, label}, idx -> {label, idx} end)}
@@ -179,6 +180,7 @@ defmodule LivebookWeb.Output.InputComponent do
         type="range"
         data-el-input
         class="range-input"
+        id={@id}
         name="html_value"
         value={@value}
         phx-debounce={@attrs.debounce}
@@ -234,6 +236,7 @@ defmodule LivebookWeb.Output.InputComponent do
       <.text_field
         type="date"
         data-el-input
+        id={@id}
         name="html_value"
         value={@value}
         phx-debounce="blur"
@@ -253,6 +256,7 @@ defmodule LivebookWeb.Output.InputComponent do
         type="color"
         class="h-12"
         data-el-input
+        id={@id}
         name="html_value"
         value={to_string(@value)}
         phx-debounce={@attrs.debounce}
@@ -271,6 +275,7 @@ defmodule LivebookWeb.Output.InputComponent do
       <.text_field
         type={html_input_type(@attrs.type)}
         data-el-input
+        id={@id}
         name="html_value"
         value={to_string(@value)}
         phx-debounce={@attrs.debounce}
