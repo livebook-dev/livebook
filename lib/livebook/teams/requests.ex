@@ -305,9 +305,11 @@ defmodule Livebook.Teams.Requests do
 
   defp add_team_auth(req, team) do
     if team.offline do
-      Req.merge(req, adapter: fn req ->
-        {req, Req.Response.new(status: 401)}
-      end)
+      Req.merge(req,
+        adapter: fn req ->
+          {req, Req.Response.new(status: 401)}
+        end
+      )
     else
       token =
         if team.user_id do
