@@ -34,6 +34,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns the client pid for the given hub id.
+  """
+  @spec get_pid(String.t()) :: pid() | nil
+  def get_pid(id) do
+    GenServer.whereis(registry_name(id))
+  end
+
+  @doc """
   Stops the WebSocket server.
   """
   @spec stop(String.t()) :: :ok
@@ -85,6 +93,25 @@ defmodule Livebook.Hubs.TeamClient do
   @spec get_app_deployments(String.t()) :: list(Teams.AppDeployment.t())
   def get_app_deployments(id) do
     GenServer.call(registry_name(id), :get_app_deployments)
+  end
+
+  @doc """
+  Returns a list of cached app deployments that should be deployed on
+  this instance.
+  """
+  @spec get_agent_app_deployments(String.t()) :: list(Teams.AppDeployment.t())
+  def get_agent_app_deployments(id) do
+    GenServer.call(registry_name(id), :get_agent_app_deployments)
+  end
+
+  @doc """
+  Returns information necessary to download and decrypt archive for
+  app deployment with the given id.
+  """
+  @spec get_app_deployment_download_info(String.t(), String.t()) ::
+          {:ok, Teams.AppDeployment.t(), derived_key :: binary()} | :error
+  def get_app_deployment_download_info(id, app_deployment_id) do
+    GenServer.call(registry_name(id), {:get_app_deployment_download_info, app_deployment_id})
   end
 
   @doc """
@@ -181,6 +208,28 @@ defmodule Livebook.Hubs.TeamClient do
     {:reply, state.app_deployments, state}
   end
 
+  def handle_call(:get_agent_app_deployments, _caller, state) do
+    if state.deployment_group_id do
+      app_deployments =
+        Enum.filter(state.app_deployments, &(&1.deployment_group_id == state.deployment_group_id))
+
+      {:reply, app_deployments, state}
+    else
+      {:reply, [], state}
+    end
+  end
+
+  def handle_call({:get_app_deployment_download_info, app_deployment_id}, _caller, state) do
+    reply =
+      if app_deployment = Enum.find(state.app_deployments, &(&1.id == app_deployment_id)) do
+        {:ok, app_deployment, state.derived_key}
+      else
+        :error
+      end
+
+    {:reply, reply, state}
+  end
+
   @impl true
   def handle_info(:connected, state) do
     Hubs.Broadcasts.hub_connected(state.hub.id)
@@ -274,7 +323,9 @@ defmodule Livebook.Hubs.TeamClient do
   defp remove_deployment_group(state, deployment_group) do
     %{
       state
-      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id))
+      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id)),
+        app_deployments:
+          Enum.reject(state.app_deployments, &(&1.deployment_group_id == deployment_group.id))
     }
   end
 
@@ -456,9 +507,7 @@ defmodule Livebook.Hubs.TeamClient do
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_deleted.id, state) do
       Teams.Broadcasts.deployment_group_deleted(deployment_group)
 
-      state
-      |> undeploy_apps(deployment_group)
-      |> remove_deployment_group(deployment_group)
+      remove_deployment_group(state, deployment_group)
     end
   end
 
@@ -483,12 +532,14 @@ defmodule Livebook.Hubs.TeamClient do
     deployment_group_id = app_deployment.deployment_group_id
 
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
+      state = put_app_deployment(state, app_deployment)
+      Teams.Broadcasts.app_deployment_created(app_deployment)
+
       if deployment_group.id == state.deployment_group_id do
-        :ok = download_and_deploy(state.hub, app_deployment, state.derived_key)
+        manager_sync()
       end
 
-      Teams.Broadcasts.app_deployment_created(app_deployment)
-      put_app_deployment(state, app_deployment)
+      state
     end
   end
 
@@ -604,52 +655,10 @@ defmodule Livebook.Hubs.TeamClient do
   defp nullify(""), do: nil
   defp nullify(value), do: value
 
-  defp undeploy_apps(%{deployment_group_id: id} = state, %{id: id}) do
-    fun = &(&1.deployment_group_id == id)
-    app_deployments = Enum.filter(state.app_deployments, fun)
-
-    for %{slug: slug} <- app_deployments do
-      :ok = undeploy_app(slug)
-    end
-
-    %{state | deployment_group_id: nil, app_deployments: Enum.reject(state.app_deployments, fun)}
-  end
-
-  defp undeploy_apps(state, %{id: id}) do
-    %{
-      state
-      | app_deployments: Enum.reject(state.app_deployments, &(&1.deployment_group_id == id))
-    }
-  end
-
-  defp download_and_deploy(team, %Teams.AppDeployment{} = app_deployment, derived_key) do
-    destination_path = app_deployment_path(app_deployment.slug)
-
-    with {:ok, file_content} <- Teams.Requests.download_revision(team, app_deployment),
-         :ok <- undeploy_app(app_deployment.slug),
-         {:ok, decrypted_content} <- Teams.decrypt(file_content, derived_key),
-         :ok <- unzip_app(decrypted_content, destination_path) do
-      # :ok <- Livebook.Apps.deploy_apps_in_dir(destination_path) do
-      :ok
-    end
-  end
-
-  defp undeploy_app(slug) do
-    with {:ok, app} <- Livebook.Apps.fetch_app(slug) do
-      Livebook.App.close(app.pid)
-    end
-
-    :ok
-  end
-
-  defp app_deployment_path(slug) do
-    Path.join([Livebook.Config.tmp_path(), "apps", slug <> Livebook.Utils.random_short_id()])
-  end
-
-  defp unzip_app(content, destination_path) do
-    case :zip.extract(content, cwd: to_charlist(destination_path)) do
-      {:ok, _} -> :ok
-      {:error, error} -> FileSystem.Utils.posix_error(error)
+  defp manager_sync() do
+    # Each node runs the teams client, but we only need to call sync once
+    if Livebook.Apps.Manager.local?() do
+      Livebook.Apps.Manager.sync_permanent_apps()
     end
   end
 end

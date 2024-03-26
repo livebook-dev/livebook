@@ -261,9 +261,18 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def deployment_groups(team), do: TeamClient.get_deployment_groups(team.id)
 
-  # (apps) TODO: build a list of %Livebook.Apps.TeamsAppSpec{} from
-  # app deployments, but only when on agent
-  def get_app_specs(_team), do: []
+  def get_app_specs(team) do
+    app_deployments = TeamClient.get_agent_app_deployments(team.id)
+
+    for app_deployment <- app_deployments do
+      %Livebook.Apps.TeamsAppSpec{
+        slug: app_deployment.slug,
+        version: app_deployment.id,
+        hub_id: team.id,
+        app_deployment_id: app_deployment.id
+      }
+    end
+  end
 
   defp add_secret_errors(%Secret{} = secret, errors_map) do
     Requests.add_errors(secret, errors_map)

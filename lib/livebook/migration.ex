@@ -1,6 +1,4 @@
 defmodule Livebook.Migration do
-  use GenServer, restart: :temporary
-
   alias Livebook.Storage
 
   # We version out storage, so that we know which migrations to run
@@ -10,11 +8,7 @@ defmodule Livebook.Migration do
 
   def migration_version(), do: @migration_version
 
-  def start_link(_opts) do
-    GenServer.start_link(__MODULE__, :ok)
-  end
-
-  def init(:ok) do
+  def run() do
     insert_personal_hub()
     remove_offline_hub()
 
@@ -29,8 +23,6 @@ defmodule Livebook.Migration do
     end
 
     Storage.insert(:system, "global", migration_version: @migration_version)
-
-    :ignore
   end
 
   defp insert_personal_hub() do

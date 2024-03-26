@@ -3,8 +3,6 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   alias Livebook.Hubs.TeamClient
 
-  @moduletag :capture_log
-
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
     Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments])
@@ -682,6 +680,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         }
 
       agent_connected = %{agent_connected | deployment_groups: [livebook_proto_deployment_group]}
+
       pid = connect_to_teams(team)
 
       # Since we're connecting as Agent, we should receive the
@@ -745,14 +744,6 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}
 
-      apps_path = Path.join(tmp_dir, "apps")
-      app_path = Path.join(apps_path, slug)
-      Application.put_env(:livebook, :apps_path, apps_path)
-
-      # To avoid having extracting to the same folder from the original notebook,
-      # we need to create the ./apps/{slug} folder before sending the event
-      File.mkdir_p!(app_path)
-
       Livebook.Apps.subscribe()
 
       send(pid, {:event, :agent_connected, agent_connected})
@@ -764,15 +755,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       assert app_deployment in TeamClient.get_app_deployments(team.id)
 
+      Livebook.Hubs.delete_hub(team.id)
       Livebook.App.close(app_pid)
-      Application.put_env(:livebook, :apps_path, nil)
     end
   end
 
   defp connect_to_teams(%{id: id} = team) do
-    {:ok, pid} = TeamClient.start_link(team)
+    Livebook.Hubs.save_hub(team)
     assert_receive {:hub_connected, ^id}
-
-    pid
+    TeamClient.get_pid(team.id)
   end
 end
