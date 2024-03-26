@@ -147,4 +147,10 @@ defprotocol Livebook.Hubs.Provider do
   @spec deployment_groups(t()) ::
           list(%{id: String.t(), name: String.t(), secrets: list(Secret.t())}) | nil
   def deployment_groups(hub)
+
+  @doc """
+  Gets app specs for permanent apps sourced from the given hub.
+  """
+  @spec get_app_specs(t()) :: list(Livebook.Apps.AppSpec.t())
+  def get_app_specs(hub)
 end

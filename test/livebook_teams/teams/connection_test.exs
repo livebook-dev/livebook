@@ -2,8 +2,6 @@ defmodule Livebook.Teams.ConnectionTest do
   alias Livebook.FileSystem
   use Livebook.TeamsIntegrationCase, async: true
 
-  @moduletag :capture_log
-
   alias Livebook.Teams.Connection
 
   describe "connect" do

@@ -10,40 +10,49 @@ defmodule Livebook.Application do
     set_cookie()
 
     children =
-      [
-        # Start the Telemetry supervisor
-        LivebookWeb.Telemetry,
-        # Start the PubSub system
-        {Phoenix.PubSub, name: Livebook.PubSub},
-        # Start a supervisor for Livebook tasks
-        {Task.Supervisor, name: Livebook.TaskSupervisor},
-        # Start the storage module
-        Livebook.Storage,
-        # Run migrations as soon as the storage is running
-        Livebook.Migration,
-        # Start the periodic version check
-        Livebook.UpdateCheck,
-        # Periodic measurement of system resources
-        Livebook.SystemResources,
-        # Start the notebook manager server
-        Livebook.NotebookManager,
-        # Start the tracker server on this node
-        {Livebook.Tracker, pubsub_server: Livebook.PubSub},
-        # Start the supervisor dynamically managing apps
-        {DynamicSupervisor, name: Livebook.AppSupervisor, strategy: :one_for_one},
-        # Start the supervisor dynamically managing sessions
-        {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
-        # Start the server responsible for associating files with sessions
-        Livebook.Session.FileGuard,
-        # Start the node pool for managing node names
-        Livebook.Runtime.NodePool,
-        # Start the unique task dependencies
-        Livebook.Utils.UniqueTask,
-        # Start the registry for managing unique connections
-        {Registry, keys: :unique, name: Livebook.HubsRegistry},
-        # Start the supervisor dynamically managing connections
-        {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
-      ] ++
+      if serverless?() do
+        []
+      else
+        [{DNSCluster, query: Application.get_env(:livebook, :dns_cluster_query) || :ignore}]
+      end ++
+        [
+          # Start the Telemetry supervisor
+          LivebookWeb.Telemetry,
+          # Start the PubSub system
+          {Phoenix.PubSub, name: Livebook.PubSub},
+          # Start a supervisor for Livebook tasks
+          {Task.Supervisor, name: Livebook.TaskSupervisor},
+          # Start the unique task dependencies
+          Livebook.Utils.UniqueTask,
+          # Start the storage module
+          Livebook.Storage,
+          # Run migrations as soon as the storage is running
+          {Livebook.Utils.SupervisionStep, {:migration, &Livebook.Migration.run/0}},
+          # Start the periodic version check
+          Livebook.UpdateCheck,
+          # Periodic measurement of system resources
+          Livebook.SystemResources,
+          # Start the notebook manager server
+          Livebook.NotebookManager,
+          # Start the tracker server for sessions and apps on this node
+          {Livebook.Tracker, pubsub_server: Livebook.PubSub},
+          # Start the node pool for managing node names
+          Livebook.Runtime.NodePool,
+          # Start the server responsible for associating files with sessions
+          Livebook.Session.FileGuard,
+          # Start the supervisor dynamically managing sessions
+          {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
+          # Start the registry for managing unique connections
+          {Registry, keys: :unique, name: Livebook.HubsRegistry},
+          # Start the supervisor dynamically managing connections
+          {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
+          # Run startup logic relying on the supervision tree
+          {Livebook.Utils.SupervisionStep, {:boot, &boot/0}},
+          # App manager supervision tree. We do it after boot, because
+          # permanent apps are going to be started right away and this
+          # depends on hubs being started
+          Livebook.Apps.DeploymentSupervisor
+        ] ++
         if serverless?() do
           []
         else
@@ -52,7 +61,6 @@ defmodule Livebook.Application do
           iframe_server_specs() ++
             [
               {module, name: LivebookWeb.ZTA, identity_key: key},
-              {DNSCluster, query: Application.get_env(:livebook, :dns_cluster_query) || :ignore},
               # We skip the access url as we do our own logging below
               {LivebookWeb.Endpoint, log_access_url: false}
             ] ++ app_specs()
@@ -62,20 +70,22 @@ defmodule Livebook.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
-        load_lb_env_vars()
-        create_teams_hub()
-        clear_env_vars()
         display_startup_info()
-        Livebook.Hubs.connect_hubs()
-
-        unless serverless?() do
-          deploy_apps()
-        end
-
         result
 
       {:error, error} ->
         Livebook.Config.abort!(Application.format_error(error))
+    end
+  end
+
+  def boot() do
+    load_lb_env_vars()
+    create_teams_hub()
+    clear_env_vars()
+    Livebook.Hubs.connect_hubs()
+
+    unless serverless?() do
+      load_apps_dir()
     end
   end
 
@@ -233,9 +243,30 @@ defmodule Livebook.Application do
     end
   end
 
-  defp clear_env_vars() do
-    for {var, _} <- System.get_env(), config_env_var?(var) do
-      System.delete_env(var)
+  if Mix.target() == :app do
+    defp app_specs, do: [LivebookApp]
+  else
+    defp app_specs, do: []
+  end
+
+  defp iframe_server_specs() do
+    server? = Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint)
+    port = Livebook.Config.iframe_port()
+
+    if server? do
+      http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
+
+      iframe_opts =
+        [
+          scheme: :http,
+          plug: LivebookWeb.IframeEndpoint,
+          port: port,
+          thousand_island_options: [supervisor_options: [name: LivebookWeb.IframeEndpoint]]
+        ] ++ Keyword.take(http, [:ip])
+
+      [{Bandit, iframe_opts}]
+    else
+      []
     end
   end
 
@@ -252,6 +283,12 @@ defmodule Livebook.Application do
       end
 
     Livebook.Secrets.set_startup_secrets(secrets)
+  end
+
+  defp clear_env_vars() do
+    for {var, _} <- System.get_env(), config_env_var?(var) do
+      System.delete_env(var)
+    end
   end
 
   defp create_teams_hub() do
@@ -360,42 +397,18 @@ defmodule Livebook.Application do
   defp config_env_var?("MIX_ENV"), do: true
   defp config_env_var?(_), do: false
 
-  if Mix.target() == :app do
-    defp app_specs, do: [LivebookApp]
-  else
-    defp app_specs, do: []
-  end
-
-  defp deploy_apps() do
+  defp load_apps_dir() do
     if apps_path = Livebook.Config.apps_path() do
-      warmup = Livebook.Config.apps_path_warmup() == :auto
+      should_warmup = Livebook.Config.apps_path_warmup() == :auto
 
-      Livebook.Apps.deploy_apps_in_dir(apps_path,
-        password: Livebook.Config.apps_path_password(),
-        warmup: warmup,
-        start_only: true
-      )
-    end
-  end
+      specs =
+        Livebook.Apps.build_app_specs_in_dir(apps_path,
+          password: Livebook.Config.apps_path_password(),
+          hub_id: Livebook.Config.apps_path_hub_id(),
+          should_warmup: should_warmup
+        )
 
-  defp iframe_server_specs() do
-    server? = Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint)
-    port = Livebook.Config.iframe_port()
-
-    if server? do
-      http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
-
-      iframe_opts =
-        [
-          scheme: :http,
-          plug: LivebookWeb.IframeEndpoint,
-          port: port,
-          thousand_island_options: [supervisor_options: [name: LivebookWeb.IframeEndpoint]]
-        ] ++ Keyword.take(http, [:ip])
-
-      [{Bandit, iframe_opts}]
-    else
-      []
+      Livebook.Apps.set_startup_app_specs(specs)
     end
   end
 

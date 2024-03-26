@@ -13,18 +13,18 @@ defmodule Livebook.LiveMarkdown.Import do
     {notebook, valid_hub?, build_messages} = build_notebook(elements)
     {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
-    {notebook, metadata_messages} =
+    {notebook, stamp_verified?, metadata_messages} =
       if stamp_data != nil and valid_hub? do
         postprocess_stamp(notebook, markdown, stamp_data)
       else
-        {notebook, []}
+        {notebook, false, []}
       end
 
     messages =
       earmark_messages ++
         rewrite_messages ++ build_messages ++ postprocess_messages ++ metadata_messages
 
-    {notebook, messages}
+    {notebook, %{warnings: messages, stamp_verified?: stamp_verified?}}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -630,7 +630,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_stamp(notebook, notebook_source, stamp_data) do
     hub = Hubs.fetch_hub!(notebook.hub_id)
 
-    {valid_stamp?, notebook, messages} =
+    {stamp_verified?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
            {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
            {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
@@ -653,9 +653,9 @@ defmodule Livebook.LiveMarkdown.Import do
     # we can only enable team features if the stamp is valid
     # (which means the server signed with a private key and we
     # validate it against the public key).
-    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or valid_stamp?)
+    teams_enabled = is_struct(hub, Livebook.Hubs.Team) and (hub.offline == nil or stamp_verified?)
 
-    {%{notebook | teams_enabled: teams_enabled}, messages}
+    {%{notebook | teams_enabled: teams_enabled}, stamp_verified?, messages}
   end
 
   defp safe_binary_slice(binary, start, size)

@@ -61,14 +61,19 @@ defmodule LivebookWeb.AppsDashboardLive do
       <div :for={app <- Enum.sort_by(@apps, & &1.slug)} data-app-slug={app.slug}>
         <a
           phx-click={JS.toggle(to: "[data-app-slug=#{app.slug}] .toggle")}
-          class="flex items-center justify-between break-all mb-2 text-gray-800 font-medium text-xl hover:cursor-pointer"
+          class="flex items-center justify-between mb-2 hover:cursor-pointer"
         >
-          <%= "/" <> app.slug %>
-          <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400 toggle" />
-          <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 hidden toggle" />
+          <span class="text-gray-800 font-medium text-xl break-all">
+            <%= "/" <> app.slug %>
+          </span>
+          <div class="flex items-center gap-2">
+            <.app_group_tag app_spec={app.app_spec} />
+            <.remix_icon icon="arrow-drop-up-line" class="text-3xl text-gray-400 toggle" />
+            <.remix_icon icon="arrow-drop-down-line" class="text-3xl text-gray-400 hidden toggle" />
+          </div>
         </a>
         <div class="toggle">
-          <div class="mt-4 flex flex-col gap-3">
+          <div :if={app.warnings != []} class="my-3 flex flex-col gap-3">
             <.message_box :for={warning <- app.warnings} kind={:warning} message={warning} />
           </div>
           <div class="flex-col mb-8">
@@ -97,14 +102,22 @@ defmodule LivebookWeb.AppsDashboardLive do
                   </.labeled_text>
                 </div>
                 <div class="flex flex-col md:flex-row md:items-center justify-start lg:justify-end">
-                  <span class="tooltip top" data-tooltip="Terminate">
-                    <.icon_button
-                      aria-label="terminate app"
-                      phx-click={JS.push("terminate_app", value: %{slug: app.slug})}
-                    >
-                      <.remix_icon icon="delete-bin-6-line" />
-                    </.icon_button>
-                  </span>
+                  <%= if app.permanent do %>
+                    <span class="tooltip top" data-tooltip="Permanent apps cannot be terminated">
+                      <.icon_button disabled>
+                        <.remix_icon icon="delete-bin-6-line" />
+                      </.icon_button>
+                    </span>
+                  <% else %>
+                    <span class="tooltip top" data-tooltip="Terminate">
+                      <.icon_button
+                        aria-label="terminate app"
+                        phx-click={JS.push("terminate_app", value: %{slug: app.slug})}
+                      >
+                        <.remix_icon icon="delete-bin-6-line" />
+                      </.icon_button>
+                    </span>
+                  <% end %>
                 </div>
               </div>
             </div>
@@ -135,7 +148,7 @@ defmodule LivebookWeb.AppsDashboardLive do
                   <:actions :let={app_session}>
                     <span class="tooltip left" data-tooltip="Open">
                       <.icon_button
-                        disabled={app_session.app_status.lifecycle}
+                        disabled={app_session.app_status.lifecycle != :active}
                         aria-label="open app"
                         href={~p"/apps/#{app.slug}/#{app_session.id}"}
                       >
@@ -188,6 +201,62 @@ defmodule LivebookWeb.AppsDashboardLive do
     </div>
     """
   end
+
+  defp app_group_tag(%{app_spec: %Livebook.Apps.PreviewAppSpec{}} = assigns) do
+    ~H"""
+    <span
+      class="tooltip top"
+      data-tooltip={
+        ~S'''
+        This is an app preview, it has
+        been started manually
+        '''
+      }
+    >
+      <span class="font-medium bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+        Preview
+      </span>
+    </span>
+    """
+  end
+
+  defp app_group_tag(%{app_spec: %Livebook.Apps.PathAppSpec{}} = assigns) do
+    ~H"""
+    <span
+      class="tooltip top"
+      data-tooltip={
+        ~S'''
+        This is a permanent app started
+        from LIVEBOOK_APPS_PATH
+        '''
+      }
+    >
+      <span class="font-medium bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+        Apps directory
+      </span>
+    </span>
+    """
+  end
+
+  defp app_group_tag(%{app_spec: %Livebook.Apps.TeamsAppSpec{}} = assigns) do
+    ~H"""
+    <span
+      class="tooltip top"
+      data-tooltip={
+        ~S'''
+        This is a permanent app started
+        from your Livebook Teams hub
+        '''
+      }
+    >
+      <span class="font-medium bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+        Livebook Teams
+      </span>
+    </span>
+    """
+  end
+
+  defp app_group_tag(assigns), do: ~H""
 
   defp grid(assigns) do
     ~H"""

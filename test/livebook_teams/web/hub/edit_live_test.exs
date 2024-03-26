@@ -465,7 +465,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       refute_receive {:secret_created, ^secret}
 
       assert render(view) =~
-               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"
+               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"
 
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
@@ -504,7 +504,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       refute_receive {:file_system_created, %{id: ^id}}
 
       assert render(view) =~
-               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent instance"
+               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"
 
       refute file_system in Livebook.Hubs.get_file_systems(hub)
     end
@@ -523,6 +523,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   end
 
   defmodule Global do
+    # Not async, because we alter global config (default hub)
     use Livebook.TeamsIntegrationCase, async: false
 
     setup %{user: user, node: node} do

@@ -122,7 +122,13 @@ defmodule Livebook.Session do
           registered_files: %{
             String.t() => %{file_ref: Runtime.file_ref(), linked_client_id: Data.client_id()}
           },
-          client_id_with_assets: %{Data.client_id() => map()}
+          client_id_with_assets: %{Data.client_id() => map()},
+          deployment_ref: reference() | nil,
+          deployed_app_monitor_ref: reference() | nil,
+          app_pid: pid() | nil,
+          auto_shutdown_ms: non_neg_integer() | nil,
+          auto_shutdown_timer_ref: reference() | nil,
+          started_by: Livebook.User.t() | nil
         }
 
   @type memory_usage ::
@@ -130,6 +136,9 @@ defmodule Livebook.Session do
             runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.SystemResources.memory()
           }
+
+  @type files_source ::
+          {:dir, FileSystem.File.t()} | {:url, String.t()} | {:inline, %{String.t() => binary()}}
 
   @typedoc """
   An id assigned to every running session process.
@@ -838,10 +847,14 @@ defmodule Livebook.Session do
         Process.monitor(app_pid)
       end
 
-      if state.data.mode == :app do
-        {:ok, state, {:continue, :app_init}}
-      else
-        {:ok, state}
+      session = self_from_state(state)
+
+      with :ok <- Livebook.Tracker.track_session(session) do
+        if state.data.mode == :app do
+          {:ok, state, {:continue, :app_init}}
+        else
+          {:ok, state}
+        end
       end
     else
       {:error, error} ->
@@ -867,6 +880,7 @@ defmodule Livebook.Session do
         registered_file_deletion_delay: opts[:registered_file_deletion_delay] || 15_000,
         registered_files: %{},
         client_id_with_assets: %{},
+        deployment_ref: nil,
         deployed_app_monitor_ref: nil,
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
@@ -1371,19 +1385,17 @@ defmodule Livebook.Session do
   def handle_cast({:deploy_app, _client_pid}, state) do
     # In the initial state app settings are empty, hence not valid,
     # so we double-check that we can actually deploy
-    if Notebook.AppSettings.valid?(state.data.notebook.app_settings) do
-      files_dir = files_dir_from_state(state)
-      {:ok, pid} = Livebook.Apps.deploy(state.data.notebook, files_source: {:dir, files_dir})
+    if Notebook.AppSettings.valid?(state.data.notebook.app_settings) and
+         state.deployment_ref == nil do
+      app_spec = %Livebook.Apps.PreviewAppSpec{
+        slug: state.data.notebook.app_settings.slug,
+        session_id: state.session_id
+      }
 
-      if ref = state.deployed_app_monitor_ref do
-        Process.demonitor(ref, [:flush])
-      end
+      deployer_pid = Livebook.Apps.Deployer.local_deployer()
+      deployment_ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
 
-      ref = Process.monitor(pid)
-      state = put_in(state.deployed_app_monitor_ref, ref)
-
-      operation = {:set_deployed_app_slug, @client_id, state.data.notebook.app_settings.slug}
-      {:noreply, handle_operation(state, operation)}
+      {:noreply, %{state | deployment_ref: deployment_ref}}
     else
       {:noreply, state}
     end
@@ -1452,6 +1464,15 @@ defmodule Livebook.Session do
 
   def handle_info({:DOWN, ref, :process, _, _}, state) when ref == state.save_task_ref do
     {:noreply, %{state | save_task_ref: nil}}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, state) when ref == state.deployment_ref do
+    broadcast_error(
+      state.session_id,
+      "app deployment failed, deployer terminated unexpectedly, reason: #{inspect(reason)}"
+    )
+
+    {:noreply, %{state | deployment_ref: nil}}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state)
@@ -1814,6 +1835,29 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info({:deploy_result, ref, result}, state) do
+    Process.demonitor(ref, [:flush])
+
+    state = %{state | deployment_ref: nil}
+
+    case result do
+      {:ok, pid} ->
+        if ref = state.deployed_app_monitor_ref do
+          Process.demonitor(ref, [:flush])
+        end
+
+        ref = Process.monitor(pid)
+        state = put_in(state.deployed_app_monitor_ref, ref)
+
+        operation = {:set_deployed_app_slug, @client_id, state.data.notebook.app_settings.slug}
+        {:noreply, handle_operation(state, operation)}
+
+      {:error, error} ->
+        broadcast_error(state.session_id, "app deployment failed, #{error}")
+        {:noreply, state}
+    end
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1950,14 +1994,14 @@ defmodule Livebook.Session do
   end
 
   defp initialize_files_from(state, {:dir, dir}) do
-    copy_files(state, dir)
+    copy_notebook_files(state, dir)
   end
 
-  defp copy_files(state, source) do
-    with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
+  defp copy_notebook_files(state, source_dir) do
+    with {:ok, source_exists?} <- FileSystem.File.exists?(source_dir) do
       if source_exists? do
         write_attachment_file_entries(state, fn destination_file, file_entry ->
-          source_file = FileSystem.File.resolve(source, file_entry.name)
+          source_file = FileSystem.File.resolve(source_dir, file_entry.name)
 
           case FileSystem.File.copy(source_file, destination_file) do
             :ok ->
@@ -1978,9 +2022,10 @@ defmodule Livebook.Session do
   end
 
   defp write_attachment_file_entries(state, write_fun) do
+    notebook = state.data.notebook
     files_dir = files_dir_from_state(state)
 
-    state.data.notebook.file_entries
+    notebook.file_entries
     |> Enum.filter(&(&1.type == :attachment))
     |> Task.async_stream(
       fn file_entry ->
@@ -2120,7 +2165,7 @@ defmodule Livebook.Session do
     prev_files_dir = files_dir_from_state(prev_state)
 
     if prev_state.data.file do
-      copy_files(state, prev_files_dir)
+      copy_notebook_files(state, prev_files_dir)
     else
       move_files(state, prev_files_dir)
     end

@@ -62,7 +62,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     # Match only on the relevant fields as some may be generated (ids).
 
@@ -159,7 +159,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     | Maine | ME | Augusta |
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -188,7 +188,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -213,7 +213,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ###### Tiny heading
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -257,7 +257,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ## # Section
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My *Notebook*",
@@ -278,7 +278,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ## Actual section
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -307,7 +307,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -337,7 +337,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -369,7 +369,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {_notebook, messages} = Import.notebook_from_livemd(markdown)
+    {_notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert ["line 3 - closing unclosed backquotes ` at end of input"] == messages
   end
@@ -395,7 +395,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -451,7 +451,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -499,7 +499,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Cell 2
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -543,7 +543,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Cell 1
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -581,7 +581,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Cell 1
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -630,7 +630,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -679,7 +679,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -718,7 +718,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{name: "My Notebook", persist_outputs: true} = notebook
     end
@@ -731,7 +731,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     # My Notebook
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
@@ -743,7 +743,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     # My Notebook
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{name: "My Notebook", default_language: :erlang} = notebook
   end
@@ -757,7 +757,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     # My Notebook
     """
 
-    {notebook, []} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{name: "My Notebook", hub_id: ^hub_id} = notebook
   end
@@ -769,7 +769,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     # My Notebook
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert notebook.hub_id != "nonexistent"
     assert ["this notebook belongs to an Organization you don't have access to" <> _] = messages
@@ -783,7 +783,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -807,7 +807,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -826,7 +826,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
       """
 
-      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+      {_notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found an input cell, but those are no longer supported, please use Kino.Input instead"
@@ -842,7 +842,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
       """
 
-      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+      {_notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found an input cell, but those are no longer supported, please use Kino.Input instead." <>
@@ -873,7 +873,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -908,7 +908,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ![](images/dog.jpeg)
       """
 
-      {_notebook, messages} = Import.notebook_from_livemd(markdown)
+      {_notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found Markdown images pointing to the images/ directory. Using this directory has been deprecated, please use notebook files instead"
@@ -928,7 +928,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -969,7 +969,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -1001,7 +1001,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -1043,7 +1043,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, messages} = Import.notebook_from_livemd(markdown)
+    {notebook, %{warnings: messages}} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -1080,7 +1080,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ## Section 1
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -1107,7 +1107,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -1160,7 +1160,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"XCP.XcdH6x1x9B90SIKObuM8NWuEN7Tg2nyGWV3YhYtw6M0h8c4K0N5EFa8krthkrIqdIj6aEpUcsbEm4klRkSIh_W2YV1PXuMRQA0vCYU042IVFDbz1gq4","version":2}} -->
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
     end
@@ -1178,7 +1178,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"QTEyOEdDTQ.LF8LTeMYrtq8S7wsKMmk2YgOQzMAkEKT2d8fq1Gz3Ot1mydOgEZ1B4hcEZc.Wec6NwBQ584kE661.a_N-5jDiWrjhHha9zxHQ6JJOmxeqgiya3m6YlKt1Na_DPnEfXyLnengaUzQSrf8.ZoD5r6-H87RpTyvFkvEOQw","version":1}} -->
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: ["DB_PASSWORD"]} = notebook
     end
@@ -1196,7 +1196,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","version":2}} -->
       """
 
-      {notebook, messages} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: messages, stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_secret_names: []} = notebook
 
@@ -1219,7 +1220,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":111,"stamp":{"token":"XCP.PgQjafbthVPSi0vQHsWBVoxWjs2V-IWPR4ADSbNGEuePE0uneqtT1rDJHKkJs9W__Q5cflYclSPEyIQwkGWw6IKHlLsy56PBDH2CiHvvy5GfVEpq0vA","token_signature":"KPp0SdwSfEFubAml93UnBH06Yvd4OKULmtF4FmxZ_iE9qR_o2OwCiMQH_MX7A6yTiXeKCrwlZEV-8m6AhX-t6FXc177m8RL5FmXVqrRZw57V7FuxrGacZjYDCTwpGhBQmIAynhfDt6nVmeQyof8bsiW3sskii9171Fa_XFAoSqJqC1J_o2MFRk16o607N-xwTadGsCVyYSl4FUhmEXraOr0krIEe8bdSQOcpXxaDmRJNAUAJkJd3LRJDt8ZkwgmMm4UJopWozQIk2fZGfSO-cepEHoy9HlrgBGWuNL7_J6z7nLxB4p_vF_mOX7fMhIOfzVRxqmzUmzlXZkEPcKhhgQ","version":1}} -->
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [], stamp_verified?: true}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                hub_id: "team-org-number-3079",
@@ -1243,7 +1244,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
       """
 
-      {notebook, messages} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: messages, stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: "team-org-number-3079", teams_enabled: false} = notebook
       assert ["invalid notebook stamp" <> _] = messages
@@ -1266,7 +1268,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"offset":58,"stamp":{"token":"invalid","token_signature":"invalid","version":1}} -->
       """
 
-      {notebook, [_]} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: [_], stamp_verified?: false}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{hub_id: ^hub_id, teams_enabled: true} = notebook
 
@@ -1282,7 +1284,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [
@@ -1307,7 +1309,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [
@@ -1342,7 +1344,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # Change file path in the document
       markdown = String.replace(markdown, p("/document.pdf"), p("/other.pdf"))
 
-      {notebook, _} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: _}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [
@@ -1375,7 +1377,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
         }
         |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
 
-      {notebook, []} = Import.notebook_from_livemd(markdown)
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                file_entries: [

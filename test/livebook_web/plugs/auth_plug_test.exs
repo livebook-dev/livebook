@@ -1,4 +1,5 @@
 defmodule LivebookWeb.AuthPlugTest do
+  # Not async, because we alter global config (auth mode)
   use LivebookWeb.ConnCase, async: false
 
   setup context do

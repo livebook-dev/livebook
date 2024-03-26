@@ -10,8 +10,6 @@ defmodule Livebook.Sessions do
 
   @doc """
   Spawns a new `Session` process with the given options.
-
-  Makes the session globally visible within the session tracker.
   """
   @spec create_session(keyword()) :: {:ok, Session.t()} | {:error, any()}
   def create_session(opts \\ []) do
@@ -21,16 +19,7 @@ defmodule Livebook.Sessions do
 
     case DynamicSupervisor.start_child(Livebook.SessionSupervisor, {Session, opts}) do
       {:ok, pid} ->
-        session = Session.get_by_pid(pid)
-
-        case Livebook.Tracker.track_session(session) do
-          :ok ->
-            {:ok, session}
-
-          {:error, reason} ->
-            Session.close(pid)
-            {:error, reason}
-        end
+        {:ok, Session.get_by_pid(pid)}
 
       {:error, reason} ->
         {:error, reason}

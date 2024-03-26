@@ -251,7 +251,7 @@ defmodule Livebook do
   """
   @spec live_markdown_to_elixir(String.t()) :: String.t()
   def live_markdown_to_elixir(markdown) do
-    {notebook, _messages} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
+    {notebook, _info} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
     Livebook.Notebook.Export.Elixir.notebook_to_elixir(notebook)
   end
 end

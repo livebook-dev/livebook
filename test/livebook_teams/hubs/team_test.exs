@@ -3,8 +3,6 @@ defmodule Livebook.Hubs.TeamTest do
 
   alias Livebook.Hubs.Provider
 
-  @moduletag :capture_log
-
   describe "stamping" do
     test "generates and verifies stamp for a notebook", %{user: user, node: node} do
       team = create_team_hub(user, node)

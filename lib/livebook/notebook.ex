@@ -30,6 +30,7 @@ defmodule Livebook.Notebook do
   ]
 
   alias Livebook.Notebook.{Section, Cell, AppSettings}
+  alias Livebook.FileSystem
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
@@ -907,5 +908,32 @@ defmodule Livebook.Notebook do
       message: "should contain only alphanumeric characters, dash, underscore and dot"
     )
     |> Ecto.Changeset.validate_format(field, ~r/\.\w+$/, message: "should end with an extension")
+  end
+
+  @doc """
+  Copies notebook files from one directory to another.
+
+  Note that the source directory may have more files, only the ones
+  used by the notebook are copied.
+
+  If any of the notebook files does not exist, this function returns
+  an error.
+  """
+  @spec copy_files(t(), FileSystem.File.t(), FileSystem.File.t()) :: :ok | {:error, String.t()}
+  def copy_files(notebook, source_dir, files_dir) do
+    notebook.file_entries
+    |> Enum.filter(&(&1.type == :attachment))
+    |> Enum.reduce_while(:ok, fn file_entry, :ok ->
+      source_file = FileSystem.File.resolve(source_dir, file_entry.name)
+      destination_file = FileSystem.File.resolve(files_dir, file_entry.name)
+
+      case FileSystem.File.copy(source_file, destination_file) do
+        :ok ->
+          {:cont, :ok}
+
+        {:error, error} ->
+          {:halt, {:error, "failed to copy notebok file #{file_entry.name}, #{error}"}}
+      end
+    end)
   end
 end
