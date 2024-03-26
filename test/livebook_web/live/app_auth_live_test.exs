@@ -1,4 +1,5 @@
 defmodule LivebookWeb.AppAuthLiveTest do
+  # Not async, because we alter global config (auth mode)
   use LivebookWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -30,8 +31,15 @@ defmodule LivebookWeb.AppAuthLiveTest do
       |> Map.merge(app_settings_attrs)
 
     notebook = %{Livebook.Notebook.new() | app_settings: app_settings}
+    app_spec = Livebook.Apps.NotebookAppSpec.new(notebook)
 
-    {:ok, app_pid} = Livebook.Apps.deploy(notebook)
+    deployer_pid = Livebook.Apps.Deployer.local_deployer()
+    ref = Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
+
+    app_pid =
+      receive do
+        {:deploy_result, ^ref, {:ok, pid}} -> pid
+      end
 
     {slug, app_pid}
   end

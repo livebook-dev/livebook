@@ -2,6 +2,7 @@ defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
   import Livebook.HubHelpers
+  import Livebook.AppHelpers
   import Livebook.TestHelpers
 
   alias Livebook.{Session, Text, Runtime, Utils, Notebook, FileSystem, Apps, App}
@@ -1352,7 +1353,7 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
@@ -1369,7 +1370,7 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
@@ -1407,7 +1408,7 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [section], app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid} = app}
 
@@ -1437,7 +1438,7 @@ defmodule Livebook.SessionTest do
 
       # Multi-session
 
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
@@ -1449,7 +1450,7 @@ defmodule Livebook.SessionTest do
       # Single-session
 
       notebook = put_in(notebook.app_settings.multi_session, false)
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
@@ -1475,7 +1476,7 @@ defmodule Livebook.SessionTest do
 
       # Multi-session
 
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
@@ -1495,7 +1496,7 @@ defmodule Livebook.SessionTest do
       # Single-session
 
       notebook = put_in(notebook.app_settings.multi_session, false)
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid, user: user)
       {:ok, session} = Livebook.Sessions.fetch_session(session_id)
 
@@ -1943,6 +1944,7 @@ defmodule Livebook.SessionTest do
   end
 
   defmodule Global do
+    # Not async, because we alter global config (default hub)
     use ExUnit.Case, async: false
 
     describe "default hub for new notebooks" do
@@ -1980,9 +1982,13 @@ defmodule Livebook.SessionTest do
   end
 
   defp start_session(opts \\ []) do
-    opts = Keyword.merge([id: Utils.random_id()], opts)
-    pid = start_supervised!({Session, opts}, id: opts[:id])
-    Session.get_by_pid(pid)
+    {:ok, session} = Livebook.Sessions.create_session(opts)
+
+    on_exit(fn ->
+      Session.close(session.pid)
+    end)
+
+    session
   end
 
   defp insert_section_and_cell(session_pid) do

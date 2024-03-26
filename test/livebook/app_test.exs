@@ -3,13 +3,13 @@ defmodule Livebook.AppTest do
 
   alias Livebook.{App, Notebook, Utils}
 
-  describe "start_link/1" do
+  describe "startup" do
     test "eagerly starts a session in single-session mode" do
       slug = Utils.random_short_id()
       app_settings = %{Notebook.AppSettings.new() | slug: slug}
       notebook = %{Notebook.new() | app_settings: app_settings}
 
-      assert {:ok, app_pid} = App.start_link(notebook: notebook)
+      app_pid = start_app(notebook)
       assert %{sessions: [%{pid: session_pid}]} = App.get_by_pid(app_pid)
 
       assert %{mode: :app} = Livebook.Session.get_by_pid(session_pid)
@@ -20,7 +20,7 @@ defmodule Livebook.AppTest do
       app_settings = %{Notebook.AppSettings.new() | slug: slug, auto_shutdown_ms: 5_000}
       notebook = %{Notebook.new() | app_settings: app_settings}
 
-      assert {:ok, app_pid} = App.start_link(notebook: notebook)
+      app_pid = start_app(notebook)
       assert %{sessions: []} = App.get_by_pid(app_pid)
     end
 
@@ -29,7 +29,7 @@ defmodule Livebook.AppTest do
       app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
       notebook = %{Notebook.new() | app_settings: app_settings}
 
-      assert {:ok, app_pid} = App.start_link(notebook: notebook)
+      app_pid = start_app(notebook)
       assert %{sessions: []} = App.get_by_pid(app_pid)
     end
   end
@@ -42,7 +42,7 @@ defmodule Livebook.AppTest do
 
       app_pid = start_app(notebook)
 
-      App.deploy(app_pid, %{notebook | name: "New name"})
+      App.deploy(app_pid, deployment_bundle(%{notebook | name: "New name"}))
       assert %{version: 2, notebook_name: "New name"} = App.get_by_pid(app_pid)
     end
 
@@ -57,7 +57,7 @@ defmodule Livebook.AppTest do
 
       App.subscribe(slug)
 
-      App.deploy(app_pid, notebook)
+      App.deploy(app_pid, deployment_bundle(notebook))
 
       assert_receive {:app_updated,
                       %{
@@ -80,7 +80,7 @@ defmodule Livebook.AppTest do
       assert_receive {:app_updated,
                       %{sessions: [%{app_status: %{execution: :executed}, version: 1}]}}
 
-      App.deploy(app_pid, notebook)
+      App.deploy(app_pid, deployment_bundle(notebook))
 
       assert_receive {:app_updated,
                       %{
@@ -106,7 +106,7 @@ defmodule Livebook.AppTest do
       assert_receive {:app_updated,
                       %{sessions: [%{app_status: %{execution: :executed}, version: 1}]}}
 
-      App.deploy(app_pid, notebook)
+      App.deploy(app_pid, deployment_bundle(notebook))
 
       assert_receive {:app_updated,
                       %{
@@ -149,7 +149,7 @@ defmodule Livebook.AppTest do
       assert_receive {:app_updated,
                       %{sessions: [%{id: session_id1, app_status: %{execution: :executed}}]}}
 
-      App.deploy(app_pid, notebook)
+      App.deploy(app_pid, deployment_bundle(notebook))
 
       assert_receive {:app_updated,
                       %{
@@ -237,8 +237,20 @@ defmodule Livebook.AppTest do
     end
   end
 
+  defp deployment_bundle(notebook) do
+    app_spec = Livebook.Apps.NotebookAppSpec.new(notebook)
+
+    %{
+      notebook: notebook,
+      files_tmp_path: Livebook.Apps.generate_files_tmp_path(app_spec.slug),
+      app_spec: app_spec,
+      permanent: false,
+      warnings: []
+    }
+  end
+
   defp start_app(notebook) do
-    opts = [notebook: notebook]
+    opts = [deployment_bundle: deployment_bundle(notebook)]
     start_supervised!({App, opts})
   end
 end

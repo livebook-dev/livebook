@@ -209,10 +209,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def get_secrets(team), do: TeamClient.get_secrets(team.id)
 
-  @spec create_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def create_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.create_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
@@ -221,10 +217,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  @spec update_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def update_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.update_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
@@ -233,10 +225,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  @spec delete_secret(Team.t(), Secret.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def delete_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.delete_secret(team, secret) do
       {:ok, _} -> :ok
@@ -247,10 +235,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
 
   def get_file_systems(team), do: TeamClient.get_file_systems(team.id)
 
-  @spec create_file_system(Team.t(), FileSystem.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def create_file_system(%Team{} = team, file_system) do
     case Requests.create_file_system(team, file_system) do
       {:ok, %{"id" => _}} -> :ok
@@ -259,10 +243,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  @spec update_file_system(Team.t(), FileSystem.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def update_file_system(%Team{} = team, file_system) do
     case Requests.update_file_system(team, file_system) do
       {:ok, %{"id" => _}} -> :ok
@@ -271,10 +251,6 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  @spec delete_file_system(Team.t(), FileSystem.t()) ::
-          :ok
-          | {:error, Ecto.Changeset.t()}
-          | {:transport_error, String.t()}
   def delete_file_system(%Team{} = team, file_system) do
     case Requests.delete_file_system(team, file_system) do
       {:ok, _} -> :ok
@@ -284,6 +260,10 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   end
 
   def deployment_groups(team), do: TeamClient.get_deployment_groups(team.id)
+
+  # (apps) TODO: build a list of %Livebook.Apps.TeamsAppSpec{} from
+  # app deployments, but only when on agent
+  def get_app_specs(_team), do: []
 
   defp add_secret_errors(%Secret{} = secret, errors_map) do
     Requests.add_errors(secret, errors_map)

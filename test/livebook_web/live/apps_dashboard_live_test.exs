@@ -3,6 +3,7 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
 
   import Phoenix.LiveViewTest
   import Livebook.TestHelpers
+  import Livebook.AppHelpers
 
   alias Livebook.{App, Apps, Notebook, Utils}
 
@@ -16,7 +17,7 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
     refute render(view) =~ slug
 
     Apps.subscribe()
-    {:ok, app_pid} = Apps.deploy(notebook)
+    app_pid = deploy_notebook_sync(notebook)
 
     assert_receive {:app_created, %{pid: ^app_pid}}
     assert render(view) =~ "My app #{slug}"
@@ -35,7 +36,7 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
     {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
     Apps.subscribe()
-    {:ok, app_pid} = Apps.deploy(notebook)
+    app_pid = deploy_notebook_sync(notebook)
 
     assert_receive {:app_created, %{pid: ^app_pid}}
 
@@ -56,7 +57,7 @@ defmodule LivebookWeb.AppsDashboardLiveTest do
     {:ok, view, _} = live(conn, ~p"/apps-dashboard")
 
     Apps.subscribe()
-    {:ok, app_pid} = Apps.deploy(notebook)
+    app_pid = deploy_notebook_sync(notebook)
 
     assert_receive {:app_created, %{pid: ^app_pid}}
 

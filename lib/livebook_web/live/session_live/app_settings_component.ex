@@ -166,9 +166,15 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     app_settings = socket.assigns.settings
     deployed_app_slug = socket.assigns.deployed_app_slug
 
-    with {:ok, settings} <- AppSettings.update(app_settings, params) do
-      Livebook.Session.set_app_settings(socket.assigns.session.pid, settings)
-    end
+    app_settings =
+      case AppSettings.update(app_settings, params) do
+        {:ok, app_settings} ->
+          Livebook.Session.set_app_settings(socket.assigns.session.pid, app_settings)
+          app_settings
+
+        {:error, _changeset} ->
+          app_settings
+      end
 
     case socket.assigns.context do
       "preview" ->
@@ -189,16 +195,35 @@ defmodule LivebookWeb.SessionLive.AppSettingsComponent do
     end
 
     slug = app_settings.slug
-    slug_taken? = slug != deployed_app_slug and Livebook.Apps.exists?(slug)
 
-    if slug_taken? do
-      confirm(socket, on_confirm,
-        title: "Deploy app",
-        description: "An app with this slug already exists, do you want to deploy a new version?",
-        confirm_text: "Replace"
-      )
-    else
-      on_confirm.(socket)
+    app =
+      case Livebook.Apps.fetch_app(slug) do
+        {:ok, app} -> app
+        :error -> nil
+      end
+
+    permanent? = app && app.permanent
+    slug_taken? = slug != deployed_app_slug and app != nil
+
+    cond do
+      permanent? ->
+        socket
+        |> put_flash(
+          :error,
+          "A permanent app with this slug already exists and cannot be replaced."
+        )
+        |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}")
+
+      slug_taken? ->
+        confirm(socket, on_confirm,
+          title: "Deploy app",
+          description:
+            "An app with this slug already exists, do you want to deploy a new version?",
+          confirm_text: "Replace"
+        )
+
+      true ->
+        on_confirm.(socket)
     end
   end
 end

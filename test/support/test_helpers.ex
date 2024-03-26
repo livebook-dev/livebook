@@ -22,6 +22,17 @@ defmodule Livebook.TestHelpers do
   end
 
   @doc """
+  Creates the given number of subdirectories and returns their paths.
+  """
+  def create_subdirs!(path, number) do
+    for n <- 1..number//1 do
+      child_path = Path.join(path, "subdir#{n}")
+      File.mkdir_p!(child_path)
+      child_path
+    end
+  end
+
+  @doc """
   Applies the given list of operations to `Livebook.Session.Data`.
 
   Raises if any of the operations results in an error.

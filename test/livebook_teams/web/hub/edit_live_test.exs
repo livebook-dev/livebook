@@ -523,6 +523,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
   end
 
   defmodule Global do
+    # Not async, because we alter global config (default hub)
     use Livebook.TeamsIntegrationCase, async: false
 
     setup %{user: user, node: node} do

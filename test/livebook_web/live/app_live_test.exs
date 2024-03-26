@@ -2,6 +2,7 @@ defmodule LivebookWeb.AppLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Livebook.AppHelpers
 
   alias Livebook.{App, Apps, Notebook, Utils}
 
@@ -12,7 +13,7 @@ defmodule LivebookWeb.AppLiveTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
 
@@ -30,7 +31,7 @@ defmodule LivebookWeb.AppLiveTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid, sessions: []}}
 
@@ -82,7 +83,7 @@ defmodule LivebookWeb.AppLiveTest do
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
 
       assert_receive {:app_created, %{pid: ^app_pid, sessions: []}}
 
@@ -114,7 +115,7 @@ defmodule LivebookWeb.AppLiveTest do
 
       Apps.subscribe()
 
-      {:ok, app_pid} = Apps.deploy(notebook)
+      app_pid = deploy_notebook_sync(notebook)
       session_id = App.get_session_id(app_pid)
       assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: ^session_id}]}}
 

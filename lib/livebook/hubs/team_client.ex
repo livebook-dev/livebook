@@ -628,8 +628,8 @@ defmodule Livebook.Hubs.TeamClient do
     with {:ok, file_content} <- Teams.Requests.download_revision(team, app_deployment),
          :ok <- undeploy_app(app_deployment.slug),
          {:ok, decrypted_content} <- Teams.decrypt(file_content, derived_key),
-         :ok <- unzip_app(decrypted_content, destination_path),
-         :ok <- Livebook.Apps.deploy_apps_in_dir(destination_path) do
+         :ok <- unzip_app(decrypted_content, destination_path) do
+      # :ok <- Livebook.Apps.deploy_apps_in_dir(destination_path) do
       :ok
     end
   end

@@ -1,4 +1,6 @@
 defmodule Livebook.Release do
+  require Logger
+
   @doc """
   Runs the setup for all apps deployed from directory on startup.
   """
@@ -17,7 +19,20 @@ defmodule Livebook.Release do
           )
       end
 
-      Livebook.Apps.deploy_apps_in_dir(apps_path, warmup: true, skip_deploy: true)
+      app_specs =
+        Livebook.Apps.build_app_specs_in_dir(apps_path,
+          hub_id: Livebook.Config.apps_path_hub_id()
+        )
+
+      if app_specs != [] do
+        Logger.info("Running app warmups")
+
+        for app_spec <- app_specs do
+          with {:error, message} <- Livebook.Apps.warmup_app(app_spec) do
+            Logger.info("Warmup failed for app #{app_spec.slug}, #{message}")
+          end
+        end
+      end
     end
   end
 
