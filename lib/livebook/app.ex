@@ -100,7 +100,7 @@ defmodule Livebook.App do
     opts = Keyword.validate!(opts, [:deployment_bundle])
     deployment_bundle = Keyword.fetch!(opts, :deployment_bundle)
 
-    GenServer.start_link(__MODULE__, {deployment_bundle})
+    GenServer.start_link(__MODULE__, deployment_bundle)
   end
 
   @doc """
@@ -194,7 +194,7 @@ defmodule Livebook.App do
   end
 
   @impl true
-  def init({deployment_bundle}) do
+  def init(deployment_bundle) do
     {:ok,
      %{
        version: 1,

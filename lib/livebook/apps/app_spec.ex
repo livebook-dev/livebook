@@ -9,7 +9,7 @@ defprotocol Livebook.Apps.AppSpec do
   # the `:slug` and `:version` (string) attributes.
 
   @doc """
-  Loads the app notebook and other metadta relevant for deployment.
+  Loads the app notebook and other metadata relevant for deployment.
 
   This function may load the notebook from an external source, so the
   caller should avoid calling it multiple times.

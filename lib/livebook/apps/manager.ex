@@ -97,7 +97,7 @@ defmodule Livebook.Apps.Manager do
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
     deployment = deployment_by_ref(state, ref)
-    message = "deployer terminated unexpectedly, reason: #{inspect(reason)}"
+    message = "deployer terminated unexpectedly, reason: #{Exception.format_exit(reason)}"
     {:noreply, handle_deployment_failure(state, deployment, message)}
   end
 
