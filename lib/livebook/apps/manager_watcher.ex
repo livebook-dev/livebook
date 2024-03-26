@@ -18,11 +18,11 @@ defmodule Livebook.Apps.ManagerWatcher do
   def init({}) do
     # At this point the DeploymentSupervisor is still starting, so we
     # start the Manager in handle_continue to avoid a dead lock
-    {:ok, {}, {:continue, :init}}
+    {:ok, {}, {:continue, :after_init}}
   end
 
   @impl true
-  def handle_continue(:init, {}) do
+  def handle_continue(:after_init, {}) do
     monitor_ref = maybe_start_and_monitor()
     {:noreply, %{monitor_ref: monitor_ref}}
   end

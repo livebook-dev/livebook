@@ -55,9 +55,13 @@ defmodule Livebook.Apps.Manager do
     Apps.subscribe()
 
     state = %{deployments: %{}, handle_app_close_timer_ref: nil}
-    state = sync_apps(state)
 
-    {:ok, state}
+    {:ok, state, {:continue, :after_init}}
+  end
+
+  @impl true
+  def handle_continue(:after_init, state) do
+    {:noreply, sync_apps(state)}
   end
 
   @impl true
