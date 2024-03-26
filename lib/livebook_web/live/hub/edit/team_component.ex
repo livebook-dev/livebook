@@ -199,7 +199,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 module={LivebookWeb.Hub.Teams.DeploymentGroupListComponent}
                 id="hub-deployment-groups-list"
                 hub={@hub}
-                deployment_group={@deployment_group}
                 deployment_groups={@deployment_groups}
                 target={@myself}
               />
