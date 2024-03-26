@@ -70,6 +70,7 @@ defmodule Livebook do
       ]
 
   """
+require Logger
 
   @doc """
   Executes Livebook's `config/runtime.exs`.
@@ -233,6 +234,15 @@ defmodule Livebook do
     if agent_name = Livebook.Config.agent_name!("LIVEBOOK_AGENT_NAME") do
       config :livebook, :agent_name, agent_name
     end
+
+    if Livebook.Config.boolean!("LIVEBOOK_FIPS", false) do
+      if :crypto.enable_fips_mode(true) do
+        IO.puts("[Livebook] FIPS mode set")
+      else
+        raise "Could not set FIPS mode but was asked to"
+      end
+    end
+
   end
 
   @doc """

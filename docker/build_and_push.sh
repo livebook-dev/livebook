@@ -12,6 +12,7 @@ cd "$(dirname "$0")/.."
 
 livebook_version="$(cat mix.exs | grep '@version "' | grep -v '\-dev' | grep -oE '[0-9]{1,}.[0-9]{1,}.[0-9]{1,}' || true)"
 
+
 if [ -z "$livebook_version" ]; then
   echo "No stable Livebook version detected"
   exit 1
@@ -55,3 +56,24 @@ for idx in "${!cuda_tag_list[@]}"; do
       .
   fi
 done
+
+
+# Generate Ubi fips capable images
+# https://catalog.redhat.com/software/containers/ubi8/ubi-minimal/5c359a62bed8bd75a2c3fba8?architecture=amd64&image=65cad19b3e4fe61cff409362&container-tabs=gti
+image="ghcr.io/livebook-dev/livebook:$livebook_version-ubi8-fips"
+base_image="registry.access.redhat.com/ubi8/ubi-minimal:8.9-1137"
+
+if docker manifest inspect $image > /dev/null; then
+  echo "Skipping image, since it already exists: $image"
+else
+  echo "Building image: $image"
+
+  docker build \
+    --build-arg ELIXIR_VERSION=$elixir \
+    --build-arg ERLANG_VERSION=$otp \
+    --build-arg BASE_IMAGE=$base_image \
+    -f docker/base/elixir-ubi-fips.dockerfile \
+    -t $image \
+    -t ghcr.io/livebook-dev/livebook:latest-ubi8-fips \
+    .
+fi
