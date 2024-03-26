@@ -42,12 +42,14 @@ defmodule Livebook.Application do
           Livebook.Session.FileGuard,
           # Start the supervisor dynamically managing sessions
           {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
-          # App manager supervision tree
-          Livebook.Apps.DeploymentSupervisor,
           # Start the registry for managing unique connections
           {Registry, keys: :unique, name: Livebook.HubsRegistry},
           # Start the supervisor dynamically managing connections
-          {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one}
+          {DynamicSupervisor, name: Livebook.HubsSupervisor, strategy: :one_for_one},
+          # Run further initialization logic
+          {Task, &boot/0},
+          # App manager supervision tree
+          Livebook.Apps.DeploymentSupervisor
         ] ++
         if serverless?() do
           []
@@ -66,21 +68,23 @@ defmodule Livebook.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _} = result ->
-        load_lb_env_vars()
-        create_teams_hub()
-        clear_env_vars()
         display_startup_info()
-        Livebook.Hubs.connect_hubs()
-
-        unless serverless?() do
-          load_apps_dir()
-          Livebook.Apps.Manager.sync_permanent_apps()
-        end
-
         result
 
       {:error, error} ->
         Livebook.Config.abort!(Application.format_error(error))
+    end
+  end
+
+  defp boot() do
+    load_lb_env_vars()
+    create_teams_hub()
+    clear_env_vars()
+    Livebook.Hubs.connect_hubs()
+
+    unless serverless?() do
+      load_apps_dir()
+      Livebook.Apps.Manager.sync_permanent_apps()
     end
   end
 

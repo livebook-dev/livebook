@@ -15,7 +15,8 @@ defmodule LivebookWeb.AppLiveTest do
       Apps.subscribe()
       app_pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
+      assert_receive {:app_created, %{pid: ^app_pid}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
 
       {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/apps/#{slug}")
       assert to == ~p"/apps/#{slug}/#{session_id}"

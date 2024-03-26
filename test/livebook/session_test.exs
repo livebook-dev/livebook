@@ -1355,7 +1355,8 @@ defmodule Livebook.SessionTest do
       Apps.subscribe()
       app_pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+      assert_receive {:app_created, %{pid: ^app_pid}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
       ref = Process.monitor(session_pid)
 
@@ -1372,7 +1373,8 @@ defmodule Livebook.SessionTest do
       Apps.subscribe()
       app_pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
+      assert_receive {:app_created, %{pid: ^app_pid}}
+      assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{pid: session_pid}]}}
 
       client_pid = spawn_link(fn -> receive do: (:stop -> :ok) end)
 

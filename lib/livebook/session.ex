@@ -847,10 +847,14 @@ defmodule Livebook.Session do
         Process.monitor(app_pid)
       end
 
-      if state.data.mode == :app do
-        {:ok, state, {:continue, :app_init}}
-      else
-        {:ok, state}
+      session = self_from_state(state)
+
+      with :ok <- Livebook.Tracker.track_session(session) do
+        if state.data.mode == :app do
+          {:ok, state, {:continue, :app_init}}
+        else
+          {:ok, state}
+        end
       end
     else
       {:error, error} ->

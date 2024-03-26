@@ -26,6 +26,8 @@ defmodule Livebook.App do
 
   use GenServer, restart: :temporary
 
+  require Logger
+
   @type t :: %{
           slug: slug(),
           pid: pid(),
@@ -195,13 +197,27 @@ defmodule Livebook.App do
 
   @impl true
   def init(deployment_bundle) do
-    {:ok,
-     %{
-       version: 1,
-       deployment_bundle: deployment_bundle,
-       sessions: [],
-       users: %{}
-     }, {:continue, :after_init}}
+    state = %{
+      version: 1,
+      deployment_bundle: deployment_bundle,
+      sessions: [],
+      users: %{}
+    }
+
+    app = self_from_state(state)
+
+    slug = deployment_bundle.app_spec.slug
+    name = Livebook.Apps.global_name(slug)
+
+    case :global.register_name(name, self(), &resolve_app_conflict/3) do
+      :yes ->
+        with :ok <- Livebook.Tracker.track_app(app) do
+          {:ok, state, {:continue, :after_init}}
+        end
+
+      :no ->
+        {:error, :already_started}
+    end
   end
 
   @impl true
@@ -296,6 +312,13 @@ defmodule Livebook.App do
       app_spec: state.deployment_bundle.app_spec,
       permanent: state.deployment_bundle.permanent
     }
+  end
+
+  defp resolve_app_conflict({:app, slug}, pid1, pid2) do
+    Logger.info("[app=#{slug}] Closing duplicate app in the cluster")
+    [keep_pid, close_pid] = Enum.shuffle([pid1, pid2])
+    close_async(close_pid)
+    keep_pid
   end
 
   defp single_session_app_session(state) do

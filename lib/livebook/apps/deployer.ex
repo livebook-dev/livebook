@@ -118,52 +118,26 @@ defmodule Livebook.Apps.Deployer do
   defp start_or_redeploy(name, deployment_bundle, opts) do
     case :global.whereis_name(name) do
       :undefined ->
-        with {:ok, pid} <- start_app(deployment_bundle) do
-          # We could use a global transaction to prevent the unlikely
-          # case of multiple nodes starting the app simultaneously.
-          # However, the registration can still fail if the node joins
-          # the cluster while the app process is starting. So we handle
-          # both cases the same way in the failure brach.
-          case :global.register_name(name, pid, &resolve_app_conflict/3) do
-            :yes ->
-              {:ok, pid}
+        opts = [deployment_bundle: deployment_bundle]
 
-            :no ->
-              App.close(pid)
-              start_or_redeploy(name, deployment_bundle, opts)
-          end
+        case DynamicSupervisor.start_child(Livebook.AppSupervisor, {App, opts}) do
+          {:ok, pid} ->
+            {:ok, pid}
+
+          {:error, :already_started} ->
+            # We could use a global transaction to prevent the unlikely
+            # case of multiple nodes starting the app simultaneously.
+            # However, the global registration can still fail if the
+            # node joins the cluster while the app process is starting.
+            # So we handle both cases the same way in this branch.
+            start_or_redeploy(name, deployment_bundle, opts)
+
+          {:error, reason} ->
+            {:error, "app process failed to start, reason: #{inspect(reason)}"}
         end
 
       pid ->
         redeploy_app(pid, deployment_bundle, opts)
-    end
-  end
-
-  defp resolve_app_conflict({:app, slug}, pid1, pid2) do
-    Logger.info("[app=#{slug}] Closing duplicate app in the cluster")
-    [keep_pid, close_pid] = Enum.shuffle([pid1, pid2])
-    App.close_async(close_pid)
-    keep_pid
-  end
-
-  defp start_app(deployment_bundle) do
-    opts = [deployment_bundle: deployment_bundle]
-
-    case DynamicSupervisor.start_child(Livebook.AppSupervisor, {App, opts}) do
-      {:ok, pid} ->
-        app = App.get_by_pid(pid)
-
-        case Livebook.Tracker.track_app(app) do
-          :ok ->
-            {:ok, pid}
-
-          {:error, reason} ->
-            App.close(pid)
-            {:error, "app process failed to register in the tracker, reason: #{inspect(reason)}"}
-        end
-
-      {:error, reason} ->
-        {:error, "app process failed to start, reason: #{inspect(reason)}"}
     end
   end
 

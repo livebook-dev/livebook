@@ -27,6 +27,8 @@ defmodule Livebook.Apps.ManagerTest do
     Apps.Manager.sync_permanent_apps()
 
     assert_receive {:app_created, %{slug: ^slug} = app}
+    # Make sure the app finished init
+    _ = Livebook.App.get_by_pid(app.pid)
 
     Process.exit(app.pid, :kill)
     assert_receive {:app_closed, %{slug: ^slug}}
