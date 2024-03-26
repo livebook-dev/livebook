@@ -1205,6 +1205,32 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                messages
     end
 
+    test "treats stamp as invalid when there is additional content after offset" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```elixir
+      # This cell has been added after stamping
+      ```
+
+      <!-- livebook:{"offset":58,"stamp":{"token":"XCP.XcdH6x1x9B90SIKObuM8NWuEN7Tg2nyGWV3YhYtw6M0h8c4K0N5EFa8krthkrIqdIj6aEpUcsbEm4klRkSIh_W2YV1PXuMRQA0vCYU042IVFDbz1gq4","version":2}} -->
+      """
+
+      {notebook, %{warnings: [message], stamp_verified?: false}} =
+        Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{hub_secret_names: []} = notebook
+
+      assert message =~
+               "this notebook can only access environment variables defined in this machine"
+    end
+
     test "restores hub secret names from notebook stamp using offline hub" do
       markdown = """
       <!-- livebook:{"hub_id":"team-org-number-3079"} -->

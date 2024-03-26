@@ -632,7 +632,8 @@ defmodule Livebook.LiveMarkdown.Import do
 
     {stamp_verified?, notebook, messages} =
       with %{"offset" => offset, "stamp" => stamp} <- stamp_data,
-           {:ok, notebook_source} <- safe_binary_slice(notebook_source, 0, offset),
+           {:ok, notebook_source, rest_source} <- safe_binary_split(notebook_source, offset),
+           {:ok, ^stamp_data} <- only_stamp_data(rest_source),
            {:ok, metadata} <- Livebook.Hubs.verify_notebook_stamp(hub, notebook_source, stamp) do
         notebook = apply_stamp_metadata(notebook, metadata)
         {true, notebook, []}
@@ -658,12 +659,23 @@ defmodule Livebook.LiveMarkdown.Import do
     {%{notebook | teams_enabled: teams_enabled}, stamp_verified?, messages}
   end
 
-  defp safe_binary_slice(binary, start, size)
-       when byte_size(binary) < start + size,
+  defp safe_binary_split(binary, offset)
+       when byte_size(binary) < offset,
        do: :error
 
-  defp safe_binary_slice(binary, start, size) do
-    {:ok, binary_slice(binary, start, size)}
+  defp safe_binary_split(binary, offset) do
+    size = byte_size(binary)
+    {:ok, binary_slice(binary, 0, offset), binary_slice(binary, offset, size - offset)}
+  end
+
+  defp only_stamp_data(source) do
+    {_, ast, _} = source |> String.trim() |> MarkdownHelpers.markdown_to_block_ast()
+    {ast, _} = rewrite_ast(ast)
+
+    case group_elements(ast) do
+      [{:stamp, data}] -> {:ok, data}
+      _ -> :error
+    end
   end
 
   defp apply_stamp_metadata(notebook, metadata) do
