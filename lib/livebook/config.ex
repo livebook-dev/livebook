@@ -688,7 +688,7 @@ defmodule Livebook.Config do
   Parses zero trust identity provider from env.
   """
   def identity_provider!(env) do
-    case System.get_env(env) do
+    case get_system_env_or_test_provider(env) do
       nil ->
         {:session, LivebookWeb.SessionIdentity, :unused}
 
@@ -705,10 +705,19 @@ defmodule Livebook.Config do
       provider ->
         with [type, key] <- String.split(provider, ":", parts: 2),
              %{^type => module} <- identity_provider_type_to_module() do
-          {module, key}
+          {:zta, module, key}
         else
           _ -> abort!("invalid configuration for identity provider given in #{env}")
         end
+    end
+  end
+
+  # Allow for this function to be tested more easily
+  defp get_system_env_or_test_provider(env) do
+    case {System.get_env(env), env} do
+      {nil, "TEST_IDENTITY_" <> provider} -> provider
+      {nil, _} -> nil
+      {provider, _} -> provider
     end
   end
 
