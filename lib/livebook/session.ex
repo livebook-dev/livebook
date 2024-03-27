@@ -2438,7 +2438,7 @@ defmodule Livebook.Session do
 
   defp start_evaluation(state, cell, section) do
     path =
-      case state.data.file do
+      case state.data.file || default_notebook_file(state) do
         nil -> ""
         file -> file.path
       end
