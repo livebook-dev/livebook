@@ -8,9 +8,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
   setup do
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
+    {:ok, client_tracker} = start_supervised(Evaluator.ClientTracker)
 
     {:ok, _pid, evaluator} =
-      start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]})
+      start_supervised(
+        {Evaluator,
+         [send_to: self(), object_tracker: object_tracker, client_tracker: client_tracker]}
+      )
 
     io = Process.info(evaluator.pid)[:group_leader]
     IOProxy.before_evaluation(io, :ref, "cell")

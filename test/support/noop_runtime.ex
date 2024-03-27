@@ -71,6 +71,9 @@ defmodule Livebook.Runtime.NoopRuntime do
       :ok
     end
 
+    def register_clients(_, _), do: :ok
+    def unregister_clients(_, _), do: :ok
+
     defp trace(runtime, fun, args) do
       if runtime.trace_to do
         send(runtime.trace_to, {:runtime_trace, fun, args})

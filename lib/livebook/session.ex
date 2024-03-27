@@ -2085,6 +2085,14 @@ defmodule Livebook.Session do
       Runtime.restore_transient_state(runtime, state.data.runtime_transient_state)
     end
 
+    clients =
+      for {client_id, user_id} <- state.data.clients_map do
+        user = Map.fetch!(state.data.users_map, user_id)
+        {client_id, user_info(user)}
+      end
+
+    Runtime.register_clients(runtime, clients)
+
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
 
@@ -2198,6 +2206,10 @@ defmodule Livebook.Session do
 
     state = put_in(state.client_id_with_assets[client_id], %{})
 
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.register_clients(state.data.runtime, [{client_id, user_info(user)}])
+    end
+
     app_report_client_count_change(state)
 
     schedule_auto_shutdown(state)
@@ -2212,6 +2224,10 @@ defmodule Livebook.Session do
 
     state = delete_client_files(state, client_id)
     {_, state} = pop_in(state.client_id_with_assets[client_id])
+
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.unregister_clients(state.data.runtime, [client_id])
+    end
 
     app_report_client_count_change(state)
 
@@ -2836,13 +2852,7 @@ defmodule Livebook.Session do
         info = %{type: :multi_session}
 
         if user = state.started_by do
-          {type, _module, _key} = Livebook.Config.identity_provider()
-
-          started_by =
-            user
-            |> Map.take([:id, :name, :email])
-            |> Map.put(:source, type)
-
+          started_by = user_info(user)
           Map.put(info, :started_by, started_by)
         else
           info
@@ -2994,6 +3004,14 @@ defmodule Livebook.Session do
       {:error, message, status} ->
         {:error, "download failed, " <> message, status}
     end
+  end
+
+  defp user_info(user) do
+    {type, _module, _key} = Livebook.Config.identity_provider()
+
+    user
+    |> Map.take([:id, :name, :email])
+    |> Map.put(:source, type)
   end
 
   # Normalizes output to match the most recent specification.
