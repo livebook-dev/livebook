@@ -17,13 +17,23 @@ defmodule Livebook.Runtime.EvaluatorTest do
       end
 
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
+    {:ok, client_tracker} = start_supervised(Evaluator.ClientTracker)
 
-    {:ok, _pid, evaluator} =
-      start_supervised(
-        {Evaluator, [send_to: self(), object_tracker: object_tracker, ebin_path: ebin_path]}
-      )
+    opts = [
+      send_to: self(),
+      object_tracker: object_tracker,
+      client_tracker: client_tracker,
+      ebin_path: ebin_path
+    ]
 
-    %{evaluator: evaluator, object_tracker: object_tracker, ebin_path: ebin_path}
+    {:ok, _pid, evaluator} = start_supervised({Evaluator, opts})
+
+    %{
+      evaluator: evaluator,
+      object_tracker: object_tracker,
+      client_tracker: client_tracker,
+      ebin_path: ebin_path
+    }
   end
 
   defmacrop metadata do
@@ -1188,11 +1198,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "initialize_from/3" do
-    setup %{object_tracker: object_tracker} do
-      {:ok, _pid, parent_evaluator} =
-        start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]},
-          id: :parent_evaluator
-        )
+    setup %{object_tracker: object_tracker, client_tracker: client_tracker} do
+      opts = [send_to: self(), object_tracker: object_tracker, client_tracker: client_tracker]
+      {:ok, _pid, parent_evaluator} = start_supervised({Evaluator, opts}, id: :parent_evaluator)
 
       %{parent_evaluator: parent_evaluator}
     end

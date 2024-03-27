@@ -340,4 +340,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       RuntimeServer.evaluate_code(pid, :elixir, "1 + 1", {:c1, :e1}, [])
     end
   end
+
+  test "clients monitoring", %{pid: pid, test: test} do
+    # Pretend we are the subscriber
+    Process.register(self(), test)
+
+    code =
+      """
+      pid = Process.whereis(#{inspect(test)})
+
+      ref = make_ref()
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_clients, pid}})
+
+      receive do
+        {:io_reply, ^ref, :ok} -> :ok
+      end
+      """
+
+    RuntimeServer.evaluate_code(pid, :elixir, code, {:c1, :e1}, [])
+    assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+
+    clients = [{"c1", %{id: "u1", name: "Jake Peralta", email: nil, source: :session}}]
+    RuntimeServer.register_clients(pid, clients)
+    assert_receive {:client_join, "c1"}
+
+    RuntimeServer.unregister_clients(pid, ["c1"])
+    assert_receive {:client_leave, "c1"}
+  end
 end

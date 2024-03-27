@@ -302,6 +302,22 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Notifies the runtime about connected clients.
+  """
+  @spec register_clients(pid(), list({Runtime.client_id(), Runtime.user_info()})) :: :ok
+  def register_clients(pid, clients) do
+    GenServer.cast(pid, {:register_clients, clients})
+  end
+
+  @doc """
+  Notifies the runtime about clients leaving.
+  """
+  @spec unregister_clients(pid(), list(Runtime.client_id())) :: :ok
+  def unregister_clients(pid, client_ids) do
+    GenServer.cast(pid, {:unregister_clients, client_ids})
+  end
+
+  @doc """
   Stops the runtime server.
 
   This results in all Livebook-related modules being unloaded
@@ -320,7 +336,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, task_supervisor} = Task.Supervisor.start_link()
-    {:ok, object_tracker} = Livebook.Runtime.Evaluator.ObjectTracker.start_link()
+    {:ok, object_tracker} = Evaluator.ObjectTracker.start_link()
+    {:ok, client_tracker} = Evaluator.ClientTracker.start_link()
 
     {:ok,
      %{
@@ -330,6 +347,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
        object_tracker: object_tracker,
+       client_tracker: client_tracker,
        smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
@@ -656,6 +674,16 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_cast({:register_clients, clients}, state) do
+    Evaluator.ClientTracker.register_clients(state.client_tracker, clients)
+    {:noreply, state}
+  end
+
+  def handle_cast({:unregister_clients, client_ids}, state) do
+    Evaluator.ClientTracker.unregister_clients(state.client_tracker, client_ids)
+    {:noreply, state}
+  end
+
   def handle_cast({:relabel_file, file_id, new_file_id}, state) do
     path = file_path(state, file_id)
     new_path = file_path(state, new_file_id)
@@ -738,6 +766,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           send_to: state.owner,
           runtime_broadcast_to: state.runtime_broadcast_to,
           object_tracker: state.object_tracker,
+          client_tracker: state.client_tracker,
           ebin_path: state.ebin_path,
           tmp_dir: evaluator_tmp_dir(state),
           io_proxy_registry: state.io_proxy_registry

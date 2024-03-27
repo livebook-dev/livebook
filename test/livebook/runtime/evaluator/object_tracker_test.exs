@@ -1,4 +1,4 @@
-defmodule Livebook.Runtime.Evaluator.ObjecTrackerTest do
+defmodule Livebook.Runtime.Evaluator.ObjectTrackerTest do
   use ExUnit.Case, async: true
 
   alias Livebook.Runtime.Evaluator.ObjectTracker

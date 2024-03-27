@@ -746,6 +746,23 @@ defprotocol Livebook.Runtime do
   """
   @type transient_state :: %{atom() => term()}
 
+  @typedoc """
+  An identifier representing a client process.
+
+  A client is a connected user that interacts with the runtime outputs.
+  """
+  @type client_id :: String.t()
+
+  @typedoc """
+  User information about a particular client.
+  """
+  @type user_info :: %{
+          id: String.t(),
+          name: String.t() | nil,
+          email: String.t() | nil,
+          source: atom()
+        }
+
   @doc """
   Returns relevant information about the runtime.
 
@@ -1072,4 +1089,16 @@ defprotocol Livebook.Runtime do
   """
   @spec restore_transient_state(t(), transient_state()) :: :ok
   def restore_transient_state(runtime, transient_state)
+
+  @doc """
+  Notifies the runtime about connected clients.
+  """
+  @spec register_clients(t(), list({client_id(), user_info()})) :: :ok
+  def register_clients(runtime, clients)
+
+  @doc """
+  Notifies the runtime about clients leaving.
+  """
+  @spec unregister_clients(t(), list(client_id())) :: :ok
+  def unregister_clients(runtime, client_ids)
 end

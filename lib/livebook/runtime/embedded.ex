@@ -163,6 +163,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.restore_transient_state(runtime.server_pid, transient_state)
   end
 
+  def register_clients(runtime, clients) do
+    RuntimeServer.register_clients(runtime.server_pid, clients)
+  end
+
+  def unregister_clients(runtime, client_ids) do
+    RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
+  end
+
   defp config() do
     Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end

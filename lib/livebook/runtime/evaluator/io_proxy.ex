@@ -29,6 +29,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
           pid(),
           pid(),
           pid(),
+          pid(),
           String.t() | nil,
           String.t() | nil,
           atom() | nil
@@ -38,13 +39,15 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
         send_to,
         runtime_broadcast_to,
         object_tracker,
+        client_tracker,
         ebin_path,
         tmp_dir,
         registry
       ) do
     GenServer.start(
       __MODULE__,
-      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, tmp_dir, registry}
+      {evaluator, send_to, runtime_broadcast_to, object_tracker, client_tracker, ebin_path,
+       tmp_dir, registry}
     )
   end
 
@@ -103,7 +106,8 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   @impl true
   def init(
-        {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, tmp_dir, registry}
+        {evaluator, send_to, runtime_broadcast_to, object_tracker, client_tracker, ebin_path,
+         tmp_dir, registry}
       ) do
     evaluator_monitor = Process.monitor(evaluator)
 
@@ -124,6 +128,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
        send_to: send_to,
        runtime_broadcast_to: runtime_broadcast_to,
        object_tracker: object_tracker,
+       client_tracker: client_tracker,
        ebin_path: ebin_path,
        tmp_dir: tmp_dir,
        tracer_info: %Evaluator.Tracer{},
@@ -390,6 +395,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
       end
 
     {result, state}
+  end
+
+  defp io_request({:livebook_monitor_clients, pid}, state) do
+    Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
+    {:ok, state}
   end
 
   defp io_request(_, state) do

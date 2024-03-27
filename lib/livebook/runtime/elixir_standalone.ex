@@ -194,4 +194,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def restore_transient_state(runtime, transient_state) do
     RuntimeServer.restore_transient_state(runtime.server_pid, transient_state)
   end
+
+  def register_clients(runtime, clients) do
+    RuntimeServer.register_clients(runtime.server_pid, clients)
+  end
+
+  def unregister_clients(runtime, client_ids) do
+    RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
+  end
 end

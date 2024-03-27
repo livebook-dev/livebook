@@ -28,6 +28,7 @@ defmodule Livebook.Runtime.Evaluator do
           send_to: pid(),
           runtime_broadcast_to: pid(),
           object_tracker: pid(),
+          client_tracker: pid(),
           contexts: %{ref() => context()},
           initial_context: context(),
           initial_context_version: nil | (md5 :: binary()),
@@ -73,6 +74,9 @@ defmodule Livebook.Runtime.Evaluator do
     * `:send_to` - the process to send evaluation messages to. Required
 
     * `:object_tracker` - a pid of `Livebook.Runtime.Evaluator.ObjectTracker`.
+      Required
+
+    * `:client_tracker` - a pid of `Livebook.Runtime.Evaluator.ClientTracker`.
       Required
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
@@ -266,6 +270,7 @@ defmodule Livebook.Runtime.Evaluator do
     send_to = Keyword.fetch!(opts, :send_to)
     runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
+    client_tracker = Keyword.fetch!(opts, :client_tracker)
     ebin_path = Keyword.get(opts, :ebin_path)
     tmp_dir = Keyword.get(opts, :tmp_dir)
     io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
@@ -276,6 +281,7 @@ defmodule Livebook.Runtime.Evaluator do
         send_to,
         runtime_broadcast_to,
         object_tracker,
+        client_tracker,
         ebin_path,
         tmp_dir,
         io_proxy_registry
@@ -309,6 +315,7 @@ defmodule Livebook.Runtime.Evaluator do
       send_to: send_to,
       runtime_broadcast_to: runtime_broadcast_to,
       object_tracker: object_tracker,
+      client_tracker: client_tracker,
       contexts: %{},
       initial_context: context,
       initial_context_version: nil,
