@@ -276,16 +276,16 @@ defmodule Livebook.Runtime.Evaluator do
     io_proxy_registry = Keyword.get(opts, :io_proxy_registry)
 
     {:ok, io_proxy} =
-      Evaluator.IOProxy.start(
-        self(),
-        send_to,
-        runtime_broadcast_to,
-        object_tracker,
-        client_tracker,
-        ebin_path,
-        tmp_dir,
-        io_proxy_registry
-      )
+      Evaluator.IOProxy.start(%{
+        evaluator: self(),
+        send_to: send_to,
+        runtime_broadcast_to: runtime_broadcast_to,
+        object_tracker: object_tracker,
+        client_tracker: client_tracker,
+        ebin_path: ebin_path,
+        tmp_dir: tmp_dir,
+        registry: io_proxy_registry
+      })
 
     io_proxy_monitor = Process.monitor(io_proxy)
 

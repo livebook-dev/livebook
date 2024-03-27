@@ -24,58 +24,25 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   For all supported requests a message is sent to the configured
   `:send_to` process, so this device serves as a proxy.
   """
-  @spec start(
-          pid(),
-          pid(),
-          pid(),
-          pid(),
-          pid(),
-          String.t() | nil,
-          String.t() | nil,
-          atom() | nil
-        ) :: GenServer.on_start()
-  def start(
-        evaluator,
-        send_to,
-        runtime_broadcast_to,
-        object_tracker,
-        client_tracker,
-        ebin_path,
-        tmp_dir,
-        registry
-      ) do
-    GenServer.start(
-      __MODULE__,
-      {evaluator, send_to, runtime_broadcast_to, object_tracker, client_tracker, ebin_path,
-       tmp_dir, registry}
-    )
+  @spec start(%{
+          evaluator: pid(),
+          send_to: pid(),
+          runtime_broadcast_to: pid(),
+          object_tracker: pid(),
+          client_tracker: pid(),
+          ebin_path: String.t() | nil,
+          tmp_dir: String.t() | nil,
+          registry: atom() | nil
+        }) :: GenServer.on_start()
+  def start(args) do
+    GenServer.start(__MODULE__, args)
   end
 
   @doc """
   Linking version of `start/4`.
   """
-  @spec start_link(
-          pid(),
-          pid(),
-          pid(),
-          pid(),
-          String.t() | nil,
-          String.t() | nil,
-          atom() | nil
-        ) :: GenServer.on_start()
-  def start_link(
-        evaluator,
-        send_to,
-        runtime_broadcast_to,
-        object_tracker,
-        ebin_path,
-        tmp_dir,
-        registry
-      ) do
-    GenServer.start_link(
-      __MODULE__,
-      {evaluator, send_to, runtime_broadcast_to, object_tracker, ebin_path, tmp_dir, registry}
-    )
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args)
   end
 
   @doc """
@@ -105,10 +72,18 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def init(
-        {evaluator, send_to, runtime_broadcast_to, object_tracker, client_tracker, ebin_path,
-         tmp_dir, registry}
-      ) do
+  def init(args) do
+    %{
+      evaluator: evaluator,
+      send_to: send_to,
+      runtime_broadcast_to: runtime_broadcast_to,
+      object_tracker: object_tracker,
+      client_tracker: client_tracker,
+      ebin_path: ebin_path,
+      tmp_dir: tmp_dir,
+      registry: registry
+    } = args
+
     evaluator_monitor = Process.monitor(evaluator)
 
     if registry do
