@@ -219,6 +219,7 @@ defmodule Livebook.MixProject do
       {"README.md", title: "Welcome to Livebook"},
       "docs/authentication.md",
       "docs/deployment/docker.md",
+      "docs/deployment/fips.md",
       "docs/deployment/cloudflare.md",
       "docs/deployment/google_iap.md",
       "docs/deployment/tailscale.md",

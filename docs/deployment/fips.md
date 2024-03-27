@@ -1,7 +1,31 @@
-# Use a base image
-ARG BASE_IMAGE
-FROM ${BASE_IMAGE}
+# FIPS mode
 
+For environments that require security hardening you might need to turn on FIPS mode. Being able to turn on FIPS in general is a complex procedure, this just enables you to be able to turn FIPS on.
+
+To be able to turn on fips mode you will need to have an erlang distribution that has been compiled with [fips enabled](https://www.erlang.org/doc/apps/crypto/fips).
+
+
+### Error on startup
+
+```bash
+export LIVEBOOK_FIPS=true
+_build/prod/rel/livebook/bin/livebook start_iex 
+
+ERROR! Config provider Config.Reader failed with:
+** (RuntimeError) Could not set FIPS mode but was asked to
+    (livebook 0.13.0-dev) lib/livebook.ex:242: Livebook.config_runtime/0
+        ...
+
+```
+
+This means that your elixir/erlang environmet was NOT compiled with FIPS enabled.
+
+### Docker example
+To do this in docker, you will need to build it a little bit differently. You can see a full example below. This should be considered psuedo code, you will want to adapt it to your needs. You should consider having a base image for the erlang/elixir portion with FIPS turned on and then overlay with a [multi stage build](https://docs.docker.com/build/building/multi-stage/).
+
+
+```docker
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9-1137
 # Set environment variables for path and language
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin 
 
@@ -71,4 +95,5 @@ ENV LANG='en_US.UTF-8' \
     LIVEBOOK_HOME=/data \
     HOME=/home/livebook    
 # Set command to start the application
-CMD ["/app/bin/livebook", "start_iex"]
+CMD ["/app/bin/livebook", "start"]
+```

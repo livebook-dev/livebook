@@ -283,7 +283,7 @@ The following environment variables can be used to configure Livebook on boot:
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
 
-  * `LIVEBOOK_FIPS` - if set to "true" will try to set the fips mode on startup. This is currently only supported with the ubi docker build of the image
+  * `LIVEBOOK_FIPS` - if set to "true" will try to set the fips mode on startup. See more details in the [docker fips documentation.](fips.html)
 
 <!-- Environment variables -->
 
