@@ -705,7 +705,7 @@ defmodule Livebook.Config do
       provider ->
         with [type, key] <- String.split(provider, ":", parts: 2),
              %{^type => module} <- identity_provider_type_to_module() do
-          {module, key}
+          {:zta, module, key}
         else
           _ -> abort!("invalid configuration for identity provider given in #{env}")
         end
