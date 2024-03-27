@@ -61,10 +61,7 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
       send(pid, {:client_leave, client_id})
     end
 
-    state =
-      update_in(state.clients, fn clients ->
-        Enum.reduce(client_ids, clients, &Map.delete(&2, &1))
-      end)
+    state = update_in(state.clients, &Map.drop(&1, client_ids))
 
     {:noreply, state}
   end
