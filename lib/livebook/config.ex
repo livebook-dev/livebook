@@ -687,37 +687,37 @@ defmodule Livebook.Config do
   @doc """
   Parses zero trust identity provider from env.
   """
-  def identity_provider!(env) do
-    case get_system_env_or_test_provider(env) do
+  def identity_provider!() do
+    case System.get_env("LIVEBOOK_IDENTITY_PROVIDER") do
       nil ->
         {:session, LivebookWeb.SessionIdentity, :unused}
 
-      "custom:" <> module_key ->
-        destructure [module, key], String.split(module_key, ":", parts: 2)
-        module = Module.concat([module])
-
-        if Code.ensure_loaded?(module) do
-          {:custom, module, key}
-        else
-          abort!("module given as custom identity provider in #{env} could not be found")
-        end
-
-      provider ->
-        with [type, key] <- String.split(provider, ":", parts: 2),
-             %{^type => module} <- identity_provider_type_to_module() do
-          {:zta, module, key}
-        else
-          _ -> abort!("invalid configuration for identity provider given in #{env}")
-        end
+      provider_string ->
+        identity_provider!(provider_string)
     end
   end
 
-  # Allow for this function to be tested more easily
-  defp get_system_env_or_test_provider(env) do
-    case {System.get_env(env), env} do
-      {nil, "TEST_IDENTITY_" <> provider} -> provider
-      {nil, _} -> nil
-      {provider, _} -> provider
+  #  allow for a custom provider
+  def identity_provider!("custom:" <> module_key) do
+    destructure [module, key], String.split(module_key, ":", parts: 2)
+    module = Module.concat([module])
+
+    if Code.ensure_loaded?(module) do
+      {:custom, module, key}
+    else
+      abort!(
+        "module given as custom identity provider in #{"custom:" <> module_key} could not be found"
+      )
+    end
+  end
+
+  # allow for a built in provider
+  def identity_provider!(provider) do
+    with [type, key] <- String.split(provider, ":", parts: 2),
+         %{^type => module} <- identity_provider_type_to_module() do
+      {:zta, module, key}
+    else
+      _ -> abort!("invalid configuration for identity provider given in provider #{provider}")
     end
   end
 

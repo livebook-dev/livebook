@@ -224,7 +224,7 @@ defmodule Livebook do
 
     config :livebook,
            :identity_provider,
-           Livebook.Config.identity_provider!("LIVEBOOK_IDENTITY_PROVIDER")
+           Livebook.Config.identity_provider!()
 
     if dns_cluster_query = Livebook.Config.dns_cluster_query!("LIVEBOOK_CLUSTER") do
       config :livebook, :dns_cluster_query, dns_cluster_query
