@@ -70,7 +70,6 @@ defmodule Livebook do
       ]
 
   """
-require Logger
 
   @doc """
   Executes Livebook's `config/runtime.exs`.
@@ -242,7 +241,6 @@ require Logger
         raise "Could not set FIPS mode but was asked to"
       end
     end
-
   end
 
   @doc """
