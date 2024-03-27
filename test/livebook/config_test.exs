@@ -34,18 +34,20 @@ defmodule Livebook.ConfigTest do
   end
 
   describe "identity_provider!/1" do
-    test "ZTA provider setting tests" do
-      assert {:custom, Module, nil} ==
-               Livebook.Config.identity_provider!("custom:Module")
+    test "parses custom provider" do
+      with_env([TEST_IDENTITY_PROVIDER: "custom:Module"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") == {:custom, Module, nil}
+      end)
 
-      assert {:zta, Livebook.ZTA.Cloudflare, "123"} ==
-               Livebook.Config.identity_provider!("cloudflare:123")
+      with_env([TEST_IDENTITY_PROVIDER: "custom:LivebookWeb.SessionIdentity:extra"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
+                 {:custom, LivebookWeb.SessionIdentity, "extra"}
+      end)
 
-      assert {:custom, LivebookWeb.SessionIdentity, "extra"} =
-               Livebook.Config.identity_provider!("custom:LivebookWeb.SessionIdentity:extra")
-
-      assert {:session, LivebookWeb.SessionIdentity, :unused} ==
-               Livebook.Config.identity_provider!()
+      with_env([TEST_IDENTITY_PROVIDER: "cloudflare:123"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") |> IO.inspect() ==
+                 {:zta, Livebook.ZTA.Cloudflare, "123"}
+      end)
     end
   end
 

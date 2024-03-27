@@ -687,37 +687,28 @@ defmodule Livebook.Config do
   @doc """
   Parses zero trust identity provider from env.
   """
-  def identity_provider!() do
-    case System.get_env("LIVEBOOK_IDENTITY_PROVIDER") do
+  def identity_provider!(env) do
+    case System.get_env(env) do
       nil ->
         {:session, LivebookWeb.SessionIdentity, :unused}
 
-      provider_string ->
-        identity_provider!(provider_string)
-    end
-  end
+      "custom:" <> module_key ->
+        destructure [module, key], String.split(module_key, ":", parts: 2)
+        module = Module.concat([module])
 
-  #  allow for a custom provider
-  def identity_provider!("custom:" <> module_key) do
-    destructure [module, key], String.split(module_key, ":", parts: 2)
-    module = Module.concat([module])
+        if Code.ensure_loaded?(module) do
+          {:custom, module, key}
+        else
+          abort!("module given as custom identity provider in #{env} could not be found")
+        end
 
-    if Code.ensure_loaded?(module) do
-      {:custom, module, key}
-    else
-      abort!(
-        "module given as custom identity provider in #{"custom:" <> module_key} could not be found"
-      )
-    end
-  end
-
-  # allow for a built in provider
-  def identity_provider!(provider) do
-    with [type, key] <- String.split(provider, ":", parts: 2),
-         %{^type => module} <- identity_provider_type_to_module() do
-      {:zta, module, key}
-    else
-      _ -> abort!("invalid configuration for identity provider given in provider #{provider}")
+      provider ->
+        with [type, key] <- String.split(provider, ":", parts: 2),
+             %{^type => module} <- identity_provider_type_to_module() do
+          {:zta, module, key}
+        else
+          _ -> abort!("invalid configuration for identity provider given in #{env}")
+        end
     end
   end
 
