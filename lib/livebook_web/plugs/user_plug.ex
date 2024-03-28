@@ -52,7 +52,7 @@ defmodule LivebookWeb.UserPlug do
       conn
     else
       identity_data = get_session(conn, :identity_data)
-      user_data = User.new() |> user_data() |> Map.merge(identity_data)
+      user_data = User.new() |> client_user_data() |> Map.merge(identity_data)
       encoded = user_data |> Jason.encode!() |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client
@@ -62,10 +62,11 @@ defmodule LivebookWeb.UserPlug do
     end
   end
 
-  defp user_data(user) do
+  defp client_user_data(user) do
     user
     |> Map.from_struct()
     |> Map.delete(:id)
+    |> Map.delete(:payload)
   end
 
   # Copies user_data from cookie to session, so that it's

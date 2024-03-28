@@ -48,7 +48,12 @@ defmodule Livebook.ZTA.GoogleIAP do
     with [encoded_token] <- token,
          {:ok, token} <- verify_token(encoded_token, keys),
          :ok <- verify_iss(token, identity.iss, identity.key) do
-      for({k, v} <- token.fields, new_k = @fields[k], do: {new_k, v}, into: %{})
+      for(
+        {k, v} <- token.fields,
+        new_k = @fields[k],
+        do: {new_k, v},
+        into: %{payload: token.fields}
+      )
     else
       _ -> nil
     end

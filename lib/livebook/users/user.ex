@@ -25,6 +25,7 @@ defmodule Livebook.Users.User do
   embedded_schema do
     field :name, :string
     field :email, :string
+    field :payload, :map
     field :hex_color, Livebook.EctoTypes.HexColor
   end
 

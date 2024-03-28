@@ -51,7 +51,12 @@ defmodule Livebook.ZTA.Teleport do
          {:ok, %{fields: %{"exp" => exp, "nbf" => nbf}} = token} <-
            verify_token(encoded_token, jwks),
          :ok <- verify_timestamps(exp, nbf) do
-      for({k, v} <- token.fields, new_k = @fields[k], do: {new_k, v}, into: %{})
+      for(
+        {k, v} <- token.fields,
+        new_k = @fields[k],
+        do: {new_k, v},
+        into: %{payload: token.fields}
+      )
     else
       _ ->
         nil

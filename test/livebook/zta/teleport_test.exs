@@ -46,7 +46,7 @@ defmodule Livebook.ZTA.TeleportTest do
   test "returns the user when it's valid", %{options: options, conn: conn} do
     start_supervised!({Teleport, options})
     {_conn, user} = Teleport.authenticate(@name, conn, fields: @fields)
-    assert %{id: "my-user-id", username: "myusername"} = user
+    assert %{id: "my-user-id", username: "myusername", payload: %{}} = user
   end
 
   test "returns nil when the exp is in the past", %{options: options, conn: conn} do
