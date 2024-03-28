@@ -1447,7 +1447,7 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :multi_session}
+      assert app_info == {:ok, %{type: :multi_session}}
 
       # Single-session
 
@@ -1459,7 +1459,7 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :single_session}
+      assert app_info == {:ok, %{type: :single_session}}
 
       App.close(app_pid)
     end
@@ -1485,15 +1485,17 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{
-               type: :multi_session,
-               started_by: %{
-                 source: :session,
-                 id: "1234",
-                 name: "Jake Peralta",
-                 email: "jperalta@example.com"
-               }
-             }
+      assert app_info ==
+               {:ok,
+                %{
+                  type: :multi_session,
+                  started_by: %{
+                    source: :session,
+                    id: "1234",
+                    name: "Jake Peralta",
+                    email: "jperalta@example.com"
+                  }
+                }}
 
       # Single-session
 
@@ -1505,7 +1507,7 @@ defmodule Livebook.SessionTest do
       send(session.pid, {:runtime_app_info_request, self()})
       assert_receive {:runtime_app_info_reply, app_info}
 
-      assert app_info == %{type: :single_session}
+      assert app_info == {:ok, %{type: :single_session}}
 
       App.close(app_pid)
     end
@@ -1517,7 +1519,7 @@ defmodule Livebook.SessionTest do
     send(session.pid, {:runtime_app_info_request, self()})
     assert_receive {:runtime_app_info_reply, app_info}
 
-    assert app_info == %{type: :none}
+    assert app_info == {:ok, %{type: :none}}
   end
 
   describe "to_attachment_file_entry/2" do

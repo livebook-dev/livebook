@@ -1641,7 +1641,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_app_info_request, reply_to}, state) do
-    send(reply_to, {:runtime_app_info_reply, app_info_for_runtime(state)})
+    send(reply_to, {:runtime_app_info_reply, {:ok, app_info_for_runtime(state)}})
     {:noreply, state}
   end
 
