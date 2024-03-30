@@ -95,11 +95,10 @@ defmodule Livebook.Apps.ManagerTest do
   end
 
   test "is restarted on crash" do
-    pid = :global.whereis_name(Apps.Manager)
-
     Phoenix.PubSub.subscribe(Livebook.PubSub, "manager_watcher")
 
-    Process.exit(pid, :kill)
+    pid = :global.whereis_name(Apps.Manager)
+    is_pid(pid) && Process.exit(pid, :kill)
 
     assert_receive {:manager_started, pid}
     assert :global.whereis_name(Apps.Manager) == pid

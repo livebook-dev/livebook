@@ -46,11 +46,6 @@ defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
           </.table>
         </div>
       </div>
-      <div class="flex">
-        <.button patch={@add_env_var_path} id="add-env-var">
-          Add environment variable
-        </.button>
-      </div>
     </div>
     """
   end

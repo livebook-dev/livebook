@@ -75,32 +75,31 @@ defmodule LivebookWeb.Router do
 
       live "/apps-dashboard", AppsDashboardLive, :page
 
-      live "/hub", Hub.NewLive, :new, as: :hub
-      live "/hub/:id", Hub.EditLive, :edit, as: :hub
-      live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var, as: :hub
-      live "/hub/:id/env-var/edit/:env_var_id", Hub.EditLive, :edit_env_var, as: :hub
-      live "/hub/:id/secrets/new", Hub.EditLive, :new_secret, as: :hub
-      live "/hub/:id/secrets/edit/:secret_name", Hub.EditLive, :edit_secret, as: :hub
-      live "/hub/:id/file-systems/new", Hub.EditLive, :new_file_system, as: :hub
-      live "/hub/:id/file-systems/edit/:file_system_id", Hub.EditLive, :edit_file_system, as: :hub
+      live "/hub", Hub.NewLive, :new
+      live "/hub/:id", Hub.EditLive, :edit
+      live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var
+      live "/hub/:id/env-var/edit/:env_var_id", Hub.EditLive, :edit_env_var
+      live "/hub/:id/secrets/new", Hub.EditLive, :new_secret
+      live "/hub/:id/secrets/edit/:secret_name", Hub.EditLive, :edit_secret
+      live "/hub/:id/file-systems/new", Hub.EditLive, :new_file_system
+      live "/hub/:id/file-systems/edit/:file_system_id", Hub.EditLive, :edit_file_system
+      live "/hub/:id/groups/new", Hub.EditLive, :new_deployment_group
 
-      live "/hub/:id/deployment-groups/new", Hub.Teams.DeploymentGroupLive, :new_deployment_group,
-        as: :hub
+      live "/hub/:id/groups/:deployment_group_id/agents/new",
+           Hub.EditLive,
+           :new_deployment_group_agent
 
-      live "/hub/:id/deployment-groups/edit/:deployment_group_id",
-           Hub.Teams.DeploymentGroupLive,
-           :edit_deployment_group,
-           as: :hub
+      live "/hub/:id/groups/:deployment_group_id/apps/new",
+           Hub.EditLive,
+           :new_deployment_group_app
 
-      live "/hub/:id/deployment-groups/edit/:deployment_group_id/secrets/new",
-           Hub.Teams.DeploymentGroupLive,
-           :new_secret,
-           as: :hub
+      live "/hub/:id/groups/:deployment_group_id/secrets/new",
+           Hub.EditLive,
+           :new_deployment_group_secret
 
-      live "/hub/:id/deployment-groups/edit/:deployment_group_id/secrets/edit/:secret_name",
-           Hub.Teams.DeploymentGroupLive,
-           :edit_secret,
-           as: :hub
+      live "/hub/:id/groups/:deployment_group_id/secrets/edit/:secret_name",
+           Hub.EditLive,
+           :edit_deployment_group_secret
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts

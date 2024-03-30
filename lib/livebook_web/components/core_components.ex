@@ -719,46 +719,42 @@ defmodule LivebookWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="min-w-full divide-y divide-gray-300">
-        <thead class="text-sm text-left font-semibold leading-6 text-gray-900">
-          <tr>
-            <th :for={col <- @col} class="py-3.5 pl-4 pr-3 sm:pl-6">
-              <%= col[:label] %>
-            </th>
-            <th :if={@action != []} class="py-3.5 pl-3 pr-5 text-right sm:pr-7">
-              <span>Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-gray-200 bg-white text-sm font-medium leading-6 text-gray-900"
-        >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-gray-50">
-            <td
-              :for={col <- @col}
-              phx-click={@row_click && @row_click.(row)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer"]}
-            >
-              <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-gray-100 rounded-l-xl" />
-              <div class="relative block p-4 sm:px-6">
-                <%= render_slot(col, @row_item.(row)) %>
-              </div>
-            </td>
-            <td :if={@action != []} class="relative p-0">
-              <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-gray-100 rounded-r-xl" />
-              <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
-                <span :for={action <- @action} class="ml-4">
-                  <%= render_slot(action, @row_item.(row)) %>
-                </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <table class="overflow-y-auto px-4 sm:overflow-visible sm:px-0 min-w-full divide-y divide-gray-300">
+      <thead class="text-sm text-left font-semibold leading-6 text-gray-900">
+        <tr>
+          <th :for={col <- @col} class="py-3.5 pl-4 pr-3 sm:pl-6">
+            <%= col[:label] %>
+          </th>
+          <th :if={@action != []} class="py-3.5 pl-3 pr-5 text-right sm:pr-7">
+            <span>Actions</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody
+        id={@id}
+        phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
+        class="relative divide-y divide-gray-200 bg-white text-sm font-medium leading-6 text-gray-900"
+      >
+        <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="hover:bg-gray-50">
+          <td
+            :for={col <- @col}
+            phx-click={@row_click && @row_click.(row)}
+            class={["relative p-0", @row_click && "hover:cursor-pointer"]}
+          >
+            <div class="relative block p-4 sm:px-6">
+              <%= render_slot(col, @row_item.(row)) %>
+            </div>
+          </td>
+          <td :if={@action != []} class="relative p-0">
+            <div class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 flex justify-end items-center">
+              <span :for={action <- @action} class="ml-4">
+                <%= render_slot(action, @row_item.(row)) %>
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     """
   end
 

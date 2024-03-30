@@ -103,19 +103,26 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Environment variables
             </h2>
+
             <p class="mt-4 text-gray-700">
               Environment variables store global values, specific to this
               Livebook instance, which are available inside your notebooks.
               You can also configure the <code>PATH</code> environment to
               make system dependencies available to notebooks.
             </p>
+
             <.live_component
               module={LivebookWeb.SettingsLive.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
               return_to={~p"/settings"}
-              add_env_var_path={~p"/settings/env-var/new"}
             />
+
+            <div>
+              <.button patch={~p"/settings/env-var/new"} id="add-env-var">
+                Add environment variable
+              </.button>
+            </div>
           </div>
         </div>
         <!-- User settings section -->

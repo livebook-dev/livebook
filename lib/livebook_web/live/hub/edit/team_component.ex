@@ -5,7 +5,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
   alias Livebook.Hubs.Provider
   alias Livebook.Teams
   alias LivebookWeb.LayoutComponents
-  alias LivebookWeb.TeamsComponents
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -16,6 +15,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     secrets = Hubs.get_secrets(assigns.hub)
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     deployment_groups = Teams.get_deployment_groups(assigns.hub)
+    app_deployments = Teams.get_app_deployments(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     default? = default_hub?(assigns.hub)
@@ -39,7 +39,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        file_system: file_system,
        file_system_id: file_system_id,
        file_systems: file_systems,
-       deployment_groups: deployment_groups,
+       deployment_groups: Enum.sort_by(deployment_groups, & &1.name),
+       app_deployments: Enum.frequencies_by(app_deployments, & &1.deployment_group_id),
        show_key: show_key,
        secret_name: secret_name,
        secret_value: secret_value,
@@ -59,44 +60,65 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
 
       <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
         <div id={"#{@id}-component"}>
-          <div class="mb-8 flex flex-col space-y-10">
-            <div class="flex flex-col space-y-2">
-              <TeamsComponents.header hub={@hub} hub_metadata={@hub_metadata} default?={@default?} />
-              <p class="text-sm flex flex-row space-x-6 text-gray-700">
-                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
-                  <.remix_icon icon="mail-line" /> Invite users
-                </a>
+          <div class="mb-8 flex flex-col space-y-2">
+            <LayoutComponents.title>
+              <div class="flex gap-2 items-center">
+                <div class="flex justify-center">
+                  <span class="relative">
+                    <%= @hub.hub_emoji %>
+                    <div class={[
+                      "absolute w-[10px] h-[10px] border-white border-2 rounded-full right-0 bottom-1",
+                      if(@hub_metadata.connected?, do: "bg-green-400", else: "bg-red-400")
+                    ]} />
+                  </span>
+                </div>
+                <%= @hub.hub_name %>
+                <span class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                  Livebook Teams
+                </span>
+                <%= if @default? do %>
+                  <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                    Default
+                  </span>
+                <% end %>
+              </div>
+            </LayoutComponents.title>
 
-                <a href={org_url(@hub, "/")} class="hover:text-blue-600">
-                  <.remix_icon icon="settings-line" /> Manage organization
-                </a>
+            <p class="text-sm flex flex-row space-x-6 text-gray-700">
+              <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                <.remix_icon icon="mail-line" /> Invite users
+              </a>
 
-                <.link
-                  patch={~p"/hub/#{@hub.id}?show-key=yes"}
+              <a href={org_url(@hub, "/")} class="hover:text-blue-600">
+                <.remix_icon icon="settings-line" /> Manage organization
+              </a>
+
+              <.link
+                patch={~p"/hub/#{@hub.id}?show-key=yes"}
+                class="hover:text-blue-600 cursor-pointer"
+              >
+                <.remix_icon icon="key-2-fill" /> Display Teams key
+              </.link>
+              <%= if @default? do %>
+                <button
+                  phx-click="remove_as_default"
+                  phx-target={@myself}
                   class="hover:text-blue-600 cursor-pointer"
                 >
-                  <.remix_icon icon="key-2-fill" /> Display Teams key
-                </.link>
-                <%= if @default? do %>
-                  <button
-                    phx-click="remove_as_default"
-                    phx-target={@myself}
-                    class="hover:text-blue-600 cursor-pointer"
-                  >
-                    <.remix_icon icon="star-fill" /> Remove as default
-                  </button>
-                <% else %>
-                  <button
-                    phx-click="mark_as_default"
-                    phx-target={@myself}
-                    class="hover:text-blue-600 cursor-pointer"
-                  >
-                    <.remix_icon icon="star-line" /> Mark as default
-                  </button>
-                <% end %>
-              </p>
-            </div>
-
+                  <.remix_icon icon="star-fill" /> Remove as default
+                </button>
+              <% else %>
+                <button
+                  phx-click="mark_as_default"
+                  phx-target={@myself}
+                  class="hover:text-blue-600 cursor-pointer"
+                >
+                  <.remix_icon icon="star-line" /> Mark as default
+                </button>
+              <% end %>
+            </p>
+          </div>
+          <div class="mb-8 flex flex-col space-y-10">
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
                 General
@@ -105,13 +127,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <.form
                 :let={f}
                 id={@id}
-                class="flex flex-col mt-4 space-y-4"
+                class="flex flex-col md:flex-row mt-4 space-y-4 md:space-x-2 md:space-y-0"
                 for={@form}
                 phx-submit="save"
                 phx-change="validate"
                 phx-target={@myself}
               >
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="flex-auto">
                   <.text_field
                     field={f[:hub_name]}
                     label="Name"
@@ -119,10 +141,13 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                     help="Name cannot be changed"
                     class="bg-gray-200/50 border-200/80 cursor-not-allowed"
                   />
+                </div>
+
+                <div class="min-w-48">
                   <.emoji_field field={f[:hub_emoji]} label="Emoji" />
                 </div>
 
-                <div>
+                <div class="!mt-6">
                   <.button type="submit" phx-disable-with="Updating...">
                     Save
                   </.button>
@@ -146,11 +171,15 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 id="hub-secrets-list"
                 hub={@hub}
                 secrets={@secrets}
-                add_path={~p"/hub/#{@hub.id}/secrets/new"}
                 edit_path={"hub/#{@hub.id}/secrets/edit"}
                 return_to={~p"/hub/#{@hub.id}"}
-                target={@myself}
               />
+
+              <div>
+                <.button patch={~p"/hub/#{@hub.id}/secrets/new"} id="add-secret">
+                  Add secret
+                </.button>
+              </div>
             </div>
 
             <div class="flex flex-col space-y-4">
@@ -180,16 +209,30 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <p class="text-gray-700">
-                Deployment groups.
+                Deployment groups allow you to deploy notebooks to self-hosted machines with the click of a button.
               </p>
 
-              <.live_component
-                module={LivebookWeb.Hub.Teams.DeploymentGroupListComponent}
-                id="hub-deployment-groups-list"
-                hub={@hub}
-                deployment_groups={@deployment_groups}
-                target={@myself}
-              />
+              <.no_entries :if={@deployment_groups == []}>
+                No deployment groups here... yet!
+              </.no_entries>
+
+              <div :for={deployment_group <- @deployment_groups} class="flex flex-col space-y-4">
+                <.live_component
+                  module={LivebookWeb.Hub.Teams.DeploymentGroupComponent}
+                  id={"hub-deployment-group-#{deployment_group.id}"}
+                  hub={@hub}
+                  deployment_group={deployment_group}
+                  app_deployments_count={Map.get(@app_deployments, deployment_group.id, 0)}
+                  live_action={@live_action}
+                  params={@params}
+                />
+              </div>
+
+              <div>
+                <.button patch={~p"/hub/#{@hub.id}/groups/new"} id="add-deployment-group">
+                  Add deployment group
+                </.button>
+              </div>
             </div>
 
             <div class="flex flex-col space-y-4">
@@ -218,49 +261,64 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </div>
             </div>
           </div>
-
-          <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
-            <.teams_key_modal
-              teams_key={@hub.teams_key}
-              confirm_url={if @show_key == "confirm", do: ~p"/hub/#{@hub.id}"}
-            />
-          </.modal>
-
-          <.modal
-            :if={@live_action in [:new_secret, :edit_secret]}
-            id="secrets-modal"
-            show
-            width={:medium}
-            patch={~p"/hub/#{@hub.id}"}
-          >
-            <.live_component
-              module={LivebookWeb.Hub.SecretFormComponent}
-              id="secrets"
-              hub={@hub}
-              secret_name={@secret_name}
-              secret_value={@secret_value}
-              return_to={~p"/hub/#{@hub.id}"}
-            />
-          </.modal>
-
-          <.modal
-            :if={@live_action in [:new_file_system, :edit_file_system]}
-            id="file-systems-modal"
-            show
-            width={:medium}
-            patch={~p"/hub/#{@hub.id}"}
-          >
-            <.live_component
-              module={LivebookWeb.Hub.FileSystemFormComponent}
-              id="file-systems"
-              hub={@hub}
-              file_system={@file_system}
-              file_system_id={@file_system_id}
-              return_to={~p"/hub/#{@hub.id}"}
-            />
-          </.modal>
         </div>
       </div>
+
+      <.modal :if={@show_key} id="key-modal" show width={:medium} patch={~p"/hub/#{@hub.id}"}>
+        <.teams_key_modal
+          teams_key={@hub.teams_key}
+          confirm_url={if @show_key == "confirm", do: ~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
+
+      <.modal
+        :if={@live_action in [:new_secret, :edit_secret]}
+        id="secrets-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.SecretFormComponent}
+          id="secrets"
+          hub={@hub}
+          secret_name={@secret_name}
+          secret_value={@secret_value}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
+
+      <.modal
+        :if={@live_action in [:new_file_system, :edit_file_system]}
+        id="file-systems-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.FileSystemFormComponent}
+          id="file-systems"
+          hub={@hub}
+          file_system={@file_system}
+          file_system_id={@file_system_id}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
+
+      <.modal
+        :if={@live_action == :new_deployment_group}
+        id="deployment-group-modal"
+        show
+        width={:medium}
+        patch={~p"/hub/#{@hub.id}"}
+      >
+        <.live_component
+          module={LivebookWeb.Hub.Teams.DeploymentGroupFormComponent}
+          id="deployment-group"
+          hub={@hub}
+          return_to={~p"/hub/#{@hub.id}"}
+        />
+      </.modal>
     </div>
     """
   end
@@ -327,27 +385,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
-  end
-
-  def handle_event("delete_hub_secret", attrs, socket) do
-    %{hub: hub} = socket.assigns
-
-    on_confirm = fn socket ->
-      {:ok, secret} = Livebook.Secrets.update_secret(%Livebook.Secrets.Secret{}, attrs)
-
-      case Livebook.Hubs.delete_secret(hub, secret) do
-        :ok -> socket
-        {:transport_error, reason} -> put_flash(socket, :error, reason)
-      end
-    end
-
-    {:noreply,
-     confirm(socket, on_confirm,
-       title: "Delete hub secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this hub secret?",
-       confirm_text: "Delete",
-       confirm_icon: "delete-bin-6-line"
-     )}
   end
 
   def handle_event("mark_as_default", _, socket) do

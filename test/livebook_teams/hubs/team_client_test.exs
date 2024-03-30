@@ -40,7 +40,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       {:ok, team: team}
     end
 
-    test "receives the secret events", %{team: team} do
+    test "receives secret events", %{team: team} do
       secret = build(:secret, name: "SECRET", value: "BAR")
       assert Livebook.Hubs.create_secret(team, secret) == :ok
 
@@ -68,7 +68,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:secret_deleted, %{name: ^name, value: ^new_value}}
     end
 
-    test "receives the file system events", %{team: team} do
+    test "receives file system events", %{team: team} do
       file_system =
         build(:fs_s3, bucket_url: "https://file_system.s3.amazonaws.com", region: "us-east-1")
 
@@ -98,60 +98,19 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}
     end
 
-    test "receives the deployment group events", %{team: team} do
+    test "receives deployment group events", %{team: team} do
       deployment_group =
         build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
-      assert {:ok, id} =
-               Livebook.Teams.create_deployment_group(team, deployment_group)
-
+      assert {:ok, _} = Livebook.Teams.create_deployment_group(team, deployment_group)
       %{name: name, mode: mode} = deployment_group
 
       # receives `{:event, :deployment_group_created, deployment_group}` event
-      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode} = deployment_group}
-
-      new_name = "ChonkyCat123"
-      updated_deployment_group = %{deployment_group | name: new_name}
-
-      assert {:ok, ^id} =
-               Livebook.Teams.update_deployment_group(
-                 team,
-                 updated_deployment_group
-               )
-
-      # receives `{:deployment_group_updated, deployment_group}` event
-      assert_receive {:deployment_group_updated, %{name: ^new_name, mode: ^mode}}
-    end
-
-    test "receives the agent key events", %{team: team} do
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_AGENT_KEY_#{team.id}", mode: :online)
-
-      assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
-      id = to_string(id)
-
-      # receives `{:event, :deployment_group_created, :deployment_group}` event
-      assert_receive {:deployment_group_created,
-                      %{id: ^id, agent_keys: [built_in_agent_key]} = deployment_group}
-
-      # creates the agent key
-      assert Livebook.Teams.create_agent_key(team, deployment_group) == :ok
-
-      # since the `agent_key` belongs to a deployment group,
-      # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated,
-                      %{id: ^id, agent_keys: [^built_in_agent_key, agent_key]}}
-
-      # deletes the agent key
-      assert Livebook.Teams.delete_agent_key(team, agent_key) == :ok
-
-      # since the `agent_key` belongs to a deployment group,
-      # we dispatch the `{:event, :deployment_group_updated, :deployment_group}` event
-      assert_receive {:deployment_group_updated, %{id: ^id, agent_keys: [^built_in_agent_key]}}
+      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
     end
 
     @tag :tmp_dir
-    test "receives the app events", %{team: team, tmp_dir: tmp_dir} do
+    test "receives app events", %{team: team, tmp_dir: tmp_dir} do
       deployment_group = build(:deployment_group, name: team.id, mode: :online)
       assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
 
@@ -551,11 +510,9 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
 
       # updates the deployment group
-      updated_deployment_group = %{deployment_group | mode: :offline}
-
       updated_livebook_proto_deployment_group = %{
         livebook_proto_deployment_group
-        | mode: to_string(updated_deployment_group.mode)
+        | name: "A WHOLE NEW NAME"
       }
 
       agent_connected = %{
@@ -564,15 +521,23 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:deployment_group_updated, ^updated_deployment_group}
+      assert_receive {:deployment_group_updated, %{name: "A WHOLE NEW NAME"}}
       refute deployment_group in TeamClient.get_deployment_groups(team.id)
-      assert updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+
+      assert Enum.find(
+               TeamClient.get_deployment_groups(team.id),
+               &(&1.name == "A WHOLE NEW NAME")
+             )
 
       # deletes the deployment group
       agent_connected = %{agent_connected | deployment_groups: []}
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:deployment_group_deleted, ^updated_deployment_group}
-      refute updated_deployment_group in TeamClient.get_deployment_groups(team.id)
+      assert_receive {:deployment_group_deleted, %{name: "A WHOLE NEW NAME"}}
+
+      refute Enum.find(
+               TeamClient.get_deployment_groups(team.id),
+               &(&1.name == "A WHOLE NEW NAME")
+             )
     end
 
     test "dispatches the secrets list and override with deployment group secret",

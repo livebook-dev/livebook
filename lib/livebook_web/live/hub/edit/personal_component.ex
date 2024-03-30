@@ -45,15 +45,15 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     ~H"""
     <div class="p-4 md:px-12 md:py-7 max-w-screen-md mx-auto">
       <div id={"#{@id}-component"}>
+        <div class="mb-8 flex flex-col space-y-2">
+          <LayoutComponents.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
+
+          <p class="text-gray-700 text-sm">
+            Your personal hub. All data is stored on your machine and only you can access it.
+          </p>
+        </div>
+
         <div class="mb-8 flex flex-col space-y-10">
-          <div class="flex flex-col space-y-2">
-            <LayoutComponents.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
-
-            <p class="text-gray-700 text-sm">
-              Your personal hub. All data is stored on your machine and only you can access it.
-            </p>
-          </div>
-
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               General
@@ -62,17 +62,20 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             <.form
               :let={f}
               id={@id}
-              class="flex flex-col mt-4 space-y-4"
+              class="flex flex-col md:flex-row mt-4 space-y-4 md:space-x-2 md:space-y-0"
               for={@changeset}
               phx-submit="save"
               phx-change="validate"
               phx-target={@myself}
             >
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="flex-auto">
                 <.text_field field={f[:hub_name]} label="Name" />
+              </div>
+              <div class="min-w-48">
                 <.emoji_field field={f[:hub_emoji]} label="Emoji" />
               </div>
-              <div>
+
+              <div class="!mt-6">
                 <.button type="submit" phx-disable-with="Updating..." disabled={not @changeset.valid?}>
                   Save
                 </.button>
@@ -96,10 +99,15 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
               id="hub-secrets-list"
               hub={@hub}
               secrets={@secrets}
-              add_path={~p"/hub/#{@hub.id}/secrets/new"}
               edit_path={"hub/#{@hub.id}/secrets/edit"}
               return_to={~p"/hub/#{@hub.id}"}
             />
+
+            <div>
+              <.button patch={~p"/hub/#{@hub.id}/secrets/new"} id="add-secret">
+                Add secret
+              </.button>
+            </div>
           </div>
 
           <div class="flex flex-col space-y-4">
@@ -138,31 +146,30 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             <.form
               :let={f}
               id={"#{@id}-stamp"}
-              class="flex flex-col mt-4 space-y-4"
+              class="flex mt-4 space-x-2"
               for={@stamp_changeset}
               phx-submit="stamp_save"
               phx-change="stamp_validate"
               phx-target={@myself}
             >
-              <div class="flex space-x-2 items-center">
-                <div class="grow">
-                  <.password_field field={f[:secret_key]} label="Secret key" />
-                </div>
-                <div class="mt-6">
-                  <span class="tooltip top" data-tooltip="Generate">
-                    <.button
-                      color="gray"
-                      small
-                      type="button"
-                      phx-click="generate_secret_key"
-                      phx-target={@myself}
-                    >
-                      <.remix_icon icon="refresh-line" class="text-xl leading-none py-1" />
-                    </.button>
-                  </span>
-                </div>
+              <div class="grow">
+                <.password_field field={f[:secret_key]} label="Secret key" />
               </div>
-              <div>
+              <div class="mt-6">
+                <span class="tooltip top" data-tooltip="Generate">
+                  <.button
+                    color="gray"
+                    small
+                    type="button"
+                    phx-click="generate_secret_key"
+                    phx-target={@myself}
+                  >
+                    <.remix_icon icon="refresh-line" class="text-xl leading-none py-1" />
+                  </.button>
+                </span>
+              </div>
+
+              <div class="mt-6">
                 <.button
                   type="submit"
                   phx-disable-with="Updating..."

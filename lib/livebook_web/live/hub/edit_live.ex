@@ -11,6 +11,7 @@ defmodule LivebookWeb.Hub.EditLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Hubs.Broadcasts.subscribe([:connection])
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments])
     end
 
     {:ok,
@@ -30,9 +31,6 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply,
      socket
      |> load_hub(id)
-     # Hub-specific components load data, such as secrets and we use
-     # a counter to force re-render on every patch.
-     |> update(:counter, &(&1 + 1))
      |> assign(:params, params)}
   end
 
@@ -109,6 +107,10 @@ defmodule LivebookWeb.Hub.EditLive do
     {:noreply, load_hub(socket, id)}
   end
 
+  def handle_info({_event, %{hub_id: id}}, %{assigns: %{hub: %{id: id}}} = socket) do
+    {:noreply, load_hub(socket, id)}
+  end
+
   def handle_info(_message, socket) do
     {:noreply, socket}
   end
@@ -117,6 +119,10 @@ defmodule LivebookWeb.Hub.EditLive do
     hub = Hubs.fetch_hub!(id)
     type = Provider.type(hub)
 
-    assign(socket, hub: hub, type: type)
+    socket
+    |> assign(hub: hub, type: type)
+    # Hub-specific components load data, such as secrets and we use
+    # a counter to force re-render on every patch.
+    |> update(:counter, &(&1 + 1))
   end
 end

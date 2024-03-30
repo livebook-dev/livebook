@@ -196,32 +196,6 @@ defmodule Livebook.TeamsTest do
     end
   end
 
-  describe "update_deployment_group/2" do
-    test "updates a deployment group", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
-
-      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
-
-      update_deployment_group = %{deployment_group | id: to_string(id), name: "BAZ"}
-      assert {:ok, ^id} = Teams.update_deployment_group(team, update_deployment_group)
-    end
-
-    test "returns changeset errors when the new name is invalid", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
-
-      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
-
-      update_deployment_group = %{deployment_group | id: to_string(id), name: ""}
-
-      assert {:error, changeset} =
-               Teams.update_deployment_group(team, update_deployment_group)
-
-      assert "can't be blank" in errors_on(changeset).name
-    end
-  end
-
   describe "deploy_app/2" do
     @tag :tmp_dir
     test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do

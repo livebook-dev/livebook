@@ -4,7 +4,7 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.Hubs.Team
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
-  alias Livebook.Teams.{AgentKey, AppDeployment, DeploymentGroup, Org}
+  alias Livebook.Teams.{AppDeployment, DeploymentGroup, Org}
 
   @error_message "Something went wrong, try again later or please file a bug if it persists"
 
@@ -178,44 +178,6 @@ defmodule Livebook.Teams.Requests do
     }
 
     post("/api/v1/org/deployment-groups", params, team)
-  end
-
-  @doc """
-  Send a request to Livebook Team API to update a deployment group.
-  """
-  @spec update_deployment_group(Team.t(), DeploymentGroup.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def update_deployment_group(team, deployment_group) do
-    params = %{
-      id: deployment_group.id,
-      name: deployment_group.name,
-      mode: deployment_group.mode,
-      clustering: deployment_group.clustering,
-      zta_provider: deployment_group.zta_provider,
-      zta_key: deployment_group.zta_key
-    }
-
-    put("/api/v1/org/deployment-groups", params, team)
-  end
-
-  @doc """
-  Send a request to Livebook Team API to create an agent key.
-  """
-  @spec create_agent_key(Team.t(), DeploymentGroup.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def create_agent_key(team, deployment_group) do
-    params = %{deployment_group_id: deployment_group.id}
-    post("/api/v1/org/deployment-groups/agent-keys", params, team)
-  end
-
-  @doc """
-  Send a request to Livebook Team API to delete an agent key.
-  """
-  @spec delete_agent_key(Team.t(), AgentKey.t()) ::
-          {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def delete_agent_key(team, agent_key) do
-    params = %{id: agent_key.id, deployment_group_id: agent_key.deployment_group_id}
-    delete("/api/v1/org/deployment-groups/agent-keys", params, team)
   end
 
   @doc """

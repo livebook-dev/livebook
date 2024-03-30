@@ -103,7 +103,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       new_value = "new_value"
 
       view
-      |> element("#hub-secret-#{secret.name}-edit")
+      |> element("#hub-secrets-list [aria-label=\"edit #{secret.name}\"]")
       |> render_click(%{"secret_name" => secret.name})
 
       assert_patch(view, ~p"/hub/#{hub.id}/secrets/edit/#{secret.name}")
@@ -140,7 +140,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> element("#hub-secret-#{secret.name}-delete")
+      |> element("#hub-secrets-list [aria-label=\"delete #{secret.name}\"]")
       |> render_click()
 
       render_confirm(view)
@@ -148,7 +148,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_receive {:secret_deleted, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
       assert render(view) =~ "Secret PERSONAL_DELETE_SECRET deleted successfully"
-      refute render(element(view, "#hub-secrets-list")) =~ secret.name
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
 

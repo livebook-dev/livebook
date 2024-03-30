@@ -6,25 +6,20 @@ defmodule LivebookWeb.Hub.SecretListComponent do
   alias Livebook.Secrets.Secret
 
   @impl true
-  def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
-  end
-
-  @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <.no_entries :if={@secrets == []}>
           No secrets here... yet!
         </.no_entries>
         <div :if={@secrets != []}>
-          <.table id="hub-secrets-table" rows={@secrets}>
+          <.table rows={@secrets} id={@id}>
             <:col :let={secret} label="Name"><%= secret.name %></:col>
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Edit">
                 <.icon_button
-                  id={"hub-secret-#{secret.name}-edit"}
+                  aria-label={"edit #{secret.name}"}
                   patch={"/#{@edit_path}/#{secret.name}"}
                   type="button"
                   role="menuitem"
@@ -36,7 +31,7 @@ defmodule LivebookWeb.Hub.SecretListComponent do
             <:action :let={secret}>
               <span class="tooltip left" data-tooltip="Delete">
                 <.icon_button
-                  id={"hub-secret-#{secret.name}-delete"}
+                  aria-label={"delete #{secret.name}"}
                   type="button"
                   phx-click={
                     JS.push("delete_hub_secret",
@@ -58,11 +53,6 @@ defmodule LivebookWeb.Hub.SecretListComponent do
             </:action>
           </.table>
         </div>
-      </div>
-      <div class="flex">
-        <.button patch={@add_path} id="add-secret">
-          Add secret
-        </.button>
       </div>
     </div>
     """
@@ -87,8 +77,8 @@ defmodule LivebookWeb.Hub.SecretListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete hub secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this hub secret?",
+       title: "Delete secret - #{attrs["name"]}",
+       description: "Are you sure you want to delete this secret?",
        confirm_text: "Delete",
        confirm_icon: "delete-bin-6-line"
      )}
