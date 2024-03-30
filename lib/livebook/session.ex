@@ -3010,7 +3010,7 @@ defmodule Livebook.Session do
     {type, _module, _key} = Livebook.Config.identity_provider()
 
     user
-    |> Map.take([:id, :name, :email])
+    |> Map.take([:id, :name, :email, :payload])
     |> Map.put(:source, type)
   end
 

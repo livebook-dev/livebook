@@ -1493,7 +1493,8 @@ defmodule Livebook.SessionTest do
                     source: :session,
                     id: "1234",
                     name: "Jake Peralta",
-                    email: "jperalta@example.com"
+                    email: "jperalta@example.com",
+                    payload: nil
                   }
                 }}
 

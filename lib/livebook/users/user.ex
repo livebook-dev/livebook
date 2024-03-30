@@ -16,6 +16,7 @@ defmodule Livebook.Users.User do
           id: id(),
           name: String.t() | nil,
           email: String.t() | nil,
+          payload: map() | nil,
           hex_color: hex_color()
         }
 
