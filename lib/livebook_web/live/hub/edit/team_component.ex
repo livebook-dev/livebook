@@ -125,7 +125,6 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <.form
-                :let={f}
                 id={@id}
                 class="flex flex-col md:flex-row mt-4 space-y-4 md:space-x-2 md:space-y-0"
                 for={@form}
@@ -135,7 +134,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               >
                 <div class="flex-auto">
                   <.text_field
-                    field={f[:hub_name]}
+                    field={@form[:hub_name]}
                     label="Name"
                     disabled
                     help="Name cannot be changed"
@@ -144,7 +143,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                 </div>
 
                 <div class="min-w-48">
-                  <.emoji_field field={f[:hub_emoji]} label="Emoji" />
+                  <.emoji_field field={@form[:hub_emoji]} label="Emoji" />
                 </div>
 
                 <div class="!mt-6">
