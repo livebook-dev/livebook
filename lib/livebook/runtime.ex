@@ -32,7 +32,7 @@ defprotocol Livebook.Runtime do
   #   * `{:runtime_app_info_request, reply_to}`
   #
   # The owner replies with `{:runtime_app_info_reply, reply}`, where
-  # reply is `{:ok, info` and `info` is a details map.
+  # reply is `{:ok, info}` and `info` is a details map.
 
   @typedoc """
   An arbitrary term identifying an evaluation container.
