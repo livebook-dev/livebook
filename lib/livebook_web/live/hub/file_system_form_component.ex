@@ -5,6 +5,11 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
   alias Livebook.FileSystems
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, changeset: nil, error_message: nil)}
+  end
+
+  @impl true
   def update(assigns, socket) do
     {file_system, assigns} = Map.pop!(assigns, :file_system)
 
@@ -13,17 +18,17 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     title = title(file_system)
 
     file_system = file_system || %FileSystem.S3{hub_id: assigns.hub.id}
-    changeset = FileSystems.change_file_system(file_system)
-    socket = assign(socket, assigns)
+    changeset = socket.assigns.changeset || FileSystems.change_file_system(file_system)
 
     {:ok,
-     assign(socket,
+     socket
+     |> assign(assigns)
+     |> assign(
        file_system: file_system,
        changeset: changeset,
        mode: mode,
        title: title,
-       button: button,
-       error_message: nil
+       button: button
      )}
   end
 

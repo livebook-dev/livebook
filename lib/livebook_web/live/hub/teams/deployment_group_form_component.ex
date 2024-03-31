@@ -36,7 +36,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       </div>
       <div class="flex flex-columns gap-4">
         <.form
-          :let={f}
           id={"#{@id}-form"}
           for={@form}
           phx-target={@myself}
@@ -47,7 +46,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
         >
           <div class="flex flex-col space-y-4">
             <.text_field
-              field={f[:name]}
+              field={@form[:name]}
               label="Name"
               autofocus="true"
               spellcheck="false"
@@ -61,14 +60,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                 Deployment group mode.
                 '''
               }
-              field={f[:mode]}
+              field={@form[:mode]}
               options={[
                 {"Offline", :offline},
                 {"Online", :online}
               ]}
             />
 
-            <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={f} />
+            <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={@form} />
 
             <div class="flex space-x-2">
               <.button type="submit" disabled={not @form.source.valid?}>

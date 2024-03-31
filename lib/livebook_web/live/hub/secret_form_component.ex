@@ -6,22 +6,27 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   alias Livebook.Secrets.Secret
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, changeset: nil, error_message: nil)}
+  end
+
+  @impl true
   def update(assigns, socket) do
     changeset =
-      Secrets.change_secret(%Secret{}, %{
-        name: assigns.secret_name,
-        value: assigns.secret_value
-      })
-
-    socket = assign(socket, assigns)
+      socket.assigns.changeset ||
+        Secrets.change_secret(%Secret{}, %{
+          name: assigns.secret_name,
+          value: assigns.secret_value
+        })
 
     {:ok,
-     assign(socket,
+     socket
+     |> assign(assigns)
+     |> assign(
        title: title(socket),
        button: button_attrs(socket),
        changeset: changeset,
-       deployment_group_id: assigns[:deployment_group_id],
-       error_message: nil
+       deployment_group_id: assigns[:deployment_group_id]
      )}
   end
 
