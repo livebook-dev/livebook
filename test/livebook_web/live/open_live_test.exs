@@ -6,6 +6,11 @@ defmodule LivebookWeb.OpenLiveTest do
   alias Livebook.{Sessions, Session, FileSystem}
 
   describe "file selection" do
+    test "does not mention autosaving if disabled", %{conn: conn} do
+      refute conn |> get(~p"/open/storage") |> html_response(200) =~
+               "Looking for unsaved notebooks?"
+    end
+
     test "updates the list of files as the input changes", %{conn: conn} do
       {:ok, view, _} = live(conn, ~p"/open/storage")
 

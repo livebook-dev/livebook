@@ -202,7 +202,15 @@ defmodule LivebookWeb.SettingsLive do
     """
   end
 
-  defp autosave_path_select(%{state: %{file: nil}} = assigns), do: ~H""
+  defp autosave_path_select(%{state: %{file: nil}} = assigns) do
+    ~H"""
+    <div>
+      <.button color="gray" id="enable-autosave" phx-click="open_autosave_path_select">
+        Enable
+      </.button>
+    </div>
+    """
+  end
 
   defp autosave_path_select(%{state: %{dialog_opened?: true}} = assigns) do
     ~H"""
@@ -217,13 +225,14 @@ defmodule LivebookWeb.SettingsLive do
         file_system_select_disabled={true}
         target={self()}
       >
-        <.button color="gray" phx-click="cancel_autosave_path" tabindex="-1">
+        <.button id="cancel-autosave" color="gray" phx-click="cancel_autosave_path" tabindex="-1">
           Cancel
         </.button>
-        <.button color="gray" phx-click="reset_autosave_path" tabindex="-1">
+        <.button id="reset-autosave" color="gray" phx-click="reset_autosave_path" tabindex="-1">
           Reset
         </.button>
         <.button
+          id="save-autosave"
           phx-click="set_autosave_path"
           disabled={not Livebook.FileSystem.File.dir?(@state.file)}
           tabindex="-1"
@@ -241,7 +250,7 @@ defmodule LivebookWeb.SettingsLive do
       <div class="grow">
         <.text_field name={nil} readonly value={@state.file.path} />
       </div>
-      <.button color="gray" phx-click="open_autosave_path_select">
+      <.button color="gray" id="change-autosave" phx-click="open_autosave_path_select">
         Change
       </.button>
     </div>
@@ -290,7 +299,12 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("open_autosave_path_select", %{}, socket) do
-    {:noreply, update(socket, :autosave_path_state, &%{&1 | dialog_opened?: true})}
+    {:noreply,
+     update(
+       socket,
+       :autosave_path_state,
+       &%{&1 | dialog_opened?: true, file: &1.file || default_autosave_dir()}
+     )}
   end
 
   def handle_event("save", %{"update_check_enabled" => enabled}, socket) do

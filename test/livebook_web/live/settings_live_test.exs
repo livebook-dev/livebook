@@ -10,9 +10,7 @@ defmodule LivebookWeb.SettingsLiveTest do
   describe "environment variables configuration" do
     test "list persisted environment variables", %{conn: conn} do
       insert_env_var(:env_var, name: "MY_ENVIRONMENT_VAR")
-      {:ok, _view, html} = live(conn, ~p"/settings")
-
-      assert html =~ "MY_ENVIRONMENT_VAR"
+      assert conn |> get(~p"/settings") |> html_response(200) =~ "MY_ENVIRONMENT_VAR"
     end
 
     test "adds an environment variable", %{conn: conn} do
@@ -85,6 +83,23 @@ defmodule LivebookWeb.SettingsLiveTest do
       refute view
              |> element("#env-vars")
              |> render() =~ env_var.name
+    end
+  end
+
+  describe "autosaving" do
+    # Autosaving can only be disable by directly changing storage
+    # but, given some users in the past had autosaving disabled,
+    # we take that into account.
+    test "can be enabled", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/settings")
+
+      view
+      |> element("#enable-autosave")
+      |> render_click()
+
+      view
+      |> element("#cancel-autosave")
+      |> render_click()
     end
   end
 end

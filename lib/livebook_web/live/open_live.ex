@@ -18,6 +18,12 @@ defmodule LivebookWeb.OpenLive do
     sessions = Sessions.list_sessions() |> Enum.filter(&(&1.mode == :default))
     recent_notebooks = Livebook.NotebookManager.recent_notebooks()
 
+    show_autosave_note? =
+      case Livebook.Settings.autosave_path() do
+        nil -> false
+        path -> match?({:ok, [_ | _]}, File.ls(path))
+      end
+
     {:ok,
      assign(socket,
        tab: "file",
@@ -25,7 +31,8 @@ defmodule LivebookWeb.OpenLive do
        url: params["url"],
        sessions: sessions,
        recent_notebooks: recent_notebooks,
-       page_title: "Open - Livebook"
+       page_title: "Open - Livebook",
+       show_autosave_note?: show_autosave_note?
      )}
   end
 
@@ -130,7 +137,8 @@ defmodule LivebookWeb.OpenLive do
               </:card_icon>
             </.live_component>
           <% end %>
-          <div class="mt-3 text-gray-600 text-sm">
+
+          <div :if={@show_autosave_note?} class="mt-3 text-gray-600 text-sm">
             Looking for unsaved notebooks? <.link
               class="font-semibold"
               navigate={~p"/open/storage?autosave=true"}
