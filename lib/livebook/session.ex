@@ -113,7 +113,7 @@ defmodule Livebook.Session do
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
-          autosave_path: String.t(),
+          autosave_path: String.t() | nil,
           save_task_ref: reference() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage(),

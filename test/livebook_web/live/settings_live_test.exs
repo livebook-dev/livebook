@@ -87,9 +87,10 @@ defmodule LivebookWeb.SettingsLiveTest do
   end
 
   describe "autosaving" do
-    # Autosaving can only be disable by directly changing storage
-    # but, given some users in the past had autosaving disabled,
-    # we take that into account.
+    # Autosaving can only be disabled by directly changing storage,
+    # which we do for tests. That said, it is a valid setting, so we
+    # have a UI to enable autosaving back, just in case someone boots
+    # Livebook with such storage.
     test "can be enabled", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/settings")
 
