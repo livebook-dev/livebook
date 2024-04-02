@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLive do
       data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
     >
       <nav
-        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-3 sm:py-5 bg-gray-900"
+        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-3 sm:py-5 bg-gray-900 hidden"
         aria-label="sidebar"
         data-el-sidebar
       >

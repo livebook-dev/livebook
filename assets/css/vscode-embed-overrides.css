@@ -6,26 +6,3 @@
 [aria_label="user profile"] {
   display: none !important;
 }
-
-[aria-label="sidebar"] {
-  padding: 0 !important;
-}
-
-body{
-  overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  span.tooltip.right.distant {
-    transform: scale(0.75);
-    margin-top: 0 !important;
-  }
-
-  [aria-label="sidebar"] {
-    width: 2.5rem !important;
-  }
-
-  [aria-label="sidebar"].hidden {
-    width: 17rem !important;
-  }
-}

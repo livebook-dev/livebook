@@ -4,12 +4,13 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   def render(assigns) do
     ~H"""
     <div class="flex items-center justify-between sticky px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
-      <div class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
+      <div class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
         <button
           aria-label="hide sidebar"
           data-el-toggle-sidebar
+          class="hidden"
           phx-click={
-            JS.add_class("hidden sm:flex", to: "[data-el-sidebar]")
+            JS.add_class("hidden", to: "[data-el-sidebar]")
             |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
           }
         >
@@ -17,11 +18,11 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         </button>
 
         <button
-          class="hidden"
+
           aria-label="show sidebar"
           data-el-toggle-sidebar
           phx-click={
-            JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]")
+            JS.remove_class("hidden", to: "[data-el-sidebar]")
             |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
           }
         >
