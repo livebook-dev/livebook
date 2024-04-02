@@ -11,6 +11,10 @@
   padding: 0 !important;
 }
 
+body{
+  overflow: hidden;
+}
+
 @media (min-width: 640px) {
   span.tooltip.right.distant {
     transform: scale(0.75);
