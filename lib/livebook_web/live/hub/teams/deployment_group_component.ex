@@ -91,7 +91,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           <div data-toggler class="hidden text-sm flex space-y-4">
             <div class="flex flex-row space-x-2">
               <p class="grow text-gray-700">
-                You can list secrets exclusive to deployed notebooks here.
+                Secrets that are exclusive to apps associated with this deployment group.
                 In case of conflicts, these secrets take precedence over Hub secrets.
               </p>
 
@@ -146,13 +146,12 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         >
           <div class="p-6 max-w-4xl flex flex-col space-y-3">
             <h3 class="text-2xl font-semibold text-gray-800">
-              New deployment group instance
+              Deployment group instance setup
             </h3>
 
             <p class="text-gray-700">
-              When using a online deployment groups, you are responsible for running the machines
-              the notebooks will be deployed to. To do so, simply deploy the Dockerfile below to
-              start to a self-hosted Livebook agent.
+              A deployment group instance is an instance of Livebook where you can
+              deploy Livebook apps via Livebook Teams.
             </p>
 
             <.table id="hub-agent-keys-table" rows={@deployment_group.agent_keys}>
@@ -185,10 +184,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </.table>
 
             <p class="text-gray-700">
-              You can deploy your team notebooks directly to a self-hosted agent instance.
-              To do that, create an agent in the section above, then start an agent instance
-              using the Dockerfile below. Once the agent connects to the Livebook Teams server
-              and it will become available for app deployments.
+              Use the Dockerfile below to set up an instance in your own infrastructure.
+              Once the instance is running, it will connect to Livebook Teams and become
+              available for app deployments.
             </p>
 
             <div class="flex flex-col gap-4">
@@ -235,9 +233,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </h3>
 
             <p class="text-gray-700">
-              To deploy a new notebook, open up the notebook of your choice and click
+              To deploy a new app, open up a notebook of your choice and click
               on the <.remix_icon icon="rocket-line" /> icon on the sidebar. Follow
-              the steps there to deploy your notebook with Livebook Teams.
+              the steps there to deploy with Livebook Teams.
             </p>
           </div>
         </.modal>
