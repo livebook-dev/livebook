@@ -34,10 +34,12 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
 
   @doc """
   Subscribes the given process to client presence events.
+
+  Returns the list of currently connected clients.
   """
-  @spec monitor_clients(pid(), pid) :: :ok
+  @spec monitor_clients(pid(), pid) :: list(Runtime.client_id())
   def monitor_clients(client_tracker, pid) do
-    GenServer.cast(client_tracker, {:monitor_clients, pid})
+    GenServer.call(client_tracker, {:monitor_clients, pid})
   end
 
   @impl true
@@ -66,15 +68,12 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
     {:noreply, state}
   end
 
-  def handle_cast({:monitor_clients, pid}, state) do
+  @impl true
+  def handle_call({:monitor_clients, pid}, _from, state) do
     Process.monitor(pid)
     state = update_in(state.subscribers, &MapSet.put(&1, pid))
-
-    for {client_id, _user_info} <- state.clients do
-      send(pid, {:client_join, client_id})
-    end
-
-    {:noreply, state}
+    client_ids = Map.keys(state.clients)
+    {:reply, client_ids, state}
   end
 
   @impl true

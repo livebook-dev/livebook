@@ -373,8 +373,8 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   defp io_request({:livebook_monitor_clients, pid}, state) do
-    Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
-    {:ok, state}
+    client_ids = Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
+    {{:ok, client_ids}, state}
   end
 
   defp io_request(_, state) do

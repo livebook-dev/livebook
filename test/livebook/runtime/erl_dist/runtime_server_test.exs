@@ -353,16 +353,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_clients, pid}})
 
       receive do
-        {:io_reply, ^ref, :ok} -> :ok
+        {:io_reply, ^ref, {:ok, ["c1"]}} -> :ok
       end
       """
+
+    clients = [{"c1", %{id: "u1", name: "Jake Peralta", email: nil, source: :session}}]
+    RuntimeServer.register_clients(pid, clients)
 
     RuntimeServer.evaluate_code(pid, :elixir, code, {:c1, :e1}, [])
     assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
-    clients = [{"c1", %{id: "u1", name: "Jake Peralta", email: nil, source: :session}}]
+    clients = [{"c2", %{id: "u2", name: "Jake Peralta", email: nil, source: :session}}]
     RuntimeServer.register_clients(pid, clients)
-    assert_receive {:client_join, "c1"}
+    assert_receive {:client_join, "c2"}
 
     RuntimeServer.unregister_clients(pid, ["c1"])
     assert_receive {:client_leave, "c1"}
