@@ -21,6 +21,7 @@ import {
   registerGlobalEventHandlers,
   disableZoomOnInputFocus,
 } from "./events";
+import { registerVsCodeEventHandlers } from "./vscode";
 import { cookieOptions } from "./lib/utils";
 import {
   loadConfirmOptOutIds,
@@ -145,3 +146,7 @@ function hasCookiesAccess() {
     .split("; ")
     .some((cookie) => cookie.startsWith(`lb:probe_cookie=`));
 }
+
+// vscode Event forwarding should be registered immediately, regardless of connection status
+// to avoid disrupting the user experience within vscode.
+registerVsCodeEventHandlers();
