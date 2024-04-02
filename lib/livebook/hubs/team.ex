@@ -265,9 +265,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     app_deployments = TeamClient.get_agent_app_deployments(team.id)
 
     for app_deployment <- app_deployments do
+      {seconds, _} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
+
       %Livebook.Apps.TeamsAppSpec{
         slug: app_deployment.slug,
-        version: app_deployment.id,
+        version: "#{app_deployment.id}-#{seconds}-#{app_deployment.sha}",
         hub_id: team.id,
         app_deployment_id: app_deployment.id
       }
