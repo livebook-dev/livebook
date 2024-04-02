@@ -3,7 +3,6 @@ defmodule Livebook.Teams.Connection do
 
   require Logger
 
-  alias Livebook.WebSocket
   alias Livebook.Teams.WebSocket
 
   @backoff 5_000
