@@ -8,7 +8,7 @@ export function registerVsCodeEventHandlers() {
       document.execCommand("copy");
     } else if ((e.ctrlKey || e.metaKey) && e.code === "KeyX") {
       document.execCommand("cut");
-    } else if ((e.ctrlKey || e.metaKey) && eevent.code === "KeyV") {
+    } else if ((e.ctrlKey || e.metaKey) && e.code === "KeyV") {
       document.execCommand("paste");
     }
     /**
