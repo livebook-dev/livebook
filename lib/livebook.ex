@@ -236,7 +236,7 @@ defmodule Livebook do
 
     if Livebook.Config.boolean!("LIVEBOOK_FIPS", false) do
       if :crypto.enable_fips_mode(true) do
-        IO.puts("[Livebook] FIPS mode set")
+        IO.puts("[Livebook] FIPS mode enabled")
       else
         raise "Could not set FIPS mode but was asked to"
       end
