@@ -48,7 +48,7 @@ defmodule LivebookWeb.UserPlug do
   defp ensure_user_data(conn) when conn.halted, do: conn
 
   defp ensure_user_data(conn) do
-    if Map.has_key?(conn.req_cookies, "lb:user_data") do
+    if Map.has_key?(conn.req_cookies, "lb_user_data") do
       conn
     else
       identity_data = get_session(conn, :identity_data)
@@ -58,7 +58,7 @@ defmodule LivebookWeb.UserPlug do
       # We disable HttpOnly, so that it can be accessed on the client
       # and set expiration to 5 years
       opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
-      put_resp_cookie(conn, "lb:user_data", encoded, opts)
+      put_resp_cookie(conn, "lb_user_data", encoded, opts)
     end
   end
 
@@ -74,7 +74,7 @@ defmodule LivebookWeb.UserPlug do
   defp mirror_user_data_in_session(conn) when conn.halted, do: conn
 
   defp mirror_user_data_in_session(conn) do
-    user_data = conn.cookies["lb:user_data"] |> Base.decode64!() |> Jason.decode!()
+    user_data = conn.cookies["lb_user_data"] |> Base.decode64!() |> Jason.decode!()
     put_session(conn, :user_data, user_data)
   end
 end

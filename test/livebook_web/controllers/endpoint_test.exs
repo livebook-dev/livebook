@@ -4,7 +4,7 @@ defmodule LivebookWeb.EndpointTest do
   test "delete cookies once they go over a certain limit", %{conn: conn} do
     cookies =
       Enum.map(1..5, &"c#{&1}=#{String.duplicate("a", 4096)}") ++
-        Enum.map(1..5, &"lb:#{&1}=#{String.duplicate("a", 4096)}")
+        Enum.map(1..5, &"lb_#{&1}=#{String.duplicate("a", 4096)}")
 
     assert [
              "c1=;" <> _,
@@ -12,8 +12,8 @@ defmodule LivebookWeb.EndpointTest do
              "c3=;" <> _,
              "c4=;" <> _,
              "c5=;" <> _,
-             "lb:session" <> _,
-             "lb:user_data" <> _
+             "lb_session" <> _,
+             "lb_user_data" <> _
            ] =
              conn
              |> put_req_header("cookie", Enum.join(cookies, "; "))

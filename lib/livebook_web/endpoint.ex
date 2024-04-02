@@ -6,7 +6,7 @@ defmodule LivebookWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options [
     store: :cookie,
-    key: "lb:session",
+    key: "lb_session",
     signing_salt: "deadbook"
   ]
 
@@ -126,7 +126,7 @@ defmodule LivebookWeb.Endpoint do
 
     if cookie_size > 24576 do
       conn.cookies
-      |> Enum.reject(fn {key, _value} -> String.starts_with?(key, "lb:") end)
+      |> Enum.reject(fn {key, _value} -> String.starts_with?(key, "lb_") end)
       |> Enum.take(10)
       |> Enum.reduce(conn, fn {key, _value}, conn ->
         Plug.Conn.delete_resp_cookie(conn, key)
