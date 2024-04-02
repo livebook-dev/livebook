@@ -1901,6 +1901,57 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "accessing client's user info" do
+    test "replies with error when the session does not use teams hub" do
+      session = start_session()
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_user_info_request, self(), "c1"})
+
+      assert_receive {:runtime_user_info_reply, {:error, :not_available}}
+    end
+
+    test "replies with error when the client does not exist" do
+      notebook = %{Notebook.new() | teams_enabled: true}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_user_info_request, self(), "c1"})
+
+      assert_receive {:runtime_user_info_reply, {:error, :not_found}}
+    end
+
+    test "replies with user info when the client exists" do
+      notebook = %{Notebook.new() | teams_enabled: true}
+      session = start_session(notebook: notebook)
+
+      user = %{
+        Livebook.Users.User.new()
+        | id: "1234",
+          name: "Jake Peralta",
+          email: "jperalta@example.com"
+      }
+
+      {_, client_id} = Session.register_client(session.pid, self(), user)
+
+      runtime = connected_noop_runtime(self())
+      Session.set_runtime(session.pid, runtime)
+      send(session.pid, {:runtime_user_info_request, self(), client_id})
+
+      assert_receive {:runtime_user_info_reply, {:ok, user_info}}
+
+      assert user_info == %{
+               source: :session,
+               id: "1234",
+               name: "Jake Peralta",
+               email: "jperalta@example.com",
+               payload: nil
+             }
+    end
+  end
+
   test "supports legacy text outputs" do
     session = start_session()
 

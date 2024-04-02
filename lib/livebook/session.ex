@@ -1645,6 +1645,24 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_user_info_request, reply_to, client_id}, state) do
+    reply =
+      cond do
+        not state.data.notebook.teams_enabled ->
+          {:error, :not_available}
+
+        user_id = state.data.clients_map[client_id] ->
+          user = Map.fetch!(state.data.users_map, user_id)
+          {:ok, user_info(user)}
+
+        true ->
+          {:error, :not_found}
+      end
+
+    send(reply_to, {:runtime_user_info_reply, reply})
+    {:noreply, state}
+  end
+
   def handle_info({:runtime_container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
