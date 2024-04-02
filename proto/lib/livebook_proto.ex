@@ -1,39 +1,25 @@
 defmodule LivebookProto do
-  alias LivebookProto.{
-    AgentConnected,
-    AppDeploymentCreated,
-    FileSystemCreated,
-    FileSystemDeleted,
-    FileSystemUpdated,
-    SecretCreated,
-    SecretDeleted,
-    SecretUpdated,
-    DeploymentGroupCreated,
-    DeploymentGroupDeleted,
-    DeploymentGroupUpdated,
-    UserConnected,
-    UserDeleted
-  }
-
   @event_mapping (for {_id, field_prop} <- LivebookProto.Event.__message_props__().field_props,
                       into: %{} do
                     {field_prop.type, field_prop.name_atom}
                   end)
 
   @type event_proto ::
-          AgentConnected.t()
-          | AppDeploymentCreated.t()
-          | FileSystemCreated.t()
-          | FileSystemDeleted.t()
-          | FileSystemUpdated.t()
-          | SecretCreated.t()
-          | SecretDeleted.t()
-          | SecretUpdated.t()
-          | DeploymentGroupCreated.t()
-          | DeploymentGroupDeleted.t()
-          | DeploymentGroupUpdated.t()
-          | UserConnected.t()
-          | UserDeleted.t()
+          LivebookProto.AgentConnected.t()
+          | LivebookProto.AgentSessionConnected.t()
+          | LivebookProto.AgentSessionDisconnected.t()
+          | LivebookProto.AppDeploymentCreated.t()
+          | LivebookProto.FileSystemCreated.t()
+          | LivebookProto.FileSystemDeleted.t()
+          | LivebookProto.FileSystemUpdated.t()
+          | LivebookProto.SecretCreated.t()
+          | LivebookProto.SecretDeleted.t()
+          | LivebookProto.SecretUpdated.t()
+          | LivebookProto.DeploymentGroupCreated.t()
+          | LivebookProto.DeploymentGroupDeleted.t()
+          | LivebookProto.DeploymentGroupUpdated.t()
+          | LivebookProto.UserConnected.t()
+          | LivebookProto.UserDeleted.t()
 
   @doc """
   Builds an event with given data.
