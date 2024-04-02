@@ -12,3 +12,5 @@
 @import "./tooltips.css";
 @import "./editor.css";
 @import "./notebook.css";
+
+@import "./vscode-embed-overrides.css"

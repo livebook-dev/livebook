@@ -1,0 +1,27 @@
+[aria-label="go to homepage"] {
+  display: none !important;
+}
+
+[aria-label="user profile"],
+[aria_label="user profile"] {
+  display: none !important;
+}
+
+[aria-label="sidebar"] {
+  padding: 0 !important;
+}
+
+@media (min-width: 640px) {
+  span.tooltip.right.distant {
+    transform: scale(0.75);
+    margin-top: 0 !important;
+  }
+
+  [aria-label="sidebar"] {
+    width: 2.8rem !important;
+  }
+
+  [aria-label="sidebar"].hidden {
+    width: 17rem !important;
+  }
+}
