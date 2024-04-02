@@ -19,9 +19,9 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
   @doc """
   Registeres new connected clients.
   """
-  @spec register_clients(pid(), list({Runtime.client_id(), Runtime.user_info()})) :: :ok
-  def register_clients(client_tracker, clients) do
-    GenServer.cast(client_tracker, {:register_clients, clients})
+  @spec register_clients(pid(), list(Runtime.client_id())) :: :ok
+  def register_clients(client_tracker, client_ids) do
+    GenServer.cast(client_tracker, {:register_clients, client_ids})
   end
 
   @doc """
@@ -44,16 +44,16 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
 
   @impl true
   def init({}) do
-    {:ok, %{clients: %{}, subscribers: MapSet.new()}}
+    {:ok, %{client_ids: MapSet.new(), subscribers: MapSet.new()}}
   end
 
   @impl true
-  def handle_cast({:register_clients, clients}, state) do
-    for {client_id, _user_info} <- clients, pid <- state.subscribers do
+  def handle_cast({:register_clients, client_ids}, state) do
+    for client_id <- client_ids, pid <- state.subscribers do
       send(pid, {:client_join, client_id})
     end
 
-    state = update_in(state.clients, &Enum.into(clients, &1))
+    state = update_in(state.client_ids, &Enum.into(client_ids, &1))
 
     {:noreply, state}
   end
@@ -63,7 +63,10 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
       send(pid, {:client_leave, client_id})
     end
 
-    state = update_in(state.clients, &Map.drop(&1, client_ids))
+    state =
+      update_in(state.client_ids, fn ids ->
+        Enum.reduce(client_ids, ids, &MapSet.delete(&2, &1))
+      end)
 
     {:noreply, state}
   end
@@ -72,7 +75,7 @@ defmodule Livebook.Runtime.Evaluator.ClientTracker do
   def handle_call({:monitor_clients, pid}, _from, state) do
     Process.monitor(pid)
     state = update_in(state.subscribers, &MapSet.put(&1, pid))
-    client_ids = Map.keys(state.clients)
+    client_ids = MapSet.to_list(state.client_ids)
     {:reply, client_ids, state}
   end
 

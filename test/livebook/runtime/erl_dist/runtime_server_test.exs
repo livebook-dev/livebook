@@ -357,14 +357,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       end
       """
 
-    clients = [{"c1", %{id: "u1", name: "Jake Peralta", email: nil, source: :session}}]
-    RuntimeServer.register_clients(pid, clients)
+    RuntimeServer.register_clients(pid, ["c1"])
 
     RuntimeServer.evaluate_code(pid, :elixir, code, {:c1, :e1}, [])
     assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
-    clients = [{"c2", %{id: "u2", name: "Jake Peralta", email: nil, source: :session}}]
-    RuntimeServer.register_clients(pid, clients)
+    RuntimeServer.register_clients(pid, ["c2"])
     assert_receive {:client_join, "c2"}
 
     RuntimeServer.unregister_clients(pid, ["c1"])

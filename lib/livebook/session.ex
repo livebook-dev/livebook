@@ -2085,13 +2085,8 @@ defmodule Livebook.Session do
       Runtime.restore_transient_state(runtime, state.data.runtime_transient_state)
     end
 
-    clients =
-      for {client_id, user_id} <- state.data.clients_map do
-        user = Map.fetch!(state.data.users_map, user_id)
-        {client_id, user_info(user)}
-      end
-
-    Runtime.register_clients(runtime, clients)
+    client_ids = Map.keys(state.data.clients_map)
+    Runtime.register_clients(runtime, client_ids)
 
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
@@ -2207,7 +2202,7 @@ defmodule Livebook.Session do
     state = put_in(state.client_id_with_assets[client_id], %{})
 
     if Runtime.connected?(state.data.runtime) do
-      Runtime.register_clients(state.data.runtime, [{client_id, user_info(user)}])
+      Runtime.register_clients(state.data.runtime, [client_id])
     end
 
     app_report_client_count_change(state)
