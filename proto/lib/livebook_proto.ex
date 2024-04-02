@@ -6,8 +6,8 @@ defmodule LivebookProto do
 
   @type event_proto ::
           LivebookProto.AgentConnected.t()
-          | LivebookProto.AgentSessionConnected.t()
-          | LivebookProto.AgentSessionDisconnected.t()
+          | LivebookProto.AgentJoined.t()
+          | LivebookProto.AgentLeft.t()
           | LivebookProto.AppDeploymentCreated.t()
           | LivebookProto.FileSystemCreated.t()
           | LivebookProto.FileSystemDeleted.t()

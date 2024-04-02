@@ -135,11 +135,11 @@ message UserDeleted {
   string id = 1;
 }
 
-message AgentSessionConnected {
+message AgentJoined {
   Agent agent = 1;
 }
 
-message AgentSessionDisconnected {
+message AgentLeft {
   Agent agent = 1;
 }
 
@@ -165,7 +165,7 @@ message Event {
     AgentConnected agent_connected = 11;
     AppDeploymentCreated app_deployment_created = 12;
     UserDeleted user_deleted = 13;
-    AgentSessionConnected agent_session_connected = 14;
-    AgentSessionDisconnected agent_session_disconnected = 15;
+    AgentJoined agent_joined = 14;
+    AgentLeft agent_left = 15;
   }
 }
