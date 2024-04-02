@@ -143,9 +143,9 @@ if (hasCookiesAccess()) {
 }
 
 function hasCookiesAccess() {
-  document.cookie = `lb:probe_cookie=;path=/${cookieOptions()}`;
+  document.cookie = `lb_probe_cookie=;path=/${cookieOptions()}`;
 
   return document.cookie
     .split("; ")
-    .some((cookie) => cookie.startsWith(`lb:probe_cookie=`));
+    .some((cookie) => cookie.startsWith(`lb_probe_cookie=`));
 }
