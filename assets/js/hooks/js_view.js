@@ -216,17 +216,33 @@ const JSView = {
       `[data-el-notebook-content]`,
     );
 
-    // Most placeholder position changes are accompanied by changes to the
-    // notebook content element height (adding cells, inserting newlines
-    // in the editor, etc). On the other hand, toggling the sidebar or
-    // resizing the window changes the width, however the notebook
-    // content element doesn't span full width, so this change may not
-    // be detected, that's why we observe the full-width parent element
+    // Most placeholder position changes are accompanied by changes
+    // to the notebook content element height (adding cells, inserting
+    // newlines in the editor, etc). On the other hand, toggling the
+    // sidebar or resizing the window changes the width, however the
+    // notebook content element doesn't span full width, so this change
+    // may not be detected, that's why we observe the full-width parent
+    // element as well
     const resizeObserver = new ResizeObserver((entries) => {
       this.repositionIframe();
     });
     resizeObserver.observe(notebookContentEl);
     resizeObserver.observe(notebookEl);
+
+    // The placeholder may be hidden, in which case we want to hide
+    // the iframe as well. This could be the case when viewing the
+    // Smart cell source or in tabs output. It is possible that the
+    // change does not actually change the notebook height, so we
+    // also watch the placeholder directly
+    let isPlaceholderHidden = isElementHidden(this.iframePlaceholder);
+    const placeholderResizeObserver = new ResizeObserver((entries) => {
+      let isPlaceholderHiddenNow = isElementHidden(this.iframePlaceholder);
+      if (isPlaceholderHidden !== isPlaceholderHiddenNow) {
+        isPlaceholderHidden = isPlaceholderHiddenNow;
+        this.repositionIframe();
+      }
+    });
+    placeholderResizeObserver.observe(this.iframePlaceholder);
 
     // On certain events, like section/cell moved, a global event is
     // dispatched to trigger reposition. This way we don't need to
@@ -273,6 +289,7 @@ const JSView = {
 
     const remove = () => {
       resizeObserver.disconnect();
+      placeholderResizeObserver.disconnect();
       jsViewSubscription.destroy();
       visibility.cancel();
       this.iframe.remove();
