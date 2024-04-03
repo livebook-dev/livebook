@@ -208,8 +208,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <p class="text-gray-700">
-                Deployment groups contain the configuration that allows you to deploy Livebook apps
-                to self-hosted machines with the click of a button.
+                Deployment groups allows you to deploy Livebook apps to self-hosted machines with the click of a button.
               </p>
 
               <.no_entries :if={@deployment_groups == []}>
