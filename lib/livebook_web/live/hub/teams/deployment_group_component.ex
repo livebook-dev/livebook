@@ -91,7 +91,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           <div data-toggler class="hidden text-sm flex space-y-4">
             <div class="flex flex-row space-x-2">
               <p class="grow text-gray-700">
-                Secrets that are exclusive to apps associated with this deployment group.
+                Secrets that are exclusive to apps deployed to this group.
                 In case of conflicts, these secrets take precedence over Hub secrets.
               </p>
 
