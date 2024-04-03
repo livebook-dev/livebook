@@ -32,7 +32,7 @@ defprotocol Livebook.Runtime do
   #   * `{:runtime_app_info_request, reply_to}`
   #
   # The owner replies with `{:runtime_app_info_reply, reply}`, where
-  # reply is `{:ok, info` and `info` is a details map.
+  # reply is `{:ok, info}` and `info` is a details map.
 
   @typedoc """
   An arbitrary term identifying an evaluation container.
@@ -1093,7 +1093,7 @@ defprotocol Livebook.Runtime do
   @doc """
   Notifies the runtime about connected clients.
   """
-  @spec register_clients(t(), list({client_id(), user_info()})) :: :ok
+  @spec register_clients(t(), list(client_id())) :: :ok
   def register_clients(runtime, clients)
 
   @doc """

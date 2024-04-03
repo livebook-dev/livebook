@@ -42,7 +42,7 @@ defmodule Livebook.Notebook.AppSettings do
       slug: nil,
       multi_session: false,
       zero_downtime: false,
-      show_existing_sessions: true,
+      show_existing_sessions: false,
       auto_shutdown_ms: nil,
       access_type: :protected,
       password: generate_password(),
