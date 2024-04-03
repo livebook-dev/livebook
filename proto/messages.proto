@@ -101,6 +101,7 @@ message UserConnected {
   repeated FileSystem file_systems = 3;
   repeated DeploymentGroup deployment_groups = 4;
   repeated AppDeployment app_deployments = 5;
+  repeated Agent agents = 6;
 }
 
 message AgentConnected {
@@ -112,6 +113,7 @@ message AgentConnected {
   repeated FileSystem file_systems = 6;
   repeated DeploymentGroup deployment_groups = 7;
   repeated AppDeployment app_deployments = 8;
+  repeated Agent agents = 9;
 }
 
 message AppDeployment {
@@ -133,6 +135,21 @@ message UserDeleted {
   string id = 1;
 }
 
+message AgentJoined {
+  Agent agent = 1;
+}
+
+message AgentLeft {
+  Agent agent = 1;
+}
+
+message Agent {
+  string id = 1;
+  string name = 2;
+  string org_id = 3;
+  string deployment_group_id = 4;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
@@ -148,5 +165,7 @@ message Event {
     AgentConnected agent_connected = 11;
     AppDeploymentCreated app_deployment_created = 12;
     UserDeleted user_deleted = 13;
+    AgentJoined agent_joined = 14;
+    AgentLeft agent_left = 15;
   }
 }

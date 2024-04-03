@@ -14,4 +14,6 @@ defmodule LivebookProto.UserConnected do
     repeated: true,
     type: LivebookProto.AppDeployment,
     json_name: "appDeployments"
+
+  field :agents, 6, repeated: true, type: LivebookProto.Agent
 end
