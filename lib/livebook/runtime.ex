@@ -1093,7 +1093,7 @@ defprotocol Livebook.Runtime do
   @doc """
   Notifies the runtime about connected clients.
   """
-  @spec register_clients(t(), list({client_id(), user_info()})) :: :ok
+  @spec register_clients(t(), list(client_id())) :: :ok
   def register_clients(runtime, clients)
 
   @doc """

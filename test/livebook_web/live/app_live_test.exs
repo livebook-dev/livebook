@@ -28,7 +28,14 @@ defmodule LivebookWeb.AppLiveTest do
   describe "multi-session app" do
     test "renders a list of active app sessions", %{conn: conn} do
       slug = Utils.random_short_id()
-      app_settings = %{Notebook.AppSettings.new() | slug: slug, multi_session: true}
+
+      app_settings = %{
+        Notebook.AppSettings.new()
+        | slug: slug,
+          multi_session: true,
+          show_existing_sessions: true
+      }
+
       notebook = %{Notebook.new() | app_settings: app_settings}
 
       Apps.subscribe()

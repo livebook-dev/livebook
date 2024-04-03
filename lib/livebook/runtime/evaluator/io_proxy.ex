@@ -373,8 +373,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   defp io_request({:livebook_monitor_clients, pid}, state) do
-    Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
-    {:ok, state}
+    client_ids = Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
+    {{:ok, client_ids}, state}
+  end
+
+  defp io_request({:livebook_get_user_info, client_id}, state) do
+    result = request_user_info(client_id, state)
+    {result, state}
   end
 
   defp io_request(_, state) do
@@ -440,6 +445,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   defp request_app_info(state) do
     request = {:runtime_app_info_request, self()}
     reply_tag = :runtime_app_info_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp request_user_info(client_id, state) do
+    request = {:runtime_user_info_request, self(), client_id}
+    reply_tag = :runtime_user_info_reply
 
     with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
   end

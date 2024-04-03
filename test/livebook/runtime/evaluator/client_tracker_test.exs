@@ -11,8 +11,7 @@ defmodule Livebook.Runtime.Evaluator.ClientTrackerTest do
   test "sends client joins to monitoring processes", %{client_tracker: client_tracker} do
     ClientTracker.monitor_clients(client_tracker, self())
 
-    clients = [{"c1", user_info()}, {"c2", user_info()}]
-    ClientTracker.register_clients(client_tracker, clients)
+    ClientTracker.register_clients(client_tracker, ["c1", "c2"])
 
     assert_receive {:client_join, "c1"}
     assert_receive {:client_join, "c2"}
@@ -21,8 +20,7 @@ defmodule Livebook.Runtime.Evaluator.ClientTrackerTest do
   test "sends client leaves to monitoring processes", %{client_tracker: client_tracker} do
     ClientTracker.monitor_clients(client_tracker, self())
 
-    clients = [{"c1", user_info()}, {"c2", user_info()}]
-    ClientTracker.register_clients(client_tracker, clients)
+    ClientTracker.register_clients(client_tracker, ["c1", "c2"])
 
     ClientTracker.unregister_clients(client_tracker, ["c1"])
     assert_receive {:client_leave, "c1"}
@@ -31,22 +29,10 @@ defmodule Livebook.Runtime.Evaluator.ClientTrackerTest do
     assert_receive {:client_leave, "c2"}
   end
 
-  test "sends existing client joins when monitoring starts", %{client_tracker: client_tracker} do
-    clients = [{"c1", user_info()}, {"c2", user_info()}]
-    ClientTracker.register_clients(client_tracker, clients)
+  test "returns existing client joins when monitoring starts", %{client_tracker: client_tracker} do
+    ClientTracker.register_clients(client_tracker, ["c1", "c2"])
+    ClientTracker.unregister_clients(client_tracker, ["c1"])
 
-    ClientTracker.monitor_clients(client_tracker, self())
-
-    assert_receive {:client_join, "c1"}
-    assert_receive {:client_join, "c2"}
-  end
-
-  defp user_info() do
-    %{
-      id: "u1",
-      name: "Jake Peralta",
-      email: nil,
-      source: :session
-    }
+    assert ClientTracker.monitor_clients(client_tracker, self()) == ["c2"]
   end
 end
