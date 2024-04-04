@@ -65,9 +65,9 @@ defmodule Livebook.MixProject do
 
   defp aliases do
     [
-      setup: ["deps.get", "cmd npm install --prefix assets"],
+      setup: ["deps.get", "cmd --cd assets npm install"],
       "assets.deploy": ["cmd npm run deploy --prefix assets"],
-      "format.all": ["format", "cmd npm run format --prefix assets"],
+      "format.all": ["format", "cmd --cd assets npm run format"],
       "protobuf.generate": ["cmd --cd proto mix protobuf.generate"]
     ]
   end
