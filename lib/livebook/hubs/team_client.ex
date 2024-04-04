@@ -20,7 +20,8 @@ defmodule Livebook.Hubs.TeamClient do
     secrets: [],
     file_systems: [],
     deployment_groups: [],
-    app_deployments: []
+    app_deployments: [],
+    agents: []
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
@@ -414,6 +415,26 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
+  defp put_agent(state, agent) do
+    state = remove_agent(state, agent)
+
+    %{state | agents: [agent | state.agents]}
+  end
+
+  defp remove_agent(state, agent) do
+    %{state | agents: Enum.reject(state.agents, &(&1.id == agent.id))}
+  end
+
+  defp build_agent(state, %LivebookProto.Agent{} = agent) do
+    %Livebook.Teams.Agent{
+      id: agent.id,
+      name: agent.name,
+      hub_id: state.hub.id,
+      org_id: agent.org_id,
+      deployment_group_id: agent.deployment_group_id
+    }
+  end
+
   defp handle_event(:secret_created, %Secrets.Secret{} = secret, state) do
     Hubs.Broadcasts.secret_created(secret)
 
@@ -520,6 +541,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_file_systems(user_connected)
     |> dispatch_deployment_groups(user_connected)
     |> dispatch_app_deployments(user_connected)
+    |> dispatch_agents(user_connected)
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
@@ -529,6 +551,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_file_systems(agent_connected)
     |> dispatch_deployment_groups(agent_connected)
     |> dispatch_app_deployments(agent_connected)
+    |> dispatch_agents(agent_connected)
   end
 
   defp handle_event(:app_deployment_created, %Teams.AppDeployment{} = app_deployment, state) do
@@ -552,6 +575,26 @@ defmodule Livebook.Hubs.TeamClient do
       build_app_deployment(state, app_deployment_created.app_deployment),
       state
     )
+  end
+
+  defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
+    Teams.Broadcasts.agent_joined(agent)
+    put_agent(state, agent)
+  end
+
+  defp handle_event(:agent_joined, agent_joined, state) do
+    handle_event(:agent_joined, build_agent(state, agent_joined.agent), state)
+  end
+
+  defp handle_event(:agent_left, %Teams.Agent{} = agent, state) do
+    Teams.Broadcasts.agent_left(agent)
+    remove_agent(state, agent)
+  end
+
+  defp handle_event(:agent_left, %{id: id}, state) do
+    with {:ok, agent} <- fetch_agent(id, state) do
+      handle_event(:agent_left, agent, state)
+    end
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
@@ -610,6 +653,13 @@ defmodule Livebook.Hubs.TeamClient do
     dispatch_events(state, app_deployment_created: created)
   end
 
+  defp dispatch_agents(state, %{agents: agents}) do
+    agents = Enum.map(agents, &build_agent(state, &1))
+    {joined, left, _} = diff(state.agents, agents, &(&1.id == &2.id))
+
+    dispatch_events(state, agent_joined: joined, agent_left: left)
+  end
+
   defp update_hub(state, %{public_key: org_public_key}) do
     hub = %{state.hub | org_public_key: org_public_key}
 
@@ -648,6 +698,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp fetch_file_system(external_id, state),
     do: fetch_entry(state.file_systems, &(&1.external_id == external_id), state)
+
+  defp fetch_agent(id, state), do: fetch_entry(state.agents, &(&1.id == id), state)
 
   defp fetch_entry(entries, fun, state) do
     if entry = Enum.find(entries, fun) do
