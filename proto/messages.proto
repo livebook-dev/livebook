@@ -140,7 +140,7 @@ message AgentJoined {
 }
 
 message AgentLeft {
-  Agent agent = 1;
+  string id = 1;
 }
 
 message Agent {
