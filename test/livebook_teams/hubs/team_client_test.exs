@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments, :agents])
     :ok
   end
 
