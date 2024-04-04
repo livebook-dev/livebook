@@ -332,7 +332,13 @@ defmodule Livebook.Hubs.TeamClientTest do
           agent_keys: []
         }
 
-      app_deployment = build(:app_deployment, file: nil, deployment_group_id: deployment_group.id)
+      app_deployment =
+        build(:app_deployment,
+          hub_id: team.id,
+          file: nil,
+          deployment_group_id: deployment_group.id
+        )
+
       {seconds, 0} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
 
       livebook_proto_app_deployment =

@@ -9,6 +9,7 @@ defmodule Livebook.Teams.AppDeployment do
           slug: String.t() | nil,
           sha: String.t() | nil,
           title: String.t() | nil,
+          hub_id: String.t() | nil,
           deployment_group_id: String.t() | nil,
           file: binary() | nil,
           deployed_by: String.t() | nil,
@@ -20,6 +21,7 @@ defmodule Livebook.Teams.AppDeployment do
     field :slug, :string
     field :sha, :string
     field :title, :string
+    field :hub_id, :string
     field :deployment_group_id, :string
     field :file, :string
     field :deployed_by, :string
@@ -45,6 +47,7 @@ defmodule Livebook.Teams.AppDeployment do
          slug: notebook.app_settings.slug,
          sha: shasum,
          title: notebook.name,
+         hub_id: notebook.hub_id,
          deployment_group_id: notebook.deployment_group_id,
          file: zip_content
        }}

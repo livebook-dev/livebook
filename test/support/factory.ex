@@ -112,6 +112,7 @@ defmodule Livebook.Factory do
       sha: shasum,
       slug: slug,
       file: content,
+      hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",
       deployed_at: NaiveDateTime.truncate(deployed_at, :second)

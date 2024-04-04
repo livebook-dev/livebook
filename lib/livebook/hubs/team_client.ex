@@ -400,12 +400,13 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp build_app_deployment(%LivebookProto.AppDeployment{} = app_deployment) do
+  defp build_app_deployment(state, %LivebookProto.AppDeployment{} = app_deployment) do
     %Teams.AppDeployment{
       id: app_deployment.id,
       slug: app_deployment.slug,
       sha: app_deployment.sha,
       title: app_deployment.title,
+      hub_id: state.hub.id,
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,
       deployed_by: app_deployment.deployed_by,
@@ -548,7 +549,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:app_deployment_created, app_deployment_created, state) do
     handle_event(
       :app_deployment_created,
-      build_app_deployment(app_deployment_created.app_deployment),
+      build_app_deployment(state, app_deployment_created.app_deployment),
       state
     )
   end
@@ -603,7 +604,7 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp dispatch_app_deployments(state, %{app_deployments: app_deployments}) do
-    app_deployments = Enum.map(app_deployments, &build_app_deployment/1)
+    app_deployments = Enum.map(app_deployments, &build_app_deployment(state, &1))
     {created, _, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
 
     dispatch_events(state, app_deployment_created: created)
