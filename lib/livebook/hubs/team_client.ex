@@ -116,6 +116,14 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   @doc """
+  Returns a list of cached agents.
+  """
+  @spec get_agents(String.t()) :: list(Teams.Agent.t())
+  def get_agents(id) do
+    GenServer.call(registry_name(id), :get_agents)
+  end
+
+  @doc """
   Returns if the Team client is connected.
   """
   @spec connected?(String.t()) :: boolean()
@@ -229,6 +237,10 @@ defmodule Livebook.Hubs.TeamClient do
       end
 
     {:reply, reply, state}
+  end
+
+  def handle_call(:get_agents, _caller, state) do
+    {:reply, state.agents, state}
   end
 
   @impl true
