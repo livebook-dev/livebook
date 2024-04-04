@@ -433,12 +433,14 @@ defmodule Livebook.Hubs.TeamClient do
     handle_event(:secret_updated, build_secret(state, secret_updated), state)
   end
 
-  defp handle_event(:secret_deleted, secret_deleted, state) do
-    if secret = Enum.find(state.secrets, &(&1.name == secret_deleted.name)) do
-      Hubs.Broadcasts.secret_deleted(secret)
-      remove_secret(state, secret)
-    else
-      state
+  defp handle_event(:secret_deleted, %Secrets.Secret{} = secret, state) do
+    Hubs.Broadcasts.secret_deleted(secret)
+    remove_secret(state, secret)
+  end
+
+  defp handle_event(:secret_deleted, %{name: name}, state) do
+    with {:ok, secret} <- fetch_secret(name, state) do
+      handle_event(:secret_deleted, secret, state)
     end
   end
 
@@ -464,15 +466,12 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_deleted, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_deleted(file_system)
-
     remove_file_system(state, file_system)
   end
 
-  defp handle_event(:file_system_deleted, %{id: id}, state) do
-    if file_system = Enum.find(state.file_systems, &(&1.external_id == id)) do
+  defp handle_event(:file_system_deleted, %{id: external_id}, state) do
+    with {:ok, file_system} <- fetch_file_system(external_id, state) do
       handle_event(:file_system_deleted, file_system, state)
-    else
-      state
     end
   end
 
@@ -503,11 +502,14 @@ defmodule Livebook.Hubs.TeamClient do
     )
   end
 
-  defp handle_event(:deployment_group_deleted, deployment_group_deleted, state) do
-    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_deleted.id, state) do
-      Teams.Broadcasts.deployment_group_deleted(deployment_group)
+  defp handle_event(:deployment_group_deleted, %Teams.DeploymentGroup{} = deployment_group, state) do
+    Teams.Broadcasts.deployment_group_deleted(deployment_group)
+    remove_deployment_group(state, deployment_group)
+  end
 
-      remove_deployment_group(state, deployment_group)
+  defp handle_event(:deployment_group_deleted, %{id: id}, state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
+      handle_event(:deployment_group_deleted, deployment_group, state)
     end
   end
 
@@ -532,8 +534,8 @@ defmodule Livebook.Hubs.TeamClient do
     deployment_group_id = app_deployment.deployment_group_id
 
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      state = put_app_deployment(state, app_deployment)
       Teams.Broadcasts.app_deployment_created(app_deployment)
+      state = put_app_deployment(state, app_deployment)
 
       if deployment_group.id == state.deployment_group_id do
         manager_sync()
@@ -638,9 +640,17 @@ defmodule Livebook.Hubs.TeamClient do
   defp find_deployment_group(nil, _), do: nil
   defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
 
-  defp fetch_deployment_group(id, state) do
-    if deployment_group = find_deployment_group(id, state.deployment_groups) do
-      {:ok, deployment_group}
+  defp fetch_deployment_group(id, state),
+    do: fetch_entry(state.deployment_groups, &(&1.id == id), state)
+
+  defp fetch_secret(name, state), do: fetch_entry(state.secrets, &(&1.name == name), state)
+
+  defp fetch_file_system(external_id, state),
+    do: fetch_entry(state.file_systems, &(&1.external_id == external_id), state)
+
+  defp fetch_entry(entries, fun, state) do
+    if entry = Enum.find(entries, fun) do
+      {:ok, entry}
     else
       state
     end
