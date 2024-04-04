@@ -16,6 +16,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
     file_systems = Hubs.get_file_systems(assigns.hub, hub_only: true)
     deployment_groups = Teams.get_deployment_groups(assigns.hub)
     app_deployments = Teams.get_app_deployments(assigns.hub)
+    agents = Teams.get_agents(assigns.hub)
     secret_name = assigns.params["secret_name"]
     file_system_id = assigns.params["file_system_id"]
     default? = default_hub?(assigns.hub)
@@ -41,6 +42,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
        file_systems: file_systems,
        deployment_groups: Enum.sort_by(deployment_groups, & &1.name),
        app_deployments: Enum.frequencies_by(app_deployments, & &1.deployment_group_id),
+       agents: Enum.frequencies_by(agents, & &1.deployment_group_id),
        show_key: show_key,
        secret_name: secret_name,
        secret_value: secret_value,
@@ -222,6 +224,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   hub={@hub}
                   deployment_group={deployment_group}
                   app_deployments_count={Map.get(@app_deployments, deployment_group.id, 0)}
+                  agents_count={Map.get(@agents, deployment_group.id, 0)}
                   live_action={@live_action}
                   params={@params}
                 />
