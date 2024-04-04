@@ -119,6 +119,16 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:agent) do
+    %Livebook.Teams.Agent{
+      id: "agent_name-#{Livebook.Utils.random_short_id()}",
+      name: "agent_name",
+      hub_id: Livebook.Hubs.Personal.id(),
+      org_id: "1",
+      deployment_group_id: "1"
+    }
+  end
+
   def build(factory_name, attrs) do
     factory_name |> build() |> struct!(attrs)
   end
