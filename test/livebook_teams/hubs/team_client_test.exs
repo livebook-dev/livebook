@@ -397,7 +397,6 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       agent_connected =
         %LivebookProto.AgentConnected{
-          id: agent_key.id,
           name: Livebook.Config.agent_name(),
           public_key: org_key_pair.public_key,
           deployment_group_id: deployment_group.id,
