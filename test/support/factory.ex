@@ -112,9 +112,20 @@ defmodule Livebook.Factory do
       sha: shasum,
       slug: slug,
       file: content,
+      hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",
       deployed_at: NaiveDateTime.truncate(deployed_at, :second)
+    }
+  end
+
+  def build(:agent) do
+    %Livebook.Teams.Agent{
+      id: "agent_name-#{Livebook.Utils.random_short_id()}",
+      name: "agent_name",
+      hub_id: Livebook.Hubs.Personal.id(),
+      org_id: "1",
+      deployment_group_id: "1"
     }
   end
 

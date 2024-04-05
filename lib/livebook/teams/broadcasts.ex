@@ -1,10 +1,11 @@
 defmodule Livebook.Teams.Broadcasts do
-  alias Livebook.Teams.{AppDeployment, DeploymentGroup}
+  alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup}
 
   @type broadcast :: :ok | {:error, term()}
 
   @deployment_groups_topic "teams:deployment_groups"
   @app_deployments_topic "teams:app_deployments"
+  @agents_topic "teams:agents"
 
   @doc """
   Subscribes to one or more subtopics in `"teams"`.
@@ -20,6 +21,11 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@app_deployments_topic}`:
 
     * `{:app_deployment_created, AppDeployment.t()}`
+
+  Topic `#{@agents_topic}`:
+
+    * `{:agent_joined, Agent.t()}`
+    * `{:agent_left, Agent.t()}`
 
   """
   @spec subscribe(atom() | list(atom())) :: :ok | {:error, term()}
@@ -77,6 +83,22 @@ defmodule Livebook.Teams.Broadcasts do
   @spec app_deployment_created(AppDeployment.t()) :: broadcast()
   def app_deployment_created(%AppDeployment{} = app_deployment) do
     broadcast(@app_deployments_topic, {:app_deployment_created, app_deployment})
+  end
+
+  @doc """
+  Broadcasts under `#{@agents_topic}` topic when hub received a new agent.
+  """
+  @spec agent_joined(Agent.t()) :: broadcast()
+  def agent_joined(%Agent{} = agent) do
+    broadcast(@agents_topic, {:agent_joined, agent})
+  end
+
+  @doc """
+  Broadcasts under `#{@agents_topic}` topic when hub received a deleted agent.
+  """
+  @spec agent_left(Agent.t()) :: broadcast()
+  def agent_left(%Agent{} = agent) do
+    broadcast(@agents_topic, {:agent_left, agent})
   end
 
   defp broadcast(topic, message) do

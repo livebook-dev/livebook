@@ -20,7 +20,8 @@ defmodule Livebook.Hubs.TeamClient do
     secrets: [],
     file_systems: [],
     deployment_groups: [],
-    app_deployments: []
+    app_deployments: [],
+    agents: []
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
@@ -112,6 +113,14 @@ defmodule Livebook.Hubs.TeamClient do
           {:ok, Teams.AppDeployment.t(), derived_key :: binary()} | :error
   def get_app_deployment_download_info(id, app_deployment_id) do
     GenServer.call(registry_name(id), {:get_app_deployment_download_info, app_deployment_id})
+  end
+
+  @doc """
+  Returns a list of cached agents.
+  """
+  @spec get_agents(String.t()) :: list(Teams.Agent.t())
+  def get_agents(id) do
+    GenServer.call(registry_name(id), :get_agents)
   end
 
   @doc """
@@ -228,6 +237,10 @@ defmodule Livebook.Hubs.TeamClient do
       end
 
     {:reply, reply, state}
+  end
+
+  def handle_call(:get_agents, _caller, state) do
+    {:reply, state.agents, state}
   end
 
   @impl true
@@ -400,16 +413,37 @@ defmodule Livebook.Hubs.TeamClient do
     }
   end
 
-  defp build_app_deployment(%LivebookProto.AppDeployment{} = app_deployment) do
+  defp build_app_deployment(state, %LivebookProto.AppDeployment{} = app_deployment) do
     %Teams.AppDeployment{
       id: app_deployment.id,
       slug: app_deployment.slug,
       sha: app_deployment.sha,
       title: app_deployment.title,
+      hub_id: state.hub.id,
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,
       deployed_by: app_deployment.deployed_by,
       deployed_at: NaiveDateTime.from_gregorian_seconds(app_deployment.deployed_at)
+    }
+  end
+
+  defp put_agent(state, agent) do
+    state = remove_agent(state, agent)
+
+    %{state | agents: [agent | state.agents]}
+  end
+
+  defp remove_agent(state, agent) do
+    %{state | agents: Enum.reject(state.agents, &(&1.id == agent.id))}
+  end
+
+  defp build_agent(state, %LivebookProto.Agent{} = agent) do
+    %Livebook.Teams.Agent{
+      id: agent.id,
+      name: agent.name,
+      hub_id: state.hub.id,
+      org_id: agent.org_id,
+      deployment_group_id: agent.deployment_group_id
     }
   end
 
@@ -433,12 +467,14 @@ defmodule Livebook.Hubs.TeamClient do
     handle_event(:secret_updated, build_secret(state, secret_updated), state)
   end
 
-  defp handle_event(:secret_deleted, secret_deleted, state) do
-    if secret = Enum.find(state.secrets, &(&1.name == secret_deleted.name)) do
-      Hubs.Broadcasts.secret_deleted(secret)
-      remove_secret(state, secret)
-    else
-      state
+  defp handle_event(:secret_deleted, %Secrets.Secret{} = secret, state) do
+    Hubs.Broadcasts.secret_deleted(secret)
+    remove_secret(state, secret)
+  end
+
+  defp handle_event(:secret_deleted, %{name: name}, state) do
+    with {:ok, secret} <- fetch_secret(name, state) do
+      handle_event(:secret_deleted, secret, state)
     end
   end
 
@@ -464,15 +500,12 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp handle_event(:file_system_deleted, %{external_id: _} = file_system, state) do
     Hubs.Broadcasts.file_system_deleted(file_system)
-
     remove_file_system(state, file_system)
   end
 
-  defp handle_event(:file_system_deleted, %{id: id}, state) do
-    if file_system = Enum.find(state.file_systems, &(&1.external_id == id)) do
+  defp handle_event(:file_system_deleted, %{id: external_id}, state) do
+    with {:ok, file_system} <- fetch_file_system(external_id, state) do
       handle_event(:file_system_deleted, file_system, state)
-    else
-      state
     end
   end
 
@@ -503,11 +536,14 @@ defmodule Livebook.Hubs.TeamClient do
     )
   end
 
-  defp handle_event(:deployment_group_deleted, deployment_group_deleted, state) do
-    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_deleted.id, state) do
-      Teams.Broadcasts.deployment_group_deleted(deployment_group)
+  defp handle_event(:deployment_group_deleted, %Teams.DeploymentGroup{} = deployment_group, state) do
+    Teams.Broadcasts.deployment_group_deleted(deployment_group)
+    remove_deployment_group(state, deployment_group)
+  end
 
-      remove_deployment_group(state, deployment_group)
+  defp handle_event(:deployment_group_deleted, %{id: id}, state) do
+    with {:ok, deployment_group} <- fetch_deployment_group(id, state) do
+      handle_event(:deployment_group_deleted, deployment_group, state)
     end
   end
 
@@ -517,6 +553,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_file_systems(user_connected)
     |> dispatch_deployment_groups(user_connected)
     |> dispatch_app_deployments(user_connected)
+    |> dispatch_agents(user_connected)
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
@@ -526,14 +563,15 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_file_systems(agent_connected)
     |> dispatch_deployment_groups(agent_connected)
     |> dispatch_app_deployments(agent_connected)
+    |> dispatch_agents(agent_connected)
   end
 
   defp handle_event(:app_deployment_created, %Teams.AppDeployment{} = app_deployment, state) do
     deployment_group_id = app_deployment.deployment_group_id
 
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      state = put_app_deployment(state, app_deployment)
       Teams.Broadcasts.app_deployment_created(app_deployment)
+      state = put_app_deployment(state, app_deployment)
 
       if deployment_group.id == state.deployment_group_id do
         manager_sync()
@@ -546,9 +584,29 @@ defmodule Livebook.Hubs.TeamClient do
   defp handle_event(:app_deployment_created, app_deployment_created, state) do
     handle_event(
       :app_deployment_created,
-      build_app_deployment(app_deployment_created.app_deployment),
+      build_app_deployment(state, app_deployment_created.app_deployment),
       state
     )
+  end
+
+  defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
+    Teams.Broadcasts.agent_joined(agent)
+    put_agent(state, agent)
+  end
+
+  defp handle_event(:agent_joined, agent_joined, state) do
+    handle_event(:agent_joined, build_agent(state, agent_joined.agent), state)
+  end
+
+  defp handle_event(:agent_left, %Teams.Agent{} = agent, state) do
+    Teams.Broadcasts.agent_left(agent)
+    remove_agent(state, agent)
+  end
+
+  defp handle_event(:agent_left, %{id: id}, state) do
+    with {:ok, agent} <- fetch_agent(id, state) do
+      handle_event(:agent_left, agent, state)
+    end
   end
 
   defp dispatch_secrets(state, %{secrets: secrets}) do
@@ -601,10 +659,17 @@ defmodule Livebook.Hubs.TeamClient do
   end
 
   defp dispatch_app_deployments(state, %{app_deployments: app_deployments}) do
-    app_deployments = Enum.map(app_deployments, &build_app_deployment/1)
+    app_deployments = Enum.map(app_deployments, &build_app_deployment(state, &1))
     {created, _, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
 
     dispatch_events(state, app_deployment_created: created)
+  end
+
+  defp dispatch_agents(state, %{agents: agents}) do
+    agents = Enum.map(agents, &build_agent(state, &1))
+    {joined, left, _} = diff(state.agents, agents, &(&1.id == &2.id))
+
+    dispatch_events(state, agent_joined: joined, agent_left: left)
   end
 
   defp update_hub(state, %{public_key: org_public_key}) do
@@ -638,9 +703,19 @@ defmodule Livebook.Hubs.TeamClient do
   defp find_deployment_group(nil, _), do: nil
   defp find_deployment_group(id, groups), do: Enum.find(groups, &(&1.id == id))
 
-  defp fetch_deployment_group(id, state) do
-    if deployment_group = find_deployment_group(id, state.deployment_groups) do
-      {:ok, deployment_group}
+  defp fetch_deployment_group(id, state),
+    do: fetch_entry(state.deployment_groups, &(&1.id == id), state)
+
+  defp fetch_secret(name, state), do: fetch_entry(state.secrets, &(&1.name == name), state)
+
+  defp fetch_file_system(external_id, state),
+    do: fetch_entry(state.file_systems, &(&1.external_id == external_id), state)
+
+  defp fetch_agent(id, state), do: fetch_entry(state.agents, &(&1.id == id), state)
+
+  defp fetch_entry(entries, fun, state) do
+    if entry = Enum.find(entries, fun) do
+      {:ok, entry}
     else
       state
     end

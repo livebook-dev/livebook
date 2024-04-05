@@ -8,7 +8,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :agents])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -211,5 +211,44 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert_patch(view, ~p"/hub/#{hub.id}")
     assert render(view) =~ "Secret DEPLOYMENT_GROUP_DELETE_SECRET deleted successfully"
     refute render(element(view, "#hub-deployment-group-#{id}")) =~ secret.name
+  end
+
+  test "shows the agent count", %{conn: conn, hub: hub} do
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP"
+    %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"instances running\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "0"
+
+    org_id = to_string(hub.org_id)
+
+    # Simulates the agent join event
+    pid = Livebook.Hubs.TeamClient.get_pid(hub.id)
+    agent = build(:agent, hub_id: hub.id, org_id: org_id, deployment_group_id: to_string(id))
+
+    livebook_proto_agent =
+      %LivebookProto.Agent{
+        id: agent.id,
+        name: agent.name,
+        org_id: agent.org_id,
+        deployment_group_id: agent.deployment_group_id
+      }
+
+    livebook_proto_agent_joined = %LivebookProto.AgentJoined{agent: livebook_proto_agent}
+    send(pid, {:event, :agent_joined, livebook_proto_agent_joined})
+    assert_receive {:agent_joined, ^agent}
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"instances running\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "1"
   end
 end

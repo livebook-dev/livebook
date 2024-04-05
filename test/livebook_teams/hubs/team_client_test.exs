@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments])
+    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments, :agents])
     :ok
   end
 
@@ -332,7 +332,13 @@ defmodule Livebook.Hubs.TeamClientTest do
           agent_keys: []
         }
 
-      app_deployment = build(:app_deployment, file: nil, deployment_group_id: deployment_group.id)
+      app_deployment =
+        build(:app_deployment,
+          hub_id: team.id,
+          file: nil,
+          deployment_group_id: deployment_group.id
+        )
+
       {seconds, 0} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
 
       livebook_proto_app_deployment =
@@ -357,6 +363,31 @@ defmodule Livebook.Hubs.TeamClientTest do
       assert_receive {:app_deployment_created, ^app_deployment}, 5000
       assert app_deployment in TeamClient.get_app_deployments(team.id)
     end
+
+    test "dispatches the agents list", %{team: team, user_connected: user_connected} do
+      pid = connect_to_teams(team)
+      agent = build(:agent, hub_id: team.id, org_id: to_string(team.org_id))
+
+      livebook_proto_agent =
+        %LivebookProto.Agent{
+          id: agent.id,
+          name: agent.name,
+          org_id: agent.org_id,
+          deployment_group_id: agent.deployment_group_id
+        }
+
+      user_connected = %{user_connected | agents: [livebook_proto_agent]}
+
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:agent_joined, ^agent}
+      assert agent in TeamClient.get_agents(team.id)
+
+      user_connected = %{user_connected | agents: []}
+
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:agent_left, ^agent}
+      refute agent in TeamClient.get_agents(team.id)
+    end
   end
 
   describe "handle agent_connected event" do
@@ -373,7 +404,8 @@ defmodule Livebook.Hubs.TeamClientTest do
           secrets: [],
           file_systems: [],
           deployment_groups: [],
-          app_deployments: []
+          app_deployments: [],
+          agents: []
         }
 
       {:ok,
@@ -722,6 +754,36 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       Livebook.Hubs.delete_hub(team.id)
       Livebook.App.close(app_pid)
+    end
+
+    test "dispatches the agents list", %{team: team, agent_connected: agent_connected} do
+      pid = connect_to_teams(team)
+
+      # Since we're connecting as Agent, we should receive the
+      # `:agent_joined` event from `:agent_connected` event
+      assert_receive {:agent_joined, agent}
+      assert agent in TeamClient.get_agents(team.id)
+
+      assert_receive {:deployment_group_created, deployment_group}
+
+      livebook_proto_deployment_group =
+        %LivebookProto.DeploymentGroup{
+          id: to_string(deployment_group.id),
+          name: deployment_group.name,
+          mode: to_string(deployment_group.mode),
+          secrets: [],
+          agent_keys: []
+        }
+
+      agent_connected = %{
+        agent_connected
+        | deployment_groups: [livebook_proto_deployment_group],
+          agents: []
+      }
+
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:agent_left, ^agent}
+      refute agent in TeamClient.get_agents(team.id)
     end
   end
 

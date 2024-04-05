@@ -4,7 +4,7 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
-  alias Livebook.Teams.{AppDeployment, DeploymentGroup, Org, Requests}
+  alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
     only: [add_error: 3, apply_action: 2, apply_action!: 2, get_field: 2]
@@ -220,5 +220,13 @@ defmodule Livebook.Teams do
   @spec get_app_deployments(Team.t()) :: list(AppDeployment.t())
   def get_app_deployments(team) do
     TeamClient.get_app_deployments(team.id)
+  end
+
+  @doc """
+  Gets a list of agents for a given Hub.
+  """
+  @spec get_agents(Team.t()) :: list(Agent.t())
+  def get_agents(team) do
+    TeamClient.get_agents(team.id)
   end
 end

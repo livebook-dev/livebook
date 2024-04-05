@@ -54,7 +54,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         <!-- Overview -->
         <div :if={@deployment_group.mode == :online} class="flex flex-col lg:flex-row justify-center">
           <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Instances running">
-            <span class="text-lg font-normal">-1</span>
+            <span class="text-lg font-normal" aria-label="instances running">
+              <%= @agents_count %>
+            </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/agents/new"}
               class="pl-2 text-blue-600"

@@ -93,7 +93,10 @@ defmodule Livebook.TeamsServer do
 
   @impl true
   def handle_info({_port, {:data, message}}, state) do
-    info(message)
+    if Livebook.Config.boolean!("TEAMS_DEBUG", false) do
+      info(message)
+    end
+
     {:noreply, state}
   end
 
