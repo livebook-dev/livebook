@@ -105,7 +105,6 @@ message UserConnected {
 }
 
 message AgentConnected {
-  int32 id = 1;
   string name = 2;
   string public_key = 3;
   int32 deployment_group_id = 4;
