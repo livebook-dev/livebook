@@ -220,7 +220,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
     assert view
-           |> element("#hub-deployment-group-#{id} [aria-label=\"instances running\"]")
+           |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
            |> Floki.parse_fragment!()
            |> Floki.text()
@@ -245,7 +245,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert_receive {:agent_joined, ^agent}
 
     assert view
-           |> element("#hub-deployment-group-#{id} [aria-label=\"instances running\"]")
+           |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
            |> render()
            |> Floki.parse_fragment!()
            |> Floki.text()

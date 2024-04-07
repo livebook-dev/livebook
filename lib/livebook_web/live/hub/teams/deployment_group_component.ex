@@ -53,8 +53,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         </div>
         <!-- Overview -->
         <div :if={@deployment_group.mode == :online} class="flex flex-col lg:flex-row justify-center">
-          <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Instances running">
-            <span class="text-lg font-normal" aria-label="instances running">
+          <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="App servers">
+            <span class="text-lg font-normal" aria-label="app servers">
               <%= @agents_count %>
             </span>
             <.link
@@ -84,13 +84,13 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           <a
             href="#"
             class="-ml-1 flex flex-row text-gray-500 text-sm"
-            phx-click={JS.toggle(to: "#secrets-group-#{@deployment_group.id} [data-toggler]")}
+            phx-click={JS.toggle(to: "#secrets-group-#{@deployment_group.id} [data-toggle]")}
           >
-            <.remix_icon data-toggler icon="arrow-right-s-line" />
-            <.remix_icon data-toggler icon="arrow-down-s-line hidden" />
+            <.remix_icon data-toggle icon="arrow-right-s-line" />
+            <.remix_icon data-toggle icon="arrow-down-s-line hidden" />
             <span class="pl-1">Additional secrets</span>
           </a>
-          <div data-toggler class="hidden text-sm flex space-y-4">
+          <div data-toggle class="hidden text-sm flex space-y-4">
             <div class="flex flex-row space-x-2">
               <p class="grow text-gray-700">
                 Secrets that are exclusive to apps deployed to this group.
