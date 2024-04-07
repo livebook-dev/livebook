@@ -1293,7 +1293,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "does not persist password" do
+    test "stores password in stamp metadata when app settings are configured with protected access" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -1305,15 +1305,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
           }
       }
 
-      expected_document = """
-      <!-- livebook:{"app_settings":{"slug":"app"}} -->
-
-      # My Notebook
-      """
-
       {document, []} = Export.notebook_to_livemd(notebook)
 
-      assert expected_document == document
+      assert stamp_metadata(notebook, document) == %{app_settings_password: "verylongpass"}
     end
   end
 
