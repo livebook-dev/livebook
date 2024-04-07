@@ -686,6 +686,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {:quarantine_file_entry_names, quarantine_file_entry_names}, notebook ->
         %{notebook | quarantine_file_entry_names: MapSet.new(quarantine_file_entry_names)}
 
+      {:app_settings_password, password}, notebook ->
+        put_in(notebook.app_settings.password, password)
+
       _entry, notebook ->
         notebook
     end)

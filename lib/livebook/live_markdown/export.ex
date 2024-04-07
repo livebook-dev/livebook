@@ -408,12 +408,19 @@ defmodule Livebook.LiveMarkdown.Export do
     # If there are any :file file entries, we want to generate a stamp
     # to make sure the entries are not tampered with. We also want to
     # store the information about file entries already in quarantine
-    if Enum.any?(notebook.file_entries, &(&1.type == :file)) do
-      Map.put(
-        metadata,
-        :quarantine_file_entry_names,
-        MapSet.to_list(notebook.quarantine_file_entry_names)
-      )
+    metadata =
+      if Enum.any?(notebook.file_entries, &(&1.type == :file)) do
+        Map.put(
+          metadata,
+          :quarantine_file_entry_names,
+          MapSet.to_list(notebook.quarantine_file_entry_names)
+        )
+      else
+        metadata
+      end
+
+    if notebook.app_settings.slug != nil and notebook.app_settings.access_type == :protected do
+      Map.put(metadata, :app_settings_password, notebook.app_settings.password)
     else
       metadata
     end

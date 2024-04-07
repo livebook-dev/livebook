@@ -814,6 +814,30 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                app_settings: %{slug: "app", access_type: :protected}
              } = notebook
     end
+
+    test "imports password from stamp metadata" do
+      {markdown, []} =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            app_settings: %{
+              Notebook.AppSettings.new()
+              | slug: "app",
+                access_type: :protected,
+                password: "verylongpass"
+            }
+        }
+        |> Livebook.LiveMarkdown.Export.notebook_to_livemd()
+
+      {notebook, %{warnings: []}} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               app_settings: %{
+                 access_type: :protected,
+                 password: "verylongpass"
+               }
+             } = notebook
+    end
   end
 
   describe "backward compatibility" do
