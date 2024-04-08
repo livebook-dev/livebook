@@ -18,7 +18,8 @@ config :livebook, LivebookWeb.Endpoint,
   debug_errors: true,
   check_origin: false,
   watchers: [
-    npm: ["run", "watch", cd: Path.expand("../assets", __DIR__)]
+    # Keep up to date with /assets/package.json, see discussion 2544.
+    node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
 config :livebook,
