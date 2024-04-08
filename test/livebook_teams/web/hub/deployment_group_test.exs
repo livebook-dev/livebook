@@ -8,11 +8,12 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :agents])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :agents])
     hub = create_team_hub(user, node)
     id = hub.id
 
     assert_receive {:hub_connected, ^id}
+    assert_receive {:client_connected, ^id}
 
     {:ok, hub: hub}
   end

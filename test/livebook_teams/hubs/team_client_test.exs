@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :app_deployments, :agents])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :app_deployments, :agents])
     :ok
   end
 
@@ -318,6 +318,7 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     test "dispatches the app deployments list", %{team: team, user_connected: user_connected} do
+      hub_id = team.id
       pid = connect_to_teams(team)
 
       deployment_group =
@@ -365,8 +366,10 @@ defmodule Livebook.Hubs.TeamClientTest do
       }
 
       send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:client_connected, ^hub_id}
       assert_receive {:app_deployment_created, ^app_deployment}, 5000
       assert app_deployment in TeamClient.get_app_deployments(team.id)
+
       # deletes the app deployment
       user_connected = %{user_connected | app_deployments: []}
       send(pid, {:event, :user_connected, user_connected})
@@ -813,6 +816,8 @@ defmodule Livebook.Hubs.TeamClientTest do
   defp connect_to_teams(%{id: id} = team) do
     Livebook.Hubs.save_hub(team)
     assert_receive {:hub_connected, ^id}
+    assert_receive {:client_connected, ^id}
+
     TeamClient.get_pid(team.id)
   end
 end

@@ -552,6 +552,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(user_connected)
     |> dispatch_app_deployments(user_connected)
     |> dispatch_agents(user_connected)
+    |> dispatch_connection()
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
@@ -562,6 +563,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(agent_connected)
     |> dispatch_app_deployments(agent_connected)
     |> dispatch_agents(agent_connected)
+    |> dispatch_connection()
   end
 
   defp handle_event(:app_deployment_created, %Teams.AppDeployment{} = app_deployment, state) do
@@ -685,6 +687,11 @@ defmodule Livebook.Hubs.TeamClient do
     {joined, left, _} = diff(state.agents, agents, &(&1.id == &2.id))
 
     dispatch_events(state, agent_joined: joined, agent_left: left)
+  end
+
+  defp dispatch_connection(%{hub: %{id: id}} = state) do
+    Teams.Broadcasts.client_connected(id)
+    state
   end
 
   defp update_hub(state, %{public_key: org_public_key}) do
