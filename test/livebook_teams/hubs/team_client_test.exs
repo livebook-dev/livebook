@@ -529,21 +529,41 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     test "dispatches the deployment groups list",
-         %{team: team, deployment_group: teams_deployment_group, agent_connected: agent_connected} do
+         %{
+           team: team,
+           deployment_group: teams_deployment_group,
+           agent_key: teams_agent_key,
+           agent_connected: agent_connected
+         } do
+      agent_key =
+        build(:agent_key,
+          id: to_string(teams_agent_key.id),
+          key: teams_agent_key.key,
+          deployment_group_id: to_string(teams_agent_key.deployment_group_id)
+        )
+
       deployment_group =
         build(:deployment_group,
           id: to_string(teams_deployment_group.id),
           name: teams_deployment_group.name,
           mode: teams_deployment_group.mode,
           hub_id: team.id,
-          secrets: []
+          agent_keys: [agent_key]
         )
+
+      livebook_proto_agent_key =
+        %LivebookProto.AgentKey{
+          id: agent_key.id,
+          key: agent_key.key,
+          deployment_group_id: agent_key.deployment_group_id
+        }
 
       livebook_proto_deployment_group =
         %LivebookProto.DeploymentGroup{
           id: to_string(deployment_group.id),
           name: deployment_group.name,
           mode: to_string(deployment_group.mode),
+          agent_keys: [livebook_proto_agent_key],
           secrets: []
         }
 

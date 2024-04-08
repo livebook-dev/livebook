@@ -215,7 +215,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "shows the agent count", %{conn: conn, hub: hub} do
-    name = "TEAMS_EDIT_DEPLOYMENT_GROUP"
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP2"
     %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
