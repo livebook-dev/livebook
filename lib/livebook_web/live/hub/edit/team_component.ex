@@ -162,7 +162,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <p class="text-gray-700">
-                Secrets are a safe way to share credentials and tokens with notebooks.
+                Secrets are a safe way to share credentials and tokens with notebooks
+                across your whole team.
                 They are often used by Smart cells and can be read as
                 environment variables using the <code>LB_</code> prefix.
               </p>
@@ -189,7 +190,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <p class="text-gray-700">
-                File storages are used to store notebooks and their files.
+                File storages are used to store notebooks and their files across your whole team.
               </p>
 
               <.live_component

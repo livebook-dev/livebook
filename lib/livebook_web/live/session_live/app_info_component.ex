@@ -62,13 +62,12 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
         </h3>
 
         <div class="mt-2 flex flex-col gap-2">
-          <%!-- TODO: Livebook Teams flow --%>
           <.button
             color="blue"
             patch={
               if Livebook.Notebook.AppSettings.valid?(@settings),
-                do: ~p"/sessions/#{@session.id}/app-docker",
-                else: ~p"/sessions/#{@session.id}/settings/app?context=app-docker"
+                do: ~p"/sessions/#{@session.id}/app-teams",
+                else: ~p"/sessions/#{@session.id}/settings/app?context=app-teams"
             }
           >
             <.remix_icon icon="rocket-line" /> Deploy with Livebook Teams

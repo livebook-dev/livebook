@@ -33,11 +33,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               <h3 class="font-semibold"><%= @deployment_group.name %></h3>
               <%= if @deployment_group.mode == :online do %>
                 <div class="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded cursor-default">
-                  <%= @deployment_group.mode %>
+                  Online
                 </div>
               <% else %>
                 <div class="bg-red-100 text-red-800 text-xs px-2.5 py-0.5 rounded cursor-default">
-                  <%= @deployment_group.mode %>
+                  Airgapped
                 </div>
               <% end %>
             </div>

@@ -123,9 +123,8 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   defp content(assigns) do
     ~H"""
     <div class="flex flex-col gap-4">
-      <p class="text-gray-700">
-        You can deploy this app in the cloud using Docker. To do that, configure
-        the deployment and then use the generated Dockerfile.
+      <p class="text-gray-700 pb-4">
+        Choose your deployment settings and then deploy your notebook using the generated Dockerfile.
       </p>
 
       <div class="flex gap-12">
@@ -158,7 +157,16 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
               <.label help={deployment_group_help()}>
                 Deployment Group
               </.label>
-              <span>No deployment groups available</span>
+              <span>
+                None configured
+                <.link
+                  navigate={~p"/hub/#{@hub.id}/groups/new"}
+                  target="_blank"
+                  class="pl-3 text-blue-600 font-semibold"
+                >
+                  + add new
+                </.link>
+              </span>
             </p>
           <% end %>
         <% end %>
@@ -177,29 +185,107 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
             form={f}
             disabled={@deployment_group_id != nil}
           />
-          <AppComponents.docker_config_form_content hub={@hub} form={f} />
+          <div class="flex flex-col space-y-4">
+            <.radio_field
+              label="Deploy"
+              field={f[:deploy_all]}
+              options={[
+                {"false", "Only this notebook"},
+                {"true", "All notebooks in the current directory"}
+              ]}
+            />
+            <.radio_field
+              label="Base image"
+              field={f[:docker_tag]}
+              options={AppComponents.docker_tag_options()}
+            />
+          </div>
         </div>
       </.form>
 
-      <AppComponents.docker_instructions
-        hub={@hub}
-        dockerfile={@dockerfile}
-        dockerfile_config={apply_changes(@changeset)}
-      >
-        <:dockerfile_actions>
-          <.button
-            color="gray"
-            small
-            type="button"
-            aria-label="save dockerfile alongside the notebook"
-            phx-click="save_dockerfile"
-            phx-target={@myself}
-          >
-            <.remix_icon icon="save-line" />
-            <span>Save alongside notebook</span>
-          </.button>
-        </:dockerfile_actions>
-      </AppComponents.docker_instructions>
+      <div class="flex flex-col gap-4 pt-6">
+        <div>
+          <div class="flex items-end mb-1 gap-1">
+            <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
+            <div class="grow" />
+            <.button
+              color="gray"
+              small
+              type="button"
+              aria-label="save dockerfile alongside the notebook"
+              phx-click="save_dockerfile"
+              phx-target={@myself}
+            >
+              <.remix_icon icon="save-line" />
+              <span>Save alongside notebook</span>
+            </.button>
+            <.button
+              color="gray"
+              small
+              data-tooltip="Copied to clipboard"
+              type="button"
+              aria-label="copy to clipboard"
+              phx-click={
+                JS.dispatch("lb:clipcopy", to: "#dockerfile-source")
+                |> JS.transition("tooltip top", time: 2000)
+              }
+            >
+              <.remix_icon icon="clipboard-line" />
+              <span>Copy source</span>
+            </.button>
+          </div>
+
+          <.code_preview source_id="dockerfile-source" source={@dockerfile} language="dockerfile" />
+        </div>
+
+        <div class="text-gray-700">
+          To test the deployment locally, go the the notebook directory, save the Dockerfile, then run:
+        </div>
+
+        <.code_preview
+          source_id="dockerfile-cmd"
+          source={
+            ~s'''
+            docker build -t my-app .
+            docker run --rm -p 8080:8080 -p 8081:8081 my-app
+            '''
+          }
+          language="text"
+        />
+
+        <p class="text-gray-700 py-2">
+          You may additionally perform the following optional steps:
+        </p>
+
+        <ul class="text-gray-700 space-y-3">
+          <li :if={Hubs.Provider.type(@hub) == "team"} class="flex gap-2">
+            <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+            <span>
+              you may remove the default value for <code>TEAMS_KEY</code>
+              from your Dockerfile and set it as a build argument in your deployment
+              platform
+            </span>
+          </li>
+          <li :if={apply_changes(@changeset).clustering} class="flex gap-2">
+            <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+            <span>
+              you may set <code>LIVEBOOK_SECRET_KEY_BASE</code>
+              and <code>LIVEBOOK_COOKIE</code>
+              as runtime environment secrets in your deployment platform, to ensure their
+              values stay the same across deployments. If you do that, you can remove
+              the defaults from your Dockerfile
+            </span>
+          </li>
+          <li class="flex gap-2">
+            <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
+            <span>
+              if you want to debug your deployed notebooks in production, you may
+              set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
+              value of at least 12 characters of your choice
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
     """
   end
@@ -289,9 +375,14 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
   end
 
   defp deployment_group_options(deployment_groups) do
-    for deployment_group <- [%{name: "none", id: nil}] ++ deployment_groups,
-        do: {deployment_group.name, deployment_group.id}
+    [{"none", nil}] ++
+      for deployment_group <- deployment_groups do
+        {"#{deployment_group.name} (#{mode(deployment_group.mode)})", deployment_group.id}
+      end
   end
+
+  defp mode(:online), do: "online"
+  defp mode(:offline), do: "airgapped"
 
   defp deployment_group_help() do
     "Share deployment credentials, secrets, and configuration with deployment groups."

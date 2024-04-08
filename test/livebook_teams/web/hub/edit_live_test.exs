@@ -328,7 +328,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert view
              |> element("#secrets-form")
              |> render_submit(attrs) =~
-               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"
+               "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
       refute_receive {:secret_created, ^secret}
       refute secret in Livebook.Hubs.get_secrets(hub)
@@ -356,7 +356,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       assert view
              |> element("#file-systems-form")
              |> render_submit(attrs) =~
-               "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"
+               "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
       refute_receive {:file_system_created, %{id: ^id}}
       refute file_system in Livebook.Hubs.get_file_systems(hub)

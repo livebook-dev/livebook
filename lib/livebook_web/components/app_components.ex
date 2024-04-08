@@ -83,30 +83,6 @@ defmodule LivebookWeb.AppComponents do
   end
 
   @doc """
-  Renders form fields for Dockerfile configuration.
-  """
-  attr :form, Phoenix.HTML.Form, required: true
-  attr :hub, :map, required: true
-  attr :show_deploy_all, :boolean, default: true
-
-  def docker_config_form_content(assigns) do
-    ~H"""
-    <div class="flex flex-col space-y-4">
-      <.radio_field
-        :if={@show_deploy_all}
-        label="Deploy"
-        field={@form[:deploy_all]}
-        options={[
-          {"false", "Only this notebook"},
-          {"true", "All notebooks in the current directory"}
-        ]}
-      />
-      <.radio_field label="Base image" field={@form[:docker_tag]} options={docker_tag_options()} />
-    </div>
-    """
-  end
-
-  @doc """
   Renders form fields for Deployment Group.
   """
   attr :form, Phoenix.HTML.Form, required: true
@@ -184,102 +160,17 @@ defmodule LivebookWeb.AppComponents do
 
   defp zta_options(), do: @zta_options
 
-  @docker_tag_options for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
-
-  defp docker_tag_options(), do: @docker_tag_options
-
-  @doc """
-  Renders Docker deployment instruction for an app.
-  """
-  attr :hub, :map, required: true
-  attr :dockerfile, :string, required: true
-  attr :dockerfile_config, :map, required: true
-
-  slot :dockerfile_actions, default: nil
-
-  def docker_instructions(assigns) do
-    ~H"""
-    <div class="flex flex-col gap-4">
-      <div>
-        <div class="flex items-end mb-1 gap-1">
-          <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
-          <div class="grow" />
-          <%= render_slot(@dockerfile_actions) %>
-          <.button
-            color="gray"
-            small
-            data-tooltip="Copied to clipboard"
-            type="button"
-            aria-label="copy to clipboard"
-            phx-click={
-              JS.dispatch("lb:clipcopy", to: "#dockerfile-source")
-              |> JS.transition("tooltip top", time: 2000)
-            }
-          >
-            <.remix_icon icon="clipboard-line" />
-            <span>Copy source</span>
-          </.button>
-        </div>
-
-        <.code_preview source_id="dockerfile-source" source={@dockerfile} language="dockerfile" />
-      </div>
-
-      <div class="text-gray-700">
-        To test the deployment locally, go the the notebook directory, save the Dockerfile, then run:
-      </div>
-
-      <.code_preview
-        source_id="dockerfile-cmd"
-        source={
-          ~s'''
-          docker build -t my-app .
-          docker run --rm -p 8080:8080 -p 8081:8081 my-app
-          '''
-        }
-        language="text"
-      />
-
-      <p class="text-gray-700 py-2">
-        You may additionally perform the following optional steps:
-      </p>
-
-      <ul class="text-gray-700 space-y-3">
-        <li :if={Hubs.Provider.type(@hub) == "team"} class="flex gap-2">
-          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
-          <span>
-            you may remove the default value for <code>TEAMS_KEY</code>
-            from your Dockerfile and set it as a build argument in your deployment
-            platform
-          </span>
-        </li>
-        <li :if={@dockerfile_config.clustering} class="flex gap-2">
-          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
-          <span>
-            you may set <code>LIVEBOOK_SECRET_KEY_BASE</code>
-            and <code>LIVEBOOK_COOKIE</code>
-            as runtime environment secrets in your deployment platform, to ensure their
-            values stay the same across deployments. If you do that, you can remove
-            the defaults from your Dockerfile
-          </span>
-        </li>
-        <li class="flex gap-2">
-          <div><.remix_icon icon="arrow-right-line" class="text-gray-900" /></div>
-          <span>
-            if you want to debug your deployed notebooks in production, you may
-            set the <code>LIVEBOOK_PASSWORD</code> environment variable with a
-            value of at least 12 characters of your choice
-          </span>
-        </li>
-      </ul>
-    </div>
-    """
-  end
-
   defp zta_metadata(nil), do: nil
 
   defp zta_metadata(zta_provider) do
     Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
   end
+
+  @doc """
+  Lists all docker tag options.
+  """
+  @docker_tag_options for image <- Livebook.Config.docker_images(), do: {image.tag, image.name}
+  def docker_tag_options(), do: @docker_tag_options
 
   @doc """
   Updates app list with the given apps event.

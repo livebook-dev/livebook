@@ -457,7 +457,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-docker")
 
       assert render(view) =~ "Deployment Group"
-      assert render(view) =~ "No deployment groups available"
+      assert render(view) =~ "None configured"
       refute has_element?(view, "#select_deployment_group_form")
     end
 

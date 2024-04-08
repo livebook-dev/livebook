@@ -309,7 +309,7 @@ defmodule Livebook.Teams.Requests do
 
       {:ok, %{status: 401}} ->
         {:transport_error,
-         "You are not authorized to perform this action, make sure you have the access or you are not in a Livebook Agent/Offline instance"}
+         "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"}
 
       _otherwise ->
         {:transport_error, @error_message}

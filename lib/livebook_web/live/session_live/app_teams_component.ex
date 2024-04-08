@@ -113,7 +113,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
               <.label help={deployment_group_help()}>
                 Deployment Group
               </.label>
-              <span>No deployment groups available</span>
+              <span>None configured</span>
             </p>
           <% end %>
         <% end %>
