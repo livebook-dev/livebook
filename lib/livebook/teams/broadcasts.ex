@@ -21,6 +21,7 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@app_deployments_topic}`:
 
     * `{:app_deployment_created, AppDeployment.t()}`
+    * `{:app_deployment_deleted, AppDeployment.t()}`
 
   Topic `#{@agents_topic}`:
 
@@ -83,6 +84,14 @@ defmodule Livebook.Teams.Broadcasts do
   @spec app_deployment_created(AppDeployment.t()) :: broadcast()
   def app_deployment_created(%AppDeployment{} = app_deployment) do
     broadcast(@app_deployments_topic, {:app_deployment_created, app_deployment})
+  end
+
+  @doc """
+  Broadcasts under `#{@app_deployments_topic}` topic when hub received a deleted app deployment.
+  """
+  @spec app_deployment_deleted(AppDeployment.t()) :: broadcast()
+  def app_deployment_deleted(%AppDeployment{} = app_deployment) do
+    broadcast(@app_deployments_topic, {:app_deployment_deleted, app_deployment})
   end
 
   @doc """
