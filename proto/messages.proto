@@ -130,6 +130,10 @@ message AppDeploymentCreated {
   AppDeployment app_deployment = 1;
 }
 
+message AppDeploymentDeleted {
+  string id = 1;
+}
+
 message UserDeleted {
   string id = 1;
 }
@@ -166,5 +170,6 @@ message Event {
     UserDeleted user_deleted = 13;
     AgentJoined agent_joined = 14;
     AgentLeft agent_left = 15;
+    AppDeploymentDeleted app_deployment_deleted = 16;
   }
 }

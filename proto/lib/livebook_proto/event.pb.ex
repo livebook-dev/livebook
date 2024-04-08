@@ -66,4 +66,9 @@ defmodule LivebookProto.Event do
   field :user_deleted, 13, type: LivebookProto.UserDeleted, json_name: "userDeleted", oneof: 0
   field :agent_joined, 14, type: LivebookProto.AgentJoined, json_name: "agentJoined", oneof: 0
   field :agent_left, 15, type: LivebookProto.AgentLeft, json_name: "agentLeft", oneof: 0
+
+  field :app_deployment_deleted, 16,
+    type: LivebookProto.AppDeploymentDeleted,
+    json_name: "appDeploymentDeleted",
+    oneof: 0
 end
