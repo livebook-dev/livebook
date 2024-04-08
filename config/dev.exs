@@ -18,7 +18,8 @@ config :livebook, LivebookWeb.Endpoint,
   debug_errors: true,
   check_origin: false,
   watchers: [
-    npm: ["run", "watch", cd: Path.expand("../assets", __DIR__)]
+    # We invoke node rather than an npm task, so that it works on Windows
+    node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
 config :livebook,
