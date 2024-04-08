@@ -336,9 +336,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp remove_deployment_group(state, deployment_group) do
     %{
       state
-      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id)),
-        app_deployments:
-          Enum.reject(state.app_deployments, &(&1.deployment_group_id == deployment_group.id))
+      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id))
     }
   end
 
@@ -570,15 +568,13 @@ defmodule Livebook.Hubs.TeamClient do
     deployment_group_id = app_deployment.deployment_group_id
 
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      Teams.Broadcasts.app_deployment_created(app_deployment)
-      state = put_app_deployment(state, app_deployment)
-
       if deployment_group.id == state.deployment_group_id do
         manager_sync()
       end
-
-      state
     end
+
+    Teams.Broadcasts.app_deployment_created(app_deployment)
+    put_app_deployment(state, app_deployment)
   end
 
   defp handle_event(:app_deployment_created, app_deployment_created, state) do
@@ -587,6 +583,25 @@ defmodule Livebook.Hubs.TeamClient do
       build_app_deployment(state, app_deployment_created.app_deployment),
       state
     )
+  end
+
+  defp handle_event(:app_deployment_deleted, %Teams.AppDeployment{} = app_deployment, state) do
+    deployment_group_id = app_deployment.deployment_group_id
+
+    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
+      if deployment_group.id == state.deployment_group_id do
+        manager_sync()
+      end
+    end
+
+    Teams.Broadcasts.app_deployment_deleted(app_deployment)
+    remove_app_deployment(state, app_deployment)
+  end
+
+  defp handle_event(:app_deployment_deleted, %{id: id}, state) do
+    with {:ok, app_deployment} <- fetch_app_deployment(id, state) do
+      handle_event(:app_deployment_deleted, app_deployment, state)
+    end
   end
 
   defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
@@ -660,9 +675,9 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp dispatch_app_deployments(state, %{app_deployments: app_deployments}) do
     app_deployments = Enum.map(app_deployments, &build_app_deployment(state, &1))
-    {created, _, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
+    {created, deleted, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
 
-    dispatch_events(state, app_deployment_created: created)
+    dispatch_events(state, app_deployment_created: created, app_deployment_deleted: deleted)
   end
 
   defp dispatch_agents(state, %{agents: agents}) do
@@ -712,6 +727,9 @@ defmodule Livebook.Hubs.TeamClient do
     do: fetch_entry(state.file_systems, &(&1.external_id == external_id), state)
 
   defp fetch_agent(id, state), do: fetch_entry(state.agents, &(&1.id == id), state)
+
+  defp fetch_app_deployment(id, state),
+    do: fetch_entry(state.app_deployments, &(&1.id == id), state)
 
   defp fetch_entry(entries, fun, state) do
     if entry = Enum.find(entries, fun) do

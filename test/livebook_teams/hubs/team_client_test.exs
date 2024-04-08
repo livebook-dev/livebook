@@ -110,7 +110,7 @@ defmodule Livebook.Hubs.TeamClientTest do
     end
 
     @tag :tmp_dir
-    test "receives app events", %{team: team, tmp_dir: tmp_dir} do
+    test "receives app events", %{team: team, node: node, tmp_dir: tmp_dir} do
       deployment_group = build(:deployment_group, name: team.id, mode: :online)
       assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
 
@@ -142,7 +142,12 @@ defmodule Livebook.Hubs.TeamClientTest do
                         sha: ^sha,
                         title: ^title,
                         deployment_group_id: ^id
-                      }}
+                      } = app_deployment}
+
+      # force app deployment to be deleted
+      erpc_call(node, :stop_app_deployment, [app_deployment.id, team.org_id])
+
+      assert_receive {:app_deployment_deleted, ^app_deployment}
     end
   end
 
@@ -362,6 +367,12 @@ defmodule Livebook.Hubs.TeamClientTest do
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:app_deployment_created, ^app_deployment}, 5000
       assert app_deployment in TeamClient.get_app_deployments(team.id)
+      # deletes the app deployment
+      user_connected = %{user_connected | app_deployments: []}
+      send(pid, {:event, :user_connected, user_connected})
+      assert_receive {:client_connected, ^hub_id}
+      assert_receive {:app_deployment_deleted, ^app_deployment}
+      refute app_deployment in TeamClient.get_app_deployments(team.id)
     end
 
     test "dispatches the agents list", %{team: team, user_connected: user_connected} do
@@ -744,15 +755,28 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:app_deployment_created, ^app_deployment}
-      assert_receive {:app_created, %{pid: app_pid, slug: ^slug}}
+      assert_receive {:app_created, %{slug: ^slug}}
 
       assert_receive {:app_updated,
-                      %{slug: ^slug, sessions: [%{app_status: %{execution: :executed}}]}}
+                      %{
+                        slug: ^slug,
+                        warnings: [],
+                        sessions: [%{app_status: %{execution: :executed}}]
+                      }}
 
       assert app_deployment in TeamClient.get_app_deployments(team.id)
 
-      Livebook.Hubs.delete_hub(team.id)
-      Livebook.App.close(app_pid)
+      agent_connected = %{agent_connected | app_deployments: []}
+      send(pid, {:event, :agent_connected, agent_connected})
+      assert_receive {:app_deployment_deleted, ^app_deployment}
+      refute app_deployment in TeamClient.get_app_deployments(team.id)
+
+      assert_receive {:app_closed,
+                      %{
+                        slug: ^slug,
+                        warnings: [],
+                        sessions: [%{app_status: %{execution: :executed}}]
+                      }}
     end
 
     test "dispatches the agents list", %{team: team, agent_connected: agent_connected} do

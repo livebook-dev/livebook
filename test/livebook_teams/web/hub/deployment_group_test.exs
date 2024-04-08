@@ -251,4 +251,42 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> Floki.text()
            |> String.trim() == "1"
   end
+
+  @tag :tmp_dir
+  test "shows the app deployed count", %{conn: conn, hub: hub, tmp_dir: tmp_dir} do
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP3"
+    %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "0"
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: %{
+          Livebook.Notebook.AppSettings.new()
+          | slug: Livebook.Utils.random_short_id()
+        },
+        name: "MyNotebook",
+        hub_id: hub.id,
+        deployment_group_id: to_string(id)
+    }
+
+    files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+    {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
+    :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "1"
+  end
 end
