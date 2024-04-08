@@ -1,6 +1,5 @@
 {
   "private": true,
-  "//": "If you change the watch script here, remember to update it in /config/dev.exs as well.",
   "scripts": {
     "deploy": "node build.js --deploy",
     "watch": "node build.js --watch",

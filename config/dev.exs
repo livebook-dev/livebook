@@ -18,7 +18,7 @@ config :livebook, LivebookWeb.Endpoint,
   debug_errors: true,
   check_origin: false,
   watchers: [
-    # Keep up to date with /assets/package.json, see discussion 2544.
+    # We invoke node rather than an npm task, so that it works on Windows
     node: ["build.js", "--watch", cd: Path.expand("../assets", __DIR__)]
   ]
 
