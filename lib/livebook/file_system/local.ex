@@ -46,7 +46,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   def list(file_system, path, recursive) do
     FileSystem.Utils.assert_dir_path!(path)
 
-    case File.ls(path) do
+    case file_ls(path) do
       {:ok, filenames} ->
         paths =
           Enum.map(filenames, fn name ->
@@ -70,6 +70,31 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
 
       {:error, error} ->
         FileSystem.Utils.posix_error(error)
+    end
+  end
+
+  defp file_ls(dir) do
+    # TODO: use File.ls/1 back once this is fixed in the OTP version
+    # that we require. See https://github.com/erlang/otp/issues/4779
+    #
+    # Erlang currently chokes on emoji directories on Windows, so we
+    # discard those
+    case :file.list_dir(dir) do
+      {:ok, names} ->
+        {:ok,
+         for(
+           name <- names,
+           string =
+             try do
+               IO.chardata_to_string(name)
+             rescue
+               _ -> nil
+             end,
+           do: string
+         )}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
