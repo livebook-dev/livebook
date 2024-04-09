@@ -1268,6 +1268,48 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert [{:z, 1}, {:y, 1}, {:x, 1}] == binding
     end
 
+    test "uses unambiguous camelization for erlang/elixir bindings", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, :erlang, "{JSON, JsOn, JsON} = {1, 2, 3}.", :code_1, [])
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_), metadata()}
+
+      Evaluator.evaluate_code(
+        evaluator,
+        :elixir,
+        """
+        assertion1 = {j_s_o_n, js_on, js_o_n} == {1, 2, 3}
+        {j_s_o_n, js_on, js_o_n} = {11, 12, 13}
+        """,
+        :code_2,
+        [:code_1]
+      )
+
+      assert_receive {:runtime_evaluation_response, :code_2, terminal_text(_), metadata()}
+
+      Evaluator.evaluate_code(
+        evaluator,
+        :erlang,
+        """
+        Assertion2 = {JSON, JsOn, JsON} =:= {11, 12, 13}.
+        """,
+        :code_3,
+        [:code_2]
+      )
+
+      assert_receive {:runtime_evaluation_response, :code_3, terminal_text(_), metadata()}
+
+      %{binding: binding} =
+        Evaluator.get_evaluation_context(evaluator, [:code_3, :code_2, :code_1])
+
+      assert [
+               {:assertion2, true},
+               {:js_on, 12},
+               {:js_o_n, 13},
+               {:j_s_o_n, 11},
+               {:assertion1, true}
+             ] == binding
+    end
+
     test "inspects erlang results using erlang format", %{evaluator: evaluator} do
       code = ~S"#{x=>1}."
       Evaluator.evaluate_code(evaluator, :erlang, code, :code_1, [], file: "file.ex")
