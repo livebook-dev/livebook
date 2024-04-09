@@ -808,16 +808,46 @@ defmodule Livebook.Runtime.Evaluator do
   defp elixir_to_erlang_var(name) do
     name
     |> :erlang.atom_to_binary()
-    |> Macro.camelize()
+    |> toggle_var_case()
     |> :erlang.binary_to_atom()
   end
 
   defp erlang_to_elixir_var(name) do
     name
     |> :erlang.atom_to_binary()
-    |> Macro.underscore()
+    |> toggle_var_case()
     |> :erlang.binary_to_atom()
   end
+
+  # Unambiguously maps variable names from camel case to underscore
+  # case, and vice-versa. The mapping is defined as follows:
+  #
+  #   1. The first character case is changed
+  #
+  #   2. Underscore followed by lower character maps to upper character,
+  #      and vice-versa
+  #
+  defp toggle_var_case(<<h, t::binary>>) do
+    do_toggle_var_case(<<toggle_char_case(h)>>, t)
+  end
+
+  defp do_toggle_var_case(acc, <<?_, h, t::binary>>) when h >= ?a and h <= ?z do
+    do_toggle_var_case(<<acc::binary, toggle_char_case(h)>>, t)
+  end
+
+  defp do_toggle_var_case(acc, <<h, t::binary>>) when h >= ?A and h <= ?Z do
+    do_toggle_var_case(<<acc::binary, ?_, toggle_char_case(h)>>, t)
+  end
+
+  defp do_toggle_var_case(acc, <<h, t::binary>>) do
+    do_toggle_var_case(<<acc::binary, h>>, t)
+  end
+
+  defp do_toggle_var_case(acc, <<>>), do: acc
+
+  defp toggle_char_case(char) when char >= ?a and char <= ?z, do: char - 32
+  defp toggle_char_case(char) when char >= ?A and char <= ?Z, do: char + 32
+  defp toggle_char_case(char), do: char
 
   defp filter_erlang_code_markers(code_markers) do
     Enum.reject(code_markers, &(&1.line == 0))
