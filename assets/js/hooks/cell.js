@@ -204,9 +204,12 @@ const Cell = {
     liveEditor.onBlur(() => {
       // Prevent from blurring unless the state changes. For example
       // when we move cell using buttons the editor should keep focus
-      if (this.isFocused && this.insertMode) {
-        this.currentEditor().focus();
-      }
+      // if (this.isFocused && this.insertMode) {
+      //   this.currentEditor().focus();
+      // }
+
+      // This doesn't play well with running in the webview iframe,
+      // a focused editor never blurs and steals focus from everywhere
     });
 
     liveEditor.onCursorSelectionChange((selection) => {
