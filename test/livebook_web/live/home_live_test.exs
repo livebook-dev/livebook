@@ -115,9 +115,9 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "close all selected sessions using bulk action", %{conn: conn} do
-      {:ok, session1} = Sessions.create_session()
-      {:ok, session2} = Sessions.create_session()
-      {:ok, session3} = Sessions.create_session()
+      {:ok, %{id: id1} = session1} = Sessions.create_session()
+      {:ok, %{id: id2} = session2} = Sessions.create_session()
+      {:ok, %{id: id3} = session3} = Sessions.create_session()
 
       {:ok, view, _} = live(conn, ~p"/")
 
@@ -134,7 +134,13 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert render(view) =~ "Are you sure you want to close 3 sessions?"
 
+      Sessions.subscribe()
+
       render_confirm(view)
+
+      assert_receive {:session_closed, %{id: ^id1}}
+      assert_receive {:session_closed, %{id: ^id2}}
+      assert_receive {:session_closed, %{id: ^id3}}
 
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id
