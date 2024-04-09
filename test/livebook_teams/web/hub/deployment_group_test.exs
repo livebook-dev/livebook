@@ -8,7 +8,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
-    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :agents])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :app_deployments, :deployment_groups, :agents])
     hub = create_team_hub(user, node)
     id = hub.id
 
@@ -282,6 +282,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
     :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+
+    assert_receive {:app_deployment_started, _}
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
