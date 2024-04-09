@@ -58,12 +58,17 @@ defmodule LivebookProto.Event do
     json_name: "agentConnected",
     oneof: 0
 
-  field :app_deployment_created, 12,
-    type: LivebookProto.AppDeploymentCreated,
-    json_name: "appDeploymentCreated",
+  field :app_deployment_started, 12,
+    type: LivebookProto.AppDeploymentStarted,
+    json_name: "appDeploymentStarted",
     oneof: 0
 
   field :user_deleted, 13, type: LivebookProto.UserDeleted, json_name: "userDeleted", oneof: 0
   field :agent_joined, 14, type: LivebookProto.AgentJoined, json_name: "agentJoined", oneof: 0
   field :agent_left, 15, type: LivebookProto.AgentLeft, json_name: "agentLeft", oneof: 0
+
+  field :app_deployment_stopped, 16,
+    type: LivebookProto.AppDeploymentStopped,
+    json_name: "appDeploymentStopped",
+    oneof: 0
 end

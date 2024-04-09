@@ -336,9 +336,7 @@ defmodule Livebook.Hubs.TeamClient do
   defp remove_deployment_group(state, deployment_group) do
     %{
       state
-      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id)),
-        app_deployments:
-          Enum.reject(state.app_deployments, &(&1.deployment_group_id == deployment_group.id))
+      | deployment_groups: Enum.reject(state.deployment_groups, &(&1.id == deployment_group.id))
     }
   end
 
@@ -554,6 +552,7 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(user_connected)
     |> dispatch_app_deployments(user_connected)
     |> dispatch_agents(user_connected)
+    |> dispatch_connection()
   end
 
   defp handle_event(:agent_connected, agent_connected, state) do
@@ -564,29 +563,47 @@ defmodule Livebook.Hubs.TeamClient do
     |> dispatch_deployment_groups(agent_connected)
     |> dispatch_app_deployments(agent_connected)
     |> dispatch_agents(agent_connected)
+    |> dispatch_connection()
   end
 
-  defp handle_event(:app_deployment_created, %Teams.AppDeployment{} = app_deployment, state) do
+  defp handle_event(:app_deployment_started, %Teams.AppDeployment{} = app_deployment, state) do
     deployment_group_id = app_deployment.deployment_group_id
 
     with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
-      Teams.Broadcasts.app_deployment_created(app_deployment)
-      state = put_app_deployment(state, app_deployment)
-
       if deployment_group.id == state.deployment_group_id do
         manager_sync()
       end
-
-      state
     end
+
+    Teams.Broadcasts.app_deployment_started(app_deployment)
+    put_app_deployment(state, app_deployment)
   end
 
-  defp handle_event(:app_deployment_created, app_deployment_created, state) do
+  defp handle_event(:app_deployment_started, app_deployment_started, state) do
     handle_event(
-      :app_deployment_created,
-      build_app_deployment(state, app_deployment_created.app_deployment),
+      :app_deployment_started,
+      build_app_deployment(state, app_deployment_started.app_deployment),
       state
     )
+  end
+
+  defp handle_event(:app_deployment_stopped, %Teams.AppDeployment{} = app_deployment, state) do
+    deployment_group_id = app_deployment.deployment_group_id
+
+    with {:ok, deployment_group} <- fetch_deployment_group(deployment_group_id, state) do
+      if deployment_group.id == state.deployment_group_id do
+        manager_sync()
+      end
+    end
+
+    Teams.Broadcasts.app_deployment_stopped(app_deployment)
+    remove_app_deployment(state, app_deployment)
+  end
+
+  defp handle_event(:app_deployment_stopped, %{id: id}, state) do
+    with {:ok, app_deployment} <- fetch_app_deployment(id, state) do
+      handle_event(:app_deployment_stopped, app_deployment, state)
+    end
   end
 
   defp handle_event(:agent_joined, %Teams.Agent{} = agent, state) do
@@ -660,9 +677,9 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp dispatch_app_deployments(state, %{app_deployments: app_deployments}) do
     app_deployments = Enum.map(app_deployments, &build_app_deployment(state, &1))
-    {created, _, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
+    {started, stopped, _} = diff(state.app_deployments, app_deployments, &(&1.id == &2.id))
 
-    dispatch_events(state, app_deployment_created: created)
+    dispatch_events(state, app_deployment_started: started, app_deployment_stopped: stopped)
   end
 
   defp dispatch_agents(state, %{agents: agents}) do
@@ -670,6 +687,11 @@ defmodule Livebook.Hubs.TeamClient do
     {joined, left, _} = diff(state.agents, agents, &(&1.id == &2.id))
 
     dispatch_events(state, agent_joined: joined, agent_left: left)
+  end
+
+  defp dispatch_connection(%{hub: %{id: id}} = state) do
+    Teams.Broadcasts.client_connected(id)
+    state
   end
 
   defp update_hub(state, %{public_key: org_public_key}) do
@@ -712,6 +734,9 @@ defmodule Livebook.Hubs.TeamClient do
     do: fetch_entry(state.file_systems, &(&1.external_id == external_id), state)
 
   defp fetch_agent(id, state), do: fetch_entry(state.agents, &(&1.id == id), state)
+
+  defp fetch_app_deployment(id, state),
+    do: fetch_entry(state.app_deployments, &(&1.id == id), state)
 
   defp fetch_entry(entries, fun, state) do
     if entry = Enum.find(entries, fun) do

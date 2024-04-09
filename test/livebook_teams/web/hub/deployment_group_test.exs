@@ -8,11 +8,12 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   setup %{user: user, node: node} do
     Livebook.Hubs.Broadcasts.subscribe([:crud, :connection, :secrets, :file_systems])
-    Livebook.Teams.Broadcasts.subscribe([:deployment_groups, :agents])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :app_deployments, :deployment_groups, :agents])
     hub = create_team_hub(user, node)
     id = hub.id
 
     assert_receive {:hub_connected, ^id}
+    assert_receive {:client_connected, ^id}
 
     {:ok, hub: hub}
   end
@@ -214,7 +215,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "shows the agent count", %{conn: conn, hub: hub} do
-    name = "TEAMS_EDIT_DEPLOYMENT_GROUP"
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP2"
     %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
@@ -246,6 +247,46 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "1"
+  end
+
+  @tag :tmp_dir
+  test "shows the app deployed count", %{conn: conn, hub: hub, tmp_dir: tmp_dir} do
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP3"
+    %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+
+    {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
+           |> render()
+           |> Floki.parse_fragment!()
+           |> Floki.text()
+           |> String.trim() == "0"
+
+    notebook = %{
+      Livebook.Notebook.new()
+      | app_settings: %{
+          Livebook.Notebook.AppSettings.new()
+          | slug: Livebook.Utils.random_short_id()
+        },
+        name: "MyNotebook",
+        hub_id: hub.id,
+        deployment_group_id: to_string(id)
+    }
+
+    files_dir = Livebook.FileSystem.File.local(tmp_dir)
+
+    {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
+    :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+
+    assert_receive {:app_deployment_started, _}
+
+    assert view
+           |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
            |> render()
            |> Floki.parse_fragment!()
            |> Floki.text()

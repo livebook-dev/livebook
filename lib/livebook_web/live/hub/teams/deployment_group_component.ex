@@ -65,7 +65,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </.link>
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Apps deployed">
-            <span class="text-lg font-normal"><%= @app_deployments_count %></span>
+            <span class="text-lg font-normal" aria-label="apps deployed">
+              <%= @app_deployments_count %>
+            </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/apps/new"}
               class="pl-2 text-blue-600"
