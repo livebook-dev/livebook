@@ -352,7 +352,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
           aria-label="copy to clipboard"
           phx-click={
             JS.dispatch("lb:clipcopy", to: "#teams-key")
-            |> JS.transition("tooltip top", time: 2000)
+            |> JS.transition("tooltip left", time: 2000)
           }
         >
           <.button color="gray" small type="button">
