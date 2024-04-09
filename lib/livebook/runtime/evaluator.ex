@@ -831,11 +831,11 @@ defmodule Livebook.Runtime.Evaluator do
     do_toggle_var_case(<<toggle_char_case(h)>>, t)
   end
 
-  defp do_toggle_var_case(acc, <<?_, h, t::binary>>) when h >= ?a and h <= ?z do
+  defp do_toggle_var_case(acc, <<?_, h, t::binary>>) when h in ?a..?z do
     do_toggle_var_case(<<acc::binary, toggle_char_case(h)>>, t)
   end
 
-  defp do_toggle_var_case(acc, <<h, t::binary>>) when h >= ?A and h <= ?Z do
+  defp do_toggle_var_case(acc, <<h, t::binary>>) when h in ?A..?Z do
     do_toggle_var_case(<<acc::binary, ?_, toggle_char_case(h)>>, t)
   end
 
@@ -845,8 +845,8 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp do_toggle_var_case(acc, <<>>), do: acc
 
-  defp toggle_char_case(char) when char >= ?a and char <= ?z, do: char - 32
-  defp toggle_char_case(char) when char >= ?A and char <= ?Z, do: char + 32
+  defp toggle_char_case(char) when char in ?a..?z, do: char - 32
+  defp toggle_char_case(char) when char in ?A..?Z, do: char + 32
   defp toggle_char_case(char), do: char
 
   defp filter_erlang_code_markers(code_markers) do
