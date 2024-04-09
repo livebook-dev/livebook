@@ -828,24 +828,22 @@ defmodule Livebook.Runtime.Evaluator do
   #      and vice-versa
   #
   defp toggle_var_case(<<h, t::binary>>) do
-    <<toggle_char_case(h)>> <> do_toggle_var_case(t)
+    do_toggle_var_case(<<toggle_char_case(h)>>, t)
   end
 
-  defp do_toggle_var_case(<<?_, h, t::binary>>) when h >= ?a and h <= ?z do
-    <<toggle_char_case(h)>> <> do_toggle_var_case(t)
+  defp do_toggle_var_case(acc, <<?_, h, t::binary>>) when h >= ?a and h <= ?z do
+    do_toggle_var_case(<<acc::binary, toggle_char_case(h)>>, t)
   end
 
-  defp do_toggle_var_case(<<h, t::binary>>) when h >= ?A and h <= ?Z do
-    <<?_, toggle_char_case(h)>> <> do_toggle_var_case(t)
+  defp do_toggle_var_case(acc, <<h, t::binary>>) when h >= ?A and h <= ?Z do
+    do_toggle_var_case(<<acc::binary, ?_, toggle_char_case(h)>>, t)
   end
 
-  defp do_toggle_var_case(<<h, t::binary>>) do
-    <<h>> <> do_toggle_var_case(t)
+  defp do_toggle_var_case(acc, <<h, t::binary>>) do
+    do_toggle_var_case(<<acc::binary, h>>, t)
   end
 
-  defp do_toggle_var_case(<<>>) do
-    <<>>
-  end
+  defp do_toggle_var_case(acc, <<>>), do: acc
 
   defp toggle_char_case(char) when char >= ?a and char <= ?z, do: char - 32
   defp toggle_char_case(char) when char >= ?A and char <= ?Z, do: char + 32
