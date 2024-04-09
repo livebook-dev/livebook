@@ -136,7 +136,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       sha = app_deployment.sha
 
-      assert_receive {:app_deployment_created,
+      assert_receive {:app_deployment_started,
                       %Livebook.Teams.AppDeployment{
                         slug: ^slug,
                         sha: ^sha,
@@ -147,7 +147,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # force app deployment to be deleted
       erpc_call(node, :stop_app_deployment, [app_deployment.id, team.org_id])
 
-      assert_receive {:app_deployment_deleted, ^app_deployment}
+      assert_receive {:app_deployment_stopped, ^app_deployment}
     end
   end
 
@@ -367,14 +367,14 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:client_connected, ^hub_id}
-      assert_receive {:app_deployment_created, ^app_deployment}, 5000
+      assert_receive {:app_deployment_started, ^app_deployment}, 5000
       assert app_deployment in TeamClient.get_app_deployments(team.id)
 
       # deletes the app deployment
       user_connected = %{user_connected | app_deployments: []}
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:client_connected, ^hub_id}
-      assert_receive {:app_deployment_deleted, ^app_deployment}
+      assert_receive {:app_deployment_stopped, ^app_deployment}
       refute app_deployment in TeamClient.get_app_deployments(team.id)
     end
 
@@ -777,7 +777,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       Livebook.Apps.subscribe()
 
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:app_deployment_created, ^app_deployment}
+      assert_receive {:app_deployment_started, ^app_deployment}
       assert_receive {:app_created, %{slug: ^slug}}
 
       assert_receive {:app_updated,
@@ -791,7 +791,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       agent_connected = %{agent_connected | app_deployments: []}
       send(pid, {:event, :agent_connected, agent_connected})
-      assert_receive {:app_deployment_deleted, ^app_deployment}
+      assert_receive {:app_deployment_stopped, ^app_deployment}
       refute app_deployment in TeamClient.get_app_deployments(team.id)
 
       assert_receive {:app_closed,

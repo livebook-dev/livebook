@@ -20,8 +20,8 @@ defmodule Livebook.Teams.Broadcasts do
 
   Topic `#{@app_deployments_topic}`:
 
-    * `{:app_deployment_created, AppDeployment.t()}`
-    * `{:app_deployment_deleted, AppDeployment.t()}`
+    * `{:app_deployment_started, AppDeployment.t()}`
+    * `{:app_deployment_stopped, AppDeployment.t()}`
 
   Topic `#{@clients_topic}`:
 
@@ -92,19 +92,19 @@ defmodule Livebook.Teams.Broadcasts do
   end
 
   @doc """
-  Broadcasts under `#{@app_deployments_topic}` topic when hub received a new app deployment.
+  Broadcasts under `#{@app_deployments_topic}` topic when hub received to start a new app deployment.
   """
-  @spec app_deployment_created(AppDeployment.t()) :: broadcast()
-  def app_deployment_created(%AppDeployment{} = app_deployment) do
-    broadcast(@app_deployments_topic, {:app_deployment_created, app_deployment})
+  @spec app_deployment_started(AppDeployment.t()) :: broadcast()
+  def app_deployment_started(%AppDeployment{} = app_deployment) do
+    broadcast(@app_deployments_topic, {:app_deployment_started, app_deployment})
   end
 
   @doc """
-  Broadcasts under `#{@app_deployments_topic}` topic when hub received a deleted app deployment.
+  Broadcasts under `#{@app_deployments_topic}` topic when hub received to stop an app deployment.
   """
-  @spec app_deployment_deleted(AppDeployment.t()) :: broadcast()
-  def app_deployment_deleted(%AppDeployment{} = app_deployment) do
-    broadcast(@app_deployments_topic, {:app_deployment_deleted, app_deployment})
+  @spec app_deployment_stopped(AppDeployment.t()) :: broadcast()
+  def app_deployment_stopped(%AppDeployment{} = app_deployment) do
+    broadcast(@app_deployments_topic, {:app_deployment_stopped, app_deployment})
   end
 
   @doc """

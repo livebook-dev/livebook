@@ -126,11 +126,11 @@ message AppDeployment {
   int64 deployed_at = 8;
 }
 
-message AppDeploymentCreated {
+message AppDeploymentStarted {
   AppDeployment app_deployment = 1;
 }
 
-message AppDeploymentDeleted {
+message AppDeploymentStopped {
   string id = 1;
 }
 
@@ -166,10 +166,10 @@ message Event {
     DeploymentGroupUpdated deployment_group_updated = 9;
     DeploymentGroupDeleted deployment_group_deleted = 10;
     AgentConnected agent_connected = 11;
-    AppDeploymentCreated app_deployment_created = 12;
+    AppDeploymentStarted app_deployment_started = 12;
     UserDeleted user_deleted = 13;
     AgentJoined agent_joined = 14;
     AgentLeft agent_left = 15;
-    AppDeploymentDeleted app_deployment_deleted = 16;
+    AppDeploymentStopped app_deployment_stopped = 16;
   }
 }
