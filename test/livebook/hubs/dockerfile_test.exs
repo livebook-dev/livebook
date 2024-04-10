@@ -206,9 +206,57 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
   end
 
+  describe "agent_docker_info/3" do
+    test "includes agent authentication env vars" do
+      config = dockerfile_config()
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.agent_docker_info(config, hub, agent_key)
+
+      assert env == [
+               {"LIVEBOOK_AGENT_NAME", "default"},
+               {"LIVEBOOK_TEAMS_KEY", "lb_tk_fn0pL3YLWzPoPFWuHeV3kd0o7_SFuIOoU4C_k6OWDYg"},
+               {"LIVEBOOK_TEAMS_AUTH",
+                "online:org-name-387:1:1:lb_ak_zj9tWM1rEVeweYR7DbH_2VK5_aKtWfptcL07dBncqg"}
+             ]
+    end
+
+    test "deploying with zta" do
+      config = dockerfile_config(%{zta_provider: :cloudflare, zta_key: "cloudflare_key"})
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.agent_docker_info(config, hub, agent_key)
+
+      assert {"LIVEBOOK_IDENTITY_PROVIDER", "cloudflare:cloudflare_key"} in env
+    end
+
+    test "deploying with different base image" do
+      config = dockerfile_config(%{docker_tag: "#{@docker_tag}-cuda11.8"})
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{image: image, env: env} = Dockerfile.agent_docker_info(config, hub, agent_key)
+
+      assert image == "ghcr.io/livebook-dev/livebook:#{@docker_tag}-cuda11.8"
+      assert {"XLA_TARGET", "cuda118"} in env
+    end
+
+    test "deploying with fly.io cluster setup" do
+      config = dockerfile_config(%{clustering: :fly_io})
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.agent_docker_info(config, hub, agent_key)
+
+      assert {"LIVEBOOK_CLUSTER", "fly"} in env
+    end
+  end
+
   describe "warnings/6" do
     test "warns when session secrets are used" do
-      config = dockerfile_config()
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -220,7 +268,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when hub secrets are used from personal hub" do
-      config = dockerfile_config()
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -236,7 +284,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when there is a reference to external file system from personal hub" do
-      config = dockerfile_config()
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -255,7 +303,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when deploying a directory in personal hub and it has any file systems" do
-      config = dockerfile_config(%{deploy_all: true})
+      config = dockerfile_config(%{clustering: :fly_io, deploy_all: true})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -269,7 +317,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when the app has no password in personal hub" do
-      config = dockerfile_config()
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = personal_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
@@ -278,7 +326,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when the app has no password and no ZTA in teams hub" do
-      config = dockerfile_config()
+      config = dockerfile_config(%{clustering: :fly_io})
       hub = team_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
@@ -286,6 +334,19 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert warning =~ "This app has no password configuration"
 
       config = %{config | zta_provider: :cloudflare, zta_key: "key"}
+
+      assert [] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
+    end
+
+    test "warns when no clustering is configured" do
+      config = dockerfile_config(%{})
+      hub = team_hub()
+      app_settings = Livebook.Notebook.AppSettings.new()
+
+      assert [warning] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
+      assert warning =~ "The deployment is not configured for clustering"
+
+      config = %{config | clustering: :fly_io}
 
       assert [] = Dockerfile.warnings(config, hub, [], [], app_settings, [], %{})
     end

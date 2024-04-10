@@ -30,7 +30,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         hub_file_systems: Hubs.get_file_systems(assigns.hub, hub_only: true),
         deployment_groups: deployment_groups,
         deployment_group: deployment_group,
-        deployment_group_form: %{"deployment_group_id" => assigns.deployment_group_id},
         deployment_group_id: assigns.deployment_group_id
       )
       |> assign_new(:messages, fn -> [] end)
@@ -50,12 +49,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
   defp base_config(socket) do
     if deployment_group = socket.assigns.deployment_group do
-      %{
-        Hubs.Dockerfile.config_new()
-        | clustering: deployment_group.clustering,
-          zta_provider: deployment_group.zta_provider,
-          zta_key: deployment_group.zta_key
-      }
+      Hubs.Dockerfile.from_deployment_group(deployment_group)
     else
       Hubs.Dockerfile.config_new()
     end
@@ -74,7 +68,6 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         hub={@hub}
         deployment_group={@deployment_group}
         deployment_groups={@deployment_groups}
-        deployment_group_form={@deployment_group_form}
         deployment_group_id={@deployment_group_id}
         changeset={@changeset}
         session={@session}
@@ -138,18 +131,18 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
         <%= if @deployment_groups do %>
           <%= if @deployment_groups != [] do %>
             <.form
-              for={@deployment_group_form}
+              :let={f}
+              for={%{"id" => @deployment_group_id}}
+              as={:deployment_group}
               phx-change="select_deployment_group"
               phx-target={@myself}
               id="select_deployment_group_form"
             >
               <.select_field
                 help={deployment_group_help()}
-                field={@deployment_group_form[:deployment_group_id]}
+                field={f[:id]}
                 options={deployment_group_options(@deployment_groups)}
                 label="Deployment Group"
-                name="deployment_group_id"
-                value={@deployment_group_id}
               />
             </.form>
           <% else %>
@@ -311,7 +304,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
     end
   end
 
-  def handle_event("select_deployment_group", %{"deployment_group_id" => id}, socket) do
+  def handle_event("select_deployment_group", %{"deployment_group" => %{"id" => id}}, socket) do
     id = if(id != "", do: id)
     Livebook.Session.set_notebook_deployment_group(socket.assigns.session.pid, id)
 

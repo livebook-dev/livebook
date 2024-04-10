@@ -30,6 +30,19 @@ defmodule Livebook.Hubs.Dockerfile do
   end
 
   @doc """
+  Builds Dockerfile configuration with defaults from deployment group.
+  """
+  @spec from_deployment_group(Livebook.Teams.DeploymentGroup.t()) :: config()
+  def from_deployment_group(deployment_group) do
+    %{
+      config_new()
+      | clustering: deployment_group.clustering,
+        zta_provider: deployment_group.zta_provider,
+        zta_key: deployment_group.zta_key
+    }
+  end
+
+  @doc """
   Builds a changeset for app Dockerfile configuration.
   """
   @spec config_changeset(config(), map()) :: Ecto.Changeset.t()
@@ -121,8 +134,13 @@ defmodule Livebook.Hubs.Dockerfile do
     RUN /app/bin/warmup_apps
     """
 
-    random_secret_key_base = Livebook.Utils.random_secret_key_base()
-    random_cookie = Livebook.Utils.random_cookie()
+    secret_key =
+      case hub_type do
+        "team" -> hub.teams_key
+        "personal" -> hub.secret_key
+      end
+
+    {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
 
     startup =
       if config.clustering == :fly_io do
@@ -130,8 +148,8 @@ defmodule Livebook.Hubs.Dockerfile do
         # --- Clustering ---
 
         # Set the same Livebook secrets across all nodes
-        ENV LIVEBOOK_SECRET_KEY_BASE "#{random_secret_key_base}"
-        ENV LIVEBOOK_COOKIE "#{random_cookie}"
+        ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
+        ENV LIVEBOOK_COOKIE "#{cookie}"
         ENV LIVEBOOK_CLUSTER "fly"
         """
       end
@@ -149,33 +167,16 @@ defmodule Livebook.Hubs.Dockerfile do
     |> Enum.join("\n")
   end
 
-  @doc """
-  Builds Dockerfile definition for Livebook Agent app deployment.
-  """
-  @spec build_agent_dockerfile(config(), Hubs.Provider.t()) :: String.t()
-  def build_agent_dockerfile(config, hub) do
-    base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
+  defp deterministic_skb_and_cookie(secret_key) do
+    hash = :crypto.hash(:sha256, secret_key)
 
-    image = """
-    FROM ghcr.io/livebook-dev/livebook:#{base_image.tag}
-    """
+    <<left::48-binary, right::39-binary>> =
+      Plug.Crypto.KeyGenerator.generate(hash, "dockerfile",
+        cache: Plug.Crypto.Keys,
+        length: 48 + 39
+      )
 
-    image_envs = format_envs(base_image.env)
-
-    hub_config = """
-    # Teams Hub configuration for Livebook Agent deployment
-    ENV LIVEBOOK_AGENT_NAME ""
-    ENV LIVEBOOK_TEAMS_KEY "#{hub.teams_key}"
-    ENV LIVEBOOK_TEAMS_AUTH "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:${LIVEBOOK_AGENT_KEY}"
-    """
-
-    [
-      image,
-      image_envs,
-      hub_config
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join("\n")
+    {Base.url_encode64(left, padding: false), "c_" <> Base.url_encode64(right, padding: false)}
   end
 
   defp format_hub_config("team", config, hub, hub_file_systems, used_secrets) do
@@ -290,6 +291,48 @@ defmodule Livebook.Hubs.Dockerfile do
   end
 
   @doc """
+  Returns information for deploying Livebook Agent using Docker.
+  """
+  @spec agent_docker_info(config(), Hubs.Provider.t(), Livebook.Teams.AgentKey.t()) :: %{
+          image: String.t(),
+          env: list({String.t(), String.t()})
+        }
+  def agent_docker_info(config, %Hubs.Team{} = hub, agent_key) do
+    base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
+
+    image = "ghcr.io/livebook-dev/livebook:#{base_image.tag}"
+
+    env = [
+      {"LIVEBOOK_AGENT_NAME", "default"},
+      {"LIVEBOOK_TEAMS_KEY", "#{hub.teams_key}"},
+      {"LIVEBOOK_TEAMS_AUTH",
+       "online:#{hub.hub_name}:#{hub.org_id}:#{hub.org_key_id}:#{agent_key.key}"}
+    ]
+
+    hub_env =
+      if zta_configured?(config) do
+        [{"LIVEBOOK_IDENTITY_PROVIDER", "#{config.zta_provider}:#{config.zta_key}"}]
+      else
+        []
+      end
+
+    clustering_env =
+      if config.clustering == :fly_io do
+        {secret_key_base, cookie} = deterministic_skb_and_cookie(hub.teams_key)
+
+        [
+          {"LIVEBOOK_CLUSTER", "fly"},
+          {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
+          {"LIVEBOOK_COOKIE", cookie}
+        ]
+      else
+        []
+      end
+
+    %{image: image, env: base_image.env ++ env ++ hub_env ++ clustering_env}
+  end
+
+  @doc """
   Returns a list of Dockerfile-related warnings.
 
   The returned messages may include HTML.
@@ -310,7 +353,7 @@ defmodule Livebook.Hubs.Dockerfile do
           "The notebook uses session secrets, but those are not available to deployed apps." <>
             " Convert them to Hub secrets instead."
         end
-      ]
+      ] ++ config_warnings(config)
 
     hub_warnings =
       case Hubs.Provider.type(hub) do
@@ -353,5 +396,24 @@ defmodule Livebook.Hubs.Dockerfile do
       end
 
     Enum.reject(common_warnings ++ hub_warnings, &is_nil/1)
+  end
+
+  defp config_warnings(config) do
+    [
+      if config.clustering == nil do
+        "The deployment is not configured for clustering. Make sure to run only one instance" <>
+          " of Livebook, or configure clustering."
+      end
+    ]
+  end
+
+  @doc """
+  Returns warnings specific to agent Docker deployment.
+  """
+  @spec agent_warnings(config()) :: list(String.t())
+  def agent_warnings(config) do
+    warnings = config_warnings(config)
+
+    Enum.reject(warnings, &is_nil/1)
   end
 end
