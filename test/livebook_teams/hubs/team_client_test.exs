@@ -145,7 +145,7 @@ defmodule Livebook.Hubs.TeamClientTest do
                       } = app_deployment}
 
       # force app deployment to be deleted
-      erpc_call(node, :stop_app_deployment, [app_deployment.id, team.org_id])
+      erpc_call(node, :toggle_app_deployment, [app_deployment.id, team.org_id])
 
       assert_receive {:app_deployment_stopped, ^app_deployment}
     end

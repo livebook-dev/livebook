@@ -13,7 +13,20 @@ defmodule Livebook.TeamsServer do
 
   def setup do
     if available?() do
-      mix(%__MODULE__{}, ["compile"])
+      :ok =
+        mix(%__MODULE__{}, [
+          "do",
+          "compile",
+          "+",
+          "ecto.drop",
+          "--quiet",
+          "+",
+          "ecto.create",
+          "--quiet",
+          "+",
+          "ecto.migrate",
+          "--quiet"
+        ])
     end
   end
 
@@ -48,8 +61,6 @@ defmodule Livebook.TeamsServer do
   @impl true
   def handle_continue(:start_app, state) do
     ensure_app_dir!()
-    prepare_database(state)
-
     {:noreply, %{state | port: start_app(state)}}
   end
 
@@ -180,12 +191,6 @@ defmodule Livebook.TeamsServer do
   defp fetch_url(state) do
     port = state.app_port || app_port()
     "http://localhost:#{port}"
-  end
-
-  defp prepare_database(state) do
-    :ok = mix(state, ["ecto.drop", "--quiet"])
-    :ok = mix(state, ["ecto.create", "--quiet"])
-    :ok = mix(state, ["ecto.migrate", "--quiet"])
   end
 
   defp ensure_app_dir! do
