@@ -312,7 +312,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
         :if={@live_action == :new_deployment_group}
         id="deployment-group-modal"
         show
-        width={:medium}
+        width={:big}
         patch={~p"/hub/#{@hub.id}"}
       >
         <.live_component

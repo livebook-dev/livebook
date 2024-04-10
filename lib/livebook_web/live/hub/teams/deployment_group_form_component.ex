@@ -45,6 +45,23 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
+            <div>
+              <label class="mb-2 flex items-center gap-1 text-sm text-gray-800 font-medium">
+                Type
+              </label>
+              <div class="flex gap-y-6 sm:gap-x-4">
+                <.radio_card field={@form[:mode]} title="Online" value={:online}>
+                  Deploy notebooks to your infrastructure with the click of a button.
+                  This mode requires running app servers connected to Livebook Teams.
+                </.radio_card>
+
+                <.radio_card field={@form[:mode]} title="Airgapped" value={:offline}>
+                  Manually deploy notebooks to your infrastructure via Dockerfiles.
+                  Connection to Livebook Teams is not required.
+                </.radio_card>
+              </div>
+            </div>
+
             <.text_field
               field={@form[:name]}
               label="Name"
@@ -52,19 +69,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               spellcheck="false"
               autocomplete="off"
               phx-debounce
-            />
-            <.select_field
-              label="Mode"
-              help={
-                ~S'''
-                Deployment group mode.
-                '''
-              }
-              field={@form[:mode]}
-              options={[
-                {"Offline", :offline},
-                {"Online", :online}
-              ]}
             />
 
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={@form} />
@@ -83,6 +87,43 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
         </.form>
       </div>
     </div>
+    """
+  end
+
+  defp radio_card(assigns) do
+    ~H"""
+    <label class={[
+      "relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none w-1/2",
+      to_string(@field.value) == to_string(@value) &&
+        "border-blue-500 ring-1 ring-blue-500"
+    ]}>
+      <input
+        type="radio"
+        name={@field.name}
+        value={@value}
+        checked={to_string(@field.value) == to_string(@value)}
+        class="sr-only"
+      />
+      <span class="flex flex-1">
+        <span class="flex flex-col">
+          <span class="block text-sm font-medium text-gray-900">
+            <%= @title %>
+          </span>
+          <span class="mt-1 flex items-center text-sm text-gray-700">
+            <%= render_slot(@inner_block) %>
+          </span>
+        </span>
+      </span>
+      <.remix_icon
+        icon="checkbox-circle-fill"
+        class={[
+          "text-blue-600 h-5 w-5",
+          if(to_string(@field.value) == to_string(@value), do: "visible", else: "invisible")
+        ]}
+      />
+      <span class="pointer-events-none absolute -inset-px rounded-lg border-2" aria-hidden="true">
+      </span>
+    </label>
     """
   end
 

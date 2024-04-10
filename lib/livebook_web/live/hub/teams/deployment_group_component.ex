@@ -36,7 +36,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
                   Online
                 </div>
               <% else %>
-                <div class="bg-red-100 text-red-800 text-xs px-2.5 py-0.5 rounded cursor-default">
+                <div class="bg-gray-200 text-gray-800 text-xs px-2.5 py-0.5 rounded cursor-default">
                   Airgapped
                 </div>
               <% end %>

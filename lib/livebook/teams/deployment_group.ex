@@ -23,7 +23,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
     field :name, :string
-    field :mode, Ecto.Enum, values: [:online, :offline]
+    field :mode, Ecto.Enum, values: [:online, :offline], default: :online
     field :hub_id, :string
     field :clustering, Ecto.Enum, values: [:fly_io]
     field :zta_provider, Ecto.Enum, values: @zta_providers
