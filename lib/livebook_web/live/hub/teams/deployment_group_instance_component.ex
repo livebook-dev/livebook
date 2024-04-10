@@ -81,7 +81,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
   defp content(assigns) do
     ~H"""
     <div class="flex flex-col gap-3">
-      <p class="text-gray-700">
+      <p class="mb-5 text-gray-700">
         Use the instructions below to set up an instance in your own infrastructure.
         Once the instance is running, it will connect to Livebook Teams and become
         available for app deployments.
