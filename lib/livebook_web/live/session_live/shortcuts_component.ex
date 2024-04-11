@@ -93,6 +93,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["M"], desc: "Insert Markdown cell above"},
       %{seq: ["c"], desc: "Expand/collapse section"},
       %{seq: ["C"], desc: "Expand/collapse all sections"},
+      %{seq: ["G"], desc: "Focus bottom cell"},
+      %{seq: ["g", "g"], desc: "Focus top cell"},
       %{seq: ["v", "z"], desc: "Toggle code zen view"},
       %{seq: ["v", "p"], desc: "Toggle presentation view"},
       %{seq: ["v", "c"], desc: "Toggle custom view"},

@@ -409,6 +409,10 @@ const Session = {
         this.moveFocusedCell(1);
       } else if (keyBuffer.tryMatch(["K"])) {
         this.moveFocusedCell(-1);
+      } else if (keyBuffer.tryMatch(["g", "g"])) {
+        this.moveFocusToTop();
+      } else if (keyBuffer.tryMatch(["G"])) {
+        this.moveFocusToBottom();
       } else if (keyBuffer.tryMatch(["n"])) {
         this.insertCellBelowFocused("code");
       } else if (keyBuffer.tryMatch(["N"])) {
@@ -959,6 +963,20 @@ const Session = {
   moveFocus(offset) {
     const focusableId = this.nearbyFocusableId(this.focusedId, offset);
     this.setFocusedEl(focusableId);
+  },
+
+  moveFocusToTop() {
+    const focusableIds = this.getFocusableIds();
+    if (focusableIds.length > 0) {
+      this.setFocusedEl(focusableIds[0]);
+    }
+  },
+
+  moveFocusToBottom() {
+    const focusableIds = this.getFocusableIds();
+    if (focusableIds.length > 0) {
+      this.setFocusedEl(focusableIds[focusableIds.length - 1]);
+    }
   },
 
   moveFocusedCell(offset) {
