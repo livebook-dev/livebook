@@ -40,7 +40,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-3">
+    <div class="p-6 max-w-4xl flex flex-col gap-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         App server setup
       </h3>
@@ -51,36 +51,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
         deployment group.
       </p>
 
-      <.content
-        hub={@hub}
-        deployment_group={@deployment_group}
-        myself={@myself}
-        agent_key_id={@agent_key_id}
-        changeset={@changeset}
-        instructions={@instructions}
-        messages={@messages}
-      />
-    </div>
-    """
-  end
-
-  defp content(%{deployment_group: %{agent_keys: []}} = assigns) do
-    ~H"""
-    <.message_box kind={:info}>
-      This deployment group has no server keys, you can add one <.link
-        href={Livebook.Config.teams_url() <> "/orgs/#{@hub.org_id}/deployments/groups/#{@deployment_group.id}/server-keys"}
-        class="text-sm font-semibold text-blue-600  hover:text-blue-700"
-        target="_blank"
-      >
-        on Teams <.remix_icon icon="external-link-line" />
-      </.link>.
-    </.message_box>
-    """
-  end
-
-  defp content(assigns) do
-    ~H"""
-    <div class="flex flex-col gap-3">
       <p class="mb-5 text-gray-700">
         Use the instructions below to set up an instance in your own infrastructure.
         Once the instance is running, it will connect to Livebook Teams and become
