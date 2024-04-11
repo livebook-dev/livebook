@@ -227,7 +227,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
     envs = Enum.map_join(env, "\n", fn {key, value} -> ~s/  -e #{key}="#{value}" \\/ end)
 
     """
-    docker run -p 8080:8080 -p 8081:8081 --pull \\
+    docker run -p 8080:8080 -p 8081:8081 --pull always \\
     #{envs}
       #{image}
     """
