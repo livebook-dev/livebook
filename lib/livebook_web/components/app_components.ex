@@ -91,7 +91,7 @@ defmodule LivebookWeb.AppComponents do
 
   def deployment_group_form_content(assigns) do
     ~H"""
-    <div class="grid grid-cols-1 md:grid-cols-2">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <.select_field
         label="Clustering"
         help={

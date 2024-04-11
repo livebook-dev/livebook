@@ -1,7 +1,6 @@
 defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Hubs
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -61,7 +60,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/agents/new"}
               class="pl-2 text-blue-600"
             >
-              + Add new
+              + Deploy
             </.link>
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Apps deployed">
@@ -148,80 +147,12 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           width={:big}
           patch={~p"/hub/#{@hub.id}"}
         >
-          <div class="p-6 max-w-4xl flex flex-col space-y-3">
-            <h3 class="text-2xl font-semibold text-gray-800">
-              Deployment group instance setup
-            </h3>
-
-            <p class="text-gray-700">
-              A deployment group instance is an instance of Livebook where you can
-              deploy Livebook apps via Livebook Teams.
-            </p>
-
-            <.table id="hub-agent-keys-table" rows={@deployment_group.agent_keys}>
-              <:col :let={agent_key} label="ID"><%= agent_key.id %></:col>
-              <:col :let={agent_key} label="Key">
-                <div class="flex flex-nowrap gap-2">
-                  <div class="grow">
-                    <.password_field
-                      id={"agent-key-#{agent_key.id}"}
-                      name="agent_key"
-                      value={agent_key.key}
-                      readonly
-                    />
-                  </div>
-
-                  <span
-                    data-tooltip="Copied to clipboard"
-                    aria-label="copy to clipboard"
-                    phx-click={
-                      JS.dispatch("lb:clipcopy", to: "#agent-key-#{agent_key.id}")
-                      |> JS.transition("tooltip top", time: 2000)
-                    }
-                  >
-                    <.button color="gray" small type="button">
-                      <.remix_icon icon="clipboard-line" class="text-xl leading-none py-1" />
-                    </.button>
-                  </span>
-                </div>
-              </:col>
-            </.table>
-
-            <p class="text-gray-700">
-              Use the Dockerfile below to set up an instance in your own infrastructure.
-              Once the instance is running, it will connect to Livebook Teams and become
-              available for app deployments.
-            </p>
-
-            <div class="flex flex-col gap-4">
-              <div>
-                <div class="flex items-end mb-1 gap-1">
-                  <span class="text-sm text-gray-700 font-semibold">Dockerfile</span>
-                  <div class="grow" />
-                  <.button
-                    color="gray"
-                    small
-                    data-tooltip="Copied to clipboard"
-                    type="button"
-                    aria-label="copy to clipboard"
-                    phx-click={
-                      JS.dispatch("lb:clipcopy", to: "#agent-dockerfile-source")
-                      |> JS.add_class("", transition: {"tooltip top", "", ""}, time: 2000)
-                    }
-                  >
-                    <.remix_icon icon="clipboard-line" />
-                    <span>Copy source</span>
-                  </.button>
-                </div>
-
-                <.code_preview
-                  source_id="agent-dockerfile-source"
-                  source={Hubs.Dockerfile.build_agent_dockerfile(Hubs.Dockerfile.config_new(), @hub)}
-                  language="dockerfile"
-                />
-              </div>
-            </div>
-          </div>
+          <.live_component
+            module={LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent}
+            id="deployment-group-agent-instance"
+            hub={@hub}
+            deployment_group={@deployment_group}
+          />
         </.modal>
 
         <.modal

@@ -686,7 +686,7 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  @doc ~S"""
+  @doc """
   Renders a table with generic styling.
 
   ## Examples
@@ -758,7 +758,7 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  @doc ~S"""
+  @doc """
   Renders a button.
 
   ## Examples
@@ -836,7 +836,7 @@ defmodule LivebookWeb.CoreComponents do
     ]
   end
 
-  @doc ~S"""
+  @doc """
   Renders an icon button.
 
   ## Examples
@@ -884,6 +884,57 @@ defmodule LivebookWeb.CoreComponents do
         "text-gray-500 hover:text-gray-900 focus:bg-gray-100"
       end
     ]
+  end
+
+  @doc """
+  Renders stateful tabs with content.
+
+  ## Examples
+
+      <.tabs id="animals" default="cat">
+        <:tab id="cat" label="Cat">
+          This is a cat.
+        </:tab>
+        <:tab id="dog" label="Dog">
+          This is a dog.
+        </:tab>
+      </.tabs>
+
+  """
+
+  attr :id, :string, required: true
+  attr :default, :string, required: true
+
+  slot :tab do
+    attr :id, :string, required: true
+    attr :label, :string, required: true
+  end
+
+  def tabs(assigns) do
+    ~H"""
+    <div id={@id} class="flex flex-col gap-4">
+      <div class="tabs">
+        <button
+          :for={tab <- @tab}
+          class={["tab", @default == tab.id && "active"]}
+          phx-click={
+            JS.remove_class("active", to: "##{@id} .tab.active")
+            |> JS.add_class("active")
+            |> JS.add_class("hidden", to: "##{@id} [data-tab]")
+            |> JS.remove_class("hidden", to: "##{@id} [data-tab='#{tab.id}']")
+          }
+        >
+          <span class="font-medium">
+            <%= tab.label %>
+          </span>
+        </button>
+      </div>
+
+      <div :for={tab <- @tab} data-tab={tab.id} class={@default == tab.id || "hidden"}>
+        <%= render_slot(tab) %>
+      </div>
+    </div>
+    """
   end
 
   # JS commands

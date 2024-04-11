@@ -44,15 +44,20 @@ defmodule Livebook.Config do
   @doc """
   Returns docker images to be used when generating sample Dockerfiles.
   """
-  @spec docker_images() :: list(%{tag: String.t(), name: String.t(), env: keyword()})
+  @spec docker_images() ::
+          list(%{
+            tag: String.t(),
+            name: String.t(),
+            env: list({String.t(), String.t()})
+          })
   def docker_images() do
     version = app_version()
     base = if version =~ "dev", do: "latest", else: version
 
     [
       %{tag: base, name: "Livebook", env: []},
-      %{tag: "#{base}-cuda11.8", name: "Livebook + CUDA 11.8", env: [XLA_TARGET: "cuda118"]},
-      %{tag: "#{base}-cuda12.1", name: "Livebook + CUDA 12.1", env: [XLA_TARGET: "cuda120"]}
+      %{tag: "#{base}-cuda11.8", name: "Livebook + CUDA 11.8", env: [{"XLA_TARGET", "cuda118"}]},
+      %{tag: "#{base}-cuda12.1", name: "Livebook + CUDA 12.1", env: [{"XLA_TARGET", "cuda120"}]}
     ]
   end
 

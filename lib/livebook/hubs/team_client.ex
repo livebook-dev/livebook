@@ -405,7 +405,7 @@ defmodule Livebook.Hubs.TeamClient do
       | name: deployment_group_updated.name,
         secrets: secrets,
         agent_keys: agent_keys,
-        clustering: nullify(deployment_group_updated.clustering),
+        clustering: atomize(deployment_group_updated.clustering),
         zta_provider: atomize(deployment_group_updated.zta_provider),
         zta_key: nullify(deployment_group_updated.zta_key)
     }

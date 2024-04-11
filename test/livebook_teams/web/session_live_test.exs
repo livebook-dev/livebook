@@ -430,7 +430,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       id = deployment_group.id
 
       view
-      |> form("#select_deployment_group_form", %{deployment_group_id: id})
+      |> form("#select_deployment_group_form", %{deployment_group: %{id: id}})
       |> render_change()
 
       assert_receive {:operation, {:set_notebook_deployment_group, _client, ^id}}
