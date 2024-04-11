@@ -749,11 +749,15 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
-      # so we need to add it ourselves
+      # so we need to add it ourselves.
+      # Also, `multi_session` and `access_type` fields aren't sent on event,
+      # then it should be nil when broadcast by TeamClient.
       app_deployment = %{
         app_deployment
         | id: to_string(teams_app_deployment.id),
           file: nil,
+          multi_session: nil,
+          access_type: nil,
           deployed_by: teams_app_deployment.app_revision.created_by.name,
           deployed_at: teams_app_deployment.updated_at
       }

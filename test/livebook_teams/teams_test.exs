@@ -208,6 +208,19 @@ defmodule Livebook.TeamsTest do
 
       assert {:ok, app_deployment} = Teams.AppDeployment.new(notebook, files_dir)
       assert Teams.deploy_app(team, app_deployment) == :ok
+
+      assert {:error,
+              %{errors: [slug: {"should only contain alphanumeric characters and dashes", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | slug: "@abc"})
+
+      assert {:error, %{errors: [multi_session: {"can't be blank", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | multi_session: nil})
+
+      assert {:error, %{errors: [access_type: {"can't be blank", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | access_type: nil})
+
+      assert {:error, %{errors: [access_type: {"is invalid", []}]}} =
+               Teams.deploy_app(team, %{app_deployment | access_type: :abc})
     end
   end
 end

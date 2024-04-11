@@ -191,6 +191,8 @@ defmodule Livebook.Teams.Requests do
     params = %{
       title: app_deployment.title,
       slug: app_deployment.slug,
+      multi_session: app_deployment.multi_session,
+      access_type: app_deployment.access_type,
       deployment_group_id: app_deployment.deployment_group_id,
       sha: app_deployment.sha
     }
