@@ -66,7 +66,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @doc """
   Builds Dockerfile definition for app deployment.
   """
-  @spec build_dockerfile(
+  @spec airgapped_dockerfile(
           config(),
           Hubs.Provider.t(),
           list(Livebook.Secrets.Secret.t()),
@@ -75,7 +75,15 @@ defmodule Livebook.Hubs.Dockerfile do
           list(Livebook.Notebook.file_entry()),
           Livebook.Session.Data.secrets()
         ) :: String.t()
-  def build_dockerfile(config, hub, hub_secrets, hub_file_systems, file, file_entries, secrets) do
+  def airgapped_dockerfile(
+        config,
+        hub,
+        hub_secrets,
+        hub_file_systems,
+        file,
+        file_entries,
+        secrets
+      ) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
 
     image = """
@@ -293,11 +301,11 @@ defmodule Livebook.Hubs.Dockerfile do
   @doc """
   Returns information for deploying Livebook Agent using Docker.
   """
-  @spec agent_docker_info(config(), Hubs.Provider.t(), Livebook.Teams.AgentKey.t()) :: %{
+  @spec online_docker_info(config(), Hubs.Provider.t(), Livebook.Teams.AgentKey.t()) :: %{
           image: String.t(),
           env: list({String.t(), String.t()})
         }
-  def agent_docker_info(config, %Hubs.Team{} = hub, agent_key) do
+  def online_docker_info(config, %Hubs.Team{} = hub, agent_key) do
     base_image = Enum.find(Livebook.Config.docker_images(), &(&1.tag == config.docker_tag))
 
     image = "ghcr.io/livebook-dev/livebook:#{base_image.tag}"
@@ -337,7 +345,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
   The returned messages may include HTML.
   """
-  @spec warnings(
+  @spec airgapped_warnings(
           config(),
           Hubs.Provider.t(),
           list(Livebook.Secrets.Secret.t()),
@@ -346,7 +354,15 @@ defmodule Livebook.Hubs.Dockerfile do
           list(Livebook.Notebook.file_entry()),
           Livebook.Session.Data.secrets()
         ) :: list(String.t())
-  def warnings(config, hub, hub_secrets, hub_file_systems, app_settings, file_entries, secrets) do
+  def airgapped_warnings(
+        config,
+        hub,
+        hub_secrets,
+        hub_file_systems,
+        app_settings,
+        file_entries,
+        secrets
+      ) do
     common_warnings =
       [
         if Livebook.Session.Data.session_secrets(secrets, hub.id) != [] do
@@ -410,8 +426,8 @@ defmodule Livebook.Hubs.Dockerfile do
   @doc """
   Returns warnings specific to agent Docker deployment.
   """
-  @spec agent_warnings(config()) :: list(String.t())
-  def agent_warnings(config) do
+  @spec online_warnings(config()) :: list(String.t())
+  def online_warnings(config) do
     warnings = config_warnings(config)
 
     Enum.reject(warnings, &is_nil/1)

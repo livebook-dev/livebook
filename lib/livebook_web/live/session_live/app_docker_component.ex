@@ -341,7 +341,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       end
 
     dockerfile =
-      Hubs.Dockerfile.build_dockerfile(
+      Hubs.Dockerfile.airgapped_dockerfile(
         config,
         hub,
         hub_secrets,
@@ -352,7 +352,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
       )
 
     warnings =
-      Hubs.Dockerfile.warnings(
+      Hubs.Dockerfile.airgapped_warnings(
         config,
         hub,
         hub_secrets,

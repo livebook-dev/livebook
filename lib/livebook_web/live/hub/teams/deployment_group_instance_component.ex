@@ -196,7 +196,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
 
   defp update_instructions(socket) do
     config = Ecto.Changeset.apply_changes(socket.assigns.changeset)
-    warnings = Hubs.Dockerfile.agent_warnings(config)
+    warnings = Hubs.Dockerfile.online_warnings(config)
     messages = Enum.map(warnings, &{:warning, &1})
     assign(socket, instructions: instructions(socket), messages: messages)
   end
@@ -214,7 +214,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
 
     config = Ecto.Changeset.apply_changes(socket.assigns.changeset)
 
-    %{image: image, env: env} = Livebook.Hubs.Dockerfile.agent_docker_info(config, hub, agent_key)
+    %{image: image, env: env} =
+      Livebook.Hubs.Dockerfile.online_docker_info(config, hub, agent_key)
 
     %{
       docker_instructions: docker_instructions(image, env),
