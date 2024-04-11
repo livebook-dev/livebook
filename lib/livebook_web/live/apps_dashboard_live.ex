@@ -82,6 +82,13 @@ defmodule LivebookWeb.AppsDashboardLive do
                 <div class="break-words">
                   <.labeled_text label="Name">
                     <%= app.notebook_name %>
+                    <span
+                      :if={not app.public?}
+                      class="!inline tooltip top"
+                      data-tooltip="Password protected"
+                    >
+                      <.remix_icon icon="lock-line" />
+                    </span>
                   </.labeled_text>
                 </div>
                 <div class="break-all">
