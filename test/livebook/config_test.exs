@@ -39,9 +39,9 @@ defmodule Livebook.ConfigTest do
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") == {:custom, Module, nil}
       end)
 
-      with_env([TEST_IDENTITY_PROVIDER: "custom:LivebookWeb.SessionIdentity:extra"], fn ->
+      with_env([TEST_IDENTITY_PROVIDER: "custom:LivebookWeb.ZTA.SessionIdentity:extra"], fn ->
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
-                 {:custom, LivebookWeb.SessionIdentity, "extra"}
+                 {:custom, LivebookWeb.ZTA.SessionIdentity, "extra"}
       end)
 
       with_env([TEST_IDENTITY_PROVIDER: "cloudflare:123"], fn ->

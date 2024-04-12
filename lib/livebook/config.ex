@@ -695,7 +695,7 @@ defmodule Livebook.Config do
   def identity_provider!(env) do
     case System.get_env(env) do
       nil ->
-        {:session, LivebookWeb.SessionIdentity, :unused}
+        {:session, LivebookWeb.ZTA.SessionIdentity, :unused}
 
       "custom:" <> module_key ->
         destructure [module, key], String.split(module_key, ":", parts: 2)
