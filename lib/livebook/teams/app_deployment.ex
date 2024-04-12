@@ -9,8 +9,6 @@ defmodule Livebook.Teams.AppDeployment do
           slug: String.t() | nil,
           sha: String.t() | nil,
           title: String.t() | nil,
-          multi_session: boolean(),
-          access_type: Livebook.Notebook.AppSettings.access_type(),
           hub_id: String.t() | nil,
           deployment_group_id: String.t() | nil,
           file: binary() | nil,
@@ -23,8 +21,6 @@ defmodule Livebook.Teams.AppDeployment do
     field :slug, :string
     field :sha, :string
     field :title, :string
-    field :multi_session, :boolean
-    field :access_type, Ecto.Enum, values: Livebook.Notebook.AppSettings.access_types()
     field :hub_id, :string
     field :deployment_group_id, :string
     field :file, :string
@@ -49,8 +45,6 @@ defmodule Livebook.Teams.AppDeployment do
       {:ok,
        %__MODULE__{
          slug: notebook.app_settings.slug,
-         access_type: notebook.app_settings.access_type,
-         multi_session: notebook.app_settings.multi_session,
          sha: shasum,
          title: notebook.name,
          hub_id: notebook.hub_id,

@@ -119,10 +119,11 @@ defmodule Livebook.Teams.ConnectionTest do
       deployment_group_id = to_string(id)
       slug = Livebook.Utils.random_short_id()
       title = "MyNotebook3-#{slug}"
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
 
       notebook = %{
         Livebook.Notebook.new()
-        | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+        | app_settings: app_settings,
           name: title,
           hub_id: hub.id,
           deployment_group_id: deployment_group_id
@@ -135,7 +136,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # since we want to fetch the app deployment from connection event,
       # we need to persist it before we connect to the WebSocket
-      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
 
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
@@ -163,10 +164,11 @@ defmodule Livebook.Teams.ConnectionTest do
       # creates a new app deployment
       slug = Livebook.Utils.random_short_id()
       title = "MyNotebook3-#{slug}"
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
 
       notebook = %{
         Livebook.Notebook.new()
-        | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+        | app_settings: app_settings,
           name: title,
           hub_id: hub.id,
           deployment_group_id: to_string(id)
@@ -179,7 +181,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # since we want to fetch the app deployment from connection event,
       # we need to persist it before we connect to the WebSocket
-      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
 
       # As we need to be Agent to receive the app deployments list to be deployed,
       # we will create another connection here

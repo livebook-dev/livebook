@@ -267,12 +267,11 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> Floki.text()
            |> String.trim() == "0"
 
+    app_settings = %{Livebook.Notebook.AppSettings.new() | slug: Livebook.Utils.random_short_id()}
+
     notebook = %{
       Livebook.Notebook.new()
-      | app_settings: %{
-          Livebook.Notebook.AppSettings.new()
-          | slug: Livebook.Utils.random_short_id()
-        },
+      | app_settings: app_settings,
         name: "MyNotebook",
         hub_id: hub.id,
         deployment_group_id: to_string(id)
@@ -281,7 +280,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     files_dir = Livebook.FileSystem.File.local(tmp_dir)
 
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
-    :ok = Livebook.Teams.deploy_app(hub, app_deployment)
+    :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
 
     assert_receive {:app_deployment_started, _}
 
