@@ -6,8 +6,9 @@ defmodule Livebook.ZTA.BasicAuth do
   def start_link(options) do
     name = Keyword.fetch!(options, :name)
     identity_key = Keyword.fetch!(options, :identity_key)
+    [username, password] = String.split(identity_key, ":", parts: 2)
 
-    Livebook.ZTA.put(name, identity_key)
+    Livebook.ZTA.put(name, {username, password})
     :ignore
   end
 

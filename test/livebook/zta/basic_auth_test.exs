@@ -11,7 +11,7 @@ defmodule Livebook.ZTA.BasicAuthTest do
   setup do
     username = "ChonkierCat"
     password = Livebook.Utils.random_long_id()
-    options = [name: @name, identity_key: {username, password}]
+    options = [name: @name, identity_key: "#{username}:#{password}"]
 
     {:ok, username: username, password: password, options: options, conn: conn(:get, "/")}
   end
