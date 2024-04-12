@@ -1,37 +1,29 @@
 defmodule Livebook.ZTA.Tailscale do
-  use GenServer
   require Logger
 
-  defstruct [:address]
+  def child_spec(opts) do
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
+  end
 
   def start_link(opts) do
-    options = [address: opts[:identity_key]]
-    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
-  end
+    name = Keyword.fetch!(opts, :name)
+    address = Keyword.fetch!(opts, :identity_key)
 
-  def authenticate(name, conn, _opts) do
-    remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
-    tailscale_address = GenServer.call(name, :get_address)
-    user = authenticate_ip(remote_ip, tailscale_address)
-    {conn, user}
-  end
-
-  @impl true
-  def init(options) do
-    %{address: address} = state = struct!(__MODULE__, options)
-
-    if not String.starts_with?(state.address, "http") and
+    if not String.starts_with?(address, "http") and
          not File.exists?(address) do
       Logger.error("Tailscale socket does not exist: #{inspect(address)}")
       raise "invalid Tailscale ZTA configuration"
     end
 
-    {:ok, state}
+    :persistent_term.put({__MODULE__, name}, address)
+    :ignore
   end
 
-  @impl true
-  def handle_call(:get_address, _from, state) do
-    {:reply, state.address, state}
+  def authenticate(name, conn, _opts) do
+    remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
+    tailscale_address = :persistent_term.get({__MODULE__, name})
+    user = authenticate_ip(remote_ip, tailscale_address)
+    {conn, user}
   end
 
   defp authenticate_ip(remote_ip, address) do
