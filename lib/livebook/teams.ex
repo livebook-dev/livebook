@@ -4,6 +4,7 @@ defmodule Livebook.Teams do
   alias Livebook.Hubs
   alias Livebook.Hubs.Team
   alias Livebook.Hubs.TeamClient
+  alias Livebook.Notebook.AppSettings
   alias Livebook.Teams.{Agent, AppDeployment, DeploymentGroup, Org, Requests}
 
   import Ecto.Changeset,
@@ -49,13 +50,9 @@ defmodule Livebook.Teams do
       {:error, %Ecto.Changeset{} = changeset} ->
         {:error, changeset}
 
-      {:error, %{"errors" => errors_map}} ->
-        errors_map =
-          if errors = errors_map["key_hash"],
-            do: Map.put_new(errors_map, "teams_key", errors),
-            else: errors_map
-
-        {:error, add_org_errors(changeset, errors_map)}
+      {:error, %{"errors" => errors}} ->
+        errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
+        {:error, add_org_errors(changeset, errors)}
 
       any ->
         any
@@ -194,12 +191,12 @@ defmodule Livebook.Teams do
   @doc """
   Creates a new app deployment.
   """
-  @spec deploy_app(Team.t(), AppDeployment.t()) ::
+  @spec deploy_app(Team.t(), AppDeployment.t(), AppSettings.t()) ::
           :ok
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
-  def deploy_app(%Team{} = team, %AppDeployment{} = app_deployment) do
-    case Requests.deploy_app(team, app_deployment) do
+  def deploy_app(%Team{} = team, %AppDeployment{} = app_deployment, %AppSettings{} = app_settings) do
+    case Requests.deploy_app(team, app_deployment, app_settings) do
       {:ok, %{"id" => _id}} ->
         :ok
 
@@ -207,6 +204,11 @@ defmodule Livebook.Teams do
         {:error, Requests.add_errors(app_deployment, %{"file" => [error]})}
 
       {:error, %{"errors" => errors}} ->
+        errors =
+          errors
+          |> map_teams_field_to_livebook_field("multi_session", "file")
+          |> map_teams_field_to_livebook_field("access_type", "file")
+
         {:error, Requests.add_errors(app_deployment, errors)}
 
       any ->
@@ -228,5 +230,13 @@ defmodule Livebook.Teams do
   @spec get_agents(Team.t()) :: list(Agent.t())
   def get_agents(team) do
     TeamClient.get_agents(team.id)
+  end
+
+  defp map_teams_field_to_livebook_field(map, teams_field, livebook_field) do
+    if value = map[teams_field] do
+      Map.put_new(map, livebook_field, value)
+    else
+      map
+    end
   end
 end

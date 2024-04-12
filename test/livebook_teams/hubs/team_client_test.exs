@@ -121,10 +121,11 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the app deployment
       slug = Livebook.Utils.random_short_id()
       title = "MyNotebook-#{slug}"
+      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
 
       notebook = %{
         Livebook.Notebook.new()
-        | app_settings: %{Livebook.Notebook.AppSettings.new() | slug: slug},
+        | app_settings: app_settings,
           name: title,
           hub_id: team.id,
           deployment_group_id: id
@@ -132,7 +133,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
       {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
-      :ok = Livebook.Teams.deploy_app(team, app_deployment)
+      :ok = Livebook.Teams.deploy_app(team, app_deployment, app_settings)
 
       sha = app_deployment.sha
 
@@ -749,7 +750,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
-      # so we need to add it ourselves
+      # so we need to add it ourselves.
       app_deployment = %{
         app_deployment
         | id: to_string(teams_app_deployment.id),
