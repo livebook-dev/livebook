@@ -1,34 +1,28 @@
 defmodule Livebook.ZTA.BasicAuth do
-  use GenServer
-  require Logger
-
-  defstruct [:identity_key]
+  def child_spec(opts) do
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
+  end
 
   def start_link(options) do
     name = Keyword.fetch!(options, :name)
-    GenServer.start_link(__MODULE__, options, name: name)
+    identity_key = Keyword.fetch!(options, :identity_key)
+
+    Livebook.ZTA.put(name, identity_key)
+    :ignore
   end
 
   def authenticate(name, conn, _options) do
     user_credentials = Plug.BasicAuth.parse_basic_auth(conn)
-    server_credentials = GenServer.call(name, :credentials, :infinity)
+    app_credentials = Livebook.ZTA.get(name)
 
-    {conn, authenticate_user(user_credentials, server_credentials)}
+    {conn, authenticate_user(user_credentials, app_credentials)}
   end
 
-  @impl true
-  def init(options) do
-    identity_key = Keyword.fetch!(options, :identity_key)
-    {:ok, %__MODULE__{identity_key: identity_key}}
-  end
-
-  @impl true
-  def handle_call(:credentials, _, state) do
-    {:reply, state.identity_key, state}
-  end
-
-  defp authenticate_user({username, password}, {username, password}) do
-    %{payload: %{}, id: username}
+  defp authenticate_user({username, password}, {app_username, app_password}) do
+    if Plug.Crypto.secure_compare(username, app_username) and
+         Plug.Crypto.secure_compare(password, app_password) do
+      %{payload: %{}}
+    end
   end
 
   defp authenticate_user(_, _), do: nil

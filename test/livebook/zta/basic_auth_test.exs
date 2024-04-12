@@ -21,7 +21,7 @@ defmodule Livebook.ZTA.BasicAuthTest do
     conn = put_req_header(context.conn, "authorization", authorization)
     start_supervised!({BasicAuth, context.options})
 
-    assert {_conn, %{id: "ChonkierCat", payload: %{}}} = BasicAuth.authenticate(@name, conn, [])
+    assert {_conn, %{payload: %{}}} = BasicAuth.authenticate(@name, conn, [])
   end
 
   test "returns nil when the username is invalid", context do
