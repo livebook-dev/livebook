@@ -236,6 +236,7 @@ The following environment variables can be used to configure Livebook on boot:
     Livebook inside a cloud platform, such as Cloudflare and Google.
     Supported values are:
 
+      * "basic_auth:username:password"
       * "cloudflare:<your-team-name (domain)>"
       * "google_iap:<your-audience (aud)>"
       * "tailscale:<tailscale-cli-socket-path>"
