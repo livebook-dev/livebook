@@ -2,7 +2,7 @@ defmodule Livebook.ZTA.Teleport do
   use GenServer
   require Logger
 
-  defstruct [:req_options, :jwks]
+  defstruct [:req_options, :name]
 
   @renew_afer 24 * 60 * 60 * 1000
   @fields %{"sub" => :id, "username" => :username}
@@ -16,34 +16,26 @@ defmodule Livebook.ZTA.Teleport do
       |> URI.append_path(@well_known_jwks_path)
       |> URI.to_string()
 
-    options = [req_options: [url: url]]
-
-    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
+    name = Keyword.fetch!(opts, :name)
+    options = [req_options: [url: url], name: name]
+    GenServer.start_link(__MODULE__, options, name: name)
   end
 
   def authenticate(name, conn, _opts) do
     token = Plug.Conn.get_req_header(conn, @assertion)
-
-    jwks = GenServer.call(name, :get_jwks, :infinity)
-
+    jwks = Livebook.ZTA.get(name)
     {conn, authenticate_user(token, jwks)}
   end
 
   @impl true
   def init(options) do
     state = struct!(__MODULE__, options)
-
-    {:ok, %{state | jwks: renew_jwks(state.req_options)}}
+    {:ok, renew(state)}
   end
 
   @impl true
-  def handle_info(:renew_jwks, state) do
-    {:noreply, %{state | jwks: renew_jwks(state.req_options)}}
-  end
-
-  @impl true
-  def handle_call(:get_jwks, _, state) do
-    {:reply, state.jwks, state}
+  def handle_info(:renew, state) do
+    {:noreply, renew(state)}
   end
 
   defp authenticate_user(token, jwks) do
@@ -85,12 +77,11 @@ defmodule Livebook.ZTA.Teleport do
     end
   end
 
-  defp renew_jwks(req_options) do
-    keys = Req.request!(req_options).body["keys"]
-
+  defp renew(state) do
+    keys = Req.request!(state.req_options).body["keys"]
     jwks = JOSE.JWK.from_map(keys)
-
-    Process.send_after(self(), :renew_jwks, @renew_afer)
-    jwks
+    Process.send_after(self(), :renew, @renew_afer)
+    Livebook.ZTA.put(state.name, jwks)
+    state
   end
 end

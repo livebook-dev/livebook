@@ -2,6 +2,7 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
+    Livebook.ZTA.init()
     setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()

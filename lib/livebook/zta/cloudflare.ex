@@ -7,41 +7,38 @@ defmodule Livebook.ZTA.Cloudflare do
   @renew_afer 24 * 60 * 60 * 1000
   @fields %{"user_uuid" => :id, "name" => :name, "email" => :email}
 
-  defstruct [:req_options, :identity, :keys]
+  defstruct [:req_options, :identity, :name]
 
   def start_link(opts) do
     identity = opts[:custom_identity] || identity(opts[:identity_key])
-    options = [req_options: [url: identity.certs], identity: identity, keys: nil]
-    GenServer.start_link(__MODULE__, options, Keyword.take(opts, [:name]))
+    name = Keyword.fetch!(opts, :name)
+    options = [req_options: [url: identity.certs], identity: identity, name: name]
+    GenServer.start_link(__MODULE__, options, name: name)
   end
 
   def authenticate(name, conn, _opts) do
     token = get_req_header(conn, @assertion)
-    {identity, keys} = GenServer.call(name, :info, :infinity)
+    {identity, keys} = Livebook.ZTA.get(name)
     {conn, authenticate_user(token, identity, keys)}
   end
 
   @impl true
   def init(options) do
     state = struct!(__MODULE__, options)
-    {:ok, %{state | keys: keys(state)}}
-  end
-
-  @impl true
-  def handle_call(:info, _from, state) do
-    {:reply, {state.identity, state.keys}, state}
+    {:ok, renew(state)}
   end
 
   @impl true
   def handle_info(:renew, state) do
-    {:noreply, %{state | keys: keys(state)}}
+    {:noreply, renew(state)}
   end
 
-  defp keys(state) do
+  defp renew(state) do
     Logger.debug("[#{inspect(__MODULE__)}] requesting #{inspect(state.req_options)}")
     keys = Req.request!(state.req_options).body["keys"]
     Process.send_after(self(), :renew, @renew_afer)
-    keys
+    Livebook.ZTA.put(state.name, {state.identity, keys})
+    state
   end
 
   defp authenticate_user(token, identity, keys) do

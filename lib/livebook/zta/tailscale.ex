@@ -15,13 +15,13 @@ defmodule Livebook.ZTA.Tailscale do
       raise "invalid Tailscale ZTA configuration"
     end
 
-    :persistent_term.put({__MODULE__, name}, address)
+    Livebook.ZTA.put(name, address)
     :ignore
   end
 
   def authenticate(name, conn, _opts) do
     remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
-    tailscale_address = :persistent_term.get({__MODULE__, name})
+    tailscale_address = Livebook.ZTA.get(name)
     user = authenticate_ip(remote_ip, tailscale_address)
     {conn, user}
   end
