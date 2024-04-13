@@ -19,7 +19,7 @@ defmodule Livebook.ZTA.BasicAuth do
     if conn.halted do
       {conn, nil}
     else
-      {conn, %{payload: %{}}
+      {conn, %{payload: %{}}}
     end
   end
 end
