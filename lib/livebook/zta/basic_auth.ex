@@ -16,6 +16,10 @@ defmodule Livebook.ZTA.BasicAuth do
     {username, password} = Livebook.ZTA.get(name)
     conn = Plug.BasicAuth.basic_auth(conn, username: username, password: password)
 
-    {conn, %{id: nil, payload: %{}}}
+    if conn.halted do
+      {conn, nil}
+    else
+      {conn, %{payload: %{}}
+    end
   end
 end
