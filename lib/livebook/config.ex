@@ -45,6 +45,8 @@ defmodule Livebook.Config do
     }
   ]
 
+  @identity_provider_no_id [Livebook.ZTA.BasicAuth, Livebook.ZTA.PassThrough]
+
   @identity_provider_type_to_module Map.new(@identity_providers, fn provider ->
                                       {Atom.to_string(provider.type), provider.module}
                                     end)
@@ -296,8 +298,8 @@ defmodule Livebook.Config do
   """
   @spec identity_provider_read_only?() :: boolean()
   def identity_provider_read_only?() do
-    {type, _module, _key} = Livebook.Config.identity_provider()
-    Map.has_key?(identity_provider_type_to_module(), type)
+    {_type, module, _key} = Livebook.Config.identity_provider()
+    module not in @identity_provider_no_id
   end
 
   @doc """
@@ -703,7 +705,7 @@ defmodule Livebook.Config do
   def identity_provider!(env) do
     case System.get_env(env) do
       nil ->
-        {:session, LivebookWeb.ZTA.SessionIdentity, :unused}
+        {:session, Livebook.ZTA.PassThrough, :unused}
 
       "custom:" <> module_key ->
         destructure [module, key], String.split(module_key, ":", parts: 2)

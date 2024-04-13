@@ -1,4 +1,6 @@
 defmodule Livebook.ZTA.Cloudflare do
+  @behaviour Livebook.ZTA
+
   use GenServer
   require Logger
   import Plug.Conn
@@ -16,6 +18,7 @@ defmodule Livebook.ZTA.Cloudflare do
     GenServer.start_link(__MODULE__, options, name: name)
   end
 
+  @impl true
   def authenticate(name, conn, _opts) do
     token = get_req_header(conn, @assertion)
     {identity, keys} = Livebook.ZTA.get(name)

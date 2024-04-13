@@ -45,7 +45,7 @@ defmodule Livebook.Users.User do
 
   def changeset(user, attrs \\ %{}) do
     user
-    |> cast(attrs, [:id, :name, :email, :hex_color])
-    |> validate_required([:id, :name, :hex_color])
+    |> cast(attrs, [:name, :email, :hex_color])
+    |> validate_required([:hex_color])
   end
 end

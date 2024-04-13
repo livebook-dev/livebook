@@ -1,4 +1,7 @@
 defmodule Livebook.ZTA.BasicAuth do
+  @behaviour Livebook.ZTA
+
+  @impl true
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
   end
@@ -12,6 +15,7 @@ defmodule Livebook.ZTA.BasicAuth do
     :ignore
   end
 
+  @impl true
   def authenticate(name, conn, _options) do
     {username, password} = Livebook.ZTA.get(name)
     conn = Plug.BasicAuth.basic_auth(conn, username: username, password: password)
@@ -19,7 +23,7 @@ defmodule Livebook.ZTA.BasicAuth do
     if conn.halted do
       {conn, nil}
     else
-      {conn, %{payload: %{}}}
+      {conn, %{}}
     end
   end
 end

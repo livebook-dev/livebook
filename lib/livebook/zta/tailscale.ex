@@ -1,6 +1,8 @@
 defmodule Livebook.ZTA.Tailscale do
+  @behaviour Livebook.ZTA
   require Logger
 
+  @impl true
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
   end
@@ -19,6 +21,7 @@ defmodule Livebook.ZTA.Tailscale do
     :ignore
   end
 
+  @impl true
   def authenticate(name, conn, _opts) do
     remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
     tailscale_address = Livebook.ZTA.get(name)

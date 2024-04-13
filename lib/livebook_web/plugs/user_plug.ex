@@ -16,8 +16,6 @@ defmodule LivebookWeb.UserPlug do
   import Plug.Conn
   import Phoenix.Controller
 
-  alias Livebook.Users.User
-
   @impl true
   def init(opts), do: opts
 
@@ -31,17 +29,26 @@ defmodule LivebookWeb.UserPlug do
 
   defp ensure_user_identity(conn) do
     {_type, module, _key} = Livebook.Config.identity_provider()
-
     {conn, identity_data} = module.authenticate(LivebookWeb.ZTA, conn, [])
 
-    if identity_data do
-      put_session(conn, :identity_data, identity_data)
-    else
-      conn
-      |> put_status(:forbidden)
-      |> put_view(LivebookWeb.ErrorHTML)
-      |> render("403.html", %{status: 403})
-      |> halt()
+    cond do
+      identity_data ->
+        # Ensure we have a unique ID to identify this user/session.
+        id =
+          identity_data[:id] || get_session(conn, :identity_data)[:id] ||
+            Livebook.Utils.random_long_id()
+
+        put_session(conn, :identity_data, Map.put(identity_data, :id, id))
+
+      conn.halted ->
+        conn
+
+      true ->
+        conn
+        |> put_status(:forbidden)
+        |> put_view(LivebookWeb.ErrorHTML)
+        |> render("403.html", %{status: 403})
+        |> halt()
     end
   end
 
@@ -51,22 +58,16 @@ defmodule LivebookWeb.UserPlug do
     if Map.has_key?(conn.req_cookies, "lb_user_data") do
       conn
     else
-      identity_data = get_session(conn, :identity_data)
-      user_data = User.new() |> client_user_data() |> Map.merge(identity_data)
-      encoded = user_data |> Jason.encode!() |> Base.encode64()
+      encoded =
+        %{"name" => nil, "hex_color" => Livebook.EctoTypes.HexColor.random()}
+        |> Jason.encode!()
+        |> Base.encode64()
 
       # We disable HttpOnly, so that it can be accessed on the client
       # and set expiration to 5 years
       opts = [http_only: false, max_age: 157_680_000] ++ LivebookWeb.Endpoint.cookie_options()
       put_resp_cookie(conn, "lb_user_data", encoded, opts)
     end
-  end
-
-  defp client_user_data(user) do
-    user
-    |> Map.from_struct()
-    |> Map.delete(:id)
-    |> Map.delete(:payload)
   end
 
   # Copies user_data from cookie to session, so that it's

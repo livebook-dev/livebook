@@ -1,6 +1,6 @@
 # Authentication with Google IAP
 
-Setting up Google IAP authentication will protect all routes of your notebook. It is particularly useful for adding authentication to deployed notebooks. Google IAP authentication is provided in addition to [Livebook's authentication](../authentication.md) for authoring notebooks.
+Setting up Google IAP authentication will protect all routes of your Livebook instance. It is particularly useful for adding authentication to Livebook instances with deployed notebooks. Google IAP authentication occurs in addition to [Livebook's authentication](../authentication.md) for deployed notebooks and admins.
 
 Once Google IAP is enabled, we recommend leaving the "/public" route of your instances still public. This route is used for integration with the [Livebook Badge](https://livebook.dev/badge/) and other conveniences.
 
@@ -17,7 +17,7 @@ For more details about how to find your JWT audience, see https://cloud.google.c
 
 ## Livebook Teams
 
-[Livebook Teams](https://livebook.dev/teams/) users have access to airgapped notebook deployment via Docker, with pre-configured Zero Trust Authentication, shared team secrets, and file storages.
+[Livebook Teams](https://livebook.dev/teams/) users can deploy notebooks with the click of a button with pre-configured Zero Trust Authentication, shared team secrets, and file storages. Both online and airgapped deployment mechanisms are supported.
 
 Furthermore, if you are deploying multi-session apps via [Livebook Teams](https://livebook.dev/teams/), you can programmatically access data from the authenticated user by calling [`Kino.Hub.app_info/0`](https://hexdocs.pm/kino/Kino.Hub.html#app_info/0).
 

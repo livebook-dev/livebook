@@ -1,6 +1,6 @@
 # Authentication with Basic Auth
 
-Setting up Basic Authentication will protect all routes of your notebook. It is particularly useful for adding authentication to deployed notebooks. Basic Authentication is provided in addition to [Livebook's authentication](../authentication.md) for authoring notebooks.
+Setting up Basic Authentication is a simple mechanism for protecting all routes of your Livebook instance with a single username-password combo. However, because this password is shared across all users, this authentication mechanism cannot be used to identity users and more robust authentication methods provided by Livebook should be preferred. Basic Authentication occurs in addition to [Livebook's authentication](../authentication.md) for deployed notebooks and admins.
 
 ## How to
 
@@ -15,7 +15,7 @@ livebook server
 
 ## Livebook Teams
 
-[Livebook Teams](https://livebook.dev/teams/) users have access to airgapped notebook deployment via Docker, with pre-configured Zero Trust Authentication, shared team secrets, and file storages.
+[Livebook Teams](https://livebook.dev/teams/) users can deploy notebooks with the click of a button with pre-configured Zero Trust Authentication, shared team secrets, and file storages. Both online and airgapped deployment mechanisms are supported.
 
 Furthermore, if you are deploying multi-session apps via [Livebook Teams](https://livebook.dev/teams/), you can programmatically access data from the authenticated user by calling [`Kino.Hub.app_info/0`](https://hexdocs.pm/kino/Kino.Hub.html#app_info/0).
 

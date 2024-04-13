@@ -1,20 +1,17 @@
 # Authentication
 
-## Introduction
+Livebook has three levels of authentication:
 
-Livebook's authentication covers all pages for creating, writing, and managing notebooks.
+  * Instance authentication: this authenticates the user on all routes of your Livebook instance, including deployed notebooks and the admin section. This is done via Zero Trust Authentication and typically used when deploying Livebook to production. See the "Deployment" section on the sidebar for more information.
 
-Livebook's default authentication method is token authentication.  A token is automatically generated at startup and printed to the logs.
+  * Admin authentication: this authenticates access to Livebook admin interface, where users can create, write, and manage notebooks. Both password and token authentication are provided.
+
+  * Deployed notebook authentication: additionally, when deploying notebooks as applications, each application may be password protected with a unique password. Only users authenticated as admin or with the password will be able to access them.
+
+## Admin authentication
+
+Livebook's default admin authentication method is token authentication. A token is automatically generated at startup and printed to the logs.
 
 You may optionally enable password-based authentication by setting the environment variable `LIVEBOOK_PASSWORD` on startup or deployment. It must be at least 12 characters.
 
 To disable authentication altogether, you may set the environment variable `LIVEBOOK_TOKEN_ENABLED` to `false`.
-
-## Securing deployed notebooks
-
-When you deploy a notebook as an application, the deployed application is not covered by Livebook's token/password authentication. In such cases, you have two options:
-
-  * You can set a password when deploying your notebook
-
-  * You can enable proxy authentication when deploying inside a cloud infrastructure.
-    See the "Deployment" section on the sidebar for more information

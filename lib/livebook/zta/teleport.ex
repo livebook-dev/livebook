@@ -1,4 +1,6 @@
 defmodule Livebook.ZTA.Teleport do
+  @behaviour Livebook.ZTA
+
   use GenServer
   require Logger
 
@@ -21,6 +23,7 @@ defmodule Livebook.ZTA.Teleport do
     GenServer.start_link(__MODULE__, options, name: name)
   end
 
+  @impl true
   def authenticate(name, conn, _opts) do
     token = Plug.Conn.get_req_header(conn, @assertion)
     jwks = Livebook.ZTA.get(name)

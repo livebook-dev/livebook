@@ -14,15 +14,6 @@ defmodule Livebook.Users.UserTest do
       assert get_field(changeset, :hex_color) == "#000000"
     end
 
-    test "given empty name returns an error" do
-      user = build(:user)
-      attrs = %{"name" => ""}
-      changeset = User.changeset(user, attrs)
-
-      refute changeset.valid?
-      assert "can't be blank" in errors_on(changeset).name
-    end
-
     test "given invalid color returns an error" do
       user = build(:user)
       attrs = %{"hex_color" => "#invalid"}
