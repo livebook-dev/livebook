@@ -11,6 +11,14 @@ defmodule Livebook.Config do
   # IMPORTANT: this list must be in sync with Livebook Teams.
   @identity_providers [
     %{
+      type: :basic_auth,
+      name: "Basic Auth",
+      value: "Credentials (username:password)",
+      module: Livebook.ZTA.BasicAuth,
+      placeholder: "username:password",
+      input: "password"
+    },
+    %{
       type: :cloudflare,
       name: "Cloudflare",
       value: "Team name (domain)",

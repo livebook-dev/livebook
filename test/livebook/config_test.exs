@@ -48,6 +48,11 @@ defmodule Livebook.ConfigTest do
         assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
                  {:zta, Livebook.ZTA.Cloudflare, "123"}
       end)
+
+      with_env([TEST_IDENTITY_PROVIDER: "basic_auth:user:pass"], fn ->
+        assert Config.identity_provider!("TEST_IDENTITY_PROVIDER") ==
+                 {:zta, Livebook.ZTA.BasicAuth, "user:pass"}
+      end)
     end
   end
 

@@ -6,7 +6,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   alias Livebook.Teams.AgentKey
 
   # If this list is updated, it must also be mirrored on Livebook Teams Server.
-  @zta_providers ~w(cloudflare google_iap tailscale teleport)a
+  @zta_providers ~w(basic_auth cloudflare google_iap tailscale teleport)a
 
   @type t :: %__MODULE__{
           id: String.t() | nil,
