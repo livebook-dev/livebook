@@ -13,18 +13,9 @@ defmodule Livebook.ZTA.BasicAuth do
   end
 
   def authenticate(name, conn, _options) do
-    user_credentials = Plug.BasicAuth.parse_basic_auth(conn)
-    app_credentials = Livebook.ZTA.get(name)
+    {username, password} = Livebook.ZTA.get(name)
+    conn = Plug.BasicAuth.basic_auth(conn, username: username, password: password)
 
-    {conn, authenticate_user(user_credentials, app_credentials)}
+    {conn, %{id: nil, payload: %{}}}
   end
-
-  defp authenticate_user({username, password}, {app_username, app_password}) do
-    if Plug.Crypto.secure_compare(username, app_username) and
-         Plug.Crypto.secure_compare(password, app_password) do
-      %{payload: %{}}
-    end
-  end
-
-  defp authenticate_user(_, _), do: nil
 end
