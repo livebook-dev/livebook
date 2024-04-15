@@ -100,8 +100,9 @@ defmodule Livebook.Runtime.StandaloneInit do
         {^port, {:data, _output}} ->
           loop.(loop)
 
-        {:DOWN, ^port_ref, :port, _object, _reason} ->
-          {:error, "Elixir terminated unexpectedly, please check your logs for errors"}
+        {:DOWN, ^port_ref, :port, _object, reason} ->
+          {:error,
+           "Elixir terminated unexpectedly, please check your logs for errors. Reason: #{inspect(reason)}"}
       after
         # Use a longer timeout to account for longer child node startup.
         30_000 ->
