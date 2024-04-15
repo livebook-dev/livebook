@@ -2516,9 +2516,6 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp update_reevaluates_automatically({data, _} = data_actions) when data.mode == :app,
-    do: data_actions
-
   defp update_reevaluates_automatically({data, _} = data_actions) do
     eval_parents = cell_evaluation_parents(data)
 

@@ -4325,26 +4325,6 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, %{app_data: %{status: %{lifecycle: :shutting_down}}}, [:app_terminate]} =
                Data.apply_operation(data, operation)
     end
-
-    test "does not automatically reevaluate" do
-      data =
-        data_after_operations!(Data.new(mode: :app), [
-          {:insert_section, @cid, 0, "s1"},
-          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
-          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
-          {:set_cell_attributes, @cid, "c2", %{reevaluate_automatically: true}},
-          {:set_runtime, @cid, connected_noop_runtime()},
-          evaluate_cells_operations(["setup"]),
-          {:queue_cells_evaluation, @cid, ["c1"]},
-          {:add_cell_evaluation_response, @cid, "c1", @input, eval_meta()},
-          evaluate_cells_operations(["c2"], bind_inputs: %{"c2" => ["i1"]})
-        ])
-
-      operation = {:set_input_value, @cid, "i1", "stuff"}
-
-      assert {:ok, %{app_data: %{status: %{execution: :executed}}}, _actions} =
-               Data.apply_operation(data, operation)
-    end
   end
 
   describe "transform_selection/2" do
