@@ -9,4 +9,6 @@ defmodule LivebookProto.AppDeployment do
   field :deployment_group_id, 6, type: :string, json_name: "deploymentGroupId"
   field :deployed_by, 7, type: :string, json_name: "deployedBy"
   field :deployed_at, 8, type: :int64, json_name: "deployedAt"
+  field :multi_session, 9, type: :bool, json_name: "multiSession"
+  field :access_type, 10, type: :string, json_name: "accessType"
 end
