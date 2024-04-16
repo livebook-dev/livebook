@@ -57,4 +57,16 @@ defmodule Livebook.ZTA do
   def put(name, value) do
     :ets.insert(__MODULE__, [{name, value}])
   end
+
+  def provider_name(provider_type) do
+    if provider_type != nil do
+      Livebook.Config.identity_providers()
+      |> Enum.find(fn provider ->
+        provider.type == provider_type
+      end)
+      |> then(fn provider -> provider.name end)
+    else
+      "None"
+    end
+  end
 end
