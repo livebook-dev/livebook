@@ -112,6 +112,8 @@ defmodule Livebook.Factory do
       sha: shasum,
       slug: slug,
       file: content,
+      multi_session: false,
+      access_type: :protected,
       hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",

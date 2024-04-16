@@ -417,6 +417,8 @@ defmodule Livebook.Hubs.TeamClient do
       slug: app_deployment.slug,
       sha: app_deployment.sha,
       title: app_deployment.title,
+      multi_session: app_deployment.multi_session,
+      access_type: String.to_atom(app_deployment.access_type),
       hub_id: state.hub.id,
       deployment_group_id: app_deployment.deployment_group_id,
       file: nil,

@@ -124,6 +124,8 @@ message AppDeployment {
   string deployment_group_id = 6;
   string deployed_by = 7;
   int64 deployed_at = 8;
+  bool multi_session = 9;
+  string access_type = 10;
 }
 
 message AppDeploymentStarted {
