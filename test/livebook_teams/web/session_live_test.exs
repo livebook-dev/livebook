@@ -34,6 +34,75 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
       assert Session.get_notebook(session.pid).hub_id == hub.id
     end
+
+    test "changes the notebook hub when the org deletes the user",
+         %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Hubs.Broadcasts.subscribe([:connection, :secrets])
+      Livebook.Teams.Broadcasts.subscribe([:clients])
+
+      Application.put_env(:livebook, :hub_disconnect_backoff, 500)
+
+      personal_id = Livebook.Hubs.Personal.id()
+      hub = create_team_hub(user, node)
+      id = hub.id
+
+      assert_receive {:hub_connected, ^id}
+      assert_receive {:client_connected, ^id}, 10_000
+
+      Session.set_notebook_hub(session.pid, id)
+
+      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
+      assert Session.get_notebook(session.pid).hub_id == id
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      assert has_element?(view, ~s/#select-hub-#{id}/)
+
+      # adds a secret only to validate if it got removed
+      secret = insert_secret(value: Livebook.Utils.random_short_id(), hub_id: id)
+      assert_receive {:secret_created, ^secret}
+
+      Session.set_secret(session.pid, secret)
+      assert_session_secret(view, session.pid, secret, :hub_secrets)
+
+      # adds a section and a code cell to fetch the secret
+      section_id = insert_section(session.pid)
+      code = ~s{System.fetch_env!("LB_#{secret.name}")}
+      cell_id = insert_text_cell(session.pid, section_id, :code, code)
+
+      # evaluates the cell
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       %{type: :terminal_text, text: output}, _}}
+
+      assert output == "\e[32m\"#{secret.value}\"\e[0m"
+
+      # force user to be deleted from org
+      erpc_call(node, :delete_user_org, [user.id, hub.org_id])
+      reason = "#{hub.hub_name}: you were removed from the org"
+
+      # checks if the hub received the `user_deleted` event and deleted the hub
+      assert_receive {:hub_server_error, ^id, ^reason}
+      assert_receive {:client_disconnected, ^id}
+      refute hub in Livebook.Hubs.get_hubs()
+      refute has_element?(view, ~s/#select-hub-#{id}/)
+
+      # checks if the session fallback the notebook hub to Personal hub
+      assert_receive {:operation, {:set_notebook_hub, _, ^personal_id}}
+      assert Session.get_notebook(session.pid).hub_id == personal_id
+      refute_session_secret(view, session.pid, secret, :hub_secrets)
+
+      # evaluates the cell and check if the session doesn't recognize the secret 
+      secret_name = secret.name
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       %{type: :error, context: {:missing_secret, ^secret_name}}, _}}
+
+      Application.delete_env(:livebook, :hub_disconnect_backoff)
+    end
   end
 
   describe "secrets" do

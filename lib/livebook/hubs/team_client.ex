@@ -629,6 +629,14 @@ defmodule Livebook.Hubs.TeamClient do
     end
   end
 
+  defp handle_event(:user_deleted, %{id: id}, state) do
+    if id == to_string(state.hub.user_id) do
+      send(self(), {:server_error, "you were removed from the org"})
+    end
+
+    state
+  end
+
   defp dispatch_secrets(state, %{secrets: secrets}) do
     decrypted_secrets = Enum.map(secrets, &build_secret(state, &1))
 
