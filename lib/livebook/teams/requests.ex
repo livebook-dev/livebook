@@ -2,7 +2,6 @@ defmodule Livebook.Teams.Requests do
   alias Livebook.FileSystem
   alias Livebook.FileSystems
   alias Livebook.Hubs.Team
-  alias Livebook.Notebook.AppSettings
   alias Livebook.Secrets.Secret
   alias Livebook.Teams
   alias Livebook.Teams.{AppDeployment, DeploymentGroup, Org}
@@ -184,16 +183,16 @@ defmodule Livebook.Teams.Requests do
   @doc """
   Send a request to Livebook Team API to deploy an app.
   """
-  @spec deploy_app(Team.t(), AppDeployment.t(), AppSettings.t()) ::
+  @spec deploy_app(Team.t(), AppDeployment.t()) ::
           {:ok, map()} | {:error, map() | String.t()} | {:transport_error, String.t()}
-  def deploy_app(team, app_deployment, app_settings) do
+  def deploy_app(team, app_deployment) do
     secret_key = Teams.derive_key(team.teams_key)
 
     params = %{
       title: app_deployment.title,
       slug: app_deployment.slug,
-      multi_session: app_settings.multi_session,
-      access_type: app_settings.access_type,
+      multi_session: app_deployment.multi_session,
+      access_type: app_deployment.access_type,
       deployment_group_id: app_deployment.deployment_group_id,
       sha: app_deployment.sha
     }

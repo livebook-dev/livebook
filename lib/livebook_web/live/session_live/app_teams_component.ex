@@ -165,10 +165,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
   end
 
   def handle_event("deploy_app", _, socket) do
-    notebook = Livebook.Session.get_notebook(socket.assigns.session.pid)
-
-    with {:ok, app_deployment} <- pack_app(socket, notebook),
-         :ok <- deploy_app(socket, app_deployment, notebook.app_settings) do
+    with {:ok, app_deployment} <- pack_app(socket),
+         :ok <- deploy_app(socket, app_deployment) do
       message =
         "App deployment for #{app_deployment.slug} with title #{app_deployment.title} created successfully"
 
@@ -176,7 +174,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
     end
   end
 
-  defp pack_app(socket, notebook) do
+  defp pack_app(socket) do
+    notebook = Livebook.Session.get_notebook(socket.assigns.session.pid)
     files_dir = socket.assigns.session.files_dir
 
     case Livebook.Teams.AppDeployment.new(notebook, files_dir) do
@@ -193,8 +192,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsComponent do
     end
   end
 
-  defp deploy_app(socket, app_deployment, app_settings) do
-    case Livebook.Teams.deploy_app(socket.assigns.hub, app_deployment, app_settings) do
+  defp deploy_app(socket, app_deployment) do
+    case Livebook.Teams.deploy_app(socket.assigns.hub, app_deployment) do
       :ok ->
         :ok
 

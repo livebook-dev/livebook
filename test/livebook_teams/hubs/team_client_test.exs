@@ -133,15 +133,19 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       files_dir = Livebook.FileSystem.File.local(tmp_dir)
       {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
-      :ok = Livebook.Teams.deploy_app(team, app_deployment, app_settings)
+      :ok = Livebook.Teams.deploy_app(team, app_deployment)
 
       sha = app_deployment.sha
+      multi_session = app_settings.multi_session
+      access_type = app_settings.access_type
 
       assert_receive {:app_deployment_started,
                       %Livebook.Teams.AppDeployment{
                         slug: ^slug,
                         sha: ^sha,
                         title: ^title,
+                        multi_session: ^multi_session,
+                        access_type: ^access_type,
                         deployment_group_id: ^id
                       } = app_deployment}
 
@@ -357,7 +361,9 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployed_by: app_deployment.deployed_by,
           deployed_at: seconds,
           revision_id: "1",
-          deployment_group_id: app_deployment.deployment_group_id
+          deployment_group_id: app_deployment.deployment_group_id,
+          multi_session: app_deployment.multi_session,
+          access_type: to_string(app_deployment.access_type)
         }
 
       user_connected = %{
@@ -770,7 +776,9 @@ defmodule Livebook.Hubs.TeamClientTest do
           deployed_by: app_deployment.deployed_by,
           deployed_at: seconds,
           revision_id: to_string(teams_app_deployment.app_revision.id),
-          deployment_group_id: app_deployment.deployment_group_id
+          deployment_group_id: app_deployment.deployment_group_id,
+          multi_session: app_deployment.multi_session,
+          access_type: to_string(app_deployment.access_type)
         }
 
       agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}

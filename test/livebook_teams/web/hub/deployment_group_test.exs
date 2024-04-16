@@ -280,7 +280,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     files_dir = Livebook.FileSystem.File.local(tmp_dir)
 
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
-    :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
+    :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
     assert_receive {:app_deployment_started, _}
 

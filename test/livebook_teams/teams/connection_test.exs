@@ -136,7 +136,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # since we want to fetch the app deployment from connection event,
       # we need to persist it before we connect to the WebSocket
-      :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
       assert {:ok, _conn} = Connection.start_link(self(), headers)
       assert_receive :connected
@@ -181,7 +181,7 @@ defmodule Livebook.Teams.ConnectionTest do
 
       # since we want to fetch the app deployment from connection event,
       # we need to persist it before we connect to the WebSocket
-      :ok = Livebook.Teams.deploy_app(hub, app_deployment, app_settings)
+      :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
       # As we need to be Agent to receive the app deployments list to be deployed,
       # we will create another connection here

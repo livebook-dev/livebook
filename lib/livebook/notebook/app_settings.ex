@@ -20,6 +20,8 @@ defmodule Livebook.Notebook.AppSettings do
   @type access_type :: :public | :protected
   @type output_type :: :all | :rich
 
+  @access_types [:public, :protected]
+
   @primary_key false
   embedded_schema do
     field :slug, :string
@@ -27,7 +29,7 @@ defmodule Livebook.Notebook.AppSettings do
     field :zero_downtime, :boolean
     field :show_existing_sessions, :boolean
     field :auto_shutdown_ms, :integer
-    field :access_type, Ecto.Enum, values: [:public, :protected]
+    field :access_type, Ecto.Enum, values: @access_types
     field :password, :string
     field :show_source, :boolean
     field :output_type, Ecto.Enum, values: [:all, :rich]
@@ -153,4 +155,10 @@ defmodule Livebook.Notebook.AppSettings do
   def valid?(settings) do
     change(settings).valid?
   end
+
+  @doc """
+  Returns a list of possible access types.
+  """
+  @spec access_types() :: list(atom())
+  def access_types(), do: @access_types
 end
