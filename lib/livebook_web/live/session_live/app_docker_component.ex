@@ -122,7 +122,7 @@ defmodule LivebookWeb.SessionLive.AppDockerComponent do
 
       <div class="flex gap-12">
         <p class="text-gray-700">
-          <.label>Hub</.label>
+          <.label>Workspace</.label>
           <span>
             <span class="text-lg"><%= @hub.hub_emoji %></span>
             <span><%= @hub.hub_name %></span>

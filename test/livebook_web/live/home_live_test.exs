@@ -215,7 +215,7 @@ defmodule LivebookWeb.HomeLiveTest do
       team = Livebook.HubHelpers.offline_hub()
 
       {:ok, view, _} = live(conn, ~p"/")
-      assert render(view) =~ "HUBS"
+      assert render(view) =~ "WORKSPACES"
       assert render(view) =~ team.hub_name
       assert render(view) =~ "Add Organization"
     end

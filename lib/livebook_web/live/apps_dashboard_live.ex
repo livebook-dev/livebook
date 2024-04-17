@@ -252,7 +252,7 @@ defmodule LivebookWeb.AppsDashboardLive do
       data-tooltip={
         ~S'''
         This is a permanent app started
-        from your Livebook Teams hub
+        deployed via Livebook Teams
         '''
       }
     >

@@ -29,7 +29,7 @@ defmodule Livebook.Migration do
     unless Livebook.Hubs.hub_exists?(Livebook.Hubs.Personal.id()) do
       Livebook.Hubs.save_hub(%Livebook.Hubs.Personal{
         id: Livebook.Hubs.Personal.id(),
-        hub_name: "My Hub",
+        hub_name: "My Workspace",
         hub_emoji: "🏠",
         secret_key: Livebook.Hubs.Personal.generate_secret_key()
       })

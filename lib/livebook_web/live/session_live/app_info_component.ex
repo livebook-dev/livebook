@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <.message_box
             :if={@any_session_secrets?}
             kind={:warning}
-            message="The notebook uses session secrets, but those are not available to deployed apps. Convert them to Hub secrets instead."
+            message="The notebook uses session secrets, but those are not available to deployed apps. Convert them to Workspace secrets instead."
           />
 
           <div class="flex flex-col space-y-3">

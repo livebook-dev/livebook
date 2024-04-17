@@ -173,7 +173,7 @@ defmodule Livebook.Hubs do
           :ok
 
         {:error, reason} ->
-          Logger.error("Could not start Hub #{hub.id}: #{Exception.format_exit(reason)}")
+          Logger.error("Could not start Workspace #{hub.id}: #{Exception.format_exit(reason)}")
       end
     end
 

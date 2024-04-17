@@ -214,7 +214,7 @@ defmodule LivebookWeb.LayoutComponents do
     <div id="hubs" class="flex flex-col mt-12">
       <div class="space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
-          <small class="ml-5 font-medium text-gray-300 cursor-default">HUBS</small>
+          <small class="ml-5 font-medium text-gray-300 cursor-default">WORKSPACES</small>
         </div>
 
         <%= for hub <- @hubs do %>

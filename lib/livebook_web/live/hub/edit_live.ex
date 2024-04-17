@@ -19,7 +19,7 @@ defmodule LivebookWeb.Hub.EditLive do
        hub: nil,
        counter: 0,
        type: nil,
-       page_title: "Hub - Livebook",
+       page_title: "Workspace - Livebook",
        params: %{}
      )}
   end

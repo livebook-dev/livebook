@@ -1192,7 +1192,7 @@ defmodule LivebookWeb.SessionLive.Render do
                 class="inline-flex items-center cursor-pointer gap-1 mt-1 text-sm text-gray-600 hover:text-gray-800 focus:text-gray-800"
                 aria-label={@data_view.hub.hub_name}
               >
-                <span>in</span>
+                <span>workspace</span>
                 <span class="text-lg pl-1"><%= @data_view.hub.hub_emoji %></span>
                 <span><%= @data_view.hub.hub_name %></span>
                 <.remix_icon icon="arrow-down-s-line" />
