@@ -132,7 +132,7 @@ defmodule LivebookWeb.AppComponents do
             disabled={@disabled}
           />
           <.text_field
-            :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
+            :if={zta_metadata = Livebook.Config.zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
             type={Map.get(zta_metadata, :input, "text")}
             label={zta_metadata.value}
@@ -141,7 +141,10 @@ defmodule LivebookWeb.AppComponents do
             disabled={@disabled}
           />
         </div>
-        <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
+        <div
+          :if={zta_metadata = Livebook.Config.zta_metadata(@form[:zta_provider].value)}
+          class="text-sm mt-1"
+        >
           See the
           <a
             class="text-blue-800 hover:text-blue-600"
@@ -160,12 +163,6 @@ defmodule LivebookWeb.AppComponents do
                    do: {provider.name, provider.type}
 
   defp zta_options(), do: @zta_options
-
-  defp zta_metadata(nil), do: nil
-
-  defp zta_metadata(zta_provider) do
-    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
-  end
 
   @doc """
   Lists all docker tag options.
