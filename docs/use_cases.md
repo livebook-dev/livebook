@@ -55,7 +55,7 @@ rich features to deploy applications that interact with those systems.
 
 Livebook uses the concept of a **runtime**, which in practice is an Elixir node
 responsible for evaluating your code. You can choose the runtime by clicking
-the "Runtime" icon on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd> keyboard shortcut).
+the "Runtime" icon on the sidebar (or by using the `s` `r` keyboard shortcut).
 
 By default, a new Elixir runtime is started (similarly to starting `iex`)
 for each notebook. You can click reconnect whenever you want to discard the
