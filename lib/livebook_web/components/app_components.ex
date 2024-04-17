@@ -132,19 +132,16 @@ defmodule LivebookWeb.AppComponents do
             disabled={@disabled}
           />
           <.text_field
-            :if={zta_metadata = Livebook.Config.zta_metadata(@form[:zta_provider].value)}
+            :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
             type={Map.get(zta_metadata, :input, "text")}
-            label={zta_metadata.value}
-            placeholder={zta_placeholder(zta_metadata)}
+            label={zta_metadata.name}
+            placeholder={Map.get(zta_metadata, :placeholder, "")}
             phx-debounce
             disabled={@disabled}
           />
         </div>
-        <div
-          :if={zta_metadata = Livebook.Config.zta_metadata(@form[:zta_provider].value)}
-          class="text-sm mt-1"
-        >
+        <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
           See the
           <a
             class="text-blue-800 hover:text-blue-600"
@@ -163,6 +160,12 @@ defmodule LivebookWeb.AppComponents do
                    do: {provider.name, provider.type}
 
   defp zta_options(), do: @zta_options
+
+  defp zta_metadata(nil), do: nil
+
+  defp zta_metadata(provider) do
+    Livebook.Config.zta_metadata(provider)
+  end
 
   @doc """
   Lists all docker tag options.
@@ -188,7 +191,4 @@ defmodule LivebookWeb.AppComponents do
   def update_app_list(apps, {:app_closed, app}) do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
-
-  defp zta_placeholder(%{placeholder: placeholder}), do: placeholder
-  defp zta_placeholder(_), do: nil
 end
