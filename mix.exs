@@ -217,6 +217,7 @@ defmodule Livebook.MixProject do
   defp extras() do
     [
       {"README.md", title: "Welcome to Livebook"},
+      "docs/use_cases.md",
       "docs/authentication.md",
       "docs/deployment/docker.md",
       "docs/deployment/basic_auth.md",
