@@ -826,6 +826,8 @@ defmodule Livebook.Session do
   def init(opts) do
     Livebook.Settings.subscribe()
     Livebook.Hubs.Broadcasts.subscribe([:secrets])
+    Livebook.Teams.Broadcasts.subscribe([:clients])
+
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -1851,6 +1853,14 @@ defmodule Livebook.Session do
              secret.hub_id == state.data.notebook.hub_id do
     operation = {:sync_hub_secrets, @client_id}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:client_disconnected, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
+    # Since the hub got deleted, we need to fallback to Personal hub
+    state = handle_operation(state, {:set_notebook_hub, @client_id, Livebook.Hubs.Personal.id()})
+
+    # and remove secrets from the session
+    {:noreply, %{state | data: %{state.data | secrets: %{}}}}
   end
 
   def handle_info({:deploy_result, ref, result}, state) do
