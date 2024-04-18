@@ -26,7 +26,6 @@ defmodule Livebook.Teams.Broadcasts do
   Topic `#{@clients_topic}`:
 
     * `{:client_connected, id}`
-    * `{:client_disconnected, id}`
 
   Topic `#{@deployment_groups_topic}`:
 
@@ -66,14 +65,6 @@ defmodule Livebook.Teams.Broadcasts do
   @spec client_connected(String.t()) :: broadcast()
   def client_connected(id) do
     broadcast(@clients_topic, {:client_connected, id})
-  end
-
-  @doc """
-  Broadcasts under `#{@clients_topic}` topic when hub was deleted and the client disconnected.
-  """
-  @spec client_disconnected(String.t()) :: broadcast()
-  def client_disconnected(id) do
-    broadcast(@clients_topic, {:client_disconnected, id})
   end
 
   @doc """

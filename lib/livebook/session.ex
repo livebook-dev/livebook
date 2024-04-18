@@ -825,8 +825,7 @@ defmodule Livebook.Session do
   @impl true
   def init(opts) do
     Livebook.Settings.subscribe()
-    Livebook.Hubs.Broadcasts.subscribe([:secrets])
-    Livebook.Teams.Broadcasts.subscribe([:clients])
+    Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
 
     id = Keyword.fetch!(opts, :id)
 
@@ -1855,12 +1854,21 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:client_disconnected, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
-    # Since the hub got deleted, we need to fallback to Personal hub
-    state = handle_operation(state, {:set_notebook_hub, @client_id, Livebook.Hubs.Personal.id()})
+  def handle_info({:hub_changed, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
+    if Livebook.Hubs.hub_exists?(id) do
+      {:noreply, state}
+    else
+      # Since the hub got deleted, we need to fallback to Personal hub
+      # and remove secrets from the session
+      personal_id = Livebook.Hubs.Personal.id()
+      hub_secrets = state.data.hub_secrets
 
-    # and remove secrets from the session
-    {:noreply, %{state | data: %{state.data | secrets: %{}}}}
+      {:noreply,
+       state
+       |> handle_operation({:set_notebook_hub, @client_id, personal_id})
+       |> handle_operation({:unset_hub_secrets, @client_id, id, hub_secrets})
+       |> handle_operation({:sync_hub_secrets, @client_id})}
+    end
   end
 
   def handle_info({:deploy_result, ref, result}, state) do
@@ -2351,6 +2359,13 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:delete_file_entry, _client_id, name}) do
     cleanup_file_entries(state, [name])
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:unset_hub_secrets, _client_id, _id, secrets}) do
+    secret_names = Enum.map(secrets, & &1.name)
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, secret_names)
+
     state
   end
 

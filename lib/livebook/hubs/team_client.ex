@@ -49,7 +49,6 @@ defmodule Livebook.Hubs.TeamClient do
   def stop(id) do
     if pid = GenServer.whereis(registry_name(id)) do
       DynamicSupervisor.terminate_child(@supervisor, pid)
-      Teams.Broadcasts.client_disconnected(id)
     end
 
     :ok

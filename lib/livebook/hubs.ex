@@ -86,9 +86,9 @@ defmodule Livebook.Hubs do
   def delete_hub(id) do
     with {:ok, hub} <- fetch_hub(id) do
       true = Provider.type(hub) != "personal"
-      :ok = Broadcasts.hub_changed(hub.id)
       :ok = maybe_unset_default_hub(hub.id)
       :ok = Storage.delete(@namespace, id)
+      :ok = Broadcasts.hub_changed(hub.id)
       :ok = disconnect_hub(hub)
     end
 
@@ -124,8 +124,6 @@ defmodule Livebook.Hubs do
   end
 
   defp disconnect_hub(hub) do
-    sleep_time = Application.get_env(:livebook, :hub_disconnect_backoff, 30_000)
-
     # We use a task supervisor because the hub connection itself
     # calls delete_hub (which calls this function), otherwise we deadlock.
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
@@ -134,7 +132,7 @@ defmodule Livebook.Hubs do
       # make them crash, so we give it some time to shut down.
       #
       # The default backoff is 5.5s, so we round it down to 5s.
-      Process.sleep(sleep_time)
+      Process.sleep(30_000)
       :ok = Provider.disconnect(hub)
     end)
 
