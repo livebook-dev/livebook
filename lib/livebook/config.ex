@@ -303,6 +303,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns metadata of a ZTA provider
+  """
+  @spec zta_metadata(atom()) :: map()
+  def zta_metadata(zta_provider) do
+    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
+  end
+
+  @doc """
   Returns whether the application is running inside an iframe.
   """
   @spec within_iframe?() :: boolean()

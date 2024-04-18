@@ -135,8 +135,8 @@ defmodule LivebookWeb.AppComponents do
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
             type={Map.get(zta_metadata, :input, "text")}
-            label={zta_metadata.value}
-            placeholder={zta_placeholder(zta_metadata)}
+            label={zta_metadata.name}
+            placeholder={Map.get(zta_metadata, :placeholder, "")}
             phx-debounce
             disabled={@disabled}
           />
@@ -163,8 +163,8 @@ defmodule LivebookWeb.AppComponents do
 
   defp zta_metadata(nil), do: nil
 
-  defp zta_metadata(zta_provider) do
-    Enum.find(Livebook.Config.identity_providers(), &(&1.type == zta_provider))
+  defp zta_metadata(provider) do
+    Livebook.Config.zta_metadata(provider)
   end
 
   @doc """
@@ -191,7 +191,4 @@ defmodule LivebookWeb.AppComponents do
   def update_app_list(apps, {:app_closed, app}) do
     Enum.reject(apps, &(&1.slug == app.slug))
   end
-
-  defp zta_placeholder(%{placeholder: placeholder}), do: placeholder
-  defp zta_placeholder(_), do: nil
 end
