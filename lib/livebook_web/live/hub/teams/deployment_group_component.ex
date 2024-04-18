@@ -76,7 +76,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           </.labeled_text>
           <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Authentication">
             <span class="text-lg font-normal">
-              <%= String.capitalize(to_string(@deployment_group.zta_provider || "none")) %>
+              <%= Livebook.ZTA.provider_name(@deployment_group.zta_provider) %>
             </span>
           </.labeled_text>
         </div>
