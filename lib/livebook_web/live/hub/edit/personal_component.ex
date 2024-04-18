@@ -246,7 +246,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     case Personal.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->
         socket
-        |> put_flash(:success, "Hub updated successfully")
+        |> put_flash(:success, "Workspace updated successfully")
         |> push_navigate(to: ~p"/hub/#{hub.id}")
 
       {:error, changeset} ->

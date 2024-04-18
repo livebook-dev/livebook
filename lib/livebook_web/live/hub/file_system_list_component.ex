@@ -88,7 +88,7 @@ defmodule LivebookWeb.Hub.FileSystemListComponent do
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Detach hub file storage",
+       title: "Detach workspace file storage",
        description: "Are you sure you want to detach #{name}?",
        confirm_text: "Detach",
        confirm_icon: "delete-bin-6-line"

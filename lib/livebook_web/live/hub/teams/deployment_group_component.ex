@@ -95,7 +95,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             <div class="flex flex-row space-x-2">
               <p class="grow text-gray-700">
                 Secrets that are exclusive to apps deployed to this group.
-                In case of conflicts, these secrets take precedence over Hub secrets.
+                In case of conflicts, these secrets take precedence over Workspace secrets.
               </p>
 
               <div class="self-center">
