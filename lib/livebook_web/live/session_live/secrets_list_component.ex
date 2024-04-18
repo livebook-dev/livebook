@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
             <%= if @hub_secrets == [] do %>
               No secrets stored in this hub so far
             <% else %>
-              Toggle to share with this session
+              Toggle to allow access to a secret
             <% end %>
           </span>
         </div>
@@ -195,10 +195,10 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       class="tooltip bottom-left"
       data-tooltip={
         ~S'''
-        Secrets are a safe way to share credentials
-        and tokens with notebooks. They are often
-        shared with Smart cells and can be read as
-        environment variables using the LB_ prefix.
+        Secrets are a safe way to allow notebooks
+        to have access to credentials and tokens.
+        Your notebook can read them as environment
+        variables using the LB_ prefix.
         '''
       }
     >

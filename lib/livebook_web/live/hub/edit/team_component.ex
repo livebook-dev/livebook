@@ -162,10 +162,8 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               </h2>
 
               <p class="text-gray-700">
-                Secrets are a safe way to share credentials and tokens with notebooks
-                across your whole team.
-                They are often used by Smart cells and can be read as
-                environment variables using the <code>LB_</code> prefix.
+                Secrets are a safe way to allow notebooks to have access to
+                credentials and tokens.
               </p>
 
               <.live_component

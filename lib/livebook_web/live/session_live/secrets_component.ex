@@ -187,7 +187,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <div class="mx-auto">
         <div class="rounded-lg bg-blue-600 py-1 px-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between">
-            <div class="flex w-0 flex-1 items-center">
+            <div class="flex w-0 flex-1 items-center pr-1">
               <.remix_icon
                 icon="error-warning-fill"
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
@@ -195,7 +195,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <span class="ml-2 text-sm font-normal text-gray-100">
                 There is a secret named
                 <span class="font-semibold text-white"><%= @secret.name %></span>
-                in <%= hub_label(@hub) %>. Allow this session to access it?
+                in the <%= hub_label(@hub) %> workspace. Allow this notebook to access it?
               </span>
             </div>
             <.button
