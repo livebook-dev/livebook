@@ -1195,8 +1195,8 @@ defmodule LivebookWeb.SessionLive.Render do
                 <span>Using</span>
                 <span class="pl-1"><%= @data_view.hub.hub_emoji %></span>
                 <span><%= @data_view.hub.hub_name %></span>
+                <.remix_icon icon="arrow-down-s-line" class="-ml-1" />
                 <span>workspace</span>
-                <.remix_icon icon="arrow-down-s-line" />
               </div>
             </:toggle>
             <.menu_item :for={hub <- @saved_hubs}>
