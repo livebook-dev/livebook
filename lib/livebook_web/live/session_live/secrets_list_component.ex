@@ -196,7 +196,7 @@ defmodule LivebookWeb.SessionLive.SecretsListComponent do
       data-tooltip={
         ~S'''
         Secrets are a safe way to allow notebooks
-        to have access to credentials and tokens.
+        to access credentials and tokens.
         Your notebook can read them as environment
         variables using the LB_ prefix.
         '''

@@ -89,7 +89,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
             </h2>
 
             <p class="text-gray-700">
-              Secrets are a safe way to allow notebooks to have access to
+              Secrets are a safe way to allow notebooks to access
               credentials and tokens.
             </p>
 
