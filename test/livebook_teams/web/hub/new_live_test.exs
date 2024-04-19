@@ -47,7 +47,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page
       # and check the flash message
-      %{"success" => "Hub added successfully"} =
+      %{"success" => "Workspace added successfully"} =
         assert_redirect(
           view,
           "/hub/team-#{name}?show-key=confirm",
@@ -112,7 +112,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       # wait for the c:handle_info/2 cycle
       # check if the page redirected to edit hub page
       # and check the flash message
-      %{"success" => "Hub added successfully"} =
+      %{"success" => "Workspace added successfully"} =
         assert_redirect(
           view,
           "/hub/team-#{name}?show-key=confirm",

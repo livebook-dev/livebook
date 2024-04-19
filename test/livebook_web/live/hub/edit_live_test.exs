@@ -32,7 +32,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
                |> render_submit(%{"personal" => attrs})
                |> follow_redirect(conn)
 
-      assert render(view) =~ "Hub updated successfully"
+      assert render(view) =~ "Workspace updated successfully"
 
       id = hub.id
       assert_receive {:hub_changed, ^id}

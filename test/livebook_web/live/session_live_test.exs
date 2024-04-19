@@ -2239,7 +2239,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       assert render(view) =~
-               "The notebook uses session secrets, but those are not available to deployed apps. Convert them to Hub secrets instead."
+               "The notebook uses session secrets, but those are not available to deployed apps. Convert them to Workspace secrets instead."
     end
   end
 

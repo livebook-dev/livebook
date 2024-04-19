@@ -49,7 +49,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
           <LayoutComponents.title text={"#{@hub.hub_emoji} #{@hub.hub_name}"} />
 
           <p class="text-gray-700 text-sm">
-            Your personal hub. All data is stored on your machine and only you can access it.
+            Your personal workspace. All data is stored on your machine and only you can access it.
           </p>
         </div>
 
@@ -245,7 +245,7 @@ defmodule LivebookWeb.Hub.Edit.PersonalComponent do
     case Personal.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->
         socket
-        |> put_flash(:success, "Hub updated successfully")
+        |> put_flash(:success, "Workspace updated successfully")
         |> push_navigate(to: ~p"/hub/#{hub.id}")
 
       {:error, changeset} ->

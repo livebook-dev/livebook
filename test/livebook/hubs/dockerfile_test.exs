@@ -320,7 +320,7 @@ defmodule Livebook.Hubs.DockerfileTest do
                )
 
       assert warning =~
-               "The S3 file storage, defined in your personal hub, will not be available in the Docker image"
+               "The S3 file storage, configured in your personal workspace, will not be available in the Docker image"
     end
 
     test "warns when deploying a directory in personal hub and it has any file systems" do
@@ -335,7 +335,7 @@ defmodule Livebook.Hubs.DockerfileTest do
                Dockerfile.airgapped_warnings(config, hub, [], file_systems, app_settings, [], %{})
 
       assert warning =~
-               "The S3 file storage, defined in your personal hub, will not be available in the Docker image"
+               "The S3 file storage, configured in your personal workspace, will not be available in the Docker image"
     end
 
     test "warns when the app has no password in personal hub" do

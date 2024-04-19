@@ -367,7 +367,7 @@ defmodule Livebook.Hubs.Dockerfile do
       [
         if Livebook.Session.Data.session_secrets(secrets, hub.id) != [] do
           "The notebook uses session secrets, but those are not available to deployed apps." <>
-            " Convert them to Hub secrets instead."
+            " Convert them to Workspace secrets instead."
         end
       ] ++ config_warnings(config)
 
@@ -388,8 +388,8 @@ defmodule Livebook.Hubs.Dockerfile do
               %module{} = hd(used_hub_file_systems)
               name = LivebookWeb.FileSystemComponents.file_system_name(module)
 
-              "The #{name} file storage, defined in your personal hub, will not be available in the Docker image." <>
-                " You must either download all references as attachments or use Livebook Teams to automatically" <>
+              "The #{name} file storage, configured in your personal workspace, will not be available in the Docker image." <>
+                " You must either download all file references as file attachments or use Livebook Teams to automatically" <>
                 " encrypt and synchronize file storages across your team and deployments."
             end,
             if app_settings.access_type == :public do

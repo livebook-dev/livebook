@@ -387,7 +387,7 @@ defmodule Livebook.FileSystem.File do
     else
       {:error,
        "could not find file system (id: #{file_system_id}). This means that it has" <>
-         " been either detached or cannot be accessed from the Hub at the moment"}
+         " been either detached or cannot be accessed from the Workspace at the moment"}
     end
   end
 

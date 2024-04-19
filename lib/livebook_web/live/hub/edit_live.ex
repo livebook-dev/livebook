@@ -19,7 +19,7 @@ defmodule LivebookWeb.Hub.EditLive do
        hub: nil,
        counter: 0,
        type: nil,
-       page_title: "Hub - Livebook",
+       page_title: "Workspace - Livebook",
        params: %{}
      )}
   end
@@ -85,14 +85,14 @@ defmodule LivebookWeb.Hub.EditLive do
       Hubs.delete_hub(id)
 
       socket
-      |> put_flash(:success, "Hub deleted successfully")
+      |> put_flash(:success, "Workspace deleted successfully")
       |> push_navigate(to: ~p"/")
     end
 
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete hub",
-       description: "Are you sure you want to delete this hub?",
+       title: "Delete workspace",
+       description: "Are you sure you want to delete this workspace?",
        confirm_text: "Delete",
        confirm_icon: "close-circle-line"
      )}

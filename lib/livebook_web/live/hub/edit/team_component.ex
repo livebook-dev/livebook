@@ -244,10 +244,10 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
               <div class="flex items-center justify-between gap-4 text-gray-700">
                 <div class="flex flex-col">
                   <h3 class="font-semibold">
-                    Delete this hub
+                    Delete this workspace
                   </h3>
                   <p class="text-sm">
-                    This only removes the hub from this machine. You must rejoin to access its features once again.
+                    This only removes the workpsace from this machine. You must rejoin to access its features once again.
                   </p>
                 </div>
                 <.button
@@ -256,7 +256,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
                   id="delete-hub"
                   phx-click={JS.push("delete_hub", value: %{id: @hub.id})}
                 >
-                  <span class="hidden sm:block">Delete hub</span>
+                  <span class="hidden sm:block">Delete workspace</span>
                   <.remix_icon icon="delete-bin-line" class="text-lg sm:hidden" />
                 </.button>
               </div>
@@ -371,7 +371,7 @@ defmodule LivebookWeb.Hub.Edit.TeamComponent do
       {:ok, hub} ->
         {:noreply,
          socket
-         |> put_flash(:success, "Hub updated successfully")
+         |> put_flash(:success, "Workspace updated successfully")
          |> push_patch(to: ~p"/hub/#{hub.id}")}
 
       {:error, changeset} ->

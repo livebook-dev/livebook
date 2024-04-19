@@ -36,7 +36,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       |> render_submit(%{"team" => attrs})
 
       update = render(view)
-      assert update =~ "Hub updated successfully"
+      assert update =~ "Workspace updated successfully"
       assert update =~ "🐈"
 
       id = hub.id
@@ -51,13 +51,13 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
       view
-      |> element("#delete-hub", "Delete hub")
+      |> element("#delete-hub", "Delete workspace")
       |> render_click()
 
       render_confirm(view)
 
       assert_receive {:hub_changed, ^id}
-      %{"success" => "Hub deleted successfully"} = assert_redirect(view, "/")
+      %{"success" => "Workspace deleted successfully"} = assert_redirect(view, "/")
 
       {:ok, view, _html} = live(conn, ~p"/")
 

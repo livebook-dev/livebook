@@ -18,7 +18,7 @@ defmodule LivebookWeb.Hub.NewLive do
     socket =
       assign(socket,
         selected_option: "new-org",
-        page_title: "Hub - Livebook",
+        page_title: "Workspace - Livebook",
         requested_code: false,
         org: nil,
         verification_uri: nil,
@@ -285,7 +285,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
         {:noreply,
          socket
-         |> put_flash(:success, "Hub added successfully")
+         |> put_flash(:success, "Workspace added successfully")
          |> push_navigate(to: ~p"/hub/#{hub.id}?show-key=confirm")}
 
       {:error, :expired} ->
