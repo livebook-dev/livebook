@@ -220,6 +220,7 @@ defmodule Livebook.MixProject do
       "docs/use_cases.md",
       "docs/authentication.md",
       "docs/deployment/docker.md",
+      "docs/deployment/fips.md",
       "docs/deployment/basic_auth.md",
       "docs/deployment/cloudflare.md",
       "docs/deployment/google_iap.md",

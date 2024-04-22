@@ -285,6 +285,9 @@ The following environment variables can be used to configure Livebook on boot:
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
 
+  * `LIVEBOOK_FIPS` - if set to "true" will try to enable the FIPS mode on startup.
+    See more details in [the documentation](https://hexdocs.pm/livebook/fips.html).
+
 <!-- Environment variables -->
 
 If running Livebook via the command line, run `livebook server --help` to see
