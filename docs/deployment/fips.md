@@ -12,7 +12,7 @@ export LIVEBOOK_FIPS=true
 _build/prod/rel/livebook/bin/livebook start_iex 
 
 ERROR! Config provider Config.Reader failed with:
-** (RuntimeError) Could not set FIPS mode but was asked to
+** (RuntimeError) Requested FIPS mode via LIVEBOOK_FIPS, but this Erlang installation was compiled without FIPS support
     (livebook 0.13.0-dev) lib/livebook.ex:242: Livebook.config_runtime/0
         ...
 
@@ -21,7 +21,7 @@ ERROR! Config provider Config.Reader failed with:
 This means that your elixir/erlang environmet was NOT compiled with FIPS enabled.
 
 ### Docker example
-To do this in docker, you will need to build it a little bit differently. You can see a full example below. This should be considered psuedo code, you will want to adapt it to your needs. You should consider having a base image for the erlang/elixir portion with FIPS turned on and then overlay with a [multi stage build](https://docs.docker.com/build/building/multi-stage/).
+To do this in docker, you will need to build it a little bit differently. You can see a mini example below. This should be considered psuedo code, you will want to adapt it to your needs. You should consider having a base image for the erlang/elixir portion with FIPS turned on and then overlay with a [multi stage build](https://docs.docker.com/build/building/multi-stage/).
 
 
 ```docker
@@ -53,47 +53,4 @@ RUN git clone https://github.com/elixir-lang/elixir.git && \
     make compile && \
     make install
 
-WORKDIR /build_app
-
-# Install hex and rebar globally
-RUN mix local.hex --force && \
-    mix local.rebar --force
-
-# Prepare application build directory
-COPY mix.exs mix.lock ./
-COPY config config
-
-# Get and compile dependencies
-RUN mix do deps.get, deps.compile
-
-# Copy application source code and compile
-COPY rel rel
-COPY static static
-COPY iframe/priv/static/iframe iframe/priv/static/iframe
-COPY proto proto
-COPY lib lib
-COPY README.md README.md
-ENV MIX_ENV=prod
-RUN mix do compile, release livebook
-
-# Prepare app directory
-RUN cp -R /build_app/_build/prod/rel/livebook /app && \
-    mkdir -p /data && \
-    chmod 777 /data && \
-    mkdir -p /home/livebook && \
-    chmod 777 /home/livebook && \
-    chown -R nobody:root /app /home/livebook /data
-# Switch to a non-root user
-USER nobody
-WORKDIR /home/livebook
-ENV LANG='en_US.UTF-8' \
-    LANGUAGE='en_US:en' \
-    LC_ALL='en_US.UTF-8' \
-    ERL_FLAGS="+JMsingle true" \
-    LIVEBOOK_IP=0.0.0.0 \
-    LIVEBOOK_FIPS=true \
-    LIVEBOOK_HOME=/data \
-    HOME=/home/livebook    
-# Set command to start the application
-CMD ["/app/bin/livebook", "start"]
 ```

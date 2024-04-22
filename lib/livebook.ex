@@ -238,7 +238,9 @@ defmodule Livebook do
       if :crypto.enable_fips_mode(true) do
         IO.puts("[Livebook] FIPS mode enabled")
       else
-        raise "Could not set FIPS mode but was asked to"
+        Livebook.Config.abort!(
+          "Requested FIPS mode via LIVEBOOK_FIPS, but this Erlang installation was compiled without FIPS support"
+        )
       end
     end
   end
