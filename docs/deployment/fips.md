@@ -1,14 +1,12 @@
 # FIPS mode
 
-For environments that require security hardening you might need to turn on FIPS mode. Being able to turn on FIPS in general is a complex procedure, this just enables you to be able to turn FIPS on.
+For environments that require security hardening, you might need to turn on FIPS ([Federal Information Processing Standards](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standards)) mode. Turning FIPS is a complex procedure, this just enables you to do it.
 
-To be able to turn on FIPS mode you will need to have an Erlang installation that has been compiled with [FIPS enabled](https://www.erlang.org/doc/apps/crypto/fips).
+You will need to have an Erlang installation that has been compiled with [FIPS enabled](https://www.erlang.org/doc/apps/crypto/fips).
 
+## Docker example
 
-### Docker example
-
-To do this in Docker, you will need to build it a little bit differently. Below is an example Dockerfile with FIPS-enabled Erlang/Elixir base image. You can use it as a base image for building Livebook. See the Livebook Dockerfile for further reference.
-
+To do this in Docker, you will need to build it differently. Below is an example Dockerfile with FIPS-enabled Erlang/Elixir base image. You can use it as a base image for building Livebook. See the Livebook Dockerfile for further reference.
 
 ```docker
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9-1137
@@ -38,5 +36,4 @@ RUN git clone https://github.com/elixir-lang/elixir.git && \
     git checkout v${ELIXIR_VERSION} && \
     make compile && \
     make install
-
 ```
