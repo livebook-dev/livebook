@@ -825,7 +825,8 @@ defmodule Livebook.Session do
   @impl true
   def init(opts) do
     Livebook.Settings.subscribe()
-    Livebook.Hubs.Broadcasts.subscribe([:secrets])
+    Livebook.Hubs.Broadcasts.subscribe([:crud, :secrets])
+
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -1851,6 +1852,14 @@ defmodule Livebook.Session do
              secret.hub_id == state.data.notebook.hub_id do
     operation = {:sync_hub_secrets, @client_id}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:hub_deleted, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
+    # Since the hub got deleted, we close all sessions using that hub.
+    # This way we clean up all secrets and other in-memory state that
+    # is related to the hub
+    send(self(), :close)
+    {:noreply, state}
   end
 
   def handle_info({:deploy_result, ref, result}, state) do

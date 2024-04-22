@@ -17,6 +17,7 @@ defmodule Livebook.Hubs.Broadcasts do
   Topic `hubs:crud`:
 
     * `{:hub_changed, hub_id}`
+    * `{:hub_deleted, hub_id}`
 
   Topic `hubs:connection`:
 
@@ -68,6 +69,14 @@ defmodule Livebook.Hubs.Broadcasts do
   @spec hub_changed(String.t()) :: broadcast()
   def hub_changed(hub_id) do
     broadcast(@crud_topic, {:hub_changed, hub_id})
+  end
+
+  @doc """
+  Broadcasts under `#{@crud_topic}` topic when hub is deleted.
+  """
+  @spec hub_deleted(String.t()) :: broadcast()
+  def hub_deleted(hub_id) do
+    broadcast(@crud_topic, {:hub_deleted, hub_id})
   end
 
   @doc """

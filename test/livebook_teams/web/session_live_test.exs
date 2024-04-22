@@ -8,6 +8,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
+    Session.subscribe(session.id)
 
     on_exit(fn ->
       Session.close(session.pid)
@@ -22,24 +23,55 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       id = hub.id
       personal_id = Livebook.Hubs.Personal.id()
 
-      Session.subscribe(session.id)
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
-      assert Session.get_data(session.pid).notebook.hub_id == personal_id
+      assert Session.get_notebook(session.pid).hub_id == personal_id
 
       view
       |> element(~s/#select-hub-#{id}/)
       |> render_click()
 
       assert_receive {:operation, {:set_notebook_hub, _, ^id}}
-      assert Session.get_data(session.pid).notebook.hub_id == hub.id
+      assert Session.get_notebook(session.pid).hub_id == hub.id
+    end
+
+    test "closes all sessions from notebooks that belongs to the org when the org deletes the user",
+         %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Hubs.Broadcasts.subscribe([:connection, :crud, :secrets])
+      Livebook.Teams.Broadcasts.subscribe([:clients])
+      Session.subscribe(session.id)
+
+      hub = create_team_hub(user, node)
+      id = hub.id
+
+      assert_receive {:hub_connected, ^id}
+      assert_receive {:client_connected, ^id}, 10_000
+
+      Session.set_notebook_hub(session.pid, id)
+
+      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
+      assert Session.get_notebook(session.pid).hub_id == id
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+      assert has_element?(view, ~s/#select-hub-#{id}/)
+
+      # force user to be deleted from org
+      erpc_call(node, :delete_user_org, [user.id, hub.org_id])
+      reason = "#{hub.hub_name}: you were removed from the org"
+
+      # checks if the hub received the `user_deleted` event and deleted the hub
+      assert_receive {:hub_server_error, ^id, ^reason}
+      assert_receive {:hub_deleted, ^id}
+      refute hub in Livebook.Hubs.get_hubs()
+
+      # all sessions that uses the deleted hub must be closed
+      assert_receive :session_closed
     end
   end
 
   describe "secrets" do
     test "creates a new secret", %{conn: conn, user: user, node: node, session: session} do
       team = create_team_hub(user, node)
-      Session.subscribe(session.id)
 
       # loads the session page
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -95,8 +127,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       id = team.id
       assert_receive {:hub_connected, ^id}
 
-      Session.subscribe(session.id)
-
       # creates a secret
       secret_name = "BIG_IMPORTANT_SECRET_TO_BE_UPDATED_OR_DELETED"
       secret_value = "123"
@@ -127,7 +157,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do
       team = create_team_hub(user, node)
-      Session.subscribe(session.id)
 
       # loads the session page
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
@@ -168,9 +197,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, team.id)
 
-      # subscribe and executes the code to trigger
-      # the `System.EnvError` exception and outputs the 'Add secret' button
-      Session.subscribe(session.id)
+      # executes the code to trigger the `System.EnvError` exception
+      # and outputs the 'Add secret' button
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
       cell_id = insert_text_cell(session.pid, section_id, :code, code)
@@ -223,9 +251,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, team.id)
 
-      # subscribe and executes the code to trigger
-      # the `System.EnvError` exception and outputs the 'Add secret' button
-      Session.subscribe(session.id)
+      # executes the code to trigger the `System.EnvError` exception
+      # and outputs the 'Add secret' button
       section_id = insert_section(session.pid)
       code = ~s{System.fetch_env!("LB_#{secret.name}")}
       cell_id = insert_text_cell(session.pid, section_id, :code, code)
@@ -277,7 +304,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
   describe "files" do
     test "shows only hub's file systems",
          %{conn: conn, user: user, node: node, session: session} do
-      Session.subscribe(session.id)
       Livebook.Hubs.Broadcasts.subscribe([:file_systems])
 
       personal_id = Livebook.Hubs.Personal.id()
@@ -325,7 +351,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
 
     test "shows file system from offline hub", %{conn: conn, session: session} do
-      Session.subscribe(session.id)
       Livebook.Hubs.Broadcasts.subscribe([:file_systems])
 
       hub = offline_hub()
@@ -373,7 +398,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
         hub_id: team_id
       )
 
-      Session.subscribe(session.id)
       Session.set_notebook_hub(session.pid, team_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
@@ -410,7 +434,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
           hub_id: team_id
         )
 
-      Session.subscribe(session.id)
       Session.set_notebook_hub(session.pid, team_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 
@@ -442,7 +465,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       team = create_team_hub(user, node)
       team_id = team.id
 
-      Session.subscribe(session.id)
       Session.set_notebook_hub(session.pid, team_id)
       assert_receive {:operation, {:set_notebook_hub, _client, ^team_id}}
 

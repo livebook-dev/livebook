@@ -36,6 +36,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       id = team.id
 
       assert_receive {:hub_connected, ^id}
+      assert_receive {:client_connected, ^id}
 
       {:ok, team: team}
     end
@@ -153,6 +154,20 @@ defmodule Livebook.Hubs.TeamClientTest do
       erpc_call(node, :toggle_app_deployment, [app_deployment.id, team.org_id])
 
       assert_receive {:app_deployment_stopped, ^app_deployment}
+    end
+
+    test "receives the user events", %{team: team, node: node} do
+      Livebook.Hubs.Broadcasts.subscribe([:crud])
+
+      # force user to be deleted from org
+      erpc_call(node, :delete_user_org, [team.user_id, team.org_id])
+
+      id = team.id
+      reason = "#{team.hub_name}: you were removed from the org"
+
+      assert_receive {:hub_server_error, ^id, ^reason}
+      assert_receive {:hub_deleted, ^id}
+      refute team in Livebook.Hubs.get_hubs()
     end
   end
 

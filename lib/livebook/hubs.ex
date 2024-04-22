@@ -86,9 +86,9 @@ defmodule Livebook.Hubs do
   def delete_hub(id) do
     with {:ok, hub} <- fetch_hub(id) do
       true = Provider.type(hub) != "personal"
-      :ok = Broadcasts.hub_changed(hub.id)
       :ok = maybe_unset_default_hub(hub.id)
       :ok = Storage.delete(@namespace, id)
+      :ok = Broadcasts.hub_deleted(hub.id)
       :ok = disconnect_hub(hub)
     end
 
