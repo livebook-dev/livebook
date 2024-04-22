@@ -2,7 +2,7 @@
 
 For environments that require security hardening you might need to turn on FIPS mode. Being able to turn on FIPS in general is a complex procedure, this just enables you to be able to turn FIPS on.
 
-To be able to turn on fips mode you will need to have an erlang distribution that has been compiled with [fips enabled](https://www.erlang.org/doc/apps/crypto/fips).
+To be able to turn on FIPS mode you will need to have an Erlang installation that has been compiled with [FIPS enabled](https://www.erlang.org/doc/apps/crypto/fips).
 
 
 ### Docker example
