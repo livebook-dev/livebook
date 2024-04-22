@@ -88,7 +88,7 @@ defmodule Livebook.Hubs do
       true = Provider.type(hub) != "personal"
       :ok = maybe_unset_default_hub(hub.id)
       :ok = Storage.delete(@namespace, id)
-      :ok = Broadcasts.hub_changed(hub.id)
+      :ok = Broadcasts.hub_deleted(hub.id)
       :ok = disconnect_hub(hub)
     end
 

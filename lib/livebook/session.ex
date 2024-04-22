@@ -1854,14 +1854,11 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:hub_changed, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
-    if Livebook.Hubs.hub_exists?(id) do
-      {:noreply, state}
-    else
-      # Since the hub got deleted, all notebooks that belongs to the deleted hub and has open sessions must be closed.
-      before_close(state)
-      {:stop, :shutdown, state}
-    end
+  def handle_info({:hub_deleted, id}, %{data: %{notebook: %{hub_id: id}}} = state) do
+    # Since the hub got deleted, we close all sessions using that hub.
+    # This way we clean up all secrets and other in-memory state that
+    # is related to the hub
+    send(self(), :close)
   end
 
   def handle_info({:deploy_result, ref, result}, state) do
@@ -2352,13 +2349,6 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:delete_file_entry, _client_id, name}) do
     cleanup_file_entries(state, [name])
-    state
-  end
-
-  defp after_operation(state, _prev_state, {:unset_hub_secrets, _client_id, _id, secrets}) do
-    secret_names = Enum.map(secrets, & &1.name)
-    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, secret_names)
-
     state
   end
 

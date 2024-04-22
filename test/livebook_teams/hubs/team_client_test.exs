@@ -166,7 +166,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       reason = "#{team.hub_name}: you were removed from the org"
 
       assert_receive {:hub_server_error, ^id, ^reason}
-      assert_receive {:hub_changed, ^id}
+      assert_receive {:hub_deleted, ^id}
       refute team in Livebook.Hubs.get_hubs()
     end
   end

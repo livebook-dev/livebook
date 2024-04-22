@@ -231,7 +231,6 @@ defmodule Livebook.Session.Data do
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
           | {:set_notebook_deployment_group, String.t()}
-          | {:unset_hub_secrets, client_id(), String.t(), list(Secret.t())}
 
   @type action ::
           :connect_runtime
@@ -938,14 +937,6 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> sync_hub_secrets()
     |> update_notebook_hub_secret_names()
-    |> set_dirty()
-    |> wrap_ok()
-  end
-
-  def apply_operation(data, {:unset_hub_secrets, _client_id, hub_id, hub_secrets}) do
-    data
-    |> with_actions()
-    |> unset_hub_secrets(hub_id, hub_secrets)
     |> set_dirty()
     |> wrap_ok()
   end
@@ -1760,16 +1751,6 @@ defmodule Livebook.Session.Data do
       for {_name, secret} <- data.secrets, secret.hub_id == data.notebook.hub_id, do: secret.name
 
     set!(data_actions, notebook: %{data.notebook | hub_secret_names: hub_secret_names})
-  end
-
-  defp unset_hub_secrets({data, _} = data_actions, hub_id, hub_secrets) do
-    secrets =
-      Enum.reject(data.secrets, fn
-        {_name, %{hub_id: ^hub_id}} -> true
-        {name, %{name: name, hub_id: nil}} -> Enum.any?(hub_secrets, &(&1.name == name))
-      end)
-
-    set!(data_actions, secrets: Enum.into(secrets, %{}))
   end
 
   defp add_file_entries({data, _} = data_actions, file_entries) do
