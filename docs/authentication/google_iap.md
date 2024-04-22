@@ -1,4 +1,4 @@
-# Authentication with Google IAP
+# Google IAP
 
 Setting up Google IAP authentication will protect all routes of your Livebook instance. It is particularly useful for adding authentication to Livebook instances with deployed notebooks. Google IAP authentication occurs in addition to [Livebook's authentication](../authentication.md) for deployed notebooks and admins.
 

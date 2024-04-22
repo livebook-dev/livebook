@@ -1,4 +1,4 @@
-# Custom authentication
+# Custom
 
 It is possible to provide custom Zero Trust Authentication (ZTA) inside Livebook's Docker images.
 

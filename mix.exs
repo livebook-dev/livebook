@@ -28,7 +28,7 @@ defmodule Livebook.MixProject do
 
       # Docs
       homepage_url: "https://livebook.dev",
-      docs: docs()
+      docs: &docs/0
     ]
   end
 
@@ -209,7 +209,8 @@ defmodule Livebook.MixProject do
       assets: Path.expand("./docs/images"),
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
-        Deployment: Path.wildcard("docs/deployment/*")
+        Deployment: Path.wildcard("docs/deployment/*"),
+        Authentication: Path.wildcard("docs/authentication/*")
       ]
     ]
   end
@@ -220,16 +221,17 @@ defmodule Livebook.MixProject do
       "docs/use_cases.md",
       "docs/authentication.md",
       "docs/deployment/docker.md",
+      "docs/deployment/clustering.md",
       "docs/deployment/fips.md",
-      "docs/deployment/basic_auth.md",
-      "docs/deployment/cloudflare.md",
-      "docs/deployment/google_iap.md",
-      "docs/deployment/tailscale.md",
-      "docs/deployment/teleport.md",
-      "docs/deployment/custom_auth.md",
       "docs/teams/intro_to_teams.md",
       "docs/teams/shared_secrets.md",
-      "docs/teams/shared_file_storages.md"
+      "docs/teams/shared_file_storages.md",
+      "docs/authentication/basic_auth.md",
+      "docs/authentication/cloudflare.md",
+      "docs/authentication/google_iap.md",
+      "docs/authentication/tailscale.md",
+      "docs/authentication/teleport.md",
+      "docs/authentication/custom_auth.md"
     ]
   end
 end

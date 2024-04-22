@@ -1,4 +1,4 @@
-# Authentication with Tailscale
+# Tailscale
 
 Setting up Tailscale authentication will protect all routes of your Livebook instance. It is particularly useful for adding authentication to Livebook instances with deployed notebooks. Tailscale authentication occurs in addition to [Livebook's authentication](../authentication.md) for deployed notebooks and admins.
 
