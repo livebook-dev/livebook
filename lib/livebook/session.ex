@@ -1858,16 +1858,9 @@ defmodule Livebook.Session do
     if Livebook.Hubs.hub_exists?(id) do
       {:noreply, state}
     else
-      # Since the hub got deleted, we need to fallback to Personal hub
-      # and remove secrets from the session
-      personal_id = Livebook.Hubs.Personal.id()
-      hub_secrets = state.data.hub_secrets
-
-      {:noreply,
-       state
-       |> handle_operation({:set_notebook_hub, @client_id, personal_id})
-       |> handle_operation({:unset_hub_secrets, @client_id, id, hub_secrets})
-       |> handle_operation({:sync_hub_secrets, @client_id})}
+      # Since the hub got deleted, all notebooks that belongs to the deleted hub and has open sessions must be closed.
+      before_close(state)
+      {:stop, :shutdown, state}
     end
   end
 

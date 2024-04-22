@@ -35,12 +35,11 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert Session.get_notebook(session.pid).hub_id == hub.id
     end
 
-    test "changes the notebook hub when the org deletes the user",
+    test "closes all sessions from notebooks that belongs to the org when the org deletes the user",
          %{conn: conn, user: user, node: node, session: session} do
       Livebook.Hubs.Broadcasts.subscribe([:connection, :crud, :secrets])
       Livebook.Teams.Broadcasts.subscribe([:clients])
 
-      personal_id = Livebook.Hubs.Personal.id()
       hub = create_team_hub(user, node)
       id = hub.id
 
@@ -55,27 +54,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
       assert has_element?(view, ~s/#select-hub-#{id}/)
 
-      # adds a secret only to validate if it got removed
-      secret = insert_secret(value: Livebook.Utils.random_short_id(), hub_id: id)
-      assert_receive {:secret_created, ^secret}
-
-      Session.set_secret(session.pid, secret)
-      assert_session_secret(view, session.pid, secret, :hub_secrets)
-
-      # adds a section and a code cell to fetch the secret
-      section_id = insert_section(session.pid)
-      code = ~s{System.fetch_env!("LB_#{secret.name}")}
-      cell_id = insert_text_cell(session.pid, section_id, :code, code)
-
-      # evaluates the cell
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :terminal_text, text: output}, _}}
-
-      assert output == "\e[32m\"#{secret.value}\"\e[0m"
-
       # force user to be deleted from org
       erpc_call(node, :delete_user_org, [user.id, hub.org_id])
       reason = "#{hub.hub_name}: you were removed from the org"
@@ -86,108 +64,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       refute has_element?(view, ~s/#select-hub-#{id}/)
       refute hub in Livebook.Hubs.get_hubs()
 
-      # checks if the session fallback the notebook hub to Personal hub
-      assert_receive {:operation, {:set_notebook_hub, _, ^personal_id}}
-      assert Session.get_notebook(session.pid).hub_id == personal_id
-      refute_session_secret(view, session.pid, secret, :hub_secrets)
-
-      # evaluates the cell and check if the session doesn't recognize the secret 
-      secret_name = secret.name
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :error, context: {:missing_secret, ^secret_name}}, _}}
-    end
-
-    test "deletes the session secrets with the same hub secret name when the org deletes the user",
-         %{conn: conn, user: user, node: node, session: session} do
-      Livebook.Hubs.Broadcasts.subscribe([:connection, :crud, :secrets])
-      Livebook.Teams.Broadcasts.subscribe([:clients])
-
-      personal_id = Livebook.Hubs.Personal.id()
-      hub = create_team_hub(user, node)
-      id = hub.id
-
-      assert_receive {:hub_connected, ^id}
-      assert_receive {:client_connected, ^id}, 10_000
-
-      Session.set_notebook_hub(session.pid, id)
-
-      assert_receive {:operation, {:set_notebook_hub, _, ^id}}
-      assert Session.get_notebook(session.pid).hub_id == id
-
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-      assert has_element?(view, ~s/#select-hub-#{id}/)
-
-      # adds a secret only to validate if it got removed
-      secret = insert_secret(value: Livebook.Utils.random_short_id(), hub_id: id)
-      assert_receive {:secret_created, ^secret}
-
-      Session.set_secret(session.pid, secret)
-      assert_session_secret(view, session.pid, secret, :hub_secrets)
-
-      # adds a section and a code cell to fetch the secret
-      section_id = insert_section(session.pid)
-      code = ~s{System.fetch_env!("LB_#{secret.name}")}
-      cell_id = insert_text_cell(session.pid, section_id, :code, code)
-
-      # evaluates the cell
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :terminal_text, text: output}, _}}
-
-      assert output == "\e[32m\"#{secret.value}\"\e[0m"
-
-      # copy the hub secret name with another value as session secret
-      session_secret = build(:secret, name: secret.name, value: "another_value", hub_id: nil)
-      Session.set_secret(session.pid, session_secret)
-      assert_session_secret(view, session.pid, session_secret, :secrets)
-
-      # evaluates the cell
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :terminal_text, text: output}, _}}
-
-      assert output == "\e[32m\"#{session_secret.value}\"\e[0m"
-
-      # add another session secret that shouldn't be removed
-      another_session_secret = build(:secret, name: "ABC", hub_id: nil)
-      Session.set_secret(session.pid, another_session_secret)
-      assert_session_secret(view, session.pid, another_session_secret, :secrets)
-
-      # force user to be deleted from org
-      erpc_call(node, :delete_user_org, [user.id, hub.org_id])
-      reason = "#{hub.hub_name}: you were removed from the org"
-
-      # checks if the hub received the `user_deleted` event and deleted the hub
-      assert_receive {:hub_server_error, ^id, ^reason}
-      assert_receive {:hub_changed, ^id}
-      refute has_element?(view, ~s/#select-hub-#{id}/)
-      refute hub in Livebook.Hubs.get_hubs()
-
-      # checks if the session fallback the notebook hub to Personal hub
-      assert_receive {:operation, {:set_notebook_hub, _, ^personal_id}}
-      assert Session.get_notebook(session.pid).hub_id == personal_id
-      refute_session_secret(view, session.pid, secret, :hub_secrets)
-      refute_session_secret(view, session.pid, session_secret, :secrets)
-      assert_session_secret(view, session.pid, another_session_secret, :secrets)
-
-      assert Session.get_data(session.pid).secrets == %{
-               another_session_secret.name => another_session_secret
-             }
-
-      # evaluates the cell and check if the session doesn't recognize the secret 
-      secret_name = secret.name
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id,
-                       %{type: :error, context: {:missing_secret, ^secret_name}}, _}}
+      # all sessions that uses the deleted hub must be closed
+      assert Livebook.Sessions.fetch_session(session.id) == {:error, :not_found}
     end
   end
 
