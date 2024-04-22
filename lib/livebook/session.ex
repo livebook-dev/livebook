@@ -1859,6 +1859,7 @@ defmodule Livebook.Session do
     # This way we clean up all secrets and other in-memory state that
     # is related to the hub
     send(self(), :close)
+    {:noreply, state}
   end
 
   def handle_info({:deploy_result, ref, result}, state) do

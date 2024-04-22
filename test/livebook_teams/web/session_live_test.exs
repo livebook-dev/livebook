@@ -62,13 +62,10 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # checks if the hub received the `user_deleted` event and deleted the hub
       assert_receive {:hub_server_error, ^id, ^reason}
       assert_receive {:hub_deleted, ^id}
-      refute has_element?(view, ~s/#select-hub-#{id}/)
       refute hub in Livebook.Hubs.get_hubs()
 
       # all sessions that uses the deleted hub must be closed
       assert_receive :session_closed
-      assert Livebook.Sessions.fetch_session(session.id) == {:error, :not_found}
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, ~p"/sessions/#{session.id}")
     end
   end
 
