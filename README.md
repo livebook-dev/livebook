@@ -224,6 +224,9 @@ The following environment variables can be used to configure Livebook on boot:
     cluster. Must be "name" (long names) or "sname" (short names). Note that this
     sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
 
+  * `LIVEBOOK_FIPS` - if set to "true" will try to enable the FIPS mode on startup.
+    See more details in [the documentation](https://hexdocs.pm/livebook/fips.html).
+
   * `LIVEBOOK_FORCE_SSL_HOST` - sets a host to redirect to if the request is not over HTTPS.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
@@ -284,9 +287,6 @@ The following environment variables can be used to configure Livebook on boot:
   * `LIVEBOOK_WITHIN_IFRAME` - controls if the application is running inside an
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
-
-  * `LIVEBOOK_FIPS` - if set to "true" will try to enable the FIPS mode on startup.
-    See more details in [the documentation](https://hexdocs.pm/livebook/fips.html).
 
 <!-- Environment variables -->
 
