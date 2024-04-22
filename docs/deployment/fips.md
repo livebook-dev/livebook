@@ -5,23 +5,9 @@ For environments that require security hardening you might need to turn on FIPS 
 To be able to turn on fips mode you will need to have an erlang distribution that has been compiled with [fips enabled](https://www.erlang.org/doc/apps/crypto/fips).
 
 
-### Error on startup
-
-```bash
-export LIVEBOOK_FIPS=true
-_build/prod/rel/livebook/bin/livebook start_iex 
-
-ERROR! Config provider Config.Reader failed with:
-** (RuntimeError) Requested FIPS mode via LIVEBOOK_FIPS, but this Erlang installation was compiled without FIPS support
-    (livebook 0.13.0-dev) lib/livebook.ex:242: Livebook.config_runtime/0
-        ...
-
-```
-
-This means that your elixir/erlang environmet was NOT compiled with FIPS enabled.
-
 ### Docker example
-To do this in docker, you will need to build it a little bit differently. You can see a mini example below. This should be considered psuedo code, you will want to adapt it to your needs. You should consider having a base image for the erlang/elixir portion with FIPS turned on and then overlay with a [multi stage build](https://docs.docker.com/build/building/multi-stage/).
+
+To do this in Docker, you will need to build it a little bit differently. Below is an example Dockerfile with FIPS-enabled Erlang/Elixir base image. You can use it as a base image for building Livebook. See the Livebook Dockerfile for further reference.
 
 
 ```docker
