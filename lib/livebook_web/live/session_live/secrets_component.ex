@@ -247,7 +247,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     if attrs["hub"] do
       secret = Enum.find(socket.assigns.hub_secrets, &(&1.name == secret_name))
 
-      unless Session.Data.secret_toggled?(secret, socket.assigns.secrets) do
+      if secret && !Session.Data.secret_toggled?(secret, socket.assigns.secrets) do
         Session.set_secret(socket.assigns.session.pid, secret)
       end
     end
