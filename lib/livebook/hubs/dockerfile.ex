@@ -54,7 +54,7 @@ defmodule Livebook.Hubs.Dockerfile do
     types = %{
       deploy_all: :boolean,
       docker_tag: :string,
-      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io]),
+      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io, :dns]),
       zta_provider: Ecto.ParameterizedType.init(Ecto.Enum, values: zta_types),
       zta_key: :string
     }
@@ -151,15 +151,30 @@ defmodule Livebook.Hubs.Dockerfile do
     {secret_key_base, cookie} = deterministic_skb_and_cookie(secret_key)
 
     startup =
-      if config.clustering == :fly_io do
-        """
-        # --- Clustering ---
+      case to_string(config.clustering) do
+        "fly_io" ->
+          """
+          # --- Clustering ---
 
-        # Set the same Livebook secrets across all nodes
-        ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
-        ENV LIVEBOOK_COOKIE "#{cookie}"
-        ENV LIVEBOOK_CLUSTER "fly"
-        """
+          # Set the same Livebook secrets across all nodes
+          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE "#{cookie}"
+          ENV LIVEBOOK_CLUSTER "fly"
+          """
+
+        "dns" ->
+          """
+          # --- Clustering ---
+
+          # Set the same Livebook secrets across all nodes
+          ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
+          ENV LIVEBOOK_COOKIE "#{cookie}"
+          ENV LIVEBOOK_CLUSTER "dns:QUERY"
+          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
+          """
+
+        _ ->
+          nil
       end
 
     [
@@ -324,17 +339,27 @@ defmodule Livebook.Hubs.Dockerfile do
         []
       end
 
-    clustering_env =
-      if config.clustering == :fly_io do
-        {secret_key_base, cookie} = deterministic_skb_and_cookie(hub.teams_key)
+    {secret_key_base, cookie} = deterministic_skb_and_cookie(hub.teams_key)
 
-        [
-          {"LIVEBOOK_CLUSTER", "fly"},
-          {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
-          {"LIVEBOOK_COOKIE", cookie}
-        ]
-      else
-        []
+    clustering_env =
+      case to_string(config.clustering) do
+        "fly_io" ->
+          [
+            {"LIVEBOOK_CLUSTER", "fly"},
+            {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
+            {"LIVEBOOK_COOKIE", cookie}
+          ]
+
+        "dns" ->
+          [
+            {"LIVEBOOK_NODE", "livebook_server@MACHINE_IP"},
+            {"LIVEBOOK_CLUSTER", "dns:QUERY"},
+            {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
+            {"LIVEBOOK_COOKIE", cookie}
+          ]
+
+        _ ->
+          []
       end
 
     %{image: image, env: base_image.env ++ env ++ hub_env ++ clustering_env}
