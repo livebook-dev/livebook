@@ -215,6 +215,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
+      assert dockerfile =~ ~s/ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"/
       assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "dns:QUERY"/
     end
   end
@@ -273,6 +274,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
 
+      assert {"LIVEBOOK_NODE", "livebook_server@MACHINE_IP"} in env
       assert {"LIVEBOOK_CLUSTER", "dns:QUERY"} in env
     end
   end
