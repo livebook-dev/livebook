@@ -92,28 +92,43 @@ defmodule LivebookWeb.AppComponents do
   def deployment_group_form_content(assigns) do
     ~H"""
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <.select_field
-        label="Clustering"
-        help={
-          ~S'''
-          When running multiple
-          instances of Livebook,
-          they need to be connected
-          into a single cluster.
-          You must either deploy
-          it as a single instance
-          or choose a platform to
-          enable clustering on.
-          '''
-        }
-        field={@form[:clustering]}
-        options={[
-          {"Single instance", ""},
-          {"Fly.io", "fly_io"}
-        ]}
-        disabled={@disabled}
-      />
+      <div class="flex flex-col">
+        <.select_field
+          label="Clustering"
+          help={
+            ~S'''
+            When running multiple
+            instances of Livebook,
+            they need to be connected
+            into a single cluster.
+            You must either deploy
+            it as a single instance
+            or choose a platform to
+            enable clustering on.
+            '''
+          }
+          field={@form[:clustering]}
+          options={[
+            {"Single instance", ""},
+            {"Fly.io", "fly_io"},
+            {"DNS", "dns"}
+          ]}
+          disabled={@disabled}
+        />
+
+        <div :if={to_string(@form[:clustering].value) == "dns"} class="text-sm mt-1">
+          See the
+          <a
+            class="text-blue-800 hover:text-blue-600"
+            href="https://hexdocs.pm/livebook/docker.html#clustering"
+          >
+            Clustering docs
+          </a>
+          for more information.
+        </div>
+      </div>
     </div>
+
     <%= if Hubs.Provider.type(@hub) == "team" do %>
       <div class="flex flex-col">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -131,6 +146,7 @@ defmodule LivebookWeb.AppComponents do
             options={zta_options()}
             disabled={@disabled}
           />
+
           <.text_field
             :if={zta_metadata = zta_metadata(@form[:zta_provider].value)}
             field={@form[:zta_key]}
@@ -141,6 +157,7 @@ defmodule LivebookWeb.AppComponents do
             disabled={@disabled}
           />
         </div>
+
         <div :if={zta_metadata = zta_metadata(@form[:zta_provider].value)} class="text-sm mt-1">
           See the
           <a
