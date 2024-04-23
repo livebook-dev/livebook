@@ -78,7 +78,7 @@ defmodule Livebook.Teams.ConnectionTest do
       assert_receive :connected
 
       # creates a new deployment group with offline mode
-      deployment_group = build(:deployment_group, name: "FOO", mode: :offline)
+      deployment_group = build(:deployment_group, name: "FOO", mode: :offline, clustering: :dns)
 
       assert {:ok, _id} =
                Livebook.Teams.create_deployment_group(hub, deployment_group)
@@ -88,17 +88,23 @@ defmodule Livebook.Teams.ConnectionTest do
       assert deployment_group_created.name == deployment_group.name
       assert String.to_existing_atom(deployment_group_created.mode) == deployment_group.mode
 
+      assert String.to_existing_atom(deployment_group_created.clustering) ==
+               deployment_group.clustering
+
       # since the deployment group is with offline mode, the agent key shouldn't exists
       assert deployment_group_created.agent_keys == []
 
       # creates a new deployment group with online mode
-      deployment_group = build(:deployment_group, name: "BAR", mode: :online)
+      deployment_group = build(:deployment_group, name: "BAR", mode: :online, clustering: :dns)
       {:ok, _id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
 
       # deployment_group name and mode are not encrypted
       assert_receive {:event, :deployment_group_created, deployment_group_created}
       assert deployment_group_created.name == deployment_group.name
       assert String.to_existing_atom(deployment_group_created.mode) == deployment_group.mode
+
+      assert String.to_existing_atom(deployment_group_created.clustering) ==
+               deployment_group.clustering
 
       # receives the built-in agent key
       assert [agent_key] = deployment_group_created.agent_keys

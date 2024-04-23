@@ -207,6 +207,16 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "fly"/
     end
+
+    test "deploying with dns cluster setup" do
+      config = dockerfile_config(%{clustering: :dns})
+      hub = personal_hub()
+      file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
+
+      dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
+
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "dns:QUERY"/
+    end
   end
 
   describe "online_docker_info/3" do
@@ -254,6 +264,16 @@ defmodule Livebook.Hubs.DockerfileTest do
       %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
 
       assert {"LIVEBOOK_CLUSTER", "fly"} in env
+    end
+
+    test "deploying with dns cluster setup" do
+      config = dockerfile_config(%{clustering: :dns})
+      hub = team_hub()
+      agent_key = Livebook.Factory.build(:agent_key)
+
+      %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
+
+      assert {"LIVEBOOK_CLUSTER", "dns:QUERY"} in env
     end
   end
 
