@@ -281,7 +281,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # to the session, allowing the user to fetches the secret.
       render_click(add_secret_button)
 
-      assert render(view) =~ "in #{hub_label(team)}. Allow this session to access it?"
+      assert render(view) =~
+               "in the #{hub_label(team)} workspace. Allow this notebook to access it?"
 
       view
       |> element("#secrets-modal button", "Grant access")
