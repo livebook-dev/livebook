@@ -14,7 +14,7 @@ It automatically sets up a cluster to run on Fly using DNS configuration. Behind
 
 Sets up a cluster using DNS for queries for A/AAAA records to discover new nodes. Additionally, you must additionally set the following env vars:
 
-  * `LIVEBOOK_NODE=livebook_server@IP`, where `IP` is the machine IP of each deployed node
+  * `LIVEBOOK_NODE=livebook_server@MACHINE_IP`, where `MACHINE_IP` is the machine IP of each deployed node
 
   * You must set `LIVEBOOK_SECRET_KEY_BASE` and `LIVEBOOK_COOKIE` to different random values (use `openssl rand -base64 48` to generate said values)
 

@@ -167,6 +167,7 @@ defmodule Livebook.Hubs.Dockerfile do
           # --- Clustering ---
 
           # Set the same Livebook secrets across all nodes
+          ENV LIVEBOOK_NODE "livebook_server@MACHINE_IP"
           ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
           ENV LIVEBOOK_COOKIE "#{cookie}"
           ENV LIVEBOOK_CLUSTER "dns:QUERY"
@@ -351,6 +352,7 @@ defmodule Livebook.Hubs.Dockerfile do
 
         "dns" ->
           [
+            {"LIVEBOOK_NODE", "livebook_server@MACHINE_IP"},
             {"LIVEBOOK_CLUSTER", "dns:QUERY"},
             {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
             {"LIVEBOOK_COOKIE", cookie}
