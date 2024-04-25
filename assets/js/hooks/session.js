@@ -9,6 +9,7 @@ import {
   isElementInViewport,
   isElementHidden,
   pop,
+  isSafari,
 } from "../lib/utils";
 import { parseHookProps } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
@@ -738,6 +739,17 @@ const Session = {
     });
 
     this.el.addEventListener("dragleave", (event) => {
+      // The related target should point to the newly entered element,
+      // and be null when the cursor leaves the window. However, in
+      // Safari the related target is always null (1), so we ignore
+      // the leave event altogether. The side effect is that dropping
+      // the file outside the window will keep the drop areas open and
+      // require page refresh to hide them, but the workaround is not
+      // worth its complexity, hence we accept this edge case.
+      //
+      // (1): https://stackoverflow.com/a/71744945
+      if (isSafari()) return;
+
       if (!this.el.contains(event.relatedTarget)) {
         stopDragging();
       }
