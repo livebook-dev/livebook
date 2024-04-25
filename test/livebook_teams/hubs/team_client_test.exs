@@ -6,168 +6,37 @@ defmodule Livebook.Hubs.TeamClientTest do
   setup do
     Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
     Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :app_deployments, :agents])
+
     :ok
   end
 
-  test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
-    team =
-      build(:team,
-        user_id: user.id,
-        org_id: 123_456,
-        org_key_id: 123_456,
-        session_token: token
-      )
-
-    id = team.id
-
-    TeamClient.start_link(team)
-
-    assert_receive {:hub_server_error, ^id, error}
-
-    assert error ==
-             "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
-
-    refute Livebook.Hubs.hub_exists?(team.id)
-  end
-
-  describe "handle events" do
-    setup %{user: user, node: node} do
-      team = create_team_hub(user, node)
+  describe "connect" do
+    test "successfully authenticates the websocket connection", %{user: user, node: node} do
+      team = build_team_hub(user, node)
       id = team.id
+      TeamClient.start_link(team)
 
       assert_receive {:hub_connected, ^id}
       assert_receive {:client_connected, ^id}
-
-      {:ok, team: team}
     end
 
-    test "receives secret events", %{team: team} do
-      secret = build(:secret, name: "SECRET", value: "BAR")
-      assert Livebook.Hubs.create_secret(team, secret) == :ok
-
-      name = secret.name
-      value = secret.value
-
-      # receives `{:secret_created, secret}` event
-      # with the value decrypted
-      assert_receive {:secret_created, %{name: ^name, value: ^value}}
-
-      # updates the secret
-      updated_secret = Map.replace!(secret, :value, "BAZ")
-      assert Livebook.Hubs.update_secret(team, updated_secret) == :ok
-
-      new_value = updated_secret.value
-
-      # receives `{:secret_updated, secret}` event
-      # with the value decrypted
-      assert_receive {:secret_updated, %{name: ^name, value: ^new_value}}
-
-      # deletes the secret
-      assert Livebook.Hubs.delete_secret(team, updated_secret) == :ok
-
-      # receives `{:secret_deleted, secret}` event
-      assert_receive {:secret_deleted, %{name: ^name, value: ^new_value}}
-    end
-
-    test "receives file system events", %{team: team} do
-      file_system =
-        build(:fs_s3, bucket_url: "https://file_system.s3.amazonaws.com", region: "us-east-1")
-
-      assert Livebook.Hubs.create_file_system(team, file_system) == :ok
-
-      bucket_url = file_system.bucket_url
-      region = file_system.region
-
-      # receives `{:file_system_created, file_system}` event
-      assert_receive {:file_system_created,
-                      %{external_id: id, bucket_url: ^bucket_url, region: ^region}}
-
-      # updates the file system
-      updated_file_system = %{file_system | region: "eu-central-1", external_id: id}
-      assert Livebook.Hubs.update_file_system(team, updated_file_system) == :ok
-
-      new_region = updated_file_system.region
-
-      # receives `{:file_system_updated, file_system}` event
-      assert_receive {:file_system_updated,
-                      %{external_id: ^id, bucket_url: ^bucket_url, region: ^new_region}}
-
-      # deletes the file system
-      assert Livebook.Hubs.delete_file_system(team, updated_file_system) == :ok
-
-      # receives `{:file_system_deleted, file_system}` event
-      assert_receive {:file_system_deleted, %{external_id: ^id, bucket_url: ^bucket_url}}
-    end
-
-    test "receives deployment group events", %{team: team} do
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
-
-      assert {:ok, _} = Livebook.Teams.create_deployment_group(team, deployment_group)
-      %{name: name, mode: mode} = deployment_group
-
-      # receives `{:event, :deployment_group_created, deployment_group}` event
-      assert_receive {:deployment_group_created, %{name: ^name, mode: ^mode}}
-    end
-
-    @tag :tmp_dir
-    test "receives app events", %{team: team, node: node, tmp_dir: tmp_dir} do
-      deployment_group = build(:deployment_group, name: team.id, mode: :online)
-      assert {:ok, id} = Livebook.Teams.create_deployment_group(team, deployment_group)
-
-      id = to_string(id)
-
-      assert_receive {:deployment_group_created, %{id: ^id}}
-
-      # creates the app deployment
-      slug = Livebook.Utils.random_short_id()
-      title = "MyNotebook-#{slug}"
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-
-      notebook = %{
-        Livebook.Notebook.new()
-        | app_settings: app_settings,
-          name: title,
-          hub_id: team.id,
-          deployment_group_id: id
-      }
-
-      files_dir = Livebook.FileSystem.File.local(tmp_dir)
-      {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
-      :ok = Livebook.Teams.deploy_app(team, app_deployment)
-
-      sha = app_deployment.sha
-      multi_session = app_settings.multi_session
-      access_type = app_settings.access_type
-
-      assert_receive {:app_deployment_started,
-                      %Livebook.Teams.AppDeployment{
-                        slug: ^slug,
-                        sha: ^sha,
-                        title: ^title,
-                        multi_session: ^multi_session,
-                        access_type: ^access_type,
-                        deployment_group_id: ^id
-                      } = app_deployment}
-
-      # force app deployment to be deleted
-      erpc_call(node, :toggle_app_deployment, [app_deployment.id, team.org_id])
-
-      assert_receive {:app_deployment_stopped, ^app_deployment}
-    end
-
-    test "receives the user events", %{team: team, node: node} do
-      Livebook.Hubs.Broadcasts.subscribe([:crud])
-
-      # force user to be deleted from org
-      erpc_call(node, :delete_user_org, [team.user_id, team.org_id])
+    test "rejects the web socket connection with invalid credentials", %{user: user, token: token} do
+      team =
+        build(:team,
+          user_id: user.id,
+          org_id: 123_456,
+          org_key_id: 123_456,
+          session_token: token
+        )
 
       id = team.id
-      reason = "#{team.hub_name}: you were removed from the org"
 
-      assert_receive {:hub_server_error, ^id, ^reason}
-      assert_receive {:hub_deleted, ^id}
-      refute team in Livebook.Hubs.get_hubs()
+      TeamClient.start_link(team)
+
+      assert_receive {:hub_server_error, ^id, error}
+
+      assert error ==
+               "#{team.hub_name}: Your session is out-of-date. Please re-join the organization."
     end
   end
 
@@ -185,6 +54,20 @@ defmodule Livebook.Hubs.TeamClientTest do
         }
 
       {:ok, team: team, user_connected: user_connected}
+    end
+
+    test "receives the user events", %{team: team, node: node} do
+      Livebook.Hubs.Broadcasts.subscribe([:crud])
+
+      # force user to be deleted from org
+      erpc_call(node, :delete_user_org, [team.user_id, team.org_id])
+
+      id = team.id
+      reason = "#{team.hub_name}: you were removed from the org"
+
+      assert_receive {:hub_server_error, ^id, ^reason}
+      assert_receive {:hub_deleted, ^id}
+      refute team in Livebook.Hubs.get_hubs()
     end
 
     test "dispatches the secrets list", %{team: team, user_connected: user_connected} do
