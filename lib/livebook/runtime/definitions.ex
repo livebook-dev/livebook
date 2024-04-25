@@ -65,6 +65,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:stb_image, "~> 0.6.2"}, config: []}
   }
 
+  xlsx_reader = %{
+    name: "xlsx_reader",
+    dependency: %{dep: {:xlsx_reader, "~> 0.8.3"}, config: []}
+  }
+
   windows? = match?({:win32, _}, :os.type())
   nx_backend_package = if(windows?, do: torchx, else: exla)
 
@@ -411,6 +416,26 @@ defmodule Livebook.Runtime.Definitions do
       Exqlite.query!(conn, "PRAGMA table_list", [])\
       """,
       packages: [kino_db, exqlite]
+    },
+    %{
+      type: :file_action,
+      file_types: [".xlsx",".xlsm"],
+      description: "Read sheets",
+      source: """
+      xlsx_file = Kino.FS.file_path("{{NAME}}")
+      {:ok, package} = XlsxReader.open(xlsx_file)
+
+      tabs =
+        for sheet <- XlsxReader.sheet_names(package) do
+          # Assume the first row contains column names
+          {:ok, [header | rows]} = XlsxReader.sheet(package, sheet)
+          maps = Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
+          {sheet, Kino.DataTable.new(maps)}
+        end
+      
+      Kino.Layout.tabs(tabs)
+      """,
+      packages: [kino, xlsx_reader]
     }
   ]
 
