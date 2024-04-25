@@ -419,7 +419,7 @@ defmodule Livebook.Runtime.Definitions do
     },
     %{
       type: :file_action,
-      file_types: [".xlsx",".xlsm"],
+      file_types: [".xlsx", ".xlsm"],
       description: "Read sheets",
       source: """
       xlsx_file = Kino.FS.file_path("{{NAME}}")
@@ -432,7 +432,7 @@ defmodule Livebook.Runtime.Definitions do
           maps = Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
           {sheet, Kino.DataTable.new(maps)}
         end
-      
+
       Kino.Layout.tabs(tabs)
       """,
       packages: [kino, xlsx_reader]
