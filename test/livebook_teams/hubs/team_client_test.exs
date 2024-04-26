@@ -31,7 +31,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       id = team.id
 
-      TeamClient.start_link(team)
+      start_supervised!({TeamClient, team})
 
       assert_receive {:hub_server_error, ^id, error}
 
