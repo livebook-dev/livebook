@@ -116,6 +116,9 @@ defmodule Livebook.Runtime.StandaloneInit do
   # Note Windows does not handle escaped quotes and newlines the same way as Unix,
   # so the string cannot have constructs newlines nor strings. That's why we pass
   # the parent node name as ARGV and write the code avoiding newlines.
+  #
+  # Also note that we explicitly halt, just in case `System.no_halt(true)` is
+  # called within the runtime.
   @child_node_eval_string """
   [parent_node] = System.argv();\
   init_ref = make_ref();\
@@ -126,7 +129,8 @@ defmodule Livebook.Runtime.StandaloneInit do
     receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
   after 10_000 ->\
     :timeout;\
-  end\
+  end;\
+  System.halt()\
   """
 
   if @child_node_eval_string =~ "\n" do
