@@ -427,9 +427,15 @@ defmodule Livebook.Runtime.Definitions do
 
       tabs =
         for sheet <- XlsxReader.sheet_names(package) do
-          # Assume the first row contains column names
-          {:ok, [header | rows]} = XlsxReader.sheet(package, sheet)
-          maps = Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
+          maps =
+            case XlsxReader.sheet(package, sheet) do
+              {:ok, []} ->
+                []
+
+              {:ok, [header | rows]} ->
+                Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
+            end
+
           {sheet, Kino.DataTable.new(maps)}
         end
 
