@@ -1,8 +1,15 @@
 defmodule Livebook.TeamsTest do
   use Livebook.TeamsIntegrationCase, async: true
 
-  alias Livebook.{Notebook, Teams, Utils}
+  alias Livebook.{FileSystem, Notebook, Teams, Utils}
   alias Livebook.Teams.Org
+
+  setup do
+    Livebook.Hubs.Broadcasts.subscribe([:connection, :file_systems, :secrets])
+    Livebook.Teams.Broadcasts.subscribe([:clients, :deployment_groups, :app_deployments, :agents])
+
+    :ok
+  end
 
   describe "create_org/1" do
     test "returns the device flow data to confirm the org creation" do
@@ -161,10 +168,17 @@ defmodule Livebook.TeamsTest do
 
   describe "create_deployment_group/2" do
     test "creates a new deployment group when the data is valid", %{user: user, node: node} do
-      team = create_team_hub(user, node)
-      deployment_group = build(:deployment_group)
+      team = connect_to_teams(user, node)
 
-      assert {:ok, _id} = Teams.create_deployment_group(team, deployment_group)
+      deployment_group =
+        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
+
+      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+
+      %{name: name, mode: mode} = deployment_group
+      id = to_string(id)
+
+      assert_receive {:deployment_group_created, %{id: ^id, name: ^name, mode: ^mode}}
 
       # Guarantee uniqueness
       assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
@@ -172,50 +186,69 @@ defmodule Livebook.TeamsTest do
     end
 
     test "returns changeset errors when the name is invalid", %{user: user, node: node} do
-      team = create_team_hub(user, node)
+      team = connect_to_teams(user, node)
       deployment_group = %{build(:deployment_group) | name: ""}
 
       assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
       assert "can't be blank" in errors_on(changeset).name
+      refute_receive {:deployment_group_created, _}
     end
 
     test "returns changeset errors when the mode is invalid", %{user: user, node: node} do
-      team = create_team_hub(user, node)
+      team = connect_to_teams(user, node)
       deployment_group = %{build(:deployment_group) | mode: "invalid"}
 
       assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
       assert "is invalid" in errors_on(changeset).mode
+      refute_receive {:deployment_group_created, _}
     end
   end
 
   describe "deploy_app/2" do
     @tag :tmp_dir
     test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
-      team = create_team_hub(user, node)
+      team = connect_to_teams(user, node)
       deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
-
       {:ok, id} = Teams.create_deployment_group(team, deployment_group)
 
-      app_settings = %{Notebook.AppSettings.new() | slug: Utils.random_short_id()}
+      id = to_string(id)
+      assert_receive {:deployment_group_created, %{id: ^id}}
+
+      # creates the app deployment
+      slug = Utils.random_short_id()
+      title = "MyNotebook-#{slug}"
+      app_settings = %{Notebook.AppSettings.new() | slug: slug}
 
       notebook = %{
         Notebook.new()
         | app_settings: app_settings,
-          name: "MyNotebook",
+          name: title,
           hub_id: team.id,
-          deployment_group_id: to_string(id)
+          deployment_group_id: id
       }
 
-      files_dir = Livebook.FileSystem.File.local(tmp_dir)
-
+      files_dir = FileSystem.File.local(tmp_dir)
       assert {:ok, app_deployment} = Teams.AppDeployment.new(notebook, files_dir)
       assert Teams.deploy_app(team, app_deployment) == :ok
+
+      sha = app_deployment.sha
+      multi_session = app_settings.multi_session
+      access_type = app_settings.access_type
+
+      assert_receive {:app_deployment_started,
+                      %Livebook.Teams.AppDeployment{
+                        slug: ^slug,
+                        sha: ^sha,
+                        title: ^title,
+                        multi_session: ^multi_session,
+                        access_type: ^access_type,
+                        deployment_group_id: ^id
+                      } = app_deployment2}
 
       assert {:error,
               %{errors: [slug: {"should only contain alphanumeric characters and dashes", []}]}} =
                Teams.deploy_app(team, %{app_deployment | slug: "@abc"})
 
-      # Since the fields below belongs to AppSettings, we're mapping the errors to `:file` field.
       assert {:error, %{errors: [multi_session: {"can't be blank", []}]}} =
                Teams.deploy_app(team, %{app_deployment | multi_session: nil})
 
@@ -224,6 +257,18 @@ defmodule Livebook.TeamsTest do
 
       assert {:error, %{errors: [access_type: {"is invalid", []}]}} =
                Teams.deploy_app(team, %{app_deployment | access_type: :abc})
+
+      # force app deployment to be stopped
+      erpc_call(node, :toggle_app_deployment, [app_deployment2.id, team.org_id])
+      assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
+  end
+
+  defp connect_to_teams(user, node) do
+    %{id: id} = team = create_team_hub(user, node)
+    assert_receive {:hub_connected, ^id}
+    assert_receive {:client_connected, ^id}
+
+    team
   end
 end
