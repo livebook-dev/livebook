@@ -67,7 +67,7 @@ defmodule Livebook.Runtime.Definitions do
 
   xlsx_reader = %{
     name: "xlsx_reader",
-    dependency: %{dep: {:xlsx_reader, "~> 0.8.3"}, config: []}
+    dependency: %{dep: {:xlsx_reader, "~> 0.8.4"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
@@ -427,9 +427,15 @@ defmodule Livebook.Runtime.Definitions do
 
       tabs =
         for sheet <- XlsxReader.sheet_names(package) do
-          # Assume the first row contains column names
-          {:ok, [header | rows]} = XlsxReader.sheet(package, sheet)
-          maps = Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
+          maps =
+            case XlsxReader.sheet(package, sheet) do
+              {:ok, []} ->
+                []
+
+              {:ok, [header | rows]} ->
+                Enum.map(rows, fn row -> header |> Enum.zip(row) |> Map.new() end)
+            end
+
           {sheet, Kino.DataTable.new(maps)}
         end
 
