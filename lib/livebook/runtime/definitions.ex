@@ -67,7 +67,7 @@ defmodule Livebook.Runtime.Definitions do
 
   xlsx_reader = %{
     name: "xlsx_reader",
-    dependency: %{dep: {:xlsx_reader, "~> 0.8.3"}, config: []}
+    dependency: %{dep: {:xlsx_reader, "~> 0.8.4"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())
