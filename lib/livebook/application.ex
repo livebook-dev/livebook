@@ -46,7 +46,7 @@ defmodule Livebook.Application do
           # Start the tracker server for sessions and apps on this node
           {Livebook.Tracker, pubsub_server: Livebook.PubSub},
           # Start the node pool for managing node names
-          Livebook.Runtime.NodePool,
+          Livebook.EPMD.NodePool,
           # Start the server responsible for associating files with sessions
           Livebook.Session.FileGuard,
           # Start the supervisor dynamically managing sessions

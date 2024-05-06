@@ -5,14 +5,20 @@
 
     # From Erlang/OTP 23+
     @epmd_dist_version 6
+    @external_resource "priv/epmd/Elixir.Livebook.EPMD.beam"
 
     @doc """
-    Returns the parent Livebook name prefix (as a charlist),
-    full node name (as an atom), and port (as an integer but may be zero).
-    Or nil if there is no parent node.
+    Gets a random child node name.
     """
-    def parent_info do
-      :persistent_term.get(:livebook_parent, nil)
+    def random_child_node do
+      String.to_atom(Livebook.EPMD.NodePool.get_name())
+    end
+
+    @doc """
+    Updates the port information for the given node.
+    """
+    def update_child_node(node, port) do
+      Livebook.EPMD.NodePool.update_name(Atom.to_string(node), port)
     end
 
     @doc """
@@ -28,8 +34,12 @@
     # We read this information when trying to connect to the parent.
     def start_link() do
       with {:ok, [[node, port]]} <- :init.get_argument(:livebook_parent) do
-        [name | _] = :string.split(node, ~c"@")
-        :persistent_term.put(:livebook_parent, {name, List.to_atom(node), List.to_integer(port)})
+        [name, host] = :string.split(node, ~c"@")
+
+        :persistent_term.put(
+          :livebook_parent,
+          {name, host, List.to_atom(node), List.to_integer(port)}
+        )
       end
 
       :erl_epmd.start_link()
@@ -47,10 +57,42 @@
     def port_please(name, host), do: port_please(name, host, :infinity)
 
     def port_please(name, host, timeout) do
-      case parent_info() do
-        {^name, _node, port} when port != 0 -> {:port, port, @epmd_dist_version}
-        _ -> :erl_epmd.port_please(name, host, timeout)
+      case livebook_port(name) do
+        0 -> :erl_epmd.port_please(name, host, timeout)
+        port -> {:port, port, @epmd_dist_version}
       end
+    end
+
+    # If we are running inside a Livebook Runtime,
+    # we should be able to reach the parent directly
+    # or reach siblings through the parent.
+    defp livebook_port(name) do
+      case :persistent_term.get(:livebook_parent, nil) do
+        {parent_name, parent_host, parent_node, parent_port} ->
+          case match_name(name, parent_name) do
+            :parent -> parent_port
+            :sibling -> sibling_port(parent_node, name, parent_host)
+            :none -> 0
+          end
+
+        _ ->
+          0
+      end
+    end
+
+    defp match_name([x | name], [x | parent_name]), do: match_name(name, parent_name)
+    defp match_name([?-, ?- | _name], _parent), do: :sibling
+    defp match_name([], []), do: :parent
+    defp match_name(_name, _parent), do: :none
+
+    defp sibling_port(parent_node, name, host) do
+      :gen_server.call(
+        {Livebook.EPMD.NodePool, parent_node},
+        {:get_port, :erlang.list_to_binary(name ++ [?@] ++ host)},
+        5000
+      )
+    catch
+      _, _ -> 0
     end
 
     # Default EPMD callbacks
@@ -60,5 +102,5 @@
     defdelegate address_please(name, host, address_family), to: :erl_epmd
   end
 
-File.mkdir_p!("priv/epmd/ebin")
-File.write!("priv/epmd/ebin/Elixir.Livebook.EPMD.beam", binary)
+File.mkdir_p!("priv/epmd")
+File.write!("priv/epmd/Elixir.Livebook.EPMD.beam", binary)

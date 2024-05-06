@@ -3,16 +3,6 @@ defmodule Livebook.Runtime.StandaloneInit do
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by ElixirStandalone.
 
-  alias Livebook.Runtime.NodePool
-
-  @doc """
-  Returns a random name for a dynamically spawned node.
-  """
-  @spec child_node_name(atom()) :: atom()
-  def child_node_name(parent) do
-    NodePool.get_name(parent)
-  end
-
   @doc """
   Tries locating Elixir executable in PATH.
   """
@@ -65,9 +55,9 @@ defmodule Livebook.Runtime.StandaloneInit do
 
     loop = fn loop ->
       receive do
-        {:node_started, init_ref, ^child_node, _node_port, primary_pid} ->
+        {:node_started, init_ref, ^child_node, child_port, primary_pid} ->
           Port.demonitor(port_ref)
-
+          Livebook.EPMD.update_child_node(child_node, child_port)
           server_pid = Livebook.Runtime.ErlDist.initialize(child_node, opts[:init_opts] || [])
 
           send(primary_pid, {:node_initialized, init_ref})
@@ -122,12 +112,15 @@ defmodule Livebook.Runtime.StandaloneInit do
   @doc """
   A list of common flags used for spawned Elixir runtimes.
   """
-  @spec elixir_flags(node(), node(), non_neg_integer()) :: list()
-  def elixir_flags(node_name, parent_name, parent_port) do
+  @spec elixir_flags(node()) :: list()
+  def elixir_flags(node_name) do
+    parent_name = node()
+    parent_port = Livebook.EPMD.dist_port()
+
     mode = if Livebook.Config.longname(), do: :longnames, else: :shortnames
 
     epmdless_flags =
-      if Livebook.EPMD.dist_port() != 0 do
+      if parent_port != 0 do
         "-epmd_module 'Elixir.Livebook.EPMD' -start_epmd false -erl_epmd_port 0 "
       else
         ""

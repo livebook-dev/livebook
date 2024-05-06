@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
   """
   @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
   def connect(runtime) do
-    child_node = child_node_name(node())
+    child_node = Livebook.EPMD.random_child_node()
 
     Utils.temporarily_register(self(), child_node, fn ->
       init_opts = [
@@ -68,7 +68,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # to the terminal
       :nouse_stdio,
       :hide,
-      args: elixir_flags(node_name, node(), Livebook.EPMD.dist_port())
+      args: elixir_flags(node_name)
     ])
   end
 end
