@@ -84,7 +84,8 @@ defmodule Livebook.Runtime.StandaloneInit do
   # so the string cannot have constructs newlines nor strings. That's why we pass
   # the parent node name as ARGV and write the code avoiding newlines.
   #
-  # This boot script must be kept in sync with Livebook.EPMD.
+  # This boot script must be kept in sync with Livebook.EPMD. The EPMD configuration
+  # is passed via ERL_AFLAGS.
   #
   # Also note that we explicitly halt, just in case `System.no_halt(true)` is
   # called within the runtime.
@@ -116,15 +117,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   def elixir_flags(node_name) do
     parent_name = node()
     parent_port = Livebook.EPMD.dist_port()
-
     mode = if Livebook.Config.longname(), do: :longnames, else: :shortnames
-
-    epmdless_flags =
-      if parent_port != 0 do
-        "-epmd_module 'Elixir.Livebook.EPMD' -start_epmd false -erl_epmd_port 0 "
-      else
-        ""
-      end
 
     [
       "--erl",
@@ -134,7 +127,6 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{mode} #{node_name}",
       # Add the location of Livebook.EPMD
       "-pa",
