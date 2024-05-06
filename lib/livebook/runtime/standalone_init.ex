@@ -1,4 +1,5 @@
 defmodule Livebook.Runtime.StandaloneInit do
+  # TODO: Move logic inside ElixirStandalone module.
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by ElixirStandalone.
 
@@ -139,7 +140,6 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Increase the default stack for dirty io threads (cuda requires it).
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
-      # Start custom EPMD version, so we don't depend on EPMD and point to the parent instead.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
         epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{mode} #{node_name}",
