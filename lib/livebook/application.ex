@@ -132,7 +132,7 @@ defmodule Livebook.Application do
       :ok
     else
       Livebook.Config.abort!("""
-      You must specify ERL_AFLAGS=\"-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
+      You must specify ELIXIR_ERL_OPTIONS=\"-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
       The epmd module can be found inside #{Application.app_dir(:livebook, "priv/ebin")}.
       """)
     end
@@ -418,6 +418,8 @@ defmodule Livebook.Application do
     })
   end
 
+  # ELIXIR_ERL_OPTIONS used to configure EPMD module in releases.
+  defp config_env_var?("ELIXIR_ERL_OPTIONS"), do: true
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
   defp config_env_var?("MIX_ENV"), do: true
