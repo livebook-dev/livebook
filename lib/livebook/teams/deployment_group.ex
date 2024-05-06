@@ -5,20 +5,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   alias Livebook.Secrets.Secret
   alias Livebook.Teams.AgentKey
 
-  # If this list is updated, it must also be mirrored on Livebook Teams Server.
-  @zta_providers ~w(basic_auth cloudflare google_iap tailscale teleport)a
-
-  @type t :: %__MODULE__{
-          id: String.t() | nil,
-          name: String.t() | nil,
-          mode: :online | :offline,
-          hub_id: String.t() | nil,
-          clustering: :fly_io | nil,
-          zta_provider: :cloudflare | :google_iap | :tailscale | :teleport,
-          zta_key: String.t(),
-          secrets: [Secret.t()],
-          agent_keys: [AgentKey.t()]
-        }
+  @zta_providers Enum.map(Livebook.Config.identity_providers(), & &1.type)
 
   @primary_key {:id, :string, autogenerate: false}
   embedded_schema do

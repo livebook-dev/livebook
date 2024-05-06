@@ -230,7 +230,6 @@ defmodule Livebook.MixProject do
       "docs/authentication/cloudflare.md",
       "docs/authentication/google_iap.md",
       "docs/authentication/tailscale.md",
-      "docs/authentication/teleport.md",
       "docs/authentication/custom_auth.md"
     ]
   end
