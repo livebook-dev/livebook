@@ -93,15 +93,18 @@ defmodule Livebook.Runtime.StandaloneInit do
   # so the string cannot have constructs newlines nor strings. That's why we pass
   # the parent node name as ARGV and write the code avoiding newlines.
   #
+  # This boot script must be kept in sync with Livebook.EPMD.
+  #
   # Also note that we explicitly halt, just in case `System.no_halt(true)` is
   # called within the runtime.
   @child_node_eval_string """
   {:ok, [[mode, node]]} = :init.get_argument(:livebook_current);\
   {:ok, _} = :net_kernel.start(List.to_atom(node), %{name_domain: List.to_atom(mode)});\
-  {_, parent_node, _} = Livebook.EPMD.parent_info();\
+  {:ok, [[parent_node, _port]]} = :init.get_argument(:livebook_parent);\
+  dist_port = :persistent_term.get(:livebook_dist_port, 0);\
   init_ref = make_ref();\
-  parent_process = {node(), parent_node};\
-  send(parent_process, {:node_started, init_ref, node(), Livebook.EPMD.dist_port(), self()});\
+  parent_process = {node(), List.to_atom(parent_node)};\
+  send(parent_process, {:node_started, init_ref, node(), dist_port, self()});\
   receive do {:node_initialized, ^init_ref} ->\
     manager_ref = Process.monitor(Livebook.Runtime.ErlDist.NodeManager);\
     receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
@@ -122,6 +125,13 @@ defmodule Livebook.Runtime.StandaloneInit do
   def elixir_flags(node_name, parent_name, parent_port) do
     mode = if Livebook.Config.longname(), do: :longnames, else: :shortnames
 
+    epmdless_flags =
+      if Livebook.EPMD.dist_port() != 0 do
+        "-epmd_module 'Elixir.Livebook.EPMD' -start_epmd false -erl_epmd_port 0 "
+      else
+        ""
+      end
+
     [
       "--erl",
       # Minimize schedulers busy wait threshold,
@@ -131,11 +141,11 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Disable stdin, so that the system process never tries to read terminal input.
       # Start custom EPMD version, so we don't depend on EPMD and point to the parent instead.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        "-epmd_module 'Elixir.Livebook.EPMD' -start_epmd false -erl_epmd_port 0 " <>
+        epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{mode} #{node_name}",
-      # Add the location of EPMD
+      # Add the location of Livebook.EPMD
       "-pa",
-      Application.app_dir(:livebook, "priv/epmd/ebin"),
+      Application.app_dir(:livebook, "priv/epmd"),
       # Make the node hidden, so it doesn't automatically join the cluster
       "--hidden",
       # Use the cookie in Livebook
