@@ -6,8 +6,16 @@ defmodule Livebook.Application do
     setup_optional_dependencies()
     ensure_directories!()
     set_local_file_system!()
-    ensure_distribution!()
-    validate_hostname_resolution!()
+
+    if Livebook.Config.boolean!("LIVEBOOK_EPMDLESS", false) do
+      validate_epmdless!()
+      ensure_distribution!()
+    else
+      ensure_epmd!()
+      ensure_distribution!()
+      validate_hostname_resolution!()
+    end
+
     set_cookie()
 
     children =
@@ -117,7 +125,20 @@ defmodule Livebook.Application do
     :persistent_term.put(:livebook_local_file_system, local_file_system)
   end
 
-  defp ensure_distribution!() do
+  defp validate_epmdless!() do
+    if match?({:ok, [[~c"Elixir.Livebook.EPMD"]]}, :init.get_argument(:epmd_module)) and
+         match?({:ok, [[~c"false"]]}, :init.get_argument(:start_epmd)) and
+         match?({:ok, [[~c"0"]]}, :init.get_argument(:erl_epmd_port)) do
+      :ok
+    else
+      Livebook.Config.abort!("""
+      You must specify ERL_AFLAGS=\"-epmd_module 'Elixir.Livebook.EPMD' -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
+      The epmd module can be found inside #{Application.app_dir(:livebook, "priv/ebin")}.
+      """)
+    end
+  end
+
+  defp ensure_epmd!() do
     unless Node.alive?() do
       case System.cmd("epmd", ["-daemon"]) do
         {_, 0} ->
@@ -125,7 +146,7 @@ defmodule Livebook.Application do
 
         _ ->
           Livebook.Config.abort!("""
-          Could not start epmd (Erlang Port Mapper Driver). Livebook uses epmd to \
+          Could not start epmd (Erlang Port Mapper Daemon). Livebook uses epmd to \
           talk to different runtimes. You may have to start epmd explicitly by calling:
 
               epmd -daemon
@@ -137,7 +158,11 @@ defmodule Livebook.Application do
           Then you can try booting Livebook again
           """)
       end
+    end
+  end
 
+  defp ensure_distribution!() do
+    unless Node.alive?() do
       {type, name} = get_node_type_and_name()
 
       case Node.start(name, type) do

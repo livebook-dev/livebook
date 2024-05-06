@@ -39,12 +39,9 @@ defmodule Livebook.Runtime.ElixirStandalone do
   """
   @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
   def connect(runtime) do
-    parent_node = node()
-    child_node = child_node_name(parent_node)
+    child_node = child_node_name(node())
 
     Utils.temporarily_register(self(), child_node, fn ->
-      argv = [parent_node]
-
       init_opts = [
         runtime_server_opts: [
           extra_smart_cell_definitions: Livebook.Runtime.Definitions.smart_cell_definitions()
@@ -52,7 +49,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
       ]
 
       with {:ok, elixir_path} <- find_elixir_executable(),
-           port = start_elixir_node(elixir_path, child_node, child_node_eval_string(), argv),
+           port = start_elixir_node(elixir_path, child_node),
            {:ok, server_pid} <- parent_init_sequence(child_node, port, init_opts: init_opts) do
         runtime = %{runtime | node: child_node, server_pid: server_pid}
         {:ok, runtime}
@@ -62,7 +59,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
     end)
   end
 
-  defp start_elixir_node(elixir_path, node_name, eval, argv) do
+  defp start_elixir_node(elixir_path, node_name) do
     # Here we create a port to start the system process in a non-blocking way.
     Port.open({:spawn_executable, elixir_path}, [
       :binary,
@@ -71,7 +68,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # to the terminal
       :nouse_stdio,
       :hide,
-      args: elixir_flags(node_name) ++ ["--eval", eval, "--" | Enum.map(argv, &to_string/1)]
+      args: elixir_flags(node_name, node(), Livebook.EPMD.dist_port())
     ])
   end
 end
