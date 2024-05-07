@@ -418,7 +418,10 @@ defmodule Livebook.Application do
     })
   end
 
-  # ELIXIR_ERL_OPTIONS used to configure EPMD module in releases.
+  # We set ELIXIR_ERL_OPTIONS when LIVEBOOK_EPMDLESS is set to true.
+  # By design, we don't allow ELIXIR_ERL_OPTIONS to pass through.
+  # Use ERL_AFLAGS and ERL_ZFLAGS if you want to configure both
+  # Livebook and spawned runtimes.
   defp config_env_var?("ELIXIR_ERL_OPTIONS"), do: true
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
