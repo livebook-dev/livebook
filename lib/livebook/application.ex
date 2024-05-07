@@ -128,7 +128,7 @@ defmodule Livebook.Application do
   defp validate_epmdless!() do
     with {:ok, [[~c"Elixir.Livebook.EPMD"]]} <- :init.get_argument(:epmd_module),
          {:ok, [[~c"false"]]} <- :init.get_argument(:start_epmd),
-         {:ok, [[~c"0"]]} <- :init.get_argument(:erl_epmd_port)) do
+         {:ok, [[~c"0"]]} <- :init.get_argument(:erl_epmd_port) do
       :ok
     else
       _ ->
