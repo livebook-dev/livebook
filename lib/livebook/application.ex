@@ -126,15 +126,16 @@ defmodule Livebook.Application do
   end
 
   defp validate_epmdless!() do
-    if match?({:ok, [[~c"Elixir.Livebook.EPMD"]]}, :init.get_argument(:epmd_module)) and
-         match?({:ok, [[~c"false"]]}, :init.get_argument(:start_epmd)) and
-         match?({:ok, [[~c"0"]]}, :init.get_argument(:erl_epmd_port)) do
+    with {:ok, [[~c"Elixir.Livebook.EPMD"]]} <- :init.get_argument(:epmd_module),
+         {:ok, [[~c"false"]]} <- :init.get_argument(:start_epmd),
+         {:ok, [[~c"0"]]} <- :init.get_argument(:erl_epmd_port)) do
       :ok
     else
-      Livebook.Config.abort!("""
-      You must specify ELIXIR_ERL_OPTIONS=\"-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
-      The epmd module can be found inside #{Application.app_dir(:livebook, "priv/ebin")}.
-      """)
+      _ ->
+        Livebook.Config.abort!("""
+        You must specify ELIXIR_ERL_OPTIONS=\"-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
+        The epmd module can be found inside #{Application.app_dir(:livebook, "priv/ebin")}.
+        """)
     end
   end
 
