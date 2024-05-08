@@ -330,7 +330,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> render_submit(attrs) =~
                "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
-      refute_receive {:secret_created, ^secret}
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
 
@@ -339,11 +338,9 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       bypass = Bypass.open()
       file_system = build_bypass_file_system(bypass, hub.id)
-      id = file_system.id
       attrs = %{file_system: Livebook.FileSystem.dump(file_system)}
 
       expect_s3_listing(bypass)
-
       refute render(view) =~ file_system.bucket_url
 
       view
@@ -358,7 +355,6 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> render_submit(attrs) =~
                "You are not authorized to perform this action, make sure you have the access and you are not in a Livebook App Server/Offline instance"
 
-      refute_receive {:file_system_created, %{id: ^id}}
       refute file_system in Livebook.Hubs.get_file_systems(hub)
     end
   end

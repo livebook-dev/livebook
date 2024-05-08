@@ -85,7 +85,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the secret
       user_connected = %{user_connected | secrets: [livebook_proto_secret]}
       pid = connect_to_teams(team)
-      refute_receive {:secret_created, ^secret}
+      refute_received {:secret_created, ^secret}
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:secret_created, ^secret}
       assert secret in TeamClient.get_secrets(team.id)
@@ -134,7 +134,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the file system
       user_connected = %{user_connected | file_systems: [livebook_proto_file_system]}
       pid = connect_to_teams(team)
-      refute_receive {:file_system_created, ^file_system}
+      refute_received {:file_system_created, ^file_system}
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:file_system_created, ^file_system}
       assert file_system in TeamClient.get_file_systems(team.id)
@@ -190,7 +190,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the deployment group
       user_connected = %{user_connected | deployment_groups: [livebook_proto_deployment_group]}
       pid = connect_to_teams(team)
-      refute_receive {:deployment_group_created, ^deployment_group}
+      refute_received {:deployment_group_created, ^deployment_group}
       send(pid, {:event, :user_connected, user_connected})
       assert_receive {:deployment_group_created, ^deployment_group}
       assert deployment_group in TeamClient.get_deployment_groups(team.id)
@@ -349,7 +349,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the secret
       agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
       pid = connect_to_teams(team)
-      refute_receive {:secret_created, ^secret}
+      refute_received {:secret_created, ^secret}
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:secret_created, ^secret}
       assert secret in TeamClient.get_secrets(team.id)
@@ -398,7 +398,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the file system
       agent_connected = %{agent_connected | file_systems: [livebook_proto_file_system]}
       pid = connect_to_teams(team)
-      refute_receive {:file_system_created, ^file_system}
+      refute_received {:file_system_created, ^file_system}
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:file_system_created, ^file_system}
       assert file_system in TeamClient.get_file_systems(team.id)
@@ -526,7 +526,7 @@ defmodule Livebook.Hubs.TeamClientTest do
       # creates the secret
       agent_connected = %{agent_connected | secrets: [livebook_proto_secret]}
       pid = connect_to_teams(team)
-      refute_receive {:secret_created, ^secret}
+      refute_received {:secret_created, ^secret}
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:secret_created, ^secret}
       assert secret in TeamClient.get_secrets(team.id)

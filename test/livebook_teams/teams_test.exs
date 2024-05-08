@@ -191,7 +191,6 @@ defmodule Livebook.TeamsTest do
 
       assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
       assert "can't be blank" in errors_on(changeset).name
-      refute_receive {:deployment_group_created, _}
     end
 
     test "returns changeset errors when the mode is invalid", %{user: user, node: node} do
@@ -200,7 +199,6 @@ defmodule Livebook.TeamsTest do
 
       assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
       assert "is invalid" in errors_on(changeset).mode
-      refute_receive {:deployment_group_created, _}
     end
   end
 

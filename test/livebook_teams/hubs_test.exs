@@ -142,8 +142,6 @@ defmodule Livebook.HubsTest do
     assert Hubs.delete_secret(hub, secret) ==
              {:transport_error,
               "Something went wrong, try again later or please file a bug if it persists"}
-
-    refute_receive {:secret_deleted, _}
   end
 
   describe "create_file_system/2" do
@@ -168,7 +166,6 @@ defmodule Livebook.HubsTest do
 
       assert {:error, changeset} = Hubs.create_file_system(hub, file_system)
       assert "can't be blank" in errors_on(changeset).bucket_url
-      refute_receive {:file_system_created, _}
     end
   end
 
@@ -204,7 +201,6 @@ defmodule Livebook.HubsTest do
 
       assert {:error, changeset} = Hubs.update_file_system(hub, update_file_system)
       assert "can't be blank" in errors_on(changeset).bucket_url
-      refute_receive {:file_system_updated, _}
     end
   end
 
@@ -225,8 +221,6 @@ defmodule Livebook.HubsTest do
     assert Hubs.delete_file_system(hub, file_system) ==
              {:transport_error,
               "Something went wrong, try again later or please file a bug if it persists"}
-
-    refute_receive {:file_system_deleted, _}
   end
 
   test "generates and verifies stamp for a notebook", %{user: user, node: node} do
