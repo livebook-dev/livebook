@@ -471,8 +471,8 @@ defmodule Livebook.Config do
   def port!(env) do
     if port = System.get_env(env) do
       case Integer.parse(port) do
-        {port, ""} -> port
-        :error -> abort!("expected #{env} to be an integer, got: #{inspect(port)}")
+        {port, ""} when port >= 0 -> port
+        :error -> abort!("expected #{env} to be a non-negative integer, got: #{inspect(port)}")
       end
     end
   end

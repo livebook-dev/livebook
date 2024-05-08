@@ -33,3 +33,6 @@ npm-debug.log
 
 # The built Escript
 /livebook
+
+# The priv directory with the EPMD file
+/priv/epmd

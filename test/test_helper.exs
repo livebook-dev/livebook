@@ -57,21 +57,29 @@ windows? = match?({:win32, _}, :os.type())
 
 erl_docs_exclude =
   if match?({:error, _}, Code.fetch_docs(:gen_server)) do
-    [erl_docs: true]
+    [:erl_docs]
   else
     []
   end
 
-windows_exclude = if windows?, do: [unix: true], else: []
+windows_exclude = if windows?, do: [:unix], else: []
 
 teams_exclude =
-  if not Livebook.TeamsServer.available?() do
-    [teams_integration: true]
-  else
+  if Livebook.TeamsServer.available?() do
     []
+  else
+    [:teams_integration]
+  end
+
+# ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0" LIVEBOOK_EPMDLESS=true mix test
+epmd_exclude =
+  if Application.fetch_env!(:livebook, :epmdless) do
+    [:with_epmd, :teams_integration]
+  else
+    [:without_epmd]
   end
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
-  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude
+  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ epmd_exclude
 )

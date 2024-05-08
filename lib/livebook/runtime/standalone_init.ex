@@ -1,16 +1,7 @@
 defmodule Livebook.Runtime.StandaloneInit do
+  # TODO: Move logic inside ElixirStandalone module.
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by ElixirStandalone.
-
-  alias Livebook.Runtime.NodePool
-
-  @doc """
-  Returns a random name for a dynamically spawned node.
-  """
-  @spec child_node_name(atom()) :: atom()
-  def child_node_name(parent) do
-    NodePool.get_name(parent)
-  end
 
   @doc """
   Tries locating Elixir executable in PATH.
@@ -21,30 +12,6 @@ defmodule Livebook.Runtime.StandaloneInit do
       nil -> {:error, "no Elixir executable found in PATH"}
       path -> {:ok, path}
     end
-  end
-
-  @doc """
-  A list of common flags used for spawned Elixir runtimes.
-  """
-  @spec elixir_flags(node()) :: list()
-  def elixir_flags(node_name) do
-    [
-      if(Livebook.Config.longname(), do: "--name", else: "--sname"),
-      to_string(node_name),
-      "--erl",
-      # Minimize schedulers busy wait threshold,
-      # so that they go to sleep immediately after evaluation.
-      # Increase the default stack for dirty io threads (cuda requires it).
-      # Enable ANSI escape codes as we handle them with HTML.
-      # Disable stdin, so that the system process never tries to read
-      # any input from the terminal.
-      "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput",
-      # Make the node hidden, so it doesn't automatically join the cluster
-      "--hidden",
-      # Use the cookie in Livebook
-      "--cookie",
-      Atom.to_string(Node.get_cookie())
-    ]
   end
 
   # ---
@@ -88,9 +55,9 @@ defmodule Livebook.Runtime.StandaloneInit do
 
     loop = fn loop ->
       receive do
-        {:node_started, init_ref, ^child_node, primary_pid} ->
+        {:node_started, init_ref, ^child_node, child_port, primary_pid} ->
           Port.demonitor(port_ref)
-
+          Livebook.EPMD.update_child_node(child_node, child_port)
           server_pid = Livebook.Runtime.ErlDist.initialize(child_node, opts[:init_opts] || [])
 
           send(primary_pid, {:node_initialized, init_ref})
@@ -117,13 +84,18 @@ defmodule Livebook.Runtime.StandaloneInit do
   # so the string cannot have constructs newlines nor strings. That's why we pass
   # the parent node name as ARGV and write the code avoiding newlines.
   #
+  # This boot script must be kept in sync with Livebook.EPMD.
+  #
   # Also note that we explicitly halt, just in case `System.no_halt(true)` is
   # called within the runtime.
   @child_node_eval_string """
-  [parent_node] = System.argv();\
+  {:ok, [[mode, node]]} = :init.get_argument(:livebook_current);\
+  {:ok, _} = :net_kernel.start(List.to_atom(node), %{name_domain: List.to_atom(mode)});\
+  {:ok, [[parent_node, _port]]} = :init.get_argument(:livebook_parent);\
+  dist_port = :persistent_term.get(:livebook_dist_port, 0);\
   init_ref = make_ref();\
-  parent_process = {node(), String.to_atom(parent_node)};\
-  send(parent_process, {:node_started, init_ref, node(), self()});\
+  parent_process = {node(), List.to_atom(parent_node)};\
+  send(parent_process, {:node_started, init_ref, node(), dist_port, self()});\
   receive do {:node_initialized, ^init_ref} ->\
     manager_ref = Process.monitor(Livebook.Runtime.ErlDist.NodeManager);\
     receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
@@ -138,12 +110,42 @@ defmodule Livebook.Runtime.StandaloneInit do
   end
 
   @doc """
-  Performs the child side of the initialization contract.
-
-  This function returns AST that should be evaluated in primary
-  process on the newly spawned child node. The executed code expects
-  the parent_node on ARGV. The process on the parent node is assumed
-  to have the same name as the child node.
+  A list of common flags used for spawned Elixir runtimes.
   """
-  def child_node_eval_string(), do: @child_node_eval_string
+  @spec elixir_flags(node()) :: list()
+  def elixir_flags(node_name) do
+    parent_name = node()
+    parent_port = Livebook.EPMD.dist_port()
+
+    mode = if Livebook.Config.longname(), do: :longnames, else: :shortnames
+
+    epmdless_flags =
+      if parent_port != 0 do
+        "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0 "
+      else
+        ""
+      end
+
+    [
+      "--erl",
+      # Minimize schedulers busy wait threshold,
+      # so that they go to sleep immediately after evaluation.
+      # Increase the default stack for dirty io threads (cuda requires it).
+      # Enable ANSI escape codes as we handle them with HTML.
+      # Disable stdin, so that the system process never tries to read terminal input.
+      "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
+        epmdless_flags <>
+        "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{mode} #{node_name}",
+      # Add the location of Livebook.EPMD
+      "-pa",
+      Application.app_dir(:livebook, "priv/epmd"),
+      # Make the node hidden, so it doesn't automatically join the cluster
+      "--hidden",
+      # Use the cookie in Livebook
+      "--cookie",
+      Atom.to_string(Node.get_cookie()),
+      "--eval",
+      @child_node_eval_string
+    ]
+  end
 end
