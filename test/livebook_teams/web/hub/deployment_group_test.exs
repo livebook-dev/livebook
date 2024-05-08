@@ -255,10 +255,18 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   @tag :tmp_dir
   test "shows the app deployed count", %{conn: conn, hub: hub, tmp_dir: tmp_dir} do
-    name = "TEAMS_EDIT_DEPLOYMENT_GROUP3"
+    suffix =
+      hub.id
+      |> String.replace("-", "_")
+      |> String.upcase()
+
+    name = "TEAMS_EDIT_DEPLOYMENT_GROUP_#{suffix}"
     %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+    id = to_string(id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    refute_received {:app_deployment_started, %{deployment_group_id: ^id}}
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
@@ -274,7 +282,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
       | app_settings: app_settings,
         name: "MyNotebook",
         hub_id: hub.id,
-        deployment_group_id: to_string(id)
+        deployment_group_id: id
     }
 
     files_dir = Livebook.FileSystem.File.local(tmp_dir)
@@ -282,7 +290,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
     :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
-    assert_receive {:app_deployment_started, _}
+    assert_receive {:app_deployment_started, %{deployment_group_id: ^id}}, 2_000
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
