@@ -6,7 +6,7 @@ on:
       - main
       - "v*.*"
 jobs:
-  main:
+  linux:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
@@ -15,9 +15,8 @@ jobs:
         build:
           - name: default
           - name: epmdless
-            env:
-              ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0"
-              LIVEBOOK_EPMDLESS: "true"
+            env: LIVEBOOK_EPMDLESS=true ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0"
+
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
