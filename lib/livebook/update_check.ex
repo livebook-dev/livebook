@@ -102,10 +102,10 @@ defmodule Livebook.UpdateCheck do
 
   def handle_info(_msg, state), do: {:noreply, state}
 
-  @test? Mix.env() == :test
-
-  defp update_check_enabled?() do
-    Livebook.Settings.update_check_enabled?() and not @test?
+  if Mix.env() == :test do
+    defp update_check_enabled?(), do: false
+  else
+    defp update_check_enabled?(), do: Livebook.Settings.update_check_enabled?()
   end
 
   defp schedule_check(%{enabled: false} = state, _time), do: state
