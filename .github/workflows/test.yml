@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
+    strategy:
+      matrix:
+        build:
+          - name: default
+          - name: epmdless
+            env:
+              ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0"
+              LIVEBOOK_EPMDLESS: "true"
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
@@ -41,23 +49,7 @@ jobs:
         run: mix compile --warnings-as-errors
       - name: Run tests
         run: mix test
-      - name: Install Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18.x"
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      - name: Install npm dependencies
-        run: npm ci --prefix assets
-      - name: Check assets formatting
-        run: npm run format-check --prefix assets
-      - name: Run assets tests
-        run: npm test --prefix assets
+
   windows:
     runs-on: windows-latest
     if: github.event_name == 'push'
@@ -134,3 +126,26 @@ jobs:
           key: ${{ runner.os }}-elixir-${{ env.elixir }}
       - name: Build the app
         run: .github/scripts/app/build_macos.sh
+
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v3
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install npm dependencies
+        run: npm ci --prefix assets
+      - name: Check assets formatting
+        run: npm run format-check --prefix assets
+      - name: Run assets tests
+        run: npm test --prefix assets
