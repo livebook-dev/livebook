@@ -149,6 +149,10 @@ defmodule Livebook do
       config :livebook, :aws_credentials, true
     end
 
+    if Livebook.Config.boolean!("LIVEBOOK_EPMDLESS", false) do
+      config :livebook, :epmdless, true
+    end
+
     config :livebook,
            :default_runtime,
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||

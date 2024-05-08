@@ -1,8 +1,8 @@
 defmodule Livebook.RemoteIntellisenseTest do
   use ExUnit.Case, async: true
-
   alias Livebook.Intellisense
 
+  @moduletag :with_epmd
   @tmp_dir "tmp/test/remote_intellisense"
 
   # Returns intellisense context resulting from evaluating
