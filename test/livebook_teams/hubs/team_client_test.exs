@@ -58,6 +58,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
     test "receives the user events", %{team: team, node: node} do
       Livebook.Hubs.Broadcasts.subscribe([:crud])
+      connect_to_teams(team)
 
       # force user to be deleted from org
       erpc_call(node, :delete_user_org, [team.user_id, team.org_id])
