@@ -119,8 +119,9 @@ defmodule Livebook.Notebook.AppSettings do
         |> cast(attrs, [:zero_downtime])
         |> validate_required([:zero_downtime])
         # Listing sessions is not applicable to single-session apps,
-        # since they have a single session at a time
-        |> put_change(:show_existing_sessions, true)
+        # since they have a single session at a time. We reset to
+        # the default, so we do not persist it unnecessarily
+        |> put_change(:show_existing_sessions, false)
 
       true ->
         changeset
