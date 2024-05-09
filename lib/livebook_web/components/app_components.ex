@@ -91,7 +91,7 @@ defmodule LivebookWeb.AppComponents do
 
   def deployment_group_form_content(assigns) do
     ~H"""
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div>
       <div class="flex flex-col">
         <.select_field
           label="Clustering"
@@ -137,9 +137,10 @@ defmodule LivebookWeb.AppComponents do
             field={@form[:zta_provider]}
             help={
               ~S'''
-              Enable this option if you want
-              to deploy your notebooks behind
-              an authentication proxy
+              Enable this option to generate
+              Livebook Dockerfiles with proxy
+              authentication for deployed
+              notebooks
               '''
             }
             prompt="None"

@@ -21,8 +21,15 @@ defmodule Livebook.Teams.DeploymentGroup do
   end
 
   def changeset(deployment_group, attrs \\ %{}) do
-    deployment_group
-    |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key])
-    |> validate_required([:name, :mode])
+    changeset =
+      deployment_group
+      |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key])
+      |> validate_required([:name, :mode])
+
+    if get_field(changeset, :zta_provider) do
+      validate_required(changeset, [:zta_key])
+    else
+      changeset
+    end
   end
 end
