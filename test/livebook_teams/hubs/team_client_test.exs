@@ -710,12 +710,27 @@ defmodule Livebook.Hubs.TeamClientTest do
                       }}
     end
 
-    test "dispatches the agents list", %{team: team, agent_connected: agent_connected} do
+    test "dispatches the agents list",
+         %{
+           team: team,
+           agent_connected: agent_connected,
+           deployment_group: %{id: deployment_group_id}
+         } do
+      deployment_group_id = to_string(deployment_group_id)
+      org_id = to_string(team.org_id)
+      hub_id = team.id
+
       pid = connect_to_teams(team)
 
       # Since we're connecting as Agent, we should receive the
       # `:agent_joined` event from `:agent_connected` event
-      assert_receive {:agent_joined, agent}
+      assert_receive {:agent_joined,
+                      %{
+                        hub_id: ^hub_id,
+                        org_id: ^org_id,
+                        deployment_group_id: ^deployment_group_id
+                      } = agent}
+
       assert agent in TeamClient.get_agents(team.id)
 
       assert_receive {:deployment_group_created, deployment_group}

@@ -128,16 +128,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert_receive {:hub_connected, ^id}
 
       # creates a secret
-      secret_name = "BIG_IMPORTANT_SECRET_TO_BE_UPDATED_OR_DELETED"
-      secret_value = "123"
-
-      insert_secret(
-        name: secret_name,
-        value: secret_value,
-        hub_id: team.id
-      )
-
-      assert_receive {:secret_created, %{name: ^secret_name, value: ^secret_value}}
+      secret = insert_secret(hub_id: team.id)
+      assert_receive {:secret_created, ^secret}
 
       # selects the notebook's hub with team hub id
       Session.set_notebook_hub(session.pid, team.id)
@@ -147,12 +139,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       # clicks the button to edit a secret
       view
-      |> element("#hub-#{id}-secret-#{secret_name}-edit-button")
+      |> element("#hub-#{id}-secret-#{secret.name}-edit-button")
       |> render_click()
 
       # redirects to hub page and loads the modal with
       # the secret name and value filled
-      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret_name}")
+      assert_redirect(view, ~p"/hub/#{id}/secrets/edit/#{secret.name}")
     end
 
     test "toggle a secret from team hub", %{conn: conn, session: session, user: user, node: node} do

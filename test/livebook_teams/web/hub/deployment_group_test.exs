@@ -19,12 +19,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "creates a deployment group", %{conn: conn, hub: hub} do
-    deployment_group =
-      build(:deployment_group,
-        name: "TEAMS_ADD_DEPLOYMENT_GROUP",
-        mode: :offline,
-        hub_id: hub.id
-      )
+    deployment_group = build(:deployment_group, mode: :offline, hub_id: hub.id)
+    name = deployment_group.name
 
     attrs = %{
       deployment_group: %{
@@ -52,8 +48,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     |> element("#deployment-group-form")
     |> render_submit(attrs)
 
-    assert_receive {:deployment_group_created,
-                    %DeploymentGroup{name: "TEAMS_ADD_DEPLOYMENT_GROUP"} = deployment_group}
+    assert_receive {:deployment_group_created, %DeploymentGroup{name: ^name} = deployment_group}
 
     assert_patch(view, "/hub/#{hub.id}")
     assert render(view) =~ "Deployment group added successfully"
@@ -72,21 +67,10 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "creates a secret", %{conn: conn, hub: hub} do
-    %{id: id} =
-      insert_deployment_group(
-        name: "TEAMS_EDIT_DEPLOYMENT_GROUP",
-        mode: :online,
-        hub_id: hub.id
-      )
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    secret = build(:secret, hub_id: hub.id, deployment_group_id: id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-
-    secret =
-      build(:secret,
-        name: "DEPLOYMENT_GROUP_SECRET",
-        hub_id: hub.id,
-        deployment_group_id: id
-      )
 
     attrs = %{
       secret: %{
@@ -123,7 +107,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
                       deployment_group}
 
     assert_patch(view, ~p"/hub/#{hub.id}")
-    assert render(view) =~ "Secret DEPLOYMENT_GROUP_SECRET added successfully"
+    assert render(view) =~ "Secret #{secret.name} added successfully"
     assert render(element(view, "#hub-deployment-group-#{id}")) =~ secret.name
     assert secret in deployment_group.secrets
 
@@ -136,11 +120,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "updates an existing secret", %{conn: conn, hub: hub} do
-    %{id: id} =
-      insert_deployment_group(name: "TEAMS_EDIT_DEPLOYMENT_GROUP", mode: :online, hub_id: hub.id)
-
-    secret =
-      insert_secret(name: "DEPLOYMENT_GROUP_EDIT_SECRET", hub_id: hub.id, deployment_group_id: id)
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    secret = insert_secret(hub_id: hub.id, deployment_group_id: id)
 
     assert_receive {:deployment_group_updated,
                     %Livebook.Teams.DeploymentGroup{id: ^id, secrets: [^secret]}}
@@ -182,21 +163,14 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
                       deployment_group}
 
     assert_patch(view, "/hub/#{hub.id}")
-    assert render(view) =~ "Secret DEPLOYMENT_GROUP_EDIT_SECRET updated successfully"
+    assert render(view) =~ "Secret #{secret.name} updated successfully"
     assert render(element(view, "#hub-deployment-group-#{id}")) =~ secret.name
     assert updated_secret in deployment_group.secrets
   end
 
   test "deletes an existing secret", %{conn: conn, hub: hub} do
-    %{id: id} =
-      insert_deployment_group(name: "TEAMS_EDIT_DEPLOYMENT_GROUP", mode: :online, hub_id: hub.id)
-
-    secret =
-      insert_secret(
-        name: "DEPLOYMENT_GROUP_DELETE_SECRET",
-        hub_id: hub.id,
-        deployment_group_id: id
-      )
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    secret = insert_secret(hub_id: hub.id, deployment_group_id: id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -210,13 +184,12 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
                     %Livebook.Teams.DeploymentGroup{id: ^id, secrets: []}}
 
     assert_patch(view, ~p"/hub/#{hub.id}")
-    assert render(view) =~ "Secret DEPLOYMENT_GROUP_DELETE_SECRET deleted successfully"
+    assert render(view) =~ "Secret #{secret.name} deleted successfully"
     refute render(element(view, "#hub-deployment-group-#{id}")) =~ secret.name
   end
 
   test "shows the agent count", %{conn: conn, hub: hub} do
-    name = "TEAMS_EDIT_DEPLOYMENT_GROUP2"
-    %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -255,10 +228,12 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   @tag :tmp_dir
   test "shows the app deployed count", %{conn: conn, hub: hub, tmp_dir: tmp_dir} do
-    name = "TEAMS_EDIT_DEPLOYMENT_GROUP3"
-    %{id: id} = insert_deployment_group(name: name, mode: :online, hub_id: hub.id)
+    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    id = to_string(id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
+
+    refute_received {:app_deployment_started, %{deployment_group_id: ^id}}
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
@@ -274,7 +249,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
       | app_settings: app_settings,
         name: "MyNotebook",
         hub_id: hub.id,
-        deployment_group_id: to_string(id)
+        deployment_group_id: id
     }
 
     files_dir = Livebook.FileSystem.File.local(tmp_dir)
@@ -282,7 +257,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     {:ok, app_deployment} = Livebook.Teams.AppDeployment.new(notebook, files_dir)
     :ok = Livebook.Teams.deploy_app(hub, app_deployment)
 
-    assert_receive {:app_deployment_started, _}
+    assert_receive {:app_deployment_started, %{deployment_group_id: ^id}}, 2_000
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")

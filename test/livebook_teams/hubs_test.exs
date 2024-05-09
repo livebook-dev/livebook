@@ -96,14 +96,14 @@ defmodule Livebook.HubsTest do
       secret = build(:secret, name: name, value: value, hub_id: hub.id)
 
       assert Hubs.create_secret(hub, secret) == :ok
-      assert_receive {:secret_created, %{name: ^name, value: ^value}}
+      assert_receive {:secret_created, %{name: ^name, value: ^value, hub_id: ^value}}
       assert secret in Hubs.get_secrets(hub)
 
       new_value = "BAZ"
       updated_secret = Map.replace!(secret, :value, new_value)
 
       assert Hubs.update_secret(hub, updated_secret) == :ok
-      assert_receive {:secret_updated, %{name: ^name, value: ^new_value}}
+      assert_receive {:secret_updated, %{name: ^name, value: ^new_value, hub_id: ^value}}
       refute secret in Hubs.get_secrets(hub)
       assert updated_secret in Hubs.get_secrets(hub)
     end
@@ -131,11 +131,11 @@ defmodule Livebook.HubsTest do
     secret = build(:secret, name: name, value: value, hub_id: hub.id)
 
     assert Hubs.create_secret(hub, secret) == :ok
-    assert_receive {:secret_created, %{name: ^name, value: ^value}}
+    assert_receive {:secret_created, %{name: ^name, value: ^value, hub_id: ^value}}
     assert secret in Hubs.get_secrets(hub)
 
     assert Hubs.delete_secret(hub, secret) == :ok
-    assert_receive {:secret_deleted, %{name: ^name, value: ^value}}
+    assert_receive {:secret_deleted, %{name: ^name, value: ^value, hub_id: ^value}}
     refute secret in Hubs.get_secrets(hub)
 
     # Guarantee it's been removed and will return HTTP status 404
@@ -176,7 +176,10 @@ defmodule Livebook.HubsTest do
       file_system = build(:fs_s3, bucket_url: bucket_url)
 
       assert Hubs.create_file_system(hub, file_system) == :ok
-      assert_receive {:file_system_created, %{external_id: external_id} = file_system}
+
+      assert_receive {:file_system_created,
+                      %{bucket_url: ^bucket_url, external_id: external_id} = file_system}
+
       assert file_system in Hubs.get_file_systems(hub)
 
       updated_file_system = Map.replace!(file_system, :region, "eu-central-1")
@@ -210,7 +213,10 @@ defmodule Livebook.HubsTest do
     file_system = build(:fs_s3, bucket_url: bucket_url)
 
     assert Hubs.create_file_system(hub, file_system) == :ok
-    assert_receive {:file_system_created, %{external_id: external_id} = file_system}
+
+    assert_receive {:file_system_created,
+                    %{bucket_url: ^bucket_url, external_id: external_id} = file_system}
+
     assert file_system in Hubs.get_file_systems(hub)
 
     assert Hubs.delete_file_system(hub, file_system) == :ok
