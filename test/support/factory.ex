@@ -49,8 +49,8 @@ defmodule Livebook.Factory do
 
   def build(:secret) do
     %Livebook.Secrets.Secret{
-      name: "FOO",
-      value: "123",
+      name: unique_value("FOO_"),
+      value: Livebook.Utils.random_short_id(),
       hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: nil
     }
@@ -58,7 +58,7 @@ defmodule Livebook.Factory do
 
   def build(:deployment_group) do
     %Livebook.Teams.DeploymentGroup{
-      name: "FOO",
+      name: unique_value("FOO_"),
       mode: :offline,
       agent_keys: [],
       secrets: []
@@ -76,7 +76,7 @@ defmodule Livebook.Factory do
   end
 
   def build(:fs_s3) do
-    bucket_url = "https://mybucket.s3.amazonaws.com"
+    bucket_url = "https://#{unique_value("mybucket-")}.s3.amazonaws.com"
     hash = :crypto.hash(:sha256, bucket_url)
     hub_id = Livebook.Hubs.Personal.id()
 
@@ -108,7 +108,7 @@ defmodule Livebook.Factory do
 
     %Livebook.Teams.AppDeployment{
       id: "1",
-      title: "MyNotebook",
+      title: unique_value("MyNotebook-"),
       sha: shasum,
       slug: slug,
       file: content,
@@ -124,7 +124,7 @@ defmodule Livebook.Factory do
   def build(:agent) do
     %Livebook.Teams.Agent{
       id: "agent_name-#{Livebook.Utils.random_short_id()}",
-      name: "agent_name",
+      name: unique_value("agent_name"),
       hub_id: Livebook.Hubs.Personal.id(),
       org_id: "1",
       deployment_group_id: "1"
@@ -176,4 +176,11 @@ defmodule Livebook.Factory do
     # already running)
     Livebook.Hubs.save_hub(hub)
   end
+
+  def unique_value(prefix \\ nil) do
+    value = unique_integer()
+    if prefix, do: "#{prefix}#{value}", else: value
+  end
+
+  defp unique_integer(), do: System.unique_integer([:positive])
 end

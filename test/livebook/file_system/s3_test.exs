@@ -1024,10 +1024,14 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem.dump/1" do
     test "dumps into a map ready to be stored" do
-      file_system = build(:fs_s3)
+      file_system =
+        build(:fs_s3,
+          id: "personal-hub-s3-HsVlgSlWeap3BklGso76U1WdxiX7afWg2k4cXs8z7hI",
+          bucket_url: "https://mybucket.s3.amazonaws.com"
+        )
 
       assert FileSystem.dump(file_system) == %{
-               id: "personal-hub-s3-86IzUeRugmgK2-X2FmlkurFD0UPsr4Qs1IwieDqfQpA",
+               id: "personal-hub-s3-HsVlgSlWeap3BklGso76U1WdxiX7afWg2k4cXs8z7hI",
                bucket_url: "https://mybucket.s3.amazonaws.com",
                region: "us-east-1",
                access_key_id: "key",

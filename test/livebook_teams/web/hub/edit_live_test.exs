@@ -68,7 +68,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "creates a secret", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      secret = build(:secret, name: "TEAM_ADD_SECRET", hub_id: hub.id)
+      secret = build(:secret, hub_id: hub.id)
 
       attrs = %{
         secret: %{
@@ -101,7 +101,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:secret_created, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret TEAM_ADD_SECRET added successfully"
+      assert render(view) =~ "Secret #{secret.name} added successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert secret in Livebook.Hubs.get_secrets(hub)
 
@@ -114,13 +114,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
     end
 
     test "updates existing secret", %{conn: conn, hub: hub} do
-      suffix =
-        hub.id
-        |> String.replace("-", "_")
-        |> String.upcase()
-
-      name = "TEAM_EDIT_SECRET_#{suffix}"
-      secret = insert_secret(name: name, hub_id: hub.id)
+      secret = insert_secret(hub_id: hub.id)
 
       assert_receive {:secret_created, ^secret}
 
@@ -137,10 +131,10 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
       new_value = "new_value"
 
       view
-      |> element("#hub-secrets-list [aria-label=\"edit #{name}\"]")
+      |> element("#hub-secrets-list [aria-label=\"edit #{secret.name}\"]")
       |> render_click(%{"secret_name" => secret.name})
 
-      assert_patch(view, ~p"/hub/#{hub.id}/secrets/edit/#{name}")
+      assert_patch(view, ~p"/hub/#{hub.id}/secrets/edit/#{secret.name}")
       assert render(view) =~ "Edit secret"
 
       view
@@ -159,19 +153,13 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
       assert_receive {:secret_updated, ^updated_secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret #{name} updated successfully"
+      assert render(view) =~ "Secret #{secret.name} updated successfully"
       assert render(element(view, "#hub-secrets-list")) =~ secret.name
       assert updated_secret in Livebook.Hubs.get_secrets(hub)
     end
 
     test "deletes existing secret", %{conn: conn, hub: hub} do
-      suffix =
-        hub.id
-        |> String.replace("-", "_")
-        |> String.upcase()
-
-      name = "TEAM_DELETE_SECRET_#{suffix}"
-      secret = insert_secret(name: name, hub_id: hub.id)
+      secret = insert_secret(hub_id: hub.id)
       assert_receive {:secret_created, ^secret}
 
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
@@ -181,14 +169,14 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
              |> has_element?()
 
       view
-      |> element("#hub-secrets-list [aria-label=\"delete #{name}\"]")
+      |> element("#hub-secrets-list [aria-label=\"delete #{secret.name}\"]")
       |> render_click()
 
       render_confirm(view)
 
       assert_receive {:secret_deleted, ^secret}
       assert_patch(view, "/hub/#{hub.id}")
-      assert render(view) =~ "Secret #{name} deleted successfully"
+      assert render(view) =~ "Secret #{secret.name} deleted successfully"
       refute secret in Livebook.Hubs.get_secrets(hub)
     end
 
@@ -320,7 +308,7 @@ defmodule LivebookWeb.Integration.Hub.EditLiveTest do
 
     test "shows an error when creating a secret", %{conn: conn, hub: hub} do
       {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
-      secret = build(:secret, name: "TEAM_ADD_SECRET", hub_id: hub.id)
+      secret = build(:secret, hub_id: hub.id)
 
       attrs = %{
         secret: %{
