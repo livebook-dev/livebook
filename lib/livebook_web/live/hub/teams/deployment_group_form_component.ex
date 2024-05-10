@@ -51,12 +51,12 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               </label>
               <div class="flex gap-y-6 sm:gap-x-4">
                 <.radio_card field={@form[:mode]} title="Online" value={:online}>
-                  Deploy notebooks to your infrastructure with the click of a button.
+                  Deploy Livebook apps to your infrastructure with the click of a button.
                   This mode requires running app servers connected to Livebook Teams.
                 </.radio_card>
 
                 <.radio_card field={@form[:mode]} title="Airgapped" value={:offline}>
-                  Manually deploy notebooks to your infrastructure via Dockerfiles.
+                  Manually deploy Livebook apps to your infrastructure via Dockerfiles.
                   Connection to Livebook Teams is not required.
                 </.radio_card>
               </div>
