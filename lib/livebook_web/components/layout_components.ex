@@ -344,7 +344,7 @@ defmodule LivebookWeb.LayoutComponents do
                 if (keyDown === "c") {
                   event.preventDefault();
                   event.stopImmediatePropagation();
-                  reloader.openEditorAtCaller(e.target);
+                  reloader.openEditorAtCaller(event.target);
                 } else if (keyDown === "d") {
                   event.preventDefault();
                   event.stopImmediatePropagation();
