@@ -312,4 +312,55 @@ defmodule LivebookWeb.LayoutComponents do
   defp topbar_class(:warning), do: "bg-yellow-200 text-gray-900"
   defp topbar_class(:info), do: "bg-blue-200 text-gray-900"
   defp topbar_class(:error), do: "bg-red-200 text-gray-900"
+
+  @doc """
+  Returns an inline script to inject in dev mode.
+
+  The main JS file is loaded asynchronously as a module, so we inline
+  the live reloader listener to make sure it is already registered
+  when the event is dispatched.
+  """
+  if Mix.env() == :dev do
+    def dev_script(assigns) do
+      ~H"""
+      <script type="text/javascript">
+        window.addEventListener(
+          "phx:live_reload:attached",
+          ({ detail: reloader }) => {
+            // Enable server log streaming to client. Disable with reloader.disableServerLogs()
+            reloader.enableServerLogs();
+
+            // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
+            //
+            //   * click with "c" key pressed to open at caller location
+            //   * click with "d" key pressed to open at function component definition location
+            //
+            let keyDown;
+            window.addEventListener("keydown", (event) => (keyDown = event.key));
+            window.addEventListener("keyup", (event) => (keyDown = null));
+            window.addEventListener(
+              "click",
+              (event) => {
+                if (keyDown === "c") {
+                  event.preventDefault();
+                  event.stopImmediatePropagation();
+                  reloader.openEditorAtCaller(e.target);
+                } else if (keyDown === "d") {
+                  event.preventDefault();
+                  event.stopImmediatePropagation();
+                  reloader.openEditorAtDef(event.target);
+                }
+              },
+              true,
+            );
+
+            window.liveReloader = reloader;
+          },
+        );
+      </script>
+      """
+    end
+  else
+    def dev_script(assigns), do: ~H""
+  end
 end
