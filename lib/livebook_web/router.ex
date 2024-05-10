@@ -61,6 +61,8 @@ defmodule LivebookWeb.Router do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
+      match :*, "/sessions/:id/proxy/*proxied_path", ProxyController, :proxy
+
       live "/", HomeLive, :page
 
       live "/open/:tab", OpenLive, :page
@@ -141,6 +143,8 @@ defmodule LivebookWeb.Router do
     on_mount: [LivebookWeb.AppAuthHook, LivebookWeb.UserHook, LivebookWeb.Confirm] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :user]
+
+      match :*, "/apps/:slug/proxy/*proxied_path", ProxyController, :proxy
 
       live "/apps/:slug", AppLive, :page
       live "/apps/:slug/new", AppLive, :new_session
