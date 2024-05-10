@@ -58,7 +58,8 @@ config :livebook, LivebookWeb.Endpoint,
       ~r"tmp/static_dev/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"lib/livebook_web/(live|views|components)/.*(ex)$",
       ~r"lib/livebook_web/templates/.*(eex)$"
-    ]
+    ],
+    web_console_logger: true
   ]
 
 # Do not include metadata nor timestamps in development logs

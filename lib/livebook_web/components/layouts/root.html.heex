@@ -14,9 +14,49 @@
     <script>
       window.LIVEBOOK_BASE_URL_PATH = "<%= Livebook.Config.base_url_path() %>";
     </script>
+    <!--
+      The main JS file is loaded asynchronously as a module, so we inline
+      the live reloader listener here to make sure it is already registered
+      when the event is dispatched.
+    -->
+    <script :if={Mix.env() == :dev} type="text/javascript">
+      window.addEventListener(
+        "phx:live_reload:attached",
+        ({ detail: reloader }) => {
+          // Enable server log streaming to client. Disable with reloader.disableServerLogs()
+          reloader.enableServerLogs();
+
+          // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
+          //
+          //   * click with "c" key pressed to open at caller location
+          //   * click with "d" key pressed to open at function component definition location
+          //
+          let keyDown;
+          window.addEventListener("keydown", (event) => (keyDown = event.key));
+          window.addEventListener("keyup", (event) => (keyDown = null));
+          window.addEventListener(
+            "click",
+            (event) => {
+              if (keyDown === "c") {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                reloader.openEditorAtCaller(e.target);
+              } else if (keyDown === "d") {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                reloader.openEditorAtDef(event.target);
+              }
+            },
+            true,
+          );
+
+          window.liveReloader = reloader;
+        },
+      );
+    </script>
     <%!-- This prevents the script to be loaded twice in Chrome --%>
     <link rel="modulepreload" href={~p"/assets/app.js"} />
-    <script phx-track-static type="module" type="text/javascript" src={~p"/assets/app.js"}>
+    <script phx-track-static type="module" src={~p"/assets/app.js"}>
     </script>
   </head>
   <body
