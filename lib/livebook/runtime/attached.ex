@@ -204,4 +204,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   def unregister_clients(runtime, client_ids) do
     RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
   end
+
+  def fetch_kino_proxy(runtime) do
+    RuntimeServer.fetch_kino_proxy(runtime.server_pid)
+  end
 end

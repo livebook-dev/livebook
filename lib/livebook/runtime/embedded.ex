@@ -171,6 +171,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
   end
 
+  def fetch_kino_proxy(runtime) do
+    RuntimeServer.fetch_kino_proxy(runtime.server_pid)
+  end
+
   defp config() do
     Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end

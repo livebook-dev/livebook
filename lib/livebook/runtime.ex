@@ -1101,4 +1101,10 @@ defprotocol Livebook.Runtime do
   """
   @spec unregister_clients(t(), list(client_id())) :: :ok
   def unregister_clients(runtime, client_ids)
+
+  @doc """
+  Fetches the running Kino Proxy's pid from runtime.
+  """
+  @spec fetch_kino_proxy(t()) :: {:ok, pid()} | {:error, :not_found}
+  def fetch_kino_proxy(runtime)
 end
