@@ -1,6 +1,7 @@
 defmodule Livebook.ZTA.TailscaleTest do
   use ExUnit.Case, async: true
   use Plug.Test
+  import ExUnit.CaptureLog
   alias Livebook.ZTA.Tailscale
 
   @moduletag unix: true
@@ -102,5 +103,43 @@ defmodule Livebook.ZTA.TailscaleTest do
 
     start_supervised!({Tailscale, options})
     assert {_conn, nil} = Tailscale.authenticate(@name, conn, @fields)
+  end
+
+  test "returns the correct user behind reverse proxy", %{
+    bypass: bypass,
+    options: options,
+    conn: conn
+  } do
+    # https://tailscale.com/kb/1015/100.x-addresses
+    conn = Plug.Conn.put_req_header(conn, "x-forwarded-for", "100.64.0.1")
+
+    Bypass.expect(bypass, fn conn ->
+      assert %{"addr" => "100.64.0.1:1"} = conn.query_params
+      valid_user_response(conn)
+    end)
+
+    start_supervised!({Tailscale, options})
+    {_conn, user} = Tailscale.authenticate(@name, conn, @fields)
+    assert %{id: "1234567890", email: "john@example.org", name: "John"} = user
+  end
+
+  test "falls back on invalid forwarded header", %{
+    bypass: bypass,
+    options: options,
+    conn: conn
+  } do
+    conn = Plug.Conn.put_req_header(conn, "x-forwarded-for", "something invalid")
+
+    Bypass.expect(bypass, fn conn ->
+      assert %{"addr" => "151.236.219.228:1"} = conn.query_params
+      valid_user_response(conn)
+    end)
+
+    start_supervised!({Tailscale, options})
+
+    assert capture_log(fn ->
+             {_conn, user} = Tailscale.authenticate(@name, conn, @fields)
+             assert %{id: "1234567890", email: "john@example.org", name: "John"} = user
+           end) =~ "[warning] invalid x-forwarded-for request header: "
   end
 end

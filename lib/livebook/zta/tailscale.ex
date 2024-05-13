@@ -2,6 +2,9 @@ defmodule Livebook.ZTA.Tailscale do
   @behaviour Livebook.ZTA
   require Logger
 
+  # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+  @x_forwarded_for "x-forwarded-for"
+
   @impl true
   def child_spec(opts) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
@@ -23,7 +26,7 @@ defmodule Livebook.ZTA.Tailscale do
 
   @impl true
   def authenticate(name, conn, _opts) do
-    remote_ip = to_string(:inet_parse.ntoa(conn.remote_ip))
+    remote_ip = fetch_remote_ip(conn)
     tailscale_address = Livebook.ZTA.get(name)
     user = authenticate_ip(remote_ip, tailscale_address)
     {conn, user}
@@ -67,6 +70,42 @@ defmodule Livebook.ZTA.Tailscale do
       }
     else
       _ -> nil
+    end
+  end
+
+  defp fetch_remote_ip(conn) do
+    peer =
+      conn.remote_ip
+      |> :inet.ntoa()
+      |> to_string()
+
+    case Plug.Conn.get_req_header(conn, @x_forwarded_for) do
+      [] ->
+        peer
+
+      [forwarded_for] ->
+        if valid_ipv4?(forwarded_for) do
+          forwarded_for
+        else
+          Logger.warning("invalid #{@x_forwarded_for} request header: #{inspect(forwarded_for)}")
+          peer
+        end
+    end
+  end
+
+  defp valid_ipv4?(str) when is_binary(str) do
+    str
+    |> to_charlist()
+    |> valid_ipv4?()
+  end
+
+  defp valid_ipv4?(str) do
+    case :inet.parse_address(str) do
+      {:ok, _addr} ->
+        true
+
+      {:error, :einval} ->
+        false
     end
   end
 end
