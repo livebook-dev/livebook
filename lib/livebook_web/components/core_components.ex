@@ -55,7 +55,11 @@ defmodule LivebookWeb.CoreComponents do
         <.remix_icon icon="close-line" />
       </div>
       <.remix_icon :if={@kind == :info} icon="information-fill" class="text-xl text-blue-500" />
-      <.remix_icon :if={@kind == :success} icon="checkbox-circle-fill" class="text-xl text-blue-500" />
+      <.remix_icon
+        :if={@kind == :success}
+        icon="checkbox-circle-fill"
+        class="text-xl text-green-bright-400"
+      />
       <.remix_icon :if={@kind == :warning} icon="alert-fill" class="text-xl text-yellow-500" />
       <.remix_icon :if={@kind == :error} icon="error-warning-fill" class="text-xl text-red-500" />
       <span class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar" phx-no-format><%= message %></span>
@@ -109,7 +113,7 @@ defmodule LivebookWeb.CoreComponents do
     <div class={[
       "shadow text-sm flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
       @kind == :info && "border-blue-500",
-      @kind == :success && "border-blue-500",
+      @kind == :success && "border-green-bright-400",
       @kind == :warning && "border-yellow-300",
       @kind == :error && "border-red-500"
     ]}>
@@ -186,7 +190,7 @@ defmodule LivebookWeb.CoreComponents do
           id={"#{@id}-content"}
           class={[
             "relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl",
-            "w-full",
+            "w-full p-6",
             modal_width_class(@width)
           ]}
           role="dialog"
@@ -322,14 +326,22 @@ defmodule LivebookWeb.CoreComponents do
     """
   end
 
-  defp show_menu(id) do
-    JS.show(to: "##{id}-overlay")
+  @doc """
+  Shows a menu rendered with `menu/1`.
+  """
+  def show_menu(js \\ %JS{}, id) do
+    js
+    |> JS.show(to: "##{id}-overlay")
     |> JS.show(to: "##{id}-content", display: "flex")
     |> JS.dispatch("lb:scroll_into_view", to: "##{id}-content")
   end
 
-  defp hide_menu(id) do
-    JS.hide(to: "##{id}-overlay")
+  @doc """
+  Hides a menu rendered with `menu/1`.
+  """
+  def hide_menu(js \\ %JS{}, id) do
+    js
+    |> JS.hide(to: "##{id}-overlay")
     |> JS.hide(to: "##{id}-content")
   end
 
