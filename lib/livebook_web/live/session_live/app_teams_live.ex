@@ -361,23 +361,27 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   end
 
   @impl true
-  def handle_info({event, %{id: id}}, socket)
+  def handle_info({event, deployment_group}, socket)
       when event in [
              :deployment_group_created,
              :deployment_group_update,
              :deployment_group_deleted
-           ] do
-    deployment_group_id =
-      if deployment_group = socket.assigns.deployment_group do
-        deployment_group.id
+           ] and deployment_group.hub_id == socket.assigns.hub.id do
+    current_deployment_group_id =
+      if current_deployment_group = socket.assigns.deployment_group do
+        current_deployment_group.id
       end
 
     {socket, deployment_group_id} =
       if socket.assigns.initial? and event == :deployment_group_created do
-        Livebook.Session.set_notebook_deployment_group(socket.assigns.session.pid, id)
-        {navigate(socket, :add_agent), id}
+        Livebook.Session.set_notebook_deployment_group(
+          socket.assigns.session.pid,
+          deployment_group.id
+        )
+
+        {navigate(socket, :add_agent), deployment_group.id}
       else
-        {socket, deployment_group_id}
+        {socket, current_deployment_group_id}
       end
 
     {:noreply,
@@ -387,12 +391,14 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
      |> navigate_if_no_deployment_groups()}
   end
 
-  def handle_info({event, _agent}, socket) when event in [:agent_joined, :agent_left] do
+  def handle_info({event, agent}, socket)
+      when event in [:agent_joined, :agent_left] and agent.hub_id == socket.assigns.hub.id do
     {:noreply, assign_agents(socket)}
   end
 
-  def handle_info({event, _app_deployment}, socket)
-      when event in [:app_deployment_started, :app_deployment_stopped] do
+  def handle_info({event, app_deployment}, socket)
+      when event in [:app_deployment_started, :app_deployment_stopped] and
+             app_deployment.hub_id == socket.assigns.hub.id do
     {:noreply, socket |> assign_app_deployments() |> assign_app_deployment()}
   end
 
