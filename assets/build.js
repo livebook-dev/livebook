@@ -11,7 +11,7 @@ const deploy = args.includes("--deploy");
 
 const outDir = path.resolve(
   __dirname,
-  deploy ? "../static/assets" : "../tmp/static_dev/assets"
+  deploy ? "../static/assets" : "../tmp/static_dev/assets",
 );
 
 async function main() {

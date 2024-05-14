@@ -1,11 +1,11 @@
-defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
+defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, messages: [])}
+    {:ok, assign(socket, messages: [], hide_title: false)}
   end
 
   @impl true
@@ -40,8 +40,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col gap-3">
-      <h3 class="text-2xl font-semibold text-gray-800">
+    <div class="flex flex-col gap-3">
+      <h3 :if={not @hide_title} class="text-2xl font-semibold text-gray-800">
         App server setup
       </h3>
 

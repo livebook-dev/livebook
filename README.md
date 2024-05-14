@@ -266,6 +266,10 @@ The following environment variables can be used to configure Livebook on boot:
   * `LIVEBOOK_PASSWORD` - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
 
+  * `LIVEBOOK_PROXY_HEADERS` - a comma-separated list of headers that are set by
+    proxies. For example, `x-forwarded-for,x-forwarded-proto`. Configuring those
+    may be required when running Livebook behind reverse proxies.
+
   * `LIVEBOOK_PORT` - sets the port Livebook runs on. If you want to run multiple
     instances on the same domain with the same credentials but on different ports,
     you also need to set `LIVEBOOK_SECRET_KEY_BASE`. Defaults to 8080. If set to 0,
@@ -329,8 +333,9 @@ mix phx.server
 mix test
 ```
 
-Once you submit a pull request, [Uffizzi](https://www.uffizzi.com) will setup
-a preview environment where anyone can try out your changes and give feedback.
+### Acknowledgements
+
+Thank you to [Uffizzi](https://www.uffizzi.com) for providing ephemeral environments to preview pull requests.
 
 ### Desktop app builds
 

@@ -230,7 +230,7 @@ defmodule Livebook.Session.Data do
           | {:set_deployed_app_slug, client_id(), String.t()}
           | {:app_deactivate, client_id()}
           | {:app_shutdown, client_id()}
-          | {:set_notebook_deployment_group, String.t()}
+          | {:set_notebook_deployment_group, client_id(), String.t()}
 
   @type action ::
           :connect_runtime

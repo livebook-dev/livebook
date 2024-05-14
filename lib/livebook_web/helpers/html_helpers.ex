@@ -63,9 +63,13 @@ defmodule LivebookWeb.HTMLHelpers do
   @doc """
   Formats the given UTC datetime relatively to present.
   """
-  @spec format_datetime_relatively(DateTime.t()) :: String.t()
-  def format_datetime_relatively(date) do
+  @spec format_datetime_relatively(DateTime.t() | NaiveDateTime.t()) :: String.t()
+  def format_datetime_relatively(%DateTime{} = date) do
     date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+  end
+
+  def format_datetime_relatively(%NaiveDateTime{} = date) do
+    Livebook.Utils.Time.time_ago_in_words(date)
   end
 
   @doc """

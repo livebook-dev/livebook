@@ -84,7 +84,7 @@ defmodule LivebookWeb.Confirm do
     <.modal id={@id} width={:medium} show={true}>
       <form
         id={"#{@id}-confirm-content"}
-        class="p-6 flex flex-col"
+        class="flex flex-col"
         phx-submit={JS.push("confirm") |> hide_modal(@id)}
         data-el-confirm-form
       >

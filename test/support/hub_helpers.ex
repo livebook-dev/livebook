@@ -254,6 +254,33 @@ defmodule Livebook.HubHelpers do
     :erpc.call(node, TeamsRPC, fun, args)
   end
 
+  def simulate_agent_join(hub, deployment_group) do
+    Livebook.Teams.Broadcasts.subscribe([:agents])
+
+    # Simulates the agent join event
+    pid = Livebook.Hubs.TeamClient.get_pid(hub.id)
+
+    agent =
+      build(:agent,
+        hub_id: hub.id,
+        org_id: to_string(hub.org_id),
+        deployment_group_id: to_string(deployment_group.id)
+      )
+
+    livebook_proto_agent =
+      %LivebookProto.Agent{
+        id: agent.id,
+        name: agent.name,
+        org_id: agent.org_id,
+        deployment_group_id: agent.deployment_group_id
+      }
+
+    livebook_proto_agent_joined = %LivebookProto.AgentJoined{agent: livebook_proto_agent}
+    send(pid, {:event, :agent_joined, livebook_proto_agent_joined})
+
+    assert_receive {:agent_joined, ^agent}
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}
