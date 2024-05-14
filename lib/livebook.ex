@@ -199,6 +199,10 @@ defmodule Livebook do
       config :livebook, :cacertfile, cacertfile
     end
 
+    if rewrite_on = Livebook.Config.rewrite_on!("LIVEBOOK_PROXY_HEADERS") do
+      config :livebook, :rewrite_on, rewrite_on
+    end
+
     config :livebook,
            :cookie,
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
