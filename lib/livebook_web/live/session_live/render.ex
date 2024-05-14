@@ -813,7 +813,7 @@ defmodule LivebookWeb.SessionLive.Render do
           <.link
             class="text-blue-600 font-medium"
             patch={~p"/sessions/#{@session.id}"}
-            phx-click={show_menu("notebook-hub-menu")}
+            phx-click={show_menu(%JS{}, "notebook-hub-menu", animate: true)}
           >
             <span>Change workspace</span>
             <.remix_icon icon="arrow-right-line" />
