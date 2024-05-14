@@ -240,7 +240,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp cell_metadata(%Cell.Code{} = cell) do
-    keys = [:disable_formatting, :reevaluate_automatically, :continue_on_error]
+    keys = [:reevaluate_automatically, :continue_on_error]
     put_unless_default(%{}, Map.take(cell, keys), Map.take(Cell.Code.new(), keys))
   end
 

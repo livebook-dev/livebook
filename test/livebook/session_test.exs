@@ -379,7 +379,7 @@ defmodule Livebook.SessionTest do
       Session.subscribe(session.id)
 
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
-      attrs = %{disable_formatting: true}
+      attrs = %{reevaluate_automatically: true}
 
       Session.set_cell_attributes(session.pid, cell_id, attrs)
       assert_receive {:operation, {:set_cell_attributes, _client_id, ^cell_id, ^attrs}}
