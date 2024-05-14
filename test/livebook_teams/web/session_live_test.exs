@@ -545,7 +545,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert render(view) =~
-               "App deployment for #{slug} with title Untitled notebook created successfully"
+               "App deployment for #{slug} with name Untitled notebook created successfully"
     end
 
     test "deployment flow with existing deployment groups in the hub",
@@ -608,7 +608,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> render_click()
 
       assert render(view) =~
-               "App deployment for #{slug} with title Untitled notebook created successfully"
+               "App deployment for #{slug} with name Untitled notebook created successfully"
     end
 
     test "shows an error when the deployment size is higher than the maximum size of 20MB",
