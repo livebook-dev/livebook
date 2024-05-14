@@ -116,21 +116,25 @@ defmodule LivebookWeb.SessionLive.Render do
       />
     </.modal>
 
+    <.modal :if={@live_action == :app_teams} id="app-teams-modal" show width={:big} patch={@self_path}>
+      <%= live_render(@socket, LivebookWeb.SessionLive.AppTeamsLive,
+        id: "app-teams",
+        session: %{
+          "session_pid" => @session.pid
+        }
+      ) %>
+    </.modal>
+
     <.modal
-      :if={@live_action == :app_teams}
-      id="app-teams-modal"
+      :if={@live_action == :app_teams_hub_info}
+      id="app-teams-hub-info-modal"
       show
-      width={:medium}
+      width={:big}
       patch={@self_path}
     >
-      <.live_component
-        module={LivebookWeb.SessionLive.AppTeamsComponent}
-        id="app-teams"
+      <.app_teams_hub_info_content
+        any_team_hub?={Enum.any?(@saved_hubs, &(Livebook.Hubs.Provider.type(&1.provider) == "team"))}
         session={@session}
-        hub={@data_view.hub}
-        file={@data_view.file}
-        app_settings={@data_view.app_settings}
-        deployment_group_id={@data_view.deployment_group_id}
       />
     </.modal>
 
@@ -430,6 +434,7 @@ defmodule LivebookWeb.SessionLive.Render do
           app={@app}
           deployed_app_slug={@data_view.deployed_app_slug}
           any_session_secrets?={@data_view.any_session_secrets?}
+          hub={@data_view.hub}
         />
       </div>
       <div data-el-runtime-info>
@@ -794,9 +799,42 @@ defmodule LivebookWeb.SessionLive.Render do
     """
   end
 
+  defp app_teams_hub_info_content(assigns) do
+    ~H"""
+    <div class="flex flex-col space-y-4">
+      <h3 class="text-2xl font-semibold text-gray-800">
+        App deployment with Livebook Teams
+      </h3>
+
+      <%= if @any_team_hub? do %>
+        <.message_box kind={:info}>
+          In order to deploy your app using Livebook Teams, you need to select a Livebook Teams
+          workspace. To change the workspace, use the dropdown right below the notebook title.
+          <.link
+            class="text-blue-600 font-medium"
+            patch={~p"/sessions/#{@session.id}"}
+            phx-click={show_menu(%JS{}, "notebook-hub-menu", animate: true)}
+          >
+            <span>Change workspace</span>
+            <.remix_icon icon="arrow-right-line" />
+          </.link>
+        </.message_box>
+      <% else %>
+        <.message_box kind={:info}>
+          In order to deploy your app using Livebook Teams, you need to create an organization.
+          <.link class="text-blue-600 font-medium" patch={~p"/hub"}>
+            <span>Add organization</span>
+            <.remix_icon icon="arrow-right-line" />
+          </.link>
+        </.message_box>
+      <% end %>
+    </div>
+    """
+  end
+
   def add_file_entry_content(assigns) do
     ~H"""
-    <div class="p-6 max-w-4xl flex flex-col space-y-4">
+    <div class="flex flex-col space-y-4">
       <h3 class="text-2xl font-semibold text-gray-800">
         Add file
       </h3>

@@ -109,6 +109,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/settings/app", SessionLive, :app_settings
       live "/sessions/:id/app-docker", SessionLive, :app_docker
       live "/sessions/:id/app-teams", SessionLive, :app_teams
+      live "/sessions/:id/app-teams-hub-info", SessionLive, :app_teams_hub_info
       live "/sessions/:id/add-file/:tab", SessionLive, :add_file_entry
       live "/sessions/:id/rename-file/:name", SessionLive, :rename_file_entry
       live "/sessions/:id/bin", SessionLive, :bin

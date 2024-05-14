@@ -189,7 +189,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "shows the agent count", %{conn: conn, hub: hub} do
-    %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
+    %{id: id} = deployment_group = insert_deployment_group(mode: :online, hub_id: hub.id)
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
@@ -200,23 +200,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
            |> Floki.text()
            |> String.trim() == "0"
 
-    org_id = to_string(hub.org_id)
-
-    # Simulates the agent join event
-    pid = Livebook.Hubs.TeamClient.get_pid(hub.id)
-    agent = build(:agent, hub_id: hub.id, org_id: org_id, deployment_group_id: to_string(id))
-
-    livebook_proto_agent =
-      %LivebookProto.Agent{
-        id: agent.id,
-        name: agent.name,
-        org_id: agent.org_id,
-        deployment_group_id: agent.deployment_group_id
-      }
-
-    livebook_proto_agent_joined = %LivebookProto.AgentJoined{agent: livebook_proto_agent}
-    send(pid, {:event, :agent_joined, livebook_proto_agent_joined})
-    assert_receive {:agent_joined, ^agent}
+    simulate_agent_join(hub, deployment_group)
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"app servers\"]")

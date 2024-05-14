@@ -52,7 +52,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
         </div>
         <!-- Overview -->
         <div :if={@deployment_group.mode == :online} class="flex flex-col lg:flex-row justify-center">
-          <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="App servers">
+          <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="App servers">
             <span class="text-lg font-normal" aria-label="app servers">
               <%= @agents_count %>
             </span>
@@ -63,7 +63,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               + Deploy
             </.link>
           </.labeled_text>
-          <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Apps deployed">
+          <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Apps deployed">
             <span class="text-lg font-normal" aria-label="apps deployed">
               <%= @app_deployments_count %>
             </span>
@@ -74,7 +74,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
               + Add new
             </.link>
           </.labeled_text>
-          <.labeled_text class="grow mt-6 lg:border-l lg:pl-4" label="Authentication">
+          <.labeled_text class="grow mt-6 lg:border-l border-gray-200 lg:pl-4" label="Authentication">
             <span class="text-lg font-normal">
               <%= Livebook.ZTA.provider_name(@deployment_group.zta_provider) %>
             </span>
@@ -148,10 +148,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           patch={~p"/hub/#{@hub.id}"}
         >
           <.live_component
-            module={LivebookWeb.Hub.Teams.DeploymentGroupInstanceComponent}
+            module={LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent}
             id="deployment-group-agent-instance"
             hub={@hub}
             deployment_group={@deployment_group}
+            return_to={nil}
           />
         </.modal>
 
@@ -162,7 +163,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           width={:medium}
           patch={~p"/hub/#{@hub.id}"}
         >
-          <div class="p-6 max-w-4xl flex flex-col space-y-3">
+          <div class="flex flex-col space-y-3">
             <h3 class="text-2xl font-semibold text-gray-800">
               New app deployment
             </h3>

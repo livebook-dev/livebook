@@ -378,7 +378,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
     end
   end
 
-  describe "deployment group for app deployment" do
+  describe "offline deployment with docker" do
     @tag :tmp_dir
     test "show deployment group on app deployment",
          %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
@@ -475,61 +475,143 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       assert render(view) =~ "None configured"
       refute has_element?(view, "#select_deployment_group_form")
     end
+  end
 
-    @tag :tmp_dir
-    test "deploys the app to livebook teams api",
-         %{conn: conn, user: user, node: node, session: session, tmp_dir: tmp_dir} do
-      team = create_team_hub(user, node)
-      Session.set_notebook_hub(session.pid, team.id)
+  describe "online deployment" do
+    test "shows a message when non-teams hub is selected",
+         %{conn: conn, user: user, node: node, session: session} do
+      create_team_hub(user, node)
 
-      notebook_path = Path.join(tmp_dir, "notebook.livemd")
-      file = FileSystem.File.local(notebook_path)
-      Session.set_file(session.pid, file)
-
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-      Session.set_app_settings(session.pid, app_settings)
-
-      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
-      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
-
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
-
-      assert render(view) =~ "Deploy to Livebook Agent"
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element("#deploy-livebook-agent-button")
+      |> element("a", "Deploy with Livebook Teams")
       |> render_click()
 
       assert render(view) =~
-               "App deployment for #{slug} with title Untitled notebook created successfully"
+               "In order to deploy your app using Livebook Teams, you need to select"
     end
 
-    test "deploys the app to livebook teams api without saving the file",
+    test "deployment flow with no deployment groups in the hub",
          %{conn: conn, user: user, node: node, session: session} do
       team = create_team_hub(user, node)
       Session.set_notebook_hub(session.pid, team.id)
 
-      slug = Livebook.Utils.random_short_id()
-      app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
-      Session.set_app_settings(session.pid, app_settings)
-
-      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
-      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
-
-      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
-
-      assert render(view) =~ "Deploy to Livebook Agent"
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
       view
-      |> element("#deploy-livebook-agent-button")
+      |> element("a", "Deploy with Livebook Teams")
+      |> render_click()
+
+      # Step: configuring valid app settings
+
+      assert render(view) =~ "You must configure your app before deploying it."
+
+      slug = Livebook.Utils.random_short_id()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      # Step: deployment group creation
+
+      assert render(view) =~ "Step: add deployment group"
+      assert render(view) =~ "You must create a deployment group before deploying the app."
+
+      view
+      |> element(~s/#add-deployment-group-form/)
+      |> render_submit(%{"deployment_group" => %{"name" => "test"}})
+
+      # Step: agent instance setup
+
+      assert render(view) =~ "Step: add app server"
+      assert render(view) =~ "You must set up an app server for the app to run on."
+
+      assert render(view) =~ "Awaiting an app server to be set up."
+
+      [deployment_group] = Livebook.Hubs.TeamClient.get_deployment_groups(team.id)
+      simulate_agent_join(team, deployment_group)
+
+      assert render(view) =~ "An app server is running"
+
+      # Step: deploy
+
+      view
+      |> element("button", "Deploy")
       |> render_click()
 
       assert render(view) =~
                "App deployment for #{slug} with title Untitled notebook created successfully"
     end
 
-    test "returns error when the deployment size is higher than the maximum size of 20MB",
+    test "deployment flow with existing deployment groups in the hub",
+         %{conn: conn, user: user, node: node, session: session} do
+      team = create_team_hub(user, node)
+      Session.set_notebook_hub(session.pid, team.id)
+
+      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      view
+      |> element("a", "Deploy with Livebook Teams")
+      |> render_click()
+
+      # Step: configuring valid app settings
+
+      assert render(view) =~ "You must configure your app before deploying it."
+
+      slug = Livebook.Utils.random_short_id()
+
+      view
+      |> element(~s/#app-settings-modal form/)
+      |> render_submit(%{"app_settings" => %{"slug" => slug}})
+
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
+
+      # Step: selecting deployment group
+
+      view
+      |> element(~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/)
+      |> render_click()
+
+      %{id: id} = deployment_group
+      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
+
+      assert render(view) =~ "The selected deployment group has no app servers."
+
+      view
+      |> element(~s/button/, "Add app server")
+      |> render_click()
+
+      # Step: agent instance setup
+
+      assert render(view) =~ "Step: add app server"
+
+      assert render(view) =~ "Awaiting an app server to be set up."
+
+      [deployment_group] = Livebook.Hubs.TeamClient.get_deployment_groups(team.id)
+      simulate_agent_join(team, deployment_group)
+
+      assert render(view) =~ "An app server is running"
+
+      # Step: deploy
+
+      view
+      |> element("button", "Deploy")
+      |> render_click()
+
+      assert render(view) =~
+               "App deployment for #{slug} with title Untitled notebook created successfully"
+    end
+
+    test "shows an error when the deployment size is higher than the maximum size of 20MB",
          %{conn: conn, user: user, node: node, session: session} do
       team = create_team_hub(user, node)
       Session.set_notebook_hub(session.pid, team.id)
@@ -548,10 +630,12 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/app-teams")
 
-      assert render(view) =~ "Deploy to Livebook Agent"
+      # From this point forward we are in a child LV
+      view = find_live_child(view, "app-teams")
+      assert render(view) =~ "App deployment with Livebook Teams"
 
       view
-      |> element("#deploy-livebook-agent-button")
+      |> element("button", "Deploy")
       |> render_click()
 
       assert render(view) =~

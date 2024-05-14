@@ -333,8 +333,9 @@ mix phx.server
 mix test
 ```
 
-Once you submit a pull request, [Uffizzi](https://www.uffizzi.com) will setup
-a preview environment where anyone can try out your changes and give feedback.
+### Acknowledgements
+
+Thank you to [Uffizzi](https://www.uffizzi.com) for providing ephemeral environments to preview pull requests.
 
 ### Desktop app builds
 

@@ -328,7 +328,7 @@ defmodule LivebookWeb.LayoutComponents do
           "phx:live_reload:attached",
           ({ detail: reloader }) => {
             // Enable server log streaming to client. Disable with reloader.disableServerLogs()
-            reloader.enableServerLogs();
+            // reloader.enableServerLogs();
 
             // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
             //
