@@ -336,6 +336,13 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns a boolean if epmdless mode is configured.
+  """
+  def epmdless? do
+    Application.fetch_env!(:livebook, :epmdless)
+  end
+
+  @doc """
   Returns the force ssl host if any.
   """
   def force_ssl_host do
