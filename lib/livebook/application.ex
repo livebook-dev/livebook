@@ -7,7 +7,7 @@ defmodule Livebook.Application do
     ensure_directories!()
     set_local_file_system!()
 
-    if Application.fetch_env!(:livebook, :epmdless) do
+    if Livebook.Config.epmdless?() do
       validate_epmdless!()
       ensure_distribution!()
     else

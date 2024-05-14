@@ -73,7 +73,7 @@ teams_exclude =
 
 # ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0" LIVEBOOK_EPMDLESS=true mix test
 epmd_exclude =
-  if Application.fetch_env!(:livebook, :epmdless) do
+  if Livebook.Config.epmdless?() do
     [:with_epmd, :teams_integration]
   else
     [:without_epmd]
