@@ -63,7 +63,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                   value={:online}
                   disabled={@force_mode != nil}
                 >
-                  Deploy notebooks to your infrastructure with the click of a button.
+                  Deploy Livebook apps to your infrastructure with the click of a button.
                   This mode requires running app servers connected to Livebook Teams.
                 </.radio_card>
 
@@ -73,7 +73,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
                   value={:offline}
                   disabled={@force_mode}
                 >
-                  Manually deploy notebooks to your infrastructure via Dockerfiles.
+                  Manually deploy Livebook apps to your infrastructure via Dockerfiles.
                   Connection to Livebook Teams is not required.
                 </.radio_card>
               </div>
