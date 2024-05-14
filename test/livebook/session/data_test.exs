@@ -3672,14 +3672,14 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, @cid, "s1", 0, :code, "c1", %{}}
         ])
 
-      attrs = %{disable_formatting: true, reevaluate_automatically: true}
+      attrs = %{reevaluate_automatically: true}
       operation = {:set_cell_attributes, @cid, "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
-                    %{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}
+                    %{cells: [%{reevaluate_automatically: true}]}
                   ]
                 }
               }, _} = Data.apply_operation(data, operation)

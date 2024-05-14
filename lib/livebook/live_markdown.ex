@@ -65,7 +65,7 @@ defmodule Livebook.LiveMarkdown do
   #     * Elixir
   #     * PostgreSQL
   #
-  #     <!-- livebook:{"disable_formatting":true} -->
+  #     <!-- livebook:{"reevaluate_automatically":true} -->
   #
   #     ```elixir
   #     Enum.to_list(1..10)

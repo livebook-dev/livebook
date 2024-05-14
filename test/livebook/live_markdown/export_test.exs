@@ -29,8 +29,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                 },
                 %{
                   Notebook.Cell.new(:code)
-                  | disable_formatting: true,
-                    reevaluate_automatically: true,
+                  | reevaluate_automatically: true,
                     continue_on_error: true,
                     source: """
                     Enum.to_list(1..10)\
@@ -111,7 +110,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"continue_on_error":true,"disable_formatting":true,"reevaluate_automatically":true} -->
+    <!-- livebook:{"continue_on_error":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -335,80 +334,6 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ```elixir
     [1, 2, 3]
-    ```
-    """
-
-    {document, []} = Export.notebook_to_livemd(notebook)
-
-    assert expected_document == document
-  end
-
-  test "formats code in code cells" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    [1,2,3] # Comment
-                    """
-                }
-              ]
-          }
-        ]
-    }
-
-    expected_document = """
-    # My Notebook
-
-    ## Section 1
-
-    ```elixir
-    # Comment
-    [1, 2, 3]
-    ```
-    """
-
-    {document, []} = Export.notebook_to_livemd(notebook)
-
-    assert expected_document == document
-  end
-
-  test "does not format code in code cells which have formatting disabled" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | disable_formatting: true,
-                    source: """
-                    [1,2,3] # Comment\
-                    """
-                }
-              ]
-          }
-        ]
-    }
-
-    expected_document = """
-    # My Notebook
-
-    ## Section 1
-
-    <!-- livebook:{"disable_formatting":true} -->
-
-    ```elixir
-    [1,2,3] # Comment
     ```
     """
 
@@ -1350,7 +1275,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   %{
                     Notebook.Cell.new(:code)
                     | source: """
-                      IO.puts("hey")
+                      IO.puts("hey")\
                       """
                   }
                 ]
@@ -1388,7 +1313,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   %{
                     Notebook.Cell.new(:code)
                     | source: """
-                      IO.puts("hey")
+                      IO.puts("hey")\
                       """
                   }
                 ]

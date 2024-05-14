@@ -25,8 +25,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                 },
                 %{
                   Notebook.Cell.new(:code)
-                  | disable_formatting: true,
-                    source: """
+                  | source: """
                     Enum.to_list(1..10)\
                     """
                 },
