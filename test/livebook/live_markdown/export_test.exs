@@ -343,80 +343,6 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "formats code in code cells" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | source: """
-                    [1,2,3] # Comment
-                    """
-                }
-              ]
-          }
-        ]
-    }
-
-    expected_document = """
-    # My Notebook
-
-    ## Section 1
-
-    ```elixir
-    # Comment
-    [1, 2, 3]
-    ```
-    """
-
-    {document, []} = Export.notebook_to_livemd(notebook)
-
-    assert expected_document == document
-  end
-
-  test "does not format code in code cells which have formatting disabled" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:code)
-                  | disable_formatting: true,
-                    source: """
-                    [1,2,3] # Comment\
-                    """
-                }
-              ]
-          }
-        ]
-    }
-
-    expected_document = """
-    # My Notebook
-
-    ## Section 1
-
-    <!-- livebook:{"disable_formatting":true} -->
-
-    ```elixir
-    [1,2,3] # Comment
-    ```
-    """
-
-    {document, []} = Export.notebook_to_livemd(notebook)
-
-    assert expected_document == document
-  end
-
   test "handles backticks in code cell" do
     notebook = %{
       Notebook.new()
@@ -1350,7 +1276,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   %{
                     Notebook.Cell.new(:code)
                     | source: """
-                      IO.puts("hey")
+                      IO.puts("hey")\
                       """
                   }
                 ]
@@ -1388,7 +1314,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   %{
                     Notebook.Cell.new(:code)
                     | source: """
-                      IO.puts("hey")
+                      IO.puts("hey")\
                       """
                   }
                 ]

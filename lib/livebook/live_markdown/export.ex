@@ -210,7 +210,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_cell(%Cell.Code{} = cell, ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(cell.source)
-    code = get_code_cell_code(cell)
+    code = cell.source
     outputs = if ctx.include_outputs?, do: render_outputs(cell, ctx), else: []
 
     metadata = cell_metadata(cell)
@@ -299,11 +299,6 @@ defmodule Livebook.LiveMarkdown.Export do
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
   defp encode_js_data(data), do: data |> ensure_order() |> Jason.encode()
 
-  defp get_code_cell_code(%{source: source, language: :elixir, disable_formatting: false}),
-    do: format_elixir_code(source)
-
-  defp get_code_cell_code(%{source: source}), do: source
-
   defp render_metadata(metadata) do
     metadata_json = metadata |> ensure_order() |> Jason.encode!()
     ["<!-- livebook:", metadata_json, " -->"]
@@ -347,14 +342,6 @@ defmodule Livebook.LiveMarkdown.Export do
       ast_node ->
         [ast_node]
     end)
-  end
-
-  defp format_elixir_code(code) do
-    try do
-      Code.format_string!(code)
-    rescue
-      _ -> code
-    end
   end
 
   defp put_unless_default(map, entries, defaults) do
