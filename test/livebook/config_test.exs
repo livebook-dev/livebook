@@ -4,6 +4,14 @@ defmodule Livebook.ConfigTest do
   doctest Livebook.Config
   alias Livebook.Config
 
+  describe "rewrite_on!/1" do
+    test "parses headers" do
+      with_env([TEST_REWRITE_ON: "x-forwarded-for, x-forwarded-proto"], fn ->
+        assert Config.rewrite_on!("TEST_REWRITE_ON") == [:x_forwarded_for, :x_forwarded_proto]
+      end)
+    end
+  end
+
   describe "node!/1" do
     test "parses longnames" do
       with_env([TEST_LIVEBOOK_NODE: "test@::1", TEST_LIVEBOOK_DISTRIBUTION: "name"], fn ->

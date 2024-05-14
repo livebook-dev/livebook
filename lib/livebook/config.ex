@@ -350,6 +350,13 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns rewrite_on headers.
+  """
+  def rewrite_on do
+    Application.fetch_env!(:livebook, :rewrite_on)
+  end
+
+  @doc """
   Returns the application cacertfile if any.
   """
   @spec cacertfile() :: String.t() | nil
@@ -542,6 +549,25 @@ defmodule Livebook.Config do
         abort!(~s(#{distribution_env} must be one of "name" or "sname", got "#{other}"))
     end
   end
+
+  @doc """
+  Parses info for `Plug.RewriteOn`.
+  """
+  def rewrite_on!(env) do
+    if headers = System.get_env(env) do
+      headers
+      |> String.split(",")
+      |> Enum.map(&(&1 |> String.trim() |> rewrite_on!(env)))
+    else
+      []
+    end
+  end
+
+  defp rewrite_on!("x-forwarded-for", _env), do: :x_forwarded_for
+  defp rewrite_on!("x-forwarded-host", _env), do: :x_forwarded_host
+  defp rewrite_on!("x-forwarded-port", _env), do: :x_forwarded_port
+  defp rewrite_on!("x-forwarded-proto", _env), do: :x_forwarded_proto
+  defp rewrite_on!(header, env), do: abort!("unknown header #{inspect(header)} given to #{env}")
 
   @doc """
   Parses and validates the password from env.
