@@ -24,7 +24,7 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
     assigns = assign_new(assigns, :on_save, fn -> "save" end)
 
     ~H"""
-    <div class="p-6 flex flex-col space-y-5">
+    <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= if @operation == :new, do: "Add environment variable", else: "Edit environment variable" %>
       </h3>

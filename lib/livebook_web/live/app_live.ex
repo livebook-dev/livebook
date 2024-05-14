@@ -50,7 +50,7 @@ defmodule LivebookWeb.AppLive do
     </div>
 
     <.modal id="sessions-modal" show width={:big} patch={~p"/apps"}>
-      <div class="p-6 max-w-4xl flex flex-col space-y-3">
+      <div class="flex flex-col space-y-3">
         <h3 class="text-2xl font-semibold text-gray-800">
           <%= @app.notebook_name %>
         </h3>

@@ -181,6 +181,14 @@ defmodule LivebookWeb.SessionLive do
     {socket, %{context: params["context"]}}
   end
 
+  defp handle_params(:add_agent, params, _url, socket) do
+    hub = Livebook.Hubs.fetch_hub!(socket.private.data.notebook.hub_id)
+    deployment_groups = Livebook.Hubs.Provider.deployment_groups(hub)
+    deployment_group_id = params["deployment_group_id"]
+    deployment_group = Enum.find(deployment_groups, &(&1.id == deployment_group_id))
+    {socket, %{deployment_group: deployment_group}}
+  end
+
   defp handle_params(:catch_all, %{"path_parts" => path_parts}, requested_url, socket) do
     path_parts =
       Enum.map(path_parts, fn

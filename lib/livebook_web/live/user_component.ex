@@ -18,7 +18,7 @@ defmodule LivebookWeb.UserComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-5">
+    <div class="flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         User profile
       </h3>

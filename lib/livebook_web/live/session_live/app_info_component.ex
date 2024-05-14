@@ -65,9 +65,16 @@ defmodule LivebookWeb.SessionLive.AppInfoComponent do
           <.button
             color="blue"
             patch={
-              if Livebook.Notebook.AppSettings.valid?(@settings),
-                do: ~p"/sessions/#{@session.id}/app-teams",
-                else: ~p"/sessions/#{@session.id}/settings/app?context=app-teams"
+              cond do
+                Livebook.Hubs.Provider.type(@hub) != "team" ->
+                  ~p"/sessions/#{@session.id}/app-teams-hub-info"
+
+                not Livebook.Notebook.AppSettings.valid?(@settings) ->
+                  ~p"/sessions/#{@session.id}/settings/app?context=app-teams"
+
+                true ->
+                  ~p"/sessions/#{@session.id}/app-teams"
+              end
             }
           >
             <.remix_icon icon="rocket-line" /> Deploy with Livebook Teams
