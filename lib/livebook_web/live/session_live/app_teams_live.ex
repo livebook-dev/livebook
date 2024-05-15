@@ -343,7 +343,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     with {:ok, app_deployment} <- pack_app(socket),
          :ok <- deploy_app(socket, app_deployment) do
       message =
-        "App deployment for #{app_deployment.slug} with name #{app_deployment.title} created successfully."
+        "App deployment created successfully."
 
       {:noreply,
        socket
