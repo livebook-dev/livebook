@@ -216,14 +216,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"secret" => attrs}, socket) do
-    with {:ok, secret} <- Secrets.update_secret(%Secret{}, attrs),
-         :ok <- set_secret(socket, secret) do
+    changeset = Secrets.change_secret(%Secret{}, attrs)
+
+    with {:ok, secret} <- Ecto.Changeset.apply_action(changeset, :insert),
+         :ok <- save_secret(socket, secret, changeset) do
+      Session.set_secret(socket.assigns.session.pid, secret)
+
       {:noreply,
        socket
        |> push_patch(to: socket.assigns.return_to)
        |> push_secret_selected(secret.name)}
     else
-      {:error, changeset} ->
+      {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
 
       {:transport_error, error} ->
@@ -271,13 +275,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_metadata: %{options: %{"title" => title}}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp set_secret(socket, %Secret{hub_id: nil} = secret) do
-    Session.set_secret(socket.assigns.session.pid, secret)
-  end
-
-  defp set_secret(socket, %Secret{} = secret) do
-    with :ok <- Hubs.create_secret(socket.assigns.hub, secret) do
-      Session.set_secret(socket.assigns.session.pid, secret)
+  defp save_secret(socket, secret, changeset) do
+    if secret.hub_id do
+      with {:error, errors} <- Hubs.create_secret(socket.assigns.hub, secret) do
+        {:error,
+         changeset
+         |> Livebook.Utils.put_changeset_errors(errors)
+         |> Map.replace!(:action, :validate)}
+      end
+    else
+      :ok
     end
   end
 

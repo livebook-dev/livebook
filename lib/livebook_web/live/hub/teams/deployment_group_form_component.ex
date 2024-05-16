@@ -23,7 +23,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
           %{}
         end
 
-      {:ok, assign_form(socket, change_deployment_group(socket, attrs))}
+      {:ok, assign_form(socket, Teams.change_deployment_group(%DeploymentGroup{}, attrs))}
     end
   end
 
@@ -88,6 +88,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
               phx-debounce
             />
 
+            <.hidden_field field={@form[:hub_id]} value={@hub.id} />
+
             <LivebookWeb.AppComponents.deployment_group_form_content hub={@hub} form={@form} />
 
             <div class="flex space-x-2">
@@ -145,10 +147,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
   @impl true
   def handle_event("save", %{"deployment_group" => attrs}, socket) do
-    changeset = change_deployment_group(socket, attrs)
-
-    with {:ok, deployment_group} <- Ecto.Changeset.apply_action(changeset, :update),
-         {:ok, _id} <- Teams.create_deployment_group(socket.assigns.hub, deployment_group) do
+    with {:ok, _deployment_group} <- Teams.create_deployment_group(socket.assigns.hub, attrs) do
       if return_to = socket.assigns.return_to do
         {:noreply,
          socket
@@ -159,7 +158,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
       end
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, Map.replace!(changeset, :action, :validate))}
+        {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->
         {:noreply, assign(socket, error_message: message)}
@@ -171,14 +170,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
 
   def handle_event("validate", %{"deployment_group" => attrs}, socket) do
     changeset =
-      change_deployment_group(socket, attrs)
+      Teams.change_deployment_group(%DeploymentGroup{}, attrs)
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
-  end
-
-  defp change_deployment_group(socket, attrs) do
-    %DeploymentGroup{hub_id: socket.assigns.hub.id}
-    |> Teams.change_deployment_group(attrs)
   end
 end

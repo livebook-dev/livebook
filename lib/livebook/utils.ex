@@ -213,6 +213,19 @@ defmodule Livebook.Utils do
     end)
   end
 
+  @doc """
+  Adds all the given errors to the changeset for the corresponding
+  fields.
+  """
+  @spec put_changeset_errors(Ecto.Changeset.t(), list({atom(), list(String.t())})) ::
+          Ecto.Changeset.t()
+  def put_changeset_errors(changeset, errors) do
+    for {field, errors} <- errors,
+        error <- errors,
+        reduce: changeset,
+        do: (changeset -> Ecto.Changeset.add_error(changeset, field, error))
+  end
+
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 

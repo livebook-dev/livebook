@@ -7,25 +7,23 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, changeset: nil, error_message: nil)}
+    {:ok, assign(socket, error_message: nil)}
   end
 
   @impl true
   def update(assigns, socket) do
-    changeset =
-      socket.assigns.changeset ||
-        Secrets.change_secret(%Secret{}, %{
-          name: assigns.secret_name,
-          value: assigns.secret_value
-        })
-
     {:ok,
      socket
      |> assign(assigns)
+     |> assign_new(:changeset, fn ->
+       Secrets.change_secret(%Secret{}, %{
+         name: assigns.secret_name,
+         value: assigns.secret_value
+       })
+     end)
      |> assign(
        title: title(socket),
        button: button_attrs(socket),
-       changeset: changeset,
        deployment_group_id: assigns[:deployment_group_id]
      )}
   end
@@ -91,8 +89,10 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
 
   @impl true
   def handle_event("save", %{"secret" => attrs}, socket) do
-    with {:ok, secret} <- Secrets.update_secret(%Secret{}, attrs),
-         :ok <- set_secret(socket, secret) do
+    changeset = Secrets.change_secret(%Secret{}, attrs)
+
+    with {:ok, secret} <- Ecto.Changeset.apply_action(changeset, :insert),
+         :ok <- save_secret(socket, secret, changeset) do
       message =
         if socket.assigns.secret_name,
           do: "Secret #{secret.name} updated successfully",
@@ -103,8 +103,8 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
        |> put_flash(:success, message)
        |> push_patch(to: socket.assigns.return_to)}
     else
-      {:error, changeset} ->
-        {:noreply, assign(socket, changeset: Map.replace!(changeset, :action, :validate))}
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, changeset: changeset)}
 
       {:transport_error, error} ->
         {:noreply, assign(socket, error_message: error)}
@@ -126,12 +126,20 @@ defmodule LivebookWeb.Hub.SecretFormComponent do
   defp button_attrs(%{assigns: %{secret_name: nil}}), do: %{icon: "add-line", label: "Add"}
   defp button_attrs(_), do: %{icon: "save-line", label: "Save"}
 
-  defp set_secret(%{assigns: %{secret_name: nil}} = socket, %Secret{} = secret) do
-    Hubs.create_secret(socket.assigns.hub, secret)
-  end
+  defp save_secret(socket, secret, changeset) do
+    result =
+      if socket.assigns.secret_name do
+        Hubs.update_secret(socket.assigns.hub, secret)
+      else
+        Hubs.create_secret(socket.assigns.hub, secret)
+      end
 
-  defp set_secret(socket, %Secret{} = secret) do
-    Hubs.update_secret(socket.assigns.hub, secret)
+    with {:error, errors} <- result do
+      {:error,
+       changeset
+       |> Livebook.Utils.put_changeset_errors(errors)
+       |> Map.replace!(:action, :validate)}
+    end
   end
 
   defp secret_name_input_class(nil), do: "uppercase"
