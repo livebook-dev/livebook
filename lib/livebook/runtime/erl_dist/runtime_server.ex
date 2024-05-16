@@ -753,7 +753,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_call(:fetch_kino_proxy, _from, state) do
-    if pid = GenServer.whereis({Kino.Proxy, node()}) do
+    if pid = GenServer.whereis(Kino.Proxy) do
       {:reply, {:ok, pid}, state}
     else
       {:reply, {:error, :not_found}, state}

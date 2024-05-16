@@ -129,13 +129,10 @@ defmodule Livebook.MixProject do
   end
 
   defp kino_proxy_opts do
-    default_kino_proxy_path = Path.expand("../kino_proxy")
-
-    cond do
-      System.get_env("KINO_FORCE_HEX") in ["1", "true"] -> [github: "livebook-dev/kino_proxy"]
-      File.exists?(default_kino_proxy_path) -> [path: default_kino_proxy_path]
-      path = System.get_env("KINO_PROXY_PATH") -> [path: path]
-      :else -> [github: "livebook-dev/kino_proxy"]
+    if path = System.get_env("KINO_PROXY_PATH") do
+      [path: path]
+    else
+      [github: "livebook-dev/kino_proxy"]
     end
   end
 

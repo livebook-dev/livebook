@@ -69,6 +69,7 @@ defmodule LivebookWeb.Endpoint do
 
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+  plug LivebookWeb.ProxyPlug
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -84,7 +85,6 @@ defmodule LivebookWeb.Endpoint do
   plug LivebookWeb.ConfiguredPlug
 
   plug LivebookWeb.Router
-  plug LivebookWeb.ProxyPlug
 
   @plug_session Plug.Session.init(@session_options ++ [same_site: "Lax"])
   @plug_session_iframe Plug.Session.init(@session_options ++ [same_site: "None", secure: true])

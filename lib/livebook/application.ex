@@ -263,14 +263,10 @@ defmodule Livebook.Application do
     :"livebook_#{Livebook.Utils.random_short_id()}"
   end
 
-  if Mix.env() == :test do
-    defp display_startup_info(), do: :ok
-  else
-    defp display_startup_info() do
-      if Process.whereis(LivebookWeb.Endpoint) &&
-           Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
-        IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
-      end
+  defp display_startup_info() do
+    if Process.whereis(LivebookWeb.Endpoint) &&
+         Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
+      IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
 

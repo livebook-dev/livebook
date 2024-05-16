@@ -1,69 +1,60 @@
 defmodule LivebookWeb.ProxyPlug do
   @behaviour Plug
-
   import Plug.Conn
-  import Phoenix.Controller
 
   alias Livebook.{App, Apps, Session, Sessions}
+  alias LivebookWeb.NotFoundError
 
   @impl true
   def init(opts), do: opts
 
   @impl true
-  def call(%{params: %{"proxied_path" => path}} = conn, _opts) when is_list(path) do
-    with {:ok, session} <- fetch_notebook_session(conn),
-         {:ok, pid} <- Session.fetch_kino_proxy(session.pid) do
-      {conn, _} = Kino.Proxy.run(pid, conn)
-      conn
-    else
-      {:error, reason} -> render_error(conn, reason)
-    end
+  def call(%{path_info: ["sessions", id, "proxy" | path_info]} = conn, _opts) do
+    session = fetch_session!(id)
+    pid = fetch_kino_proxy!(session)
+    conn = prepare_conn(conn, path_info, ["sessions", id, "proxy"])
+    {conn, _} = Kino.Proxy.serve(pid, conn)
+
+    halt(conn)
+  end
+
+  def call(%{path_info: ["apps", slug, "proxy" | path_info]} = conn, _opts) do
+    app = fetch_app!(slug)
+    id = App.get_session_id(app.pid)
+    session = fetch_session!(id)
+    pid = fetch_kino_proxy!(session)
+    conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
+    {conn, _} = Kino.Proxy.serve(pid, conn)
+
+    halt(conn)
   end
 
   def call(conn, _opts) do
     conn
   end
 
-  defp fetch_notebook_session(%{params: %{"slug" => app_slug}}) do
-    case Apps.fetch_app(app_slug) do
-      {:ok, app} -> app.pid |> App.get_session_id() |> Sessions.fetch_session()
-      :error -> {:error, :not_found}
+  defp fetch_app!(slug) do
+    case Apps.fetch_app(slug) do
+      {:ok, app} -> app
+      :error -> raise NotFoundError, "could not find an app matching #{inspect(slug)}"
     end
   end
 
-  defp fetch_notebook_session(%{params: %{"id" => session_id}}) do
-    Sessions.fetch_session(session_id)
-  end
-
-  defp render_error(conn, reason) do
-    conn
-    |> put_reason_status(reason)
-    |> put_content_type_view()
-    |> render_content_type(reason)
-    |> halt()
-  end
-
-  defp put_reason_status(conn, :not_found), do: put_status(conn, :not_found)
-  defp put_reason_status(conn, _), do: put_status(conn, :bad_request)
-
-  defp put_content_type_view(conn) do
-    case get_req_header(conn, "content-type") do
-      ["application/json"] -> put_view(conn, LivebookWeb.ErrorJSON)
-      _ -> put_view(conn, LivebookWeb.ErrorHTML)
+  defp fetch_session!(id) do
+    case Sessions.fetch_session(id) do
+      {:ok, session} -> session
+      {:error, _} -> raise NotFoundError, "could not find a session matching #{id}"
     end
   end
 
-  defp render_content_type(conn, :not_found) do
-    case get_req_header(conn, "content-type") do
-      ["application/json"] -> render(conn, "404.json")
-      _ -> render(conn, "404.html", %{status: 404})
+  defp fetch_kino_proxy!(session) do
+    case Session.fetch_kino_proxy(session.pid) do
+      {:ok, pid} -> pid
+      {:error, _} -> raise NotFoundError, "could not find a kino proxy running"
     end
   end
 
-  defp render_content_type(conn, _) do
-    case get_req_header(conn, "content-type") do
-      ["application/json"] -> render(conn, "400.json")
-      _ -> render(conn, "400.html", %{status: 400})
-    end
+  defp prepare_conn(conn, path_info, script_name) do
+    %{conn | path_info: path_info, script_name: conn.script_name ++ script_name}
   end
 end
