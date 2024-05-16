@@ -212,22 +212,17 @@ defmodule Livebook.Teams.Requests do
   end
 
   @doc """
-  Add requests errors to a `changeset` for the given `fields`.
+  Normalizes errors map into errors for the given schema.
   """
-  def add_errors(%Ecto.Changeset{} = changeset, fields, errors_map) do
+  @spec to_error_list(module(), %{String.t() => list(String.t())}) ::
+          list({atom(), list(String.t())})
+  def to_error_list(struct, errors_map) do
+    fields = struct.__schema__(:fields) |> MapSet.new()
+
     for {key, errors} <- errors_map,
         field = String.to_atom(key),
         field in fields,
-        error <- errors,
-        reduce: changeset,
-        do: (acc -> Ecto.Changeset.add_error(acc, field, error))
-  end
-
-  @doc """
-  Add requests errors to a struct.
-  """
-  def add_errors(%struct{} = value, errors_map) do
-    value |> Ecto.Changeset.change() |> add_errors(struct.__schema__(:fields), errors_map)
+        do: {field, errors}
   end
 
   @doc false

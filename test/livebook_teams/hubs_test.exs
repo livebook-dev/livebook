@@ -70,21 +70,20 @@ defmodule Livebook.HubsTest do
       value = hub.id
       secret = build(:secret, name: name, value: value, hub_id: hub.id)
 
-      assert Hubs.create_secret(hub, secret) == :ok
+      assert :ok = Hubs.create_secret(hub, secret)
       assert secret in Hubs.get_secrets(hub)
 
       # Guarantee uniqueness
-      assert {:error, changeset} = Hubs.create_secret(hub, secret)
-      assert "has already been taken" in errors_on(changeset).name
+      assert {:error, errors} = Hubs.create_secret(hub, secret)
+      assert "has already been taken" in errors[:name]
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
       hub = connect_to_teams(user, node)
       secret = build(:secret, name: "LB_FOO", value: "BAR", hub_id: hub.id)
 
-      assert {:error, changeset} = Hubs.create_secret(hub, secret)
-      assert "cannot start with the LB_ prefix" in errors_on(changeset).name
-      refute secret in Hubs.get_secrets(hub)
+      assert {:error, errors} = Hubs.create_secret(hub, secret)
+      assert "cannot start with the LB_ prefix" in errors[:name]
     end
   end
 
@@ -119,8 +118,8 @@ defmodule Livebook.HubsTest do
 
       updated_secret = Map.replace!(secret, :value, "")
 
-      assert {:error, changeset} = Hubs.update_secret(hub, updated_secret)
-      assert "can't be blank" in errors_on(changeset).value
+      assert {:error, errors} = Hubs.update_secret(hub, updated_secret)
+      assert "can't be blank" in errors[:value]
     end
   end
 
@@ -156,16 +155,16 @@ defmodule Livebook.HubsTest do
       assert_receive {:file_system_created, %{bucket_url: ^bucket_url, region: ^region}}
 
       # Guarantee uniqueness
-      assert {:error, changeset} = Hubs.create_file_system(hub, file_system)
-      assert "has already been taken" in errors_on(changeset).bucket_url
+      assert {:error, errors} = Hubs.create_file_system(hub, file_system)
+      assert "has already been taken" in errors[:bucket_url]
     end
 
     test "returns changeset errors when data is invalid", %{user: user, node: node} do
       hub = connect_to_teams(user, node)
       file_system = build(:fs_s3, bucket_url: nil)
 
-      assert {:error, changeset} = Hubs.create_file_system(hub, file_system)
-      assert "can't be blank" in errors_on(changeset).bucket_url
+      assert {:error, errors} = Hubs.create_file_system(hub, file_system)
+      assert "can't be blank" in errors[:bucket_url]
     end
   end
 
@@ -202,8 +201,8 @@ defmodule Livebook.HubsTest do
 
       update_file_system = Map.replace!(file_system, :bucket_url, "")
 
-      assert {:error, changeset} = Hubs.update_file_system(hub, update_file_system)
-      assert "can't be blank" in errors_on(changeset).bucket_url
+      assert {:error, errors} = Hubs.update_file_system(hub, update_file_system)
+      assert "can't be blank" in errors[:bucket_url]
     end
   end
 

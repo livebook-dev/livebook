@@ -30,15 +30,23 @@ defmodule LivebookWeb.FormComponents do
         name={@name}
         id={@id || @name}
         value={Phoenix.HTML.Form.normalize_value("text", @value)}
-        class={[input_classes(), @class]}
+        class={[input_classes(@errors), @class]}
         {@rest}
       />
     </.field_wrapper>
     """
   end
 
-  defp input_classes() do
-    "w-full px-3 py-2 bg-gray-50 text-sm font-normal border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 disabled:opacity-70 disabled:cursor-not-allowed phx-form-error:bg-red-50 phx-form-error:border-red-600 phx-form-error:text-red-600 invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
+  defp input_classes(errors) do
+    [
+      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed",
+      if errors == [] do
+        "bg-gray-50 border-gray-200 text-gray-600"
+      else
+        "bg-red-50 border-red-600 text-red-600"
+      end,
+      "invalid:bg-red-50 invalid:border-red-600 invalid:text-red-600"
+    ]
   end
 
   @doc """
@@ -65,7 +73,12 @@ defmodule LivebookWeb.FormComponents do
       <textarea
         id={@id || @name}
         name={@name}
-        class={[input_classes(), "resize-none tiny-scrollbar", @monospace && "font-mono", @class]}
+        class={[
+          input_classes(@errors),
+          "resize-none tiny-scrollbar",
+          @monospace && "font-mono",
+          @class
+        ]}
         {@rest}
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
     </.field_wrapper>
@@ -115,7 +128,7 @@ defmodule LivebookWeb.FormComponents do
           name={@name}
           id={@id || @name}
           value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={[input_classes(), "pr-8", @class]}
+          class={[input_classes(@errors), "pr-8", @class]}
           {@rest}
         />
         <div class="flex items-center absolute inset-y-0 right-1">
@@ -184,7 +197,7 @@ defmodule LivebookWeb.FormComponents do
             name={@name}
             id={@id || @name}
             value={@value}
-            class={input_classes()}
+            class={input_classes(@errors)}
             spellcheck="false"
             maxlength="7"
             {@rest}
@@ -221,7 +234,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <div class="flex items-center gap-1 sm:gap-3 justify-between">
         <span :if={@label} class="text-gray-700 flex gap-1 items-center">
           <%= @label %>
@@ -281,7 +294,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <label class="flex items-center gap-2 cursor-pointer">
         <input :if={@unchecked_value} type="hidden" value={@unchecked_value} name={@name} />
         <input
@@ -327,7 +340,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex gap-4 text-gray-600">
         <label :for={{value, description} <- @options} class="flex items-center gap-2 cursor-pointer">
@@ -371,7 +384,7 @@ defmodule LivebookWeb.FormComponents do
     assigns = assigns_from_field(assigns)
 
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <div class="flex">
         <label
@@ -474,7 +487,8 @@ defmodule LivebookWeb.FormComponents do
           id={@id}
           name={@name}
           class={[
-            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600 phx-form-error:border-red-300 disabled:opacity-70 disabled:cursor-not-allowed",
+            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border rounded-lg placeholder-gray-400 text-gray-600 disabled:opacity-70 disabled:cursor-not-allowed",
+            if(@errors == [], do: "border-gray-200", else: "border-red-300"),
             @class
           ]}
           {@rest}
@@ -491,9 +505,11 @@ defmodule LivebookWeb.FormComponents do
   end
 
   defp assigns_from_field(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
+    errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
+
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, Enum.map(field.errors, &translate_error/1))
+    |> assign(:errors, Enum.map(errors, &translate_error(&1)))
     |> assign_new(:name, fn -> field.name end)
     |> assign_new(:value, fn -> field.value end)
   end
@@ -520,7 +536,7 @@ defmodule LivebookWeb.FormComponents do
 
   defp field_wrapper(assigns) do
     ~H"""
-    <div phx-feedback-for={@name} class={[@errors != [] && "show-errors"]}>
+    <div>
       <.label :if={@label} for={@id} help={@help}><%= @label %></.label>
       <%= render_slot(@inner_block) %>
       <.error :for={msg <- @errors}><%= msg %></.error>
@@ -551,7 +567,7 @@ defmodule LivebookWeb.FormComponents do
 
   def error(assigns) do
     ~H"""
-    <p class="mt-0.5 text-red-600 text-sm hidden phx-form-error:block">
+    <p class="mt-0.5 text-red-600 text-sm">
       <%= render_slot(@inner_block) %>
     </p>
     """

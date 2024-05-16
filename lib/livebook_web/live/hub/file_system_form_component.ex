@@ -120,7 +120,7 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
 
     with {:ok, file_system} <- Ecto.Changeset.apply_action(changeset, :update),
          :ok <- check_file_system_connectivity(file_system),
-         :ok <- save_file_system(file_system, socket) do
+         :ok <- save_file_system(file_system, changeset, socket) do
       message =
         case socket.assigns.mode do
           :new -> "File storage added successfully"
@@ -152,10 +152,18 @@ defmodule LivebookWeb.Hub.FileSystemFormComponent do
     end
   end
 
-  defp save_file_system(file_system, socket) do
-    case socket.assigns.mode do
-      :new -> Livebook.Hubs.create_file_system(socket.assigns.hub, file_system)
-      :edit -> Livebook.Hubs.update_file_system(socket.assigns.hub, file_system)
+  defp save_file_system(file_system, changeset, socket) do
+    result =
+      case socket.assigns.mode do
+        :new -> Livebook.Hubs.create_file_system(socket.assigns.hub, file_system)
+        :edit -> Livebook.Hubs.update_file_system(socket.assigns.hub, file_system)
+      end
+
+    with {:error, errors} <- result do
+      {:error,
+       changeset
+       |> Livebook.Utils.put_changeset_errors(errors)
+       |> Map.replace!(:action, :validate)}
     end
   end
 

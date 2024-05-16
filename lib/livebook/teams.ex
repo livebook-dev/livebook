@@ -42,19 +42,18 @@ defmodule Livebook.Teams do
   defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
     changeset = Org.changeset(org, attrs)
 
-    with {:ok, %Org{} = org} <- apply_action(changeset, :insert),
-         {:ok, response} <- callback.(org) do
-      {:ok, response}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+    with {:ok, %Org{} = org} <- apply_action(changeset, :insert) do
+      case callback.(org) do
+        {:ok, response} ->
+          {:ok, response}
 
-      {:error, %{"errors" => errors}} ->
-        errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
-        {:error, add_org_errors(changeset, errors)}
+        {:error, %{"errors" => errors}} ->
+          errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
+          {:error, changeset |> add_external_errors(errors) |> Map.replace!(:action, :insert)}
 
-      any ->
-        any
+        any ->
+          any
+      end
     end
   end
 
@@ -152,10 +151,6 @@ defmodule Livebook.Teams do
     Plug.Crypto.KeyGenerator.generate(binary_key, "notebook secret", cache: Plug.Crypto.Keys)
   end
 
-  defp add_org_errors(%Ecto.Changeset{} = changeset, errors_map) do
-    Requests.add_errors(changeset, Org.__schema__(:fields), errors_map)
-  end
-
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking deployment group changes.
   """
@@ -167,15 +162,27 @@ defmodule Livebook.Teams do
   @doc """
   Creates a Deployment Group.
   """
-  @spec create_deployment_group(Team.t(), DeploymentGroup.t()) ::
-          {:ok, pos_integer()}
+  @spec create_deployment_group(Team.t(), map()) ::
+          {:ok, DeploymentGroup.t()}
           | {:error, Ecto.Changeset.t()}
           | {:transport_error, String.t()}
-  def create_deployment_group(%Team{} = team, deployment_group) do
-    case Requests.create_deployment_group(team, deployment_group) do
-      {:ok, %{"id" => id}} -> {:ok, id}
-      {:error, %{"errors" => errors}} -> {:error, Requests.add_errors(deployment_group, errors)}
-      any -> any
+  def create_deployment_group(%Team{} = team, attrs) do
+    changeset = DeploymentGroup.changeset(%DeploymentGroup{}, attrs)
+
+    with {:ok, %DeploymentGroup{} = deployment_group} <- apply_action(changeset, :insert) do
+      case Requests.create_deployment_group(team, deployment_group) do
+        {:ok, %{"id" => id}} ->
+          {:ok, %{deployment_group | id: to_string(id)}}
+
+        {:error, %{"errors" => errors}} ->
+          {:error,
+           changeset
+           |> add_external_errors(errors)
+           |> Map.replace!(:action, :insert)}
+
+        any ->
+          any
+      end
     end
   end
 
@@ -200,10 +207,10 @@ defmodule Livebook.Teams do
         :ok
 
       {:error, %{"errors" => %{"detail" => error}}} ->
-        {:error, Requests.add_errors(app_deployment, %{"file" => [error]})}
+        {:error, add_external_errors(app_deployment, %{"file" => [error]})}
 
       {:error, %{"errors" => errors}} ->
-        {:error, Requests.add_errors(app_deployment, errors)}
+        {:error, add_external_errors(app_deployment, errors)}
 
       any ->
         any
@@ -232,5 +239,14 @@ defmodule Livebook.Teams do
     else
       map
     end
+  end
+
+  defp add_external_errors(%Ecto.Changeset{data: %struct{}} = changeset, errors_map) do
+    errors = Requests.to_error_list(struct, errors_map)
+    Livebook.Utils.put_changeset_errors(changeset, errors)
+  end
+
+  defp add_external_errors(struct, errors_map) do
+    struct |> Ecto.Changeset.change() |> add_external_errors(errors_map)
   end
 end

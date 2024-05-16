@@ -147,11 +147,10 @@ defmodule Livebook.Factory do
   end
 
   def insert_deployment_group(attrs \\ %{}) do
-    deployment_group = build(:deployment_group, attrs)
-    hub = Livebook.Hubs.fetch_hub!(deployment_group.hub_id)
-    {:ok, id} = Livebook.Teams.create_deployment_group(hub, deployment_group)
-
-    %{deployment_group | id: to_string(id)}
+    attrs = params_for(:deployment_group, attrs)
+    hub = Livebook.Hubs.fetch_hub!(attrs.hub_id)
+    {:ok, deployment_group} = Livebook.Teams.create_deployment_group(hub, attrs)
+    deployment_group
   end
 
   def insert_env_var(factory_name, attrs \\ %{}) do

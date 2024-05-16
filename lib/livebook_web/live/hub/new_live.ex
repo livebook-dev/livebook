@@ -249,8 +249,6 @@ defmodule LivebookWeb.Hub.NewLive do
          |> assign_form(changeset)}
 
       {:error, changeset} ->
-        changeset = Map.replace!(changeset, :action, :validate)
-
         {:noreply, assign_form(socket, changeset)}
 
       {:transport_error, message} ->

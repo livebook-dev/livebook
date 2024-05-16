@@ -212,7 +212,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def create_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.create_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_secret_errors(errors)}
       any -> any
     end
   end
@@ -220,7 +220,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def update_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.update_secret(team, secret) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_secret_errors(errors)}
       any -> any
     end
   end
@@ -228,7 +228,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_secret(%Team{} = team, %Secret{} = secret) do
     case Requests.delete_secret(team, secret) do
       {:ok, _} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_secret_errors(secret, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_secret_errors(errors)}
       any -> any
     end
   end
@@ -238,7 +238,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def create_file_system(%Team{} = team, file_system) do
     case Requests.create_file_system(team, file_system) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_file_system_errors(file_system, errors)}
       any -> any
     end
   end
@@ -246,7 +246,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def update_file_system(%Team{} = team, file_system) do
     case Requests.update_file_system(team, file_system) do
       {:ok, %{"id" => _}} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_file_system_errors(file_system, errors)}
       any -> any
     end
   end
@@ -254,7 +254,7 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def delete_file_system(%Team{} = team, file_system) do
     case Requests.delete_file_system(team, file_system) do
       {:ok, _} -> :ok
-      {:error, %{"errors" => errors}} -> {:error, add_file_system_errors(file_system, errors)}
+      {:error, %{"errors" => errors}} -> {:error, parse_file_system_errors(file_system, errors)}
       any -> any
     end
   end
@@ -276,13 +276,13 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
     end
   end
 
-  defp add_secret_errors(%Secret{} = secret, errors_map) do
-    Requests.add_errors(secret, errors_map)
+  defp parse_secret_errors(errors_map) do
+    Requests.to_error_list(Secret, errors_map)
   end
 
-  defp add_file_system_errors(file_system, errors_map) do
+  defp parse_file_system_errors(%struct{} = file_system, errors_map) do
     %{error_field: field} = FileSystem.external_metadata(file_system)
     errors_map = Map.new(errors_map, fn {_key, values} -> {field, values} end)
-    Requests.add_errors(file_system, errors_map)
+    Requests.to_error_list(struct, errors_map)
   end
 end

@@ -19,6 +19,8 @@ defprotocol Livebook.Hubs.Provider do
   """
   @type notebook_stamp :: map()
 
+  @type field_errors :: list({atom(), list(String.t())})
+
   @doc """
   Transforms given hub to `Livebook.Hubs.Metadata` struct.
   """
@@ -60,7 +62,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec create_secret(t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def create_secret(hub, secret)
 
@@ -69,7 +71,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec update_secret(t(), Secret.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def update_secret(hub, secret)
 
@@ -120,7 +122,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec create_file_system(t(), FileSystem.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def create_file_system(hub, file_system)
 
@@ -129,7 +131,7 @@ defprotocol Livebook.Hubs.Provider do
   """
   @spec update_file_system(t(), FileSystem.t()) ::
           :ok
-          | {:error, Ecto.Changeset.t()}
+          | {:error, field_errors()}
           | {:transport_error, String.t()}
   def update_file_system(hub, file_system)
 

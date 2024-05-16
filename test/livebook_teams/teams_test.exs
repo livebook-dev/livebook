@@ -170,34 +170,32 @@ defmodule Livebook.TeamsTest do
     test "creates a new deployment group when the data is valid", %{user: user, node: node} do
       team = connect_to_teams(user, node)
 
-      deployment_group =
-        build(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
+      attrs = params_for(:deployment_group, name: "DEPLOYMENT_GROUP_#{team.id}", mode: :online)
 
-      assert {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+      assert {:ok, deployment_group} = Teams.create_deployment_group(team, attrs)
 
-      %{name: name, mode: mode} = deployment_group
-      id = to_string(id)
+      %{id: id, name: name, mode: mode} = deployment_group
 
       assert_receive {:deployment_group_created, %{id: ^id, name: ^name, mode: ^mode}}
 
       # Guarantee uniqueness
-      assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "has already been taken" in errors_on(changeset).name
     end
 
     test "returns changeset errors when the name is invalid", %{user: user, node: node} do
       team = connect_to_teams(user, node)
-      deployment_group = %{build(:deployment_group) | name: ""}
+      attrs = params_for(:deployment_group, name: "")
 
-      assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "can't be blank" in errors_on(changeset).name
     end
 
     test "returns changeset errors when the mode is invalid", %{user: user, node: node} do
       team = connect_to_teams(user, node)
-      deployment_group = %{build(:deployment_group) | mode: "invalid"}
+      attrs = params_for(:deployment_group, mode: "invalid")
 
-      assert {:error, changeset} = Teams.create_deployment_group(team, deployment_group)
+      assert {:error, changeset} = Teams.create_deployment_group(team, attrs)
       assert "is invalid" in errors_on(changeset).mode
     end
   end
@@ -206,10 +204,9 @@ defmodule Livebook.TeamsTest do
     @tag :tmp_dir
     test "deploys app to Teams from a notebook", %{user: user, node: node, tmp_dir: tmp_dir} do
       team = connect_to_teams(user, node)
-      deployment_group = build(:deployment_group, name: "BAZ", mode: :online)
-      {:ok, id} = Teams.create_deployment_group(team, deployment_group)
+      attrs = params_for(:deployment_group, name: "BAZ", mode: :online)
+      {:ok, %{id: id}} = Teams.create_deployment_group(team, attrs)
 
-      id = to_string(id)
       assert_receive {:deployment_group_created, %{id: ^id}}
 
       # creates the app deployment
