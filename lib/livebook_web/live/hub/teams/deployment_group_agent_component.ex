@@ -207,14 +207,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     envs = Enum.map_join(env, " \\\n", fn {key, value} -> ~s/  #{key}="#{value}"/ end)
 
     """
-    APP_NAME="my_name"
+    # Create a directory for your Fly app config
+    mkdir my-app
+    cd my-app
 
-    flyctl apps create $APP_NAME
+    flyctl launch --image #{image}
 
-    flyctl secrets set --app $APP_NAME \\
+    flyctl secrets set \\
     #{envs}
-
-    flyctl deploy --app $APP_NAME --image #{image}
     """
   end
 end
