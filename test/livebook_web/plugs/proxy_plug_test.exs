@@ -1,4 +1,4 @@
-defmodule LivebookWeb.ProxyTest do
+defmodule LivebookWeb.ProxyPlugTest do
   use LivebookWeb.ConnCase, async: true
 
   require Phoenix.LiveViewTest
