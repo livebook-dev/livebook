@@ -1,4 +1,9 @@
-import { settingsStore, EDITOR_FONT_SIZE, EDITOR_THEME } from "../lib/settings";
+import {
+  settingsStore,
+  EDITOR_FONT_SIZE,
+  EDITOR_THEME,
+  EDITOR_LIGATURES,
+} from "../lib/settings";
 
 /**
  * A hook for the editor settings.
@@ -20,6 +25,9 @@ const EditorSettings = {
     const editorFontSizeCheckbox = this.el.querySelector(
       `[name="editor_font_size"][value="true"]`,
     );
+    const editorLigaturesCheckbox = this.el.querySelector(
+      `[name="editor_ligatures"][value="true"]`,
+    );
     const editorLightThemeCheckbox = this.el.querySelector(
       `[name="editor_light_theme"][value="true"]`,
     );
@@ -32,6 +40,8 @@ const EditorSettings = {
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
+    editorLigaturesCheckbox.checked =
+      settings.editor_ligatures === EDITOR_LIGATURES.on ? true : false;
     editorLightThemeCheckbox.checked =
       settings.editor_theme === EDITOR_THEME.light ? true : false;
     editorMarkdownWordWrapCheckbox.checked = settings.editor_markdown_word_wrap;
@@ -50,6 +60,14 @@ const EditorSettings = {
         editor_font_size: event.target.checked
           ? EDITOR_FONT_SIZE.large
           : EDITOR_FONT_SIZE.normal,
+      });
+    });
+
+    editorLigaturesCheckbox.addEventListener("change", (event) => {
+      settingsStore.update({
+        editor_ligatures: event.target.checked
+          ? EDITOR_LIGATURES.on
+          : EDITOR_LIGATURES.off,
       });
     });
 

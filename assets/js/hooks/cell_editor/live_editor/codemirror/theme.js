@@ -20,7 +20,6 @@ function buildEditorTheme(colors, { dark }) {
         backgroundColor: colors.background,
         fontSize: "14px",
         fontFamily: fonts.mono,
-        fontVariantLigatures: "none",
       },
 
       "&.cm-focused": {

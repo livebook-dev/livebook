@@ -276,6 +276,10 @@ export default class LiveEditor {
       "&": { fontSize: `${settings.editor_font_size}px` },
     });
 
+    const ligaturesTheme = EditorView.theme({
+      "&": { fontVariantLigatures: `${settings.editor_ligatures}` },
+    });
+
     const lineWrappingEnabled =
       this.language === "markdown" && settings.editor_markdown_word_wrap;
 
@@ -319,6 +323,7 @@ export default class LiveEditor {
         EditorView.contentAttributes.of({ tabIndex: -1 }),
         fontSizeTheme,
         settings.editor_theme === "light" ? lightTheme : theme,
+        ligaturesTheme,
         collab(this.collabClient),
         collabMarkers(this.collabClient),
         autocompletion({
