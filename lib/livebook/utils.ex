@@ -636,14 +636,18 @@ defmodule Livebook.Utils do
       iex> Livebook.Utils.ip_to_host({0, 0, 0, 0})
       "localhost"
 
+      iex> Livebook.Utils.ip_to_host({0, 0, 0, 0, 0, 0, 0, 1})
+      "::1"
+
+      iex> Livebook.Utils.ip_to_host({0, 0, 0, 0, 0, 0, 0, 0})
+      "localhost"
+
   """
   @spec ip_to_host(:inet.ip_address()) :: String.t()
   def ip_to_host(ip)
 
+  def ip_to_host({0, 0, 0, 0, 0, 0, 0, 0}), do: "localhost"
   def ip_to_host({0, 0, 0, 0}), do: "localhost"
   def ip_to_host({127, 0, 0, 1}), do: "localhost"
-
-  def ip_to_host(ip) do
-    ip |> :inet.ntoa() |> List.to_string()
-  end
+  def ip_to_host(ip), do: ip |> :inet.ntoa() |> List.to_string()
 end
