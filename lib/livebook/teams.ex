@@ -42,19 +42,18 @@ defmodule Livebook.Teams do
   defp create_org_request(%Org{} = org, attrs, callback) when is_function(callback, 1) do
     changeset = Org.changeset(org, attrs)
 
-    with {:ok, %Org{} = org} <- apply_action(changeset, :insert),
-         {:ok, response} <- callback.(org) do
-      {:ok, response}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
+    with {:ok, %Org{} = org} <- apply_action(changeset, :insert) do
+      case callback.(org) do
+        {:ok, response} ->
+          {:ok, response}
 
-      {:error, %{"errors" => errors}} ->
-        errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
-        {:error, changeset |> add_external_errors(errors) |> Map.replace!(:action, :insert)}
+        {:error, %{"errors" => errors}} ->
+          errors = map_teams_field_to_livebook_field(errors, "key_hash", "teams_key")
+          {:error, changeset |> add_external_errors(errors) |> Map.replace!(:action, :insert)}
 
-      any ->
-        any
+        any ->
+          any
+      end
     end
   end
 
