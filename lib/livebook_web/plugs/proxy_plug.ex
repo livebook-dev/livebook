@@ -2,7 +2,6 @@ defmodule LivebookWeb.ProxyPlug do
   @behaviour Plug
   import Plug.Conn
 
-  alias Livebook.{App, Apps, Session, Sessions}
   alias LivebookWeb.NotFoundError
 
   @impl true
@@ -18,10 +17,11 @@ defmodule LivebookWeb.ProxyPlug do
     halt(conn)
   end
 
-  def call(%{path_info: ["apps", slug, "proxy" | path_info]} = conn, _opts) do
-    app = fetch_app!(slug)
-    id = App.get_session_id(app.pid)
-    session = fetch_session!(id)
+  def call(%{path_info: ["apps", slug, id, "proxy" | path_info]} = conn, _opts) do
+    # Only to ensure the app exist
+    _app = fetch_app!(slug)
+    %{mode: :app} = session = fetch_session!(id)
+
     pid = fetch_proxy_handler!(session)
     conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
     {conn, _} = Kino.Proxy.serve(pid, conn)
@@ -34,21 +34,21 @@ defmodule LivebookWeb.ProxyPlug do
   end
 
   defp fetch_app!(slug) do
-    case Apps.fetch_app(slug) do
+    case Livebook.Apps.fetch_app(slug) do
       {:ok, app} -> app
       :error -> raise NotFoundError, "could not find an app matching #{inspect(slug)}"
     end
   end
 
   defp fetch_session!(id) do
-    case Sessions.fetch_session(id) do
+    case Livebook.Sessions.fetch_session(id) do
       {:ok, session} -> session
       {:error, _} -> raise NotFoundError, "could not find a session matching #{id}"
     end
   end
 
   defp fetch_proxy_handler!(session) do
-    case Session.fetch_proxy_handler(session.pid) do
+    case Livebook.Session.fetch_proxy_handler(session.pid) do
       {:ok, pid} -> pid
       {:error, _} -> raise NotFoundError, "could not find a kino proxy running"
     end
