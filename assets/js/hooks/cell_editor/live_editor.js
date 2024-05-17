@@ -277,7 +277,9 @@ export default class LiveEditor {
     });
 
     const ligaturesTheme = EditorView.theme({
-      "&": { fontVariantLigatures: `${settings.editor_ligatures}` },
+      "&": {
+        fontVariantLigatures: `${settings.editor_ligatures ? "normal" : "none"}`,
+      },
     });
 
     const lineWrappingEnabled =
