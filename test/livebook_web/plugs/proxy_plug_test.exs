@@ -3,6 +3,7 @@ defmodule LivebookWeb.ProxyPlugTest do
 
   require Phoenix.LiveViewTest
   import Livebook.SessionHelpers
+  import Livebook.AppHelpers
 
   alias Livebook.{Notebook, Runtime, Session, Sessions}
 
@@ -70,35 +71,29 @@ defmodule LivebookWeb.ProxyPlugTest do
       end
     end
 
-    @tag :tmp_dir
-    test "returns the proxied response defined in notebook", %{conn: conn, tmp_dir: tmp_dir} do
+    test "returns the proxied response defined in notebook", %{conn: conn} do
       slug = Livebook.Utils.random_short_id()
-      path = Path.join(tmp_dir, "my-notebook.livemd")
 
-      File.write!(path, """
-      <!-- livebook:{"app_settings":{"access_type":"public","slug":"#{slug}"}} -->
+      cell = %{
+        Notebook.Cell.new(:code)
+        | source: """
+          Kino.Proxy.listen(fn conn ->
+            conn
+            |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
+            |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
+          end)
+          """
+      }
 
-      # My Notebook
-
-      ## Section 1
-
-      ```elixir
-      Kino.Proxy.listen(fn conn ->
-        conn
-        |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
-        |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
-      end)
-      ```
-      """)
+      app_settings = %{Notebook.AppSettings.new() | slug: slug, access_type: :public}
+      section = %{Notebook.Section.new() | cells: [cell]}
+      notebook = %{Notebook.new() | app_settings: app_settings, sections: [section]}
 
       Livebook.Apps.subscribe()
-      assert [%{slug: ^slug} = app_spec] = Livebook.Apps.build_app_specs_in_dir(tmp_dir)
+      pid = deploy_notebook_sync(notebook)
 
-      deployer_pid = Livebook.Apps.Deployer.local_deployer()
-      Livebook.Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
-
-      assert_receive {:app_created, %{pid: pid, slug: ^slug}}
-      assert_receive {:app_updated, %{slug: ^slug, sessions: [_session]}}
+      assert_receive {:app_created, %{pid: ^pid, slug: ^slug}}
+      assert_receive {:app_updated, %{pid: ^pid, slug: ^slug, sessions: [_session]}}
 
       url = "/apps/#{slug}/proxy/"
 

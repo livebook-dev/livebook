@@ -625,11 +625,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Fetches the running Kino Proxy's pid from runtime.
+  Fetches the running Proxy Handler's pid from runtime.
   """
-  @spec fetch_kino_proxy(pid()) :: {:ok, pid()} | {:error, :not_found | :disconnected}
-  def fetch_kino_proxy(pid) do
-    GenServer.call(pid, :fetch_kino_proxy)
+  @spec fetch_proxy_handler(pid()) :: {:ok, pid()} | {:error, :not_found | :disconnected}
+  def fetch_proxy_handler(pid) do
+    GenServer.call(pid, :fetch_proxy_handler)
   end
 
   @doc """
@@ -1081,9 +1081,9 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_call(:fetch_kino_proxy, _from, state) do
+  def handle_call(:fetch_proxy_handler, _from, state) do
     if Runtime.connected?(state.data.runtime) do
-      {:reply, Runtime.fetch_kino_proxy(state.data.runtime), state}
+      {:reply, Runtime.fetch_proxy_handler(state.data.runtime), state}
     else
       {:reply, {:error, :disconnected}, state}
     end

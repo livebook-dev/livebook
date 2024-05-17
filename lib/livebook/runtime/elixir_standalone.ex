@@ -324,7 +324,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
   end
 
-  def fetch_kino_proxy(runtime) do
-    RuntimeServer.fetch_kino_proxy(runtime.server_pid)
+  def fetch_proxy_handler(runtime) do
+    RuntimeServer.fetch_proxy_handler(runtime.server_pid)
   end
 end
