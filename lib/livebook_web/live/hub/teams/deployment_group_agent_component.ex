@@ -175,12 +175,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
   defp instructions(socket) do
     hub = socket.assigns.hub
+    deployment_group = socket.assigns.deployment_group
 
     agent_key =
-      Enum.find(
-        socket.assigns.deployment_group.agent_keys,
-        &(&1.id == socket.assigns.agent_key_id)
-      )
+      Enum.find(deployment_group.agent_keys, &(&1.id == socket.assigns.agent_key_id))
 
     config = Ecto.Changeset.apply_changes(socket.assigns.changeset)
 
@@ -189,7 +187,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
     %{
       docker_instructions: docker_instructions(image, env),
-      fly_instructions: fly_instructions(image, env)
+      fly_instructions: fly_instructions(image, env, hub.hub_name, deployment_group.name)
     }
   end
 
@@ -203,18 +201,22 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     """
   end
 
-  defp fly_instructions(image, env) do
+  defp fly_instructions(image, env, hub_name, deployment_group_name) do
     envs = Enum.map_join(env, " \\\n", fn {key, value} -> ~s/  #{key}="#{value}"/ end)
+
+    example_dir = "#{hub_name}-#{deployment_group_name}-lb-server"
 
     """
     # Create a directory for your Fly app config
-    mkdir my-app
-    cd my-app
+    mkdir #{example_dir}
+    cd #{example_dir}
 
-    flyctl launch --image #{image}
+    fly launch --image #{image} --no-deploy
 
-    flyctl secrets set \\
+    fly secrets set \\
     #{envs}
+
+    fly deploy
     """
   end
 end
