@@ -18,10 +18,13 @@ defmodule LivebookWeb.ProxyPlug do
   end
 
   def call(%{path_info: ["apps", slug, id, "proxy" | path_info]} = conn, _opts) do
-    # Only to ensure the app exist
-    _app = fetch_app!(slug)
-    %{mode: :app} = session = fetch_session!(id)
+    app = fetch_app!(slug)
 
+    unless Enum.any?(app.sessions, &(&1.id == id)) do
+      raise NotFoundError, "could not find an app session matching #{inspect(id)}"
+    end
+
+    session = fetch_session!(id)
     pid = fetch_proxy_handler!(session)
     conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
     {conn, _} = Kino.Proxy.serve(pid, conn)
