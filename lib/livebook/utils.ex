@@ -1,7 +1,7 @@
 defmodule Livebook.Utils do
   require Logger
 
-  @type id :: binary()
+  @type id :: String.t()
 
   @doc """
   Generates a random binary id.
@@ -82,11 +82,42 @@ defmodule Livebook.Utils do
     case Base.decode32(id, case: :lower) do
       {:ok,
        <<boot_id::binary-size(3), node_part::binary-size(16), _random_part::binary-size(11)>>} ->
-        known_nodes = [node() | Node.list()]
+        with {:ok, node} <- fetch_node_by_hash(node_part) do
+          {:ok, node, boot_id}
+        end
 
-        Enum.find_value(known_nodes, :error, fn node ->
-          node_hash(node) == node_part && {:ok, node, boot_id}
-        end)
+      _ ->
+        :error
+    end
+  end
+
+  defp fetch_node_by_hash(node_hash) do
+    known_nodes = [node() | Node.list()]
+
+    Enum.find_value(known_nodes, :error, fn node ->
+      node_hash(node) == node_hash && {:ok, node}
+    end)
+  end
+
+  @doc """
+  Returns a determinsitic short id corresponding to the current node.
+  """
+  @spec node_id() :: String.t()
+  def node_id() do
+    node_hash = node_hash(node())
+    Base.encode32(node_hash, case: :lower, padding: false)
+  end
+
+  @doc """
+  Extracts node name from the given node id, generated with `node_id/0`.
+
+  The node in question must be connected, otherwise it won't be found.
+  """
+  @spec node_from_id(id()) :: {:ok, node()} | :error
+  def node_from_id(id) do
+    case Base.decode32(id, case: :lower, padding: false) do
+      {:ok, <<node_hash::binary-size(16)>>} ->
+        fetch_node_by_hash(node_hash)
 
       _ ->
         :error
