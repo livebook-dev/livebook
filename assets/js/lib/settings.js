@@ -24,6 +24,7 @@ const DEFAULTSETTINGS = {
   editor_auto_signature: true,
   editor_font_size: EDITOR_FONT_SIZE.normal,
   editor_theme: EDITOR_THEME.default,
+  editor_ligatures: false,
   editor_markdown_word_wrap: true,
   editor_mode: EDITOR_MODE.default,
   custom_view_show_section: true,
