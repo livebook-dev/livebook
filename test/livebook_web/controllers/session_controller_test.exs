@@ -255,7 +255,10 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn = start_session_and_request_asset(conn, notebook, hash)
 
-      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
+      node_id = Livebook.Utils.node_id()
+
+      assert redirected_to(conn, 301) ==
+               ~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js"
 
       {:ok, asset_path} = Session.local_asset_path(hash, "main.js")
       assert File.exists?(asset_path)
@@ -268,7 +271,10 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn = start_session_and_request_asset(conn, notebook, hash)
 
-      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
+      node_id = Livebook.Utils.node_id()
+
+      assert redirected_to(conn, 301) ==
+               ~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js"
 
       assert File.exists?(Path.join(assets_path, "main.js"))
     end
@@ -283,7 +289,10 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn = get(conn, ~p"/public/sessions/#{random_session_id}/assets/#{hash}/main.js")
 
-      assert redirected_to(conn, 301) == ~p"/public/sessions/assets/#{hash}/main.js"
+      node_id = Livebook.Utils.node_id()
+
+      assert redirected_to(conn, 301) ==
+               ~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js"
     end
   end
 
@@ -291,7 +300,8 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns not found when no matching assets are in the cache", %{conn: conn} do
       %{notebook: _notebook, hash: hash} = notebook_with_js_output()
 
-      conn = get(conn, ~p"/public/sessions/assets/#{hash}/main.js")
+      node_id = Livebook.Utils.node_id()
+      conn = get(conn, ~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js")
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
@@ -302,7 +312,8 @@ defmodule LivebookWeb.SessionControllerTest do
       # Fetch the assets for the first time
       start_session_and_request_asset(conn, notebook, hash)
 
-      conn = get(conn, ~p"/public/sessions/assets/#{hash}/main.js")
+      node_id = Livebook.Utils.node_id()
+      conn = get(conn, ~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js")
 
       assert conn.status == 200
       assert "export function init(" <> _ = conn.resp_body
@@ -313,10 +324,12 @@ defmodule LivebookWeb.SessionControllerTest do
 
       start_session_and_request_asset(conn, notebook, hash)
 
+      node_id = Livebook.Utils.node_id()
+
       conn =
         conn
         |> put_req_header("accept-encoding", "gzip")
-        |> get(~p"/public/sessions/assets/#{hash}/main.js")
+        |> get(~p"/public/sessions/node/#{node_id}/assets/#{hash}/main.js")
 
       assert conn.status == 200
       assert "export function init(" <> _ = :zlib.gunzip(conn.resp_body)

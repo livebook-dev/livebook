@@ -117,43 +117,56 @@ defmodule LivebookWeb.SessionController do
     # The request comes from a cross-origin iframe
     conn = allow_cors(conn)
 
-    # This route include session id, while we want the browser to
-    # cache assets across sessions, so we only ensure the asset
-    # is available and redirect to the corresponding route without
-    # session id
+    # This route include session id, but we want the browser to cache
+    # assets across sessions, so we only ensure the asset is available
+    # on this node and redirect to the corresponding route with node
+    # id, rather than session id
     if ensure_asset?(id, hash, asset_path) do
+      node_id = Livebook.Utils.node_id()
+
       conn
       |> cache_permanently()
       |> put_status(:moved_permanently)
-      |> redirect(to: ~p"/public/sessions/assets/#{hash}/#{file_parts}")
+      |> redirect(to: ~p"/public/sessions/node/#{node_id}/assets/#{hash}/#{file_parts}")
     else
       send_resp(conn, 404, "Not found")
     end
   end
 
-  def show_cached_asset(conn, %{"hash" => hash, "file_parts" => file_parts}) do
+  def show_cached_asset(conn, %{"node_id" => node_id, "hash" => hash, "file_parts" => file_parts}) do
     asset_path = Path.join(file_parts)
 
     # The request comes from a cross-origin iframe
     conn = allow_cors(conn)
 
-    case lookup_asset(hash, asset_path) do
-      {:ok, local_asset_path} ->
-        conn =
-          conn
-          |> put_content_type(asset_path)
-          |> cache_permanently()
+    gzip_result =
+      if accept_encoding?(conn, "gzip") do
+        with {:ok, local_asset_path} <-
+               lookup_asset_or_transfer(hash, asset_path <> ".gz", node_id) do
+          conn =
+            conn
+            |> put_resp_header("content-encoding", "gzip")
+            |> put_resp_header("vary", "Accept-Encoding")
 
-        local_asset_path_gz = local_asset_path <> ".gz"
-
-        if accept_encoding?(conn, "gzip") and File.exists?(local_asset_path_gz) do
-          conn
-          |> put_resp_header("content-encoding", "gzip")
-          |> put_resp_header("vary", "Accept-Encoding")
-          |> send_file(200, local_asset_path_gz)
-        else
-          send_file(conn, 200, local_asset_path)
+          {:ok, local_asset_path, conn}
         end
+      else
+        :error
+      end
+
+    result =
+      with :error <- gzip_result do
+        with {:ok, local_asset_path} <- lookup_asset_or_transfer(hash, asset_path, node_id) do
+          {:ok, local_asset_path, conn}
+        end
+      end
+
+    case result do
+      {:ok, local_asset_path, conn} ->
+        conn
+        |> put_content_type(asset_path)
+        |> cache_permanently()
+        |> send_file(200, local_asset_path)
 
       :error ->
         send_resp(conn, 404, "Not found")
@@ -268,13 +281,32 @@ defmodule LivebookWeb.SessionController do
     end
   end
 
-  defp lookup_asset(hash, asset_path) do
+  @doc false
+  def lookup_asset(hash, asset_path) do
     with {:ok, local_asset_path} <- Session.local_asset_path(hash, asset_path),
          true <- File.exists?(local_asset_path) do
       {:ok, local_asset_path}
     else
       _ -> :error
     end
+  end
+
+  defp lookup_asset_or_transfer(hash, asset_path, node_id) do
+    with :error <- lookup_asset(hash, asset_path),
+         {:ok, node} <- Livebook.Utils.node_from_id(node_id),
+         {:ok, remote_asset_path} <-
+           :erpc.call(node, __MODULE__, :lookup_asset, [hash, asset_path]),
+         {:ok, local_asset_path} <- Session.local_asset_path(hash, asset_path) do
+      transfer_file!(node, remote_asset_path, local_asset_path)
+      {:ok, local_asset_path}
+    end
+  end
+
+  defp transfer_file!(remote_node, remote_path, local_path) do
+    File.mkdir_p!(Path.dirname(local_path))
+    remote_stream = :erpc.call(remote_node, File, :stream!, [remote_path, 2048, []])
+    local_stream = File.stream!(local_path)
+    Enum.into(remote_stream, local_stream)
   end
 
   defp allow_cors(conn) do

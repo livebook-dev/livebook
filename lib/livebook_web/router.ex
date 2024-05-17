@@ -52,8 +52,8 @@ defmodule LivebookWeb.Router do
   scope "/public", LivebookWeb do
     pipe_through [:js_view_assets]
 
-    get "/sessions/assets/:hash/*file_parts", SessionController, :show_cached_asset
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
+    get "/sessions/node/:node_id/assets/:hash/*file_parts", SessionController, :show_cached_asset
   end
 
   live_session :default,
