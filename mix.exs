@@ -106,7 +106,7 @@ defmodule Livebook.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:bandit, "~> 1.0"},
-      {:plug, github: "elixir-plug/plug", override: true},
+      {:plug, "~> 1.16"},
       {:plug_crypto, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:ecto, "~> 3.10"},
