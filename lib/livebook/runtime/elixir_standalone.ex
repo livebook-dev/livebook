@@ -323,4 +323,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def unregister_clients(runtime, client_ids) do
     RuntimeServer.unregister_clients(runtime.server_pid, client_ids)
   end
+
+  def fetch_proxy_handler(runtime) do
+    RuntimeServer.fetch_proxy_handler(runtime.server_pid)
+  end
 end

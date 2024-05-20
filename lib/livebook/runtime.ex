@@ -1101,4 +1101,12 @@ defprotocol Livebook.Runtime do
   """
   @spec unregister_clients(t(), list(client_id())) :: :ok
   def unregister_clients(runtime, client_ids)
+
+  @doc """
+  Fetches the running Proxy Handler's pid from runtime.
+
+  TODO: document the communication here.
+  """
+  @spec fetch_proxy_handler(t()) :: {:ok, pid()} | {:error, :not_found}
+  def fetch_proxy_handler(runtime)
 end

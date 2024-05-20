@@ -318,6 +318,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Fetches the running Proxy Handler's pid from runtime.
+  """
+  @spec fetch_proxy_handler(pid()) :: {:ok, pid()} | {:error, :not_found}
+  def fetch_proxy_handler(pid) do
+    GenServer.call(pid, :fetch_proxy_handler)
+  end
+
+  @doc """
   Stops the runtime server.
 
   This results in all Livebook-related modules being unloaded
@@ -742,6 +750,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_call({:has_dependencies?, dependencies}, _from, state) do
     has_dependencies? = Enum.all?(dependencies, &dependency_installed?/1)
     {:reply, has_dependencies?, state}
+  end
+
+  def handle_call(:fetch_proxy_handler, _from, state) do
+    if pid = GenServer.whereis(Kino.Proxy) do
+      {:reply, {:ok, pid}, state}
+    else
+      {:reply, {:error, :not_found}, state}
+    end
   end
 
   defp file_path(state, file_id) do

@@ -73,6 +73,7 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def register_clients(_, _), do: :ok
     def unregister_clients(_, _), do: :ok
+    def fetch_proxy_handler(_), do: {:error, :not_found}
 
     defp trace(runtime, fun, args) do
       if runtime.trace_to do
