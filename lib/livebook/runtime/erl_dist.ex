@@ -41,7 +41,9 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Runtime.ErlDist.IOForwardGL,
       Livebook.Runtime.ErlDist.LoggerGLHandler,
       Livebook.Runtime.ErlDist.Sink,
-      Livebook.Runtime.ErlDist.SmartCellGL
+      Livebook.Runtime.ErlDist.SmartCellGL,
+      Livebook.Proxy.Adapter,
+      Livebook.Proxy.Handler
     ]
   end
 

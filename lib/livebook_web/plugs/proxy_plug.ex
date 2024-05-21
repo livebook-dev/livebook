@@ -12,7 +12,7 @@ defmodule LivebookWeb.ProxyPlug do
     session = fetch_session!(id)
     pid = fetch_proxy_handler!(session)
     conn = prepare_conn(conn, path_info, ["sessions", id, "proxy"])
-    {conn, _} = Kino.Proxy.serve(pid, conn)
+    {conn, _} = Livebook.Proxy.Server.serve(pid, Kino.Proxy, conn)
 
     halt(conn)
   end
@@ -27,7 +27,7 @@ defmodule LivebookWeb.ProxyPlug do
     session = fetch_session!(id)
     pid = fetch_proxy_handler!(session)
     conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
-    {conn, _} = Kino.Proxy.serve(pid, conn)
+    {conn, _} = Livebook.Proxy.Server.serve(pid, Kino.Proxy, conn)
 
     halt(conn)
   end
