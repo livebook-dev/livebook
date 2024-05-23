@@ -51,7 +51,7 @@ defmodule LivebookWeb.ProxyPlug do
   end
 
   defp fetch_proxy_handler!(session) do
-    case Livebook.Session.fetch_proxy_handler(session.pid) do
+    case Livebook.Session.fetch_proxy_handler(session.pid, self()) do
       {:ok, pid} -> pid
       {:error, _} -> raise NotFoundError, "could not find a kino proxy running"
     end

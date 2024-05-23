@@ -33,11 +33,8 @@ defmodule Livebook.ProxyTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, "setup", _, %{errored: false}}},
-                     3_000
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}}
+                      {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}},
+                     4_000
 
       url = "/sessions/#{session.id}/proxy/"
 
@@ -89,11 +86,22 @@ defmodule Livebook.ProxyTest do
       %{
         Notebook.Cell.new(:code)
         | source: """
-          Kino.Proxy.listen(fn conn ->
+          fun = fn conn ->
             conn
             |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
             |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
-          end)\
+          end
+
+          ref = make_ref()
+          request = {:livebook_get_proxy_handler_child_spec, fun}
+          send(Process.group_leader(), {:io_request, self(), ref, request})
+
+          child_spec =
+            receive do
+              {:io_reply, ^ref, child_spec} -> child_spec
+            end
+
+          Supervisor.start_link([child_spec], strategy: :one_for_one)\
           """
       }
 
