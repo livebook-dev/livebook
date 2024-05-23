@@ -382,6 +382,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {result, state}
   end
 
+  defp io_request({:livebook_get_proxy_handler_child_spec, fun}, state) do
+    result = request_proxy_handler_child_spec(fun, state)
+    {result, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
@@ -452,6 +457,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   defp request_user_info(client_id, state) do
     request = {:runtime_user_info_request, self(), client_id}
     reply_tag = :runtime_user_info_reply
+
+    with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
+  end
+
+  defp request_proxy_handler_child_spec(fun, state) do
+    request = {:runtime_proxy_handler_child_spec_request, self(), fun}
+    reply_tag = :runtime_proxy_handler_child_spec_reply
 
     with {:ok, reply} <- runtime_request(state, request, reply_tag), do: reply
   end

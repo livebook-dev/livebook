@@ -1680,6 +1680,12 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_proxy_handler_child_spec_request, reply_to, fun}, state) do
+    reply = {Livebook.Proxy.Handler, name: Kino.Proxy, listen: fun}
+    send(reply_to, {:runtime_proxy_handler_child_spec_reply, reply})
+    {:noreply, state}
+  end
+
   def handle_info({:runtime_container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
