@@ -627,9 +627,9 @@ defmodule Livebook.Session do
   @doc """
   Fetches the running Proxy Handler's pid from runtime.
   """
-  @spec fetch_proxy_handler(pid()) :: {:ok, pid()} | {:error, :not_found | :disconnected}
-  def fetch_proxy_handler(pid) do
-    GenServer.call(pid, :fetch_proxy_handler)
+  @spec fetch_proxy_handler(pid(), pid()) :: {:ok, pid()} | {:error, :not_found | :disconnected}
+  def fetch_proxy_handler(pid, client_pid) do
+    GenServer.call(pid, {:fetch_proxy_handler, client_pid})
   end
 
   @doc """
@@ -1081,9 +1081,9 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_call(:fetch_proxy_handler, _from, state) do
+  def handle_call({:fetch_proxy_handler, client_pid}, _from, state) do
     if Runtime.connected?(state.data.runtime) do
-      {:reply, Runtime.fetch_proxy_handler(state.data.runtime), state}
+      {:reply, Runtime.fetch_proxy_handler(state.data.runtime, client_pid), state}
     else
       {:reply, {:error, :disconnected}, state}
     end

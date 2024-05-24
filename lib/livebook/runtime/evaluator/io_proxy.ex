@@ -382,6 +382,11 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {result, state}
   end
 
+  defp io_request({:livebook_get_proxy_handler_child_spec, fun}, state) do
+    result = {Livebook.Proxy.Handler, name: Kino.Proxy, listen: fun}
+    {result, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end

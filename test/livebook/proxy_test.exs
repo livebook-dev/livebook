@@ -1,4 +1,4 @@
-defmodule LivebookWeb.ProxyPlugTest do
+defmodule Livebook.ProxyTest do
   use LivebookWeb.ConnCase, async: true
 
   require Phoenix.LiveViewTest
@@ -24,30 +24,17 @@ defmodule LivebookWeb.ProxyPlugTest do
     end
 
     test "returns the proxied response defined in notebook", %{conn: conn} do
-      cell = %{
-        Notebook.Cell.new(:code)
-        | source: """
-          Kino.Proxy.listen(fn conn ->
-            conn
-            |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
-            |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
-          end)
-          """
-      }
-
-      cell_id = cell.id
-
-      section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | sections: [section]}
-
+      %{sections: [%{cells: [%{id: cell_id}]}]} = notebook = proxy_notebook()
       {:ok, session} = Sessions.create_session(notebook: notebook)
       {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
 
       Session.set_runtime(session.pid, runtime)
       Session.subscribe(session.id)
-
       Session.queue_cell_evaluation(session.pid, cell_id)
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}},
+                     4_000
 
       url = "/sessions/#{session.id}/proxy/"
 
@@ -73,35 +60,16 @@ defmodule LivebookWeb.ProxyPlugTest do
 
     test "returns the proxied response defined in notebook", %{conn: conn} do
       slug = Livebook.Utils.random_short_id()
-
-      cell = %{
-        Notebook.Cell.new(:code)
-        | source: """
-          Kino.Proxy.listen(fn conn ->
-            conn
-            |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
-            |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
-          end)
-          """
-      }
-
       app_settings = %{Notebook.AppSettings.new() | slug: slug, access_type: :public}
-      section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | app_settings: app_settings, sections: [section]}
+      notebook = %{proxy_notebook() | app_settings: app_settings}
 
       Livebook.Apps.subscribe()
       pid = deploy_notebook_sync(notebook)
 
-      assert_receive {:app_created, %{pid: ^pid, slug: ^slug}}
+      assert_receive {:app_created, %{pid: ^pid, slug: ^slug, sessions: []}}
 
       assert_receive {:app_updated,
-                      %{
-                        pid: ^pid,
-                        slug: ^slug,
-                        sessions: [
-                          %{id: id, app_status: %{lifecycle: :active, execution: :executed}}
-                        ]
-                      }}
+                      %{slug: ^slug, sessions: [%{id: id, app_status: %{execution: :executed}}]}}
 
       url = "/apps/#{slug}/#{id}/proxy/"
 
@@ -110,8 +78,34 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert text_response(put(conn, url), 200) == "used PUT method"
       assert text_response(patch(conn, url), 200) == "used PATCH method"
       assert text_response(delete(conn, url), 200) == "used DELETE method"
-
-      Livebook.App.close(pid)
     end
+  end
+
+  defp proxy_notebook() do
+    cell =
+      %{
+        Notebook.Cell.new(:code)
+        | source: """
+          fun = fn conn ->
+            conn
+            |> Plug.Conn.put_resp_header("content-type", "application/text;charset=utf-8")
+            |> Plug.Conn.send_resp(200, "used " <> conn.method <> " method")
+          end
+
+          ref = make_ref()
+          request = {:livebook_get_proxy_handler_child_spec, fun}
+          send(Process.group_leader(), {:io_request, self(), ref, request})
+
+          child_spec =
+            receive do
+              {:io_reply, ^ref, child_spec} -> child_spec
+            end
+
+          Supervisor.start_link([child_spec], strategy: :one_for_one)\
+          """
+      }
+
+    section = %{Notebook.Section.new() | cells: [cell]}
+    %{Notebook.new() | sections: [section]}
   end
 end

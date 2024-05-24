@@ -1107,6 +1107,6 @@ defprotocol Livebook.Runtime do
 
   TODO: document the communication here.
   """
-  @spec fetch_proxy_handler(t()) :: {:ok, pid()} | {:error, :not_found}
-  def fetch_proxy_handler(runtime)
+  @spec fetch_proxy_handler(t(), pid()) :: {:ok, pid()} | {:error, :not_found}
+  def fetch_proxy_handler(runtime, client_pid)
 end
