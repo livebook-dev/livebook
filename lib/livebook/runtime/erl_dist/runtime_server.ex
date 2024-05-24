@@ -318,11 +318,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Fetches the running Proxy Handler's pid from runtime.
+  Fetches information about a proxy request handler, if available.
   """
-  @spec fetch_proxy_handler(pid(), pid()) :: {:ok, pid()} | {:error, :not_found}
-  def fetch_proxy_handler(pid, client_pid) do
-    GenServer.call(pid, {:fetch_proxy_handler, client_pid})
+  @spec fetch_proxy_handler_spec(pid()) ::
+          {:ok, {module(), atom(), list()}} | {:error, :not_found}
+  def fetch_proxy_handler_spec(pid) do
+    with {:ok, supervisor_pid} <- GenServer.call(pid, :fetch_proxy_handler_supervisor) do
+      {:ok, {Livebook.Proxy.Server, :serve, [supervisor_pid]}}
+    end
   end
 
   @doc """
@@ -752,9 +755,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:reply, has_dependencies?, state}
   end
 
-  def handle_call({:fetch_proxy_handler, client_pid}, _from, state) do
-    if pid = Livebook.Proxy.Handler.get_pid(Kino.Proxy, client_pid) do
-      {:reply, {:ok, pid}, state}
+  def handle_call(:fetch_proxy_handler_supervisor, _from, state) do
+    if supervisor_pid = Livebook.Proxy.Handler.get_supervisor_pid() do
+      {:reply, {:ok, supervisor_pid}, state}
     else
       {:reply, {:error, :not_found}, state}
     end

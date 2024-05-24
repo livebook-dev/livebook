@@ -1,7 +1,14 @@
 defmodule Livebook.Proxy.Adapter do
   @moduledoc false
+
+  # Implements a Plug adapter for handling `conn` within the runtime.
+  #
+  # All actions are forwarded to the parent process (`Livebook.Proxy.Server`),
+  # which operates within Livebook itself.
+
   @behaviour Plug.Conn.Adapter
 
+  @impl true
   def send_resp({pid, ref}, status, headers, body) do
     send(pid, {:send_resp, self(), ref, status, headers, body})
 
@@ -11,6 +18,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def get_peer_data({pid, ref}) do
     send(pid, {:get_peer_data, self(), ref})
 
@@ -20,6 +28,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def get_http_protocol({pid, ref}) do
     send(pid, {:get_http_protocol, self(), ref})
 
@@ -29,6 +38,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def read_req_body({pid, ref}, opts) do
     send(pid, {:read_req_body, self(), ref, opts})
 
@@ -40,6 +50,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def send_chunked({pid, ref}, status, headers) do
     send(pid, {:send_chunked, self(), ref, status, headers})
 
@@ -49,6 +60,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def chunk({pid, ref}, chunk) do
     send(pid, {:chunk, self(), ref, chunk})
 
@@ -59,6 +71,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def inform({pid, ref}, status, headers) do
     send(pid, {:inform, self(), ref, status, headers})
 
@@ -68,6 +81,7 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def send_file({pid, ref}, status, headers, path, offset, length) do
     %File.Stat{type: :regular, size: size} = File.stat!(path)
 
@@ -90,7 +104,10 @@ defmodule Livebook.Proxy.Adapter do
     end
   end
 
+  @impl true
   def upgrade(_payload, _protocol, _opts), do: {:error, :not_supported}
+
+  @impl true
   def push(_payload, _path, _headers), do: {:error, :not_supported}
 
   defp exit_fun(fun, arity, reason) do

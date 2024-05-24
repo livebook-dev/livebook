@@ -383,7 +383,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   defp io_request({:livebook_get_proxy_handler_child_spec, fun}, state) do
-    result = {Livebook.Proxy.Handler, name: Kino.Proxy, listen: fun}
+    result = {Livebook.Proxy.Handler, listen: fun}
     {result, state}
   end
 
