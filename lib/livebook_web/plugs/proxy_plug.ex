@@ -94,17 +94,19 @@ defmodule LivebookWeb.ProxyPlug do
   defp await_app_session_ready(app, session_id) do
     unless session_ready?(app, session_id) do
       Livebook.App.subscribe(app.slug)
+      # We fetch the app again, in case it had changed before we subscribed
+      app = Livebook.App.get_by_pid(app.pid)
       await_session_execution_loop(app, session_id)
       Livebook.App.unsubscribe(app.slug)
     end
   end
 
-  defp await_session_execution_loop(%{slug: slug}, session_id) do
-    receive do
-      {:app_updated, %{slug: ^slug} = app} ->
-        unless session_ready?(app, session_id) do
+  defp await_session_execution_loop(%{slug: slug} = app, session_id) do
+    unless session_ready?(app, session_id) do
+      receive do
+        {:app_updated, %{slug: ^slug} = app} ->
           await_session_execution_loop(app, session_id)
-        end
+      end
     end
   end
 
