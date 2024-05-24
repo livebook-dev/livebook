@@ -1,5 +1,7 @@
-defmodule Livebook.ProxyTest do
+defmodule LivebookWeb.ProxyPlugTest do
   use LivebookWeb.ConnCase, async: true
+
+  # Integration tests for proxying requests to the runtime.
 
   require Phoenix.LiveViewTest
   import Livebook.AppHelpers
