@@ -51,7 +51,7 @@ defmodule LivebookWeb.Hub.NewLive do
               target="_blank"
               phx-no-format
             >
-              Livebook Teams</a> amplifies Livebook with features designed for teams and businesses. It is currently in closed beta.
+              Livebook Teams</a> enables you to deploy internal tools built with Elixir and Livebook to your own infrastructure. It is currently in closed beta.
           </p>
           <p class="mt-4 text-gray-700">
             To create a Teams organization, you must <a
