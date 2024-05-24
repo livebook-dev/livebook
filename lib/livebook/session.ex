@@ -223,6 +223,16 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Resets the auto shutdown timer, if ticking.
+
+  When the session has connected clients, nothing changes.
+  """
+  @spec reset_auto_shutdown(pid()) :: :ok
+  def reset_auto_shutdown(pid) do
+    GenServer.cast(pid, :reset_auto_shutdown)
+  end
+
+  @doc """
   Returns data of the given session.
   """
   @spec get_data(pid()) :: Data.t()
@@ -959,23 +969,29 @@ defmodule Livebook.Session do
   defp schedule_auto_shutdown(state) do
     client_count = map_size(state.data.clients_map)
 
-    case {client_count, state.auto_shutdown_timer_ref} do
-      {0, nil} when state.auto_shutdown_ms != nil ->
+    cond do
+      client_count == 0 and state.auto_shutdown_timer_ref == nil and state.auto_shutdown_ms != nil ->
         timer_ref = Process.send_after(self(), :close, state.auto_shutdown_ms)
         %{state | auto_shutdown_timer_ref: timer_ref}
 
-      {client_count, timer_ref} when client_count > 0 and timer_ref != nil ->
-        if Process.cancel_timer(timer_ref) == false do
-          receive do
-            :close -> :ok
-          end
-        end
+      client_count > 0 ->
+        cancel_auto_shutdown_timer(state)
 
-        %{state | auto_shutdown_timer_ref: nil}
-
-      _ ->
+      true ->
         state
     end
+  end
+
+  defp cancel_auto_shutdown_timer(%{auto_shutdown_timer_ref: nil} = state), do: state
+
+  defp cancel_auto_shutdown_timer(state) do
+    if Process.cancel_timer(state.auto_shutdown_timer_ref) == false do
+      receive do
+        :close -> :ok
+      end
+    end
+
+    %{state | auto_shutdown_timer_ref: nil}
   end
 
   @impl true
@@ -1091,6 +1107,13 @@ defmodule Livebook.Session do
   end
 
   @impl true
+  def handle_cast(:reset_auto_shutdown, state) do
+    {:noreply,
+     state
+     |> cancel_auto_shutdown_timer()
+     |> schedule_auto_shutdown()}
+  end
+
   def handle_cast({:set_notebook_attributes, client_pid, attrs}, state) do
     client_id = client_id(state, client_pid)
     operation = {:set_notebook_attributes, client_id, attrs}
@@ -2466,7 +2489,7 @@ defmodule Livebook.Session do
     status = state.data.app_data.status
     send(state.app_pid, {:app_status_changed, state.session_id, status})
 
-    notify_update(state)
+    state
   end
 
   defp handle_action(state, :app_recover) do
