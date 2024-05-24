@@ -903,7 +903,11 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                              ref: "1",
                              pid:
                                spawn_widget_with_data("1", %{
-                                 spec: %{"height" => 50, "width" => 50},
+                                 spec: %{
+                                   "height" => 50,
+                                   "width" => 50,
+                                   "data" => %{"x" => 1, "y" => 1, "date" => ~D[2024-05-24]}
+                                 },
                                  datasets: []
                                }),
                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
@@ -929,7 +933,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       <!-- livebook:{"output":true} -->
 
       ```vega-lite
-      {"height":50,"width":50}
+      {"data":{"date":"2024-05-24","x":1,"y":1},"height":50,"width":50}
       ```
       """
 

@@ -413,7 +413,7 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp ensure_order(%{} = map) do
+  defp ensure_order(%{} = map) when not is_struct(map) do
     map
     |> Enum.sort()
     |> Enum.map(fn {key, value} -> {key, ensure_order(value)} end)
