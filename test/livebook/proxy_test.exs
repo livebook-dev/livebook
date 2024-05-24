@@ -78,6 +78,58 @@ defmodule Livebook.ProxyTest do
       assert text_response(put(conn, url), 200) == "used PUT method"
       assert text_response(patch(conn, url), 200) == "used PATCH method"
       assert text_response(delete(conn, url), 200) == "used DELETE method"
+
+      # Generic path also works for single-session apps
+      url = "/apps/#{slug}/proxy/"
+
+      assert text_response(get(conn, url), 200) == "used GET method"
+    end
+
+    test "waits for the session to be executed before attempting the request", %{conn: conn} do
+      slug = Livebook.Utils.random_short_id()
+
+      app_settings = %{
+        Notebook.AppSettings.new()
+        | slug: slug,
+          access_type: :public,
+          auto_shutdown_ms: 5_000
+      }
+
+      notebook = %{proxy_notebook() | app_settings: app_settings}
+
+      Livebook.Apps.subscribe()
+      pid = deploy_notebook_sync(notebook)
+
+      assert_receive {:app_created, %{pid: ^pid, slug: ^slug, sessions: []}}
+
+      # The app is configured with auto shutdown, so the session will
+      # start only once requested. We should wait until it executes
+      # and then proxy the request as usual
+      url = "/apps/#{slug}/proxy/"
+
+      assert text_response(get(conn, url), 200) == "used GET method"
+    end
+
+    test "returns error when requesting generic path for multi-session app", %{conn: conn} do
+      slug = Livebook.Utils.random_short_id()
+
+      app_settings = %{
+        Notebook.AppSettings.new()
+        | slug: slug,
+          access_type: :public,
+          multi_session: true
+      }
+
+      notebook = %{proxy_notebook() | app_settings: app_settings}
+
+      Livebook.Apps.subscribe()
+      pid = deploy_notebook_sync(notebook)
+
+      assert_receive {:app_created, %{pid: ^pid, slug: ^slug, sessions: []}}
+
+      assert_error_sent 400, fn ->
+        get(conn, "/apps/#{slug}/proxy/foo/bar")
+      end
     end
   end
 
