@@ -763,6 +763,8 @@ defprotocol Livebook.Runtime do
           source: atom()
         }
 
+  @type proxy_handler_spec :: {module :: module(), function :: atom(), args :: list()}
+
   @doc """
   Returns relevant information about the runtime.
 
@@ -1103,10 +1105,15 @@ defprotocol Livebook.Runtime do
   def unregister_clients(runtime, client_ids)
 
   @doc """
-  Fetches the running Proxy Handler's pid from runtime.
+  Fetches information about a proxy request handler, if available.
 
-  TODO: document the communication here.
+  When the handler is available, this function returns MFA. In order
+  to handle a connection, the caller should invoke the MFA, appending
+  `conn` to the argument list, where `conn` is a `%Plug.Conn{}` struct
+  for the specific request.
+
+  Once done, the handler MFA should return the final `conn`.
   """
-  @spec fetch_proxy_handler(t(), pid()) :: {:ok, pid()} | {:error, :not_found}
-  def fetch_proxy_handler(runtime, client_pid)
+  @spec fetch_proxy_handler_spec(t()) :: {:ok, proxy_handler_spec()} | {:error, :not_found}
+  def fetch_proxy_handler_spec(runtime)
 end

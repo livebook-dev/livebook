@@ -1,15 +1,39 @@
 defmodule Livebook.Proxy.Server do
   @moduledoc false
+
+  # The entrypoint for delegating `conn` handling to a runtime.
+  #
+  # The `Livebook.Proxy` modules are an implementation detail of the
+  # runtime. `Livebook.Proxy.Server` lives on the Livebook-side and
+  # it delegates request handling to `Livebook.Proxy.Handler`, which
+  # lives in the runtime node. The handler uses a custom plug adapter
+  # that dispatches `%Plug.Conn{}` operations as messages back to the
+  # server.
+  #
+  # Note that the server is not itself a new process, it is whoever
+  # calls `serve/2`.
+
   import Plug.Conn
 
-  def serve(pid, name, %Plug.Conn{} = conn) when is_pid(pid) and is_atom(name) do
-    args = [self(), name, build_client_conn(conn)]
-    {:ok, spawn_pid} = Task.Supervisor.start_child(pid, Livebook.Proxy.Handler, :serve, args)
-    monitor_ref = Process.monitor(spawn_pid)
+  @doc """
+  Handles a request by delegating to a new handler process in the
+  runtime.
+
+  This function blocks until the request handler is done and it returns
+  the final `conn`.
+  """
+  @spec serve(pid(), Plug.Conn.t()) :: Plug.Conn.t()
+  def serve(supervisor_pid, %Plug.Conn{} = conn) when is_pid(supervisor_pid) do
+    args = [self(), build_handler_conn(conn)]
+
+    {:ok, handler_pid} =
+      Task.Supervisor.start_child(supervisor_pid, Livebook.Proxy.Handler, :serve, args)
+
+    monitor_ref = Process.monitor(handler_pid)
     loop(monitor_ref, conn)
   end
 
-  defp build_client_conn(conn) do
+  defp build_handler_conn(conn) do
     %{
       adapter: nil,
       host: conn.host,
@@ -71,8 +95,8 @@ defmodule Livebook.Proxy.Server do
         send(pid, {ref, :ok})
         loop(monitor_ref, conn)
 
-      {:DOWN, ^monitor_ref, :process, _pid, reason} ->
-        {conn, reason}
+      {:DOWN, ^monitor_ref, :process, _pid, _reason} ->
+        conn
     end
   end
 end

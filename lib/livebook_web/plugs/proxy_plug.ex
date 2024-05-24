@@ -1,5 +1,6 @@
 defmodule LivebookWeb.ProxyPlug do
   @behaviour Plug
+
   import Plug.Conn
 
   alias LivebookWeb.NotFoundError
@@ -10,10 +11,9 @@ defmodule LivebookWeb.ProxyPlug do
   @impl true
   def call(%{path_info: ["sessions", id, "proxy" | path_info]} = conn, _opts) do
     session = fetch_session!(id)
-    pid = fetch_proxy_handler!(session)
+    proxy_handler_spec = fetch_proxy_handler_spec!(session)
     conn = prepare_conn(conn, path_info, ["sessions", id, "proxy"])
-    {conn, _} = Livebook.Proxy.Server.serve(pid, Kino.Proxy, conn)
-
+    conn = call_proxy_handler(proxy_handler_spec, conn)
     halt(conn)
   end
 
@@ -25,10 +25,9 @@ defmodule LivebookWeb.ProxyPlug do
     end
 
     session = fetch_session!(id)
-    pid = fetch_proxy_handler!(session)
+    proxy_handler_spec = fetch_proxy_handler_spec!(session)
     conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
-    {conn, _} = Livebook.Proxy.Server.serve(pid, Kino.Proxy, conn)
-
+    conn = call_proxy_handler(proxy_handler_spec, conn)
     halt(conn)
   end
 
@@ -50,8 +49,8 @@ defmodule LivebookWeb.ProxyPlug do
     end
   end
 
-  defp fetch_proxy_handler!(session) do
-    case Livebook.Session.fetch_proxy_handler(session.pid, self()) do
+  defp fetch_proxy_handler_spec!(session) do
+    case Livebook.Session.fetch_proxy_handler_spec(session.pid) do
       {:ok, pid} -> pid
       {:error, _} -> raise NotFoundError, "could not find a kino proxy running"
     end
@@ -59,5 +58,10 @@ defmodule LivebookWeb.ProxyPlug do
 
   defp prepare_conn(conn, path_info, script_name) do
     %{conn | path_info: path_info, script_name: conn.script_name ++ script_name}
+  end
+
+  defp call_proxy_handler(proxy_handler_spec, conn) do
+    {module, function, args} = proxy_handler_spec
+    apply(module, function, args ++ [conn])
   end
 end
