@@ -1,4 +1,11 @@
 defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
+
+# TODO REMOVE BEFORE FLIGHT!!!!!!
+"""
+TODO:
+- add uploaded file in a sidebar "Files/references"
+- validate radio (when user forgot to choose one of options)
+"""
   use LivebookWeb, :live_component
 
   import Ecto.Changeset
@@ -23,11 +30,11 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
   end
 
   defp changeset(attrs \\ %{}) do
-    data = %{name: nil}
-    types = %{name: :string}
+    data = %{name: nil, store_local?: true}
+    types = %{name: :string, store_local?: :boolean}
 
-    cast({data, types}, attrs, [:name])
-    |> validate_required([:name])
+    cast({data, types}, attrs, [:name, :store_local?])
+    |> validate_required([:name, :store_local?])
     |> Livebook.Notebook.validate_file_entry_name(:name)
   end
 
@@ -61,6 +68,14 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
             id="add-file-entry-form-name"
             autocomplete="off"
             phx-debounce="200"
+          />
+          <.radio_field
+            field={f[:storage_place]}
+            options={[
+              {"true", "Store in the notebook files as an attachment"},
+              {"false", "Upload to storage and store link"}
+
+            ]}
           />
         </div>
         <div class="mt-6 flex space-x-3">
@@ -117,10 +132,16 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
         [:ok] =
           consume_uploaded_entries(socket, :file, fn %{}, _entry -> {:ok, :ok} end)
 
-        file_entry = %{name: data.name, type: :attachment}
-        Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-        send(self(), {:file_entry_uploaded, file_entry})
-        {:noreply, socket}
+        if data.store_local? do
+          file_entry = %{name: data.name, type: :attachment}
+
+          Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+          send(self(), {:file_entry_uploaded, file_entry})
+
+          {:noreply, socket}
+        else
+          IO.puts("Imma be stored in a global storage")
+        end
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
