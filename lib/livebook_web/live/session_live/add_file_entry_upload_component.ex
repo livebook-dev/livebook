@@ -1,11 +1,11 @@
 defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
+  # TODO REMOVE BEFORE FLIGHT!!!!!!
+  """
+  TODO:
+  - add uploaded file in a sidebar "Files/references"
+  - validate radio (when user forgot to choose one of options)
+  """
 
-# TODO REMOVE BEFORE FLIGHT!!!!!!
-"""
-TODO:
-- add uploaded file in a sidebar "Files/references"
-- validate radio (when user forgot to choose one of options)
-"""
   use LivebookWeb, :live_component
 
   import Ecto.Changeset
@@ -74,7 +74,6 @@ TODO:
             options={[
               {"true", "Store in the notebook files as an attachment"},
               {"false", "Upload to storage and store link"}
-
             ]}
           />
         </div>
@@ -140,6 +139,7 @@ TODO:
 
           {:noreply, socket}
         else
+          # TODO  
           IO.puts("Imma be stored in a global storage")
         end
 
