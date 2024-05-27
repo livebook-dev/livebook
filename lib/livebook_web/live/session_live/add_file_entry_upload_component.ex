@@ -70,7 +70,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
             phx-debounce="200"
           />
           <.radio_field
-            field={f[:storage_place]}
+            field={f[:store_local?]}
             options={[
               {"true", "Store in the notebook files as an attachment"},
               {"false", "Upload to storage and store link"}
@@ -130,6 +130,9 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
       {:ok, data} ->
         [:ok] =
           consume_uploaded_entries(socket, :file, fn %{}, _entry -> {:ok, :ok} end)
+
+        dbg(data.store_local?)
+        IO.inspect(data.store_local? |> is_boolean(), label: "is bool?")
 
         if data.store_local? do
           file_entry = %{name: data.name, type: :attachment}
