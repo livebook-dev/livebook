@@ -23,7 +23,7 @@ defprotocol Livebook.FileSystem do
   Path has most of the semantics of regular file paths, with the
   following exceptions:
 
-    * path must be be absolute for consistency
+    * path must be absolute for consistency
 
     * directory path must have a trailing slash, whereas regular file
       path must not have a trailing slash. Rationale: certain file
