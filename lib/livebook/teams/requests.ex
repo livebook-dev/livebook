@@ -174,7 +174,8 @@ defmodule Livebook.Teams.Requests do
       mode: deployment_group.mode,
       clustering: deployment_group.clustering,
       zta_provider: deployment_group.zta_provider,
-      zta_key: deployment_group.zta_key
+      zta_key: deployment_group.zta_key,
+      url: deployment_group.url
     }
 
     post("/api/v1/org/deployment-groups", params, team)

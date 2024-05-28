@@ -375,7 +375,8 @@ defmodule Livebook.Hubs.TeamClient do
       agent_keys: agent_keys,
       clustering: nullify(deployment_group.clustering),
       zta_provider: atomize(deployment_group.zta_provider),
-      zta_key: nullify(deployment_group.zta_key)
+      zta_key: nullify(deployment_group.zta_key),
+      url: nullify(deployment_group.url)
     }
   end
 
@@ -391,7 +392,8 @@ defmodule Livebook.Hubs.TeamClient do
       agent_keys: agent_keys,
       clustering: nullify(deployment_group_created.clustering),
       zta_provider: atomize(deployment_group_created.zta_provider),
-      zta_key: nullify(deployment_group_created.zta_key)
+      zta_key: nullify(deployment_group_created.zta_key),
+      url: nullify(deployment_group_created.url)
     }
   end
 
@@ -407,7 +409,8 @@ defmodule Livebook.Hubs.TeamClient do
         agent_keys: agent_keys,
         clustering: atomize(deployment_group_updated.clustering),
         zta_provider: atomize(deployment_group_updated.zta_provider),
-        zta_key: nullify(deployment_group_updated.zta_key)
+        zta_key: nullify(deployment_group_updated.zta_key),
+        url: nullify(deployment_group_updated.url)
     }
   end
 

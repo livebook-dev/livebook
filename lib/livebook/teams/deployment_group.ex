@@ -15,6 +15,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :clustering, Ecto.Enum, values: [:fly_io, :dns]
     field :zta_provider, Ecto.Enum, values: @zta_providers
     field :zta_key, :string
+    field :url, :string
 
     has_many :secrets, Secret
     has_many :agent_keys, AgentKey
@@ -23,7 +24,7 @@ defmodule Livebook.Teams.DeploymentGroup do
   def changeset(deployment_group, attrs \\ %{}) do
     changeset =
       deployment_group
-      |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key])
+      |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key, :url])
       |> validate_required([:name, :mode])
 
     if get_field(changeset, :zta_provider) do
