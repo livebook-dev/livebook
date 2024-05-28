@@ -92,8 +92,9 @@ defmodule LivebookWeb.AppComponents do
   def deployment_group_form_content(assigns) do
     ~H"""
     <div>
-      <div class="flex flex-col">
-        <.text_field label="URL" type="base_url" field={@form[:url]} />
+      <div class="flex flex-col gap-4">
+        <.text_field label="URL" type="base_url" field={@form[:url]}/>
+
         <.select_field
           label="Clustering"
           help={
