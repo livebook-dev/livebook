@@ -93,7 +93,20 @@ defmodule LivebookWeb.AppComponents do
     ~H"""
     <div>
       <div class="flex flex-col gap-4">
-        <.text_field label="URL" type="base_url" field={@form[:url]} />
+        <.text_field
+          label="URL"
+          type="base_url"
+          help={
+            ~S'''
+            If you provide the URL you
+            will host your instances at,
+            Livebook will use it to
+            generate direct links
+            throughout its interface
+            '''
+          }
+          field={@form[:url]}
+        />
 
         <.select_field
           label="Clustering"
