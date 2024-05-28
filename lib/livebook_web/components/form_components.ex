@@ -39,6 +39,7 @@ defmodule LivebookWeb.FormComponents do
     </.field_wrapper>
     """
   end
+
   def text_field(assigns) do
     assigns = assigns_from_field(assigns)
 
