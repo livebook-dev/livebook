@@ -26,6 +26,17 @@ defmodule Livebook.Teams.DeploymentGroup do
       deployment_group
       |> cast(attrs, [:id, :name, :mode, :hub_id, :clustering, :zta_provider, :zta_key, :url])
       |> validate_required([:name, :mode])
+      |> update_change(:url, fn url ->
+        if url do
+          url
+          |> String.trim_leading("http://")
+          |> String.trim_leading("https://")
+          |> String.trim_trailing("/")
+        end
+      end)
+      |> validate_format(:url, ~r/(^[^\/\.\s]+(\.[^\/\.\s]+)+)(\/[^\s]+)?$/,
+        message: "must be a well-formed URL"
+      )
 
     if get_field(changeset, :zta_provider) do
       validate_required(changeset, [:zta_key])
