@@ -50,6 +50,23 @@ defmodule Livebook.Apps.Manager do
     GenServer.cast({:global, @name}, :sync_permanent_apps)
   end
 
+  @doc """
+  Subscribes to manager reports.
+
+  The messages are only sent within the node that the manager runs on.
+
+  ## Messages
+
+    * `{:apps_manager_status, status_entries}` - reports which permanent
+      app specs are running, and which are pending. Note that in some
+      cases the status may be sent, even if the entries do not change
+
+  """
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe() do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps_manager")
+  end
+
   @impl true
   def init({}) do
     Apps.subscribe()
@@ -132,40 +149,45 @@ defmodule Livebook.Apps.Manager do
 
   defp sync_apps(state) do
     permanent_app_specs = Apps.get_permanent_app_specs()
-    state = deploy_missing_apps(state, permanent_app_specs)
-    close_leftover_apps(permanent_app_specs)
+    permanent_apps = Enum.filter(Apps.list_apps(), & &1.permanent)
+
+    {state, up_to_date_app_specs} = deploy_missing_apps(state, permanent_app_specs)
+    close_leftover_apps(permanent_apps, permanent_app_specs)
+
+    broadcast_status(permanent_app_specs, up_to_date_app_specs, permanent_apps)
+
     state
   end
 
   defp deploy_missing_apps(state, permanent_app_specs) do
     for app_spec <- permanent_app_specs,
         not Map.has_key?(state.deployments, app_spec.slug),
-        reduce: state do
-      state ->
+        reduce: {state, []} do
+      {state, up_to_date_app_specs} ->
         case fetch_app(app_spec.slug) do
           {:ok, _state, app} when app.app_spec.version == app_spec.version ->
-            state
+            {state, [app_spec | up_to_date_app_specs]}
 
           {:ok, :reachable, app} ->
             ref = redeploy(app, app_spec)
-            track_deployment(state, app_spec, ref)
+            state = track_deployment(state, app_spec, ref)
+            {state, up_to_date_app_specs}
 
           {:ok, :unreachable, _app} ->
-            state
+            {state, up_to_date_app_specs}
 
           :error ->
             ref = deploy(app_spec)
-            track_deployment(state, app_spec, ref)
+            state = track_deployment(state, app_spec, ref)
+            {state, up_to_date_app_specs}
         end
     end
   end
 
-  defp close_leftover_apps(permanent_app_specs) do
+  defp close_leftover_apps(permanent_apps, permanent_app_specs) do
     permanent_slugs = MapSet.new(permanent_app_specs, & &1.slug)
 
-    for app <- Apps.list_apps(),
-        app.permanent,
-        app.slug not in permanent_slugs do
+    for app <- permanent_apps, app.slug not in permanent_slugs do
       Livebook.App.close_async(app.pid)
     end
   end
@@ -185,6 +207,32 @@ defmodule Livebook.Apps.Manager do
           :error -> :error
         end
     end
+  end
+
+  defp broadcast_status(permanent_app_specs, up_to_date_app_specs, permanent_apps) do
+    pending_app_specs = permanent_app_specs -- up_to_date_app_specs
+
+    running_app_specs = Enum.map(permanent_apps, & &1.app_spec)
+
+    # `up_to_date_app_specs` is the list of current permanent app
+    # specs that are already running. This information is based on
+    # :global and fetched directly from the processes, therefore it
+    # is more recent than the tracker and it may include app spec
+    # versions that the tracker does not know about yet. We combine
+    # this with information from the tracker (`running_app_specs`).
+    # Only one app spec may actually be running for the given slug,
+    # so we deduplicate, prioritizing `up_to_date_app_specs`.
+    running_app_specs = Enum.uniq_by(up_to_date_app_specs ++ running_app_specs, & &1.slug)
+
+    status_entries =
+      Enum.map(running_app_specs, &%{app_spec: &1, running?: true}) ++
+        Enum.map(pending_app_specs, &%{app_spec: &1, running?: false})
+
+    local_broadcast({:apps_manager_status, status_entries})
+  end
+
+  defp local_broadcast(message) do
+    Phoenix.PubSub.direct_broadcast!(node(), Livebook.PubSub, "apps_manager", message)
   end
 
   defp app_definitely_down?(slug) do

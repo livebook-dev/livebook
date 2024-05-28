@@ -104,6 +104,41 @@ defmodule Livebook.Apps.ManagerTest do
     assert :global.whereis_name(Apps.Manager) == pid
   end
 
+  test "sends status events about running app specs" do
+    slug = Livebook.Utils.random_short_id()
+    app_settings = %{Notebook.AppSettings.new() | slug: slug}
+    notebook = %{Notebook.new() | app_settings: app_settings}
+    app_spec = Apps.NotebookAppSpec.new(notebook)
+
+    Apps.Manager.subscribe()
+
+    Apps.set_startup_app_specs([app_spec])
+    Apps.Manager.sync_permanent_apps()
+
+    assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
+    assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: true}]}
+
+    # Version change
+    app_spec_v2 = %{app_spec | version: "2"}
+    Apps.set_startup_app_specs([app_spec_v2])
+    Apps.Manager.sync_permanent_apps()
+
+    assert_receive {:apps_manager_status,
+                    [
+                      %{app_spec: ^app_spec, running?: true},
+                      %{app_spec: ^app_spec_v2, running?: false}
+                    ]}
+
+    assert_receive {:apps_manager_status, [%{app_spec: ^app_spec_v2, running?: true}]}
+
+    # Restart
+    {:ok, app} = Apps.fetch_app(app_spec.slug)
+    Process.exit(app.pid, :kill)
+
+    assert_receive {:apps_manager_status, [%{app_spec: ^app_spec_v2, running?: false}]}
+    assert_receive {:apps_manager_status, [%{app_spec: ^app_spec_v2, running?: true}]}
+  end
+
   defp path_app_spec(tmp_dir, slug) do
     app_path = Path.join(tmp_dir, "app_#{slug}.livemd")
 
