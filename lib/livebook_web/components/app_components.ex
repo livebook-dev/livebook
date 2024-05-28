@@ -93,6 +93,7 @@ defmodule LivebookWeb.AppComponents do
     ~H"""
     <div>
       <div class="flex flex-col">
+        <.text_field label="URL" field={@form[:url]} />
         <.select_field
           label="Clustering"
           help={
