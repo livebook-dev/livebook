@@ -18,6 +18,7 @@ defmodule Livebook.Apps.Manager do
 
   @handle_app_close_debounce_ms 100
   @retry_backoff_base_ms Keyword.fetch!(config, :retry_backoff_base_ms)
+  @scheduled_sync_delay_ms 10_000
 
   @doc """
   Starts a new manager process.
@@ -71,7 +72,11 @@ defmodule Livebook.Apps.Manager do
   def init({}) do
     Apps.subscribe()
 
-    state = %{deployments: %{}, handle_app_close_timer_ref: nil}
+    state = %{
+      deployments: %{},
+      handle_app_close_timer_ref: nil,
+      scheduled_sync_timer_ref: nil
+    }
 
     {:ok, state, {:continue, :after_init}}
   end
@@ -143,6 +148,10 @@ defmodule Livebook.Apps.Manager do
     {:noreply, retry(state, slug)}
   end
 
+  def handle_info(:sync, state) do
+    {:noreply, sync_apps(state)}
+  end
+
   def handle_info(_message, state) do
     {:noreply, state}
   end
@@ -151,35 +160,62 @@ defmodule Livebook.Apps.Manager do
     permanent_app_specs = Apps.get_permanent_app_specs()
     permanent_apps = Enum.filter(Apps.list_apps(), & &1.permanent)
 
-    {state, up_to_date_app_specs} = deploy_missing_apps(state, permanent_app_specs)
+    if ref = state.scheduled_sync_timer_ref do
+      Process.cancel_timer(ref)
+    end
+
+    {state, up_to_date_app_specs, schedule_sync?} =
+      deploy_missing_apps(state, permanent_app_specs)
+
     close_leftover_apps(permanent_apps, permanent_app_specs)
 
     broadcast_status(permanent_app_specs, up_to_date_app_specs, permanent_apps)
 
-    state
+    if schedule_sync? do
+      scheduled_sync_timer_ref = Process.send_after(self(), :sync, @scheduled_sync_delay_ms)
+      %{state | scheduled_sync_timer_ref: scheduled_sync_timer_ref}
+    else
+      state
+    end
   end
 
   defp deploy_missing_apps(state, permanent_app_specs) do
     for app_spec <- permanent_app_specs,
         not Map.has_key?(state.deployments, app_spec.slug),
-        reduce: {state, []} do
-      {state, up_to_date_app_specs} ->
+        reduce: {state, [], false} do
+      {state, up_to_date_app_specs, schedule_sync?} ->
         case fetch_app(app_spec.slug) do
           {:ok, _state, app} when app.app_spec.version == app_spec.version ->
-            {state, [app_spec | up_to_date_app_specs]}
+            {state, [app_spec | up_to_date_app_specs], schedule_sync?}
 
           {:ok, :reachable, app} ->
             ref = redeploy(app, app_spec)
             state = track_deployment(state, app_spec, ref)
-            {state, up_to_date_app_specs}
+            {state, up_to_date_app_specs, schedule_sync?}
 
           {:ok, :unreachable, _app} ->
-            {state, up_to_date_app_specs}
+            # The app is present in the tracker, but not in global,
+            # which means its node is not reachable. There are two
+            # possibilities:
+            #
+            #   1. The other node is actually down. This means we will
+            #      eventually receive :app_closed from the tracker.
+            #
+            #   2. The other node is temporarily disconnected and will
+            #      reconnect. There is no straightforward way to know
+            #      when the app is registered back in :global, so we
+            #      just schedule another sync in the future. Given that
+            #      this scenario is very unlikely, this approach is ok.
+            #      Also note that the other node would likely manage
+            #      to start its own manager and deploy the app, but we
+            #      do the sync just to be sure.
+
+            {state, up_to_date_app_specs, true}
 
           :error ->
             ref = deploy(app_spec)
             state = track_deployment(state, app_spec, ref)
-            {state, up_to_date_app_specs}
+            {state, up_to_date_app_specs, schedule_sync?}
         end
     end
   end
