@@ -21,7 +21,8 @@ defmodule Livebook.Hubs.TeamClient do
     file_systems: [],
     deployment_groups: [],
     app_deployments: [],
-    agents: []
+    agents: [],
+    app_deployment_statuses: nil
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
@@ -145,6 +146,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def init(%Hubs.Team{offline: nil} = team) do
+    Livebook.Apps.Manager.subscribe()
+
     derived_key = Teams.derive_key(team.teams_key)
 
     headers =
@@ -267,6 +270,39 @@ defmodule Livebook.Hubs.TeamClient do
     Logger.debug("Received event #{topic} with data: #{inspect(data)}")
 
     {:noreply, handle_event(topic, data, state)}
+  end
+
+  def handle_info({:apps_manager_status, status_entries}, state) do
+    app_deployment_statuses =
+      for %{
+            app_spec: %Livebook.Apps.TeamsAppSpec{} = app_spec,
+            running?: running?
+          } <- status_entries,
+          app_spec.hub_id == state.hub.id do
+        status = if(running?, do: :available, else: :processing)
+        %{version: app_spec.version, status: status}
+      end
+
+    # The manager can send the status list even if it didn't change,
+    # or it changed for non-teams app spec, so we check to send the
+    # event only when necessary
+    if app_deployment_statuses == state.app_deployment_statuses do
+      {:noreply, state}
+    else
+      # TODO: send this status list to Teams and set the statuses in
+      # the database. Note that app deployments for this deployment
+      # group (this agent), that are not present in this list, we
+      # effectively no longer know about, so we may want to reset
+      # their status.
+
+      # TODO: we want :version to be built on Teams server and just
+      # passed down to Livebook, so that Livebook does not care if
+      # we upsert app deployments or not. With that, we can also
+      # freely send the version with status here, and the server will
+      # recognise it.
+
+      {:noreply, %{state | app_deployment_statuses: app_deployment_statuses}}
+    end
   end
 
   @impl true
