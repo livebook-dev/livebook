@@ -92,7 +92,21 @@ defmodule LivebookWeb.AppComponents do
   def deployment_group_form_content(assigns) do
     ~H"""
     <div>
-      <div class="flex flex-col">
+      <div class="flex flex-col gap-4">
+        <.schemaless_url_field
+          label="URL"
+          help={
+            ~S'''
+            If you provide the URL you
+            will host your instances at,
+            Livebook will use it to
+            generate direct links
+            throughout its interface
+            '''
+          }
+          field={@form[:url]}
+        />
+
         <.select_field
           label="Clustering"
           help={

@@ -63,6 +63,7 @@ message DeploymentGroup {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
+  string url = 9;
 }
 
 message DeploymentGroupCreated {
@@ -73,6 +74,7 @@ message DeploymentGroupCreated {
   string zta_provider = 6;
   string zta_key = 7;
   repeated AgentKey agent_keys = 8;
+  string url = 9;
 }
 
 message DeploymentGroupUpdated {
@@ -83,6 +85,7 @@ message DeploymentGroupUpdated {
   string zta_provider = 5;
   string zta_key = 6;
   repeated AgentKey agent_keys = 7;
+  string url = 8;
 }
 
 message DeploymentGroupDeleted {

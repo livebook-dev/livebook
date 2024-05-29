@@ -40,7 +40,14 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
                 </div>
               <% end %>
             </div>
-            <div class="text-sm mt-1">internal-domain.example.com</div>
+            <.link
+              :if={@deployment_group.url}
+              href={"https://#{@deployment_group.url}"}
+              class="text-sm font-semibold text-blue-600 hover:text-blue-700 mt-1"
+              target="_blank"
+            >
+              <%= @deployment_group.url %>
+            </.link>
           </div>
           <.link
             href={Livebook.Config.teams_url() <> "/orgs/#{@hub.org_id}/deployments/groups/#{@deployment_group.id}"}

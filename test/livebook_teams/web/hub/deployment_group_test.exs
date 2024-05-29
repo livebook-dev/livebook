@@ -19,14 +19,18 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   end
 
   test "creates a deployment group", %{conn: conn, hub: hub} do
-    deployment_group = build(:deployment_group, mode: :offline, hub_id: hub.id)
+    deployment_group =
+      build(:deployment_group, mode: :offline, hub_id: hub.id, url: "example.com")
+
     name = deployment_group.name
+    url = deployment_group.url
 
     attrs = %{
       deployment_group: %{
         name: deployment_group.name,
         value: deployment_group.mode,
-        hub_id: deployment_group.hub_id
+        hub_id: deployment_group.hub_id,
+        url: url
       }
     }
 
@@ -48,7 +52,8 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     |> element("#deployment-group-form")
     |> render_submit(attrs)
 
-    assert_receive {:deployment_group_created, %DeploymentGroup{name: ^name} = deployment_group}
+    assert_receive {:deployment_group_created,
+                    %DeploymentGroup{name: ^name, url: ^url} = deployment_group}
 
     assert_patch(view, "/hub/#{hub.id}")
     assert render(view) =~ "Deployment group added successfully"
@@ -64,6 +69,19 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#deployment-group-form")
            |> render_submit(attrs) =~ "has already been taken"
+
+    invalid_attrs = %{
+      deployment_group: %{
+        name: "other-name",
+        value: deployment_group.mode,
+        hub_id: deployment_group.hub_id,
+        url: "not a valid url"
+      }
+    }
+
+    assert view
+           |> element("#deployment-group-form")
+           |> render_submit(invalid_attrs) =~ "must be a well-formed URL"
   end
 
   test "creates a secret", %{conn: conn, hub: hub} do
