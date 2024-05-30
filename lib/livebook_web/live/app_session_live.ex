@@ -318,6 +318,17 @@ defmodule LivebookWeb.AppSessionLive do
   end
 
   @impl true
+  def handle_call({:get_input_value, input_id}, _from, socket) do
+    reply =
+      case socket.private.data.input_infos do
+        %{^input_id => %{value: value}} -> {:ok, socket.assigns.session.id, value}
+        %{} -> :error
+      end
+
+    {:reply, reply, socket}
+  end
+
+  @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
   end
