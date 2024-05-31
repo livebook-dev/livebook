@@ -159,6 +159,20 @@ message Agent {
   string deployment_group_id = 4;
 }
 
+message AppDeploymentStatusReport {
+  string id = 1;
+  string sha = 2;
+  string revision_id = 3;
+  string slug = 4;
+  string deployment_group_id = 5;
+  string version = 6;
+  string status = 7;
+}
+
+message AppDeploymentReport {
+  repeated AppDeploymentStatusReport app_deployment_statuses = 1;
+}
+
 message Event {
   oneof type {
     SecretCreated secret_created = 1;
