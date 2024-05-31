@@ -34,4 +34,4 @@ IO.puts(
   "[Livebook] starting #{inspect(flame_node_name)} in FLAME mode with parent: #{inspect(parent_pid)}, backend: #{inspect(backend_app)}"
 )
 
-Process.sleep(:infinity)
+System.no_halt(true)
