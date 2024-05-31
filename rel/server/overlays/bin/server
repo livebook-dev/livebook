@@ -7,5 +7,5 @@ if [ -n "${FLAME_PARENT}" ]; then
   epmd -daemon
   elixir ./start_flame.exs
 else
-  PHX_SERVER=true exec ./livebook start
+  exec ./livebook start
 fi
