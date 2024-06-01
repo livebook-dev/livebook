@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -e
 
 cd -P -- "$(dirname -- "$0")"
 

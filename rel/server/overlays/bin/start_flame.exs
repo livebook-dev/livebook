@@ -6,10 +6,11 @@ flame_parent = System.fetch_env!("FLAME_PARENT") |> Base.decode64!() |> :erlang.
   backend: _backend,
   backend_app: backend_app,
   backend_vsn: backend_vsn,
+  node_base: node_base,
   host_env: host_env
 } = flame_parent
 
-flame_node_name = :"#{System.fetch_env!("FLAME_NODE_BASE")}@#{System.fetch_env!(host_env)}"
+flame_node_name = :"#{node_base}@#{System.fetch_env!(host_env)}"
 flame_node_cookie = String.to_atom(System.fetch_env!("LIVEBOOK_COOKIE"))
 
 flame_dep =
