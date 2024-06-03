@@ -255,6 +255,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.AppDeployment{
           id: app_deployment.id,
           title: app_deployment.title,
+          version: app_deployment.version,
           slug: app_deployment.slug,
           sha: app_deployment.sha,
           deployed_by: app_deployment.deployed_by,
@@ -656,9 +657,13 @@ defmodule Livebook.Hubs.TeamClientTest do
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
       # so we need to add it ourselves.
+      {seconds, 0} = NaiveDateTime.to_gregorian_seconds(teams_app_deployment.updated_at)
+
       app_deployment = %{
         app_deployment
         | id: to_string(teams_app_deployment.id),
+          version:
+            "#{teams_app_deployment.id}-#{teams_app_deployment.app_revision.sha}-#{seconds}",
           file: nil,
           deployed_by: teams_app_deployment.app_revision.created_by.name,
           deployed_at: teams_app_deployment.updated_at
@@ -670,6 +675,7 @@ defmodule Livebook.Hubs.TeamClientTest do
         %LivebookProto.AppDeployment{
           id: app_deployment.id,
           title: app_deployment.title,
+          version: app_deployment.version,
           slug: app_deployment.slug,
           sha: app_deployment.sha,
           deployed_by: app_deployment.deployed_by,
