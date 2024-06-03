@@ -6,40 +6,6 @@ defmodule LivebookWeb.FormComponents do
   alias Phoenix.LiveView.JS
 
   @doc """
-  Renders a text input with label and error messages, as well as a "http(s)://" prefix.
-  """
-  attr :id, :any, default: nil
-  attr :name, :any
-  attr :label, :string, default: nil
-  attr :value, :any
-  attr :errors, :list, default: []
-  attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form"
-  attr :help, :string, default: nil
-  attr :class, :string, default: nil
-
-  attr :rest, :global, include: ~w(autocomplete readonly disabled step min max)
-
-  def schemaless_url_field(assigns) do
-    assigns = assigns_from_field(assigns)
-
-    ~H"""
-    <.field_wrapper id={@id} name={@name} label={@label} errors={@errors} help={@help}>
-      <div class="flex flex-row">
-        <div class={[input_classes([]), "flex-1 rounded-e-none border-e-0"]}>http(s)://</div>
-        <input
-          type="text"
-          name={@name}
-          id={@id || @name}
-          value={Phoenix.HTML.Form.normalize_value("text", @value)}
-          class={[input_classes(@errors), "rounded-s-none", @class]}
-          {@rest}
-        />
-      </div>
-    </.field_wrapper>
-    """
-  end
-
-  @doc """
   Renders a text input with label and error messages.
   """
   attr :id, :any, default: nil

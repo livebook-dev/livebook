@@ -20,7 +20,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
 
   test "creates a deployment group", %{conn: conn, hub: hub} do
     deployment_group =
-      build(:deployment_group, mode: :offline, hub_id: hub.id, url: "example.com")
+      build(:deployment_group, mode: :offline, hub_id: hub.id, url: "http://example.com")
 
     name = deployment_group.name
     url = deployment_group.url
@@ -75,13 +75,27 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
         name: "other-name",
         value: deployment_group.mode,
         hub_id: deployment_group.hub_id,
-        url: "not a valid url"
+        url: "http://not a valid url"
       }
     }
 
     assert view
            |> element("#deployment-group-form")
            |> render_submit(invalid_attrs) =~ "must be a well-formed URL"
+
+    invalid_attrs = %{
+      deployment_group: %{
+        name: "other-name",
+        value: deployment_group.mode,
+        hub_id: deployment_group.hub_id,
+        url: "url.without.scheme.com"
+      }
+    }
+
+    assert view
+           |> element("#deployment-group-form")
+           |> render_submit(invalid_attrs) =~
+             "must start with &quot;http://&quot; or &quot;https://&quot;"
   end
 
   test "creates a secret", %{conn: conn, hub: hub} do

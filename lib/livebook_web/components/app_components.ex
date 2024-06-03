@@ -93,7 +93,7 @@ defmodule LivebookWeb.AppComponents do
     ~H"""
     <div>
       <div class="flex flex-col gap-4">
-        <.schemaless_url_field
+        <.text_field
           label="URL"
           help={
             ~S'''

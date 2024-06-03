@@ -2,6 +2,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
   use LivebookWeb, :live_component
 
   alias LivebookWeb.NotFoundError
+  alias Livebook.Teams.DeploymentGroup
 
   @impl true
   def update(assigns, socket) do
@@ -42,11 +43,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </div>
             <.link
               :if={@deployment_group.url}
-              href={"https://#{@deployment_group.url}"}
+              href={@deployment_group.url}
               class="text-sm font-semibold text-blue-600 hover:text-blue-700 mt-1"
               target="_blank"
             >
-              <%= @deployment_group.url %>
+              <%= DeploymentGroup.url_without_scheme(@deployment_group) %>
             </.link>
           </div>
           <.link
