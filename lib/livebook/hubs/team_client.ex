@@ -22,7 +22,7 @@ defmodule Livebook.Hubs.TeamClient do
     deployment_groups: [],
     app_deployments: [],
     agents: [],
-    app_deployment_statuses: []
+    app_deployment_statuses: nil
   ]
 
   @type registry_name :: {:via, Registry, {Livebook.HubsRegistry, String.t()}}
