@@ -104,12 +104,18 @@ defmodule Livebook.Factory do
     content = :crypto.strong_rand_bytes(1024 * 1024)
     md5_hash = :crypto.hash(:md5, content)
     shasum = Base.encode16(md5_hash, case: :lower)
-    deployed_at = NaiveDateTime.utc_now()
+
+    deployed_at =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.truncate(:second)
+
+    {seconds, 0} = NaiveDateTime.to_gregorian_seconds(deployed_at)
 
     %Livebook.Teams.AppDeployment{
       id: "1",
       title: unique_value("MyNotebook-"),
       sha: shasum,
+      version: "1-#{shasum}-#{seconds}",
       slug: slug,
       file: content,
       multi_session: false,
@@ -117,7 +123,7 @@ defmodule Livebook.Factory do
       hub_id: Livebook.Hubs.Personal.id(),
       deployment_group_id: "1",
       deployed_by: "Ada Lovelace",
-      deployed_at: NaiveDateTime.truncate(deployed_at, :second)
+      deployed_at: deployed_at
     }
   end
 
