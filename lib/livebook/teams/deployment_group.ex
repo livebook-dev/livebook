@@ -56,4 +56,12 @@ defmodule Livebook.Teams.DeploymentGroup do
       changeset
     end
   end
+
+  def url_without_scheme(%__MODULE__{url: url} = _deployment_group) do
+    case url do
+      "http://" <> url -> url
+      "https://" <> url -> url
+      url -> url
+    end
+  end
 end
