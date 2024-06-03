@@ -216,7 +216,6 @@ defmodule Livebook.Utils do
       {:ok, uri} -> uri.scheme != nil and uri.host not in [nil, ""]
       {:error, _} -> false
     end
-
   end
 
   @doc """
