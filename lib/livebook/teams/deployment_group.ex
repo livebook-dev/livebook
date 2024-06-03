@@ -28,15 +28,27 @@ defmodule Livebook.Teams.DeploymentGroup do
       |> validate_required([:name, :mode])
       |> update_change(:url, fn url ->
         if url do
-          url
-          |> String.trim_leading("http://")
-          |> String.trim_leading("https://")
-          |> String.trim_trailing("/")
+          String.trim_trailing(url, "/")
         end
       end)
-      |> validate_format(:url, ~r/(^[^\/\.\s]+(\.[^\/\.\s]+)+)(\/[^\s]+)?$/,
-        message: "must be a well-formed URL"
-      )
+      |> validate_change(:url, fn :url, url ->
+        case URI.new(url) do
+          {:ok, uri} ->
+            cond do
+              uri.scheme not in ["http", "https"] ->
+                [url: ~s(must start with "http://" or "https://")]
+
+              uri.host in ["", nil] ->
+                [url: "must be a well-formed URL"]
+
+              true ->
+                []
+            end
+
+          {:error, _} ->
+            [url: "must be a well-formed URL"]
+        end
+      end)
 
     if get_field(changeset, :zta_provider) do
       validate_required(changeset, [:zta_key])
