@@ -95,9 +95,7 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
     assert view
            |> element("#deployment-group-form")
            |> render_submit(invalid_attrs) =~
-             ~s(must start with "http://" or "https://")
-             |> Phoenix.HTML.html_escape()
-             |> Phoenix.HTML.safe_to_string()
+             "must start with &quot;http://&quot; or &quot;https://&quot;"
   end
 
   test "creates a secret", %{conn: conn, hub: hub} do
