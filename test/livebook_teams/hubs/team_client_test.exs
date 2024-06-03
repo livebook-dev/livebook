@@ -657,7 +657,6 @@ defmodule Livebook.Hubs.TeamClientTest do
       # Since the app deployment struct generation is from Livebook side,
       # we don't have yet the information about who deployed the app,
       # so we need to add it ourselves.
-
       app_deployment = %{
         app_deployment
         | id: to_string(teams_app_deployment.id),
