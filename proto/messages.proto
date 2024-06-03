@@ -121,7 +121,7 @@ message AgentConnected {
 message AppDeployment {
   string id = 1;
   string title = 2;
-  string sha = 3 [deprecated = true];
+  string sha = 3;
   string revision_id = 4;
   string slug = 5;
   string deployment_group_id = 6;

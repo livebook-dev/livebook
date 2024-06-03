@@ -3,7 +3,7 @@ defmodule LivebookProto.AppDeployment do
 
   field :id, 1, type: :string
   field :title, 2, type: :string
-  field :sha, 3, type: :string, deprecated: true
+  field :sha, 3, type: :string
   field :revision_id, 4, type: :string, json_name: "revisionId"
   field :slug, 5, type: :string
   field :deployment_group_id, 6, type: :string, json_name: "deploymentGroupId"
