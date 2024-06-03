@@ -454,6 +454,7 @@ defmodule Livebook.Hubs.TeamClient do
     %Teams.AppDeployment{
       id: app_deployment.id,
       slug: app_deployment.slug,
+      version: app_deployment.version,
       sha: app_deployment.sha,
       title: app_deployment.title,
       multi_session: app_deployment.multi_session,

@@ -262,15 +262,11 @@ defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Team do
   def deployment_groups(team), do: TeamClient.get_deployment_groups(team.id)
 
   def get_app_specs(team) do
-    app_deployments = TeamClient.get_agent_app_deployments(team.id)
-
-    for app_deployment <- app_deployments do
-      {seconds, _} = NaiveDateTime.to_gregorian_seconds(app_deployment.deployed_at)
-
+    for app_deployment <- TeamClient.get_agent_app_deployments(team.id) do
       %Livebook.Apps.TeamsAppSpec{
         slug: app_deployment.slug,
-        version: "#{app_deployment.id}-#{seconds}-#{app_deployment.sha}",
-        hub_id: team.id,
+        version: app_deployment.version,
+        hub_id: app_deployment.hub_id,
         app_deployment_id: app_deployment.id
       }
     end

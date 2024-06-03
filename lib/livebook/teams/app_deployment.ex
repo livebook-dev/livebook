@@ -7,6 +7,7 @@ defmodule Livebook.Teams.AppDeployment do
   @type t :: %__MODULE__{
           id: String.t() | nil,
           slug: String.t() | nil,
+          version: String.t() | nil,
           sha: String.t() | nil,
           title: String.t() | nil,
           multi_session: boolean(),
@@ -23,6 +24,7 @@ defmodule Livebook.Teams.AppDeployment do
   @primary_key {:id, :string, autogenerate: false}
   embedded_schema do
     field :slug, :string
+    field :version, :string
     field :sha, :string
     field :title, :string
     field :multi_session, :boolean
