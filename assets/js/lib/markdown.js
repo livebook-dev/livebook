@@ -83,7 +83,14 @@ class Markdown {
         .use(rehypeKatex)
         .use(rehypeMermaid)
         .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
-        .use(rehypeStringify)
+        .use(rehypeStringify, {
+          // Mermaid allows HTML tags, such as <br /> in diagram labels.
+          // We parse the SVG earlier, then stringify it, closeEmptyElements
+          // makes sure we emit <br /> as a self-closing tag, rather than
+          // <br></br> (which the browser would interpret as two breaks).
+          // See https://github.com/syntax-tree/hast-util-to-html/blob/9d7a2f7d63ec2d11b3ae5a5e4201181fdeedf6ea/lib/handle/element.js#L66-L69
+          closeEmptyElements: true,
+        })
         .process(this.content)
         .then((file) => String(file))
         .catch((error) => {
