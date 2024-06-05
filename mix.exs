@@ -111,7 +111,7 @@ defmodule Livebook.MixProject do
       {:earmark_parser, "~> 1.4"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
-      {:aws_credentials, "~> 0.2.0", runtime: false},
+      {:aws_credentials, "~> 0.3.0", runtime: false},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.12.0"},
@@ -207,7 +207,7 @@ defmodule Livebook.MixProject do
       extra_section: "Guides",
       extras: extras(),
       filter_modules: fn mod, _ -> mod in [Livebook] end,
-      assets: Path.expand("./docs/images"),
+      assets: %{Path.expand("./docs/images") => "images"},
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),

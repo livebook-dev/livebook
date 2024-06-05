@@ -8,7 +8,7 @@ Livebook file storages are used to store notebooks and their files.
 
 Whenever you add (update or detach) a file storage to your organization hub, Livebook Teams will synchronize that with the Livebook of every member of your organization.
 
-![](assets/add_shared_file_storage.png)
+![](images/add_shared_file_storage.png)
 
 ## How it works
 
