@@ -775,7 +775,10 @@ defmodule LivebookWeb.SessionLive.Render do
             class="flex flex-nowrap items-baseline py-1 pl-2 -ml-2 pr-1 hover:bg-gray-100 group rounded-lg"
           >
             <.remix_icon icon="circle-fill" class="mr-2 text-xs text-blue-500" />
-            <div class="flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis	overflow-hidden group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all">
+            <div class={[
+              "flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
+              "group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all"
+            ]}>
               <%= node %>
             </div>
             <span class="tooltip left" data-tooltip="Disconnect">
