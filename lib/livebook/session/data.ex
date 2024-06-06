@@ -28,6 +28,7 @@ defmodule Livebook.Session.Data do
     :bin_entries,
     :runtime,
     :runtime_transient_state,
+    :runtime_connected_nodes,
     :smart_cell_definitions,
     :clients_map,
     :users_map,
@@ -55,6 +56,7 @@ defmodule Livebook.Session.Data do
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t(),
           runtime_transient_state: Runtime.transient_state(),
+          runtime_connected_nodes: list(node()),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
@@ -214,6 +216,7 @@ defmodule Livebook.Session.Data do
           | {:set_input_value, client_id(), input_id(), value :: term()}
           | {:set_runtime, client_id(), Runtime.t()}
           | {:set_runtime_transient_state, client_id(), Runtime.transient_state()}
+          | {:set_runtime_connected_nodes, client_id(), list(node())}
           | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
@@ -303,6 +306,7 @@ defmodule Livebook.Session.Data do
       bin_entries: [],
       runtime: default_runtime,
       runtime_transient_state: %{},
+      runtime_connected_nodes: [],
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
@@ -868,6 +872,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set!(runtime_transient_state: transient_state)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_runtime_connected_nodes, _client_id, nodes}) do
+    data
+    |> with_actions()
+    |> set_runtime_connected_nodes(nodes)
     |> wrap_ok()
   end
 
@@ -1955,7 +1966,13 @@ defmodule Livebook.Session.Data do
   end
 
   defp set_runtime(data_actions, prev_data, runtime) do
-    {data, _} = data_actions = set!(data_actions, runtime: runtime, smart_cell_definitions: [])
+    {data, _} =
+      data_actions =
+      set!(data_actions,
+        runtime: runtime,
+        runtime_connected_nodes: [],
+        smart_cell_definitions: []
+      )
 
     if not Runtime.connected?(prev_data.runtime) and Runtime.connected?(data.runtime) do
       data_actions
@@ -2004,6 +2021,12 @@ defmodule Livebook.Session.Data do
     else
       data_actions
     end
+  end
+
+  defp set_runtime_connected_nodes(data_actions, nodes) do
+    data_actions
+    |> set!(runtime_connected_nodes: nodes)
+    |> maybe_start_smart_cells()
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

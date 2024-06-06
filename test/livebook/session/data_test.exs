@@ -3836,6 +3836,23 @@ defmodule Livebook.Session.DataTest do
 
       assert new_data.section_infos["setup-section"].evaluation_queue == MapSet.new([])
     end
+
+    test "clears runtime-related state" do
+      data =
+        data_after_operations!([
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:set_runtime_connected_nodes, @cid, [:node@host]}
+        ])
+
+      runtime = connected_noop_runtime()
+      operation = {:set_runtime, @cid, runtime}
+
+      assert {:ok,
+              %{
+                smart_cell_definitions: [],
+                runtime_connected_nodes: []
+              }, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :set_runtime_transient_state" do

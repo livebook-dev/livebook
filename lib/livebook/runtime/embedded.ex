@@ -175,6 +175,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.fetch_proxy_handler_spec(runtime.server_pid)
   end
 
+  def disconnect_node(runtime, node) do
+    RuntimeServer.disconnect_node(runtime.server_pid, node)
+  end
+
   defp config() do
     Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end

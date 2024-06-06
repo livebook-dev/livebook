@@ -18,7 +18,12 @@ defmodule LivebookWeb.SessionLive.Render do
       data-p-global-status={hook_prop(elem(@data_view.global_status, 0))}
       data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
     >
-      <.sidebar app={@app} session={@session} live_action={@live_action} current_user={@current_user} />
+      <.sidebar
+        session={@session}
+        live_action={@live_action}
+        current_user={@current_user}
+        runtime_connected_nodes={@data_view.runtime_connected_nodes}
+      />
       <.side_panel app={@app} session={@session} data_view={@data_view} client_id={@client_id} />
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
@@ -333,11 +338,21 @@ defmodule LivebookWeb.SessionLive.Render do
         button_attrs={["data-el-clients-list-toggle": true]}
       />
 
-      <.button_item
-        icon="cpu-line"
-        label="Runtime settings (sr)"
-        button_attrs={["data-el-runtime-info-toggle": true]}
-      />
+      <div class="relative">
+        <.button_item
+          icon="cpu-line"
+          label="Runtime settings (sr)"
+          button_attrs={["data-el-runtime-info-toggle": true]}
+        />
+        <div
+          :if={@runtime_connected_nodes != []}
+          data-el-runtime-indicator
+          class={[
+            "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
+            "bg-blue-500"
+          ]}
+        />
+      </div>
 
       <%!-- Hub functionality --%>
 
@@ -626,7 +641,7 @@ defmodule LivebookWeb.SessionLive.Render do
           </.icon_button>
         </span>
       </div>
-      <div class="flex flex-col mt-2 space-y-4">
+      <div class="flex flex-col mt-2">
         <div class="flex flex-col space-y-3">
           <.labeled_text
             :for={{label, value} <- Runtime.describe(@data_view.runtime)}
@@ -636,7 +651,7 @@ defmodule LivebookWeb.SessionLive.Render do
             <%= value %>
           </.labeled_text>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="mt-4 grid grid-cols-2 gap-2">
           <%= if Runtime.connected?(@data_view.runtime) do %>
             <.button phx-click="reconnect_runtime">
               <.remix_icon icon="wireless-charging-line" />
@@ -651,21 +666,6 @@ defmodule LivebookWeb.SessionLive.Render do
           <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/runtime"}>
             Configure
           </.button>
-        </div>
-
-        <div class="flex flex-col pt-6 space-y-2">
-          <%= if uses_memory?(@session.memory_usage) do %>
-            <.memory_info memory_usage={@session.memory_usage} />
-          <% else %>
-            <div class="text-sm text-gray-800 flex flex-col">
-              <span class="w-full uppercase font-semibold text-gray-500">Memory</span>
-              <p class="py-1">
-                <%= format_bytes(@session.memory_usage.system.free) %> available out of <%= format_bytes(
-                  @session.memory_usage.system.total
-                ) %>
-              </p>
-            </div>
-          <% end %>
 
           <.button
             :if={Runtime.connected?(@data_view.runtime)}
@@ -673,27 +673,50 @@ defmodule LivebookWeb.SessionLive.Render do
             outlined
             type="button"
             phx-click="disconnect_runtime"
+            class="col-span-2"
           >
             Disconnect
           </.button>
         </div>
+
+        <.memory_usage_info memory_usage={@session.memory_usage} />
+
+        <.runtime_connected_nodes_info runtime_connected_nodes={@data_view.runtime_connected_nodes} />
       </div>
     </div>
     """
   end
 
-  defp memory_info(assigns) do
-    assigns = assign(assigns, :runtime_memory, runtime_memory(assigns.memory_usage))
-
+  defp memory_usage_info(assigns) do
     ~H"""
-    <div class="flex flex-col justify-center">
-      <div class="mb-1 text-sm text-gray-800 flex flex-row justify-between">
-        <span class="text-gray-500 font-semibold uppercase">Memory</span>
-        <span class="text-right">
+    <div class="mt-8 flex flex-col gap-2">
+      <div class="text-sm text-gray-800 flex flex-row justify-between">
+        <span class="text-gray-500 font-semibold uppercase">
+          Memory
+        </span>
+        <span :if={uses_memory?(@memory_usage)}>
           <%= format_bytes(@memory_usage.system.free) %> available
         </span>
       </div>
-      <div class="w-full h-8 flex flex-row py-1 gap-0.5">
+      <%= if uses_memory?(@memory_usage) do %>
+        <.runtime_memory_info memory_usage={@memory_usage} />
+      <% else %>
+        <p class="text-sm text-gray-800">
+          <%= format_bytes(@memory_usage.system.free) %> available out of <%= format_bytes(
+            @memory_usage.system.total
+          ) %>
+        </p>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp runtime_memory_info(assigns) do
+    assigns = assign(assigns, :runtime_memory, runtime_memory(assigns.memory_usage))
+
+    ~H"""
+    <div class="flex flex-col gap-2">
+      <div class="w-full flex flex-row gap-0.5">
         <div
           :for={{type, memory} <- @runtime_memory}
           class={["h-6", memory_color(type)]}
@@ -701,15 +724,15 @@ defmodule LivebookWeb.SessionLive.Render do
         >
         </div>
       </div>
-      <div class="flex flex-col py-1">
+      <div class="flex flex-col">
         <div :for={{type, memory} <- @runtime_memory} class="flex flex-row items-center">
           <span class={["w-4 h-4 mr-2 rounded", memory_color(type)]}></span>
           <span class="capitalize text-gray-700"><%= type %></span>
           <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
         </div>
-        <div class="flex rounded justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
-          Total: <%= format_bytes(@memory_usage.runtime.total) %>
-        </div>
+      </div>
+      <div class="flex rounded justify-center py-0.5 text-sm text-gray-800 bg-gray-200">
+        Total: <%= format_bytes(@memory_usage.runtime.total) %>
       </div>
     </div>
     """
@@ -733,6 +756,41 @@ defmodule LivebookWeb.SessionLive.Render do
          value: bytes
        }}
     end)
+  end
+
+  defp runtime_connected_nodes_info(assigns) do
+    ~H"""
+    <div class="mt-8 flex flex-col gap-2">
+      <span class="text-sm text-gray-500 font-semibold uppercase">
+        Connected nodes
+      </span>
+      <%= if @runtime_connected_nodes == [] do %>
+        <div class="text-sm text-gray-800 flex flex-col">
+          No connected nodes
+        </div>
+      <% else %>
+        <div class="flex flex-col">
+          <div
+            :for={node <- @runtime_connected_nodes}
+            class="flex flex-nowrap items-baseline py-1 pl-2 -ml-2 pr-1 hover:bg-gray-100 group rounded-lg"
+          >
+            <.remix_icon icon="circle-fill" class="mr-2 text-xs text-blue-500" />
+            <div class={[
+              "flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis overflow-hidden",
+              "group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all"
+            ]}>
+              <%= node %>
+            </div>
+            <span class="tooltip left" data-tooltip="Disconnect">
+              <.icon_button phx-click="runtime_disconnect_node" phx-value-node={node} small>
+                <.remix_icon icon="close-line" />
+              </.icon_button>
+            </span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    """
   end
 
   defp section_status(%{status: :evaluating} = assigns) do

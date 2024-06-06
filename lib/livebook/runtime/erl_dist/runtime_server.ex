@@ -328,6 +328,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def disconnect_node(pid, node) do
+    GenServer.cast(pid, {:disconnect_node, node})
+  end
+
   @doc """
   Stops the runtime server.
 
@@ -362,10 +366,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
-       smart_cell_definitions: nil,
+       smart_cell_definitions: [],
        smart_cell_definitions_module:
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
+       connected_nodes: [],
        memory_timer_ref: nil,
        last_evaluator: nil,
        base_env_path:
@@ -408,7 +413,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_info({:evaluation_finished, locator}, state) do
     {:noreply,
      state
-     |> report_smart_cell_definitions()
+     |> report_environment()
      |> report_transient_state()
      |> scan_binding_after_evaluation(locator)}
   end
@@ -480,7 +485,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     Process.monitor(owner)
 
     state = %{state | owner: owner, runtime_broadcast_to: opts[:runtime_broadcast_to]}
-    state = report_smart_cell_definitions(state)
+    state = report_environment(state)
     report_memory_usage(state)
 
     {:ok, smart_cell_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
@@ -710,6 +715,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_cast({:disconnect_node, node}, state) do
+    Node.disconnect(node)
+    {:noreply, report_connected_nodes(state)}
+  end
+
   @impl true
   def handle_call({:read_file, path}, {from_pid, _}, state) do
     # Delegate reading to a separate task and let the caller
@@ -817,6 +827,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     send(state.owner, {:runtime_memory_usage, Evaluator.memory()})
   end
 
+  defp report_environment(state) do
+    state
+    |> report_smart_cell_definitions()
+    |> report_connected_nodes()
+  end
+
   defp report_smart_cell_definitions(state) do
     smart_cell_definitions = get_smart_cell_definitions(state.smart_cell_definitions_module)
 
@@ -834,6 +850,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       end
 
       %{state | smart_cell_definitions: smart_cell_definitions}
+    end
+  end
+
+  defp report_connected_nodes(state) do
+    owner_node = node(state.owner)
+    nodes = Node.list(:connected) |> List.delete(owner_node) |> Enum.sort()
+
+    if nodes == state.connected_nodes do
+      state
+    else
+      send(state.owner, {:runtime_connected_nodes, nodes})
+
+      %{state | connected_nodes: nodes}
     end
   end
 
