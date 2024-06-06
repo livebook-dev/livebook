@@ -111,15 +111,15 @@ defmodule Livebook.TestHelpers do
         # This test uses the Embedded runtime, so we can target the
         # process by name
         Process.register(self(), unquote(name))
-        receive do: (:stop -> :ok)
+        receive do: (:finish -> :ok)
       end
       |> Macro.to_string()
 
-    ack_fun = fn ->
-      send(Process.whereis(name), :pong)
+    continue_fun = fn ->
+      send(Process.whereis(name), :finish)
     end
 
-    {code, ack_fun}
+    {code, continue_fun}
   end
 
   @doc """
