@@ -539,9 +539,11 @@ defmodule LivebookWeb.CoreComponents do
       <span class="text-sm text-gray-500">
         <%= @label %>
       </span>
-      <span class={
-        "text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"
-      }>
+      <span class={[
+        "text-gray-800 text-sm font-semibold",
+        @one_line &&
+          "whitespace-nowrap overflow-hidden text-ellipsis hover:text-clip hover:overflow-auto hover:tiny-scrollbar"
+      ]}>
         <%= render_slot(@inner_block) %>
       </span>
     </div>

@@ -208,4 +208,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   def fetch_proxy_handler_spec(runtime) do
     RuntimeServer.fetch_proxy_handler_spec(runtime.server_pid)
   end
+
+  def disconnect_node(runtime, node) do
+    RuntimeServer.disconnect_node(runtime.server_pid, node)
+  end
 end

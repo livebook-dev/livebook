@@ -18,7 +18,12 @@ defmodule LivebookWeb.SessionLive.Render do
       data-p-global-status={hook_prop(elem(@data_view.global_status, 0))}
       data-p-autofocus-cell-id={hook_prop(@autofocus_cell_id)}
     >
-      <.sidebar app={@app} session={@session} live_action={@live_action} current_user={@current_user} />
+      <.sidebar
+        session={@session}
+        live_action={@live_action}
+        current_user={@current_user}
+        runtime_connected_nodes={@data_view.runtime_connected_nodes}
+      />
       <.side_panel app={@app} session={@session} data_view={@data_view} client_id={@client_id} />
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
@@ -333,11 +338,21 @@ defmodule LivebookWeb.SessionLive.Render do
         button_attrs={["data-el-clients-list-toggle": true]}
       />
 
-      <.button_item
-        icon="cpu-line"
-        label="Runtime settings (sr)"
-        button_attrs={["data-el-runtime-info-toggle": true]}
-      />
+      <div class="relative">
+        <.button_item
+          icon="cpu-line"
+          label="Runtime settings (sr)"
+          button_attrs={["data-el-runtime-info-toggle": true]}
+        />
+        <div
+          :if={@runtime_connected_nodes != []}
+          data-el-runtime-indicator
+          class={[
+            "absolute w-[12px] h-[12px] border-gray-900 border-2 rounded-full right-1.5 top-1.5 pointer-events-none",
+            "bg-blue-500"
+          ]}
+        />
+      </div>
 
       <%!-- Hub functionality --%>
 
@@ -651,6 +666,17 @@ defmodule LivebookWeb.SessionLive.Render do
           <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/runtime"}>
             Configure
           </.button>
+
+          <.button
+            :if={Runtime.connected?(@data_view.runtime)}
+            color="red"
+            outlined
+            type="button"
+            phx-click="disconnect_runtime"
+            class="col-span-2"
+          >
+            Disconnect
+          </.button>
         </div>
 
         <div class="flex flex-col pt-6 space-y-2">
@@ -666,16 +692,32 @@ defmodule LivebookWeb.SessionLive.Render do
               </p>
             </div>
           <% end %>
+        </div>
 
-          <.button
-            :if={Runtime.connected?(@data_view.runtime)}
-            color="red"
-            outlined
-            type="button"
-            phx-click="disconnect_runtime"
-          >
-            Disconnect
-          </.button>
+        <div class="flex flex-col pt-6 gap-2">
+          <span class="text-sm text-gray-500 font-semibold uppercase">Connected nodes</span>
+          <div class="flex flex-col">
+            <div
+              :if={@data_view.runtime_connected_nodes == []}
+              class="text-sm text-gray-800 flex flex-col"
+            >
+              No connected nodes
+            </div>
+            <div
+              :for={node <- @data_view.runtime_connected_nodes}
+              class="flex flex-nowrap items-baseline py-1 pl-2 -ml-2 pr-1 hover:bg-gray-100 group rounded-lg"
+            >
+              <.remix_icon icon="circle-fill" class="mr-2 text-xs text-blue-500" />
+              <div class="flex-grow text-sm text-gray-700 text-medium whitespace-nowrap text-ellipsis	overflow-hidden group-hover:overflow-visible group-hover:whitespace-normal group-hover:break-all">
+                <%= node %>
+              </div>
+              <span class="tooltip left" data-tooltip="Disconnect">
+                <.icon_button phx-click="runtime_disconnect_node" phx-value-node={node} small>
+                  <.remix_icon icon="close-line" />
+                </.icon_button>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -930,6 +930,32 @@ defmodule LivebookWeb.SessionLiveTest do
       assert page =~ "Reconnect"
       assert page =~ "Disconnect"
     end
+
+    test "disconnecting a connected node", %{conn: conn, session: session} do
+      {:ok, runtime} = Livebook.Runtime.NoopRuntime.new(self()) |> Livebook.Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+
+      Session.subscribe(session.id)
+
+      assert render(view) =~ "No connected nodes"
+
+      # Mimic the runtime reporting a connected node
+      node = :node@host
+      send(session.pid, {:runtime_connected_nodes, [node]})
+
+      assert_receive {:operation, {:set_runtime_connected_nodes, _pid, _nodes}}
+
+      refute render(view) =~ "No connected nodes"
+      assert render(view) =~ "#{node}"
+
+      view
+      |> element(~s{button[phx-click="runtime_disconnect_node"]})
+      |> render_click()
+
+      assert_receive {:runtime_trace, :disconnect_node, [^node]}
+    end
   end
 
   describe "persistence settings" do

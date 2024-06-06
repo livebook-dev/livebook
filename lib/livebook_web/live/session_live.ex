@@ -578,6 +578,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("runtime_disconnect_node", %{"node" => node}, socket) do
+    node = Enum.find(socket.private.data.runtime_connected_nodes, &(Atom.to_string(&1) == node))
+    runtime = socket.private.data.runtime
+
+    if node && Runtime.connected?(runtime) do
+      Runtime.disconnect_node(runtime, node)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("deploy_app", _, socket) do
     data = socket.private.data
     app_settings = data.notebook.app_settings
@@ -1778,6 +1789,7 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
+      runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
       smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
       example_snippet_definitions:
         data.runtime

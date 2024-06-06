@@ -1735,6 +1735,11 @@ defmodule Livebook.Session do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
   end
 
+  def handle_info({:runtime_connected_nodes, nodes}, state) do
+    operation = {:set_runtime_connected_nodes, @client_id, nodes}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info({:runtime_smart_cell_definitions, definitions}, state) do
     operation = {:set_smart_cell_definitions, @client_id, definitions}
     {:noreply, handle_operation(state, operation)}

@@ -765,6 +765,17 @@ defprotocol Livebook.Runtime do
 
   @type proxy_handler_spec :: {module :: module(), function :: atom(), args :: list()}
 
+  @typedoc """
+  An information about Elixir nodes that the runtime is connected to.
+
+  Whenever the node list change, the runtime should send an updated
+  list as:
+
+    * `{:runtime_connected_nodes, connected_nodes()}`
+
+  """
+  @type connected_nodes :: list(node())
+
   @doc """
   Returns relevant information about the runtime.
 
@@ -1116,4 +1127,13 @@ defprotocol Livebook.Runtime do
   """
   @spec fetch_proxy_handler_spec(t()) :: {:ok, proxy_handler_spec()} | {:error, :not_found}
   def fetch_proxy_handler_spec(runtime)
+
+  @doc """
+  Asks the runtime to disconnect from the given connected node.
+
+  The node should be one of `connected_nodes()` reported by the runtime
+  earlier.
+  """
+  @spec disconnect_node(t(), node()) :: :ok
+  def disconnect_node(runtime, node)
 end
