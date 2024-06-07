@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+cd -P -- "$(dirname -- "$0")"
+
+if [ -n "${FLAME_PARENT}" ]; then
+  epmd -daemon
+  elixir ./start_flame.exs
+else
+  exec ./livebook start
+fi
