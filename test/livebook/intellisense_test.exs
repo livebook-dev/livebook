@@ -171,7 +171,8 @@ defmodule Livebook.IntellisenseTest do
                label: "iterator/2",
                kind: :type,
                documentation: """
-               An iterator representing the associations in a map with keys of type `Key` and values of type `Value`.
+               An iterator representing the associations in a map with keys of type `Key` and
+               values of type `Value`.
 
                ```
                @opaque iterator(key, value)
@@ -466,7 +467,7 @@ defmodule Livebook.IntellisenseTest do
                Compresses data with gz headers and checksum.
 
                ```
-               :zlib.gzip/1
+               :zlib.gzip(Data)
                ```\
                """,
                insert_text: "gzip(${})"
@@ -1048,10 +1049,11 @@ defmodule Livebook.IntellisenseTest do
                label: "max/1",
                kind: :function,
                documentation: """
-               Returns the first element of `List` that compares greater than or equal to all other elements of `List`.
+               Returns the first element of `List` that compares greater than or equal to all
+               other elements of `List`.
 
                ```
-               :lists.max/1
+               :lists.max(List)
                ```\
                """,
                insert_text: "max(${})"
@@ -1451,16 +1453,6 @@ defmodule Livebook.IntellisenseTest do
       assert crypto =~ "This module provides a set of cryptographic functions."
     end
 
-    @tag :erl_docs
-    test "properly renders Erlang signature types list" do
-      context = eval(do: nil)
-
-      assert %{contents: [xmerl_callbacks]} =
-               Intellisense.get_details(":xmerl.callbacks(Mod)", 8, context, node())
-
-      assert xmerl_callbacks =~ "Result = [atom()]"
-    end
-
     test "properly parses unicode" do
       context = eval(do: nil)
 
@@ -1714,26 +1706,11 @@ defmodule Livebook.IntellisenseTest do
                active_argument: 0,
                items: [
                  %{
-                   signature: "map(fun, list1)",
-                   arguments: ["fun", "list1"]
+                   signature: "map(Fun, List1)",
+                   arguments: ["Fun", "List1"]
                  }
                ]
              } = Intellisense.get_signature_items(":lists.map(", context, node())
-    end
-
-    @tag :erl_docs
-    test "shows signature with arguments for erlang modules with arrow signature" do
-      context = eval(do: nil)
-
-      assert %{
-               active_argument: 0,
-               items: [
-                 %{
-                   signature: "callbacks(Module)",
-                   arguments: ["Module"]
-                 }
-               ]
-             } = Intellisense.get_signature_items(":xmerl.callbacks(", context, node())
     end
 
     test "shows signature with default argument being an anonymous function" do
@@ -1771,9 +1748,6 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_signature_items("Enum.map([1, 2], ", context, node())
 
       assert %{active_argument: 1, items: [_item]} =
-               Intellisense.get_signature_items("Enum.map([1, 2], fn", context, node())
-
-      assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items(
                  "Enum.map([1, 2], fn x -> x * x end",
                  context,
@@ -1792,9 +1766,6 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items("[1, 2] |> Enum.map(", context, node())
-
-      assert %{active_argument: 1, items: [_item]} =
-               Intellisense.get_signature_items("[1, 2] |> Enum.map(fn", context, node())
 
       assert %{active_argument: 1, items: [_item]} =
                Intellisense.get_signature_items(

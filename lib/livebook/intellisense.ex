@@ -73,7 +73,7 @@ defmodule Livebook.Intellisense do
 
       %{code: formatted, code_markers: []}
     rescue
-      error ->
+      error in [SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
         code_marker = %{line: error.line, description: error.description, severity: :error}
         %{code: nil, code_markers: [code_marker]}
     end
