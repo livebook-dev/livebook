@@ -372,6 +372,18 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {result, state}
   end
 
+  defp io_request(:livebook_get_beam_paths, state) do
+    result =
+      with ebin_path when is_binary(ebin_path) <- state.ebin_path,
+           :ok <- File.mkdir_p(ebin_path) do
+        {:ok, [state.ebin_path]}
+      else
+        _ -> {:error, :not_available}
+      end
+
+    {result, state}
+  end
+
   defp io_request({:livebook_monitor_clients, pid}, state) do
     client_ids = Evaluator.ClientTracker.monitor_clients(state.client_tracker, pid)
     {{:ok, client_ids}, state}
