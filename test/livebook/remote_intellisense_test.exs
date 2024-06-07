@@ -3,7 +3,6 @@ defmodule Livebook.RemoteIntellisenseTest do
   alias Livebook.Intellisense
 
   @moduletag :with_epmd
-  @tmp_dir "tmp/test/remote_intellisense"
 
   # Returns intellisense context resulting from evaluating
   # the given block of code in a fresh context.
@@ -22,43 +21,52 @@ defmodule Livebook.RemoteIntellisenseTest do
   end
 
   setup_all do
-    {:ok, _pid, node} =
-      :peer.start(%{
-        name: :remote_runtime,
-        args: [~c"-setcookie", Atom.to_charlist(Node.get_cookie())],
-        wait_boot: 30_000
+    # We use the standalone runtime to mimic a remote node. Note that
+    # in the past we used :peer.start, but it was often failing on CI
+    # (the start was timing out)
+
+    {:ok, runtime} = Livebook.Runtime.ElixirStandalone.new() |> Livebook.Runtime.connect()
+
+    parent = self()
+
+    runtime_owner_pid =
+      start_supervised!({
+        Task,
+        fn ->
+          Livebook.Runtime.take_ownership(runtime)
+
+          code =
+            ~S'''
+            defmodule RemoteModule do
+              @moduledoc """
+              RemoteModule module docs
+              """
+
+              @doc """
+              Hello doc
+              """
+              def hello(message) do
+                message
+              end
+            end
+            '''
+
+          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [])
+
+          receive do: ({:runtime_evaluation_response, :e1, _, _} -> :ok)
+          send(parent, :continue)
+
+          Process.sleep(:infinity)
+        end
       })
 
-    {:module, Elixir.RemoteModule, bytecode, _} =
-      defmodule Elixir.RemoteModule do
-        @compile {:autoload, false}
-        @moduledoc """
-        RemoteModule module docs
-        """
+    receive do: (:continue -> :ok)
 
-        @doc """
-        Hello doc
-        """
-        def hello(message) do
-          message
-        end
-      end
+    on_exit(fn ->
+      Process.exit(runtime_owner_pid, :kill)
+    end)
 
-    false = Code.ensure_loaded?(RemoteModule)
-
-    File.rm_rf!(@tmp_dir)
-    File.mkdir_p!(@tmp_dir)
-    File.write!("#{@tmp_dir}/Elixir.RemoteModule.beam", bytecode)
-
-    elixir_path = Path.join(:code.lib_dir(:elixir), "ebin")
-
-    :ok = :erpc.call(node, :code, :add_paths, [[~c"#{@tmp_dir}", ~c"#{elixir_path}"]])
-    {:ok, _} = :erpc.call(node, :application, :ensure_all_started, [:elixir])
-    {:module, RemoteModule} = :erpc.call(node, :code, :load_file, [RemoteModule])
-    :loaded = :erpc.call(node, :code, :module_status, [RemoteModule])
-    :ok = :erpc.call(node, :application, :load, [:mnesia])
-
-    [node: node]
+    [node: runtime.node]
   end
 
   describe "intellisense completion for remote nodes" do
