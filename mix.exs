@@ -111,7 +111,12 @@ defmodule Livebook.MixProject do
       {:earmark_parser, "~> 1.4"},
       {:ecto, "~> 3.10"},
       {:phoenix_ecto, "~> 4.4"},
-      {:aws_credentials, "~> 0.3.0", runtime: false},
+      # TODO: revert once the fix is released https://github.com/aws-beam/aws_credentials/pull/77
+      {:aws_credentials,
+       github: "dw-kihara/aws_credentials", branch: "feature/brushups_for_otp27", runtime: false},
+      # {:aws_credentials, "~> 0.3.0", runtime: false},
+      # TODO: remove once the fix is released https://github.com/erlsci/iso8601/pull/62
+      {:iso8601, github: "asakura/iso8601", branch: "feature/otp27", override: true},
       {:aws_signature, "~> 0.3.0"},
       {:mint_web_socket, "~> 1.0.0"},
       {:protobuf, "~> 0.12.0"},
