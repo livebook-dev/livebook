@@ -142,7 +142,9 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
 
           {:noreply, socket}
         else
-          # TODO  
+          # -- TODO  
+          # Option 1: Livebook.FileSystem.write(%Livebook.FileSystem.S3{}, "", false)
+          # Option 2: Livebook.FileSystem.S3.write(%Livebook.FileSystem.S3{}, path, content)
           IO.puts("Imma be stored in a global storage")
         end
 
