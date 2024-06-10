@@ -12,6 +12,7 @@ defmodule Livebook.Hubs.TeamClient do
   @supervisor Livebook.HubsSupervisor
 
   defstruct [
+    :pid,
     :hub,
     :connection_status,
     :derived_key,
@@ -169,8 +170,8 @@ defmodule Livebook.Hubs.TeamClient do
         ]
       end
 
-    {:ok, _pid} = Teams.Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{hub: team, derived_key: derived_key}}
+    {:ok, pid} = Teams.Connection.start_link(self(), headers)
+    {:ok, %__MODULE__{pid: pid, hub: team, derived_key: derived_key}}
   end
 
   def init(%Hubs.Team{} = team) do
