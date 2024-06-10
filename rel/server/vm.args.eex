@@ -1,2 +1,3 @@
 # Disable busy waiting so that we don't waste resources
-+sbwt none +sbwtdcpu none +sbwtdio none
+# Limit the maximal number of ports for the same reason
++sbwt none +sbwtdcpu none +sbwtdio none +Q 65536
