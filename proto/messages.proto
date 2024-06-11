@@ -170,7 +170,7 @@ enum AppDeploymentStatusType {
   connecting = 0;
   preparing = 1;
   available = 2;
-  deactivated = 99;
+  deactivated = 4;
 }
 
 message AppDeploymentStatus {
