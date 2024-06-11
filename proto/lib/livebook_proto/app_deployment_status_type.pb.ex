@@ -4,5 +4,5 @@ defmodule LivebookProto.AppDeploymentStatusType do
   field :connecting, 0
   field :preparing, 1
   field :available, 2
-  field :deactivated, 99
+  field :deactivated, 4
 end
