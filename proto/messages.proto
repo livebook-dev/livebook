@@ -159,11 +159,25 @@ message Agent {
   string deployment_group_id = 4;
 }
 
+/**
+ * We're only using Enum in this case because
+ * the Client is the source of the information,
+ * and the Server will always be up-to-date.
+ *
+ * Otherwise, it shouldn't be used.
+ */
+enum AppDeploymentStatusType {
+  connecting = 0;
+  preparing = 1;
+  available = 2;
+  deactivated = 4;
+}
+
 message AppDeploymentStatus {
   string id = 1;
   string deployment_group_id = 2;
   string version = 3;
-  string status = 4;
+  AppDeploymentStatusType status = 4;
 }
 
 message AppDeploymentStatusReport {
