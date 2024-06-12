@@ -65,18 +65,6 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the longname if the distribution mode is configured to use long names.
-  """
-  @spec longname() :: binary() | nil
-  def longname() do
-    host = Livebook.Utils.node_host()
-
-    if host =~ "." do
-      host
-    end
-  end
-
-  @doc """
   Returns the default runtime.
   """
   @spec default_runtime() :: Livebook.Runtime.t()
@@ -532,21 +520,11 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses node and distribution type from env.
+  Parses node from env.
   """
-  def node!(node_env, distribution_env) do
-    case {System.get_env(node_env), System.get_env(distribution_env, "sname")} do
-      {nil, _} ->
-        nil
-
-      {name, "name"} ->
-        {:longnames, String.to_atom(name)}
-
-      {sname, "sname"} ->
-        {:shortnames, String.to_atom(sname)}
-
-      {_, other} ->
-        abort!(~s(#{distribution_env} must be one of "name" or "sname", got "#{other}"))
+  def node!(env) do
+    if node = System.get_env(env) do
+      String.to_atom(node)
     end
   end
 

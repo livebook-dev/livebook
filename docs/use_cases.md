@@ -44,7 +44,7 @@ system you want to connect to. For example, to connect to a
 you may start it as follows:
 
 ```shell
-$ iex --sname phoenix-app --cookie secret -S mix phx.server
+$ iex --name phoenix-app@127.0.0.1 --cookie secret -S mix phx.server
 ```
 
 With this information in hand, you can query and automate tasks within

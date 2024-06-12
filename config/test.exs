@@ -28,9 +28,3 @@ config :livebook,
   agent_name: "chonky-cat"
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0
-
-# Use longnames when running tests in CI, so that no host resolution is required,
-# see https://github.com/livebook-dev/livebook/pull/173#issuecomment-819468549
-if System.get_env("CI") == "true" do
-  config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
-end

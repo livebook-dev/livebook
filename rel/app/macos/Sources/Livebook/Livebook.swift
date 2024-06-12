@@ -152,7 +152,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             # See https://hexdocs.pm/livebook/readme.html#environment-variables for all available environment variables.
 
             # # Allow Livebook to connect to remote machines over IPv6
-            # export LIVEBOOK_DISTRIBUTION=name
             # export ERL_AFLAGS="-proto_dist inet6_tcp"
 
             # # Add Homebrew to PATH
