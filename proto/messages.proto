@@ -167,10 +167,8 @@ message Agent {
  * Otherwise, it shouldn't be used.
  */
 enum AppDeploymentStatusType {
-  connecting = 0;
-  preparing = 1;
-  available = 2;
-  deactivated = 4;
+  preparing = 0;
+  available = 1;
 }
 
 message AppDeploymentStatus {
