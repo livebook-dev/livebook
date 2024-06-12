@@ -366,7 +366,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
-       smart_cell_definitions: [],
+       # Always send the first smart cell definitions report, in case
+       # there are extra definitions
+       smart_cell_definitions: nil,
        smart_cell_definitions_module:
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
