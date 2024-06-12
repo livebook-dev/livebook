@@ -686,10 +686,26 @@ defmodule Livebook.Hubs.TeamClientTest do
       agent_connected = %{agent_connected | app_deployments: [livebook_proto_app_deployment]}
 
       Livebook.Apps.subscribe()
+      Livebook.Apps.Manager.subscribe()
+
+      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
 
       send(pid, {:event, :agent_connected, agent_connected})
       assert_receive {:app_deployment_started, ^app_deployment}
-      assert_receive {:app_created, %{slug: ^slug}}
+
+      [app_spec] = Livebook.Hubs.Provider.get_app_specs(team)
+      Livebook.Apps.Manager.sync_permanent_apps()
+
+      assert_receive {:app_created, %{slug: ^slug}}, 3_000
+      assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
+
+      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
+               app_spec.version => %{
+                 id: app_spec.app_deployment_id,
+                 status: :preparing,
+                 deployment_group_id: deployment_group_id
+               }
+             }
 
       assert_receive {:app_updated,
                       %{
@@ -698,11 +714,24 @@ defmodule Livebook.Hubs.TeamClientTest do
                         sessions: [%{app_status: %{execution: :executed}}]
                       }}
 
+      assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: true}]}
       assert app_deployment in TeamClient.get_app_deployments(team.id)
 
-      agent_connected = %{agent_connected | app_deployments: []}
-      send(pid, {:event, :agent_connected, agent_connected})
+      # TODO: Replace this with a better solution
+      Process.sleep(100)
+
+      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
+               app_spec.version => %{
+                 id: app_spec.app_deployment_id,
+                 status: :available,
+                 deployment_group_id: deployment_group_id
+               }
+             }
+
+      erpc_call(node, :toggle_app_deployment, [app_deployment.id, teams_org.id])
+
       assert_receive {:app_deployment_stopped, ^app_deployment}
+      assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
       refute app_deployment in TeamClient.get_app_deployments(team.id)
 
       assert_receive {:app_closed,
@@ -711,6 +740,11 @@ defmodule Livebook.Hubs.TeamClientTest do
                         warnings: [],
                         sessions: [%{app_status: %{execution: :executed}}]
                       }}
+
+      # TODO: Replace this with a better solution
+      Process.sleep(200)
+
+      assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
     end
 
     test "dispatches the agents list",
