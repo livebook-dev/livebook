@@ -209,8 +209,9 @@ defmodule Livebook do
 
     # TODO: remove in v1.0
     if System.get_env("LIVEBOOK_DISTRIBUTION") == "sname" do
-      Livebook.Config.abort!(
-        "Found LIVEBOOK_DISTRIBUTION=sname, but short names are no longer supported."
+      IO.warn(
+        ~s/Ignoring LIVEBOOK_DISTRIBUTION=sname, because short names are no longer supported./,
+        []
       )
     end
 
