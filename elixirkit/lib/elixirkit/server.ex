@@ -10,7 +10,7 @@ defmodule ElixirKit.Server do
   @impl true
   def init(pid) do
     port = System.fetch_env!("ELIXIRKIT_PORT") |> String.to_integer()
-    {:ok, socket} = :gen_tcp.connect('localhost', port, mode: :binary, packet: 4)
+    {:ok, socket} = :gen_tcp.connect(~c"localhost", port, mode: :binary, packet: 4)
     {:ok, %{pid: pid, socket: socket}}
   end
 
