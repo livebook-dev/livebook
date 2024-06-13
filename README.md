@@ -257,6 +257,9 @@ The following environment variables can be used to configure Livebook on boot:
     Must be a valid IPv4 or IPv6 address.
 
   * `LIVEBOOK_NODE` - sets the node name for running Livebook in a cluster.
+    Note that Livebook always runs using long names distrivution, so the
+    node host name must use a fully qualified domain name (FQDN) or an IP
+    address.
 
   * `LIVEBOOK_PASSWORD` - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
