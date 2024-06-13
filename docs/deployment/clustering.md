@@ -1,6 +1,6 @@
 # Clustering
 
-If you plan to run several Livebook instances behind a load balancer, you need to enable clustering via the `LIVEBOOK_CLUSTER` environment variable in your Docker image. `LIVEBOOK_DISTRIBUTION` is automatically set to `name` if clustering is enabled.
+If you plan to run several Livebook instances behind a load balancer, you need to enable clustering via the `LIVEBOOK_CLUSTER` environment variable in your Docker image.
 
 Depending on the clustering strategy of your choice, you must set additional environment variables, oftentimes, at runtime. When using the Livebook Docker image, you can create a file at `/app/user/env.sh` that exports the necessary environment variables. This file is invoked right before booting Livebook.
 

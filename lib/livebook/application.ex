@@ -13,7 +13,6 @@ defmodule Livebook.Application do
     else
       ensure_epmd!()
       ensure_distribution!()
-      validate_hostname_resolution!()
     end
 
     set_cookie()
@@ -164,9 +163,9 @@ defmodule Livebook.Application do
 
   defp ensure_distribution!() do
     unless Node.alive?() do
-      {type, name} = get_node_type_and_name()
+      node = get_node_name()
 
-      case Node.start(name, type) do
+      case Node.start(node, :longnames) do
         {:ok, _} ->
           :ok
 
@@ -179,88 +178,24 @@ defmodule Livebook.Application do
   import Record
   defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
 
-  # See https://github.com/livebook-dev/livebook/issues/302
-  defp validate_hostname_resolution!() do
-    unless Livebook.Config.longname() do
-      [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split(~c"@")
-
-      # erl_epmd names do not support ipv6 resolution by default,
-      # unless inet6 is configured, so we attempt both.
-      gethostbyname =
-        with {:error, _} <- :inet.gethostbyname(hostname, :inet, :infinity),
-             {:error, _} <- :inet.gethostbyname(hostname, :inet6, :infinity),
-             do: :error
-
-      with {:ok, hostent(h_addr_list: [epmd_addr | _])} <- gethostbyname,
-           {:ok, nodenames} <- :erl_epmd.names(epmd_addr),
-           true <- List.keymember?(nodenames, nodename, 0) do
-        :ok
-      else
-        _ ->
-          hint =
-            cond do
-              is_nil(System.get_env("LIVEBOOK_DESKTOP")) ->
-                """
-                  * If you are using Livebook's CLI or from source, consider using longnames:
-
-                        livebook server --name livebook@127.0.0.1
-                        elixir --name livebook@127.0.0.1 -S mix phx.server
-                """
-
-              match?({:win32, _}, :os.type()) ->
-                path =
-                  Path.join(
-                    System.get_env("USERPROFILE", "%USERPROFILE%"),
-                    ".livebookdesktop.bat"
-                  )
-
-                """
-                  * Configure your Livebook Desktop to use long names by creating a file at #{path} with:
-
-                        set LIVEBOOK_DISTRIBUTION=name
-                        set LIVEBOOK_NODE=livebook@127.0.0.1
-                """
-
-              true ->
-                path = Path.join(System.get_env("HOME", "~"), ".livebookdesktop.sh")
-
-                """
-                  * Configure your Livebook Desktop to use long names by creating a file at #{path} with:
-
-                        export LIVEBOOK_DISTRIBUTION=name
-                        export LIVEBOOK_NODE=livebook@127.0.0.1
-                """
-            end
-
-          Livebook.Config.abort!("""
-          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8), \
-          which indicates something wrong in your OS configuration, or EPMD is not running.
-
-          To address this issue, you might:
-
-            * Consult our Installation FAQ:
-              https://github.com/livebook-dev/livebook/wiki/Installation-FAQ
-
-          #{hint}\
-
-            * If the issue persists, please file a bug report
-
-          """)
-      end
-    end
-  end
-
   defp set_cookie() do
     cookie = Application.fetch_env!(:livebook, :cookie)
     Node.set_cookie(cookie)
   end
 
-  defp get_node_type_and_name() do
-    Application.get_env(:livebook, :node) || {:shortnames, random_short_name()}
+  defp get_node_name() do
+    Application.get_env(:livebook, :node) || random_long_name()
   end
 
-  defp random_short_name() do
-    :"livebook_#{Livebook.Utils.random_short_id()}"
+  defp random_long_name() do
+    host =
+      if Livebook.Utils.proto_dist() == :inet6_tcp do
+        "::1"
+      else
+        "127.0.0.1"
+      end
+
+    :"livebook_#{Livebook.Utils.random_short_id()}@#{host}"
   end
 
   defp display_startup_info() do

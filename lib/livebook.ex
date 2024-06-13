@@ -199,9 +199,7 @@ defmodule Livebook do
       config :livebook, :cacertfile, cacertfile
     end
 
-    if rewrite_on = Livebook.Config.rewrite_on!("LIVEBOOK_PROXY_HEADERS") do
-      config :livebook, :rewrite_on, rewrite_on
-    end
+    config :livebook, :rewrite_on, Livebook.Config.rewrite_on!("LIVEBOOK_PROXY_HEADERS")
 
     config :livebook,
            :cookie,
@@ -209,7 +207,15 @@ defmodule Livebook do
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
              Livebook.Utils.random_cookie()
 
-    if node = Livebook.Config.node!("LIVEBOOK_NODE", "LIVEBOOK_DISTRIBUTION") do
+    # TODO: remove in v1.0
+    if System.get_env("LIVEBOOK_DISTRIBUTION") == "sname" do
+      IO.warn(
+        ~s/Ignoring LIVEBOOK_DISTRIBUTION=sname, because short names are no longer supported./,
+        []
+      )
+    end
+
+    if node = Livebook.Config.node!("LIVEBOOK_NODE") do
       config :livebook, :node, node
     end
 

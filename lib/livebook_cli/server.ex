@@ -44,7 +44,6 @@ defmodule LivebookCLI.Server do
                            Must be a valid IPv4 or IPv6 address
       --name               Sets a name for the app distributed node
       -p, --port           The port to start the web application on, defaults to 8080
-      --sname              Sets a short name for the app distributed node
 
     The --help option can be given to print this notice.
 
@@ -195,8 +194,7 @@ defmodule LivebookCLI.Server do
     ip: :string,
     name: :string,
     port: :integer,
-    home: :string,
-    sname: :string
+    home: :string
   ]
 
   @aliases [
@@ -204,15 +202,7 @@ defmodule LivebookCLI.Server do
   ]
 
   defp args_to_options(args) do
-    {opts, extra_args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
-    validate_options!(opts)
-    {opts, extra_args}
-  end
-
-  defp validate_options!(opts) do
-    if Keyword.has_key?(opts, :name) and Keyword.has_key?(opts, :sname) do
-      raise "the provided --sname and --name options are mutually exclusive, please specify only one of them"
-    end
+    OptionParser.parse!(args, strict: @switches, aliases: @aliases)
   end
 
   defp opts_to_config([], config), do: config
@@ -230,14 +220,9 @@ defmodule LivebookCLI.Server do
     ])
   end
 
-  defp opts_to_config([{:sname, sname} | opts], config) do
-    sname = String.to_atom(sname)
-    opts_to_config(opts, [{:livebook, :node, {:shortnames, sname}} | config])
-  end
-
   defp opts_to_config([{:name, name} | opts], config) do
     name = String.to_atom(name)
-    opts_to_config(opts, [{:livebook, :node, {:longnames, name}} | config])
+    opts_to_config(opts, [{:livebook, :node, name} | config])
   end
 
   defp opts_to_config([{:cookie, cookie} | opts], config) do

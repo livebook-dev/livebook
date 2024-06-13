@@ -168,7 +168,6 @@ rem If you change this file, you must restart Livebook for your changes to take 
 rem See https://hexdocs.pm/livebook/readme.html#environment-variables for all available enviornment variables.
 
 rem Allow Livebook to connect to remote machines over IPv6
-rem set LIVEBOOK_DISTRIBUTION=name
 rem set ERL_AFLAGS=-proto_dist inet6_tcp
 
 rem Add directory to PATH

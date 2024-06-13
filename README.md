@@ -220,10 +220,6 @@ The following environment variables can be used to configure Livebook on boot:
     "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)
     or "embedded" (Embedded). Defaults to "standalone".
 
-  * `LIVEBOOK_DISTRIBUTION` - sets the node distribution for running Livebook in a
-    cluster. Must be "name" (long names) or "sname" (short names). Note that this
-    sets RELEASE_DISTRIBUTION if present when creating a release. Defaults to "sname".
-
   * `LIVEBOOK_EPMDLESS` - if set to "true", it disables the usage of EPMD. This is
     only supported within releases and defaults to true for the Desktop app.
 
@@ -307,9 +303,6 @@ on Windows. This file can set environment variables used by Livebook,
 such as:
 
   * [the `PATH` environment variable](https://en.wikipedia.org/wiki/PATH_(variable))
-
-  * set `LIVEBOOK_DISTRIBUTION=name` to enable notebooks to communicate
-    with nodes in other machines
 
   * or to configure the Erlang VM, for instance, by setting
     `ERL_AFLAGS="-proto_dist inet6_tcp"` if you need Livebook to run over IPv6

@@ -140,8 +140,8 @@ defmodule Livebook.Runtime.ElixirStandalone do
   # Also note that we explicitly halt, just in case `System.no_halt(true)` is
   # called within the runtime.
   @child_node_eval_string """
-  {:ok, [[mode, node]]} = :init.get_argument(:livebook_current);\
-  {:ok, _} = :net_kernel.start(List.to_atom(node), %{name_domain: List.to_atom(mode)});\
+  {:ok, [[node]]} = :init.get_argument(:livebook_current);\
+  {:ok, _} = :net_kernel.start(List.to_atom(node), %{name_domain: :longnames});\
   {:ok, [[parent_node, _port]]} = :init.get_argument(:livebook_parent);\
   dist_port = :persistent_term.get(:livebook_dist_port, 0);\
   init_ref = make_ref();\
@@ -164,8 +164,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
     parent_name = node()
     parent_port = Livebook.EPMD.dist_port()
 
-    mode = if Livebook.Config.longname(), do: :longnames, else: :shortnames
-
     epmdless_flags =
       if parent_port != 0 do
         "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0 "
@@ -181,8 +179,9 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
+        "-proto_dist #{Livebook.Utils.proto_dist()} " <>
         epmdless_flags <>
-        "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{mode} #{node_name}",
+        "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{node_name}",
       # Add the location of Livebook.EPMD
       "-pa",
       Application.app_dir(:livebook, "priv/epmd"),

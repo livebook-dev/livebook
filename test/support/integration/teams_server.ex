@@ -164,7 +164,7 @@ defmodule Livebook.TeamsServer do
     args = [
       "-e",
       "spawn(fn -> IO.gets([]) && System.halt(0) end)",
-      "--sname",
+      "--name",
       to_string(state.node),
       "--cookie",
       to_string(Node.get_cookie()),
