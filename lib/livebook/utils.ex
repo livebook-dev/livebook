@@ -134,6 +134,18 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Returns the protocol for Erlang distribution used by the current node.
+  """
+  @spec proto_dist() :: :inet_tcp | :inet6_tcp | :inet_tls
+  def proto_dist() do
+    case :init.get_argument(:proto_dist) do
+      {:ok, [[~c"inet6_tcp"]]} -> :inet6_tcp
+      {:ok, [[~c"inet_tls"]]} -> :inet_tls
+      _ -> :inet_tcp
+    end
+  end
+
+  @doc """
   Registers the given process under `name` for the time of `fun` evaluation.
   """
   @spec temporarily_register(pid(), atom(), (... -> any())) :: any()

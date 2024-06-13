@@ -189,9 +189,10 @@ defmodule Livebook.Application do
 
   defp random_long_name() do
     host =
-      case :init.get_argument(:proto_dist) do
-        {:ok, [[~c"inet6_tcp"]]} -> "::1"
-        _ -> "127.0.0.1"
+      if Livebook.Utils.proto_dist() == :inet6_tcp do
+        "::1"
+      else
+        "127.0.0.1"
       end
 
     :"livebook_#{Livebook.Utils.random_short_id()}@#{host}"

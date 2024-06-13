@@ -179,6 +179,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
+        "-proto_dist #{Livebook.Utils.proto_dist()} " <>
         epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{node_name}",
       # Add the location of Livebook.EPMD
