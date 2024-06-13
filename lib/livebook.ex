@@ -203,9 +203,7 @@ defmodule Livebook do
 
     config :livebook,
            :cookie,
-           Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
-             Livebook.Config.cookie!("RELEASE_COOKIE") ||
-             Livebook.Utils.random_cookie()
+           Livebook.Config.cookie!("LIVEBOOK_COOKIE") || Livebook.Utils.random_cookie()
 
     # TODO: remove in v1.0
     if System.get_env("LIVEBOOK_DISTRIBUTION") == "sname" do
