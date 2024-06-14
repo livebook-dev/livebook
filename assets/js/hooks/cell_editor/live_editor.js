@@ -20,7 +20,7 @@ import {
   codeFolding,
   syntaxTree,
 } from "@codemirror/language";
-import { history } from "@codemirror/commands";
+import { history, insertBlankLine } from "@codemirror/commands";
 import { highlightSelectionMatches } from "@codemirror/search";
 import {
   autocompletion,
@@ -289,7 +289,10 @@ export default class LiveEditor {
       this.language &&
       LanguageDescription.matchLanguageName(languages, this.language, false);
 
-    const customKeymap = [{ key: "Escape", run: exitMulticursor }];
+    const customKeymap = [
+      { key: "Escape", run: exitMulticursor },
+      { key: "Alt-Enter", run: insertBlankLine },
+    ];
 
     this.view = new EditorView({
       parent: this.container,
@@ -314,8 +317,8 @@ export default class LiveEditor {
         history(),
         EditorState.readOnly.of(this.readOnly),
         readOnlyHint(),
-        keymap.of(vscodeKeymap),
         keymap.of(customKeymap),
+        keymap.of(vscodeKeymap),
         EditorState.tabSize.of(2),
         EditorState.lineSeparator.of("\n"),
         lineWrappingEnabled ? EditorView.lineWrapping : [],
