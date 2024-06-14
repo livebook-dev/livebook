@@ -250,6 +250,8 @@ defmodule LivebookWeb.SessionControllerTest do
   end
 
   describe "show_asset" do
+    @describetag authentication: %{mode: :password, secret: "grumpycat"}
+
     test "fetches assets and redirects to the session-less path", %{conn: conn} do
       %{notebook: notebook, hash: hash} = notebook_with_js_output()
 
@@ -297,6 +299,8 @@ defmodule LivebookWeb.SessionControllerTest do
   end
 
   describe "show_cached_asset" do
+    @describetag authentication: %{mode: :password, secret: "grumpycat"}
+
     test "returns not found when no matching assets are in the cache", %{conn: conn} do
       %{notebook: _notebook, hash: hash} = notebook_with_js_output()
 
@@ -345,7 +349,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/public/sessions/audio-input/#{token}")
+      conn = conn |> with_password_auth() |> get(~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 200
       assert conn.resp_body == "wav content"
@@ -364,6 +368,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn =
         conn
+        |> with_password_auth()
         |> put_req_header("range", "bytes=4-")
         |> get(~p"/public/sessions/audio-input/#{token}")
 
@@ -382,7 +387,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/public/sessions/audio-input/#{token}")
+      conn = conn |> with_password_auth() |> get(~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 200
       assert <<_header::44-binary, "pcm content">> = conn.resp_body
@@ -401,6 +406,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       conn =
         conn
+        |> with_password_auth()
         |> put_req_header("range", "bytes=48-")
         |> get(~p"/public/sessions/audio-input/#{token}")
 
@@ -421,7 +427,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/public/sessions/image-input/#{token}")
+      conn = conn |> with_password_auth() |> get(~p"/public/sessions/image-input/#{token}")
 
       assert conn.status == 200
       assert conn.resp_body == "rgb content"
@@ -441,6 +447,11 @@ defmodule LivebookWeb.SessionControllerTest do
     Session.close(session.pid)
 
     conn
+  end
+
+  defp with_password_auth(conn) do
+    authentication = %{mode: :password, secret: "grumpycat"}
+    with_authentication(conn, authentication)
   end
 
   defp notebook_with_js_output() do
