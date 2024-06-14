@@ -22,7 +22,7 @@ defmodule LivebookWeb.AuthController do
   def index(conn, _params) do
     render(conn, "index.html",
       errors: [],
-      authentication_mode: Livebook.Config.authentication().mode
+      authentication_mode: LivebookWeb.AuthPlug.authentication(conn).mode
     )
   end
 

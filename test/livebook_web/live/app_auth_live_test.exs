@@ -1,6 +1,5 @@
 defmodule LivebookWeb.AppAuthLiveTest do
-  # Not async, because we alter global config (auth mode)
-  use LivebookWeb.ConnCase, async: false
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
@@ -11,13 +10,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
       Livebook.App.close(app_pid)
     end)
 
-    Application.put_env(:livebook, :authentication, {:password, ctx[:livebook_password]})
-
-    on_exit(fn ->
-      Application.put_env(:livebook, :authentication, :disabled)
-    end)
-
-    %{slug: slug}
+    [slug: slug]
   end
 
   defp create_app(app_settings_attrs) do
@@ -42,6 +35,8 @@ defmodule LivebookWeb.AppAuthLiveTest do
     {slug, app_pid}
   end
 
+  @moduletag authentication: %{mode: :password, secret: "long_livebook_password"}
+
   # Integration tests for the authentication scenarios
 
   describe "public app" do
@@ -58,7 +53,6 @@ defmodule LivebookWeb.AppAuthLiveTest do
   end
 
   describe "protected app" do
-    @describetag livebook_password: "long_livebook_password"
     @describetag app_settings: %{access_type: :protected, password: "long_app_password"}
 
     test "redirect to auth page when not authenticated", %{conn: conn, slug: slug} do

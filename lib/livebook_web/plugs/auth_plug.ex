@@ -41,7 +41,7 @@ defmodule LivebookWeb.AuthPlug do
   """
   @spec authenticated?(map(), non_neg_integer()) :: boolean()
   def authenticated?(session, port) do
-    case Livebook.Config.authentication() do
+    case authentication(session) do
       %{mode: :disabled} ->
         true
 
@@ -52,7 +52,7 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp authenticate(conn) do
-    case Livebook.Config.authentication() do
+    case authentication(conn) do
       %{mode: :password} ->
         redirect_to_authenticate(conn)
 
@@ -103,4 +103,21 @@ defmodule LivebookWeb.AuthPlug do
 
   defp key(port, mode), do: "#{port}:#{mode}"
   defp hash(value), do: :crypto.hash(:sha256, value)
+
+  @doc """
+  Returns the authentication configuration for the given `conn` or
+  `session`.
+
+  This mirrors `Livebook.Config.authentication/0`, except the it can
+  be overridden in tests, for each connection.
+  """
+  if Mix.env() == :test do
+    def authentication(%Plug.Conn{} = conn), do: authentication(get_session(conn))
+
+    def authentication(%{} = session) do
+      session["authentication_test_override"] || Livebook.Config.authentication()
+    end
+  else
+    def authentication(_), do: Livebook.Config.authentication()
+  end
 end
