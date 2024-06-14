@@ -8,14 +8,14 @@
     </div>
 
     <div class="mb-8 text-sm text-gray-200 space-y-2">
-      <p :if={@auth_mode == :password}>
+      <p :if={@authentication_mode == :password}>
         Type password to access the Livebook.
       </p>
-      <p :if={@auth_mode == :token}>
+      <p :if={@authentication_mode == :token}>
         Please check out the console for authentication URL or type the token directly
         here.
       </p>
-      <p :if={@auth_mode == :token}>
+      <p :if={@authentication_mode == :token}>
         To use password authentication, set the <code>LIVEBOOK_PASSWORD</code>
         environment variable.
       </p>
@@ -26,7 +26,7 @@
         <input type="hidden" value={Phoenix.Controller.get_csrf_token()} name="_csrf_token" />
         <div>
           <input
-            :if={@auth_mode == :password}
+            :if={@authentication_mode == :password}
             type="password"
             name="password"
             class={[
@@ -41,7 +41,7 @@
             autofocus
           />
           <input
-            :if={@auth_mode == :token}
+            :if={@authentication_mode == :token}
             type="text"
             name="token"
             class={[

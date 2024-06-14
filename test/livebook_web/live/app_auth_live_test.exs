@@ -11,12 +11,10 @@ defmodule LivebookWeb.AppAuthLiveTest do
       Livebook.App.close(app_pid)
     end)
 
-    Application.put_env(:livebook, :authentication_mode, :password)
-    Application.put_env(:livebook, :password, ctx[:livebook_password])
+    Application.put_env(:livebook, :authentication, {:password, ctx[:livebook_password]})
 
     on_exit(fn ->
-      Application.put_env(:livebook, :authentication_mode, :disabled)
-      Application.delete_env(:livebook, :password)
+      Application.put_env(:livebook, :authentication, :disabled)
     end)
 
     %{slug: slug}

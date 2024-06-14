@@ -3,21 +3,18 @@ defmodule LivebookWeb.AuthPlugTest do
   use LivebookWeb.ConnCase, async: false
 
   setup context do
-    {type, other_type, value} =
+    authentication =
       cond do
-        token = context[:token] -> {:token, :password, token}
-        password = context[:password] -> {:password, :token, password}
-        true -> {:disabled, :disabled, ""}
+        context[:token] -> :token
+        password = context[:password] -> {:password, password}
+        true -> :disabled
       end
 
-    unless type == :disabled do
-      Application.delete_env(:livebook, other_type)
-      Application.put_env(:livebook, :authentication_mode, type)
-      Application.put_env(:livebook, type, value)
+    unless authentication == :disabled do
+      Application.put_env(:livebook, :authentication, authentication)
 
       on_exit(fn ->
-        Application.put_env(:livebook, :authentication_mode, :disabled)
-        Application.delete_env(:livebook, type)
+        Application.put_env(:livebook, :authentication, :disabled)
       end)
     end
 
@@ -32,29 +29,29 @@ defmodule LivebookWeb.AuthPlugTest do
       assert conn.resp_body =~ "New notebook"
     end
 
-    @tag token: "grumpycat"
-    test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
+    @tag :token
+    test "redirects to /authenticate if not authenticated", %{conn: conn} do
       conn = get(conn, ~p"/")
       assert redirected_to(conn) == ~p"/authenticate"
     end
 
-    @tag token: "grumpycat"
+    @tag :token
     test "redirects to the same path when valid token is provided in query params", %{conn: conn} do
-      conn = get(conn, ~p"/?token=grumpycat")
+      conn = get(conn, ~p"/?token=#{auth_token()}")
 
       assert redirected_to(conn) == ~p"/"
     end
 
-    @tag token: "grumpycat"
-    test "redirects to '/authenticate' when invalid token is provided in query params",
+    @tag :token
+    test "redirects to /authenticate when invalid token is provided in query params",
          %{conn: conn} do
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/?token=invalid")
       assert redirected_to(conn) == ~p"/authenticate"
     end
 
-    @tag token: "grumpycat"
+    @tag :token
     test "persists authentication across requests", %{conn: conn} do
-      conn = get(conn, ~p"/?token=grumpycat")
+      conn = get(conn, ~p"/?token=#{auth_token()}")
       assert get_session(conn, "80:token")
 
       conn = get(conn, ~p"/")
@@ -62,19 +59,19 @@ defmodule LivebookWeb.AuthPlugTest do
       assert conn.resp_body =~ "New notebook"
     end
 
-    @tag token: "grumpycat"
+    @tag :token
     test "redirects to referer on valid authentication", %{conn: conn} do
       referer = "/import?url=example.com"
 
       conn = get(conn, referer)
       assert redirected_to(conn) == ~p"/authenticate"
 
-      conn = post(conn, ~p"/authenticate", token: "grumpycat")
+      conn = post(conn, ~p"/authenticate", token: auth_token())
       assert redirected_to(conn) == referer
     end
 
-    @tag token: "grumpycat"
-    test "redirects back to '/authenticate' on invalid token", %{conn: conn} do
+    @tag :token
+    test "redirects back to /authenticate on invalid token", %{conn: conn} do
       conn = post(conn, ~p"/authenticate?token=invalid_token")
       assert html_response(conn, 200) =~ "Authentication required"
 
@@ -82,9 +79,9 @@ defmodule LivebookWeb.AuthPlugTest do
       assert redirected_to(conn) == ~p"/authenticate"
     end
 
-    @tag token: "grumpycat"
+    @tag :token
     test "persists authentication across requests (via /authenticate)", %{conn: conn} do
-      conn = post(conn, ~p"/authenticate?token=grumpycat")
+      conn = post(conn, ~p"/authenticate?token=#{auth_token()}")
       assert get_session(conn, "80:token")
 
       conn = get(conn, ~p"/")
@@ -109,7 +106,7 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag password: "grumpycat"
-    test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
+    test "redirects to /authenticate if not authenticated", %{conn: conn} do
       conn = get(conn, ~p"/")
       assert redirected_to(conn) == ~p"/authenticate"
     end
@@ -135,7 +132,7 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag password: "grumpycat"
-    test "redirects back to '/authenticate' on invalid password", %{conn: conn} do
+    test "redirects back to /authenticate on invalid password", %{conn: conn} do
       conn = post(conn, ~p"/authenticate?password=invalid_password")
       assert html_response(conn, 200) =~ "Authentication required"
 
@@ -155,5 +152,10 @@ defmodule LivebookWeb.AuthPlugTest do
       conn = get(conn, ~p"/authenticate")
       assert redirected_to(conn) == ~p"/"
     end
+  end
+
+  defp auth_token() do
+    %{mode: :token, secret: token} = Livebook.Config.authentication()
+    token
   end
 end

@@ -1,7 +1,12 @@
 defmodule Livebook.Config do
   alias Livebook.FileSystem
 
-  @type auth_mode() :: :token | :password | :disabled
+  @type authentication_mode :: :token | :password | :disabled
+
+  @type authentication ::
+          %{mode: :password, secret: String.t()}
+          | %{mode: :token, secret: String.t()}
+          | %{mode: :disabled}
 
   # Those are the public identity providers.
   #
@@ -90,11 +95,27 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the authentication mode.
+  Returns the authentication configuration.
   """
-  @spec auth_mode() :: auth_mode()
-  def auth_mode() do
-    Application.fetch_env!(:livebook, :authentication_mode)
+  @spec authentication() :: authentication_mode()
+  def authentication() do
+    case Application.fetch_env!(:livebook, :authentication) do
+      {:password, password} -> %{mode: :password, secret: password}
+      :token -> %{mode: :token, secret: auth_token()}
+      :disabled -> %{mode: :disabled}
+    end
+  end
+
+  @auth_token_key {__MODULE__, :auth_token}
+
+  defp auth_token() do
+    if token = :persistent_term.get(@auth_token_key, nil) do
+      token
+    else
+      token = Livebook.Utils.random_long_id()
+      :persistent_term.put(@auth_token_key, token)
+      token
+    end
   end
 
   @doc """
@@ -561,7 +582,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses token auth setting from env.
+  Parses boolean setting from env.
   """
   def boolean!(env, default \\ false) do
     case System.get_env(env) do
