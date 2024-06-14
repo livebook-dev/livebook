@@ -114,15 +114,15 @@ defmodule Livebook do
       config :livebook, LivebookWeb.Endpoint, url: [path: base_url_path]
     end
 
-    cond do
-      password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
-        config :livebook, authentication_mode: :password, password: password
-
-      Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
-        config :livebook, token: Livebook.Utils.random_long_id()
-
-      true ->
-        config :livebook, authentication_mode: :disabled
+    if password = Livebook.Config.password!("LIVEBOOK_PASSWORD") do
+      config :livebook, :authentication, {:password, password}
+    else
+      case Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", nil) do
+        true -> config :livebook, :authentication, :token
+        false -> config :livebook, :authentication, :disabled
+        # Keep the environment-specific default
+        nil -> :ok
+      end
     end
 
     if port = Livebook.Config.port!("LIVEBOOK_IFRAME_PORT") do
