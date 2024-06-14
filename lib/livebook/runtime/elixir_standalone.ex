@@ -171,6 +171,13 @@ defmodule Livebook.Runtime.ElixirStandalone do
         ""
       end
 
+    # TODO: if Livebook is running using inet6_tcp, it is most likely
+    # because -proto_dist has been passed with ERL_AFLAGS or similar.
+    # This env var is propagated down, so the runtime node also receives
+    # it. If we pass -proto_dist here, it gets passed twice and as a
+    # result it is actually ignored. Ideally we want to pass it here
+    # and make OTP handle duplicates.
+    # "-proto_dist #{Livebook.Utils.proto_dist()} " <>
     [
       "--erl",
       # Minimize schedulers busy wait threshold,
@@ -179,7 +186,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        "-proto_dist #{Livebook.Utils.proto_dist()} " <>
         epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{node_name}",
       # Add the location of Livebook.EPMD
