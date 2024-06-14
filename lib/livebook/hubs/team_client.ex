@@ -2,7 +2,7 @@ defmodule Livebook.Hubs.TeamClient do
   use GenServer
   require Logger
 
-  alias Livebook.Apps.TeamsAppSpec
+  alias Livebook.Apps
   alias Livebook.FileSystem
   alias Livebook.FileSystems
   alias Livebook.Hubs
@@ -148,7 +148,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def init(%Hubs.Team{offline: nil} = team) do
-    Livebook.Apps.Manager.subscribe()
+    Apps.Manager.subscribe()
 
     derived_key = Teams.derive_key(team.teams_key)
 
@@ -274,9 +274,9 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, handle_event(topic, data, state)}
   end
 
-  def handle_info({:apps_manager_status, status_entries}, %{hub: %{id: id}} = state) do
+  def handle_info({:apps_manager_status, entries}, %{hub: %{id: id}} = state) do
     app_deployment_statuses =
-      for %{app_spec: %TeamsAppSpec{hub_id: ^id} = app_spec, running?: running?} <- status_entries do
+      for %{app_spec: %Apps.TeamsAppSpec{hub_id: ^id} = app_spec, running?: running?} <- entries do
         status = if running?, do: :available, else: :preparing
 
         %LivebookProto.AppDeploymentStatus{
@@ -808,8 +808,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp manager_sync() do
     # Each node runs the teams client, but we only need to call sync once
-    if Livebook.Apps.Manager.local?() do
-      Livebook.Apps.Manager.sync_permanent_apps()
+    if Apps.Manager.local?() do
+      Apps.Manager.sync_permanent_apps()
     end
   end
 end

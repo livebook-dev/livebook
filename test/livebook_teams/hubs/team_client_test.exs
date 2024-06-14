@@ -687,6 +687,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       Livebook.Apps.subscribe()
       Livebook.Apps.Manager.subscribe()
+      erpc_call(node, :subscribe, [self(), teams_deployment_group, teams_org])
 
       assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
 
@@ -698,6 +699,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       assert_receive {:app_created, %{slug: ^slug}}, 3_000
       assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: false}]}
+      assert_receive {:teams_broadcast, {:agent_updated, _agent}}
 
       assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
                app_spec.version => %{
@@ -716,9 +718,7 @@ defmodule Livebook.Hubs.TeamClientTest do
 
       assert_receive {:apps_manager_status, [%{app_spec: ^app_spec, running?: true}]}
       assert app_deployment in TeamClient.get_app_deployments(team.id)
-
-      # TODO: Replace this with a better solution
-      Process.sleep(100)
+      assert_receive {:teams_broadcast, {:agent_updated, _agent}}
 
       assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{
                app_spec.version => %{
@@ -741,9 +741,7 @@ defmodule Livebook.Hubs.TeamClientTest do
                         sessions: [%{app_status: %{execution: :executed}}]
                       }}
 
-      # TODO: Replace this with a better solution
-      Process.sleep(200)
-
+      assert_receive {:teams_broadcast, {:agent_updated, _agent}}
       assert erpc_call(node, :get_apps_metadatas, [deployment_group_id]) == %{}
     end
 
