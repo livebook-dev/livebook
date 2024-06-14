@@ -1574,6 +1574,11 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details(":atomics.new", 11, context, node())
 
       assert content =~ ~r"https://www.erlang.org/doc/man/atomics.html#new-2"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details(":string.uppercase", 11, context, node())
+
+      assert content =~ ~r"https://www.erlang.org/doc/man/string.html#uppercase-1"
     end
   end
 
