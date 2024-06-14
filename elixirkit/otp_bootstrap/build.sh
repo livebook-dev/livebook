@@ -5,8 +5,6 @@ if [ $# -ne 3 ]; then
   cat <<EOF
 Usage:
     build.sh otp_version openssl_version target
-
-Set BUILD_DOCS=1 to build doc chunks.
 EOF
   exit 1
 fi
@@ -14,7 +12,6 @@ fi
 otp_version=$1
 openssl_version=$2
 target=$3
-build_docs=${BUILD_DOCS:-}
 
 # Common build flags
 export MAKEFLAGS=-j8
@@ -100,10 +97,6 @@ else
 
     ./otp_build boot -a
     ./otp_build release -a $otp_rel_dir
-
-    if [ "$build_docs" = "1" ]; then
-      make release_docs DOC_TARGETS=chunks RELEASE_ROOT=$otp_rel_dir
-    fi
 
     cd $otp_rel_dir
     ./Install -cross -sasl $PWD
