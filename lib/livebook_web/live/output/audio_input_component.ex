@@ -47,7 +47,7 @@ defmodule LivebookWeb.Output.AudioInputComponent do
     # token and then the controller fetches input value from the LV.
     # This is especially important for client-specific inputs in forms.
     token = LivebookWeb.SessionHelpers.generate_input_token(self(), input_id)
-    ~p"/sessions/audio-input/#{token}"
+    ~p"/public/sessions/audio-input/#{token}"
   end
 
   @impl true

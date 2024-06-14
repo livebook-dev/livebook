@@ -54,6 +54,8 @@ defmodule LivebookWeb.Router do
 
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
     get "/sessions/node/:node_id/assets/:hash/*file_parts", SessionController, :show_cached_asset
+    get "/sessions/audio-input/:token", SessionController, :show_input_audio
+    get "/sessions/image-input/:token", SessionController, :show_input_image
   end
 
   live_session :default,
@@ -121,8 +123,6 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/files/:name", SessionController, :show_file
       get "/sessions/:id/download/files/:name", SessionController, :download_file
-      get "/sessions/audio-input/:token", SessionController, :show_input_audio
-      get "/sessions/image-input/:token", SessionController, :show_input_image
       live "/sessions/:id/settings/custom-view", SessionLive, :custom_view_settings
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
     end

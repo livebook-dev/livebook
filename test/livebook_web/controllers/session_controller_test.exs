@@ -345,7 +345,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/sessions/audio-input/#{token}")
+      conn = get(conn, ~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 200
       assert conn.resp_body == "wav content"
@@ -365,7 +365,7 @@ defmodule LivebookWeb.SessionControllerTest do
       conn =
         conn
         |> put_req_header("range", "bytes=4-")
-        |> get(~p"/sessions/audio-input/#{token}")
+        |> get(~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 206
       assert conn.resp_body == "content"
@@ -382,7 +382,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/sessions/audio-input/#{token}")
+      conn = get(conn, ~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 200
       assert <<_header::44-binary, "pcm content">> = conn.resp_body
@@ -402,7 +402,7 @@ defmodule LivebookWeb.SessionControllerTest do
       conn =
         conn
         |> put_req_header("range", "bytes=48-")
-        |> get(~p"/sessions/audio-input/#{token}")
+        |> get(~p"/public/sessions/audio-input/#{token}")
 
       assert conn.status == 206
       assert conn.resp_body == "content"
@@ -421,7 +421,7 @@ defmodule LivebookWeb.SessionControllerTest do
 
       token = LivebookWeb.SessionHelpers.generate_input_token(view.pid, input_id)
 
-      conn = get(conn, ~p"/sessions/image-input/#{token}")
+      conn = get(conn, ~p"/public/sessions/image-input/#{token}")
 
       assert conn.status == 200
       assert conn.resp_body == "rgb content"
