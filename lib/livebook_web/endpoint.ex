@@ -156,7 +156,7 @@ defmodule LivebookWeb.Endpoint do
     base = update_in(base.path, &(&1 || "/"))
 
     case Livebook.Config.authentication() do
-      %{mode: token, secret: token} ->
+      %{mode: :token, secret: token} ->
         %{base | query: "token=" <> token}
 
       _ ->
