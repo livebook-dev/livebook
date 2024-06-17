@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino_explorer, "~> 0.1.18"}
+  {:kino_explorer, "~> 0.1.20"}
 ])
 ```
 

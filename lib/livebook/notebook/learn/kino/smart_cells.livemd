@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.12.0"},
+  {:kino, "~> 0.13.0"},
   {:jason, "~> 1.4"}
 ])
 ```
@@ -177,8 +177,10 @@ defmodule KinoGuide.ShellCell do
   use Kino.SmartCell, name: "Shell script"
 
   @impl true
-  def init(_attrs, ctx) do
-    {:ok, ctx, editor: [attribute: "source"]}
+  def init(attrs, ctx) do
+    source = attrs["source"] || ""
+
+    {:ok, assign(ctx, source: source), editor: [source: source]}
   end
 
   @impl true
@@ -187,8 +189,13 @@ defmodule KinoGuide.ShellCell do
   end
 
   @impl true
-  def to_attrs(_ctx) do
-    %{}
+  def handle_editor_change(source, ctx) do
+    {:ok, assign(ctx, source: source)}
+  end
+
+  @impl true
+  def to_attrs(ctx) do
+    %{"source" => ctx.assigns.source}
   end
 
   @impl true
