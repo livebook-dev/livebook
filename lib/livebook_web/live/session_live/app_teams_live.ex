@@ -66,15 +66,20 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       </div>
 
       <div :if={@messages != []} class="flex flex-col gap-2">
-        <.message_box :for={{kind, message} <- @messages} message={message} kind={kind}>
-          <.link
-            :if={kind == :success}
-            href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
-            target="_blank"
-            class="font-medium text-blue-600"
-          >
-            See all deployed apps
-          </.link>
+        <.message_box :for={{kind, message} <- @messages} kind={kind}>
+          <div class="flex flex-auto items-center justify-between">
+            <span class="whitespace-pre-wrap"><%= raw(message) %></span>
+
+            <.link
+              :if={kind == :success}
+              href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
+              target="_blank"
+              class="font-medium text-blue-600"
+            >
+              <span>See all deployed apps</span>
+              <.remix_icon icon="external-link-line" />
+            </.link>
+          </div>
         </.message_box>
       </div>
 
@@ -319,7 +324,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     """
   end
 
-  defp deployment_group_url(%{url: nil} = assigns), do: ~H"(internal-domain.example.com)"
+  defp deployment_group_url(%{url: nil} = assigns), do: ~H""
   defp deployment_group_url(assigns), do: ~H"(<%= URI.new!(@url).host %>)"
 
   defp app_deployment_card(assigns) do
