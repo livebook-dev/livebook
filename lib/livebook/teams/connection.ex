@@ -21,6 +21,10 @@ defmodule Livebook.Teams.Connection do
     :gen_statem.start_link(__MODULE__, {listener, headers}, [])
   end
 
+  def send_message(conn, message) do
+    :gen_statem.call(conn, {:message, message})
+  end
+
   ## gen_statem callbacks
 
   @impl true
@@ -81,6 +85,21 @@ defmodule Livebook.Teams.Connection do
 
   def handle_event(:info, _message, @no_state, _data) do
     :keep_state_and_data
+  end
+
+  def handle_event({:call, from}, {:message, message}, @no_state, data) do
+    case WebSocket.send(data.http_conn, data.websocket, data.ref, {:binary, message}) do
+      {:ok, conn, websocket} ->
+        :gen_statem.reply(from, :ok)
+        {:keep_state, %{data | http_conn: conn, websocket: websocket}}
+
+      {:error, conn, websocket, reason} ->
+        data = %__MODULE__{data | http_conn: conn, websocket: websocket}
+        send(data.listener, {:connection_error, reason})
+        :gen_statem.reply(from, {:error, reason})
+
+        {:keep_state, data, {:next_event, :internal, :connect}}
+    end
   end
 
   # Private

@@ -281,6 +281,24 @@ defmodule Livebook.HubHelpers do
     assert_receive {:agent_joined, ^agent}
   end
 
+  @doc """
+  Creates a new Team hub from given user and node, and await the WebSocket to be connected.
+
+      test "my test", %{user: user, node: node} do
+        team = connect_to_teams(user, node)
+        assert "team-" <> _ = team.id
+      end
+
+  """
+  @spec connect_to_teams(struct(), node()) :: Livebook.Hubs.Team.t()
+  def connect_to_teams(user, node) do
+    %{id: id} = team = create_team_hub(user, node)
+    assert_receive {:hub_connected, ^id}, 3_000
+    assert_receive {:client_connected, ^id}, 3_000
+
+    team
+  end
+
   defp hub_pid(hub) do
     if pid = GenServer.whereis({:via, Registry, {Livebook.HubsRegistry, hub.id}}) do
       {:ok, pid}
