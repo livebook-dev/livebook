@@ -13,7 +13,7 @@ defmodule Livebook.Hubs.TeamClient do
   @supervisor Livebook.HubsSupervisor
 
   defstruct [
-    :pid,
+    :connection_pid,
     :hub,
     :connection_status,
     :derived_key,
@@ -172,7 +172,7 @@ defmodule Livebook.Hubs.TeamClient do
       end
 
     {:ok, pid} = Teams.Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{pid: pid, hub: team, derived_key: derived_key}}
+    {:ok, %__MODULE__{connection_pid: pid, hub: team, derived_key: derived_key}}
   end
 
   def init(%Hubs.Team{} = team) do
@@ -300,7 +300,7 @@ defmodule Livebook.Hubs.TeamClient do
       Logger.debug("Sending apps manager report to Teams server #{inspect(report)}")
 
       message = LivebookProto.AppDeploymentStatusReport.encode(report)
-      :ok = Teams.Connection.send_message(state.pid, message)
+      :ok = Teams.Connection.send_message(state.connection_pid, message)
 
       {:noreply, %{state | app_deployment_statuses: app_deployment_statuses}}
     end
