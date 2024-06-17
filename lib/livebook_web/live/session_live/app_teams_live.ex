@@ -296,7 +296,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         <div class="flex gap-2 items-center text-gray-700">
           <h3 class="text-sm">
             <span class="font-semibold"><%= @deployment_group.name %></span>
-            (internal-domain.example.com)
+            <.deployment_group_url url={@deployment_group.url} />
           </h3>
         </div>
         <div class="flex gap-2">
@@ -311,6 +311,9 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     </div>
     """
   end
+
+  defp deployment_group_url(%{url: nil} = assigns), do: ~H"(internal-domain.example.com)"
+  defp deployment_group_url(assigns), do: ~H"(<%= URI.new!(@url).host %>)"
 
   defp app_deployment_card(assigns) do
     ~H"""
