@@ -546,6 +546,8 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert render(view) =~
                "App deployment created successfully"
+
+      assert render(view) =~ "#{Livebook.Config.teams_url()}/orgs/#{team.org_id}"
     end
 
     test "deployment flow with existing deployment groups in the hub",

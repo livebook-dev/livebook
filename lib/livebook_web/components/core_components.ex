@@ -115,7 +115,8 @@ defmodule LivebookWeb.CoreComponents do
       @kind == :info && "border-blue-500",
       @kind == :success && "border-green-bright-400",
       @kind == :warning && "border-yellow-300",
-      @kind == :error && "border-red-500"
+      @kind == :error && "border-red-500",
+      "justify-between"
     ]}>
       <div
         :if={@message}

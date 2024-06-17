@@ -66,8 +66,15 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       </div>
 
       <div :if={@messages != []} class="flex flex-col gap-2">
-        <.message_box :for={{kind, message} <- @messages} kind={kind}>
-          <%= raw(message) %>
+        <.message_box :for={{kind, message} <- @messages} message={message} kind={kind}>
+          <.link
+            :if={kind == :success}
+            href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
+            target="_blank"
+            class="font-medium text-blue-600"
+          >
+            See all deployed apps
+          </.link>
         </.message_box>
       </div>
 
