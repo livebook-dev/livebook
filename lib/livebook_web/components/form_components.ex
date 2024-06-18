@@ -575,13 +575,9 @@ defmodule LivebookWeb.FormComponents do
 
   defp help(assigns) do
     ~H"""
-    <div class="flex items-center relative">
-      <div class="fixed">
-        <span class="cursor-pointer tooltip top" data-tooltip={@text}>
-          <.remix_icon icon="question-line" class="text-sm leading-none" />
-        </span>
-      </div>
-    </div>
+    <span class="cursor-pointer tooltip right" data-tooltip={@text}>
+      <.remix_icon icon="question-line" class="text-sm leading-none" />
+    </span>
     """
   end
 
