@@ -546,14 +546,18 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
       assert render(view) =~
                "App deployment created successfully"
+
+      assert render(view) =~ "#{Livebook.Config.teams_url()}/orgs/#{team.org_id}"
     end
 
     test "deployment flow with existing deployment groups in the hub",
          %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
       team = create_team_hub(user, node)
       Session.set_notebook_hub(session.pid, team.id)
 
-      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
+      id = insert_deployment_group(mode: :online, hub_id: team.id).id
+      assert_receive {:deployment_group_created, %{id: ^id} = deployment_group}
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
 
@@ -581,9 +585,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       |> element(~s/[phx-click="select_deployment_group"][phx-value-id="#{deployment_group.id}"]/)
       |> render_click()
 
-      %{id: id} = deployment_group
       assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
-
       assert render(view) =~ "The selected deployment group has no app servers."
 
       view
@@ -593,7 +595,6 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       # Step: agent instance setup
 
       assert render(view) =~ "Step: add app server"
-
       assert render(view) =~ "Awaiting an app server to be set up."
 
       [deployment_group] = Livebook.Hubs.TeamClient.get_deployment_groups(team.id)
@@ -613,6 +614,7 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
 
     test "shows an error when the deployment size is higher than the maximum size of 20MB",
          %{conn: conn, user: user, node: node, session: session} do
+      Livebook.Teams.Broadcasts.subscribe([:deployment_groups])
       team = create_team_hub(user, node)
       Session.set_notebook_hub(session.pid, team.id)
 
@@ -620,8 +622,11 @@ defmodule LivebookWeb.Integration.SessionLiveTest do
       app_settings = %{Livebook.Notebook.AppSettings.new() | slug: slug}
       Session.set_app_settings(session.pid, app_settings)
 
-      deployment_group = insert_deployment_group(mode: :online, hub_id: team.id)
-      Session.set_notebook_deployment_group(session.pid, deployment_group.id)
+      id = insert_deployment_group(mode: :online, hub_id: team.id).id
+      assert_receive {:deployment_group_created, %{id: ^id}}
+
+      Session.set_notebook_deployment_group(session.pid, id)
+      assert_receive {:operation, {:set_notebook_deployment_group, _, ^id}}
 
       %{files_dir: files_dir} = session
       image_file = FileSystem.File.resolve(files_dir, "image.jpg")

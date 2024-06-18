@@ -67,7 +67,19 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
       <div :if={@messages != []} class="flex flex-col gap-2">
         <.message_box :for={{kind, message} <- @messages} kind={kind}>
-          <%= raw(message) %>
+          <div class="flex flex-auto items-center justify-between">
+            <span class="whitespace-pre-wrap"><%= raw(message) %></span>
+
+            <.link
+              :if={kind == :success}
+              href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
+              target="_blank"
+              class="font-medium text-blue-600"
+            >
+              <span>See all deployed apps</span>
+              <.remix_icon icon="external-link-line" />
+            </.link>
+          </div>
         </.message_box>
       </div>
 
@@ -296,7 +308,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         <div class="flex gap-2 items-center text-gray-700">
           <h3 class="text-sm">
             <span class="font-semibold"><%= @deployment_group.name %></span>
-            (internal-domain.example.com)
+            <span :if={url = @deployment_group.url}>(<%= url %>)</span>
           </h3>
         </div>
         <div class="flex gap-2">

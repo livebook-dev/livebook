@@ -274,6 +274,11 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, handle_event(topic, data, state)}
   end
 
+  def handle_info({:apps_manager_status, _}, state)
+      when not state.connected? or state.deployment_group_id == nil do
+    {:noreply, state}
+  end
+
   def handle_info({:apps_manager_status, entries}, %{hub: %{id: id}} = state) do
     app_deployment_statuses =
       for %{app_spec: %Apps.TeamsAppSpec{hub_id: ^id} = app_spec, running?: running?} <- entries do

@@ -108,7 +108,13 @@ defmodule LivebookWeb.CoreComponents do
 
   slot :inner_block
 
+  def message_box(assigns)
+
   def message_box(assigns) do
+    if assigns.message && assigns.inner_block != [] do
+      raise ArgumentError, "expected either message or inner_block, got both."
+    end
+
     ~H"""
     <div class={[
       "shadow text-sm flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
@@ -122,9 +128,9 @@ defmodule LivebookWeb.CoreComponents do
         class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar"
         phx-no-format
       ><%= @message %></div>
-      <div :if={@inner_block}>
+      <%= if @inner_block != [] do %>
         <%= render_slot(@inner_block) %>
-      </div>
+      <% end %>
     </div>
     """
   end
