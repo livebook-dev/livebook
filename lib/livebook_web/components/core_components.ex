@@ -111,7 +111,7 @@ defmodule LivebookWeb.CoreComponents do
   def message_box(assigns)
 
   def message_box(assigns) do
-    if assigns[:message] && assigns.inner_block != [] do
+    if assigns.message && assigns.inner_block != [] do
       raise ArgumentError, "expected either message or inner_block, got both."
     end
 
@@ -124,11 +124,11 @@ defmodule LivebookWeb.CoreComponents do
       @kind == :error && "border-red-500"
     ]}>
       <div
-        :if={@message && @inner_block == []}
+        :if={@message}
         class="whitespace-pre-wrap pr-2 max-h-52 overflow-y-auto tiny-scrollbar"
         phx-no-format
       ><%= @message %></div>
-      <%= if !@message && @inner_block != [] do %>
+      <%= if @inner_block != [] do %>
         <%= render_slot(@inner_block) %>
       <% end %>
     </div>
