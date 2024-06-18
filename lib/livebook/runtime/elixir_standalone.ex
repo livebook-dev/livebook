@@ -171,13 +171,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
         ""
       end
 
-    # TODO: if Livebook is running using inet6_tcp, it is most likely
-    # because -proto_dist has been passed with ERL_AFLAGS or similar.
-    # This env var is propagated down, so the runtime node also receives
-    # it. If we pass -proto_dist here, it gets passed twice and as a
-    # result it is actually ignored. Ideally we want to pass it here
-    # and make OTP handle duplicates.
-    # "-proto_dist #{Livebook.Utils.proto_dist()} " <>
     [
       "--erl",
       # Minimize schedulers busy wait threshold,
