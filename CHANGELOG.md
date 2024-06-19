@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * (Desktop) Running without requiring EPMD ([#2591](https://github.com/livebook-dev/livebook/pull/2591))
 * Code cells are no longer formatted on save ([#2605](https://github.com/livebook-dev/livebook/pull/2605))
 * Livebook within Docker to bind to IPv6 by default
-* Bumped versions to Elixir 1.17.0 and OTP 27 in the Docker image and the desktop app
+* Bumped versions to Elixir 1.17.1 and OTP 27 in the Docker image and the desktop app
 * Livebook and runtimes to always run distribution in long names mode ([#2646](https://github.com/livebook-dev/livebook/pull/2646), [#2648](https://github.com/livebook-dev/livebook/pull/2648))
 
 ### Removed
