@@ -375,15 +375,21 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
   defp render_unordered_list(content) do
     marker_fun = fn _index -> "* " end
-    render_list(content, marker_fun, "  ")
+    indent_fun = fn _index -> 2 end
+    render_list(content, marker_fun, indent_fun)
   end
 
   defp render_ordered_list(content) do
     marker_fun = fn index -> "#{index + 1}. " end
-    render_list(content, marker_fun, "   ")
+    indent_fun = fn index -> number_of_digits(index + 1) + 2 end
+    render_list(content, marker_fun, indent_fun)
   end
 
-  defp render_list(items, marker_fun, indent) do
+  defp number_of_digits(n) do
+    n |> Integer.digits() |> length()
+  end
+
+  defp render_list(items, marker_fun, indent_fun) do
     spaced? = spaced_list_items?(items)
     item_separator = if(spaced?, do: "\n\n", else: "\n")
 
@@ -398,7 +404,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
       lines =
         Enum.map(lines, fn
           "" -> ""
-          line -> [indent, line]
+          line -> [String.duplicate(" ", indent_fun.(index)), line]
         end)
 
       Enum.intersperse([first_line | lines], "\n")

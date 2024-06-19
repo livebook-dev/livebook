@@ -328,6 +328,21 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "properly indents nested lists when the parent list has double digit items" do
+      markdown = """
+      #{Enum.map_join(1..9, "\n", fn n -> "#{n}. Item #{n}" end)}
+      10. Item 10
+          * Child item 1
+          * Child item 2
+      11. Item 11
+          ```
+          Enum.to_list(1..10)
+          ```\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
     test "surprise ordered list" do
       markdown = "1986\\. What a great season."
 
