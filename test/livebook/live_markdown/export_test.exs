@@ -701,7 +701,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                            type: :js,
                            js_view: %{
                              ref: "1",
-                             pid: spawn_widget_with_data("1", "data"),
+                             pid: spawn_widget_with_export("1", {"json", "{}"}),
                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
                            },
                            export: false
@@ -779,168 +779,51 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       assert expected_document == document
     end
+  end
 
-    test "includes js output with legacy export info" do
-      notebook = %{
-        Notebook.new()
-        | name: "My Notebook",
-          sections: [
-            %{
-              Notebook.Section.new()
-              | name: "Section 1",
-                cells: [
-                  %{
-                    Notebook.Cell.new(:code)
-                    | source: ":ok",
-                      outputs: [
-                        {0,
-                         %{
-                           type: :js,
-                           js_view: %{
-                             ref: "1",
-                             pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                           },
-                           export: %{info_string: "mermaid", key: nil}
-                         }}
-                      ]
-                  }
-                ]
-            }
-          ]
-      }
+  test "ignores js output with legacy export info" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: ":ok",
+                    outputs: [
+                      {0,
+                       %{
+                         type: :js,
+                         js_view: %{
+                           ref: "1",
+                           pid: spawn_widget_with_export("1", {"json", "{}"}),
+                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                         },
+                         export: %{info_string: "mermaid", key: nil}
+                       }}
+                    ]
+                }
+              ]
+          }
+        ]
+    }
 
-      expected_document = """
-      # My Notebook
+    expected_document = """
+    # My Notebook
 
-      ## Section 1
+    ## Section 1
 
-      ```elixir
-      :ok
-      ```
+    ```elixir
+    :ok
+    ```
+    """
 
-      <!-- livebook:{"output":true} -->
+    {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
 
-      ```mermaid
-      graph TD;
-      A-->B;
-      ```
-      """
-
-      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
-
-      assert expected_document == document
-    end
-
-    test "serializes js output data to JSON if not binary" do
-      notebook = %{
-        Notebook.new()
-        | name: "My Notebook",
-          sections: [
-            %{
-              Notebook.Section.new()
-              | name: "Section 1",
-                cells: [
-                  %{
-                    Notebook.Cell.new(:code)
-                    | source: ":ok",
-                      outputs: [
-                        {0,
-                         %{
-                           type: :js,
-                           js_view: %{
-                             ref: "1",
-                             pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                           },
-                           export: %{info_string: "box", key: nil}
-                         }}
-                      ]
-                  }
-                ]
-            }
-          ]
-      }
-
-      expected_document = """
-      # My Notebook
-
-      ## Section 1
-
-      ```elixir
-      :ok
-      ```
-
-      <!-- livebook:{"output":true} -->
-
-      ```box
-      {"height":50,"width":50}
-      ```
-      """
-
-      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
-
-      assert expected_document == document
-    end
-
-    test "exports partial js output data when export_key is set" do
-      notebook = %{
-        Notebook.new()
-        | name: "My Notebook",
-          sections: [
-            %{
-              Notebook.Section.new()
-              | name: "Section 1",
-                cells: [
-                  %{
-                    Notebook.Cell.new(:code)
-                    | source: ":ok",
-                      outputs: [
-                        {0,
-                         %{
-                           type: :js,
-                           js_view: %{
-                             ref: "1",
-                             pid:
-                               spawn_widget_with_data("1", %{
-                                 spec: %{
-                                   "height" => 50,
-                                   "width" => 50,
-                                   "data" => %{"x" => 1, "y" => 1, "date" => ~D[2024-05-24]}
-                                 },
-                                 datasets: []
-                               }),
-                             assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
-                           },
-                           export: %{info_string: "vega-lite", key: :spec}
-                         }}
-                      ]
-                  }
-                ]
-            }
-          ]
-      }
-
-      expected_document = """
-      # My Notebook
-
-      ## Section 1
-
-      ```elixir
-      :ok
-      ```
-
-      <!-- livebook:{"output":true} -->
-
-      ```vega-lite
-      {"data":{"date":"2024-05-24","x":1,"y":1},"height":50,"width":50}
-      ```
-      """
-
-      {document, []} = Export.notebook_to_livemd(notebook, include_outputs: true)
-
-      assert expected_document == document
-    end
+    assert expected_document == document
   end
 
   test "includes only the first tabs output that can be exported" do
@@ -1419,14 +1302,6 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       receive do
         {:export, pid, %{ref: ^ref}} ->
           send(pid, {:export_reply, export_result, %{ref: ref}})
-      end
-    end)
-  end
-
-  defp spawn_widget_with_data(ref, data) do
-    spawn(fn ->
-      receive do
-        {:connect, pid, %{ref: ^ref}} -> send(pid, {:connect_reply, data, %{ref: ref}})
       end
     end)
   end
