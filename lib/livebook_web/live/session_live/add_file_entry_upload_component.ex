@@ -70,10 +70,10 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
             phx-debounce="200"
           />
           <.radio_field
-            field={f[:store_local?]}
+            field={f[:storage_type]}
             options={[
-              {"true", "Store in the notebook files as an attachment"},
-              {"false", "Upload to storage and store link"}
+              {"local", "Store in the notebook files as an attachment"},
+              {"s3", "Upload to your S3 storage and store link"}
             ]}
           />
         </div>
@@ -122,6 +122,7 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
     {:noreply, cancel_upload(socket, :file, ref)}
   end
 
+  # OPTIMIZE add guard data.storage_type
   def handle_event("add", %{"data" => data}, socket) do
     data
     |> changeset()
@@ -131,21 +132,38 @@ defmodule LivebookWeb.SessionLive.AddFileEntryUploadComponent do
         [:ok] =
           consume_uploaded_entries(socket, :file, fn %{}, _entry -> {:ok, :ok} end)
 
-        dbg(data.store_local?)
-        IO.inspect(data.store_local? |> is_boolean(), label: "is bool?")
+        dbg(data.storage_type)
+        IO.inspect(data.storage_type, label: "storage type")
 
-        if data.store_local? do
-          file_entry = %{name: data.name, type: :attachment}
+        case data.storage_type do
+          "s3" ->
+            # -- TODO  
+            # Option 1: Livebook.FileSystem.write(%Livebook.FileSystem.S3{}, "", false)
+            # Option 2:
+            path = "/test_hardcoded_path"
+            content = data
 
-          Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
-          send(self(), {:file_entry_uploaded, file_entry})
+            # FileSystems.load("local", "s3")
+            case Livebook.FileSystem.write(%Livebook.FileSystem.S3{}, path, content) do
+              :ok ->
+                IO.puts("Imma be stored in a global storage")
+                # -- TODO
+                :ok
 
-          {:noreply, socket}
-        else
-          # -- TODO  
-          # Option 1: Livebook.FileSystem.write(%Livebook.FileSystem.S3{}, "", false)
-          # Option 2: Livebook.FileSystem.S3.write(%Livebook.FileSystem.S3{}, path, content)
-          IO.puts("Imma be stored in a global storage")
+              {:error, error} ->
+                IO.inspect(error, label: "Something goes ne tak !!!")
+                # -- TODO
+                :error
+            end
+
+          # "local" ->
+          _ -> 
+            file_entry = %{name: data.name, type: :attachment}
+
+            Livebook.Session.add_file_entries(socket.assigns.session.pid, [file_entry])
+            send(self(), {:file_entry_uploaded, file_entry})
+
+            {:noreply, socket}
         end
 
       {:error, changeset} ->
