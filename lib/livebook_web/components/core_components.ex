@@ -117,7 +117,7 @@ defmodule LivebookWeb.CoreComponents do
 
     ~H"""
     <div class={[
-      "shadow text-sm flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
+      "shadow text-sm rounded-lg px-4 py-2 border-l-4 rounded-l-none bg-white text-gray-700",
       @kind == :info && "border-blue-500",
       @kind == :success && "border-green-bright-400",
       @kind == :warning && "border-yellow-300",
