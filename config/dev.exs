@@ -76,5 +76,3 @@ config :phoenix,
 config :livebook,
   authentication: :disabled,
   data_path: Path.expand("tmp/livebook_data/dev")
-
-config :livebook, :feature_flags, deployment_groups: true

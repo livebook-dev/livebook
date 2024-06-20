@@ -24,7 +24,6 @@ end
 
 config :livebook,
   data_path: data_path,
-  feature_flags: [deployment_groups: true],
   agent_name: "chonky-cat"
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0
