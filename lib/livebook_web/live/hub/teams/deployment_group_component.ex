@@ -44,7 +44,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             <.link
               :if={@deployment_group.url}
               href={@deployment_group.url}
-              class="text-sm font-semibold text-blue-600 hover:text-blue-700 mt-1"
+              class="text-xs font-medium text-blue-600 mt-1"
               target="_blank"
             >
               <%= DeploymentGroup.url_without_scheme(@deployment_group) %>
@@ -52,7 +52,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
           </div>
           <.link
             href={Livebook.Config.teams_url() <> "/orgs/#{@hub.org_id}/deployments/groups/#{@deployment_group.id}"}
-            class="text-sm font-semibold text-blue-600  hover:text-blue-700"
+            class="text-sm font-medium text-blue-600"
             target="_blank"
           >
             <.remix_icon icon="external-link-line" /> Edit on Teams
@@ -66,7 +66,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/agents/new"}
-              class="pl-2 text-blue-600"
+              class="pl-2 text-blue-600 font-medium"
             >
               + Deploy
             </.link>
@@ -77,7 +77,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </span>
             <.link
               patch={~p"/hub/#{@hub.id}/groups/#{@deployment_group.id}/apps/new"}
-              class="pl-2 text-blue-600"
+              class="pl-2 text-blue-600 font-medium"
             >
               + Add new
             </.link>
