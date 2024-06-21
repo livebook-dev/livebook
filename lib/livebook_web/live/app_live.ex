@@ -16,7 +16,7 @@ defmodule LivebookWeb.AppLive do
     else
       {:ok, pid} = Livebook.Apps.fetch_pid(slug)
       session_id = Livebook.App.get_session_id(pid, user: socket.assigns.current_user)
-      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/#{session_id}")}
+      {:ok, push_navigate(socket, to: ~p"/apps/#{slug}/sessions/#{session_id}")}
     end
   end
 
@@ -70,7 +70,7 @@ defmodule LivebookWeb.AppLive do
         <div :if={@app_settings.show_existing_sessions} class="w-full flex flex-col space-y-4">
           <.link
             :for={app_session <- active_sessions(@app.sessions)}
-            navigate={~p"/apps/#{@app.slug}/#{app_session.id}"}
+            navigate={~p"/apps/#{@app.slug}/sessions/#{app_session.id}"}
             class="px-4 py-3 border border-gray-200 rounded-xl text-gray-800 pointer hover:bg-gray-50 flex justify-between"
           >
             <span>
@@ -98,7 +98,8 @@ defmodule LivebookWeb.AppLive do
     session_id =
       Livebook.App.get_session_id(socket.assigns.app.pid, user: socket.assigns.current_user)
 
-    {:noreply, push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/#{session_id}")}
+    {:noreply,
+     push_navigate(socket, to: ~p"/apps/#{socket.assigns.app.slug}/sessions/#{session_id}")}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

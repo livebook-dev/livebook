@@ -17,7 +17,7 @@ defmodule LivebookWeb.AppAuthLive do
     {:ok, push_navigate(socket, to: authenticated_path(params))}
   end
 
-  defp authenticated_path(%{"slug" => slug, "id" => id}), do: ~p"/apps/#{slug}/#{id}"
+  defp authenticated_path(%{"slug" => slug, "id" => id}), do: ~p"/apps/#{slug}/sessions/#{id}"
   defp authenticated_path(%{"slug" => slug}), do: ~p"/apps/#{slug}"
 
   @impl true

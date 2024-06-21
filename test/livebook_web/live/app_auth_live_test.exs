@@ -108,7 +108,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
 
       {:ok, view, _} =
         conn
-        |> live(~p"/apps/#{slug}/#{session_id}")
+        |> live(~p"/apps/#{slug}/sessions/#{session_id}")
         |> follow_redirect(conn)
 
       view
@@ -118,7 +118,7 @@ defmodule LivebookWeb.AppAuthLiveTest do
       assert_push_event(view, "persist_app_auth", %{"slug" => ^slug, "token" => _token})
 
       assert {:error, {:live_redirect, %{to: to}}} = render_hook(view, "app_auth_persisted")
-      assert to == ~p"/apps/#{slug}/#{session_id}"
+      assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
     end
 
     test "redirects to the app page when authenticating in Livebook", %{conn: conn, slug: slug} do
