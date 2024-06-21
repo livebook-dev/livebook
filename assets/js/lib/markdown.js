@@ -33,6 +33,7 @@ class Markdown {
       defaultCodeLanguage = null,
       emptyText = "",
       allowedUriSchemes = [],
+      useDarkTheme = false,
     } = {},
   ) {
     this.container = container;
@@ -41,6 +42,7 @@ class Markdown {
     this.defaultCodeLanguage = defaultCodeLanguage;
     this.emptyText = emptyText;
     this.allowedUriSchemes = allowedUriSchemes;
+    this.useDarkTheme = useDarkTheme;
 
     this.render();
   }
@@ -81,7 +83,7 @@ class Markdown {
         .use(rehypeExpandUrls, { baseUrl: this.baseUrl })
         .use(rehypeSanitize, sanitizeSchema(this.allowedUriSchemes))
         .use(rehypeKatex)
-        .use(rehypeMermaid)
+        .use(rehypeMermaid, { useDarkTheme: this.useDarkTheme })
         .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
         .use(rehypeStringify, {
           // Mermaid allows HTML tags, such as <br /> in diagram labels.
@@ -236,7 +238,8 @@ function rehypeMermaid(options) {
         }
 
         const value = toText(element, { whitespace: "pre" });
-        const promise = renderMermaid(value).then(updateNode);
+        const theme = options.useDarkTheme ? "dark" : "default";
+        const promise = renderMermaid(value, { theme }).then(updateNode);
         promises.push(promise);
       }
     });
