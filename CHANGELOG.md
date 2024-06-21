@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * File download in the .exs notebook export
 * (Desktop) `~/.livebookdesktop.sh` to allow setting `LIVEBOOK_NODE` and `LIVEBOOK_SHUTDOWN_ENABLED` ([#2464](https://github.com/livebook-dev/livebook/pull/2464))
+* (Desktop) Don't create duplicate log lines on Windows ([#2668](https://github.com/livebook-dev/livebook/pull/2668))
 * Using environment variables for S3 file system credentials ([#2472](https://github.com/livebook-dev/livebook/pull/2472))
 * Redesigned flash messages to allow copying the message without closing it ([#2484](https://github.com/livebook-dev/livebook/pull/2484))
 * Completion relevance within multiline maps and bitstrings ([#2488](https://github.com/livebook-dev/livebook/pull/2488))
