@@ -14,7 +14,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
 
     app_pid = deploy_notebook_sync(notebook)
 
-    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/nonexistent")
+    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/sessions/nonexistent")
     assert render(view) =~ "This app session does not exist"
     assert render(view) =~ ~p"/apps/#{slug}"
 
@@ -39,7 +39,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
     assert_receive {:app_updated,
                     %{pid: ^app_pid, sessions: [%{app_status: %{lifecycle: :deactivated}}]}}
 
-    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/#{session_id}")
+    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/sessions/#{session_id}")
     assert render(view) =~ "This app session does not exist"
     assert render(view) =~ ~p"/apps/#{slug}"
 
@@ -59,7 +59,7 @@ defmodule LivebookWeb.AppSessionLiveTest do
     assert_receive {:app_updated,
                     %{pid: ^app_pid, sessions: [%{id: session_id, pid: session_pid}]}}
 
-    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/#{session_id}")
+    {:ok, view, _} = live(conn, ~p"/apps/#{slug}/sessions/#{session_id}")
 
     Livebook.Session.app_deactivate(session_pid)
 

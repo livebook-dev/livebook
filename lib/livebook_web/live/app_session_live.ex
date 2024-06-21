@@ -126,7 +126,10 @@ defmodule LivebookWeb.AppSessionLive do
               </.link>
             </.menu_item>
             <.menu_item :if={@data_view.show_source}>
-              <.link patch={~p"/apps/#{@data_view.slug}/#{@session.id}/source"} role="menuitem">
+              <.link
+                patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}/source"}
+                role="menuitem"
+              >
                 <.remix_icon icon="code-line" />
                 <span>View source</span>
               </.link>
@@ -211,7 +214,7 @@ defmodule LivebookWeb.AppSessionLive do
       id="source-modal"
       show
       width={:big}
-      patch={~p"/apps/#{@data_view.slug}/#{@session.id}"}
+      patch={~p"/apps/#{@data_view.slug}/sessions/#{@session.id}"}
     >
       <.live_component
         module={LivebookWeb.AppSessionLive.SourceComponent}

@@ -19,7 +19,7 @@ defmodule LivebookWeb.AppLiveTest do
       assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
 
       {:error, {:live_redirect, %{to: to}}} = live(conn, ~p"/apps/#{slug}")
-      assert to == ~p"/apps/#{slug}/#{session_id}"
+      assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
 
       App.close(app_pid)
     end
@@ -59,8 +59,8 @@ defmodule LivebookWeb.AppLiveTest do
 
       {:ok, view, _} = live(conn, ~p"/apps/#{slug}")
 
-      assert render(view) =~ ~p"/apps/#{slug}/#{session_id1}"
-      refute render(view) =~ ~p"/apps/#{slug}/#{session_id2}"
+      assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id1}"
+      refute render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id2}"
 
       # Create a new app session
       session_id3 = App.get_session_id(app_pid)
@@ -68,7 +68,7 @@ defmodule LivebookWeb.AppLiveTest do
       assert_receive {:app_updated,
                       %{pid: ^app_pid, sessions: [%{id: ^session_id3, pid: session_pid3}, _, _]}}
 
-      assert render(view) =~ ~p"/apps/#{slug}/#{session_id3}"
+      assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id3}"
 
       # Deactivate the app session
       Livebook.Session.app_deactivate(session_pid3)
@@ -79,8 +79,8 @@ defmodule LivebookWeb.AppLiveTest do
                         sessions: [%{app_status: %{lifecycle: :deactivated}}, _, _]
                       }}
 
-      assert render(view) =~ ~p"/apps/#{slug}/#{session_id1}"
-      refute render(view) =~ ~p"/apps/#{slug}/#{session_id3}"
+      assert render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id1}"
+      refute render(view) =~ ~p"/apps/#{slug}/sessions/#{session_id3}"
 
       App.close(app_pid)
     end
@@ -104,7 +104,7 @@ defmodule LivebookWeb.AppLiveTest do
 
       assert_receive {:app_updated, %{pid: ^app_pid, sessions: [%{id: session_id}]}}
 
-      assert to == ~p"/apps/#{slug}/#{session_id}"
+      assert to == ~p"/apps/#{slug}/sessions/#{session_id}"
 
       App.close(app_pid)
     end

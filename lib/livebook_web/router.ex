@@ -146,8 +146,8 @@ defmodule LivebookWeb.Router do
       live "/apps/:slug/new", AppLive, :new_session
       live "/apps/:slug/authenticate", AppAuthLive, :page
 
-      live "/apps/:slug/:id", AppSessionLive, :page
-      live "/apps/:slug/:id/source", AppSessionLive, :source
+      live "/apps/:slug/sessions/:id", AppSessionLive, :page
+      live "/apps/:slug/sessions/:id/source", AppSessionLive, :source
 
       live "/apps", AppsLive, :page
     end

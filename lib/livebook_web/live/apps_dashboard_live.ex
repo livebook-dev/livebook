@@ -157,7 +157,7 @@ defmodule LivebookWeb.AppsDashboardLive do
                       <.icon_button
                         disabled={app_session.app_status.lifecycle != :active}
                         aria-label="open app"
-                        href={~p"/apps/#{app.slug}/#{app_session.id}"}
+                        href={~p"/apps/#{app.slug}/sessions/#{app_session.id}"}
                       >
                         <.remix_icon icon="link" />
                       </.icon_button>

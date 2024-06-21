@@ -13,7 +13,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       session_id = Livebook.Utils.random_long_id()
 
       assert_error_sent 404, fn ->
-        get(conn, "/sessions/#{session_id}/proxy/foo/bar")
+        get(conn, "/proxy/sessions/#{session_id}/foo/bar")
       end
     end
 
@@ -21,7 +21,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       {:ok, session} = Sessions.create_session()
 
       assert_error_sent 404, fn ->
-        get(conn, "/sessions/#{session.id}/proxy/foo/bar")
+        get(conn, "/proxy/sessions/#{session.id}/foo/bar")
       end
     end
 
@@ -38,7 +38,7 @@ defmodule LivebookWeb.ProxyPlugTest do
                       {:add_cell_evaluation_response, _, ^cell_id, _, %{errored: false}}},
                      4_000
 
-      url = "/sessions/#{session.id}/proxy/"
+      url = "/proxy/sessions/#{session.id}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
       assert text_response(post(conn, url), 200) == "used POST method"
@@ -56,7 +56,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       session_id = Livebook.Utils.random_long_id()
 
       assert_error_sent 404, fn ->
-        get(conn, "/apps/#{slug}/#{session_id}/proxy/foo/bar")
+        get(conn, "/proxy/apps/#{slug}/sessions/#{session_id}/foo/bar")
       end
     end
 
@@ -73,7 +73,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert_receive {:app_updated,
                       %{slug: ^slug, sessions: [%{id: id, app_status: %{execution: :executed}}]}}
 
-      url = "/apps/#{slug}/#{id}/proxy/"
+      url = "/proxy/apps/#{slug}/sessions/#{id}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
       assert text_response(post(conn, url), 200) == "used POST method"
@@ -82,7 +82,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert text_response(delete(conn, url), 200) == "used DELETE method"
 
       # Generic path also works for single-session apps
-      url = "/apps/#{slug}/proxy/"
+      url = "/proxy/apps/#{slug}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
     end
@@ -107,7 +107,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       # The app is configured with auto shutdown, so the session will
       # start only once requested. We should wait until it executes
       # and then proxy the request as usual
-      url = "/apps/#{slug}/proxy/"
+      url = "/proxy/apps/#{slug}/"
 
       assert text_response(get(conn, url), 200) == "used GET method"
     end
@@ -130,7 +130,7 @@ defmodule LivebookWeb.ProxyPlugTest do
       assert_receive {:app_created, %{pid: ^pid, slug: ^slug, sessions: []}}
 
       assert_error_sent 400, fn ->
-        get(conn, "/apps/#{slug}/proxy/foo/bar")
+        get(conn, "/proxy/apps/#{slug}/foo/bar")
       end
     end
   end

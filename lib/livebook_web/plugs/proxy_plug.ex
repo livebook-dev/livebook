@@ -8,16 +8,20 @@ defmodule LivebookWeb.ProxyPlug do
   @impl true
   def init(opts), do: opts
 
+  # We group all routes under the /proxy namespace, so that it's easy
+  # to expose them when Livebook runs behind an authentication proxy.
+  # The users may want to expose them, for example, to use as webhooks
+
   @impl true
-  def call(%{path_info: ["sessions", id, "proxy" | path_info]} = conn, _opts) do
+  def call(%{path_info: ["proxy", "sessions", id | path_info]} = conn, _opts) do
     session = fetch_session!(id)
     Livebook.Session.reset_auto_shutdown(session.pid)
     proxy_handler_spec = fetch_proxy_handler_spec!(session)
-    conn = prepare_conn(conn, path_info, ["sessions", id, "proxy"])
+    conn = prepare_conn(conn, path_info, ["proxy", "sessions", id])
     call_proxy_handler(proxy_handler_spec, conn)
   end
 
-  def call(%{path_info: ["apps", slug, id, "proxy" | path_info]} = conn, _opts) do
+  def call(%{path_info: ["proxy", "apps", slug, "sessions", id | path_info]} = conn, _opts) do
     app = fetch_app!(slug)
 
     unless Enum.any?(app.sessions, &(&1.id == id)) do
@@ -28,11 +32,11 @@ defmodule LivebookWeb.ProxyPlug do
     Livebook.Session.reset_auto_shutdown(session.pid)
     await_app_session_ready(app, session.id)
     proxy_handler_spec = fetch_proxy_handler_spec!(session)
-    conn = prepare_conn(conn, path_info, ["apps", slug, id, "proxy"])
+    conn = prepare_conn(conn, path_info, ["proxy", "apps", slug, "sessions", id])
     call_proxy_handler(proxy_handler_spec, conn)
   end
 
-  def call(%{path_info: ["apps", slug, "proxy" | path_info]} = conn, _opts) do
+  def call(%{path_info: ["proxy", "apps", slug | path_info]} = conn, _opts) do
     app = fetch_app!(slug)
 
     if app.multi_session do
@@ -46,7 +50,7 @@ defmodule LivebookWeb.ProxyPlug do
     Livebook.Session.reset_auto_shutdown(session.pid)
     await_app_session_ready(app, session.id)
     proxy_handler_spec = fetch_proxy_handler_spec!(session)
-    conn = prepare_conn(conn, path_info, ["apps", slug, "proxy"])
+    conn = prepare_conn(conn, path_info, ["proxy", "apps", slug])
     call_proxy_handler(proxy_handler_spec, conn)
   end
 
