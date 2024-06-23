@@ -10,7 +10,7 @@ Unicode True
 InstallDir "$LOCALAPPDATA\Livebook"
 
 ; Need admin for registering URL scheme
-RequestExecutionLevel admin
+RequestExecutionLevel user
 
 !define MUI_ABORTWARNING
 !define MUI_ICON "Resources\AppIcon.ico"
@@ -39,15 +39,15 @@ Section "Install"
   CreateDirectory "$LOCALAPPDATA\Livebook\Logs"
   WriteUninstaller "$INSTDIR\LivebookUninstall.exe"
 
-  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayName" "Livebook"
-  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayVersion" "${LIVEBOOK_VERSION}"
-  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayIcon" "$INSTDIR\Livebook.exe"
-  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "Publisher" "Dashbit"
-  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "UninstallString" '"$INSTDIR\LivebookUninstall.exe"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoRepair" 1
+  WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayName" "Livebook"
+  WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayVersion" "${LIVEBOOK_VERSION}"
+  WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "DisplayIcon" "$INSTDIR\Livebook.exe"
+  WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "Publisher" "Dashbit"
+  WriteRegStr   HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "UninstallString" '"$INSTDIR\LivebookUninstall.exe"'
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoModify" 1
+  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook" "NoRepair" 1
 
-  WriteRegStr   HKLM "Software\Dashbit\Livebook" "InstallRoot" "$INSTDIR"
+  WriteRegStr   HKCU "Software\Dashbit\Livebook" "InstallRoot" "$INSTDIR"
 SectionEnd
 
 Section "Desktop Shortcut"
@@ -77,29 +77,29 @@ SectionEnd
 
 Section "Install Handlers"
   DetailPrint "Registering .livemd File Handler"
-  DeleteRegKey HKCR ".livemd"
-  WriteRegStr  HKCR ".livemd" "" "Livebook.LiveMarkdown"
-  DeleteRegKey HKCR "Livebook.LiveMarkdown"
-  WriteRegStr  HKCR "Livebook.LiveMarkdown" "" "LiveMarkdown"
-  WriteRegStr  HKCR "Livebook.LiveMarkdown\DefaultIcon" "" "$INSTDIR\Livebook.exe,1"
-  WriteRegStr  HKCR "Livebook.LiveMarkdown\shell\open\command" "" '"$INSTDIR\Livebook.exe" "open:%1"'
+  DeleteRegKey HKCU "Software\Classes\.livemd"
+  WriteRegStr  HKCU "Software\Classes\.livemd" "" "Livebook.LiveMarkdown"
+  DeleteRegKey HKCU "Software\Classes\Livebook.LiveMarkdown"
+  WriteRegStr  HKCU "Software\Classes\Livebook.LiveMarkdown" "" "LiveMarkdown"
+  WriteRegStr  HKCU "Software\Classes\Livebook.LiveMarkdown\DefaultIcon" "" "$INSTDIR\Livebook.exe,1"
+  WriteRegStr  HKCU "Software\Classes\Livebook.LiveMarkdown\shell\open\command" "" '"$INSTDIR\Livebook.exe" "open:%1"'
 
   DetailPrint "Registering livebook URL Handler"
-  DeleteRegKey HKCR "livebook"
-  WriteRegStr  HKCR "livebook" "" "Livebook URL Protocol"
-  WriteRegStr  HKCR "livebook" "URL Protocol" ""
-  WriteRegStr  HKCR "livebook\shell" "" ""
-  WriteRegStr  HKCR "livebook\shell\open" "" ""
-  WriteRegStr  HKCR "livebook\shell\open\command" "" '"$INSTDIR\Livebook.exe" "open:%1"'
+  DeleteRegKey HKCU "Software\Classes\livebook"
+  WriteRegStr  HKCU "Software\Classes\livebook" "" "Livebook URL Protocol"
+  WriteRegStr  HKCU "Software\Classes\livebook" "URL Protocol" ""
+  WriteRegStr  HKCU "Software\Classes\livebook\shell" "" ""
+  WriteRegStr  HKCU "Software\Classes\livebook\shell\open" "" ""
+  WriteRegStr  HKCU "Software\Classes\livebook\shell\open\command" "" '"$INSTDIR\Livebook.exe" "open:%1"'
 SectionEnd
 
 Section "Uninstall"
-  DeleteRegKey HKCR ".livemd"
-  DeleteRegKey HKCR "Livebook.LiveMarkdown"
-  DeleteRegKey HKCR "livebook"
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook"
-  DeleteRegKey HKLM "Software\Dashbit\Livebook"
-  DeleteRegKey /ifempty HKLM "Software\Dashbit"
+  DeleteRegKey HKCU "Software\Classes\.livemd"
+  DeleteRegKey HKCU "Software\Classes\Livebook.LiveMarkdown"
+  DeleteRegKey HKCU "Software\Classes\livebook"
+  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Livebook"
+  DeleteRegKey HKCU "Software\Dashbit\Livebook"
+  DeleteRegKey /ifempty HKCU "Software\Dashbit"
 
   DetailPrint "Terminating Livebook..."
   ExecWait "taskkill /f /t /im Livebook.exe"
