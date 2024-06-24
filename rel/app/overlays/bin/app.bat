@@ -25,13 +25,33 @@ if not defined RELEASE_BOOT_SCRIPT (set RELEASE_BOOT_SCRIPT=start)
 if not defined RELEASE_BOOT_SCRIPT_CLEAN (set RELEASE_BOOT_SCRIPT_CLEAN=start_clean)
 if not defined RELEASE_SYS_CONFIG (set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys)
 
+if "!RELEASE_DISTRIBUTION!" == "none" (
+  rem
+) else if "!RELEASE_DISTRIBUTION!" == "name" (
+  rem
+) else if "!RELEASE_DISTRIBUTION!" == "sname" (
+  rem
+) else (
+  echo ERROR: Expected RELEASE_DISTRIBUTION to be sname, name, or none, got: !RELEASE_DISTRIBUTION!
+  exit /B 1
+)
+
+if "!RELEASE_MODE!" == "embedded" (
+  rem
+) else if "!RELEASE_MODE!" == "interactive" (
+  rem
+) else (
+  echo ERROR: Expected RELEASE_MODE to be embedded or interactive, got: !RELEASE_MODE!
+  exit /B 1
+)
+
 if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
-if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=" && set "REL_GOTO=start")
+if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_GOTO=start")
 if "%~1" == "install" (set "REL_GOTO=install")
 if "%~1" == "eval" (
   if "%~2" == "" (
     echo ERROR: EVAL expects an expression as argument
-    goto end
+    exit /B 1
   )
   set "REL_GOTO=eval"
 )
@@ -59,7 +79,7 @@ if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
 if "%~1" == "rpc" (
   if "%~2" == "" (
     echo ERROR: RPC expects an expression as argument
-    goto end
+    exit /B 1
   )
   set "REL_RPC=%~2"
   goto rpc
@@ -80,7 +100,10 @@ echo    stop         Stops the running system via a remote command
 echo    pid          Prints the operating system PID of the running system via a remote command
 echo    version      Prints the release name and version to be booted
 echo.
-if not "%~1" == "" (echo ERROR: Unknown command %~1)
+if not "%~1" == "" (
+  echo ERROR: Unknown command %~1
+  exit /B 1
+)
 goto end
 
 :start
@@ -126,7 +149,7 @@ if "!RELEASE_DISTRIBUTION!" == "none" (
 )
 
 "!REL_VSN_DIR!\iex.bat" ^
-   --hidden --cookie "!RELEASE_COOKIE!" ^
+  --hidden --cookie "!RELEASE_COOKIE!" ^
   !RELEASE_DISTRIBUTION_FLAG! ^
   --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
   --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
@@ -138,7 +161,7 @@ goto end
 if "!RELEASE_DISTRIBUTION!" == "none" (
   set RELEASE_DISTRIBUTION_FLAG=
 ) else (
-  set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
+  set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!"
 )
 
 "!REL_VSN_DIR!\elixir.bat" ^
@@ -163,7 +186,7 @@ if exist !RELEASE_ROOT!\erts-!ERTS_VSN! (
 
 if "!RELEASE_DISTRIBUTION!" == "none" (
   echo ERROR: RELEASE_DISTRIBUTION is required in install command
-  goto end
+  exit /B 1
 )
 
 "!ERLSRV!" add "!RELEASE_NAME!_!RELEASE_NAME!" ^
