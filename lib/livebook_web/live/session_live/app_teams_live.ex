@@ -277,7 +277,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
           </.link>
         </div>
       </.message_box>
-      <.app_deployment_card app_deployment={@app_deployment} />
+      <.app_deployment_card :if={@app_deployment} app_deployment={@app_deployment} />
       <div>
         <.button color="gray" outlined phx-click="go_deployment_groups">
           See deployment groups
