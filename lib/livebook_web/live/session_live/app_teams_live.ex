@@ -187,7 +187,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         <div class="flex flex-col gap-2">
           <div class="flex justify-between items-center">
             <p class="text-gray-700">
-              Last deployed to:
+              Deploying to:
             </p>
             <button class="font-medium text-blue-600" phx-click="unselect_deployment_group">
               Change
