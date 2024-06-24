@@ -66,21 +66,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
       </div>
 
       <div :if={@messages != []} class="flex flex-col gap-2">
-        <.message_box :for={{kind, message} <- @messages} kind={kind}>
-          <div class="flex flex-auto items-center justify-between">
-            <span class="whitespace-pre-wrap"><%= raw(message) %></span>
-
-            <.link
-              :if={kind == :success}
-              href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
-              target="_blank"
-              class="font-medium text-blue-600"
-            >
-              <span>See all deployed apps</span>
-              <.remix_icon icon="external-link-line" />
-            </.link>
-          </div>
-        </.message_box>
+        <.message_box :for={{kind, message} <- @messages} kind={kind} message={message} />
       </div>
 
       <.content
@@ -102,6 +88,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
   defp subtitle(:add_deployment_group), do: "Step: add deployment group"
   defp subtitle(:add_agent), do: "Step: add app server"
+  defp subtitle(:success), do: "Step: summary"
   defp subtitle(_), do: nil
 
   defp content(%{settings_valid?: false} = assigns) do
@@ -273,6 +260,33 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     """
   end
 
+  defp content(%{action: :success} = assigns) do
+    ~H"""
+    <div class="flex flex-col gap-8">
+      <.message_box kind={:success}>
+        <div class="flex items-center justify-between">
+          <span>App deployment created successfully.</span>
+
+          <.link
+            href={"#{Livebook.Config.teams_url()}/orgs/#{@hub.org_id}"}
+            target="_blank"
+            class="font-medium text-blue-600"
+          >
+            <span>See all deployed apps</span>
+            <.remix_icon icon="external-link-line" />
+          </.link>
+        </div>
+      </.message_box>
+      <.app_deployment_card app_deployment={@app_deployment} />
+      <div>
+        <.button color="gray" outlined phx-click="go_deployment_groups">
+          See deployment groups
+        </.button>
+      </div>
+    </div>
+    """
+  end
+
   defp workspace(assigns) do
     ~H"""
     <span class="font-medium">
@@ -354,13 +368,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   def handle_event("deploy_app", _, socket) do
     with {:ok, app_deployment} <- pack_app(socket),
          :ok <- deploy_app(socket, app_deployment) do
-      message =
-        "App deployment created successfully."
-
-      {:noreply,
-       socket
-       |> navigate(:deployment_groups)
-       |> assign(messages: [{:success, message}])}
+      {:noreply, navigate(socket, :success)}
     end
   end
 
@@ -474,7 +482,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   end
 
   defp navigate(socket, action)
-       when action in [:deployment_groups, :add_deployment_group, :add_agent] do
+       when action in [:deployment_groups, :add_deployment_group, :add_agent, :success] do
     assign(socket, action: action, messages: [])
   end
 
