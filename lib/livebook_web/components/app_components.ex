@@ -126,7 +126,7 @@ defmodule LivebookWeb.AppComponents do
             options={[
               {"Automatic", "auto"},
               {"DNS", "dns"},
-              {"Disabled", ""}
+              {"Single instance", ""}
             ]}
             disabled={@disabled}
           />
