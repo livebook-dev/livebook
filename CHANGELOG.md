@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved latency for showing completions in Remote execution cell ([#2447](https://github.com/livebook-dev/livebook/pull/2447))
 * Reduced the time of `Mix.install/2` when adding a new dependency ([#2499](https://github.com/livebook-dev/livebook/pull/2499))
 * Support for Web Bluetooth and Web Serial APIs within iframes ([#2514](https://github.com/livebook-dev/livebook/pull/2514))
-* Support for `LIVEBOOK_CLUSTER=fly` when deploying a Livebook cluster on Fly ([#2519](https://github.com/livebook-dev/livebook/pull/2519))
+* Added `LIVEBOOK_CLUSTER=auto` to automatically configure the cluster on Fly.io ([#2519](https://github.com/livebook-dev/livebook/pull/2519))
 * Healthcheck definition to the Livebook Docker image ([#2517](https://github.com/livebook-dev/livebook/pull/2517))
 * Persistence of app password in the notebook, encrypted in the stamp metadata ([#2550](https://github.com/livebook-dev/livebook/pull/2550))
 * Support for Basic Authentication ZTA ([#2564](https://github.com/livebook-dev/livebook/pull/2564))

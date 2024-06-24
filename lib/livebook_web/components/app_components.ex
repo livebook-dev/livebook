@@ -107,38 +107,42 @@ defmodule LivebookWeb.AppComponents do
           field={@form[:url]}
         />
 
-        <.select_field
-          label="Clustering"
-          help={
-            ~S'''
-            When running multiple
-            instances of Livebook,
-            they need to be connected
-            into a single cluster.
-            You must either deploy
-            it as a single instance
-            or choose a platform to
-            enable clustering on.
-            '''
-          }
-          field={@form[:clustering]}
-          options={[
-            {"Single instance", ""},
-            {"Fly.io", "fly_io"},
-            {"DNS", "dns"}
-          ]}
-          disabled={@disabled}
-        />
-
-        <div :if={to_string(@form[:clustering].value) == "dns"} class="text-sm mt-1">
-          See the
-          <a
-            class="text-blue-800 hover:text-blue-600"
-            href="https://hexdocs.pm/livebook/docker.html#clustering"
-          >
-            Clustering docs
-          </a>
-          for more information.
+        <div>
+          <.select_field
+            label="Clustering"
+            help={
+              ~S'''
+              When running multiple
+              instances of Livebook,
+              they need to be connected
+              into a single cluster.
+              You must either deploy
+              it as a single instance
+              or choose a strategy to
+              connect the instances.
+              '''
+            }
+            field={@form[:clustering]}
+            options={[
+              {"Automatic", "auto"},
+              {"DNS", "dns"},
+              {"Single instance", ""}
+            ]}
+            disabled={@disabled}
+          />
+          <div :if={to_string(@form[:clustering].value) == "dns"} class="mt-1 text-sm">
+            See the
+            <a
+              class="text-blue-600 hover:text-blue-700"
+              href="https://hexdocs.pm/livebook/docker.html#clustering"
+            >
+              Clustering docs
+            </a>
+            for more information.
+          </div>
+          <p class="mt-1 text-sm">
+            Automatic clustering is available when deploying to Fly.io.
+          </p>
         </div>
       </div>
     </div>

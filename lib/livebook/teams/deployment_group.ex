@@ -12,7 +12,7 @@ defmodule Livebook.Teams.DeploymentGroup do
     field :name, :string
     field :mode, Ecto.Enum, values: [:online, :offline], default: :online
     field :hub_id, :string
-    field :clustering, Ecto.Enum, values: [:fly_io, :dns]
+    field :clustering, Ecto.Enum, values: [:auto, :dns]
     field :zta_provider, Ecto.Enum, values: @zta_providers
     field :zta_key, :string
     field :url, :string

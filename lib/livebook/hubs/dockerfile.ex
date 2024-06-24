@@ -8,7 +8,7 @@ defmodule Livebook.Hubs.Dockerfile do
   @type config :: %{
           deploy_all: boolean(),
           docker_tag: String.t(),
-          clustering: nil | :fly_io,
+          clustering: nil | :auto | :dns,
           zta_provider: atom() | nil,
           zta_key: String.t() | nil
         }
@@ -54,7 +54,7 @@ defmodule Livebook.Hubs.Dockerfile do
     types = %{
       deploy_all: :boolean,
       docker_tag: :string,
-      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:fly_io, :dns]),
+      clustering: Ecto.ParameterizedType.init(Ecto.Enum, values: [:auto, :dns]),
       zta_provider: Ecto.ParameterizedType.init(Ecto.Enum, values: zta_types),
       zta_key: :string
     }
@@ -152,14 +152,14 @@ defmodule Livebook.Hubs.Dockerfile do
 
     startup =
       case to_string(config.clustering) do
-        "fly_io" ->
+        "auto" ->
           """
           # --- Clustering ---
 
           # Set the same Livebook secrets across all nodes
           ENV LIVEBOOK_SECRET_KEY_BASE "#{secret_key_base}"
           ENV LIVEBOOK_COOKIE "#{cookie}"
-          ENV LIVEBOOK_CLUSTER "fly"
+          ENV LIVEBOOK_CLUSTER "auto"
           """
 
         "dns" ->
@@ -343,9 +343,9 @@ defmodule Livebook.Hubs.Dockerfile do
 
     clustering_env =
       case to_string(config.clustering) do
-        "fly_io" ->
+        "auto" ->
           [
-            {"LIVEBOOK_CLUSTER", "fly"},
+            {"LIVEBOOK_CLUSTER", "auto"},
             {"LIVEBOOK_SECRET_KEY_BASE", secret_key_base},
             {"LIVEBOOK_COOKIE", cookie}
           ]
