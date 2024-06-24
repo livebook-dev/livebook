@@ -43,7 +43,14 @@ defmodule Livebook.Integration.AppsTest do
       Apps.Deployer.deploy_monitor(deployer_pid, app_spec)
 
       assert_receive {:app_created, %{pid: pid, slug: ^slug}}
-      assert_receive {:app_updated, %{slug: ^slug, sessions: [session]}}
+
+      assert_receive {:app_updated,
+                      %{
+                        slug: ^slug,
+                        sessions: [
+                          %{app_status: %{execution: :executed, lifecycle: :active}} = session
+                        ]
+                      }}
 
       assert %{secrets: %{^secret_name => ^secret}} = Livebook.Session.get_data(session.pid)
 

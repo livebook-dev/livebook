@@ -2,6 +2,7 @@ defmodule Livebook.Hubs.TeamClient do
   use GenServer
   require Logger
 
+  alias Livebook.Apps
   alias Livebook.FileSystem
   alias Livebook.FileSystems
   alias Livebook.Hubs
@@ -12,6 +13,7 @@ defmodule Livebook.Hubs.TeamClient do
   @supervisor Livebook.HubsSupervisor
 
   defstruct [
+    :connection_pid,
     :hub,
     :connection_status,
     :derived_key,
@@ -146,7 +148,7 @@ defmodule Livebook.Hubs.TeamClient do
 
   @impl true
   def init(%Hubs.Team{offline: nil} = team) do
-    Livebook.Apps.Manager.subscribe()
+    Apps.Manager.subscribe()
 
     derived_key = Teams.derive_key(team.teams_key)
 
@@ -169,8 +171,8 @@ defmodule Livebook.Hubs.TeamClient do
         ]
       end
 
-    {:ok, _pid} = Teams.Connection.start_link(self(), headers)
-    {:ok, %__MODULE__{hub: team, derived_key: derived_key}}
+    {:ok, pid} = Teams.Connection.start_link(self(), headers)
+    {:ok, %__MODULE__{connection_pid: pid, hub: team, derived_key: derived_key}}
   end
 
   def init(%Hubs.Team{} = team) do
@@ -272,15 +274,22 @@ defmodule Livebook.Hubs.TeamClient do
     {:noreply, handle_event(topic, data, state)}
   end
 
-  def handle_info({:apps_manager_status, status_entries}, state) do
+  def handle_info({:apps_manager_status, _}, state)
+      when not state.connected? or state.deployment_group_id == nil do
+    {:noreply, state}
+  end
+
+  def handle_info({:apps_manager_status, entries}, %{hub: %{id: id}} = state) do
     app_deployment_statuses =
-      for %{
-            app_spec: %Livebook.Apps.TeamsAppSpec{} = app_spec,
-            running?: running?
-          } <- status_entries,
-          app_spec.hub_id == state.hub.id do
-        status = if(running?, do: :available, else: :processing)
-        %{version: app_spec.version, status: status}
+      for %{app_spec: %Apps.TeamsAppSpec{hub_id: ^id} = app_spec, running?: running?} <- entries do
+        status = if running?, do: :available, else: :preparing
+
+        %LivebookProto.AppDeploymentStatus{
+          id: app_spec.app_deployment_id,
+          deployment_group_id: state.deployment_group_id,
+          version: app_spec.version,
+          status: status
+        }
       end
 
     # The manager can send the status list even if it didn't change,
@@ -289,17 +298,14 @@ defmodule Livebook.Hubs.TeamClient do
     if app_deployment_statuses == state.app_deployment_statuses do
       {:noreply, state}
     else
-      # TODO: send this status list to Teams and set the statuses in
-      # the database. Note that app deployments for this deployment
-      # group (this agent), that are not present in this list, we
-      # effectively no longer know about, so we may want to reset
-      # their status.
+      report = %LivebookProto.AppDeploymentStatusReport{
+        app_deployment_statuses: app_deployment_statuses
+      }
 
-      # TODO: we want :version to be built on Teams server and just
-      # passed down to Livebook, so that Livebook does not care if
-      # we upsert app deployments or not. With that, we can also
-      # freely send the version with status here, and the server will
-      # recognise it.
+      Logger.debug("Sending apps manager report to Teams server #{inspect(report)}")
+
+      message = LivebookProto.AppDeploymentStatusReport.encode(report)
+      :ok = Teams.Connection.send_message(state.connection_pid, message)
 
       {:noreply, %{state | app_deployment_statuses: app_deployment_statuses}}
     end
@@ -807,8 +813,8 @@ defmodule Livebook.Hubs.TeamClient do
 
   defp manager_sync() do
     # Each node runs the teams client, but we only need to call sync once
-    if Livebook.Apps.Manager.local?() do
-      Livebook.Apps.Manager.sync_permanent_apps()
+    if Apps.Manager.local?() do
+      Apps.Manager.sync_permanent_apps()
     end
   end
 end

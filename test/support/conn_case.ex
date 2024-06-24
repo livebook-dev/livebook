@@ -16,7 +16,20 @@ defmodule LivebookWeb.ConnCase do
     end
   end
 
-  setup _tags do
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+  setup tags do
+    conn = Phoenix.ConnTest.build_conn()
+
+    conn =
+      if authentication = tags[:authentication] do
+        with_authentication(conn, authentication)
+      else
+        conn
+      end
+
+    [conn: conn]
+  end
+
+  def with_authentication(conn, authentication) do
+    Plug.Test.init_test_session(conn, authentication_test_override: authentication)
   end
 end

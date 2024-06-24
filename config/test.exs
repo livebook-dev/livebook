@@ -9,9 +9,9 @@ config :livebook, LivebookWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warning
 
-# Disable authentication mode during test
+# Disable authentication in tests
 config :livebook,
-  authentication_mode: :disabled,
+  authentication: :disabled,
   check_completion_data_interval: 300,
   iframe_port: 4003
 
@@ -24,7 +24,6 @@ end
 
 config :livebook,
   data_path: data_path,
-  feature_flags: [deployment_groups: true],
   agent_name: "chonky-cat"
 
 config :livebook, Livebook.Apps.Manager, retry_backoff_base_ms: 0

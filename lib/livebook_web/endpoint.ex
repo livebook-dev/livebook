@@ -155,11 +155,12 @@ defmodule LivebookWeb.Endpoint do
 
     base = update_in(base.path, &(&1 || "/"))
 
-    if Livebook.Config.auth_mode() == :token do
-      token = Application.fetch_env!(:livebook, :token)
-      %{base | query: "token=" <> token}
-    else
-      base
+    case Livebook.Config.authentication() do
+      %{mode: :token, secret: token} ->
+        %{base | query: "token=" <> token}
+
+      _ ->
+        base
     end
   end
 

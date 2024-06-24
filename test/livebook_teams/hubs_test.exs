@@ -250,14 +250,6 @@ defmodule Livebook.HubsTest do
              Hubs.Provider.verify_notebook_stamp(team, notebook_source <> "change\n", stamp)
   end
 
-  defp connect_to_teams(user, node) do
-    %{id: id} = team = create_team_hub(user, node)
-    assert_receive {:hub_connected, ^id}
-    assert_receive {:client_connected, ^id}
-
-    team
-  end
-
   defp secret_name(%{id: id}) do
     id
     |> String.replace("-", "_")

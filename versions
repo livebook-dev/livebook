@@ -1,6 +1,6 @@
-elixir="1.17.0"
+elixir="1.17.1"
 otp="27.0"
 openssl="1.1.1s"
 rebar3="3.22.0"
-debian="bookworm-20240513-slim"
+debian="bookworm-20240612-slim"
 ubuntu="focal-20240530"

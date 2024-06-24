@@ -575,7 +575,7 @@ defmodule LivebookWeb.FormComponents do
 
   defp help(assigns) do
     ~H"""
-    <span class="cursor-pointer tooltip top" data-tooltip={@text}>
+    <span class="cursor-pointer tooltip right" data-tooltip={@text}>
       <.remix_icon icon="question-line" class="text-sm leading-none" />
     </span>
     """

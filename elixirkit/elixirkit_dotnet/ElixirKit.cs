@@ -156,11 +156,6 @@ internal class Release
             }
         };
 
-        if (logPath != null)
-        {
-            logger.Capture(process);
-        }
-
         process.StartInfo.Arguments = "start";
         process.StartInfo.EnvironmentVariables.Add("ELIXIRKIT_PORT", $"{listener.Port}");
 
@@ -184,7 +179,6 @@ internal class Release
         };
 
         logger.Capture(process);
-
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();

@@ -28,19 +28,18 @@ defmodule Livebook.LiveMarkdown.Export do
     for(
       section <- notebook.sections,
       %{outputs: outputs} <- section.cells,
-      {_idx, %{type: :js, js_view: js_view, export: export}} <- outputs,
-      export == true or is_map(export),
-      do: {js_view.ref, js_view.pid, export},
+      {_idx, %{type: :js, js_view: js_view, export: true}} <- outputs,
+      do: {js_view.ref, js_view.pid},
       uniq: true
     )
-    |> Enum.map(fn {ref, pid, export} ->
-      Task.async(fn -> {ref, get_js_output_export(pid, ref, export)} end)
+    |> Enum.map(fn {ref, pid} ->
+      Task.async(fn -> {ref, get_js_output_export(pid, ref)} end)
     end)
     |> Task.await_many(:infinity)
     |> Map.new()
   end
 
-  defp get_js_output_export(pid, ref, true) do
+  defp get_js_output_export(pid, ref) do
     send(pid, {:export, self(), %{ref: ref}})
 
     monitor_ref = Process.monitor(pid)
@@ -54,27 +53,6 @@ defmodule Livebook.LiveMarkdown.Export do
     Process.demonitor(monitor_ref, [:flush])
 
     data
-  end
-
-  # TODO: remove on Livebook v0.13
-  # Handle old flow for backward compatibility with Kino <= 0.10.0
-  defp get_js_output_export(pid, ref, %{info_string: info_string, key: key}) do
-    send(pid, {:connect, self(), %{origin: inspect(self()), ref: ref}})
-
-    monitor_ref = Process.monitor(pid)
-
-    data =
-      receive do
-        {:connect_reply, data, %{ref: ^ref}} -> data
-        {:DOWN, ^monitor_ref, :process, _pid, _reason} -> nil
-      end
-
-    Process.demonitor(monitor_ref, [:flush])
-
-    if data do
-      payload = if key && is_map(data), do: data[key], else: data
-      {info_string, payload}
-    end
   end
 
   defp render_notebook(notebook, ctx) do

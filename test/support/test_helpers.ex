@@ -1,5 +1,6 @@
 defmodule Livebook.TestHelpers do
   import Phoenix.LiveViewTest
+  import ExUnit.Assertions
 
   alias Livebook.Session.Data
 
@@ -106,17 +107,20 @@ defmodule Livebook.TestHelpers do
   def source_for_blocking() do
     name = Livebook.Utils.random_short_id() |> String.to_atom()
 
+    Process.register(self(), name)
+
     code =
       quote do
-        # This test uses the Embedded runtime, so we can target the
-        # process by name
-        Process.register(self(), unquote(name))
+        # We assume the test uses the Embedded runtime, so we can
+        # target the process by name
+        send(unquote(name), {:started, self()})
         receive do: (:finish -> :ok)
       end
       |> Macro.to_string()
 
     continue_fun = fn ->
-      send(Process.whereis(name), :finish)
+      assert_receive {:started, pid}
+      send(pid, :finish)
     end
 
     {code, continue_fun}

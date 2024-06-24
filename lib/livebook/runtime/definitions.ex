@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.Definitions do
-  @kino_requirement "~> 0.12.0"
+  @kino_requirement "~> 0.13.0"
 
   def kino_requirement do
     @kino_requirement
@@ -17,12 +17,12 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.5"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.8"}, config: []}
   }
 
   exqlite = %{
     name: "exqlite",
-    dependency: %{dep: {:exqlite, "~> 0.11.0"}, config: []}
+    dependency: %{dep: {:exqlite, "~> 0.23.0"}, config: []}
   }
 
   kino_maplibre = %{
@@ -52,7 +52,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_explorer = %{
     name: "kino_explorer",
-    dependency: %{dep: {:kino_explorer, "~> 0.1.18"}, config: []}
+    dependency: %{dep: {:kino_explorer, "~> 0.1.20"}, config: []}
   }
 
   jason = %{
@@ -62,12 +62,12 @@ defmodule Livebook.Runtime.Definitions do
 
   stb_image = %{
     name: "stb_image",
-    dependency: %{dep: {:stb_image, "~> 0.6.2"}, config: []}
+    dependency: %{dep: {:stb_image, "~> 0.6.9"}, config: []}
   }
 
   xlsx_reader = %{
     name: "xlsx_reader",
-    dependency: %{dep: {:xlsx_reader, "~> 0.8.4"}, config: []}
+    dependency: %{dep: {:xlsx_reader, "~> 0.8.5"}, config: []}
   }
 
   windows? = match?({:win32, _}, :os.type())

@@ -258,12 +258,4 @@ defmodule Livebook.TeamsTest do
       assert_receive {:app_deployment_stopped, ^app_deployment2}
     end
   end
-
-  defp connect_to_teams(user, node) do
-    %{id: id} = team = create_team_hub(user, node)
-    assert_receive {:hub_connected, ^id}, 3_000
-    assert_receive {:client_connected, ^id}, 3_000
-
-    team
-  end
 end

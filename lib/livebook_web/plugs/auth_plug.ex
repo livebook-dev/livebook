@@ -11,19 +11,17 @@ defmodule LivebookWeb.AuthPlug do
 
   @impl true
   def call(conn, _opts) do
-    mode = Livebook.Config.auth_mode()
-
-    if authenticated?(conn, mode) do
+    if authenticated?(conn) do
       conn
     else
-      authenticate(conn, mode)
+      authenticate(conn)
     end
   end
 
   @doc """
   Stores in the session the secret for the given mode.
   """
-  @spec store(Plug.Conn.t(), Livebook.Config.auth_mode(), String.t()) :: Plug.Conn.t()
+  @spec store(Plug.Conn.t(), Livebook.Config.authentication_mode(), String.t()) :: Plug.Conn.t()
   def store(conn, mode, value) do
     conn
     |> put_session(key(conn.port, mode), hash(value))
@@ -33,44 +31,48 @@ defmodule LivebookWeb.AuthPlug do
   @doc """
   Checks if given connection is already authenticated.
   """
-  @spec authenticated?(Plug.Conn.t(), Livebook.Config.auth_mode()) :: boolean()
-  def authenticated?(conn, mode) do
-    authenticated?(get_session(conn), conn.port, mode)
+  @spec authenticated?(Plug.Conn.t()) :: boolean()
+  def authenticated?(conn) do
+    authenticated?(get_session(conn), conn.port)
   end
 
   @doc """
   Checks if the given session is authenticated.
   """
-  @spec authenticated?(map(), non_neg_integer(), Livebook.Config.auth_mode()) :: boolean()
-  def authenticated?(session, port, mode)
+  @spec authenticated?(map(), non_neg_integer()) :: boolean()
+  def authenticated?(session, port) do
+    case authentication(session) do
+      %{mode: :disabled} ->
+        true
 
-  def authenticated?(_session, _port, :disabled) do
-    true
-  end
-
-  def authenticated?(session, port, mode) when mode in [:token, :password] do
-    secret = session[key(port, mode)]
-
-    is_binary(secret) and mode == Livebook.Config.auth_mode() and
-      Plug.Crypto.secure_compare(secret, expected(mode))
-  end
-
-  defp authenticate(conn, :password) do
-    redirect_to_authenticate(conn)
-  end
-
-  defp authenticate(conn, :token) do
-    {token, query_params} = Map.pop(conn.query_params, "token")
-
-    if is_binary(token) and Plug.Crypto.secure_compare(hash(token), expected(:token)) do
-      # Redirect to the same path without query params
-      conn
-      |> store(:token, token)
-      |> redirect(to: path_with_query(conn.request_path, query_params))
-      |> halt()
-    else
-      redirect_to_authenticate(conn)
+      %{mode: mode, secret: secret} when mode in [:token, :password] ->
+        secret_hash = session[key(port, mode)]
+        is_binary(secret_hash) and matches_secret?(secret_hash, secret)
     end
+  end
+
+  defp authenticate(conn) do
+    case authentication(conn) do
+      %{mode: :password} ->
+        redirect_to_authenticate(conn)
+
+      %{mode: :token, secret: secret} ->
+        {token, query_params} = Map.pop(conn.query_params, "token")
+
+        if is_binary(token) and matches_secret?(hash(token), secret) do
+          # Redirect to the same path without query params
+          conn
+          |> store(:token, token)
+          |> redirect(to: path_with_query(conn.request_path, query_params))
+          |> halt()
+        else
+          redirect_to_authenticate(conn)
+        end
+    end
+  end
+
+  defp matches_secret?(hash, secret) do
+    Plug.Crypto.secure_compare(hash, hash(secret))
   end
 
   defp redirect_to_authenticate(%{path_info: []} = conn) do
@@ -100,6 +102,22 @@ defmodule LivebookWeb.AuthPlug do
   defp path_with_query(path, params), do: path <> "?" <> URI.encode_query(params)
 
   defp key(port, mode), do: "#{port}:#{mode}"
-  defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
   defp hash(value), do: :crypto.hash(:sha256, value)
+
+  @doc """
+  Returns the authentication configuration for the given `conn` or
+  `session`.
+
+  This mirrors `Livebook.Config.authentication/0`, except the it can
+  be overridden in tests, for each connection.
+  """
+  if Mix.env() == :test do
+    def authentication(%Plug.Conn{} = conn), do: authentication(get_session(conn))
+
+    def authentication(%{} = session) do
+      session["authentication_test_override"] || Livebook.Config.authentication()
+    end
+  else
+    def authentication(_), do: Livebook.Config.authentication()
+  end
 end

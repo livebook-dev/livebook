@@ -469,6 +469,7 @@ export default class LiveEditor {
           node.classList.add("cm-markdown");
           new Markdown(node, item.documentation, {
             defaultCodeLanguage: this.language,
+            useDarkTheme: this.usesDarkTheme(),
           });
           return node;
         });
@@ -514,6 +515,7 @@ export default class LiveEditor {
               dom.appendChild(item);
               new Markdown(item, content, {
                 defaultCodeLanguage: this.language,
+                useDarkTheme: this.usesDarkTheme(),
               });
             }
 
@@ -598,5 +600,11 @@ export default class LiveEditor {
     }
 
     this.initialWidgets = {};
+  }
+
+  /** @private */
+  usesDarkTheme() {
+    const settings = settingsStore.get();
+    return settings.editor_theme !== "light";
   }
 }

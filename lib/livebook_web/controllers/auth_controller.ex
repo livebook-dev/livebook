@@ -6,9 +6,7 @@ defmodule LivebookWeb.AuthController do
   alias LivebookWeb.AuthPlug
 
   defp require_unauthenticated(conn, _opts) do
-    auth_mode = Livebook.Config.auth_mode()
-
-    if auth_mode not in [:password, :token] or AuthPlug.authenticated?(conn, auth_mode) do
+    if AuthPlug.authenticated?(conn) do
       redirect_to(conn)
     else
       conn
@@ -24,14 +22,14 @@ defmodule LivebookWeb.AuthController do
   def index(conn, _params) do
     render(conn, "index.html",
       errors: [],
-      auth_mode: Livebook.Config.auth_mode()
+      authentication_mode: LivebookWeb.AuthPlug.authentication(conn).mode
     )
   end
 
   def authenticate(conn, %{"password" => password}) do
     conn = AuthPlug.store(conn, :password, password)
 
-    if AuthPlug.authenticated?(conn, :password) do
+    if AuthPlug.authenticated?(conn) do
       redirect_to(conn)
     else
       render_form_error(conn, :password)
@@ -41,19 +39,19 @@ defmodule LivebookWeb.AuthController do
   def authenticate(conn, %{"token" => token}) do
     conn = AuthPlug.store(conn, :token, token)
 
-    if AuthPlug.authenticated?(conn, :token) do
+    if AuthPlug.authenticated?(conn) do
       redirect_to(conn)
     else
       render_form_error(conn, :token)
     end
   end
 
-  defp render_form_error(conn, auth_mode) do
-    errors = [{"%{auth_mode} is invalid", [auth_mode: auth_mode]}]
+  defp render_form_error(conn, authentication_mode) do
+    errors = [{"%{authentication_mode} is invalid", [authentication_mode: authentication_mode]}]
 
     render(conn, "index.html",
       errors: errors,
-      auth_mode: auth_mode
+      authentication_mode: authentication_mode
     )
   end
 
