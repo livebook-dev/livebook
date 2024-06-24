@@ -152,8 +152,8 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
             </.message_box>
           <% else %>
             <.message_box kind={:info}>
-              Awaiting an app server to be set up. If you deploy the app,
-              it will only start once there is an app server to run it.
+              Awaiting an app server to be set up. If you click "Deploy anyway",
+              the app will only start once there is an app server.
             </.message_box>
           <% end %>
           <div class="flex gap-2">
@@ -180,15 +180,14 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     ~H"""
     <div class="flex flex-col gap-6">
       <p class="text-gray-700">
-        Deploy this app to your cloud infrastructure. The app will be pushed to the Livebook
-        Teams app servers associated with the deployment group that you choose.
+        Deploy this app to your cloud infrastructure using the <.workspace hub={@hub} /> workspace.
       </p>
 
       <%= if @deployment_group do %>
         <div class="flex flex-col gap-2">
           <div class="flex justify-between items-center">
             <p class="text-gray-700">
-              Using deployment group in <.workspace hub={@hub} /> workspace:
+              Deploying to:
             </p>
             <button class="font-medium text-blue-600" phx-click="unselect_deployment_group">
               Change
@@ -205,13 +204,13 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
         </div>
 
         <div :if={@app_deployment} class="space-y-3">
-          <p class="text-gray-700">Currently deployed version:</p>
+          <p class="text-gray-700">Current version:</p>
           <.app_deployment_card app_deployment={@app_deployment} />
         </div>
 
         <.message_box :if={@num_agents[@deployment_group.id] == nil} kind={:warning}>
-          The selected deployment group has no app servers. If you deploy the app,
-          it will only start once there is an app server to run it.
+          The selected deployment group has no app servers. If you click "Deploy anyway",
+          the app will only start once there is an app server.
         </.message_box>
 
         <%= if @num_agents[@deployment_group.id] do %>
@@ -243,7 +242,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
         <div :if={@deployment_groups != []} class="flex flex-col gap-2">
           <p class="text-gray-700">
-            Online deployment groups in <.workspace hub={@hub} /> workspace:
+            Choose a deployment group:
           </p>
           <div class="flex flex-col gap-3">
             <.deployment_group_entry
@@ -341,6 +340,9 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
   defp app_deployment_card(assigns) do
     ~H"""
     <div class="flex gap-4 sm:gap-12 border border-gray-200 rounded-lg p-4">
+      <.labeled_text label="Slug">
+        /<%= @app_deployment.slug %>
+      </.labeled_text>
       <.labeled_text label="Title">
         <%= @app_deployment.title %>
       </.labeled_text>

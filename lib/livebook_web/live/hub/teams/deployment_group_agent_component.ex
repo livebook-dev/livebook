@@ -45,16 +45,9 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
         App server setup
       </h3>
 
-      <p class="text-gray-700">
-        App server is an instance of Livebook where you can deploy Livebook
-        apps via Livebook Teams. Each app server belongs to a specific
-        deployment group.
-      </p>
-
-      <p class="mb-5 text-gray-700">
-        Use the instructions below to set up an instance in your own infrastructure.
-        Once the instance is running, it will connect to Livebook Teams and become
-        available for app deployments.
+      <p class="text-gray-700 mb-2">
+        App servers are instances of Livebook running inside your infrastructure
+        that you deploy your apps to. Follow the instructions below to start new instances.
       </p>
 
       <div :if={@messages != []} class="flex flex-col gap-2">
@@ -63,8 +56,17 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
         </.message_box>
       </div>
 
+      <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
+        <.radio_field
+          label="Base Docker image"
+          field={f[:docker_tag]}
+          options={LivebookWeb.AppComponents.docker_tag_options()}
+        />
+      </.form>
+
       <.form
         :let={f}
+        :if={match?([_, _ | _], @deployment_group.agent_keys)}
         for={%{"id" => @agent_key_id}}
         as={:agent_key}
         phx-change="select_agent_key"
@@ -83,16 +85,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
         </div>
       </.form>
 
-      <.form :let={f} for={@changeset} as={:data} phx-change="validate" phx-target={@myself}>
-        <.radio_field
-          label="Base image"
-          field={f[:docker_tag]}
-          options={LivebookWeb.AppComponents.docker_tag_options()}
-        />
-      </.form>
-
       <%= if @agent_key_id do %>
-        <div class="mt-5">
+        <div class="mt-2">
           <.tabs id="deployment-instruction" default="docker">
             <:tab id="docker" label="Docker">
               <div class="flex flex-col gap-3">
@@ -117,7 +111,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
             <:tab id="fly_io" label="Fly.io">
               <div class="flex flex-col gap-3">
                 <p class="text-gray-700">
-                  Deploy an app server to Fly.io with a few simple commands.
+                  Deploy an app server to Fly.io with a few commands.
                 </p>
                 <div>
                   <div class="flex items-end mb-1 gap-1">
