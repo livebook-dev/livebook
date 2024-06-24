@@ -1,5 +1,8 @@
 # Livebook
 
+Docker File Notes  : -> 
+[Docker](https://satin-crafter-d5d.notion.site/Docker-78cb10306175455abfea9e92db300863?pvs=25)
+
 [![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/)
 [![Latest Version](https://img.shields.io/hexpm/v/livebook?color=b5a3be&label=Latest+version)](https://hexdocs.pm/livebook)
 
