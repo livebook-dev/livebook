@@ -494,7 +494,8 @@ defmodule LivebookWeb.FormComponents do
           {@rest}
         >
           <option :if={@prompt} value=""><%= @prompt %></option>
-          <%!-- Normalize nil into an empty string --%>
+          <%!-- TODO: we use to_string to normalize nil and "", remove
+                this once fixed upstream https://github.com/phoenixframework/phoenix_html/issues/444 --%>
           <%= Phoenix.HTML.Form.options_for_select(@options, to_string(@value)) %>
         </select>
         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
