@@ -213,7 +213,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     fly secrets set \\
     #{envs}
 
-    fly deploy --ha false
+    fly deploy --ha=false
     """
   end
 end
