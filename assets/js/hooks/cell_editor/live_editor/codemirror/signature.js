@@ -335,7 +335,10 @@ function startSignature(view) {
   return true;
 }
 
-function closeSignature(view) {
+/**
+ * Closes the currently active completion.
+ */
+export function closeSignature(view) {
   const signatureState = view.state.field(signatureField, false);
   if (!signatureState || !signatureState.hint) return false;
   view.dispatch({ effects: [closeSignatureEffect.of(null)] });
