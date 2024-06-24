@@ -93,7 +93,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
       <%= if @agent_key_id do %>
         <div class="mt-5">
-          <.tabs id="deployment-instruction" default={default_tab(@deployment_group)}>
+          <.tabs id="deployment-instruction" default="docker">
             <:tab id="docker" label="Docker">
               <div class="flex flex-col gap-3">
                 <p class="text-gray-700">
@@ -144,9 +144,6 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     length = String.length(string)
     String.slice(string, 0, preview_length) <> String.duplicate("•", length - preview_length)
   end
-
-  defp default_tab(%{clustering: :fly_io}), do: "fly_io"
-  defp default_tab(_deloyment_group), do: "docker"
 
   @impl true
   def handle_event("select_agent_key", %{"agent_key" => %{"id" => id}}, socket) do

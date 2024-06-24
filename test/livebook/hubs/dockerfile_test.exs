@@ -198,14 +198,14 @@ defmodule Livebook.Hubs.DockerfileTest do
                """
     end
 
-    test "deploying with fly.io cluster setup" do
-      config = dockerfile_config(%{clustering: :fly_io})
+    test "deploying with auto cluster setup" do
+      config = dockerfile_config(%{clustering: :auto})
       hub = personal_hub()
       file = Livebook.FileSystem.File.local(p("/notebook.livemd"))
 
       dockerfile = Dockerfile.airgapped_dockerfile(config, hub, [], [], file, [], %{})
 
-      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "fly"/
+      assert dockerfile =~ ~s/ENV LIVEBOOK_CLUSTER "auto"/
     end
 
     test "deploying with dns cluster setup" do
@@ -258,13 +258,13 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "deploying with fly.io cluster setup" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = team_hub()
       agent_key = Livebook.Factory.build(:agent_key)
 
       %{env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
 
-      assert {"LIVEBOOK_CLUSTER", "fly"} in env
+      assert {"LIVEBOOK_CLUSTER", "auto"} in env
     end
 
     test "deploying with dns cluster setup" do
@@ -281,7 +281,7 @@ defmodule Livebook.Hubs.DockerfileTest do
 
   describe "warnings/6" do
     test "warns when session secrets are used" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -295,7 +295,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when hub secrets are used from personal hub" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -319,7 +319,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when there is a reference to external file system from personal hub" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -346,7 +346,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when deploying a directory in personal hub and it has any file systems" do
-      config = dockerfile_config(%{clustering: :fly_io, deploy_all: true})
+      config = dockerfile_config(%{clustering: :auto, deploy_all: true})
       hub = personal_hub()
       app_settings = Livebook.Notebook.AppSettings.new()
 
@@ -361,7 +361,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when the app has no password in personal hub" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = personal_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
@@ -370,7 +370,7 @@ defmodule Livebook.Hubs.DockerfileTest do
     end
 
     test "warns when the app has no password and no ZTA in teams hub" do
-      config = dockerfile_config(%{clustering: :fly_io})
+      config = dockerfile_config(%{clustering: :auto})
       hub = team_hub()
       app_settings = %{Livebook.Notebook.AppSettings.new() | access_type: :public}
 
@@ -390,7 +390,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert [warning] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
       assert warning =~ "The deployment is not configured for clustering"
 
-      config = %{config | clustering: :fly_io}
+      config = %{config | clustering: :auto}
 
       assert [] = Dockerfile.airgapped_warnings(config, hub, [], [], app_settings, [], %{})
     end

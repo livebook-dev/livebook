@@ -23,7 +23,11 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupFormComponent do
           %{}
         end
 
-      {:ok, assign_form(socket, Teams.change_deployment_group(%DeploymentGroup{}, attrs))}
+      {:ok,
+       assign_form(
+         socket,
+         Teams.change_deployment_group(%DeploymentGroup{clustering: :auto}, attrs)
+       )}
     end
   end
 

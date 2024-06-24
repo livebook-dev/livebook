@@ -6,9 +6,9 @@ Depending on the clustering strategy of your choice, you must set additional env
 
 You may set `LIVEBOOK_CLUSTER` to one of the following values.
 
-## `fly`
+## `auto`
 
-It automatically sets up a cluster to run on Fly using DNS configuration. Behind the scenes, it sets the relevant environment variables and enables IPv6 support.
+Detects the hosting platform and automatically sets up a cluster using DNS configuration. Currently the only supported platform is Fly.io.
 
 ## `dns:QUERY`
 
