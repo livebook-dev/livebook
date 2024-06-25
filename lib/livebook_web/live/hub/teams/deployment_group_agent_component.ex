@@ -195,7 +195,10 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
   defp fly_instructions(image, env, hub_name, deployment_group_name) do
     envs = Enum.map_join(env, " \\\n", fn {key, value} -> ~s/  #{key}="#{value}"/ end)
 
-    example_dir = "#{hub_name}-#{deployment_group_name}-lb-server"
+    example_dir =
+      "lb-server-#{hub_name}-#{deployment_group_name}"
+      |> String.replace(~r/[^\w-]/, "")
+      |> String.downcase()
 
     """
     # Create a directory for your Fly app config
