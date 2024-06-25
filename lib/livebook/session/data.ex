@@ -1981,6 +1981,7 @@ defmodule Livebook.Session.Data do
       data_actions
       |> clear_all_evaluation()
       |> clear_smart_cells()
+      |> app_update_execution_status()
     end
   end
 
