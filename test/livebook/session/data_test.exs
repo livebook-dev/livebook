@@ -4257,7 +4257,24 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "changes status to :error when evaluation is aborted and returns recover action" do
+    test "changes status to :error when evaluation is aborted" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          evaluate_cells_operations(["setup"]),
+          {:queue_cells_evaluation, @cid, ["c1"]}
+        ])
+
+      operation = {:reflect_main_evaluation_failure, @cid}
+
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "returns recover action when fully executed and then aborted" do
       data =
         data_after_operations!(Data.new(mode: :app), [
           {:insert_section, @cid, 0, "s1"},
@@ -4271,6 +4288,22 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{app_data: %{status: %{execution: :error}}},
               [:app_report_status, :app_recover]} = Data.apply_operation(data, operation)
+    end
+
+    test "changes status to :error when a non-connected runtime is set" do
+      data =
+        data_after_operations!(Data.new(mode: :app), [
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          {:queue_cells_evaluation, @cid, ["setup"]}
+        ])
+
+      operation = {:set_runtime, @cid, Livebook.Runtime.NoopRuntime.new()}
+
+      assert {:ok, %{app_data: %{status: %{execution: :error}}}, [:app_report_status]} =
+               Data.apply_operation(data, operation)
     end
 
     test "changes status to :error when evaluation finishes with error" do
