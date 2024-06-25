@@ -292,6 +292,10 @@ The following environment variables can be used to configure Livebook on boot:
     iframe. Set it to "true" to enable it. If you do enable it, then the application
     must run with HTTPS.
 
+The environment variables `ERL_AFLAGS` and `ERL_ZFLAGS` can also be set to configure
+Livebook and the notebook runtimes. `ELIXIR_ERL_OPTIONS` are also available to customize
+Livebook, but it is not forwarded to runtimes.
+
 <!-- Environment variables -->
 
 If running Livebook via the command line, run `livebook server --help` to see
