@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Notebook export crashing when output data includes structs (such as dates in VegaLite data)
 * Audio and image input preview not working in apps
 * `<br>` getting duplicated in Mermaid graphs
-* Some Erlang documentation links not working ([[#2653](https://github.com/livebook-dev/livebook/pull/2653)](https://github.com/livebook-dev/livebook/pull/2653))
+* Some Erlang documentation links not working ([#2653](https://github.com/livebook-dev/livebook/pull/2653))
 
 ## v0.12
 
