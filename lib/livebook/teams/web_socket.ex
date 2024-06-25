@@ -185,11 +185,11 @@ defmodule Livebook.Teams.WebSocket do
          {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, ref, data) do
       {:ok, conn, websocket}
     else
-      {:error, %Mint.HTTP1{} = conn, reason} ->
-        {:error, conn, websocket, reason}
+      {:error, %Mint.HTTP1{} = conn, exception} when is_exception(exception) ->
+        {:error, conn, websocket, Exception.message(exception)}
 
-      {:error, websocket, reason} ->
-        {:error, conn, websocket, reason}
+      {:error, websocket, exception} when is_exception(exception) ->
+        {:error, conn, websocket, Exception.message(exception)}
     end
   end
 end
