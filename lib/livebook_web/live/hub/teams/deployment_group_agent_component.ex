@@ -205,7 +205,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     mkdir #{example_dir}
     cd #{example_dir}
 
-    fly launch --image #{image} --no-deploy
+    fly launch --image #{image} --vm-memory 2048 --no-deploy
 
     fly secrets set \\
     #{envs}
