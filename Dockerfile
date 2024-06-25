@@ -80,7 +80,7 @@ RUN mix local.hex --force && \
 
 # Override the default 127.0.0.1 address, so that the app
 # can be accessed outside the container by binding ports
-ENV LIVEBOOK_IP "::"
+ENV LIVEBOOK_IP="::"
 
 ENV LIVEBOOK_HOME=/data
 
