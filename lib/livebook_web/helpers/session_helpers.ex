@@ -186,7 +186,7 @@ defmodule LivebookWeb.SessionHelpers do
       Livebook.Session.close(session.pid)
 
       if redirect_to do
-        push_redirect(socket, to: redirect_to)
+        push_navigate(socket, to: redirect_to)
       else
         socket
       end
