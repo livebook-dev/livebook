@@ -164,13 +164,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
     parent_name = node()
     parent_port = Livebook.EPMD.dist_port()
 
-    epmdless_flags =
-      if parent_port != 0 do
-        "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0 "
-      else
-        ""
-      end
-
     [
       "--erl",
       # Minimize schedulers busy wait threshold,
@@ -179,7 +172,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read terminal input.
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        epmdless_flags <>
         "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{node_name}",
       # Add the location of Livebook.EPMD
       "-pa",
