@@ -2,6 +2,15 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.13.1](https://github.com/livebook-dev/livebook/tree/v0.13.1) (2024-06-25)
+
+### Fixed
+
+* Error handling when connection to Livebook Teams fails ([#2680](https://github.com/livebook-dev/livebook/pull/2680)
+* Clustering configuration on Fly.io ([#2682](https://github.com/livebook-dev/livebook/pull/2682)
+* App deployment getting stuck when runtime crashes during app warmup ([#2681](https://github.com/livebook-dev/livebook/pull/2681)
+* Clarified the behaviour of `ELIXIR_ERL_OPTIONS` and `ERL_*FLAGS` ([#2684](https://github.com/livebook-dev/livebook/pull/2684)
+
 ## [v0.13.0](https://github.com/livebook-dev/livebook/tree/v0.13.0) (2024-06-25)
 
 ### Added
