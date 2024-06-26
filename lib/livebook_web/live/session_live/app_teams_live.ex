@@ -205,7 +205,7 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
 
         <div :if={@app_deployment} class="space-y-3">
           <p class="text-gray-700">Current version:</p>
-          <.app_deployment_card app_deployment={@app_deployment} />
+          <.app_deployment_card app_deployment={@app_deployment} deployment_group={@deployment_group} />
         </div>
 
         <.message_box :if={@num_agents[@deployment_group.id] == nil} kind={:warning}>
@@ -276,7 +276,11 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
           </.link>
         </div>
       </.message_box>
-      <.app_deployment_card :if={@app_deployment} app_deployment={@app_deployment} />
+      <.app_deployment_card
+        :if={@app_deployment}
+        app_deployment={@app_deployment}
+        deployment_group={@deployment_group}
+      />
       <div>
         <.button color="gray" outlined phx-click="go_deployment_groups">
           See deployment groups
@@ -341,7 +345,13 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     ~H"""
     <div class="flex gap-4 sm:gap-12 border border-gray-200 rounded-lg p-4">
       <.labeled_text label="Slug">
-        /<%= @app_deployment.slug %>
+        <.link
+          href={@deployment_group.url <> ~p"/apps/#{@app_deployment.slug}"}
+          target="_blank"
+          class="text-blue-600 font-medium"
+        >
+          /<%= @app_deployment.slug %>
+        </.link>
       </.labeled_text>
       <.labeled_text label="Title">
         <%= @app_deployment.title %>
