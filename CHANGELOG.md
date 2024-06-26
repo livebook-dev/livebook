@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.13.2](https://github.com/livebook-dev/livebook/tree/v0.13.2) (2024-06-26)
+
+### Fixed
+
+* Clustering configuration on Fly.io
+
 ## [v0.13.1](https://github.com/livebook-dev/livebook/tree/v0.13.1) (2024-06-25)
 
 ### Fixed
