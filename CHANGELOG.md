@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 * Support for rendering images from the deprecated `images/` directory
 * Zero Trust authentication strategy for Teleport ([#2589](https://github.com/livebook-dev/livebook/pull/2589))
+* Context menu from the code editor (appearing on right-click). In case you used it to format code, refer to the shortcuts list to find a relevant shortcut ([#2444](https://github.com/livebook-dev/livebook/pull/2444))
 
 ### Fixed
 
