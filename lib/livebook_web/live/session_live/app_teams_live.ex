@@ -345,13 +345,19 @@ defmodule LivebookWeb.SessionLive.AppTeamsLive do
     ~H"""
     <div class="flex gap-4 sm:gap-12 border border-gray-200 rounded-lg p-4">
       <.labeled_text label="Slug">
-        <.link
-          href={@deployment_group.url <> ~p"/apps/#{@app_deployment.slug}"}
-          target="_blank"
-          class="text-blue-600 font-medium"
-        >
-          /<%= @app_deployment.slug %>
-        </.link>
+        <%= if @deployment_group.url do %>
+          <.link
+            href={@deployment_group.url <> ~p"/apps/#{@app_deployment.slug}"}
+            target="_blank"
+            class="text-blue-600 font-medium"
+          >
+            /<%= @app_deployment.slug %>
+          </.link>
+        <% else %>
+          <span>
+            /<%= @app_deployment.slug %>
+          </span>
+        <% end %>
       </.labeled_text>
       <.labeled_text label="Title">
         <%= @app_deployment.title %>
