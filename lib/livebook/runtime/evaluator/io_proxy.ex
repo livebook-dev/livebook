@@ -262,6 +262,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {:ok, state}
   end
 
+  # This request is used by Kino <= 0.13.1
   defp io_request({:livebook_get_input_value, input_id}, state) do
     input_cache =
       Map.put_new_lazy(state.input_cache, input_id, fn ->
@@ -269,6 +270,25 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
       end)
 
     {input_cache[input_id], %{state | input_cache: input_cache}}
+  end
+
+  defp io_request({:livebook_get_input_value, input_id, pid}, state) do
+    # We only allow reading the input value from the evaluator process,
+    # to make sure the cell is still evaluating. A different process
+    # could attempt to read the value after the cell evaluation was
+    # finished, in which case we could return a cached value from a
+    # different evaluation and we would not track the read properly.
+
+    if pid == state.evaluator do
+      input_cache =
+        Map.put_new_lazy(state.input_cache, input_id, fn ->
+          request_input_value(input_id, state)
+        end)
+
+      {input_cache[input_id], %{state | input_cache: input_cache}}
+    else
+      {{:error, :bad_process}, state}
+    end
   end
 
   defp io_request({:livebook_get_file_path, file_id}, state) do
