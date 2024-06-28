@@ -186,21 +186,29 @@ const Cell = {
     }
 
     liveEditor.onBlur(() => {
-      // Prevent from blurring unless the state changes. For example
-      // when we move cell using buttons the editor should keep focus
-      if (this.isFocused && this.insertMode) {
-        this.currentEditor().focus();
-      }
+      // We defer the check to happen after all focus/click events have
+      // been processed, in case the state changes as a result
+      setTimeout(() => {
+        // Prevent from blurring unless the state changes. For example
+        // when we move cell using buttons the editor should keep focus
+        if (this.isFocused && this.insertMode) {
+          this.currentEditor().focus();
+        }
+      }, 0);
     });
 
     liveEditor.onFocus(() => {
-      // Prevent from focusing unless the state changes. The editor
-      // uses a contenteditable element, and it may accidentally get
-      // focus. In Chrome clicking on the right-side of the editor
-      // gives it focus
-      if (!this.isFocused || !this.insertMode) {
-        this.currentEditor().blur();
-      }
+      // We defer the check to happen after all focus/click events have
+      // been processed, in case the state changes as a result
+      setTimeout(() => {
+        // Prevent from focusing unless the state changes. The editor
+        // uses a contenteditable element, and it may accidentally get
+        // focus. In Chrome clicking on the right-side of the editor
+        // gives it focus
+        if (!this.isFocused || !this.insertMode) {
+          this.currentEditor().blur();
+        }
+      }, 0);
     });
 
     if (tag === "primary") {
