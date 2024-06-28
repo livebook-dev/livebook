@@ -18,7 +18,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
     io = Process.info(evaluator.pid)[:group_leader]
     IOProxy.before_evaluation(io, :ref, "cell")
-    %{io: io}
+    %{io: io, evaluator: evaluator}
   end
 
   describe ":stdio interoperability" do
@@ -47,7 +47,19 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   end
 
   describe "input" do
-    test "responds to Livebook input request", %{io: io} do
+    test "responds to Livebook input request", %{io: io, evaluator: evaluator} do
+      pid =
+        spawn(fn ->
+          pid = evaluator.pid
+          assert livebook_get_input_value(io, "input1", pid) == {:ok, :value}
+        end)
+
+      reply_to_input_request(:ref, "input1", {:ok, :value}, 1)
+
+      await_termination(pid)
+    end
+
+    test "responds to Livebook input request (legacy)", %{io: io} do
       pid =
         spawn(fn ->
           assert livebook_get_input_value(io, "input1") == {:ok, :value}
@@ -58,11 +70,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
       await_termination(pid)
     end
 
-    test "responds to subsequent requests with the same value", %{io: io} do
+    test "responds to subsequent requests with the same value", %{io: io, evaluator: evaluator} do
       pid =
         spawn(fn ->
-          assert livebook_get_input_value(io, "input1") == {:ok, :value}
-          assert livebook_get_input_value(io, "input1") == {:ok, :value}
+          pid = evaluator.pid
+          assert livebook_get_input_value(io, "input1", pid) == {:ok, :value}
+          assert livebook_get_input_value(io, "input1", pid) == {:ok, :value}
         end)
 
       reply_to_input_request(:ref, "input1", {:ok, :value}, 1)
@@ -70,13 +83,25 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
       await_termination(pid)
     end
 
-    test "before_evaluation/3 clears all cached input information", %{io: io} do
+    test "responds with error, when request does not come from the evaluator process", %{io: io} do
+      pid =
+        spawn(fn ->
+          pid = self()
+          assert livebook_get_input_value(io, "input1", pid) == {:error, :bad_process}
+        end)
+
+      await_termination(pid)
+    end
+
+    test "before_evaluation/3 clears all cached input information",
+         %{io: io, evaluator: evaluator} do
       pid =
         spawn_link(fn ->
+          pid = evaluator.pid
           IOProxy.before_evaluation(io, :ref, "cell")
-          assert livebook_get_input_value(io, "input1") == {:ok, :value1}
+          assert livebook_get_input_value(io, "input1", pid) == {:ok, :value1}
           IOProxy.before_evaluation(io, :ref, "cell")
-          assert livebook_get_input_value(io, "input1") == {:ok, :value2}
+          assert livebook_get_input_value(io, "input1", pid) == {:ok, :value2}
         end)
 
       reply_to_input_request(:ref, "input1", {:ok, :value1}, 1)
@@ -175,6 +200,10 @@ defmodule Livebook.Runtime.Evaluator.IOProxyTest do
 
   defp livebook_get_input_value(io, input_id) do
     io_request(io, {:livebook_get_input_value, input_id})
+  end
+
+  defp livebook_get_input_value(io, input_id, pid) do
+    io_request(io, {:livebook_get_input_value, input_id, pid})
   end
 
   defp livebook_generate_token(io) do
