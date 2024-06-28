@@ -92,8 +92,6 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: LIVEBOOK_IP
-              value: "0.0.0.0"
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -106,6 +104,11 @@ spec:
               value: "livebook@$(POD_IP)"
             - name: LIVEBOOK_CLUSTER
               value: "dns:livebook-headless.$(POD_NAMESPACE).svc.cluster.local"
+            - name: LIVEBOOK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: livebook-secret
+                  key: LIVEBOOK_PASSWORD
             - name: LIVEBOOK_SECRET_KEY_BASE
               valueFrom:
                 secretKeyRef:
