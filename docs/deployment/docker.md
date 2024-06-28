@@ -110,7 +110,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: livebook-secret
-                  key: LIVEBOOK_COOKIE
+                  key: LIVEBOOK_SECRET_KEY_BASE
             - name: LIVEBOOK_COOKIE
               valueFrom:
                 secretKeyRef:
