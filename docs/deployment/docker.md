@@ -44,7 +44,7 @@ services:
 
 ### Kubernetes
 
-If using k8s the following template if a good starting point:
+If using k8s the following template is a good starting point:
 
 ```yml
 apiVersion: v1
