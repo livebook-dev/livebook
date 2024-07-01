@@ -42,6 +42,98 @@ services:
       - LIVEBOOK_IFRAME_PORT=8091
 ```
 
+### Kubernetes
+
+If using k8s the following template is a good starting point:
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: livebook-headless
+spec:
+  clusterIP: None
+  selector:
+    app: livebook
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: livebook-loadbalancer
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: livebook
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livebook
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: livebook
+  template:
+    metadata:
+      labels:
+        app: livebook
+    spec:
+      containers:
+        - name: livebook
+          image: ghcr.io/livebook-dev/livebook:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: LIVEBOOK_NODE
+              value: "livebook@$(POD_IP)"
+            - name: LIVEBOOK_CLUSTER
+              value: "dns:livebook-headless.$(POD_NAMESPACE).svc.cluster.local"
+            - name: LIVEBOOK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: livebook-secret
+                  key: LIVEBOOK_PASSWORD
+            - name: LIVEBOOK_SECRET_KEY_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: livebook-secret
+                  key: LIVEBOOK_SECRET_KEY_BASE
+            - name: LIVEBOOK_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: livebook-secret
+                  key: LIVEBOOK_COOKIE
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: livebook-secret
+  namespace: livebook-namespace
+type: Opaque
+data:
+  LIVEBOOK_PASSWORD: <base64_encoded_password>
+  LIVEBOOK_SECRET_KEY_BASE: <base64_encoded_password>
+  LIVEBOOK_COOKIE: <base64_encoded_password>
+```
+
 ## Deploy notebooks as applications
 
 It is possible to deploy any notebook as an application in Livebook. Inside the notebook, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Docker", and follow the required steps. You will be able to choose a Livebook image, preset clustering options, and more.
