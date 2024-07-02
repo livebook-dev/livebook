@@ -257,7 +257,7 @@ defmodule Livebook.Hubs.DockerfileTest do
       assert {"XLA_TARGET", "cuda118"} in env
     end
 
-    test "deploying with fly.io cluster setup" do
+    test "deploying with auto cluster setup" do
       config = dockerfile_config(%{clustering: :auto})
       hub = team_hub()
       agent_key = Livebook.Factory.build(:agent_key)
