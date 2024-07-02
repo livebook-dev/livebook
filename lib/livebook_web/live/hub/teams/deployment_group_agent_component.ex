@@ -95,17 +95,13 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
                   to set the environment variables as secrets, if applicable. Below is
                   an example calling Docker CLI directly, adapt it as necessary.
                 </p>
-                <div>
-                  <div class="flex items-end mb-1 gap-1">
-                    <span class="text-sm text-gray-700 font-semibold">CLI</span>
-                  </div>
 
-                  <.code_preview
-                    source_id="agent-dockerfile-source"
-                    source={@instructions.docker_instructions}
-                    language="shell"
-                  />
-                </div>
+                <.code_preview_with_title_and_copy
+                  title="CLI"
+                  source_id="agent-dockerfile-source"
+                  source={@instructions.docker_instructions}
+                  language="shell"
+                />
               </div>
             </:tab>
             <:tab id="fly_io" label="Fly.io">
@@ -113,17 +109,38 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
                 <p class="text-gray-700">
                   Deploy an app server to Fly.io with a few commands.
                 </p>
-                <div>
-                  <div class="flex items-end mb-1 gap-1">
-                    <span class="text-sm text-gray-700 font-semibold">CLI</span>
-                  </div>
 
-                  <.code_preview
-                    source_id="agent-dockerfile-source"
-                    source={@instructions.fly_instructions}
-                    language="shell"
-                  />
-                </div>
+                <.code_preview_with_title_and_copy
+                  title="CLI"
+                  source_id="agent-fly-source"
+                  source={@instructions.fly_instructions}
+                  language="shell"
+                />
+              </div>
+            </:tab>
+            <:tab id="k8s" label="Kubernetes">
+              <div class="flex flex-col gap-3">
+                <p class="text-gray-700">
+                  Deploy an app server to Kubernetes. First save the following Kubernetes resource file to disk:
+                </p>
+
+                <.code_preview_with_title_and_copy
+                  title="livebook.yml"
+                  source_id="agent-k8s-source"
+                  source={@instructions.k8s_instructions}
+                  language="yaml"
+                />
+
+                <p class="text-gray-700">
+                  Now run the following shell command:
+                </p>
+
+                <.code_preview_with_title_and_copy
+                  title="CLI"
+                  source_id="agent-k8s-cli"
+                  source="kubectl apply -f livebook.yml"
+                  language="shell"
+                />
               </div>
             </:tab>
           </.tabs>
@@ -178,7 +195,8 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
 
     %{
       docker_instructions: docker_instructions(image, env),
-      fly_instructions: fly_instructions(image, env, hub.hub_name, deployment_group.name)
+      fly_instructions: fly_instructions(image, env, hub.hub_name, deployment_group.name),
+      k8s_instructions: k8s_instructions(image, env)
     }
   end
 
@@ -213,4 +231,112 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
     fly deploy --ha=false
     """
   end
+
+  defp k8s_instructions(image, env) do
+    {secrets, envs} =
+      Map.split(
+        Map.new(env),
+        ~w(LIVEBOOK_TEAMS_KEY LIVEBOOK_TEAMS_AUTH LIVEBOOK_SECRET_KEY_BASE LIVEBOOK_COOKIE)
+      )
+
+    # We replace auto by the cluster setting.
+    {replicas, envs} =
+      case envs do
+        %{"LIVEBOOK_CLUSTER" => "auto"} -> {2, Map.delete(envs, "LIVEBOOK_CLUSTER")}
+        %{} -> {1, envs}
+      end
+
+    envs =
+      Map.put_new(
+        envs,
+        "LIVEBOOK_CLUSTER",
+        "dns:livebook-headless.$(POD_NAMESPACE).svc.cluster.local"
+      )
+
+    k8s_instructions_template(image, envs, secrets, replicas)
+  end
+
+  require EEx
+
+  EEx.function_from_string(
+    :defp,
+    :k8s_instructions_template,
+    """
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: livebook-headless
+    spec:
+      clusterIP: None
+      selector:
+        app: livebook
+
+    ---
+
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: livebook-loadbalancer
+    spec:
+      type: LoadBalancer
+      ports:
+        - port: 80
+          targetPort: 8080
+      selector:
+        app: livebook
+
+    ---
+
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: livebook
+    spec:
+      replicas: <%= replicas %>
+      selector:
+        matchLabels:
+          app: livebook
+      template:
+        metadata:
+          labels:
+            app: livebook
+        spec:
+          containers:
+            - name: livebook
+              image: <%= image %>
+              ports:
+                - containerPort: 8080
+              env:
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: LIVEBOOK_NODE
+                  value: "livebook@$(POD_IP)"<%= for {k, v} <- envs do %>
+                - name: <%= k %>
+                  value: <%= inspect(v) %><% end %><%= for {k, _} <- secrets do %>
+                - name: <%= k %>
+                  valueFrom:
+                    secretKeyRef:
+                      name: livebook-secret
+                      key: <%= k %><% end %>
+
+    ---
+
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: livebook-secret
+      namespace: livebook-namespace
+    type: Opaque
+    data:
+      # LIVEBOOK_PASSWORD: <base64_encoded_password><%= for {k, v} <- secrets do %>
+      <%= k %>: <%= Base.encode64(v) %><% end %>
+    """,
+    [:image, :envs, :secrets, :replicas]
+  )
 end

@@ -522,6 +522,47 @@ defmodule LivebookWeb.CoreComponents do
   end
 
   @doc """
+  Renders a highlighted code snippet with a title and a copy button.
+
+  ## Examples
+
+      <.code_preview_with_title_and_copy
+        title="
+        source_id="my-snippet"
+        language="elixir"
+        source="System.version()" />
+
+  """
+  attr :title, :string, required: true
+  attr :source_id, :string, required: true
+  attr :language, :string, required: true
+  attr :source, :string, required: true
+
+  def code_preview_with_title_and_copy(assigns) do
+    ~H"""
+    <div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-gray-700 font-semibold"><%= @title %></span>
+        <div class="flex justify-end space-x-2">
+          <span class="tooltip left" data-tooltip="Copy source">
+            <.icon_button
+              aria-label="copy source"
+              phx-click={JS.dispatch("lb:clipcopy", to: "##{@source_id}")}
+            >
+              <.remix_icon icon="clipboard-line" />
+            </.icon_button>
+          </span>
+        </div>
+      </div>
+
+      <div class="markdown">
+        <.code_preview source_id={@source_id} language={@language} source={@source} />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders text with a tiny label.
 
   ## Examples
