@@ -38,26 +38,13 @@ defmodule LivebookWeb.AppSessionLive.SourceComponent do
       <p class="text-gray-700">
         This app is built from the following notebook source:
       </p>
-      <div class="flex flex-col space-y-1">
-        <div class="flex justify-between items-center">
-          <span class="text-sm text-gray-700 font-semibold">
-            <%= Session.file_name_for_download(@session) <> ".livemd" %>
-          </span>
-          <div class="flex justify-end space-x-2">
-            <span class="tooltip left" data-tooltip="Copy source">
-              <.icon_button
-                aria-label="copy source"
-                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}
-              >
-                <.remix_icon icon="clipboard-line" />
-              </.icon_button>
-            </span>
-          </div>
-        </div>
-        <div class="markdown">
-          <.code_preview source_id="export-notebook-source" language="markdown" source={@source} />
-        </div>
-      </div>
+
+      <.code_preview_with_title_and_copy
+        title={Session.file_name_for_download(@session) <> ".livemd"}
+        source_id="export-notebook-source"
+        language="markdown"
+        source={@source}
+      />
     </div>
     """
   end
