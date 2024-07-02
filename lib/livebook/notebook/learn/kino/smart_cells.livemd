@@ -286,7 +286,7 @@ defmodule KinoGuide.JSONConverterCell do
   def init(attrs, ctx) do
     ctx =
       assign(ctx,
-        variable: Kino.SmartCell.prefixed_var_name("data", attrs["data"])
+        variable: Kino.SmartCell.prefixed_var_name("data", attrs["variable"])
       )
 
     {:ok, ctx, editor: [attribute: "json", language: "json"]}
