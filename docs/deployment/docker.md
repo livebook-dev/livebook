@@ -1,6 +1,6 @@
 # Docker
 
-There are two main use cases to deploy Livebook in the cloud. The first is to read and write notebooks in the cloud, instead of your machine. The second is to deploy notebooks as applications. This guide covers both as well other details such as clustering.
+There are two main use cases to deploy Livebook in the cloud. The first is to read and write notebooks in the cloud, instead of your machine. The second is to deploy notebooks as applications.
 
 ## Livebook in the cloud
 
@@ -44,7 +44,7 @@ services:
 
 ### Kubernetes
 
-If using k8s the following template is a good starting point:
+If using k8s the following template is a good starting point. It includes a load balancer and preset clustering:
 
 ```yml
 apiVersion: v1
@@ -136,6 +136,8 @@ data:
 
 ## Deploy notebooks as applications
 
-It is possible to deploy any notebook as an application in Livebook. Inside the notebook, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Docker", and follow the required steps. You will be able to choose a Livebook image, preset clustering options, and more.
+It is possible to deploy any notebook as an application in Livebook. Inside the notebook, open up the Application pane on the sidebar (with a rocket icon), click "Manual Docker deployment", and follow the required steps.
 
-If you are using [Livebook Teams](https://livebook.dev/teams/), you will also have access to airgapped notebook deployment with pre-configured Zero Trust Authentication, shared team secrets and file storages. To get started, open up Livebook, click "Add Organization" on the sidebar, and visit the "Airgapped Deployment" section of your organization.
+If you are using [Livebook Teams](https://livebook.dev/teams/), you can also deploy with the click of a button by running Livebook servers inside your infrastructure. To get started, open up Livebook and click "Add Organization" on the sidebar. Once completed, open up the Application pane on the sidebar (with a rocket icon), click "Deploy with Livebook Teams".
+
+Livebook Teams also support airgapped deployments, pre-configured Zero Trust Authentication, shared team secrets, file storages, and more.

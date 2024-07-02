@@ -134,7 +134,7 @@ defmodule LivebookWeb.AppComponents do
             See the
             <a
               class="text-blue-600 hover:text-blue-700"
-              href="https://hexdocs.pm/livebook/docker.html#clustering"
+              href="https://hexdocs.pm/livebook/clustering.html"
             >
               Clustering docs
             </a>
