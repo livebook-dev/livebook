@@ -555,7 +555,7 @@ defmodule LivebookWeb.CoreComponents do
         </div>
       </div>
 
-      <div class={@language}>
+      <div class="markdown">
         <.code_preview source_id={@source_id} language={@language} source={@source} />
       </div>
     </div>
