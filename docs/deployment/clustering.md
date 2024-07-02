@@ -8,7 +8,7 @@ You may set `LIVEBOOK_CLUSTER` to one of the following values.
 
 ## `auto`
 
-Detects the hosting platform and automatically sets up a cluster using DNS configuration. Currently the only supported platform is Fly.io.
+Detects the hosting platform and automatically sets up a cluster using DNS configuration. Currently the only supported platform is Fly.io (and Kubernetes when using Livebook Teams).
 
 ## `dns:QUERY`
 
