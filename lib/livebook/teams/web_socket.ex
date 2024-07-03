@@ -26,7 +26,7 @@ defmodule Livebook.Teams.WebSocket do
       if http_scheme == :https do
         [cacerts: :public_key.cacerts_get()]
       else
-        [inet6: true]
+        []
       end
 
     opts = [protocols: [:http1], transport_opts: transport_opts]
