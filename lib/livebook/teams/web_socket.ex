@@ -29,6 +29,11 @@ defmodule Livebook.Teams.WebSocket do
         []
       end
 
+    transport_opts =
+      if String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
+        do: Keyword.put(transport_opts, :inet6, true),
+        else: transport_opts
+
     opts = [protocols: [:http1], transport_opts: transport_opts]
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, opts),
