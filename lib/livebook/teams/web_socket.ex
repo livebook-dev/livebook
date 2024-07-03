@@ -30,7 +30,7 @@ defmodule Livebook.Teams.WebSocket do
       end
 
     transport_opts =
-      if Livebook.Config.teams_url() =~ "flycast",
+      if String.ends_with?(Livebook.Config.teams_url(), ".flycast"),
         do: Keyword.put(transport_opts, :inet6, true),
         else: transport_opts
 
