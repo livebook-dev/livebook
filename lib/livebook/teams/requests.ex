@@ -267,6 +267,7 @@ defmodule Livebook.Teams.Requests do
   defp build_req() do
     Req.new(
       base_url: Livebook.Config.teams_url(),
+      inet6: Livebook.Config.teams_url() =~ "flycast",
       headers: [{"x-lb-version", Livebook.Config.app_version()}]
     )
   end
