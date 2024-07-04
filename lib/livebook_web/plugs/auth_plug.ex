@@ -77,7 +77,8 @@ defmodule LivebookWeb.AuthPlug do
 
   defp redirect_to_authenticate(%{path_info: []} = conn) do
     path =
-      if Livebook.Apps.list_apps() != [] or Livebook.Apps.empty_apps_path?() do
+      if Livebook.Apps.list_apps() != [] or Livebook.Config.apps_path() != nil or
+           Livebook.Config.teams_auth?() do
         ~p"/apps"
       else
         ~p"/authenticate"

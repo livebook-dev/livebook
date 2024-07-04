@@ -259,6 +259,8 @@ defmodule Livebook.Application do
 
     cond do
       teams_key && auth ->
+        Application.put_env(:livebook, :teams_auth?, true)
+
         case String.split(auth, ":") do
           ["offline", name, public_key] ->
             create_offline_hub(teams_key, name, public_key)
