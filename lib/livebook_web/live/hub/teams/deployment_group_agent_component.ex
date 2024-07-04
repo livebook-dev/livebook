@@ -107,13 +107,24 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
             <:tab id="fly_io" label="Fly.io">
               <div class="flex flex-col gap-3">
                 <p class="text-gray-700">
-                  Deploy an app server to Fly.io with a few commands.
+                  Deploy an app server to Fly.io with a few commands. Let's first configure the application resources:
                 </p>
 
                 <.code_preview_with_title_and_copy
                   title="CLI"
-                  source_id="agent-fly-source"
-                  source={@instructions.fly_instructions}
+                  source_id="agent-fly-source-1"
+                  source={@instructions.fly_instructions.step_one}
+                  language="shell"
+                />
+
+                <p class="text-gray-700">
+                  Now let's set secrets and deploy it:
+                </p>
+
+                <.code_preview_with_title_and_copy
+                  title="CLI"
+                  source_id="agent-fly-source-2"
+                  source={@instructions.fly_instructions.step_two}
                   language="shell"
                 />
               </div>
@@ -218,18 +229,19 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupAgentComponent do
       |> String.replace(~r/[^\w-]/, "")
       |> String.downcase()
 
-    """
-    # Create a directory for your Fly app config
-    mkdir #{example_dir}
-    cd #{example_dir}
+    %{
+      step_one: """
+      mkdir #{example_dir}
+      cd #{example_dir}
+      fly launch --image #{image} --vm-memory 2048 --no-deploy
+      """,
+      step_two: """
+      fly secrets set \\
+      #{envs}
 
-    fly launch --image #{image} --vm-memory 2048 --no-deploy
-
-    fly secrets set \\
-    #{envs}
-
-    fly deploy --ha=false
-    """
+      fly deploy --ha=false
+      """
+    }
   end
 
   defp k8s_instructions(image, env) do
