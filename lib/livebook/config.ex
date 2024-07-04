@@ -232,6 +232,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns if this instance is running with teams auth,
+  i.e. if there an online or offline hub created on boot.
+  """
+  @spec teams_auth?() :: boolean()
+  def teams_auth?() do
+    Application.fetch_env!(:livebook, :teams_auth?)
+  end
+
+  @doc """
   Returns the configured URL for the Livebook Teams endpoint.
   """
   @spec teams_url() :: String.t()

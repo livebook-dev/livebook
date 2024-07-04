@@ -24,7 +24,7 @@ config :mime, :types, %{
 }
 
 config :livebook,
-  agent_name: "livebook-agent",
+  agent_name: "default",
   allowed_uri_schemes: [],
   app_service_name: nil,
   app_service_url: nil,
@@ -37,6 +37,7 @@ config :livebook,
   plugs: [],
   rewrite_on: [],
   shutdown_callback: nil,
+  teams_auth?: false,
   teams_url: "https://teams.livebook.dev",
   update_instructions_url: nil,
   within_iframe: false
