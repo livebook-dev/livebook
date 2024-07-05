@@ -1,11 +1,11 @@
-if System.otp_release() < "25" do
-  Mix.raise("Livebook requires Erlang/OTP 25+")
+if System.otp_release() < "27" do
+  Mix.raise("Livebook requires Erlang/OTP 27+")
 end
 
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.16"
+  @elixir_requirement "~> 1.17"
   @version "0.14.0-dev"
   @description "Automate code & data workflows with interactive notebooks"
 
