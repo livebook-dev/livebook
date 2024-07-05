@@ -6,13 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-* Instructions for deploying Livebook Teams App server with Kubernetes (#2697)
+* Instructions for deploying Livebook Teams App server with Kubernetes ([#2697](https://github.com/livebook-dev/livebook/pull/2697))
 
 ### Fixed
 
-* Cursor position when focusing cells with mouse click (#2692)
+* Cursor position when focusing cells with mouse click ([#2692](https://github.com/livebook-dev/livebook/pull/2692))
 * (Desktop) Verbose version field in the application info view on macOS
-* Respecting `LIVEBOOK_BASE_URL_PATH` when checking /public assets availability (#2700)
+* Respecting `LIVEBOOK_BASE_URL_PATH` when checking /public assets availability ([#2700](https://github.com/livebook-dev/livebook/pull/2700))
 
 ## [v0.13.2](https://github.com/livebook-dev/livebook/tree/v0.13.2) (2024-06-26)
 
