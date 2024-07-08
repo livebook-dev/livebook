@@ -129,7 +129,7 @@ defmodule Livebook.Session do
           app_pid: pid() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
-          started_by: Livebook.User.t() | nil
+          started_by: Livebook.Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -201,7 +201,7 @@ defmodule Livebook.Session do
   @doc """
   Fetches session information from the session server.
   """
-  @spec get_by_pid(pid()) :: Session.t()
+  @spec get_by_pid(pid()) :: t()
   def get_by_pid(pid) do
     GenServer.call(pid, :describe_self, @timeout)
   end
