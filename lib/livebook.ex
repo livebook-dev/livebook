@@ -114,6 +114,11 @@ defmodule Livebook do
       config :livebook, LivebookWeb.Endpoint, url: [path: base_url_path]
     end
 
+    if public_base_url_path_override =
+         Livebook.Config.public_base_url_path_override!("LIVEBOOK_PUBLIC_BASE_URL_PATH_OVERRIDE") do
+      config :livebook, :public_base_url_path_override, public_base_url_path_override
+    end
+
     if password = Livebook.Config.password!("LIVEBOOK_PASSWORD") do
       config :livebook, :authentication, {:password, password}
     else

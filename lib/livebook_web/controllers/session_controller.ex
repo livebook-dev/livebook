@@ -127,7 +127,14 @@ defmodule LivebookWeb.SessionController do
       conn
       |> cache_permanently()
       |> put_status(:moved_permanently)
-      |> redirect(to: ~p"/public/sessions/node/#{node_id}/assets/#{hash}/#{file_parts}")
+      |> redirect(
+        to:
+          ~p"/public/sessions/node/#{node_id}/assets/#{hash}/#{file_parts}"
+          |> String.replace(
+            Livebook.Config.base_url_path(),
+            Livebook.Config.public_base_url_path()
+          )
+      )
     else
       send_resp(conn, 404, "Not found")
     end

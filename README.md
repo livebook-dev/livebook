@@ -196,6 +196,10 @@ The following environment variables can be used to configure Livebook on boot:
   * `LIVEBOOK_BASE_URL_PATH` - sets the base url path the web application is
     served on. Useful when deploying behind a reverse proxy.
 
+  * `LIVEBOOK_PUBLIC_BASE_URL_PATH_OVERRIDE` - overrides the base url path for the public
+    asset routes only. Useful to create exceptions when deploying behind a reverse proxy 
+    that requires authentication.
+
   * `LIVEBOOK_CACERTFILE` - path to a local file containing CA certificates.
     Those certificates are used during for server authentication when Livebook
     accesses files from external sources.

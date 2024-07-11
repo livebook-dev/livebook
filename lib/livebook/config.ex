@@ -227,6 +227,17 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the base url path for Livebook public endpoints (health & assets)
+  """
+  @spec public_base_url_path() :: String.t()
+  def public_base_url_path() do
+    case Application.get_env(:livebook, :public_base_url_path_override) do
+      nil -> base_url_path()
+      path -> String.trim_trailing(path, "/")
+    end
+  end
+
+  @doc """
   Returns the configured port for the iframe endpoint.
   """
   @spec iframe_port() :: pos_integer() | 0
@@ -522,6 +533,15 @@ defmodule Livebook.Config do
   def base_url_path!(env) do
     if base_url_path = System.get_env(env) do
       String.trim_trailing(base_url_path, "/")
+    end
+  end
+
+  @doc """
+  Parses and validates the public base url path override from env
+  """
+  def public_base_url_path_override!(env) do
+    if override = System.get_env(env) do
+      String.trim_trailing(override, "/")
     end
   end
 

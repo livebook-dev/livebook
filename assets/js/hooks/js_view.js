@@ -507,7 +507,7 @@ const JSView = {
  * once and the response is cached.
  */
 function cachedPublicEndpointCheck() {
-  const healthUrl = window.LIVEBOOK_BASE_URL_PATH + "/public/health";
+  const healthUrl = window.LIVEBOOK_PUBLIC_BASE_URL_PATH + "/public/health";
 
   cachedPublicEndpointCheck.promise =
     cachedPublicEndpointCheck.promise ||

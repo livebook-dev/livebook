@@ -11,15 +11,20 @@ defmodule LivebookWeb.JSViewComponent do
 
   @impl true
   def render(assigns) do
+    assets_base_path =
+      ~p"/public/sessions/#{assigns.session_id}/assets/#{assigns.js_view.assets.hash}/"
+      |> String.replace(Livebook.Config.base_url_path(), Livebook.Config.public_base_url_path())
+
+    assigns =
+      assign(assigns, :js_view, Map.put(assigns.js_view, :assets_base_path, assets_base_path))
+
     ~H"""
     <div
       id={"js-output-#{@id}-#{@js_view.ref}"}
       phx-hook="JSView"
       phx-update="ignore"
       data-p-ref={hook_prop(@js_view.ref)}
-      data-p-assets-base-path={
-        hook_prop(~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/")
-      }
+      data-p-assets-base-path={hook_prop(@js_view.assets_base_path)}
       data-p-assets-cdn-url={hook_prop(cdn_url(@js_view.assets[:cdn_url]))}
       data-p-js-path={hook_prop(@js_view.assets.js_path)}
       data-p-session-token={hook_prop(session_token(@session_id, @client_id))}
