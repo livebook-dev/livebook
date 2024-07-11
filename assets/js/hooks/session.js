@@ -575,7 +575,7 @@ const Session = {
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
       const section = this.getSectionById(sectionId);
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      section.scrollIntoView({ behavior: "instant", block: "start" });
     }
   },
 
