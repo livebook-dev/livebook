@@ -6,7 +6,10 @@ defmodule Livebook.Runtime.AttachedTest do
   describe "Runtime.connect/1" do
     test "given an invalid node returns an error" do
       runtime = Runtime.Attached.new(:nonexistent@node)
-      assert {:error, "node :nonexistent@node is unreachable"} = Runtime.connect(runtime)
+      pid = Runtime.connect(runtime)
+
+      assert_receive {:runtime_connect_done, ^pid,
+                      {:error, "node :nonexistent@node is unreachable"}}
     end
   end
 end

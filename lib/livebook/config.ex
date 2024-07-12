@@ -60,12 +60,26 @@ defmodule Livebook.Config do
           })
   def docker_images() do
     version = app_version()
-    base = if version =~ "dev", do: "latest", else: version
+
+    {version, version_cuda} =
+      if version =~ "dev" do
+        {"edge", "latest"}
+      else
+        {version, version}
+      end
 
     [
-      %{tag: base, name: "Livebook", env: []},
-      %{tag: "#{base}-cuda11.8", name: "Livebook + CUDA 11.8", env: [{"XLA_TARGET", "cuda118"}]},
-      %{tag: "#{base}-cuda12.1", name: "Livebook + CUDA 12.1", env: [{"XLA_TARGET", "cuda120"}]}
+      %{tag: version, name: "Livebook", env: []},
+      %{
+        tag: "#{version_cuda}-cuda11.8",
+        name: "Livebook + CUDA 11.8",
+        env: [{"XLA_TARGET", "cuda118"}]
+      },
+      %{
+        tag: "#{version_cuda}-cuda12.1",
+        name: "Livebook + CUDA 12.1",
+        env: [{"XLA_TARGET", "cuda120"}]
+      }
     ]
   end
 
@@ -351,13 +365,6 @@ defmodule Livebook.Config do
   @spec update_instructions_url() :: String.t() | nil
   def update_instructions_url() do
     Application.fetch_env!(:livebook, :update_instructions_url)
-  end
-
-  @doc """
-  Returns a boolean if epmdless mode is configured.
-  """
-  def epmdless? do
-    Application.fetch_env!(:livebook, :epmdless)
   end
 
   @doc """
@@ -673,7 +680,7 @@ defmodule Livebook.Config do
         nil
 
       "standalone" ->
-        Livebook.Runtime.ElixirStandalone.new()
+        Livebook.Runtime.Standalone.new()
 
       "embedded" ->
         Livebook.Runtime.Embedded.new()

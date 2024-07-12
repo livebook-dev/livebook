@@ -2,10 +2,10 @@ defmodule Livebook.Runtime.NoopRuntime do
   # A runtime that doesn't do any actual evaluation,
   # thus not requiring any underlying resources.
 
-  defstruct [:started, :trace_to]
+  defstruct [:trace_to]
 
   def new(trace_to \\ nil) do
-    %__MODULE__{started: false, trace_to: trace_to}
+    %__MODULE__{trace_to: trace_to}
   end
 
   defimpl Livebook.Runtime do
@@ -13,11 +13,17 @@ defmodule Livebook.Runtime.NoopRuntime do
       [{"Type", "Noop"}]
     end
 
-    def connect(runtime), do: {:ok, %{runtime | started: true}}
-    def connected?(runtime), do: runtime.started
+    def connect(runtime) do
+      caller = self()
+
+      spawn(fn ->
+        send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
+      end)
+    end
+
     def take_ownership(_, _), do: make_ref()
-    def disconnect(runtime), do: {:ok, %{runtime | started: false}}
-    def duplicate(_), do: Livebook.Runtime.NoopRuntime.new()
+    def disconnect(_), do: :ok
+    def duplicate(runtime), do: Livebook.Runtime.NoopRuntime.new(runtime.trace_to)
 
     def evaluate_code(_, _, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
@@ -60,8 +66,6 @@ defmodule Livebook.Runtime.NoopRuntime do
     end
 
     def search_packages(_, _, _), do: make_ref()
-
-    def disable_dependencies_cache(_), do: :ok
 
     def put_system_envs(_, _), do: :ok
     def delete_system_envs(_, _), do: :ok

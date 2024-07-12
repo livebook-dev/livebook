@@ -1,11 +1,13 @@
-defmodule Livebook.Runtime.ElixirStandaloneTest do
+defmodule Livebook.Runtime.StandaloneTest do
   use ExUnit.Case, async: true
 
   alias Livebook.Runtime
 
   describe "Runtime.connect/1" do
     test "starts a new Elixir runtime in distribution mode and ties its lifetime to the NodeManager process" do
-      assert {:ok, %{node: node} = runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
+      pid = Runtime.Standalone.new() |> Runtime.connect()
+      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+      %{node: node} = runtime
       Runtime.take_ownership(runtime)
 
       # Make sure the node is running.
@@ -21,7 +23,9 @@ defmodule Livebook.Runtime.ElixirStandaloneTest do
     end
 
     test "loads necessary modules and starts manager process" do
-      assert {:ok, %{node: node} = runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
+      pid = Runtime.Standalone.new() |> Runtime.connect()
+      assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+      %{node: node} = runtime
       Runtime.take_ownership(runtime)
 
       assert evaluator_module_loaded?(node)
@@ -30,7 +34,9 @@ defmodule Livebook.Runtime.ElixirStandaloneTest do
   end
 
   test "Runtime.disconnect/1 makes the node terminate" do
-    assert {:ok, %{node: node} = runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
+    pid = Runtime.Standalone.new() |> Runtime.connect()
+    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+    %{node: node} = runtime
     Runtime.take_ownership(runtime)
 
     # Make sure the node is running.

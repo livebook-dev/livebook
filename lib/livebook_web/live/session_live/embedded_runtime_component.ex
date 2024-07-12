@@ -1,25 +1,15 @@
-defmodule LivebookWeb.SessionLive.EmbeddedLive do
-  use LivebookWeb, :live_view
+defmodule LivebookWeb.SessionLive.EmbeddedRuntimeComponent do
+  use LivebookWeb, :live_component
 
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(
-        _params,
-        %{"session_pid" => session_pid, "current_runtime" => current_runtime},
-        socket
-      ) do
-    session = Session.get_by_pid(session_pid)
-
+  def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Embedded) do
       raise "runtime module not allowed"
     end
 
-    if connected?(socket) do
-      Session.subscribe(session.id)
-    end
-
-    {:ok, assign(socket, session: session, current_runtime: current_runtime)}
+    {:ok, socket}
   end
 
   @impl true
@@ -31,7 +21,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
         This is reserved for specific cases where there is no option
         of starting a separate Elixir runtime (for example, on embedded
         devices or cases where the amount of memory available is
-        limited). Prefer the "Elixir standalone" runtime whenever possible.
+        limited). Prefer the "Standalone" runtime whenever possible.
       </p>
       <p class="text-gray-700">
         <span class="font-semibold">Warning:</span>
@@ -39,27 +29,22 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
         you restart Livebook. Furthermore, code in one notebook
         may interfere with code from another notebook.
       </p>
-      <.button phx-click="init">
-        <%= if(matching_runtime?(@current_runtime), do: "Reconnect", else: "Connect") %>
+      <.button phx-click="init" phx-target={@myself} disabled={@runtime_status == :connecting}>
+        <%= label(@runtime, @runtime_status) %>
       </.button>
     </div>
     """
   end
 
-  defp matching_runtime?(%Runtime.Embedded{}), do: true
-  defp matching_runtime?(_runtime), do: false
+  defp label(%Runtime.Embedded{}, :connecting), do: "Connecting..."
+  defp label(%Runtime.Embedded{}, :connected), do: "Reconnect"
+  defp label(_runtime, _runtime_status), do: "Connect"
 
   @impl true
   def handle_event("init", _params, socket) do
-    {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+    runtime = Runtime.Embedded.new()
     Session.set_runtime(socket.assigns.session.pid, runtime)
+    Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
-
-  @impl true
-  def handle_info({:operation, {:set_runtime, _pid, runtime}}, socket) do
-    {:noreply, assign(socket, current_runtime: runtime)}
-  end
-
-  def handle_info(_message, socket), do: {:noreply, socket}
 end

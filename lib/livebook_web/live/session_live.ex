@@ -263,30 +263,38 @@ defmodule LivebookWeb.SessionLive do
     data = socket.private.data
     %{"section_id" => section_id, "cell_id" => cell_id} = params
 
-    if Livebook.Runtime.connected?(socket.private.data.runtime) do
-      case example_snippet_definition_by_name(data, params["definition_name"]) do
-        {:ok, definition} ->
-          variant = Enum.fetch!(definition.variants, params["variant_idx"])
+    socket =
+      case socket.private.data.runtime_status do
+        :disconnected ->
+          reason = "To insert this block, you need a connected runtime."
+          confirm_setup_runtime(socket, reason)
 
-          socket =
-            ensure_packages_then(socket, variant.packages, definition.name, "block", fn socket ->
-              with {:ok, section, index} <-
-                     section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
-                attrs = %{source: variant.source}
-                Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
-                {:ok, socket}
+        :connecting ->
+          message = "To insert this block, wait for the runtime to finish connecting."
+          {:noreply, put_flash(socket, :info, message)}
+
+        :connected ->
+          case example_snippet_definition_by_name(data, params["definition_name"]) do
+            {:ok, definition} ->
+              variant = Enum.fetch!(definition.variants, params["variant_idx"])
+
+              fun = fn socket ->
+                with {:ok, section, index} <-
+                       section_with_next_index(socket.private.data.notebook, section_id, cell_id) do
+                  attrs = %{source: variant.source}
+                  Session.insert_cell(socket.assigns.session.pid, section.id, index, :code, attrs)
+                  {:ok, socket}
+                end
               end
-            end)
 
-          {:noreply, socket}
+              ensure_packages_then(socket, variant.packages, definition.name, "block", fun)
 
-        _ ->
-          {:noreply, socket}
+            _ ->
+              socket
+          end
       end
-    else
-      reason = "To insert this block, you need a connected runtime."
-      {:noreply, confirm_setup_default_runtime(socket, reason)}
-    end
+
+    {:noreply, socket}
   end
 
   def handle_event("insert_smart_cell_below", params, socket) do
@@ -486,24 +494,14 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id} = params, socket) do
-    data = socket.private.data
-
-    {status, socket} =
-      with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-           true <- Cell.setup?(cell),
-           false <- data.cell_infos[cell.id].eval.validity == :fresh do
-        maybe_reconnect_runtime(socket)
+    opts =
+      if params["disable_dependencies_cache"] do
+        [disable_dependencies_cache: true]
       else
-        _ -> {:ok, socket}
+        []
       end
 
-    if params["disable_dependencies_cache"] do
-      Session.disable_dependencies_cache(socket.assigns.session.pid)
-    end
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
-    end
+    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id, opts)
 
     {:noreply, socket}
   end
@@ -559,18 +557,15 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("reconnect_runtime", %{}, socket) do
-    {_, socket} = maybe_reconnect_runtime(socket)
-    {:noreply, socket}
-  end
-
   def handle_event("connect_runtime", %{}, socket) do
-    {_, socket} = connect_runtime(socket)
+    Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
-  def handle_event("setup_default_runtime", %{"reason" => reason}, socket) do
-    {:noreply, confirm_setup_default_runtime(socket, reason)}
+  def handle_event("reconnect_runtime", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
+    Session.connect_runtime(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
@@ -578,12 +573,15 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("setup_runtime", %{"reason" => reason}, socket) do
+    {:noreply, confirm_setup_runtime(socket, reason)}
+  end
+
   def handle_event("runtime_disconnect_node", %{"node" => node}, socket) do
     node = Enum.find(socket.private.data.runtime_connected_nodes, &(Atom.to_string(&1) == node))
-    runtime = socket.private.data.runtime
 
-    if node && Runtime.connected?(runtime) do
-      Runtime.disconnect_node(runtime, node)
+    if node do
+      Runtime.disconnect_node(socket.private.data.runtime, node)
     end
 
     {:noreply, socket}
@@ -628,7 +626,7 @@ defmodule LivebookWeb.SessionLive do
     data = socket.private.data
 
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      if Runtime.connected?(data.runtime) do
+      if data.runtime_status == :connected do
         parent_locators = Session.parent_locators_for_cell(data, cell)
         node = intellisense_node(cell)
 
@@ -636,19 +634,20 @@ defmodule LivebookWeb.SessionLive do
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
-        info =
+        reason =
           cond do
             params["type"] == "completion" and not params["editor_auto_completion"] ->
-              "You need to start a runtime (or evaluate a cell) for code completion"
+              "You need a connected runtime to enable code completion."
 
             params["type"] == "format" ->
-              "You need to start a runtime (or evaluate a cell) to enable code formatting"
+              "You need a connected runtime to enable code formatting."
 
             true ->
               nil
           end
 
-        socket = if info, do: put_flash(socket, :info, info), else: socket
+        socket = if reason, do: confirm_setup_runtime(socket, reason), else: socket
+
         {:reply, %{"ref" => nil}, socket}
       end
     else
@@ -782,21 +781,27 @@ defmodule LivebookWeb.SessionLive do
         socket
       ) do
     if file_entry = find_file_entry(socket, file_entry_name) do
-      if Livebook.Runtime.connected?(socket.private.data.runtime) do
-        {:noreply,
-         socket
-         |> assign(
-           insert_file_metadata: %{
-             section_id: section_id,
-             cell_id: cell_id,
-             file_entry: file_entry,
-             handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
-           }
-         )
-         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
-      else
-        reason = "To see the available options, you need a connected runtime."
-        {:noreply, confirm_setup_default_runtime(socket, reason)}
+      case socket.private.data.runtime_status do
+        :connected ->
+          {:noreply,
+           socket
+           |> assign(
+             insert_file_metadata: %{
+               section_id: section_id,
+               cell_id: cell_id,
+               file_entry: file_entry,
+               handlers: handlers_for_file_entry(file_entry, socket.private.data.runtime)
+             }
+           )
+           |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/insert-file")}
+
+        :connecting ->
+          message = "To see the available options, wait for the runtime to finish connecting."
+          {:noreply, put_flash(socket, :info, message)}
+
+        :disconnected ->
+          reason = "To see the available options, you need a connected runtime."
+          {:noreply, confirm_setup_runtime(socket, reason)}
       end
     else
       {:noreply, socket}
@@ -843,15 +848,21 @@ defmodule LivebookWeb.SessionLive do
         %{"section_id" => section_id, "cell_id" => cell_id},
         socket
       ) do
-    if Livebook.Runtime.connected?(socket.private.data.runtime) do
-      {:noreply,
-       socket
-       |> assign(file_drop_metadata: %{section_id: section_id, cell_id: cell_id})
-       |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
-       |> push_event("finish_file_drop", %{})}
-    else
-      reason = "To see the available options, you need a connected runtime."
-      {:noreply, confirm_setup_default_runtime(socket, reason)}
+    case socket.private.data.runtime_status do
+      :disconnected ->
+        reason = "To see the available options, you need a connected runtime."
+        {:noreply, confirm_setup_runtime(socket, reason)}
+
+      :connecting ->
+        message = "To see the available options, wait for the runtime to finish connecting."
+        {:noreply, put_flash(socket, :info, message)}
+
+      :connected ->
+        {:noreply,
+         socket
+         |> assign(file_drop_metadata: %{section_id: section_id, cell_id: cell_id})
+         |> push_patch(to: ~p"/sessions/#{socket.assigns.session.id}/add-file/upload")
+         |> push_event("finish_file_drop", %{})}
     end
   end
 
@@ -881,6 +892,20 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}
+  end
+
+  def handle_info({:error, error}, socket) when socket.assigns.live_action == :runtime_settings do
+    # When the runtime settings modal is open we assume the error is
+    # related to connecting the runtime and we show it dirrectly there
+
+    message = error |> to_string() |> upcase_first()
+
+    send_update(LivebookWeb.SessionLive.RuntimeComponent,
+      id: "runtime-settings",
+      event: {:error, message}
+    )
+
+    {:noreply, socket}
   end
 
   def handle_info({:error, error}, socket) do
@@ -1527,49 +1552,15 @@ defmodule LivebookWeb.SessionLive do
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
   defp autofocus_cell_id(_notebook), do: nil
 
-  defp connect_runtime(socket) do
-    case Runtime.connect(socket.private.data.runtime) do
-      {:ok, runtime} ->
-        Session.set_runtime(socket.assigns.session.pid, runtime)
-        {:ok, socket}
-
-      {:error, message} ->
-        {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
-    end
-  end
-
-  defp maybe_reconnect_runtime(%{private: %{data: data}} = socket) do
-    if Runtime.connected?(data.runtime) do
-      data.runtime
-      |> Runtime.duplicate()
-      |> Runtime.connect()
-      |> case do
-        {:ok, new_runtime} ->
-          Session.set_runtime(socket.assigns.session.pid, new_runtime)
-          {:ok, clear_flash(socket, :error)}
-
-        {:error, message} ->
-          {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
-      end
-    else
-      {:ok, socket}
-    end
-  end
-
-  defp confirm_setup_default_runtime(socket, reason) do
+  defp confirm_setup_runtime(socket, reason) do
     on_confirm = fn socket ->
-      {status, socket} = connect_runtime(socket)
-
-      if status == :ok do
-        Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-      end
-
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
       socket
     end
 
     confirm(socket, on_confirm,
       title: "Setup runtime",
-      description: "#{reason} Do you want to connect and setup the default one?",
+      description: "#{reason} Do you want to connect and setup the current one?",
       confirm_text: "Setup runtime",
       confirm_icon: "play-line",
       danger: false
@@ -1582,7 +1573,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp example_snippet_definition_by_name(data, name) do
     data.runtime
-    |> Livebook.Runtime.snippet_definitions()
+    |> Runtime.snippet_definitions()
     |> Enum.find_value(:error, &(&1.type == :example && &1.name == name && {:ok, &1}))
   end
 
@@ -1590,25 +1581,12 @@ defmodule LivebookWeb.SessionLive do
     Enum.find_value(data.smart_cell_definitions, :error, &(&1.kind == kind && {:ok, &1}))
   end
 
-  defp add_dependencies_and_reevaluate(socket, dependencies) do
-    Session.add_dependencies(socket.assigns.session.pid, dependencies)
-
-    {status, socket} = maybe_reconnect_runtime(socket)
-
-    if status == :ok do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
-      Session.queue_cells_reevaluation(socket.assigns.session.pid)
-    end
-
-    socket
-  end
-
   defp ensure_packages_then(socket, packages, target_name, target_type, fun) do
     dependencies = Enum.map(packages, & &1.dependency)
 
     has_dependencies? =
       dependencies == [] or
-        Livebook.Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
+        Runtime.has_dependencies?(socket.private.data.runtime, dependencies)
 
     cond do
       has_dependencies? ->
@@ -1617,7 +1595,7 @@ defmodule LivebookWeb.SessionLive do
           :error -> socket
         end
 
-      Livebook.Runtime.fixed_dependencies?(socket.private.data.runtime) ->
+      Runtime.fixed_dependencies?(socket.private.data.runtime) ->
         put_flash(socket, :error, "This runtime doesn't support adding dependencies")
 
       true ->
@@ -1630,6 +1608,13 @@ defmodule LivebookWeb.SessionLive do
 
         confirm_add_packages(socket, on_confirm, packages, target_name, target_type)
     end
+  end
+
+  defp add_dependencies_and_reevaluate(socket, dependencies) do
+    Session.add_dependencies(socket.assigns.session.pid, dependencies)
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    Session.queue_cells_reevaluation(socket.assigns.session.pid)
+    socket
   end
 
   defp confirm_add_packages(socket, on_confirm, packages, target_name, target_type) do
@@ -1728,7 +1713,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp handlers_for_file_entry(file_entry, runtime) do
     handlers =
-      for definition <- Livebook.Runtime.snippet_definitions(runtime),
+      for definition <- Runtime.snippet_definitions(runtime),
           definition.type == :file_action,
           do: %{definition: definition, cell_type: :code}
 
@@ -1789,11 +1774,13 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
+      runtime_status: data.runtime_status,
+      runtime_connect_info: data.runtime_connect_info,
       runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),
       smart_cell_definitions: Enum.sort_by(data.smart_cell_definitions, & &1.name),
       example_snippet_definitions:
         data.runtime
-        |> Livebook.Runtime.snippet_definitions()
+        |> Runtime.snippet_definitions()
         |> Enum.filter(&(&1.type == :example))
         |> Enum.sort_by(& &1.name),
       global_status: global_status(data),

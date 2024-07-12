@@ -148,9 +148,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           <% end %>
         </.menu>
         <%= cond do %>
-          <% not Livebook.Runtime.connected?(@runtime) -> %>
+          <% @runtime_status == :disconnected -> %>
             <.insert_button phx-click={
-              JS.push("setup_default_runtime",
+              JS.push("setup_runtime",
                 value: %{reason: "To see the available smart cells, you need a connected runtime."}
               )
             }>

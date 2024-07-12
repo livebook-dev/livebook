@@ -1,33 +1,39 @@
-defmodule LivebookWeb.SessionLive.AttachedLive do
-  use LivebookWeb, :live_view
+defmodule LivebookWeb.SessionLive.AttachedRuntimeComponent do
+  use LivebookWeb, :live_component
 
   import Ecto.Changeset
 
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(
-        _params,
-        %{"session_pid" => session_pid, "current_runtime" => current_runtime},
-        socket
-      ) do
-    session = Session.get_by_pid(session_pid)
-
+  def mount(socket) do
     unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Attached) do
       raise "runtime module not allowed"
     end
 
-    if connected?(socket) do
-      Session.subscribe(session.id)
-    end
+    {:ok, socket}
+  end
 
-    {:ok,
-     assign(socket,
-       session: session,
-       current_runtime: current_runtime,
-       error_message: nil,
-       changeset: changeset(current_runtime)
-     )}
+  @impl true
+  def update(assigns, socket) do
+    changeset =
+      case socket.assigns[:changeset] do
+        nil ->
+          changeset(assigns.runtime)
+
+        changeset when socket.assigns.runtime == assigns.runtime ->
+          changeset
+
+        changeset ->
+          changeset(assigns.runtime, changeset.params)
+      end
+
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(:changeset, changeset)
+
+    {:ok, socket}
   end
 
   defp changeset(runtime, attrs \\ %{}) do
@@ -50,13 +56,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <div :if={@error_message} class="error-box">
-        <%= @error_message %>
-      </div>
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
-        The node must run Erlang/OTP <%= :erlang.system_info(:otp_release) %> and Elixir <%= System.version() %> (or later).
+        The node must run Elixir <%= Livebook.Runtime.Attached.elixir_version_requirement() %>.
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
@@ -71,6 +74,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         as={:data}
         phx-submit="init"
         phx-change="validate"
+        phx-target={@myself}
         autocomplete="off"
         spellcheck="false"
       >
@@ -78,60 +82,50 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <.text_field field={f[:name]} label="Name" placeholder={test_node()} />
           <.text_field field={f[:cookie]} label="Cookie" placeholder="mycookie" />
         </div>
-        <.button type="submit" disabled={not @changeset.valid?}>
-          <%= if(reconnecting?(@changeset), do: "Reconnect", else: "Connect") %>
+        <.button type="submit" disabled={@runtime_status == :connecting or not @changeset.valid?}>
+          <%= label(@changeset, @runtime_status) %>
         </.button>
       </.form>
     </div>
     """
   end
 
+  defp label(changeset, runtime_status) do
+    reconnecting? = changeset.valid? and changeset.data == apply_changes(changeset)
+
+    case {reconnecting?, runtime_status} do
+      {true, :connected} -> "Reconnect"
+      {true, :connecting} -> "Connecting..."
+      _ -> "Connect"
+    end
+  end
+
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
     changeset =
-      socket.assigns.current_runtime |> changeset(data) |> Map.replace!(:action, :validate)
+      socket.assigns.runtime
+      |> changeset(data)
+      |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, changeset: changeset)}
   end
 
   def handle_event("init", %{"data" => data}, socket) do
-    socket.assigns.current_runtime
+    socket.assigns.runtime
     |> changeset(data)
     |> apply_action(:insert)
     |> case do
       {:ok, data} ->
         node = String.to_atom(data.name)
         cookie = String.to_atom(data.cookie)
-
         runtime = Runtime.Attached.new(node, cookie)
-
-        case Runtime.connect(runtime) do
-          {:ok, runtime} ->
-            Session.set_runtime(socket.assigns.session.pid, runtime)
-            {:noreply, assign(socket, changeset: changeset(runtime), error_message: nil)}
-
-          {:error, message} ->
-            {:noreply,
-             assign(socket,
-               changeset: changeset(socket.assigns.current_runtime, data),
-               error_message: Livebook.Utils.upcase_first(message)
-             )}
-        end
+        Session.set_runtime(socket.assigns.session.pid, runtime)
+        Session.connect_runtime(socket.assigns.session.pid)
+        {:noreply, socket}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset)}
     end
-  end
-
-  @impl true
-  def handle_info({:operation, {:set_runtime, _pid, runtime}}, socket) do
-    {:noreply, assign(socket, current_runtime: runtime)}
-  end
-
-  def handle_info(_message, socket), do: {:noreply, socket}
-
-  defp reconnecting?(changeset) do
-    changeset.valid? and changeset.data == apply_changes(changeset)
   end
 
   defp test_node() do

@@ -147,7 +147,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             persistent={@section_view.cell_views == []}
             smart_cell_definitions={@smart_cell_definitions}
             example_snippet_definitions={@example_snippet_definitions}
-            runtime={@runtime}
+            runtime_status={@runtime_status}
             section_id={@section_view.id}
             cell_id={nil}
             session_id={@session_id}
@@ -160,7 +160,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               session_id={@session_id}
               session_pid={@session_pid}
               client_id={@client_id}
-              runtime={@runtime}
+              runtime_status={@runtime_status}
               installing?={@installing?}
               allowed_uri_schemes={@allowed_uri_schemes}
               cell_view={cell_view}
@@ -171,7 +171,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               persistent={false}
               smart_cell_definitions={@smart_cell_definitions}
               example_snippet_definitions={@example_snippet_definitions}
-              runtime={@runtime}
+              runtime_status={@runtime_status}
               section_id={@section_view.id}
               cell_id={cell_view.id}
               session_id={@session_id}

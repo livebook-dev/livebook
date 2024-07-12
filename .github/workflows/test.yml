@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
+      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Checkout git repo
         uses: actions/checkout@v3
@@ -58,41 +59,6 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
-
-  epmdless:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    env:
-      MIX_ENV: test
-      LIVEBOOK_EPMDLESS: true
-      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0"
-    steps:
-      - name: Checkout git repo
-        uses: actions/checkout@v3
-      - name: Read ./versions
-        run: |
-          . versions
-          echo "elixir=$elixir" >> $GITHUB_ENV
-          echo "otp=$otp" >> $GITHUB_ENV
-          echo "openssl=$openssl" >> $GITHUB_ENV
-      - name: Install Erlang & Elixir
-        uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{ env.otp }}
-          elixir-version: ${{ env.elixir }}
-      - name: Cache Mix
-        uses: actions/cache@v3
-        with:
-          path: |
-            deps
-            _build
-          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
-      - name: Install mix dependencies
-        run: mix deps.get
-      - name: Run tests
-        run: mix test
 
   windows:
     runs-on: windows-latest

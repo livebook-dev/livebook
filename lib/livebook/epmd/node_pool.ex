@@ -58,7 +58,7 @@ defmodule Livebook.EPMD.NodePool do
 
   # Server side code
 
-  @impl GenServer
+  @impl true
   def init(opts) do
     :net_kernel.monitor_nodes(true, node_type: :all)
     [name, host] = node() |> Atom.to_string() |> :binary.split("@")
@@ -74,23 +74,21 @@ defmodule Livebook.EPMD.NodePool do
     {:ok, state}
   end
 
-  @impl GenServer
+  @impl true
   def handle_call(:get_name, _, state) do
     {name, state} = server_get_name(state)
     {:reply, name, put_in(state.active_names[name], 0)}
   end
 
-  @impl GenServer
   def handle_call({:get_port, name}, _, state) do
     {:reply, Map.get(state.active_names, name, 0), state}
   end
 
-  @impl GenServer
   def handle_call({:update_name, name, port}, _, state) do
     {:reply, :ok, server_update_name(name, port, state)}
   end
 
-  @impl GenServer
+  @impl true
   def handle_info({:nodedown, node, _info}, state) do
     case state.buffer_time do
       0 -> send(self(), {:release_node, node})
@@ -100,12 +98,10 @@ defmodule Livebook.EPMD.NodePool do
     {:noreply, state}
   end
 
-  @impl GenServer
   def handle_info({:nodeup, _node, _info}, state) do
     {:noreply, state}
   end
 
-  @impl GenServer
   def handle_info({:release_node, node}, state) do
     {:noreply, server_release_name(Atom.to_string(node), state)}
   end

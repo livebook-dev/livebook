@@ -6,7 +6,7 @@ defmodule LivebookWeb.ProxyPlugTest do
   require Phoenix.LiveViewTest
   import Livebook.AppHelpers
 
-  alias Livebook.{Notebook, Runtime, Session, Sessions}
+  alias Livebook.{Notebook, Session, Sessions}
 
   describe "session" do
     test "returns error when session doesn't exist", %{conn: conn} do
@@ -28,9 +28,7 @@ defmodule LivebookWeb.ProxyPlugTest do
     test "returns the proxied response defined in notebook", %{conn: conn} do
       %{sections: [%{cells: [%{id: cell_id}]}]} = notebook = proxy_notebook()
       {:ok, session} = Sessions.create_session(notebook: notebook)
-      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
 
-      Session.set_runtime(session.pid, runtime)
       Session.subscribe(session.id)
       Session.queue_cell_evaluation(session.pid, cell_id)
 

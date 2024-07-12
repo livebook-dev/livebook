@@ -217,11 +217,8 @@ The following environment variables can be used to configure Livebook on boot:
 
   * `LIVEBOOK_DEFAULT_RUNTIME` - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
-    "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)
+    "standalone" (Standalone), "attached:NODE:COOKIE" (Attached node)
     or "embedded" (Embedded). Defaults to "standalone".
-
-  * `LIVEBOOK_EPMDLESS` - if set to "true", it disables the usage of EPMD. This is
-    only supported within releases and defaults to true for the Desktop app.
 
   * `LIVEBOOK_FIPS` - if set to "true", it enables the FIPS mode on startup.
     See more details in [the documentation](https://hexdocs.pm/livebook/fips.html).

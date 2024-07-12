@@ -15,7 +15,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   alias Livebook.Runtime.ErlDist
 
   @name __MODULE__
-  @io_proxy_registry_name __MODULE__.IOProxyRegistry
 
   @doc """
   Starts the node manager.
@@ -52,21 +51,44 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   @doc """
   Starts a new `Livebook.Runtime.ErlDist.RuntimeServer` for evaluation.
-  """
-  @spec start_runtime_server(node(), keyword()) :: pid()
-  def start_runtime_server(node, opts \\ []) do
-    GenServer.call(server(node), {:start_runtime_server, opts})
-  end
 
-  @doc false
-  def known_io_proxy?(pid) do
-    case Registry.keys(@io_proxy_registry_name, pid) do
-      [_] -> true
-      [] -> false
+  This function fails gracefully when the node manager is not running
+  or is about to terminate. This is why we do not use `GenServer.call/2`.
+
+  To start a runtime server we could check if the node manager is alive
+  and then try to call it, however it could terminate between these
+  operations (if the last runtime server terminated). This race condition
+  could happen when reconnecting to the same runtime node. To avoid
+  this, we combine the check and start into an atomic operation.
+  """
+  @spec start_runtime_server(node(), keyword()) :: {:ok, pid()} | {:error, :down}
+  def start_runtime_server(node, opts \\ []) do
+    if pid = :rpc.call(node, Process, :whereis, [@name]) do
+      ref = Process.monitor(pid)
+      send(pid, {:start_runtime_server, self(), ref, opts})
+
+      receive do
+        {:reply, ^ref, pid} ->
+          Process.demonitor(ref, [:flush])
+          {:ok, pid}
+
+        {:DOWN, ^ref, :process, _, _} ->
+          {:error, :down}
+      end
+    else
+      {:error, :down}
     end
   end
 
-  defp server(node) when is_atom(node), do: {@name, node}
+  @sink_key {__MODULE__, :sink}
+
+  @doc """
+  Returns a process that ignores all incoming messages.
+  """
+  @spec sink_pid() :: pid()
+  def sink_pid() do
+    :persistent_term.get(@sink_key)
+  end
 
   @impl true
   def init(opts) do
@@ -77,12 +99,16 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     ## Initialize the node
 
+    # Note that we intentionally do not name any processes other than
+    # the manager itself. This way, when the manager terminates, another
+    # one can be started immediately without the possibility of the
+    # linked processes to be still around and cause name conflicts.
+    # This scenario could be the case when reconnecting to the same
+    # runtime node.
+
     Process.flag(:trap_exit, true)
 
     {:ok, server_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
-
-    {:ok, io_proxy_registry} =
-      Registry.start_link(name: @io_proxy_registry_name, keys: :duplicate)
 
     # Register our own standard error IO device that proxies to
     # sender's group leader.
@@ -91,7 +117,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.unregister(:standard_error)
     Process.register(io_forward_gl_pid, :standard_error)
 
-    {:ok, _pid} = Livebook.Runtime.ErlDist.Sink.start_link()
+    :persistent_term.put(@sink_key, spawn_link(&sink_loop/0))
 
     :logger.add_handler(:livebook_gl_handler, Livebook.Runtime.ErlDist.LoggerGLHandler, %{
       formatter: Logger.Formatter.new(),
@@ -131,8 +157,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        original_standard_error: original_standard_error,
        parent_node: parent_node,
        capture_orphan_logs: capture_orphan_logs,
-       tmp_dir: tmp_dir,
-       io_proxy_registry: io_proxy_registry
+       tmp_dir: tmp_dir
      }}
   end
 
@@ -150,6 +175,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Process.register(state.original_standard_error, :standard_error)
 
     :logger.remove_handler(:livebook_gl_handler)
+
+    :persistent_term.erase(@sink_key)
 
     if state.unload_modules_on_termination do
       ErlDist.unload_required_modules()
@@ -193,24 +220,25 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     {:noreply, state}
   end
 
-  def handle_info(_message, state), do: {:noreply, state}
-
-  @impl true
-  def handle_call({:start_runtime_server, opts}, _from, state) do
+  def handle_info({:start_runtime_server, pid, ref, opts}, state) do
     opts =
       opts
       |> Keyword.put_new(:ebin_path, ebin_path(state.tmp_dir))
       |> Keyword.put_new(:tmp_dir, child_tmp_dir(state.tmp_dir))
       |> Keyword.put_new(:base_path_env, System.get_env("PATH", ""))
-      |> Keyword.put_new(:io_proxy_registry, @io_proxy_registry_name)
 
     {:ok, server_pid} =
       DynamicSupervisor.start_child(state.server_supervisor, {ErlDist.RuntimeServer, opts})
 
     Process.monitor(server_pid)
     state = update_in(state.runtime_servers, &[server_pid | &1])
-    {:reply, server_pid, state}
+
+    send(pid, {:reply, ref, server_pid})
+
+    {:noreply, state}
   end
+
+  def handle_info(_message, state), do: {:noreply, state}
 
   defp make_tmp_dir() do
     path = Path.join([System.tmp_dir!(), "livebook_runtime", random_long_id()])
@@ -228,5 +256,11 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   defp random_long_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
+  end
+
+  defp sink_loop() do
+    receive do
+      _ -> sink_loop()
+    end
   end
 end

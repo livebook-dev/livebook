@@ -75,7 +75,8 @@ defmodule Livebook.MixProject do
   defp escript do
     [
       main_module: LivebookCLI,
-      app: nil
+      app: nil,
+      emu_args: "-epmd_module Elixir.Livebook.EPMD"
     ]
   end
 
@@ -121,7 +122,7 @@ defmodule Livebook.MixProject do
       {:bypass, "~> 2.1", only: :test},
       # ZTA deps
       {:jose, "~> 1.11.5"},
-      {:req, "~> 0.4.4"},
+      {:req, "~> 0.5.2"},
       # Docs
       {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
@@ -163,7 +164,7 @@ defmodule Livebook.MixProject do
         include_executables_for: [:unix, :windows],
         include_erts: false,
         rel_templates_path: "rel/server",
-        steps: [:assemble, &remove_cookie/1]
+        steps: [:assemble, &remove_cookie/1, &write_runtime_modules/1]
       ],
       app: [
         applications: @release_apps,
@@ -179,7 +180,30 @@ defmodule Livebook.MixProject do
   end
 
   defp remove_cookie(release) do
+    # We remove the COOKIE file when assembling the release, because we
+    # don't want to share the same cookie across users.
+
     File.rm!(Path.join(release.path, "releases/COOKIE"))
+    release
+  end
+
+  defp write_runtime_modules(release) do
+    # We copy the subset of Livebook modules that are injected into
+    # the runtime node. See overlays/bin/server for more details
+
+    app = release.applications[:livebook]
+
+    source = Path.join([release.path, "lib", "livebook-#{app[:vsn]}", "ebin"])
+    destination = Path.join([release.path, "lib", "livebook_runtime_ebin"])
+
+    File.mkdir_p!(destination)
+
+    for module <- Livebook.Runtime.ErlDist.required_modules() do
+      from = Path.join(source, "#{module}.beam")
+      to = Path.join(destination, "#{module}.beam")
+      File.cp!(from, to)
+    end
+
     release
   end
 

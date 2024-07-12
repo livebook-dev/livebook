@@ -61,6 +61,8 @@ export function registerGlobalEventHandlers() {
   });
 
   window.addEventListener("lb:scroll_into_view", (event) => {
+    const options = event.detail || {};
+
     // If the element is going to be shown, we want to wait for that
     waitUntilVisible(event.target).then(() => {
       scrollIntoView(event.target, {
@@ -68,6 +70,7 @@ export function registerGlobalEventHandlers() {
         behavior: "smooth",
         block: "nearest",
         inline: "nearest",
+        ...options,
       });
     });
   });

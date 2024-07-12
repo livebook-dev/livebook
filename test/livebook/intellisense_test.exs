@@ -1863,7 +1863,8 @@ defmodule Livebook.IntellisenseTest do
     # in the past we used :peer.start, but it was often failing on CI
     # (the start was timing out)
 
-    {:ok, runtime} = Livebook.Runtime.ElixirStandalone.new() |> Livebook.Runtime.connect()
+    pid = Livebook.Runtime.Standalone.new() |> Livebook.Runtime.connect()
+    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
 
     parent = self()
 

@@ -7,14 +7,8 @@ defmodule Livebook.Application do
     ensure_directories!()
     set_local_file_system!()
 
-    if Livebook.Config.epmdless?() do
-      validate_epmdless!()
-      ensure_distribution!()
-    else
-      ensure_epmd!()
-      ensure_distribution!()
-    end
-
+    validate_epmd_module!()
+    start_distribution!()
     set_cookie()
 
     children =
@@ -48,6 +42,8 @@ defmodule Livebook.Application do
           Livebook.EPMD.NodePool,
           # Start the server responsible for associating files with sessions
           Livebook.Session.FileGuard,
+          # Start the supervisor dynamically managing runtimes
+          {DynamicSupervisor, name: Livebook.RuntimeSupervisor, strategy: :one_for_one},
           # Start the supervisor dynamically managing sessions
           {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
           # Start the registry for managing unique connections
@@ -124,59 +120,32 @@ defmodule Livebook.Application do
     :persistent_term.put(:livebook_local_file_system, local_file_system)
   end
 
-  defp validate_epmdless!() do
-    with {:ok, [[~c"Elixir.Livebook.EPMD"]]} <- :init.get_argument(:epmd_module),
-         {:ok, [[~c"false"]]} <- :init.get_argument(:start_epmd),
-         {:ok, [[~c"0"]]} <- :init.get_argument(:erl_epmd_port) do
-      :ok
-    else
+  defp validate_epmd_module!() do
+    # We use a custom EPMD module. In releases and Escript, we make
+    # sure the necessary erl flags are set. When running from source,
+    # those need to be passed explicitly.
+    case :init.get_argument(:epmd_module) do
+      {:ok, [[~c"Elixir.Livebook.EPMD"]]} ->
+        :ok
+
       _ ->
         Livebook.Config.abort!("""
-        You must specify ELIXIR_ERL_OPTIONS=\"-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0\" with LIVEBOOK_EPMDLESS. \
-        The epmd module can be found inside #{Application.app_dir(:livebook, "priv/ebin")}.
+        You must set the environment variable ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD"
         """)
     end
   end
 
-  defp ensure_epmd!() do
-    unless Node.alive?() do
-      case System.cmd("epmd", ["-daemon"]) do
-        {_, 0} ->
-          :ok
+  defp start_distribution!() do
+    node = get_node_name()
 
-        _ ->
-          Livebook.Config.abort!("""
-          Could not start epmd (Erlang Port Mapper Daemon). Livebook uses epmd to \
-          talk to different runtimes. You may have to start epmd explicitly by calling:
+    case Node.start(node, :longnames) do
+      {:ok, _} ->
+        :ok
 
-              epmd -daemon
-
-          Or by calling:
-
-              elixir --sname test -e "IO.puts node()"
-
-          Then you can try booting Livebook again
-          """)
-      end
+      {:error, reason} ->
+        Livebook.Config.abort!("Could not start distributed node: #{inspect(reason)}")
     end
   end
-
-  defp ensure_distribution!() do
-    unless Node.alive?() do
-      node = get_node_name()
-
-      case Node.start(node, :longnames) do
-        {:ok, _} ->
-          :ok
-
-        {:error, reason} ->
-          Livebook.Config.abort!("Could not start distributed node: #{inspect(reason)}")
-      end
-    end
-  end
-
-  import Record
-  defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
 
   defp set_cookie() do
     cookie = Application.fetch_env!(:livebook, :cookie)
@@ -356,10 +325,10 @@ defmodule Livebook.Application do
     })
   end
 
-  # We set ELIXIR_ERL_OPTIONS when LIVEBOOK_EPMDLESS is set to true.
-  # By design, we don't allow ELIXIR_ERL_OPTIONS to pass through.
-  # Use ERL_AFLAGS and ERL_ZFLAGS if you want to configure both
-  # Livebook and spawned runtimes.
+  # We set ELIXIR_ERL_OPTIONS to set our custom EPMD module when
+  # running from source. By design, we don't allow ELIXIR_ERL_OPTIONS
+  # to pass through. Use ERL_AFLAGS and ERL_ZFLAGS if you want to
+  # configure both Livebook and spawned runtimes.
   defp config_env_var?("ELIXIR_ERL_OPTIONS"), do: true
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
