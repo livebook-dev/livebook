@@ -172,7 +172,7 @@ defmodule Livebook.Config do
   @spec tmp_path() :: String.t()
   def tmp_path() do
     tmp_dir = System.tmp_dir!() |> Path.expand()
-    Path.join(tmp_dir, "livebook")
+    Path.join([tmp_dir, "livebook", app_version()])
   end
 
   @doc """
