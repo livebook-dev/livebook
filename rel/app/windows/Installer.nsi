@@ -34,6 +34,9 @@ Section "Install"
   ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
   Delete "$INSTDIR\vc_redist.x64.exe"
 
+  File "livebookdesktop.bat"
+  Rename "$INSTDIR\livebookdesktop.bat" $PROFILE\.livebookdesktop.bat
+
   File /a /r "bin\Livebook-Release\"
 
   CreateDirectory "$LOCALAPPDATA\Livebook\Logs"
