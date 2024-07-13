@@ -48,8 +48,8 @@ defmodule Livebook.EPMD do
   # Custom callback that accesses the parent information.
   def port_please(name, host), do: port_please(name, host, :infinity)
 
-  def port_please(~c"fly_runtime_" ++ port, _host, _timeout) do
-    # The node name includes the local port proxied to the Fly machine
+  def port_please(~c"remote_runtime_" ++ port, _host, _timeout) do
+    # The node name includes the local port proxied to a remote machine
     port = List.to_integer(port)
     {:port, port, @epmd_dist_version}
   end
@@ -58,9 +58,10 @@ defmodule Livebook.EPMD do
     :erl_epmd.port_please(name, host, timeout)
   end
 
-  # Custom callback for resolving Fly .internal domain to loopback,
-  # since we use flyctl proxy
-  def address_please(~c"fly_runtime_" ++ _, _host, address_family) do
+  # Custom callback for resolving remote runtime node domain, such as
+  # Fly .internal, to loopback, because we communicate via a local
+  # proxied port
+  def address_please(~c"remote_runtime_" ++ _, _host, address_family) do
     case address_family do
       :inet -> {:ok, {127, 0, 0, 1}}
       :inet6 -> {:ok, {0, 0, 0, 0, 0, 0, 0, 1}}

@@ -103,7 +103,7 @@ defmodule Livebook.Runtime.Fly do
     config = runtime.config
     local_port = get_free_port!()
     remote_port = 44444
-    node_base = "fly_runtime_#{local_port}"
+    node_base = "remote_runtime_#{local_port}"
 
     runtime_data =
       %{
