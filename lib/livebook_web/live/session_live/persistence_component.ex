@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def mount(socket) do
     sessions = Sessions.list_sessions()
-    running_files = Enum.map(sessions, & &1.file)
+    running_files = for session <- sessions, session.file, do: session.file
     {:ok, assign(socket, running_files: running_files)}
   end
 
@@ -212,7 +212,9 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
   defp savable?(draft_file, saved_file, running_files) do
     file = normalize_file(draft_file)
-    not FileSystem.File.dir?(draft_file) and (file not in running_files or file == saved_file)
+    running? = Enum.any?(running_files, &FileSystem.File.equal?(&1, file))
+    changed? = saved_file == nil or not FileSystem.File.equal?(file, saved_file)
+    not FileSystem.File.dir?(draft_file) and (running? or changed?)
   end
 
   defp map_diff(left, right) do

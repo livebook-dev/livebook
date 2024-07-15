@@ -78,6 +78,18 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
+  Checks if two files are equal.
+
+  Comparing files with `Kernel.==/2` may result in false-negatives,
+  because the structs hold additional information.
+  """
+  @spec equal?(t(), t()) :: boolean()
+  def equal?(file1, file2) do
+    file1.path == file2.path and file1.file_system_id == file2.file_system_id and
+      file1.file_system_module == file2.file_system_module
+  end
+
+  @doc """
   Checks if the given file is within a file system local to its node.
   """
   @spec local?(t()) :: term()

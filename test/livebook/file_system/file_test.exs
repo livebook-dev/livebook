@@ -33,6 +33,17 @@ defmodule Livebook.FileSystem.FileTest do
     end
   end
 
+  describe "equal?/2" do
+    test "returns true for matching files built in different processes" do
+      file_system = FileSystem.Local.new()
+
+      file1 = Livebook.FileSystem.File.new(file_system, "/tmp/")
+      file2 = Task.await(Task.async(fn -> Livebook.FileSystem.File.local("/tmp/") end))
+
+      assert FileSystem.File.equal?(file1, file2)
+    end
+  end
+
   describe "local/1" do
     test "uses the globally configured local file system instance" do
       assert FileSystem.File.local(p("/path")).file_system_id ==

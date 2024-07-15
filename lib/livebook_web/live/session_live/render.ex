@@ -1377,7 +1377,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp star_button(assigns) do
     ~H"""
-    <%= if @file in @starred_files do %>
+    <%= if starred?(@file, @starred_files) do %>
       <span class="tooltip left" data-tooltip="Unstar notebook">
         <.icon_button phx-click="unstar_notebook">
           <.remix_icon icon="star-fill" class="text-yellow-600" />
@@ -1391,5 +1391,9 @@ defmodule LivebookWeb.SessionLive.Render do
       </span>
     <% end %>
     """
+  end
+
+  defp starred?(file, starred_files) do
+    Enum.any?(starred_files, &Livebook.FileSystem.File.equal?(&1, file))
   end
 end

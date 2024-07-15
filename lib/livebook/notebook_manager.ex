@@ -139,7 +139,7 @@ defmodule Livebook.NotebookManager do
 
   @impl true
   def handle_cast({:add_recent_notebook, file, name}, state = prev_state) do
-    recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
+    recent_notebooks = Enum.reject(state.recent_notebooks, &FileSystem.File.equal?(&1.file, file))
 
     recent_notebooks = [
       %{file: file, name: name, added_at: DateTime.utc_now()} | recent_notebooks
@@ -158,7 +158,7 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:add_starred_notebook, file, name}, state = prev_state) do
-    if Enum.any?(state.starred_notebooks, &(&1.file == file)) do
+    if Enum.any?(state.starred_notebooks, &FileSystem.File.equal?(&1.file, file)) do
       {:noreply, state}
     else
       starred_notebooks = [
@@ -172,14 +172,16 @@ defmodule Livebook.NotebookManager do
   end
 
   def handle_cast({:remove_recent_notebook, file}, state = prev_state) do
-    recent_notebooks = Enum.reject(state.recent_notebooks, &(&1.file == file))
+    recent_notebooks = Enum.reject(state.recent_notebooks, &FileSystem.File.equal?(&1.file, file))
     state = %{state | recent_notebooks: recent_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}
   end
 
   def handle_cast({:remove_starred_notebook, file}, state = prev_state) do
-    starred_notebooks = Enum.reject(state.starred_notebooks, &(&1.file == file))
+    starred_notebooks =
+      Enum.reject(state.starred_notebooks, &FileSystem.File.equal?(&1.file, file))
+
     state = %{state | starred_notebooks: starred_notebooks}
     broadcast_changes(state, prev_state)
     {:noreply, state, {:continue, :dump_state}}

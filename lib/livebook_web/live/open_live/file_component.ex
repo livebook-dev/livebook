@@ -112,14 +112,14 @@ defmodule LivebookWeb.OpenLive.FileComponent do
   end
 
   defp file_running?(file, sessions) do
-    Enum.any?(sessions, &(&1.file == file))
+    Enum.any?(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 
   defp files(sessions) do
-    Enum.map(sessions, & &1.file)
+    for session <- sessions, session.file, do: session.file
   end
 
   defp session_by_file(file, sessions) do
-    Enum.find(sessions, &(&1.file == file))
+    Enum.find(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 end
