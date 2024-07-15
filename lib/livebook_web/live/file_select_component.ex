@@ -689,9 +689,13 @@ defmodule LivebookWeb.FileSelectComponent do
       unhighlighted: name,
       file: file,
       is_dir: FileSystem.File.dir?(file),
-      is_running: file in running_files,
+      is_running: running?(file, running_files),
       editable: Keyword.get(opts, :editable, true)
     }
+  end
+
+  defp running?(file, running_files) do
+    Enum.any?(running_files, &FileSystem.File.equal?(&1, file))
   end
 
   defp hidden?(filename) do

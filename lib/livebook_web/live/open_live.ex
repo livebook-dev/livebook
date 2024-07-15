@@ -276,11 +276,11 @@ defmodule LivebookWeb.OpenLive do
   end
 
   defp file_running?(file, sessions) do
-    Enum.any?(sessions, &(&1.file == file))
+    Enum.any?(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
   end
 
   defp session_id_by_file(file, sessions) do
-    session = Enum.find(sessions, &(&1.file == file))
+    session = Enum.find(sessions, &(&1.file && FileSystem.File.equal?(&1.file, file)))
     session.id
   end
 end
