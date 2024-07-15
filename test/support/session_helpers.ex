@@ -13,6 +13,11 @@ defmodule Livebook.SessionHelpers do
     :ok
   end
 
+  def connect_and_await_runtime(session_pid) do
+    Session.connect_runtime(session_pid)
+    assert_receive {:operation, {:runtime_connected, _, _}}
+  end
+
   def evaluate_setup(session_pid) do
     Session.queue_cell_evaluation(session_pid, "setup")
     assert_receive {:operation, {:add_cell_evaluation_response, _, "setup", _, _}}

@@ -785,18 +785,31 @@ defprotocol Livebook.Runtime do
   def describe(runtime)
 
   @doc """
-  Synchronously initializes the given runtime.
+  Asynchronously initializes the given runtime.
 
-  This function starts the necessary resources and processes.
+  The initialization should take care of starting any OS processes
+  necessary, setting up resources and communication.
+
+  Since the initialization may take time, it should always happen in
+  a separate process. This function should return the `pid` of that
+  process. Once the initialization is finished, the process should
+  send the following message to the caller:
+
+    * `{:runtime_connect_done, pid, {:ok, runtime} | {:error, message}}`
+
+  The `runtime` should be the struct updated with all information
+  necessary for further communication.
+
+  In case the initialization is a particularly involved process, the
+  process may send updates to the caller:
+
+      * `{:runtime_connect_info, pid, info}`
+
+  Where `info` is a few word text describing the current initialization
+  step.
   """
-  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
+  @spec connect(t()) :: pid()
   def connect(runtime)
-
-  @doc """
-  Checks if the given runtime is in a connected state.
-  """
-  @spec connected?(t()) :: boolean()
-  def connected?(runtime)
 
   @doc """
   Sets the caller as the runtime owner.
@@ -824,13 +837,15 @@ defprotocol Livebook.Runtime do
   Synchronously disconnects the runtime and cleans up the underlying
   resources.
   """
-  @spec disconnect(t()) :: {:ok, t()}
+  @spec disconnect(t()) :: :ok
   def disconnect(runtime)
 
   @doc """
   Returns a fresh runtime of the same type with the same configuration.
 
-  Note that the runtime is in a stopped state.
+  This function is expected to only modify the runtime struct, unsetting
+  any information added by `connect/1`. It should not have any side
+  effects.
   """
   @spec duplicate(Runtime.t()) :: Runtime.t()
   def duplicate(runtime)
@@ -888,6 +903,9 @@ defprotocol Livebook.Runtime do
 
     * `:smart_cell_ref` - a reference of the smart cell which code is
       to be evaluated, if applicable
+
+    * `:disable_dependencies_cache` - disables dependencies cache, so
+      they are fetched and compiled from scratch
 
   """
   @spec evaluate_code(t(), atom(), String.t(), locator(), parent_locators(), keyword()) :: :ok
@@ -1075,13 +1093,6 @@ defprotocol Livebook.Runtime do
   """
   @spec search_packages(t(), pid(), String.t()) :: reference()
   def search_packages(runtime, send_to, search)
-
-  @doc """
-  Disables dependencies cache, so they are fetched and compiled from
-  scratch.
-  """
-  @spec disable_dependencies_cache(t()) :: :ok
-  def disable_dependencies_cache(runtime)
 
   @doc """
   Sets the given environment variables.

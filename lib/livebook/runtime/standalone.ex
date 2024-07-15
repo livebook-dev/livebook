@@ -1,4 +1,4 @@
-defmodule Livebook.Runtime.ElixirStandalone do
+defmodule Livebook.Runtime.Standalone do
   defstruct [:node, :server_pid]
 
   # A runtime backed by a standalone Elixir node managed by Livebook.
@@ -7,6 +7,26 @@ defmodule Livebook.Runtime.ElixirStandalone do
   # Most importantly we have to make sure the started node doesn't
   # stay in the system when the session or the entire Livebook
   # terminates.
+  #
+  # Note: this runtime requires `elixir` executable to be available in
+  # the system.
+  #
+  # ## Connecting
+  #
+  # Connecting the runtime starts a new Elixir node (a system process).
+  # That child node connects back to the parent and notifies that it
+  # is ready by sending a `:node_started` message. Next, the parent
+  # initializes the child node by loading the necessary modules and
+  # starting processes, in particular the node manager and one runtime
+  # server. Once done, the parent sends a `:node_initialized` message
+  # to the child, and the child starts monitoring the node manager.
+  # Once the node manager terminates, the node shuts down.
+  #
+  # If no process calls `Livebook.Runtime.take_ownership/1` for a
+  # period of time, the node automatically terminates. Whoever takes
+  # the ownership, becomes the owner and as soon as it terminates,
+  # the node shuts down. The node may also be shut down by calling
+  # `Livebook.Runtime.disconnect/1`.
 
   alias Livebook.Utils
 
@@ -23,20 +43,19 @@ defmodule Livebook.Runtime.ElixirStandalone do
     %__MODULE__{}
   end
 
-  @doc """
-  Starts a new Elixir node (a system process) and initializes it with
-  Livebook-specific modules and processes.
+  def __connect__(runtime) do
+    caller = self()
 
-  If no process calls `Runtime.take_ownership/1` for a period of time,
-  the node automatically terminates. Whoever takes the ownersihp,
-  becomes the owner and as soon as it terminates, the node terminates
-  as well. The node may also be terminated by calling `Runtime.disconnect/1`.
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        Livebook.RuntimeSupervisor,
+        {Task, fn -> do_connect(runtime, caller) end}
+      )
 
-  Note: to start the node it is required that `elixir` is a recognised
-  executable within the system.
-  """
-  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
-  def connect(runtime) do
+    pid
+  end
+
+  defp do_connect(runtime, caller) do
     child_node = Livebook.EPMD.random_child_node()
 
     Utils.temporarily_register(self(), child_node, fn ->
@@ -50,9 +69,10 @@ defmodule Livebook.Runtime.ElixirStandalone do
            port = start_elixir_node(elixir_path, child_node),
            {:ok, server_pid} <- parent_init_sequence(child_node, port, init_opts) do
         runtime = %{runtime | node: child_node, server_pid: server_pid}
-        {:ok, runtime}
+        send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
       else
-        {:error, error} -> {:error, error}
+        {:error, error} ->
+          send(caller, {:runtime_connect_done, self(), {:error, error}})
       end
     end)
   end
@@ -76,31 +96,6 @@ defmodule Livebook.Runtime.ElixirStandalone do
       args: elixir_flags(node_name)
     ])
   end
-
-  # ---
-  #
-  # Once the new node is spawned we need to establish a connection,
-  # initialize it and make sure it correctly reacts to the parent node terminating.
-  #
-  # The procedure goes as follows:
-  #
-  # 1. The child sends {:node_initialized, ref} message to the parent
-  #    to communicate it's ready for initialization.
-  #
-  # 2. The parent initializes the child node - loads necessary modules,
-  #    starts the NodeManager process and a single RuntimeServer process.
-  #
-  # 3. The parent sends {:node_initialized, ref} message back to the child,
-  #    to communicate successful initialization.
-  #
-  # 4. The child starts monitoring the NodeManager process and freezes
-  #    until the NodeManager process terminates. The NodeManager process
-  #    serves as the leading remote process and represents the node from now on.
-  #
-  # The nodes either successfully go through this flow or return an error,
-  # either if the other node dies or is not responding for too long.
-  #
-  # ---
 
   defp parent_init_sequence(child_node, port, init_opts) do
     port_ref = Port.monitor(port)
@@ -131,76 +126,108 @@ defmodule Livebook.Runtime.ElixirStandalone do
     loop.(loop)
   end
 
-  # Note Windows does not handle escaped quotes and newlines the same way as Unix,
-  # so the string cannot have constructs newlines nor strings. That's why we pass
-  # the parent node name as ARGV and write the code avoiding newlines.
-  #
-  # This boot script must be kept in sync with Livebook.EPMD.
-  #
-  # Also note that we explicitly halt, just in case `System.no_halt(true)` is
-  # called within the runtime.
-  @child_node_eval_string """
-  {:ok, [[node]]} = :init.get_argument(:livebook_current);\
-  {:ok, _} = :net_kernel.start(List.to_atom(node), %{name_domain: :longnames});\
-  {:ok, [[parent_node, _port]]} = :init.get_argument(:livebook_parent);\
-  dist_port = :persistent_term.get(:livebook_dist_port, 0);\
-  init_ref = make_ref();\
-  parent_process = {node(), List.to_atom(parent_node)};\
-  send(parent_process, {:node_started, init_ref, node(), dist_port, self()});\
-  receive do {:node_initialized, ^init_ref} ->\
-    manager_ref = Process.monitor(Livebook.Runtime.ErlDist.NodeManager);\
-    receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
-  after 10_000 ->\
-    :timeout;\
-  end;\
-  System.halt()\
-  """
+  defp child_node_eval_string(node, parent_node, parent_port) do
+    # We pass the child node code as --eval argument. Windows handles
+    # escaped quotes and newlines differently from Unix, so to avoid
+    # those kind of issues, we encode the string in base 64 and pass
+    # as positional argument. Then, we use a simple --eval that decodes
+    # and evaluates the string.
 
-  if @child_node_eval_string =~ "\n" do
-    raise "invalid @child_node_eval_string, newline found: #{inspect(@child_node_eval_string)}"
+    quote do
+      node = unquote(node)
+      parent_node = unquote(parent_node)
+      parent_port = unquote(parent_port)
+
+      # We start distribution here, rather than on node boot, so that
+      # -pa takes effect and Livebook.EPMD is available
+      {:ok, _} = :net_kernel.start(node, %{name_domain: :longnames})
+      Livebook.Runtime.EPMD.register_parent(parent_node, parent_port)
+      dist_port = Livebook.Runtime.EPMD.dist_port()
+
+      init_ref = make_ref()
+      parent_process = {node(), parent_node}
+      send(parent_process, {:node_started, init_ref, node(), dist_port, self()})
+
+      receive do
+        {:node_initialized, ^init_ref} ->
+          manager_ref = Process.monitor(Livebook.Runtime.ErlDist.NodeManager)
+
+          receive do
+            {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
+          end
+      after
+        10_000 -> :timeout
+      end
+
+      # We explicitly halt at the end, just in case `System.no_halt(true)`
+      # is called within the runtime
+      System.halt()
+    end
+    |> Macro.to_string()
+    |> Base.encode64()
   end
 
   defp elixir_flags(node_name) do
     parent_name = node()
     parent_port = Livebook.EPMD.dist_port()
 
-    epmdless_flags =
-      if parent_port != 0 do
-        "-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0 "
-      else
-        ""
-      end
-
     [
       "--erl",
-      # Minimize schedulers busy wait threshold,
-      # so that they go to sleep immediately after evaluation.
-      # Increase the default stack for dirty io threads (cuda requires it).
-      # Enable ANSI escape codes as we handle them with HTML.
-      # Disable stdin, so that the system process never tries to read terminal input.
+      # Note: keep these flags in sync with the remote runtime.
+      #
+      #   * minimize schedulers busy wait threshold, so that they go
+      #     to sleep immediately after evaluation
+      #
+      #   * increase the default stack for dirty IO threads, necessary
+      #     for CUDA
+      #
+      #   * enable ANSI escape codes as we handle them with HTML
+      #
+      #   * disable stdin, so that the system process never tries to
+      #     read terminal input
+      #
+      #   * specify a custom EPMD module and disable automatic EPMD
+      #     startup
+      #
       "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput " <>
-        epmdless_flags <>
-        "-livebook_parent #{parent_name} #{parent_port} -livebook_current #{node_name}",
-      # Add the location of Livebook.EPMD
+        "-epmd_module Elixir.Livebook.Runtime.EPMD",
+      # Add the location of Livebook.Runtime.EPMD
       "-pa",
-      Application.app_dir(:livebook, "priv/epmd"),
+      epmd_module_path!(),
       # Make the node hidden, so it doesn't automatically join the cluster
       "--hidden",
       # Use the cookie in Livebook
       "--cookie",
       Atom.to_string(Node.get_cookie()),
       "--eval",
-      @child_node_eval_string
+      "System.argv() |> hd() |> Base.decode64!() |> Code.eval_string()",
+      child_node_eval_string(node_name, parent_name, parent_port)
     ]
+  end
+
+  defp epmd_module_path!() do
+    # We need to make the custom Livebook.Runtime.EPMD module available
+    # before the child node starts distrubtion. We persist the module
+    # into a temporary directory and add to the code paths. Note that
+    # we could persist it to priv/ at build time, however for Escript
+    # priv/ is packaged into the archive, so it is not accessible in
+    # the file system.
+
+    epmd_path = Path.join(Livebook.Config.tmp_path(), "epmd")
+    File.rm_rf!(epmd_path)
+    File.mkdir_p!(epmd_path)
+    {_module, binary, path} = :code.get_object_code(Livebook.Runtime.EPMD)
+    File.write!(Path.join(epmd_path, Path.basename(path)), binary)
+    epmd_path
   end
 end
 
-defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
+defimpl Livebook.Runtime, for: Livebook.Runtime.Standalone do
   alias Livebook.Runtime.ErlDist.RuntimeServer
 
   def describe(runtime) do
-    [{"Type", "Elixir standalone"}] ++
-      if connected?(runtime) do
+    [{"Type", "Standalone"}] ++
+      if runtime.node do
         [{"Node name", Atom.to_string(runtime.node)}]
       else
         []
@@ -208,11 +235,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   end
 
   def connect(runtime) do
-    Livebook.Runtime.ElixirStandalone.connect(runtime)
-  end
-
-  def connected?(runtime) do
-    runtime.server_pid != nil
+    Livebook.Runtime.Standalone.__connect__(runtime)
   end
 
   def take_ownership(runtime, opts \\ []) do
@@ -222,11 +245,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
 
   def disconnect(runtime) do
     :ok = RuntimeServer.stop(runtime.server_pid)
-    {:ok, %{runtime | node: nil, server_pid: nil}}
   end
 
   def duplicate(_runtime) do
-    Livebook.Runtime.ElixirStandalone.new()
+    Livebook.Runtime.Standalone.new()
   end
 
   def evaluate_code(runtime, language, code, locator, parent_locators, opts \\ []) do
@@ -296,10 +318,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
 
   def search_packages(_runtime, send_to, search) do
     Livebook.Runtime.Dependencies.search_packages_on_hex(send_to, search)
-  end
-
-  def disable_dependencies_cache(runtime) do
-    RuntimeServer.disable_dependencies_cache(runtime.server_pid)
   end
 
   def put_system_envs(runtime, envs) do

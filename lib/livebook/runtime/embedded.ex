@@ -2,7 +2,13 @@ defmodule Livebook.Runtime.Embedded do
   # A runtime backed by the same node Livebook is running in.
   #
   # This runtime is reserved for specific use cases, where there is
-  # no option of starting a separate Elixir runtime.
+  # no option of starting a separate Elixir OS process.
+  #
+  # As we run in the Livebook node, all the necessary modules are in
+  # place, so we just ensure the node manager process is running and
+  # we start a new runtime server. We also disable modules cleanup
+  # on termination, since we don't want to unload any modules from
+  # the current node.
 
   defstruct [:server_pid]
 
@@ -18,30 +24,26 @@ defmodule Livebook.Runtime.Embedded do
     %__MODULE__{}
   end
 
-  @doc """
-  Initializes new runtime by starting the necessary processes within
-  the current node.
-  """
-  @spec connect(t()) :: {:ok, t()}
-  def connect(runtime) do
-    # As we run in the Livebook node, all the necessary modules
-    # are in place, so we just start the manager process.
-    # We make it anonymous, so that multiple embedded runtimes
-    # can be started (for different notebooks).
-    # We also disable cleanup, as we don't want to unload any
-    # modules or revert the configuration (because other runtimes
-    # may rely on it). If someone uses embedded runtimes,
-    # this cleanup is not particularly important anyway.
-    # We tell manager to not override :standard_error,
-    # as we already do it for the Livebook application globally
-    # (see Livebook.Application.start/2).
+  def __connect__(runtime) do
+    caller = self()
 
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        Livebook.RuntimeSupervisor,
+        {Task, fn -> do_connect(runtime, caller) end}
+      )
+
+    pid
+  end
+
+  defp do_connect(runtime, caller) do
     server_pid =
       ErlDist.initialize(node(),
         node_manager_opts: [unload_modules_on_termination: false]
       )
 
-    {:ok, %{runtime | server_pid: server_pid}}
+    runtime = %{runtime | server_pid: server_pid}
+    send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
   end
 end
 
@@ -53,11 +55,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def connect(runtime) do
-    Livebook.Runtime.Embedded.connect(runtime)
-  end
-
-  def connected?(runtime) do
-    runtime.server_pid != nil
+    Livebook.Runtime.Embedded.__connect__(runtime)
   end
 
   def take_ownership(runtime, opts \\ []) do
@@ -66,8 +64,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def disconnect(runtime) do
-    RuntimeServer.stop(runtime.server_pid)
-    {:ok, %{runtime | server_pid: nil}}
+    :ok = RuntimeServer.stop(runtime.server_pid)
   end
 
   def duplicate(_runtime) do
@@ -145,10 +142,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     {mod, fun, args} = config()[:load_packages]
     packages = apply(mod, fun, args)
     Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
-  end
-
-  def disable_dependencies_cache(runtime) do
-    RuntimeServer.disable_dependencies_cache(runtime.server_pid)
   end
 
   def put_system_envs(runtime, envs) do

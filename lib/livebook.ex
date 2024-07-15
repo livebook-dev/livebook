@@ -149,22 +149,19 @@ defmodule Livebook do
       config :livebook, :aws_credentials, true
     end
 
-    if Livebook.Config.boolean!("LIVEBOOK_EPMDLESS", false) do
-      config :livebook, :epmdless, true
-    end
-
     config :livebook,
            :default_runtime,
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
-             Livebook.Runtime.ElixirStandalone.new()
+             Livebook.Runtime.Standalone.new()
 
-    config :livebook, :default_app_runtime, Livebook.Runtime.ElixirStandalone.new()
+    config :livebook, :default_app_runtime, Livebook.Runtime.Standalone.new()
 
     config :livebook,
            :runtime_modules,
            [
-             Livebook.Runtime.ElixirStandalone,
-             Livebook.Runtime.Attached
+             Livebook.Runtime.Standalone,
+             Livebook.Runtime.Attached,
+             Livebook.Runtime.Fly
            ]
 
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do

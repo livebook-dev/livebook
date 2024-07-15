@@ -4,7 +4,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
 
   setup ctx do
-    runtime_server_pid = NodeManager.start_runtime_server(node(), ctx[:opts] || [])
+    {:ok, runtime_server_pid} = NodeManager.start_runtime_server(node(), ctx[:opts] || [])
     RuntimeServer.attach(runtime_server_pid, self())
     {:ok, %{pid: runtime_server_pid}}
   end
@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           end
         end)
 
-      pid = NodeManager.start_runtime_server(node())
+      {:ok, pid} = NodeManager.start_runtime_server(node())
       RuntimeServer.attach(pid, owner)
 
       # Make sure the node is running.

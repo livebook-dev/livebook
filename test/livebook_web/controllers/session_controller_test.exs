@@ -438,9 +438,11 @@ defmodule LivebookWeb.SessionControllerTest do
 
   defp start_session_and_request_asset(conn, notebook, hash) do
     {:ok, session} = Sessions.create_session(notebook: notebook)
+
     # We need runtime in place to actually copy the archive
-    {:ok, runtime} = Livebook.Runtime.Embedded.new() |> Livebook.Runtime.connect()
-    Session.set_runtime(session.pid, runtime)
+    Session.subscribe(session.id)
+    Session.connect_runtime(session.pid)
+    assert_receive {:operation, {:runtime_connected, _, _}}
 
     conn = get(conn, ~p"/public/sessions/#{session.id}/assets/#{hash}/main.js")
 

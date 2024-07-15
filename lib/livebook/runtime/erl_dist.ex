@@ -5,7 +5,7 @@ defmodule Livebook.Runtime.ErlDist do
   # To ensure proper isolation between sessions, code evaluation may
   # take place in a separate Elixir runtime, which also makes it easy
   # to terminate the whole evaluation environment without stopping
-  # Livebook. Both `Runtime.ElixirStandalone` and `Runtime.Attached`
+  # Livebook. Both `Runtime.Standalone` and `Runtime.Attached`
   # do that and this module contains the shared functionality.
   #
   # To work with a separate node, we have to inject the necessary
@@ -40,7 +40,6 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Runtime.ErlDist.EvaluatorSupervisor,
       Livebook.Runtime.ErlDist.IOForwardGL,
       Livebook.Runtime.ErlDist.LoggerGLHandler,
-      Livebook.Runtime.ErlDist.Sink,
       Livebook.Runtime.ErlDist.SmartCellGL,
       Livebook.Proxy.Adapter,
       Livebook.Proxy.Handler
@@ -62,15 +61,22 @@ defmodule Livebook.Runtime.ErlDist do
   """
   @spec initialize(node(), keyword()) :: pid()
   def initialize(node, opts \\ []) do
-    unless modules_loaded?(node) do
-      load_required_modules(node)
-    end
+    # First, we attempt to communicate with the node manager, in case
+    # there is one running. Otherwise, the node is not initialized,
+    # so we need to initialize it and try again
+    case start_runtime_server(node, opts[:runtime_server_opts] || []) do
+      {:ok, pid} ->
+        pid
 
-    unless node_manager_started?(node) do
-      start_node_manager(node, opts[:node_manager_opts] || [])
-    end
+      {:error, :down} ->
+        unless modules_loaded?(node) do
+          load_required_modules(node)
+        end
 
-    start_runtime_server(node, opts[:runtime_server_opts] || [])
+        {:ok, _} = start_node_manager(node, opts[:node_manager_opts] || [])
+        {:ok, pid} = start_runtime_server(node, opts[:runtime_server_opts] || [])
+        pid
+    end
   end
 
   defp load_required_modules(node) do
@@ -107,13 +113,6 @@ defmodule Livebook.Runtime.ErlDist do
 
   defp modules_loaded?(node) do
     :rpc.call(node, Code, :ensure_loaded?, [Livebook.Runtime.ErlDist.NodeManager])
-  end
-
-  defp node_manager_started?(node) do
-    case :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.NodeManager]) do
-      nil -> false
-      _pid -> true
-    end
   end
 
   @doc """

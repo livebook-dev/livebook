@@ -27,6 +27,8 @@ defmodule Livebook.Session.Data do
     :input_infos,
     :bin_entries,
     :runtime,
+    :runtime_status,
+    :runtime_connect_info,
     :runtime_transient_state,
     :runtime_connected_nodes,
     :smart_cell_definitions,
@@ -55,6 +57,8 @@ defmodule Livebook.Session.Data do
           input_infos: %{input_id() => input_info()},
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t(),
+          runtime_status: runtime_status(),
+          runtime_connect_info: String.t() | nil,
           runtime_transient_state: Runtime.transient_state(),
           runtime_connected_nodes: list(node()),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
@@ -125,6 +129,8 @@ defmodule Livebook.Session.Data do
           deleted_at: DateTime.t()
         }
 
+  @type runtime_status :: :disconnected | :connecting | :connected
+
   @type cell_revision :: non_neg_integer()
 
   @type cell_evaluation_validity :: :fresh | :evaluated | :stale | :aborted
@@ -188,7 +194,7 @@ defmodule Livebook.Session.Data do
           | {:restore_cell, client_id(), Cell.id()}
           | {:move_cell, client_id(), Cell.id(), offset :: integer()}
           | {:move_section, client_id(), Section.id(), offset :: integer()}
-          | {:queue_cells_evaluation, client_id(), list(Cell.id())}
+          | {:queue_cells_evaluation, client_id(), list(Cell.id()), evaluation_opts :: keyword()}
           | {:add_cell_doctest_report, client_id(), Cell.id(), Runtime.doctest_report()}
           | {:add_cell_evaluation_output, client_id(), Cell.id(), term()}
           | {:add_cell_evaluation_response, client_id(), Cell.id(), term(), metadata :: map()}
@@ -215,6 +221,11 @@ defmodule Livebook.Session.Data do
           | {:set_cell_attributes, client_id(), Cell.id(), map()}
           | {:set_input_value, client_id(), input_id(), value :: term()}
           | {:set_runtime, client_id(), Runtime.t()}
+          | {:connect_runtime, client_id()}
+          | {:set_runtime_connect_info, client_id(), String.t()}
+          | {:runtime_connected, client_id(), Runtime.t()}
+          | {:disconnect_runtime, client_id()}
+          | {:runtime_down, client_id()}
           | {:set_runtime_transient_state, client_id(), Runtime.transient_state()}
           | {:set_runtime_connected_nodes, client_id(), list(node())}
           | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
@@ -237,6 +248,7 @@ defmodule Livebook.Session.Data do
 
   @type action ::
           :connect_runtime
+          | {:disconnect_runtime, Runtime.t()}
           | {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
@@ -246,7 +258,6 @@ defmodule Livebook.Session.Data do
           | {:report_delta, client_id(), Cell.t(), cell_source_tag(), Text.Delta.t()}
           | {:clean_up_input_values, %{input_id() => input_info()}}
           | :app_report_status
-          | :app_recover
           | :app_terminate
 
   @doc """
@@ -305,6 +316,8 @@ defmodule Livebook.Session.Data do
       input_infos: initial_input_infos(notebook),
       bin_entries: [],
       runtime: default_runtime,
+      runtime_status: :disconnected,
+      runtime_connect_info: nil,
       runtime_transient_state: %{},
       runtime_connected_nodes: [],
       smart_cell_definitions: [],
@@ -552,7 +565,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids}) do
+  def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids, evaluation_opts}) do
     cells_with_section =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
@@ -568,7 +581,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> queue_prerequisite_cells_evaluation(cell_ids)
       |> reduce(cells_with_section, fn data_actions, {cell, section} ->
-        queue_cell_evaluation(data_actions, cell, section)
+        queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
       end)
       |> maybe_connect_runtime(data)
       |> update_validity_and_evaluation()
@@ -862,10 +875,71 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_runtime, _client_id, runtime}) do
-    data
-    |> with_actions()
-    |> set_runtime(data, runtime)
-    |> wrap_ok()
+    with true <- data.runtime_status in [:connected, :disconnected] do
+      data
+      |> with_actions()
+      |> set_runtime(runtime)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:connect_runtime, _client_id}) do
+    with :disconnected <- data.runtime_status do
+      data
+      |> with_actions()
+      |> connect_runtime()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_runtime_connect_info, _client_id, info}) do
+    with :connecting <- data.runtime_status do
+      data
+      |> with_actions()
+      |> set_runtime_connect_info(info)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:runtime_connected, _client_id, runtime}) do
+    with :connecting <- data.runtime_status do
+      data
+      |> with_actions()
+      |> runtime_connected(runtime)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:disconnect_runtime, _client_id}) do
+    with :connected <- data.runtime_status do
+      data
+      |> with_actions()
+      |> disconnect_runtime()
+      |> app_update_execution_status()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:runtime_down, _client_id}) do
+    with true <- data.runtime_status in [:connecting, :connected] do
+      data
+      |> with_actions()
+      |> clear_runtime()
+      |> app_update_execution_status()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
   end
 
   def apply_operation(data, {:set_runtime_transient_state, _client_id, transient_state}) do
@@ -1261,16 +1335,17 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp queue_cell_evaluation(data_actions, cell, section) do
+  defp queue_cell_evaluation(data_actions, cell, section, evaluation_opts \\ []) do
     data_actions
     |> update_section_info!(section.id, fn section ->
       update_in(section.evaluation_queue, &MapSet.put(&1, cell.id))
     end)
     |> update_cell_eval_info!(cell.id, fn eval_info ->
-      update_in(eval_info.status, fn
-        :ready -> :queued
-        other -> other
-      end)
+      if eval_info.status == :ready do
+        %{eval_info | status: :queued, evaluation_opts: evaluation_opts}
+      else
+        eval_info
+      end
     end)
   end
 
@@ -1374,9 +1449,9 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_connect_runtime({data, _} = data_actions, prev_data) do
-    if not Runtime.connected?(data.runtime) and not any_cell_queued?(prev_data) and
+    if data.runtime_status == :disconnected and not any_cell_queued?(prev_data) and
          any_cell_queued?(data) do
-      add_action(data_actions, :connect_runtime)
+      connect_runtime(data_actions)
     else
       data_actions
     end
@@ -1403,8 +1478,10 @@ defmodule Livebook.Session.Data do
     queue_prerequisite_cells_evaluation(data_actions, trailing_queued_cell_ids)
   end
 
-  defp maybe_evaluate_queued({data, _} = data_actions) do
-    if Runtime.connected?(data.runtime) do
+  defp maybe_evaluate_queued(data_actions) do
+    {data, _} = data_actions = check_setup_cell_for_reevaluation(data_actions)
+
+    if data.runtime_status == :connected do
       main_flow_evaluating? = main_flow_evaluating?(data)
 
       {awaiting_branch_sections, awaiting_regular_sections} =
@@ -1450,6 +1527,43 @@ defmodule Livebook.Session.Data do
     else
       # Don't trigger evaluation if we don't have a runtime started yet
       data_actions
+    end
+  end
+
+  defp check_setup_cell_for_reevaluation({data, _} = data_actions) do
+    # When setup cell has been evaluated and is queued again, we need
+    # to reconnect the runtime to get a fresh evaluation environment
+    # for setup. We subsequently queue all cells that are currently
+    # queued
+
+    case data.cell_infos[Cell.setup_cell_id()].eval do
+      %{status: :queued, validity: :evaluated} when data.runtime_status == :connected ->
+        queued_cells_with_section =
+          data.notebook
+          |> Notebook.evaluable_cells_with_section()
+          |> Enum.filter(fn {cell, _} ->
+            data.cell_infos[cell.id].eval.status == :queued
+          end)
+          |> Enum.map(fn {cell, section} ->
+            {cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
+          end)
+
+        cell_ids =
+          for {cell, _section, _evaluation_opts} <- queued_cells_with_section, do: cell.id
+
+        data_actions
+        |> disconnect_runtime()
+        |> connect_runtime()
+        |> queue_prerequisite_cells_evaluation(cell_ids)
+        |> reduce(
+          queued_cells_with_section,
+          fn data_actions, {cell, section, evaluation_opts} ->
+            queue_cell_evaluation(data_actions, cell, section, evaluation_opts)
+          end
+        )
+
+      _ ->
+        data_actions
     end
   end
 
@@ -1533,7 +1647,9 @@ defmodule Livebook.Session.Data do
         evaluating_cell_id: cell.id,
         evaluation_queue: MapSet.delete(section_info.evaluation_queue, cell.id)
       )
-      |> add_action({:start_evaluation, cell, section})
+      |> add_action(
+        {:start_evaluation, cell, section, data.cell_infos[cell.id].eval.evaluation_opts}
+      )
     else
       data_actions
     end
@@ -1596,7 +1712,7 @@ defmodule Livebook.Session.Data do
       |> Notebook.parent_cells_with_section(cell_ids)
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-        Cell.evaluable?(cell) and cell_outdated?(data, cell) and info.eval.status == :ready
+        Cell.evaluable?(cell) and cell_outdated?(data, cell.id) and info.eval.status == :ready
       end)
       |> Enum.reverse()
 
@@ -1709,7 +1825,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp recover_smart_cell({data, _} = data_actions, cell, section) do
-    if Runtime.connected?(data.runtime) do
+    if data.runtime_status == :connected do
       start_smart_cell(data_actions, cell, section)
     else
       data_actions
@@ -1965,24 +2081,53 @@ defmodule Livebook.Session.Data do
     |> set!(input_infos: Map.put(data.input_infos, input_id, input_info(value)))
   end
 
-  defp set_runtime(data_actions, prev_data, runtime) do
-    {data, _} =
-      data_actions =
-      set!(data_actions,
-        runtime: runtime,
-        runtime_connected_nodes: [],
-        smart_cell_definitions: []
-      )
+  defp set_runtime({data, _} = data_actions, runtime) do
+    data_actions =
+      case data.runtime_status do
+        :connected ->
+          disconnect_runtime(data_actions)
 
-    if not Runtime.connected?(prev_data.runtime) and Runtime.connected?(data.runtime) do
-      data_actions
-      |> maybe_evaluate_queued()
-    else
-      data_actions
-      |> clear_all_evaluation()
-      |> clear_smart_cells()
-      |> app_update_execution_status()
-    end
+        :disconnected ->
+          data_actions
+      end
+
+    set!(data_actions, runtime: runtime)
+  end
+
+  defp connect_runtime(data_actions) do
+    data_actions
+    |> set!(runtime_status: :connecting)
+    |> add_action(:connect_runtime)
+  end
+
+  defp set_runtime_connect_info(data_actions, info) do
+    data_actions
+    |> set!(runtime_connect_info: info)
+  end
+
+  defp runtime_connected(data_actions, runtime) do
+    data_actions
+    |> set!(runtime: runtime, runtime_status: :connected, runtime_connect_info: nil)
+    |> maybe_evaluate_queued()
+  end
+
+  defp disconnect_runtime({data, _} = data_actions) do
+    data_actions
+    |> add_action({:disconnect_runtime, data.runtime})
+    |> clear_runtime()
+  end
+
+  defp clear_runtime({data, _} = data_actions) do
+    data_actions
+    |> set!(
+      runtime: Runtime.duplicate(data.runtime),
+      runtime_status: :disconnected,
+      runtime_connect_info: nil,
+      runtime_connected_nodes: [],
+      smart_cell_definitions: []
+    )
+    |> clear_all_evaluation()
+    |> clear_smart_cells()
   end
 
   defp set_secret({data, _} = data_actions, secret) do
@@ -2037,7 +2182,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_start_smart_cells({data, _} = data_actions) do
-    if Runtime.connected?(data.runtime) do
+    if data.runtime_status == :connected do
       dead_cells = dead_smart_cells_with_section(data)
 
       kinds =
@@ -2219,6 +2364,7 @@ defmodule Livebook.Session.Data do
       status: :ready,
       errored: false,
       interrupted: false,
+      evaluation_opts: [],
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
@@ -2619,25 +2765,38 @@ defmodule Livebook.Session.Data do
 
     # If everything was executed and an error happened, it means it
     # was a runtime crash and everything is aborted
-    data_actions =
+    {data_actions, execution_status} =
       if data.app_data.status.execution == :executed and execution_status == :error do
-        add_action(data_actions, :app_recover)
+        {app_recover(data_actions), :executing}
       else
-        data_actions
+        {data_actions, execution_status}
       end
 
     update_app_data!(data_actions, &put_in(&1.status.execution, execution_status))
   end
 
+  defp app_recover({data, _} = data_actions) do
+    evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
+
+    data_actions
+    |> disconnect_runtime()
+    |> connect_runtime()
+    |> erase_outputs()
+    |> garbage_collect_input_infos()
+    |> reduce(evaluable_cells_with_section, fn data_actions, {cell, section} ->
+      queue_cell_evaluation(data_actions, cell, section)
+    end)
+  end
+
   @doc """
   Checks if the given cell is outdated.
 
-  A cell is considered outdated if its new/fresh or its content
-  has changed since the last evaluation.
+  A cell is considered outdated if its fresh/stale or its content has
+  changed since the last evaluation.
   """
-  @spec cell_outdated?(t(), Cell.t()) :: boolean()
-  def cell_outdated?(data, cell) do
-    info = data.cell_infos[cell.id]
+  @spec cell_outdated?(t(), Cell.id()) :: boolean()
+  def cell_outdated?(data, cell_id) do
+    info = data.cell_infos[cell_id]
     info.eval.validity != :evaluated or info.eval.evaluation_digest != info.sources.primary.digest
   end
 
@@ -2649,28 +2808,36 @@ defmodule Livebook.Session.Data do
   """
   @spec cell_ids_for_full_evaluation(t(), list(Cell.id())) :: list(Cell.id())
   def cell_ids_for_full_evaluation(data, forced_cell_ids) do
+    requires_reconnect? =
+      data.cell_infos[Cell.setup_cell_id()].eval.validity == :evaluated and
+        cell_outdated?(data, Cell.setup_cell_id())
+
     evaluable_cells_with_section = Notebook.evaluable_cells_with_section(data.notebook)
 
-    evaluable_cell_ids =
-      for {cell, _} <- evaluable_cells_with_section,
-          cell_outdated?(data, cell) or cell.id in forced_cell_ids,
-          do: cell.id,
-          into: MapSet.new()
+    if requires_reconnect? do
+      for {cell, _} <- evaluable_cells_with_section, do: cell.id
+    else
+      evaluable_cell_ids =
+        for {cell, _} <- evaluable_cells_with_section,
+            cell_outdated?(data, cell.id) or cell.id in forced_cell_ids,
+            do: cell.id,
+            into: MapSet.new()
 
-    cell_identifier_parents = cell_identifier_parents(data)
+      cell_identifier_parents = cell_identifier_parents(data)
 
-    child_ids =
-      for {cell_id, cell_identifier_parents} <- cell_identifier_parents,
-          Enum.any?(cell_identifier_parents, &(&1 in evaluable_cell_ids)),
-          do: cell_id
+      child_ids =
+        for {cell_id, cell_identifier_parents} <- cell_identifier_parents,
+            Enum.any?(cell_identifier_parents, &(&1 in evaluable_cell_ids)),
+            do: cell_id
 
-    child_ids
-    |> Enum.into(evaluable_cell_ids)
-    |> Enum.to_list()
-    |> Enum.filter(fn cell_id ->
-      info = data.cell_infos[cell_id]
-      info.eval.status == :ready
-    end)
+      child_ids
+      |> Enum.into(evaluable_cell_ids)
+      |> Enum.to_list()
+      |> Enum.filter(fn cell_id ->
+        info = data.cell_infos[cell_id]
+        info.eval.status == :ready
+      end)
+    end
   end
 
   # Builds identifier parent list for every evaluable cell.

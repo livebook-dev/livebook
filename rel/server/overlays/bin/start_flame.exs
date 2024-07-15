@@ -1,3 +1,5 @@
+File.cd!(System.fetch_env!("HOME"))
+
 flame_parent = System.fetch_env!("FLAME_PARENT") |> Base.decode64!() |> :erlang.binary_to_term()
 
 %{

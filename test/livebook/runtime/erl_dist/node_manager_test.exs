@@ -7,15 +7,16 @@ defmodule Livebook.Runtime.ErlDist.NodeManagerTest do
   test "terminates when the last runtime server terminates" do
     # We use a standalone runtime, so that we have an isolated node
     # with its own node manager
-    assert {:ok, %{node: node, server_pid: server1} = runtime} =
-             Runtime.ElixirStandalone.new() |> Runtime.connect()
+    pid = Runtime.Standalone.new() |> Runtime.connect()
+    assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
+    %{node: node, server_pid: server1} = runtime
 
     Runtime.take_ownership(runtime)
 
     manager_pid = :erpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.NodeManager])
     ref = Process.monitor(manager_pid)
 
-    server2 = NodeManager.start_runtime_server(node)
+    {:ok, server2} = NodeManager.start_runtime_server(node)
 
     RuntimeServer.stop(server1)
     RuntimeServer.stop(server2)

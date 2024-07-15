@@ -487,8 +487,11 @@ defmodule LivebookWeb.FormComponents do
           id={@id}
           name={@name}
           class={[
-            "w-full px-3 py-2 pr-7 appearance-none bg-gray-50 text-sm border rounded-lg placeholder-gray-400 text-gray-600 disabled:opacity-70 disabled:cursor-not-allowed",
-            if(@errors == [], do: "border-gray-200", else: "border-red-300"),
+            "w-full px-3 py-2 pr-7 appearance-none text-sm border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed",
+            if(@errors == [],
+              do: "bg-gray-50 border-gray-200 text-gray-600",
+              else: "bg-red-50 border-red-600 text-red-600"
+            ),
             @class
           ]}
           {@rest}

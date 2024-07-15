@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.Render do
           dirty={@data_view.dirty}
           persistence_warnings={@data_view.persistence_warnings}
           autosave_interval_s={@data_view.autosave_interval_s}
-          runtime={@data_view.runtime}
+          runtime_status={@data_view.runtime_status}
           global_status={@data_view.global_status}
         />
         <.notebook_content
@@ -61,6 +61,8 @@ defmodule LivebookWeb.SessionLive.Render do
         id="runtime-settings"
         session={@session}
         runtime={@data_view.runtime}
+        runtime_status={@data_view.runtime_status}
+        runtime_connect_info={@data_view.runtime_connect_info}
       />
     </.modal>
 
@@ -652,23 +654,24 @@ defmodule LivebookWeb.SessionLive.Render do
           </.labeled_text>
         </div>
         <div class="mt-4 grid grid-cols-2 gap-2">
-          <%= if Runtime.connected?(@data_view.runtime) do %>
-            <.button phx-click="reconnect_runtime">
-              <.remix_icon icon="wireless-charging-line" />
-              <span>Reconnect</span>
-            </.button>
-          <% else %>
-            <.button phx-click="connect_runtime">
-              <.remix_icon icon="wireless-charging-line" />
-              <span>Connect</span>
-            </.button>
-          <% end %>
+          <.button :if={@data_view.runtime_status == :disconnected} phx-click="connect_runtime">
+            <.remix_icon icon="wireless-charging-line" />
+            <span>Connect</span>
+          </.button>
+          <.button :if={@data_view.runtime_status == :connecting} disabled>
+            <.remix_icon icon="wireless-charging-line" />
+            <span>Connecting...</span>
+          </.button>
+          <.button :if={@data_view.runtime_status == :connected} phx-click="reconnect_runtime">
+            <.remix_icon icon="wireless-charging-line" />
+            <span>Reconnect</span>
+          </.button>
           <.button color="gray" outlined patch={~p"/sessions/#{@session.id}/settings/runtime"}>
             Configure
           </.button>
 
           <.button
-            :if={Runtime.connected?(@data_view.runtime)}
+            :if={@data_view.runtime_status == :connected}
             color="red"
             outlined
             type="button"
@@ -677,6 +680,15 @@ defmodule LivebookWeb.SessionLive.Render do
           >
             Disconnect
           </.button>
+        </div>
+
+        <div :if={@data_view.runtime_connect_info} class="mt-4">
+          <.message_box kind={:info}>
+            <div class="flex items-center gap-2">
+              <.spinner />
+              <span>Step: <%= @data_view.runtime_connect_info %></span>
+            </div>
+          </.message_box>
         </div>
 
         <.memory_usage_info memory_usage={@session.memory_usage} />
@@ -690,13 +702,8 @@ defmodule LivebookWeb.SessionLive.Render do
   defp memory_usage_info(assigns) do
     ~H"""
     <div class="mt-8 flex flex-col gap-2">
-      <div class="text-sm text-gray-800 flex flex-row justify-between">
-        <span class="text-gray-500 font-semibold uppercase">
-          Memory
-        </span>
-        <span :if={uses_memory?(@memory_usage)}>
-          <%= format_bytes(@memory_usage.system.free) %> available
-        </span>
+      <div class="text-sm text-gray-500 font-semibold uppercase">
+        Memory
       </div>
       <%= if uses_memory?(@memory_usage) do %>
         <.runtime_memory_info memory_usage={@memory_usage} />
@@ -1003,7 +1010,7 @@ defmodule LivebookWeb.SessionLive.Render do
             session_id={@session_id}
           />
           <.runtime_indicator
-            runtime={@runtime}
+            runtime_status={@runtime_status}
             global_status={@global_status}
             session_id={@session_id}
           />
@@ -1133,9 +1140,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp runtime_indicator(assigns) do
     ~H"""
-    <%= if Livebook.Runtime.connected?(@runtime) do %>
-      <.global_status status={elem(@global_status, 0)} cell_id={elem(@global_status, 1)} />
-    <% else %>
+    <%= if @runtime_status == :disconnected do %>
       <span class="tooltip left" data-tooltip="Choose a runtime to run the notebook in">
         <.link
           patch={~p"/sessions/#{@session_id}/settings/runtime"}
@@ -1145,6 +1150,8 @@ defmodule LivebookWeb.SessionLive.Render do
           <.remix_icon icon="loader-3-line" />
         </.link>
       </span>
+    <% else %>
+      <.global_status status={elem(@global_status, 0)} cell_id={elem(@global_status, 1)} />
     <% end %>
     """
   end
@@ -1344,7 +1351,7 @@ defmodule LivebookWeb.SessionLive.Render do
           session_id={@session.id}
           session_pid={@session.pid}
           client_id={@client_id}
-          runtime={@data_view.runtime}
+          runtime_status={@data_view.runtime_status}
           smart_cell_definitions={@data_view.smart_cell_definitions}
           example_snippet_definitions={@data_view.example_snippet_definitions}
           installing?={@data_view.installing?}

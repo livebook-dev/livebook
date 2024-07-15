@@ -1,21 +1,21 @@
-# Start manager on the current node and configure it not to
-# terminate automatically, so there is no race condition
-# when starting/stopping Embedded runtimes in parallel
+# Start manager on the current node and configure it not to terminate
+# automatically, so that we can use it to start runtime servers
+# explicitly
 Livebook.Runtime.ErlDist.NodeManager.start(
   auto_termination: false,
   unload_modules_on_termination: false
 )
 
-# Use the embedded runtime in tests by default, so they are
-# cheaper to run. Other runtimes can be tested by starting
-# and setting them explicitly
+# Use the embedded runtime in tests by default, so they are cheaper
+# to run. Other runtimes can be tested by setting them explicitly
 Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())
 Application.put_env(:livebook, :default_app_runtime, Livebook.Runtime.Embedded.new())
 
 Application.put_env(:livebook, :runtime_modules, [
-  Livebook.Runtime.ElixirStandalone,
+  Livebook.Runtime.Standalone,
   Livebook.Runtime.Attached,
-  Livebook.Runtime.Embedded
+  Livebook.Runtime.Embedded,
+  Livebook.Runtime.Fly
 ])
 
 defmodule Livebook.Runtime.Embedded.Packages do
@@ -71,15 +71,9 @@ teams_exclude =
     [:teams_integration]
   end
 
-# ELIXIR_ERL_OPTIONS="-epmd_module Elixir.Livebook.EPMD -start_epmd false -erl_epmd_port 0" LIVEBOOK_EPMDLESS=true mix test
-epmd_exclude =
-  if Livebook.Config.epmdless?() do
-    [:with_epmd, :teams_integration]
-  else
-    [:without_epmd]
-  end
+fly_exclude = if System.get_env("TEST_FLY_API_TOKEN"), do: [], else: [:fly]
 
 ExUnit.start(
   assert_receive_timeout: if(windows?, do: 2_500, else: 1_500),
-  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ epmd_exclude
+  exclude: erl_docs_exclude ++ windows_exclude ++ teams_exclude ++ fly_exclude
 )

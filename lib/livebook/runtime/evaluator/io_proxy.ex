@@ -31,8 +31,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
           object_tracker: pid(),
           client_tracker: pid(),
           ebin_path: String.t() | nil,
-          tmp_dir: String.t() | nil,
-          registry: atom() | nil
+          tmp_dir: String.t() | nil
         }) :: GenServer.on_start()
   def start(args) do
     GenServer.start(__MODULE__, args)
@@ -71,6 +70,28 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     GenServer.cast(pid, {:tracer_updates, updates})
   end
 
+  @doc """
+  Checks if the given process is a IO proxy.
+
+  The check happens against the process dictionary.
+  """
+  def io_proxy?(pid) do
+    process_get_key(pid, :io_proxy) == true
+  end
+
+  defp process_get_key(pid, key) do
+    try do
+      case Process.info(pid, {:dictionary, key}) do
+        {{:dictionary, ^key}, :undefined} -> nil
+        {{:dictionary, ^key}, value} -> value
+        nil -> nil
+      end
+    rescue
+      # TODO: remove error handler once we require OTP 26.2
+      _ -> Process.info(pid, [:dictionary])[:dictionary][key]
+    end
+  end
+
   @impl true
   def init(args) do
     %{
@@ -80,15 +101,12 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
       object_tracker: object_tracker,
       client_tracker: client_tracker,
       ebin_path: ebin_path,
-      tmp_dir: tmp_dir,
-      registry: registry
+      tmp_dir: tmp_dir
     } = args
 
     evaluator_monitor = Process.monitor(evaluator)
 
-    if registry do
-      Registry.register(registry, nil, nil)
-    end
+    Process.put(:io_proxy, true)
 
     {:ok,
      %{

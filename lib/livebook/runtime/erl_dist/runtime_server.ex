@@ -49,9 +49,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       to merge new values into when setting environment variables.
       Defaults to `System.get_env("PATH", "")`
 
-    * `:io_proxy_registry` - the registry to register IO proxy
-      processes in
-
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -270,14 +267,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Disables dependencies cache globally.
-  """
-  @spec disable_dependencies_cache(pid()) :: :ok
-  def disable_dependencies_cache(pid) do
-    GenServer.cast(pid, :disable_dependencies_cache)
-  end
-
-  @doc """
   Sets the given environment variables.
   """
   @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
@@ -378,7 +367,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        base_env_path:
          Keyword.get_lazy(opts, :base_env_path, fn -> System.get_env("PATH", "") end),
        ebin_path: Keyword.get(opts, :ebin_path),
-       io_proxy_registry: Keyword.get(opts, :io_proxy_registry),
        tmp_dir: Keyword.get(opts, :tmp_dir),
        mix_install_project_dir: nil
      }}
@@ -391,7 +379,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if state.owner do
       {:noreply, state}
     else
-      {:stop, :no_owner, state}
+      {:stop, {:shutdown, :no_owner}, state}
     end
   end
 
@@ -656,12 +644,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast(:disable_dependencies_cache, state) do
-    System.put_env("MIX_INSTALL_FORCE", "true")
-
-    {:noreply, state}
-  end
-
   def handle_cast({:put_system_envs, envs}, state) do
     envs
     |> Enum.map(fn
@@ -799,8 +781,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           object_tracker: state.object_tracker,
           client_tracker: state.client_tracker,
           ebin_path: state.ebin_path,
-          tmp_dir: evaluator_tmp_dir(state),
-          io_proxy_registry: state.io_proxy_registry
+          tmp_dir: evaluator_tmp_dir(state)
         )
 
       Process.monitor(evaluator.pid)
