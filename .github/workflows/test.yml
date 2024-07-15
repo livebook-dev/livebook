@@ -65,6 +65,7 @@ jobs:
     if: github.event_name == 'push'
     env:
       MIX_ENV: test
+      ELIXIR_ERL_OPTIONS: "-epmd_module Elixir.Livebook.EPMD"
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
