@@ -37,8 +37,8 @@ defmodule Livebook.FileSystem.FileTest do
     test "returns true for matching files built in different processes" do
       file_system = FileSystem.Local.new()
 
-      file1 = Livebook.FileSystem.File.new(file_system, "/tmp/")
-      file2 = Task.await(Task.async(fn -> Livebook.FileSystem.File.local("/tmp/") end))
+      file1 = Livebook.FileSystem.File.new(file_system, p("/tmp/"))
+      file2 = Task.await(Task.async(fn -> Livebook.FileSystem.File.local(p("/tmp/")) end))
 
       assert FileSystem.File.equal?(file1, file2)
     end
