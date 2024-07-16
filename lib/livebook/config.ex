@@ -231,7 +231,7 @@ defmodule Livebook.Config do
   """
   @spec public_base_url_path() :: String.t()
   def public_base_url_path() do
-    case Application.get_env(:livebook, :public_base_url_path_override) do
+    case Application.get_env(:livebook, :public_base_url_path) do
       nil -> base_url_path()
       path -> String.trim_trailing(path, "/")
     end
@@ -533,15 +533,6 @@ defmodule Livebook.Config do
   def base_url_path!(env) do
     if base_url_path = System.get_env(env) do
       String.trim_trailing(base_url_path, "/")
-    end
-  end
-
-  @doc """
-  Parses and validates the public base url path override from env
-  """
-  def public_base_url_path_override!(env) do
-    if override = System.get_env(env) do
-      String.trim_trailing(override, "/")
     end
   end
 
