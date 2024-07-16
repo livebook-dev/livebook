@@ -13,8 +13,7 @@ node = :"#{node_base}@#{machine_id}.vm.#{app}.internal"
 
 # We persist the information before the node is reachable
 :persistent_term.put(:livebook_runtime_info, %{
-  pid: self(),
-  elixir_version: System.version()
+  pid: self()
 })
 
 Application.put_env(:kernel, :inet_dist_listen_min, dist_port)

@@ -296,19 +296,14 @@ defmodule Livebook.Runtime.Fly do
   defp fetch_runtime_info(child_node) do
     # Note: it is Livebook that starts the runtime node, so we know
     # that the node runs Livebook release of the exact same version
+    #
+    # Also, the remote node already has all the runtime modules in
+    # the code path, compiled for its Elixir version, so we don't
+    # need to check for matching Elixir version.
 
-    %{
-      pid: pid,
-      elixir_version: elixir_version
-    } = :erpc.call(child_node, :persistent_term, :get, [:livebook_runtime_info])
+    %{pid: pid} = :erpc.call(child_node, :persistent_term, :get, [:livebook_runtime_info])
 
-    if elixir_version != System.version() do
-      {:error,
-       "the local Elixir version (#{inspect(System.version())}) does not" <>
-         " match the one used by the runtime (#{elixir_version})"}
-    else
-      {:ok, pid}
-    end
+    {:ok, pid}
   end
 
   defp initialize_node(child_node) do
