@@ -124,6 +124,10 @@ defmodule Livebook.Runtime.Fly do
              start_fly_proxy(config.app_name, machine_ip, local_port, remote_port, config.token)
            end),
          :ok <-
+           with_log(caller, "machine starting", fn ->
+             await_machine_started(config, machine_id)
+           end),
+         :ok <-
            with_log(caller, "connect to node", fn ->
              connect_loop(child_node, 40, 250)
            end),
@@ -200,6 +204,21 @@ defmodule Livebook.Runtime.Fly do
 
       {:error, %{message: message}} ->
         {:error, "could not create machine, reason: #{message}"}
+    end
+  end
+
+  defp await_machine_started(config, machine_id) do
+    case Livebook.FlyAPI.await_machine_started(config.token, config.app_name, machine_id) do
+      :ok ->
+        :ok
+
+      {:error, %{status: 408}} ->
+        {:error,
+         "timed out while waiting for the machine to start. See the app" <>
+           " logs in the Fly.io dashboard to determine the reason"}
+
+      {:error, %{message: message}} ->
+        {:error, "failed while waiting for the machine to started, reason: #{message}"}
     end
   end
 
