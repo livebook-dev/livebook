@@ -337,8 +337,21 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.Fly do
   alias Livebook.Runtime.ErlDist.RuntimeServer
 
-  def describe(runtime) do
-    [{"Type", "Fly.io machine"}] ++
+  def describe(%{config: config} = runtime) do
+    specs =
+      [
+        "#{config.cpus} #{config.cpu_kind} CPU",
+        "#{config.memory_gb} GB RAM",
+        config.gpu_kind && "#{config.gpus} #{config.gpu_kind} GPU"
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join(", ")
+
+    [
+      {"Type", "Fly.io machine"},
+      {"App", config.app_name},
+      {"Specs", specs}
+    ] ++
       if runtime.node do
         [{"Node name", Atom.to_string(runtime.node)}]
       else
