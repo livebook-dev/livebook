@@ -78,7 +78,8 @@ defmodule LivebookWeb do
         statics: LivebookWeb.static_paths()
 
       # We don't know the hostname Livebook runs on, so we don't use
-      # absolute URL helpers
+      # absolute URL helpers. We don't import sigil_p either, because
+      # we override it.
       import Phoenix.VerifiedRoutes, only: []
       import LivebookWeb, only: [sigil_p: 2]
     end
