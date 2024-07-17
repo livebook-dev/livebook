@@ -43,7 +43,7 @@ defmodule LivebookWeb.Output.ImageInputComponent do
     # LV. This is especially important for client-specific inputs in
     # forms.
     token = LivebookWeb.SessionHelpers.generate_input_token(self(), input_id)
-    ~p"/public/sessions/image-input/#{token}"
+    LivebookWeb.public_path(~p"/public/sessions/image-input/#{token}")
   end
 
   @impl true

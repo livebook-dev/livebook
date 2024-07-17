@@ -70,6 +70,13 @@ defmodule LivebookWeb do
     end
   end
 
+  def public_path(path) do
+    base_url_path = Livebook.Config.base_url_path()
+    public_base_url_path = Livebook.Config.public_base_url_path()
+    ^base_url_path <> rest = path
+    public_base_url_path <> rest
+  end
+
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,

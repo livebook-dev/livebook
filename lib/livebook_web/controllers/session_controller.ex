@@ -129,10 +129,8 @@ defmodule LivebookWeb.SessionController do
       |> put_status(:moved_permanently)
       |> redirect(
         to:
-          ~p"/public/sessions/node/#{node_id}/assets/#{hash}/#{file_parts}"
-          |> String.replace(
-            Livebook.Config.base_url_path(),
-            Livebook.Config.public_base_url_path()
+          LivebookWeb.public_path(
+            ~p"/public/sessions/node/#{node_id}/assets/#{hash}/#{file_parts}"
           )
       )
     else
