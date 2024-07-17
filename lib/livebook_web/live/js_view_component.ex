@@ -1,5 +1,6 @@
 defmodule LivebookWeb.JSViewComponent do
   use LivebookWeb, :live_component
+
   @impl true
   def update(assigns, socket) do
     {:ok,
@@ -17,7 +18,7 @@ defmodule LivebookWeb.JSViewComponent do
       phx-update="ignore"
       data-p-ref={hook_prop(@js_view.ref)}
       data-p-assets-base-path={
-        hook_prop(~p"/public/sessions/#{assigns.session_id}/assets/#{assigns.js_view.assets.hash}/")
+        hook_prop(~p"/public/sessions/#{@session_id}/assets/#{@js_view.assets.hash}/")
       }
       data-p-assets-cdn-url={hook_prop(cdn_url(@js_view.assets[:cdn_url]))}
       data-p-js-path={hook_prop(@js_view.assets.js_path)}
