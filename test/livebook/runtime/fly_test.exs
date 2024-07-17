@@ -26,6 +26,7 @@ defmodule Livebook.Runtime.FlyTest do
 
     assert_receive {:runtime_connect_info, ^pid, "create machine"}, @assert_receive_timeout
     assert_receive {:runtime_connect_info, ^pid, "start proxy"}, @assert_receive_timeout
+    assert_receive {:runtime_connect_info, ^pid, "machine starting"}, @assert_receive_timeout
     assert_receive {:runtime_connect_info, ^pid, "connect to node"}, @assert_receive_timeout
     assert_receive {:runtime_connect_info, ^pid, "initialize node"}, @assert_receive_timeout
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}, @assert_receive_timeout

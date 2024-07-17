@@ -188,6 +188,21 @@ defmodule Livebook.FlyAPI do
     %{id: machine["id"], private_ip: machine["private_ip"]}
   end
 
+  @doc """
+  Waits for the machine to start.
+  """
+  @spec await_machine_started(String.t(), String.t(), String.t()) :: :ok | {:error, error}
+  def await_machine_started(token, app_name, machine_id) do
+    with {:ok, _data} <-
+           flaps_request(token, "/v1/apps/#{app_name}/machines/#{machine_id}/wait",
+             params: %{state: "started", timeout: 60},
+             receive_timeout: 90_000,
+             retry: false
+           ) do
+      :ok
+    end
+  end
+
   defp flaps_request(token, path, opts \\ []) do
     opts =
       [base_url: @flaps_url, url: path, auth: {:bearer, token}]
