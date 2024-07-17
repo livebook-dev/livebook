@@ -78,8 +78,10 @@ defmodule LivebookWeb do
         statics: LivebookWeb.static_paths()
 
       # We don't know the hostname Livebook runs on, so we don't use
-      # absolute URL helpers
-      import Phoenix.VerifiedRoutes, only: :sigils
+      # absolute URL helpers. We don't import sigil_p either, because
+      # we override it.
+      import Phoenix.VerifiedRoutes, only: []
+      import LivebookWeb, only: [sigil_p: 2]
     end
   end
 
@@ -88,5 +90,32 @@ defmodule LivebookWeb do
   """
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])
+  end
+
+  # Overrides
+  require Phoenix.VerifiedRoutes
+
+  defmacro sigil_p({:<<>>, _meta, ["/public/" <> _ | _]} = route, extra) do
+    # We allow configuring a base path for all routes and we configure
+    # Phoenix to use it. However, we have an additional configuration
+    # for base path applying only to /public. We use a custom sigil_p
+    # to insert this base path if needed.
+    quote do
+      path = Phoenix.VerifiedRoutes.sigil_p(unquote(route), unquote(extra))
+      LivebookWeb.__rewrite_public_base_path__(path)
+    end
+  end
+
+  defmacro sigil_p(route, extra) do
+    quote do
+      Phoenix.VerifiedRoutes.sigil_p(unquote(route), unquote(extra))
+    end
+  end
+
+  def __rewrite_public_base_path__(path) do
+    base_url_path = Livebook.Config.base_url_path()
+    public_base_url_path = Livebook.Config.public_base_url_path()
+    ^base_url_path <> rest = path
+    public_base_url_path <> rest
   end
 end
