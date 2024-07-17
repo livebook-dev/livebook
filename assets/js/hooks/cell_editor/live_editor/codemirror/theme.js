@@ -18,6 +18,7 @@ function buildEditorTheme(colors, { dark }) {
       "&": {
         color: colors.text,
         backgroundColor: colors.background,
+        borderRadius: "8px",
         fontSize: "14px",
         fontFamily: fonts.mono,
       },
@@ -28,6 +29,11 @@ function buildEditorTheme(colors, { dark }) {
 
       ".cm-scroller": {
         fontFamily: "inherit",
+        // We add padding directly to the scroll container, rather
+        // than the editor parent, so that there is additional space
+        // for the scrollbar when it appears. Without this padding,
+        // the scrollbar would overlap the editor content
+        padding: "0.75rem 0",
       },
 
       ".cm-content": {
@@ -38,17 +44,19 @@ function buildEditorTheme(colors, { dark }) {
       // Scroll
 
       "*": {
+        "&": {
+          scrollbarWidth: "thin",
+          scrollbarColor: `${colors.backgroundLightest} transparent`,
+        },
+
+        // Fallback for Safari, which does not implement scrollbar-*
+        // CSS properties yet
         "&::-webkit-scrollbar": {
           width: "8px",
           height: "8px",
         },
 
         "&::-webkit-scrollbar-thumb": {
-          borderRadius: "4px",
-          background: "transparent",
-        },
-
-        "&:hover::-webkit-scrollbar-thumb": {
           background: colors.backgroundLightest,
         },
 

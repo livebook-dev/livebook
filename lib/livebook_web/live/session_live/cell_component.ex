@@ -622,9 +622,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-intellisense={hook_prop(@intellisense)}
       data-p-read-only={hook_prop(@read_only)}
     >
-      <div class={["py-3 bg-editor", rounded_class(@rounded)]} data-el-editor-container>
+      <div class={["bg-editor", rounded_class(@rounded)]} data-el-editor-container>
         <div data-el-skeleton>
-          <div class="px-8">
+          <div class="py-3 px-8">
             <.content_skeleton bg_class="bg-gray-500" empty={@empty} />
           </div>
         </div>
