@@ -75,10 +75,16 @@ defmodule LivebookWeb.Hub.SecretListComponent do
       end
     end
 
+    assigns = %{name: attrs["name"]}
+
+    description = ~H"""
+    Are you sure you want to delete this secret - <span class="font-semibold"><%= @name %></span>?
+    """
+
     {:noreply,
      confirm(socket, on_confirm,
-       title: "Delete secret - #{attrs["name"]}",
-       description: "Are you sure you want to delete this secret?",
+       title: "Delete secret",
+       description: description,
        confirm_text: "Delete",
        confirm_icon: "delete-bin-6-line"
      )}

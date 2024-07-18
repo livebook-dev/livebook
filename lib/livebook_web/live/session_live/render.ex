@@ -63,6 +63,8 @@ defmodule LivebookWeb.SessionLive.Render do
         runtime={@data_view.runtime}
         runtime_status={@data_view.runtime_status}
         runtime_connect_info={@data_view.runtime_connect_info}
+        hub={@data_view.hub}
+        hub_secrets={@data_view.hub_secrets}
       />
     </.modal>
 
