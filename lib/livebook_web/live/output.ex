@@ -260,11 +260,8 @@ defmodule LivebookWeb.Output do
     assigns = %{message: output.message, secret_name: secret_name, session_id: session_id, id: id}
 
     ~H"""
-    <div class="-m-4 space-x-4 py-4">
-      <div
-        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
-        style="color: var(--ansi-color-red);"
-      >
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
           <span>Missing secret <%= inspect(@secret_name) %></span>
@@ -273,6 +270,7 @@ defmodule LivebookWeb.Output do
           Add secret
         </.button>
       </div>
+      <div class="border-t border-gray-200 -mx-4" />
       <%= render_formatted_error_message(@id, @message) %>
     </div>
     """
@@ -290,11 +288,8 @@ defmodule LivebookWeb.Output do
     }
 
     ~H"""
-    <div class="-m-4 space-x-4 py-4">
-      <div
-        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
-        style="color: var(--ansi-color-red);"
-      >
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
         <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
           <span>Forbidden access to file <%= inspect(@file_entry_name) %></span>
@@ -306,6 +301,7 @@ defmodule LivebookWeb.Output do
           Review access
         </.button>
       </div>
+      <div class="border-t border-gray-200 -mx-4" />
       <%= render_formatted_error_message(@id, @message) %>
     </div>
     """
@@ -344,6 +340,39 @@ defmodule LivebookWeb.Output do
       </button>
     </div>
     """
+  end
+
+  defp render_output(%{type: :error, context: :dependencies} = output, %{id: id, cell_id: cell_id}) do
+    assigns = %{message: output.message, id: id, cell_id: cell_id}
+
+    if cell_id == Livebook.Notebook.Cell.setup_cell_id() do
+      ~H"""
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-2" style="color: var(--ansi-color-red);">
+          <div class="flex space-x-2 font-editor">
+            <.remix_icon icon="close-circle-line" />
+            <span>
+              Trouble installing dependencies? You may want to retry without cache.
+            </span>
+          </div>
+          <.button
+            color="gray"
+            phx-click={
+              JS.push("queue_cell_evaluation",
+                value: %{cell_id: @cell_id, disable_dependencies_cache: true}
+              )
+            }
+          >
+            Setup without cache
+          </.button>
+        </div>
+        <div class="border-t border-gray-200 -mx-4" />
+        <%= render_formatted_error_message(@id, @message) %>
+      </div>
+      """
+    else
+      render_formatted_error_message(id, output.message)
+    end
   end
 
   defp render_output(%{type: :error, message: message}, %{id: id}) do
