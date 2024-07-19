@@ -189,6 +189,9 @@ defmodule Livebook.Runtime.Evaluator.Formatter do
   defp error_context(error) when is_struct(error, Kino.FS.ForbiddenError),
     do: {:file_entry_forbidden, error.name}
 
+  defp error_context(error) when is_struct(error, Mix.Error),
+    do: :dependencies
+
   defp error_context(_), do: nil
 
   defp erlang_to_output(value) do

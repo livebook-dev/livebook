@@ -454,6 +454,7 @@ defprotocol Livebook.Runtime do
             {:missing_secret, name :: String.t()}
             | {:interrupt, variant :: :normal | :error, message :: String.t()}
             | {:file_entry_forbidden, name :: String.t()}
+            | :dependencies
             | nil
         }
 
