@@ -1166,6 +1166,109 @@ defmodule LivebookWeb.SessionLiveTest do
              |> element(~s/select[name="specs[cpu_kind]"] option[value="performance"][selected]/)
              |> has_element?()
     end
+
+    test "saving and loading config from secret", %{conn: conn, session: session} do
+      runtime =
+        Runtime.Fly.new(%{
+          token: "my-token",
+          app_name: "my-app",
+          region: "ams",
+          cpu_kind: "performance",
+          cpus: 1,
+          memory_gb: 1,
+          gpu_kind: nil,
+          gpus: nil,
+          volume_id: "vol_1",
+          docker_tag: "edge"
+        })
+
+      Session.set_runtime(session.pid, runtime)
+
+      Livebook.FlyAPI.stub(fn
+        conn when conn.method == "POST" ->
+          Req.Test.json(conn, %{
+            "data" => %{
+              "organizations" => %{
+                "nodes" => [
+                  %{
+                    "id" => "1",
+                    "name" => "Grumpy Cat",
+                    "rawSlug" => "grumpy-cat",
+                    "slug" => "personal"
+                  }
+                ]
+              },
+              "platform" => %{
+                "regions" => [
+                  %{"code" => "ams", "name" => "Amsterdam, Netherlands"},
+                  %{"code" => "fra", "name" => "Frankfurt, Germany"}
+                ],
+                "requestRegion" => "fra"
+              }
+            }
+          })
+
+        conn
+        when conn.method == "GET" and
+               conn.path_info == ["v1", "apps", "my-app", "volumes"] ->
+          Req.Test.json(conn, [
+            %{
+              "id" => "vol_1",
+              "name" => "new_volume",
+              "region" => "ams",
+              "size_gb" => 1,
+              "state" => "created"
+            }
+          ])
+      end)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      # The form is already filled with the runtime configuration, we
+      # just save it in a secret
+      view
+      |> element("button", "Save config")
+      |> render_click()
+
+      secret_name = "FLY_RUNTIME_#{System.unique_integer([:positive])}"
+
+      view
+      |> element(~s/form[phx-submit="save_config"]/)
+      |> render_submit(%{secret: %{name: secret_name}})
+
+      assert render_async(view) =~ "Load config"
+
+      # Set a different runtime, so there are no defaults
+      Session.set_runtime(session.pid, Runtime.Standalone.new())
+
+      # Open new runtime configuratino
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
+      view
+      |> element("#runtime-settings-modal button", "Fly.io machine")
+      |> render_click()
+
+      refute render(view) =~ "CPU kind"
+
+      # Load the configuration from secret
+      view
+      |> element("#config-secret-menu-content button", secret_name)
+      |> render_click()
+
+      assert render_async(view) =~ "Grumpy Cat"
+
+      assert view
+             |> element(~s/select[name="region"] option[value="ams"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="volume_id"] option[value="vol_1"][selected]/)
+             |> has_element?()
+
+      assert view
+             |> element(~s/select[name="specs[cpu_kind]"] option[value="performance"][selected]/)
+             |> has_element?()
+    end
   end
 
   describe "persistence settings" do

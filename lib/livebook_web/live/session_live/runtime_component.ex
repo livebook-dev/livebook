@@ -82,6 +82,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
             runtime={@runtime}
             runtime_status={@runtime_status}
             runtime_connect_info={@runtime_connect_info}
+            hub={@hub}
+            hub_secrets={@hub_secrets}
           />
         </div>
       </div>
