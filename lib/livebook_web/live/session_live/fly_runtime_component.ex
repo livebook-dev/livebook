@@ -67,7 +67,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
         The machine is automatically destroyed, once you disconnect the runtime.
       </p>
 
-      <.save_config_form :if={@save_config} save_config={@save_config} myself={@myself} />
+      <.save_config_form :if={@save_config} save_config={@save_config} hub={@hub} myself={@myself} />
 
       <div :if={@save_config == nil}>
         <.config_actions hub_secrets={@hub_secrets} myself={@myself} />
@@ -168,7 +168,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
         Save config
       </div>
       <div class="mt-1 text-gray-700">
-        Store the config in a workspace secret to reuse it later.
+        Store the config in a secret in the <.workspace hub={@hub} /> workspace to reuse it later.
       </div>
       <div :if={error = @save_config.error} class="mt-4">
         <.message_box kind={:error} message={error} />
@@ -191,6 +191,15 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
         </.button>
       </div>
     </.form>
+    """
+  end
+
+  defp workspace(assigns) do
+    ~H"""
+    <span class="font-medium">
+      <span class="text-lg"><%= @hub.hub_emoji %></span>
+      <span><%= @hub.hub_name %></span>
+    </span>
     """
   end
 
