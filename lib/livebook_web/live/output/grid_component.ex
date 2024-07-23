@@ -30,7 +30,7 @@ defmodule LivebookWeb.Output.GridComponent do
       <div
         id={"#{@id}-grid"}
         class="grid grid-cols-2 w-full"
-        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
+        style={"grid-template-columns: #{@template}; gap: #{@gap}px"}
         phx-update="stream"
       >
         <div :for={{dom_id, output} <- @streams.outputs} id={dom_id}>
