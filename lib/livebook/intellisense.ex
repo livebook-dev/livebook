@@ -444,6 +444,7 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
+      format_definition_link(module),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
@@ -462,6 +463,7 @@ defmodule Livebook.Intellisense do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
+        format_definition_link(module, {:function, name, arity}),
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
@@ -481,6 +483,7 @@ defmodule Livebook.Intellisense do
        }) do
     join_with_divider([
       format_type_signature(type_spec, module) |> code(),
+      format_definition_link(module, {:type, name, arity}),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -519,14 +522,33 @@ defmodule Livebook.Intellisense do
     """
   end
 
+  defp format_definition_link(module, function_or_type \\ nil) do
+    path =
+      :code.get_path()
+      |> Enum.find(&(to_string(&1) =~ "livebook_runtime"))
+      |> to_string()
+      |> Path.join("#{module}.beam")
+
+    if File.exists?(path) do
+      query =
+        case function_or_type do
+          {:function, fun, arity} ->
+            %{module: module_name(module), function: fun, arity: arity}
+
+          {:type, type, arity} ->
+            %{module: module_name(module), type: type, arity: arity}
+
+          nil ->
+            %{module: module_name(module)}
+        end
+
+      "[Go to definition](./go-to-definition?#{URI.encode_query(query)})"
+    end
+  end
+
   defp format_docs_link(module, function_or_type \\ nil) do
     app = Application.get_application(module)
-
-    module_name =
-      case Atom.to_string(module) do
-        "Elixir." <> name -> name
-        name -> name
-      end
+    module_name = module_name(module)
 
     is_otp? =
       case :code.which(module) do
@@ -867,5 +889,12 @@ defmodule Livebook.Intellisense do
          [{:li, [], prev_content} | acc]
        ) do
     group_type_list_items(items, [{:li, [], prev_content ++ [{:p, [], content}]} | acc])
+  end
+
+  defp module_name(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      name -> name
+    end
   end
 end

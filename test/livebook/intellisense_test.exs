@@ -1881,9 +1881,12 @@ defmodule Livebook.IntellisenseTest do
               RemoteModule module docs
               """
 
+              @type t :: term()
+
               @doc """
               Hello doc
               """
+              @spec hello(term()) :: t()
               def hello(message) do
                 message
               end
@@ -1955,10 +1958,28 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "get details", %{node: node} do
+      Code.put_compiler_option(:debug_info, true)
       context = eval(do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
       assert content =~ "No documentation available"
+
+      # check if shows the go-to-definition link for modules
+      assert content =~ "./go-to-definition?module=RemoteModule"
+
+      # check if shows the go-to-definition link for functions
+      assert %{contents: [content]} =
+               Intellisense.get_details("RemoteModule.hello", 13, context, node)
+
+      assert content =~ "./go-to-definition?arity=1&function=hello&module=RemoteModule"
+
+      # check if shows the go-to-definition link for types
+      assert %{contents: [content]} =
+               Intellisense.get_details("RemoteModule.t", 13, context, node)
+
+      assert content =~ "./go-to-definition?arity=0&module=RemoteModule&type=t"
+    after
+      Code.put_compiler_option(:debug_info, false)
     end
   end
 end
