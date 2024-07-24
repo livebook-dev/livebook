@@ -317,6 +317,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def fetch_modules_identifiers(pid, metadata) do
+    GenServer.call(pid, {:fetch_modules_identifiers, metadata})
+  end
+
   def disconnect_node(pid, node) do
     GenServer.cast(pid, {:disconnect_node, node})
   end
@@ -757,6 +761,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def handle_call({:fetch_modules_identifiers, metadata}, _from, state) do
+    {:reply, build_identifiers(metadata), state}
+  end
+
   defp file_path(state, file_id) do
     if tmp_dir = state.tmp_dir do
       Path.join([tmp_dir, "files", file_id])
@@ -1023,4 +1031,94 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp intellisense_node(_node), do: node()
+
+  defp build_identifiers(metadata) do
+    identifiers_defined = metadata.identifiers_defined
+
+    Enum.reduce_while(identifiers_defined, {:ok, %{}}, fn
+      {{:module, module}, _}, {:ok, acc} ->
+        with {^module, bin, _} <- :code.get_object_code(module),
+             {:ok, debug_info} <- beam_lib_chunks(bin, :debug_info),
+             {:ok, abstract_code} <- beam_lib_chunks(bin, :abstract_code),
+             {:ok, types} <- Code.Typespec.fetch_types(module) do
+          {:cont,
+           {:ok,
+            Map.put(
+              acc,
+              module_name(module),
+              build_module_identifier(abstract_code)
+              |> build_function_identifiers(module, debug_info)
+              |> build_type_identifiers(module, types)
+            )}}
+        else
+          :error -> {:halt, :error}
+        end
+
+      _, acc ->
+        {:cont, acc}
+    end)
+  end
+
+  defp beam_lib_chunks(bin, key) do
+    case :beam_lib.chunks(bin, [key]) do
+      {:ok, {_, kw}} -> {:ok, Keyword.fetch!(kw, key)}
+      {:error, :beam_lib, _} -> :error
+    end
+  end
+
+  defp build_module_identifier({:raw_abstract_v1, annotations}) do
+    {:attribute, anno, :module, module} =
+      Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
+
+    %{
+      kind: :module,
+      module: module,
+      name: module_name(module),
+      arity: nil,
+      line: :erl_anno.line(anno)
+    }
+  end
+
+  defp build_module_identifier(_), do: %{}
+
+  defp build_function_identifiers(identifier, module, {_, _, {_, %{definitions: definitions}, _}}) do
+    for definition <- definitions, reduce: [identifier] do
+      (acc -> [build_function_identifier(module, definition) | acc])
+    end
+  end
+
+  defp build_function_identifiers(identifier, _, _), do: identifier
+
+  defp build_function_identifier(module, {{name, arity}, :def, [line: line], _}) do
+    %{
+      kind: :function,
+      module: module,
+      name: to_string(name),
+      arity: arity,
+      line: line
+    }
+  end
+
+  defp build_type_identifiers(acc, module, types) do
+    for {type_kind, value} <- types, type_kind in [:type, :opaque], reduce: acc do
+      (acc -> [build_type_identifier(module, value) | acc])
+    end
+  end
+
+  defp build_type_identifier(module, {name, {_, line, _, _}, vars}) do
+    %{
+      kind: :type,
+      module: module,
+      name: to_string(name),
+      arity: Enum.count(vars),
+      line: line
+    }
+  end
+
+  defp module_name(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      name -> name
+    end
+  end
 end

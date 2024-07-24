@@ -78,6 +78,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def register_clients(_, _), do: :ok
     def unregister_clients(_, _), do: :ok
     def fetch_proxy_handler_spec(_), do: {:error, :not_found}
+    def fetch_modules_identifiers(_, _), do: nil
 
     def disconnect_node(runtime, node) do
       trace(runtime, :disconnect_node, [node])

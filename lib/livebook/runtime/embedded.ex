@@ -172,6 +172,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.disconnect_node(runtime.server_pid, node)
   end
 
+  def fetch_modules_identifiers(runtime, metadata) do
+    RuntimeServer.fetch_modules_identifiers(runtime.server_pid, metadata)
+  end
+
   defp config() do
     Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end
