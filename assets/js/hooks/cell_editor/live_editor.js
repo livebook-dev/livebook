@@ -11,7 +11,7 @@ import {
   lineNumbers,
   highlightActiveLineGutter,
 } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, EditorSelection } from "@codemirror/state";
 import {
   indentOnInput,
   bracketMatching,
@@ -179,6 +179,24 @@ export default class LiveEditor {
     }
 
     this.view.focus();
+  }
+
+  /**
+   * Focuses the editor in given line.
+   *
+   */
+  focusLine(lineNumber) {
+    setTimeout(() => {
+      const line = this.view.state.doc.line(lineNumber);
+
+      this.view.dispatch({
+        selection: { anchor: line.from },
+        scrollIntoView: EditorView.scrollIntoView(this.view.contentDOM, {
+          scrollMode: "if-needed",
+          behavior: "smooth",
+        }),
+      });
+    }, 300);
   }
 
   /**

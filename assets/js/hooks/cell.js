@@ -147,6 +147,8 @@ const Cell = {
       this.handleElementFocused(event.focusableId, event.scroll);
     } else if (event.type === "insert_mode_changed") {
       this.handleInsertModeChanged(event.enabled);
+    } else if (event.type === "line_focused") {
+      this.handleLineFocused(event.line);
     }
   },
 
@@ -172,6 +174,12 @@ const Cell = {
     } else if (this.isFocused) {
       this.isFocused = false;
       this.el.removeAttribute("data-js-focused");
+    }
+  },
+
+  handleLineFocused(line) {
+    if (this.isFocused) {
+      this.currentEditor().focusLine(line);
     }
   },
 
