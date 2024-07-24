@@ -214,13 +214,10 @@ defmodule Livebook.Runtime.Fly do
       :ok ->
         :ok
 
-      {:error, %{status: 408}} ->
-        {:error,
-         "timed out while waiting for the machine to start. See the app" <>
-           " logs in the Fly.io dashboard to determine the reason"}
-
       {:error, %{message: message}} ->
-        {:error, "failed while waiting for the machine to started, reason: #{message}"}
+        {:error,
+         "failed while waiting for the machine to start, reason: #{message}." <>
+           " See the app logs in the Fly.io dashbaord to determine the reason"}
     end
   end
 
