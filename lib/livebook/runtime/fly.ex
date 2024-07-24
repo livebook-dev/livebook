@@ -267,10 +267,12 @@ defmodule Livebook.Runtime.Fly do
         "--watch-stdin"
       ]
 
+      env = [{~c"FLY_NO_UPDATE_CHECK", ~c"1"}]
+
       port =
         Port.open(
           {:spawn_executable, flyctl_path},
-          [:binary, :hide, :stderr_to_stdout, args: args]
+          [:binary, :hide, :stderr_to_stdout, args: args, env: env]
         )
 
       port_ref = Port.monitor(port)
