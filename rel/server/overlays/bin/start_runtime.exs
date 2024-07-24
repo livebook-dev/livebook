@@ -1,4 +1,4 @@
-File.cd!(System.fetch_env!("HOME"))
+File.cd!(System.user_home!())
 
 %{
   node_base: node_base,

@@ -302,13 +302,27 @@ defmodule Livebook.Runtime.Fly do
   end
 
   defp find_fly_executable() do
-    if path = System.find_executable("flyctl") do
+    if path = System.find_executable("flyctl") || default_flyctl_path() do
       {:ok, path}
     else
       {:error,
        "no flyctl executable found in PATH. For installation instructions" <>
          " refer to https://fly.io/docs/flyctl/install"}
     end
+  end
+
+  defp default_flyctl_path() do
+    # Checks the default locations where flyctl gets installed using
+    # the official instructions
+
+    home = System.user_home()
+
+    paths = [
+      "/opt/homebrew/bin/flyctl",
+      home && Path.join(home, ".fly/bin/flyctl")
+    ]
+
+    Enum.find(paths, fn path -> path && File.regular?(path) end)
   end
 
   defp fetch_runtime_info(child_node) do
