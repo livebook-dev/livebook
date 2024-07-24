@@ -201,6 +201,25 @@ defmodule LivebookWeb.SessionLive do
     {socket, %{}}
   end
 
+  defp handle_params(:go_to_definition, params, _url, socket) do
+    identifier = get_identifier(socket, params)
+
+    socket =
+      if identifier && socket.assigns.client_id do
+        attrs = %{
+          client_id: socket.assigns.client_id,
+          cell_id: identifier.cell_id,
+          line: identifier.line
+        }
+
+        push_event(socket, "go_to_definition", attrs)
+      else
+        socket
+      end
+
+    {redirect_to_self(socket), %{}}
+  end
+
   defp handle_params(_live_action, _params, _url, socket) do
     {socket, %{}}
   end
@@ -2110,5 +2129,19 @@ defmodule LivebookWeb.SessionLive do
     |> Enum.any?(fn {cell, _section} ->
       data.cell_infos[cell.id].eval.validity == :stale
     end)
+  end
+
+  defp get_identifier(socket, %{"module" => module, "function" => fun, "arity" => arity}) do
+    arity = String.to_integer(arity)
+    Session.get_identifier(socket.assigns.session.pid, {:function, module, fun, arity})
+  end
+
+  defp get_identifier(socket, %{"module" => module, "type" => type, "arity" => arity}) do
+    arity = String.to_integer(arity)
+    Session.get_identifier(socket.assigns.session.pid, {:type, module, type, arity})
+  end
+
+  defp get_identifier(socket, %{"module" => module}) do
+    Session.get_identifier(socket.assigns.session.pid, {:module, module})
   end
 end

@@ -2628,4 +2628,105 @@ defmodule LivebookWeb.SessionLiveTest do
       assert File.read!(dockerfile_path) =~ "COPY notebook.livemd /apps"
     end
   end
+
+  test "sends a go to definition event to the client", %{conn: conn, session: session} do
+    Code.put_compiler_option(:debug_info, true)
+    Session.subscribe(session.id)
+
+    # Use the standalone runtime, to encapsulate identifier changes
+    Session.set_runtime(session.pid, Runtime.Standalone.new())
+
+    {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
+    assert_receive {:operation, {:client_join, client_id, _user}}
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{
+      "cell_id" => "setup",
+      "disable_dependencies_cache" => true
+    })
+
+    section_id = insert_section(session.pid)
+
+    cell_id =
+      insert_text_cell(session.pid, section_id, :code, """
+      defmodule MyNotebookModule do
+        @type t :: %{}
+        @type foo :: foo(:baz)
+        @type foo(var) :: {var, t()}
+
+        def foo() do
+          :bar
+        end
+      end
+      """)
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id, terminal_text(output), _}}
+
+    assert output =~ "MyNotebookModule"
+    assert render(view) =~ "MyNotebookModule"
+
+    go_to_def = fn params ->
+      query_string = URI.encode_query(params)
+      url = ~p"/sessions/#{session.id}/go-to-definition?#{query_string}"
+
+      conn
+      |> live(URI.decode_www_form(url))
+      |> follow_redirect(conn)
+    end
+
+    # check the push event for modules
+    assert {:ok, view, _html} = go_to_def.(%{module: "MyNotebookModule"})
+
+    assert_push_event(view, "go_to_definition", %{
+      cell_id: ^cell_id,
+      client_id: ^client_id,
+      line: 1
+    })
+
+    # check the push event for functions
+    assert {:ok, view, _html} =
+             go_to_def.(%{module: "MyNotebookModule", function: "foo", arity: 0})
+
+    assert_push_event(view, "go_to_definition", %{
+      cell_id: ^cell_id,
+      client_id: ^client_id,
+      line: 6
+    })
+
+     # check the push event for types
+     assert {:ok, view, _html} =
+              go_to_def.(%{module: "MyNotebookModule", type: "t", arity: 0})
+
+     assert_push_event(view, "go_to_definition", %{
+       cell_id: ^cell_id,
+       client_id: ^client_id,
+       line: 2
+     })
+
+     assert {:ok, view, _html} =
+              go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 0})
+
+     assert_push_event(view, "go_to_definition", %{
+       cell_id: ^cell_id,
+       client_id: ^client_id,
+       line: 3
+     })
+
+     assert {:ok, view, _html} =
+              go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 1})
+
+     assert_push_event(view, "go_to_definition", %{
+       cell_id: ^cell_id,
+       client_id: ^client_id,
+       line: 4
+     })
+  after
+    Code.put_compiler_option(:debug_info, false)
+  end
 end
