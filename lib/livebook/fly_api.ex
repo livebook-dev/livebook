@@ -193,11 +193,18 @@ defmodule Livebook.FlyAPI do
   """
   @spec await_machine_started(String.t(), String.t(), String.t()) :: :ok | {:error, error}
   def await_machine_started(token, app_name, machine_id) do
+    # The maximum supported timeout is 60s, but the machine may take
+    # longer to start if it uses a large Docker image (such as CUDA),
+    # provided the image is not already in the Fly cache. To achieve
+    # a longer wait, we retry request timeouts (and possible network
+    # errors).
     with {:ok, _data} <-
            flaps_request(token, "/v1/apps/#{app_name}/machines/#{machine_id}/wait",
              params: %{state: "started", timeout: 60},
              receive_timeout: 90_000,
-             retry: false
+             retry: :safe_transient,
+             max_retries: 4,
+             retry_log_level: false
            ) do
       :ok
     end
