@@ -71,6 +71,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           tag="primary"
           empty={@cell_view.empty}
+          session_path={~p"/sessions/#{@session_id}"}
           language="markdown"
         />
       </div>
@@ -117,6 +118,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           tag="primary"
           empty={@cell_view.empty}
+          session_path={~p"/sessions/#{@session_id}"}
           language={@cell_view.language}
           intellisense
         />
@@ -166,6 +168,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             cell_id={@cell_view.id}
             tag="primary"
             empty={@cell_view.empty}
+            session_path={~p"/sessions/#{@session_id}"}
             language="elixir"
             intellisense
           />
@@ -227,6 +230,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 cell_id={@cell_view.id}
                 tag="secondary"
                 empty={@cell_view.editor.empty}
+                session_path={~p"/sessions/#{@session_id}"}
                 language={@cell_view.editor.language}
                 rounded={@cell_view.editor.placement}
                 intellisense={@cell_view.editor.language == "elixir"}
@@ -268,6 +272,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             cell_id={@cell_view.id}
             tag="primary"
             empty={@cell_view.empty}
+            session_path={~p"/sessions/#{@session_id}"}
             language="elixir"
             intellisense
             read_only
@@ -606,6 +611,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   attr :tag, :string, required: true
   attr :empty, :boolean, required: true
   attr :language, :string, required: true
+  attr :session_path, :string, required: true
   attr :intellisense, :boolean, default: false
   attr :read_only, :boolean, default: false
   attr :rounded, :atom, default: :both
@@ -621,6 +627,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-p-language={hook_prop(@language)}
       data-p-intellisense={hook_prop(@intellisense)}
       data-p-read-only={hook_prop(@read_only)}
+      data-p-session-path={hook_prop(@session_path)}
     >
       <div class={["bg-editor", rounded_class(@rounded)]} data-el-editor-container>
         <div data-el-skeleton>
