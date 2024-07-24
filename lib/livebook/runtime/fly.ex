@@ -171,7 +171,9 @@ defmodule Livebook.Runtime.Fly do
         Map.new(base_image.env),
         %{
           "LIVEBOOK_RUNTIME" => runtime_data,
-          "ERL_AFLAGS" => "-proto_dist inet6_tcp"
+          "ERL_AFLAGS" => "-proto_dist inet6_tcp",
+          # Make the token automatically available for FLAME
+          "FLY_API_TOKEN" => config.token
         }
       )
 
