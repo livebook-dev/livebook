@@ -196,13 +196,14 @@ defmodule Livebook.FlyAPI do
     # The maximum supported timeout is 60s, but the machine may take
     # longer to start if it uses a large Docker image (such as CUDA),
     # provided the image is not already in the Fly cache. To achieve
-    # a longer wait, we retry request timeouts.
+    # a longer wait, we retry request timeouts (and possible network
+    # errors).
     with {:ok, _data} <-
            flaps_request(token, "/v1/apps/#{app_name}/machines/#{machine_id}/wait",
              params: %{state: "started", timeout: 60},
              receive_timeout: 90_000,
-             retry: fn _req, result -> match?(%Req.Response{status: 408}, result) end,
-             max_retries: 3,
+             retry: :safe_transient,
+             max_retries: 4,
              retry_log_level: false
            ) do
       :ok
