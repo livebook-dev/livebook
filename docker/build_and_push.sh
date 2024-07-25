@@ -18,7 +18,7 @@ if [ -z "$livebook_version" ]; then
 fi
 
 cuda_tag_list=("cuda11.8" "cuda12.1")
-cuda_version_list=("11.8.0" "12.1.0")
+cuda_version_list=("11-8" "12-1")
 
 for idx in "${!cuda_tag_list[@]}"; do
   cuda_tag="${cuda_tag_list[idx]}"

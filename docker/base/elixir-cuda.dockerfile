@@ -2,25 +2,20 @@ ARG ELIXIR_VERSION
 ARG ERLANG_VERSION
 ARG UBUNTU_VERSION
 
+FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-${UBUNTU_VERSION}
+
 ARG CUDA_VERSION
 
-FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-ubuntu-${UBUNTU_VERSION} AS elixir
+RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" && \
+    # Official Docker images use the sbsa packages when targetting arm64.
+    # See https://gitlab.com/nvidia/container-images/cuda/-/blob/85f465ea3343a2d7f7753a0a838701999ed58a01/dist/12.5.1/ubuntu2204/base/Dockerfile#L12
+    arch="$(if [ "$(uname -m)" = "aarch64" ]; then echo "sbsa"; else echo "x86_64"; fi)" && \
+    apt update -q && apt install -y ca-certificates wget && \
+    wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-keyring_1.1-1_all.deb && \
+    dpkg -i /tmp/cuda-keyring.deb && apt update -q
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04
-
-ENV DEBIAN_FRONTEND nonintaeractive
-ENV LANG=C.UTF-8
-
-# Erlang runtime dependencies, see https://github.com/hexpm/bob/blob/3b5721dccdfe9d59766f374e7b4fb7fb8a7c720e/priv/scripts/docker/erlang-ubuntu-focal.dockerfile#L41-L45
-RUN apt-get update && \
-  apt-get -y --no-install-recommends install \
-    libodbc1 \
-    libssl1.1 \
-    libsctp1
-
-# We copy the top-level directory first to preserve symlinks in /usr/local/bin
-COPY --from=elixir /usr/local /usr/ELIXIR_LOCAL
-
-RUN cp -r /usr/ELIXIR_LOCAL/lib/* /usr/local/lib && \
-  cp -r /usr/ELIXIR_LOCAL/bin/* /usr/local/bin && \
-  rm -rf /usr/ELIXIR_LOCAL
+# In order to minimize the image size, we install only a subset of
+# the CUDA toolkit that is required by Elixir numerical packages
+# (nvcc and runtime libraries). Note that we do not need to install
+# the driver, it is already provided by NVIDIA Container Toolkit.
+RUN apt install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn8
