@@ -51,6 +51,8 @@ RUN mix do compile, release livebook
 # Consequently the release doesn't include ERTS as we have it anyway.
 FROM ${BASE_IMAGE}
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
         # Runtime dependencies

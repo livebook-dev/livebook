@@ -12,3 +12,5 @@ npm-debug.log
 /assets/node_modules/
 /tmp/
 /livebook
+# Ignore app release files, including build artifacts
+/rel/app
