@@ -307,6 +307,18 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
     """
   end
 
+  defp app_check_error(%{error: %{status: 403}} = assigns) do
+    ~H"""
+    <.message_box
+      kind={:error}
+      message={
+        "This app name is already taken, pick a different name." <>
+          " If this is an app you own, enter a token for the corresponding organization."
+      }
+    />
+    """
+  end
+
   defp app_check_error(assigns) do
     ~H"""
     <.message_box kind={:error} message={"Error: " <> @error.message} />
