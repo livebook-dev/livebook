@@ -55,6 +55,11 @@ defmodule Livebook.Runtime.Definitions do
     dependency: %{dep: {:kino_explorer, "~> 0.1.20"}, config: []}
   }
 
+  kino_flame = %{
+    name: "kino_flame",
+    dependency: %{dep: {:kino_flame, "~> 0.1.0"}, config: []}
+  }
+
   jason = %{
     name: "jason",
     dependency: %{dep: {:jason, "~> 1.4"}, config: []}
@@ -200,6 +205,16 @@ defmodule Livebook.Runtime.Definitions do
         %{
           name: "Default",
           packages: [kino]
+        }
+      ]
+    },
+    %{
+      kind: "Elixir.KinoFLAME.RunnerCell",
+      name: "FLAME runner cell",
+      requirement_presets: [
+        %{
+          name: "Default",
+          packages: [kino_flame]
         }
       ]
     }
