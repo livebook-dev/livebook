@@ -8,7 +8,7 @@ defmodule Livebook.Notebook.Cell.Smart do
   # access and take over the underlying code at any point.
   #
   # The available smart cells come from the runtime, therefore they
-  # are one Livebook's extension points.
+  # are one of Livebook's extension points.
 
   defstruct [
     :id,

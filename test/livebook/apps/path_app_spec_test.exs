@@ -83,7 +83,7 @@ defmodule Livebook.Apps.PathAppSpecTest do
       app_spec = %Livebook.Apps.PathAppSpec{slug: slug, path: app_path}
 
       assert {:error, message} = Livebook.Apps.AppSpec.load(app_spec, file_tmp_path)
-      assert message == "failed to copy notebok file image.jpg, no such file or directory"
+      assert message == "failed to copy notebook file image.jpg, no such file or directory"
     end
   end
 end

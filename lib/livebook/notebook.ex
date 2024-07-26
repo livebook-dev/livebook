@@ -932,7 +932,7 @@ defmodule Livebook.Notebook do
           {:cont, :ok}
 
         {:error, error} ->
-          {:halt, {:error, "failed to copy notebok file #{file_entry.name}, #{error}"}}
+          {:halt, {:error, "failed to copy notebook file #{file_entry.name}, #{error}"}}
       end
     end)
   end

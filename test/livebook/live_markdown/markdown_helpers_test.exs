@@ -121,7 +121,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "paragraph" do
       markdown = """
-      First paragrpah.
+      First paragraph.
 
       Second paragraph.\
       """
