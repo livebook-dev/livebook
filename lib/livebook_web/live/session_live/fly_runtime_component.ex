@@ -481,7 +481,7 @@ defmodule LivebookWeb.SessionLive.FlyRuntimeComponent do
           </.button>
         </.form>
         <div :if={error = @volume_action[:error]}>
-          <.message_box kind={:error} message={error} />
+          <.message_box kind={:error} message={"Error: " <> error.message} />
         </div>
       </div>
     </div>
