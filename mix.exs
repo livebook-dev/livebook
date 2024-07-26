@@ -37,7 +37,6 @@ defmodule Livebook.MixProject do
       mod: {Livebook.Application, []},
       extra_applications: [
         :logger,
-        :runtime_tools,
         :os_mon,
         :inets,
         :ssl,
