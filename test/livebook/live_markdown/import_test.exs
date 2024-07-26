@@ -245,7 +245,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
-  test "preserves markdown modifiers in notebok/section names" do
+  test "preserves markdown modifiers in notebook/section names" do
     markdown = """
     # My *Notebook*
 

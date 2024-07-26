@@ -71,7 +71,7 @@ defmodule Livebook.Apps do
   end
 
   @doc """
-  Subscribes to update in apps list.
+  Subscribes to updates in the apps list.
 
   ## Messages
 

@@ -108,8 +108,6 @@ defmodule LivebookWeb.CoreComponents do
 
   slot :inner_block
 
-  def message_box(assigns)
-
   def message_box(assigns) do
     if assigns.message && assigns.inner_block != [] do
       raise ArgumentError, "expected either message or inner_block, got both."

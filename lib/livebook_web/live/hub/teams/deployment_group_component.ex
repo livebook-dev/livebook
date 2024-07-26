@@ -88,7 +88,7 @@ defmodule LivebookWeb.Hub.Teams.DeploymentGroupComponent do
             </span>
           </.labeled_text>
         </div>
-        <!-- Aditional Secrets -->
+        <!-- Additional Secrets -->
         <div id={"secrets-group-#{@deployment_group.id}"} class="flex flex-col space-y-4 mt-6">
           <a
             href="#"

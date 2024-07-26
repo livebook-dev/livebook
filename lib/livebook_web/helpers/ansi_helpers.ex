@@ -108,7 +108,7 @@ defmodule LivebookWeb.ANSIHelpers do
   @doc """
   Converts a string with ANSI escape codes into HTML lines.
 
-  Same as `ansi_string_to_html_lines_step/1`, but allows
+  Same as `ansi_string_to_html_lines/1`, but allows
   for keeping track of modifiers for stream usage.
   """
   @spec ansi_string_to_html_lines_step(String.t(), Livebook.Utils.ANSI.modifiers()) ::

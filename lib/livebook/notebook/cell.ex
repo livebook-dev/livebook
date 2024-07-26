@@ -71,7 +71,7 @@ defmodule Livebook.Notebook.Cell do
   def find_inputs_in_output(_output), do: []
 
   @doc """
-  Extract all asset infos from the given non-indexed output.
+  Extracts all asset infos from the given non-indexed output.
   """
   @spec find_assets_in_output(Livebook.Runtime.output()) :: list(asset_info :: map())
   def find_assets_in_output(output)

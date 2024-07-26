@@ -28,8 +28,8 @@ defmodule Livebook.FileSystem.S3.Client do
   """
   @spec get_bucket_name(S3.t()) :: {:ok, String.t()} | {:error, String.t()}
   def get_bucket_name(file_system) do
-    # We have bucket URL, but it's not straightforward to extract
-    # bucket name from the URL, because it may be either the path
+    # We have the bucket URL, but it's not straightforward to extract
+    # the bucket name from the URL, because it may be either the path
     # or a part of the host.
     #
     # Endpoints that return bucket information doesn't include the
