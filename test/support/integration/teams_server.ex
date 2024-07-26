@@ -280,18 +280,12 @@ defmodule Livebook.TeamsServer do
   end
 
   defp hostname do
-    [nodename, hostname] =
+    [_nodename, hostname] =
       node()
       |> Atom.to_charlist()
       |> :string.split(~c"@")
 
-    with {:ok, nodenames} <- :erl_epmd.names(hostname),
-         true <- List.keymember?(nodenames, nodename, 0) do
-      hostname
-    else
-      _ ->
-        raise "Error"
-    end
+    hostname
   end
 
   defp info(message), do: log([:blue, message <> "\n"])
