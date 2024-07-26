@@ -192,7 +192,7 @@ defmodule Livebook.App do
   """
   @spec unsubscribe(slug()) :: :ok | {:error, term()}
   def unsubscribe(slug) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "apps:#{slug}")
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "apps:#{slug}")
   end
 
   @impl true
