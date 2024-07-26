@@ -2,7 +2,7 @@ defmodule LivebookWeb.NotebookComponents do
   use LivebookWeb, :html
 
   @doc """
-  Renders an learn notebook card.
+  Renders a learn notebook card.
   """
   attr :notebook_info, :map, required: true
 

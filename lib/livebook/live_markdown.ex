@@ -31,7 +31,7 @@ defmodule Livebook.LiveMarkdown do
   #      * notebook, section or cell metadata
   #
   #      * `{"force_markdown":true}` - an annotation forcing the next
-  #        next Markdown block to be treated as part of Markdown cell
+  #        Markdown block to be treated as part of Markdown cell
   #        (relevant for Elixir/Erlang code blocks, which otherwise
   #        are interpreted as Code cells)
   #

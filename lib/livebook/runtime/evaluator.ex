@@ -8,10 +8,10 @@ defmodule Livebook.Runtime.Evaluator do
   #
   # Storing the binding in the same process that evaluates the code is
   # essential, because otherwise we would have to send it to another
-  # process, which means copying a potentially massive amounts of data.
+  # process, which means copying potentially massive amounts of data.
   #
   # Also, note that this process intentionally is not a GenServer,
-  # because during evaluation we it may receive arbitrary messages
+  # because during evaluation it may receive arbitrary messages
   # and we want to keep them in the inbox, whereas a GenServer would
   # always consume them.
 
@@ -63,7 +63,7 @@ defmodule Livebook.Runtime.Evaluator do
   # would take too much memory
   @evaluator_info_key :evaluator_info
 
-  # We stor the path in process dictionary, so that the tracer can access it
+  # We store the path in the process dictionary, so that the tracer can access it.
   @ebin_path_key :ebin_path
 
   @doc """

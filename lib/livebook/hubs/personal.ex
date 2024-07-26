@@ -147,7 +147,7 @@ defmodule Livebook.Hubs.Personal do
   @doc """
   Gets a file system from storage.
 
-  Raises `RuntimeError` if the secret doesn't exist.
+  Raises `RuntimeError` if the file system does not exist.
   """
   @spec fetch_file_system!(String.t()) :: FileSystem.t()
   def fetch_file_system!(id) do

@@ -37,7 +37,7 @@ defmodule LivebookWeb.AppAuthLive do
           <a
             class="border-b border-gray-700 hover:border-none"
             href={~p"/authenticate?redirect_to=#{@authenticated_path}"}
-          >login into Livebook</a>.
+          >log in to Livebook</a>.
         </div>
         <div class="text-2xl text-gray-800 w-full pt-2">
           <form class="flex flex-col space-y-4 items-center" phx-submit="authenticate">

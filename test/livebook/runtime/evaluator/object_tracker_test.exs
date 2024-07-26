@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.Evaluator.ObjectTrackerTest do
     refute_received :object1_released
   end
 
-  test "remove_reference_sync/2 awaits for monitor acknowledgements",
+  test "remove_reference_sync/2 awaits for monitor acknowledgments",
        %{object_tracker: object_tracker} do
     ObjectTracker.add_reference(object_tracker, :object1, {self(), :ref1})
 

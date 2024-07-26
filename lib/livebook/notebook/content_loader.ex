@@ -49,7 +49,7 @@ defmodule Livebook.Notebook.ContentLoader do
   defp do_rewrite_url(uri), do: uri
 
   @doc """
-  Loads binary content from the given URl and validates if its plain text.
+  Loads binary content from the given URL and validates if it's plain text.
   """
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def fetch_content(url) do

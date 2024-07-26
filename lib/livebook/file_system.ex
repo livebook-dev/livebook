@@ -5,7 +5,7 @@ defprotocol Livebook.FileSystem do
   @typedoc """
   An identifier uniquely identifying the given file system.
 
-  Every file system struct is expected have an `:id` field.
+  Every file system struct is expected to have an `:id` field.
 
   The identifier should be computed deterministically based on the
   specific resource used as the file system. This ensures that
@@ -18,12 +18,12 @@ defprotocol Livebook.FileSystem do
   @type id :: String.t()
 
   @typedoc """
-  A path uniquely identifies file in the file system.
+  A path uniquely identifies a file in the file system.
 
   Path has most of the semantics of regular file paths, with the
   following exceptions:
 
-    * path must be be absolute for consistency
+    * path must be absolute for consistency
 
     * directory path must have a trailing slash, whereas regular file
       path must not have a trailing slash. Rationale: certain file

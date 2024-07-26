@@ -84,7 +84,7 @@ defmodule Livebook.Utils.HTTP do
   @doc """
   Downloads resource at the given URL into `collectable`.
 
-  If collectable raises and error, it is rescued and an error tuple
+  If collectable raises an error, it is rescued and an error tuple
   is returned.
 
   ## Options
