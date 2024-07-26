@@ -63,7 +63,7 @@ defmodule Livebook.SystemResources do
   end
 
   defp measure() do
-    memory = %{total: 0, free: 0}
+    memory = %{total: 10, free: 5}
     :ets.insert(@name, {:memory, memory})
     memory
   end
