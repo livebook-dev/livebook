@@ -10,11 +10,17 @@ cd "$(dirname "$0")/.."
 
 . versions
 
-livebook_version="$(cat mix.exs | grep '@version "' | grep -v '\-dev' | grep -oE '[0-9]{1,}.[0-9]{1,}.[0-9]{1,}' || true)"
+livebook_version="$(cat mix.exs | grep '@version "' | grep -o '".*"' | tr -d '"')"
 
-if [ -z "$livebook_version" ]; then
-  echo "No stable Livebook version detected"
+if [ -z "$livebook_version" ] || [[ "$livebook_version" == *"dev"* ]]; then
+  echo "No releasable Livebook version detected"
   exit 1
+fi
+
+if [[ "$livebook_version" == *"-"* ]]; then
+  stable=false
+else
+  stable=true
 fi
 
 cuda_tag_list=("cuda11.8" "cuda12.1")
@@ -48,10 +54,16 @@ for idx in "${!cuda_tag_list[@]}"; do
   else
     echo "Building image: $image"
 
+    extra_args=""
+
+    if [[ "$stable" == "true" ]]; then
+      extra_args="-t ghcr.io/livebook-dev/livebook:latest-$cuda_tag"
+    fi
+
     docker buildx build --push --platform linux/amd64,linux/arm64 \
       --build-arg BASE_IMAGE="$base_image" \
       -t $image \
-      -t ghcr.io/livebook-dev/livebook:latest-$cuda_tag \
+      $extra_args \
       .
   fi
 done
