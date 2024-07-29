@@ -2699,33 +2699,33 @@ defmodule LivebookWeb.SessionLiveTest do
       line: 6
     })
 
-     # check the push event for types
-     assert {:ok, view, _html} =
-              go_to_def.(%{module: "MyNotebookModule", type: "t", arity: 0})
+    # check the push event for types
+    assert {:ok, view, _html} =
+             go_to_def.(%{module: "MyNotebookModule", type: "t", arity: 0})
 
-     assert_push_event(view, "go_to_definition", %{
-       cell_id: ^cell_id,
-       client_id: ^client_id,
-       line: 2
-     })
+    assert_push_event(view, "go_to_definition", %{
+      cell_id: ^cell_id,
+      client_id: ^client_id,
+      line: 2
+    })
 
-     assert {:ok, view, _html} =
-              go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 0})
+    assert {:ok, view, _html} =
+             go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 0})
 
-     assert_push_event(view, "go_to_definition", %{
-       cell_id: ^cell_id,
-       client_id: ^client_id,
-       line: 3
-     })
+    assert_push_event(view, "go_to_definition", %{
+      cell_id: ^cell_id,
+      client_id: ^client_id,
+      line: 3
+    })
 
-     assert {:ok, view, _html} =
-              go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 1})
+    assert {:ok, view, _html} =
+             go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 1})
 
-     assert_push_event(view, "go_to_definition", %{
-       cell_id: ^cell_id,
-       client_id: ^client_id,
-       line: 4
-     })
+    assert_push_event(view, "go_to_definition", %{
+      cell_id: ^cell_id,
+      client_id: ^client_id,
+      line: 4
+    })
   after
     Code.put_compiler_option(:debug_info, false)
   end
