@@ -31,7 +31,6 @@ const CellEditor = {
           this.props.language,
           this.props.intellisense,
           this.props.readOnly,
-          this.props.sessionPath,
         );
 
         this.liveEditor.setCodeMarkers(code_markers);
@@ -117,7 +116,6 @@ const CellEditor = {
       "language",
       "intellisense",
       "read-only",
-      "session-path",
     ]);
   },
 };

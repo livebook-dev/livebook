@@ -115,7 +115,6 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/add-file/:tab", SessionLive, :add_file_entry
       live "/sessions/:id/rename-file/:name", SessionLive, :rename_file_entry
       live "/sessions/:id/bin", SessionLive, :bin
-      live "/sessions/:id/go-to-definition", SessionLive, :go_to_definition
       get "/sessions/:id/download/export/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings

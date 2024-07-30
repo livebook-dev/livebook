@@ -106,14 +106,12 @@ export default class LiveEditor {
     language,
     intellisense,
     readOnly,
-    baseUrl,
   ) {
     this.container = container;
     this.source = source;
     this.language = language;
     this.intellisense = intellisense;
     this.readOnly = readOnly;
-    this.baseUrl = baseUrl;
     this.initialWidgets = {};
 
     this.connection = connection;
@@ -510,7 +508,6 @@ export default class LiveEditor {
   docsHoverTooltipSource(view, pos, side) {
     const line = view.state.doc.lineAt(pos);
     const lineLength = line.to - line.from;
-    const baseUrl = this.baseUrl;
 
     const text = line.text;
     // If we are on the right side of the position, we add one to
@@ -537,7 +534,6 @@ export default class LiveEditor {
               item.classList.add("cm-markdown");
               dom.appendChild(item);
               new Markdown(item, content, {
-                baseUrl: this.baseUrl,
                 defaultCodeLanguage: this.language,
                 useDarkTheme: this.usesDarkTheme(),
               });

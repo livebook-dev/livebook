@@ -201,25 +201,6 @@ defmodule LivebookWeb.SessionLive do
     {socket, %{}}
   end
 
-  defp handle_params(:go_to_definition, params, _url, socket) do
-    identifier = get_identifier(socket, params)
-
-    socket =
-      if identifier && socket.assigns.client_id do
-        attrs = %{
-          client_id: socket.assigns.client_id,
-          cell_id: identifier.cell_id,
-          line: identifier.line
-        }
-
-        push_event(socket, "go_to_definition", attrs)
-      else
-        socket
-      end
-
-    {redirect_to_self(socket), %{}}
-  end
-
   defp handle_params(_live_action, _params, _url, socket) do
     {socket, %{}}
   end
@@ -895,6 +876,25 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("open_custom_view_settings", %{}, socket) do
     {:noreply,
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
+  end
+
+  def handle_event("goto:definition", params, socket) do
+    identifier = get_identifier(socket, params)
+
+    socket =
+      if identifier && socket.assigns.client_id do
+        attrs = %{
+          client_id: socket.assigns.client_id,
+          cell_id: identifier.cell_id,
+          line: identifier.line
+        }
+
+        push_event(socket, "go_to_definition", attrs)
+      else
+        socket
+      end
+
+    {:noreply, redirect_to_self(socket)}
   end
 
   @impl true

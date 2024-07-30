@@ -2671,17 +2671,10 @@ defmodule LivebookWeb.SessionLiveTest do
     assert output =~ "MyNotebookModule"
     assert render(view) =~ "MyNotebookModule"
 
-    go_to_def = fn params ->
-      query_string = URI.encode_query(params)
-      url = ~p"/sessions/#{session.id}/go-to-definition?#{query_string}"
-
-      conn
-      |> live(URI.decode_www_form(url))
-      |> follow_redirect(conn)
-    end
-
     # check the push event for modules
-    assert {:ok, view, _html} = go_to_def.(%{module: "MyNotebookModule"})
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("goto:definition", %{"module" => "MyNotebookModule"})
 
     assert_push_event(view, "go_to_definition", %{
       cell_id: ^cell_id,
@@ -2690,8 +2683,13 @@ defmodule LivebookWeb.SessionLiveTest do
     })
 
     # check the push event for functions
-    assert {:ok, view, _html} =
-             go_to_def.(%{module: "MyNotebookModule", function: "foo", arity: 0})
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("goto:definition", %{
+      "module" => "MyNotebookModule",
+      "function" => "foo",
+      "arity" => "0"
+    })
 
     assert_push_event(view, "go_to_definition", %{
       cell_id: ^cell_id,
@@ -2700,8 +2698,13 @@ defmodule LivebookWeb.SessionLiveTest do
     })
 
     # check the push event for types
-    assert {:ok, view, _html} =
-             go_to_def.(%{module: "MyNotebookModule", type: "t", arity: 0})
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("goto:definition", %{
+      "module" => "MyNotebookModule",
+      "type" => "t",
+      "arity" => "0"
+    })
 
     assert_push_event(view, "go_to_definition", %{
       cell_id: ^cell_id,
@@ -2709,8 +2712,13 @@ defmodule LivebookWeb.SessionLiveTest do
       line: 2
     })
 
-    assert {:ok, view, _html} =
-             go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 0})
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("goto:definition", %{
+      "module" => "MyNotebookModule",
+      "type" => "foo",
+      "arity" => "0"
+    })
 
     assert_push_event(view, "go_to_definition", %{
       cell_id: ^cell_id,
@@ -2718,8 +2726,13 @@ defmodule LivebookWeb.SessionLiveTest do
       line: 3
     })
 
-    assert {:ok, view, _html} =
-             go_to_def.(%{module: "MyNotebookModule", type: "foo", arity: 1})
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("goto:definition", %{
+      "module" => "MyNotebookModule",
+      "type" => "foo",
+      "arity" => "1"
+    })
 
     assert_push_event(view, "go_to_definition", %{
       cell_id: ^cell_id,

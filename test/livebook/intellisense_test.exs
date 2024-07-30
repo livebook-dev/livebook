@@ -5,7 +5,7 @@ defmodule Livebook.IntellisenseTest do
 
   # Returns intellisense context resulting from evaluating
   # the given block of code in a fresh context.
-  defmacrop eval(do: block) do
+  defmacrop eval(node \\ node(), do: block) do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
@@ -14,6 +14,7 @@ defmodule Livebook.IntellisenseTest do
 
       %{
         env: env,
+        ebin_path: ebin_path(unquote(node)),
         map_binding: fn fun -> fun.(binding) end
       }
     end
@@ -1918,7 +1919,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "find the RemoteModule and its docs", %{node: node} do
-      context = eval(do: nil)
+      context = eval(node, do: nil)
 
       assert %{
                label: "RemoteModule",
@@ -1933,7 +1934,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "find RemoteModule exported functions and its docs", %{node: node} do
-      context = eval(do: nil)
+      context = eval(node, do: nil)
 
       assert %{
                label: "hello/1",
@@ -1945,7 +1946,7 @@ defmodule Livebook.IntellisenseTest do
 
     @tag :erl_docs
     test "find modules from apps", %{node: node} do
-      context = eval(do: nil)
+      context = eval(node, do: nil)
 
       assert [
                %{
@@ -1959,27 +1960,36 @@ defmodule Livebook.IntellisenseTest do
 
     test "get details", %{node: node} do
       Code.put_compiler_option(:debug_info, true)
-      context = eval(do: nil)
+      context = eval(node, do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
       assert content =~ "No documentation available"
 
       # check if shows the go-to-definition link for modules
-      assert content =~ "./go-to-definition?module=RemoteModule"
+      assert content =~ "goto:definition?module=RemoteModule"
 
       # check if shows the go-to-definition link for functions
       assert %{contents: [content]} =
                Intellisense.get_details("RemoteModule.hello", 13, context, node)
 
-      assert content =~ "./go-to-definition?arity=1&function=hello&module=RemoteModule"
+      assert content =~ "goto:definition?arity=1&function=hello&module=RemoteModule"
 
       # check if shows the go-to-definition link for types
       assert %{contents: [content]} =
                Intellisense.get_details("RemoteModule.t", 13, context, node)
 
-      assert content =~ "./go-to-definition?arity=0&module=RemoteModule&type=t"
+      assert content =~ "goto:definition?arity=0&module=RemoteModule&type=t"
     after
       Code.put_compiler_option(:debug_info, false)
     end
+  end
+
+  defp ebin_path(node) do
+    [runtime_path] =
+      for path <- :erpc.call(node, :code, :get_path, []),
+          to_string(path) =~ "livebook_runtime",
+          do: to_string(path)
+
+    runtime_path
   end
 end

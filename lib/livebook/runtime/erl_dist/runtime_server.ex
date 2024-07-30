@@ -1040,18 +1040,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         with {^module, bin, _} <- :code.get_object_code(module),
              {:ok, debug_info} <- beam_lib_chunks(bin, :debug_info),
              {:ok, abstract_code} <- beam_lib_chunks(bin, :abstract_code),
-             {:ok, types} <- Code.Typespec.fetch_types(module) do
+             {:ok, types} <- Code.Typespec.fetch_types(bin),
+             %{kind: :module} = identifier <- build_module_identifier(abstract_code) do
           {:cont,
            {:ok,
             Map.put(
               acc,
               module_name(module),
-              build_module_identifier(abstract_code)
+              identifier
               |> build_function_identifiers(module, debug_info)
               |> build_type_identifiers(module, types)
             )}}
         else
-          :error -> {:halt, :error}
+          :error -> {:cont, acc}
         end
 
       _, acc ->
@@ -1061,7 +1062,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp beam_lib_chunks(bin, key) do
     case :beam_lib.chunks(bin, [key]) do
-      {:ok, {_, kw}} -> {:ok, Keyword.fetch!(kw, key)}
+      {:ok, {_, [{^key, value}]}} -> {:ok, value}
       {:error, :beam_lib, _} -> :error
     end
   end
@@ -1079,7 +1080,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     }
   end
 
-  defp build_module_identifier(_), do: %{}
+  defp build_module_identifier(_), do: :error
 
   defp build_function_identifiers(identifier, module, {_, _, {_, %{definitions: definitions}, _}}) do
     for definition <- definitions, reduce: [identifier] do
@@ -1105,12 +1106,22 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  defp build_type_identifier(module, {name, {_, line, _, _}, vars}) do
+  defp build_type_identifier(module, {name, {_, 0, _, [{_, line, _} | _]}, vars}) do
     %{
       kind: :type,
       module: module,
       name: to_string(name),
       arity: Enum.count(vars),
+      line: line
+    }
+  end
+
+  defp build_type_identifier(module, {name, {_, line, _, _}, vars}) do
+    %{
+      kind: :type,
+      module: module,
+      name: to_string(name),
+      arity: length(vars),
       line: line
     }
   end
