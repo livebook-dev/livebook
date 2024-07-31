@@ -1867,6 +1867,8 @@ defmodule Livebook.IntellisenseTest do
     pid = Livebook.Runtime.Standalone.new() |> Livebook.Runtime.connect()
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
 
+    cell_id = Livebook.Utils.random_short_id()
+    file = "#{__ENV__.file}#cell:#{cell_id}"
     parent = self()
 
     runtime_owner_pid =
@@ -1894,8 +1896,7 @@ defmodule Livebook.IntellisenseTest do
             end
             '''
 
-          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [])
-
+          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [], file: file)
           receive do: ({:runtime_evaluation_response, :e1, _, _} -> :ok)
           send(parent, :continue)
 
@@ -1909,7 +1910,7 @@ defmodule Livebook.IntellisenseTest do
       Process.exit(runtime_owner_pid, :kill)
     end)
 
-    [node: runtime.node]
+    [node: runtime.node, cell_id: cell_id]
   end
 
   describe "intellisense completion for remote nodes" do
@@ -1958,7 +1959,7 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items(":mnesia.unsub", context, node)
     end
 
-    test "get details", %{node: node} do
+    test "get details", %{node: node, cell_id: cell_id} do
       Code.put_compiler_option(:debug_info, true)
       context = eval(node, do: nil)
 
@@ -1966,19 +1967,19 @@ defmodule Livebook.IntellisenseTest do
       assert content =~ "No documentation available"
 
       # check if shows the go-to-definition link for modules
-      assert content =~ "goto:definition?module=RemoteModule"
+      assert content =~ "goto:#{cell_id}?line=1"
 
       # check if shows the go-to-definition link for functions
       assert %{contents: [content]} =
-               Intellisense.get_details("RemoteModule.hello", 13, context, node)
+               Intellisense.get_details("RemoteModule.hello", 15, context, node)
 
-      assert content =~ "goto:definition?arity=1&function=hello&module=RemoteModule"
+      assert content =~ "goto:#{cell_id}?line=12"
 
       # check if shows the go-to-definition link for types
       assert %{contents: [content]} =
-               Intellisense.get_details("RemoteModule.t", 13, context, node)
+               Intellisense.get_details("RemoteModule.t", 14, context, node)
 
-      assert content =~ "goto:definition?arity=0&module=RemoteModule&type=t"
+      assert content =~ "goto:#{cell_id}?line=6"
     after
       Code.put_compiler_option(:debug_info, false)
     end

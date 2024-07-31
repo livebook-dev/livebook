@@ -42,8 +42,6 @@ class Markdown {
       allowedUriSchemes.push(DEFAULT_URI_SCHEMES[i]);
     }
 
-    console.log(allowedUriSchemes);
-
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
@@ -264,26 +262,16 @@ function rehypeExternalLinks(options) {
         const url = node.properties.href;
 
         if (isInternalScheme(url)) {
-          const [event, search] = url.split("?");
+          const [_goto, rest] = url.split(":");
+          const [cell_id, search] = rest.split("?");
           const searchParams = new URLSearchParams(`?${search}`);
           const json = Object.fromEntries(searchParams);
 
           node.properties.href = null;
           node.properties.className = "cursor-pointer";
-          node.properties["phx-click"] = event;
-
-          for (const key in json) {
-            node.properties[`phx-value-${key}`] = json[key];
-          }
-
-          // A little helper for tests
-          if (json["function"]) {
-            node.properties["phx-value-kind"] = "function";
-          } else if (json["type"]) {
-            node.properties["phx-value-kind"] = "type";
-          } else {
-            node.properties["phx-value-kind"] = "module";
-          }
+          node.properties[`data-cell_id`] = cell_id;
+          node.properties[`data-line`] = json.line;
+          node.properties[`data-el-gotodef`] = true;
         } else if (isInternalUrl(url)) {
           node.properties["data-phx-link"] =
             options.baseUrl && url.startsWith(options.baseUrl)

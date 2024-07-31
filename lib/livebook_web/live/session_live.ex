@@ -878,25 +878,6 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: ~p"/sessions/#{socket.assigns.session.id}/settings/custom-view")}
   end
 
-  def handle_event("goto:definition", params, socket) do
-    identifier = get_identifier(socket, params)
-
-    socket =
-      if identifier && socket.assigns.client_id do
-        attrs = %{
-          client_id: socket.assigns.client_id,
-          cell_id: identifier.cell_id,
-          line: identifier.line
-        }
-
-        push_event(socket, "go_to_definition", attrs)
-      else
-        socket
-      end
-
-    {:noreply, redirect_to_self(socket)}
-  end
-
   @impl true
   def handle_call({:get_input_value, input_id}, _from, socket) do
     reply =
@@ -2129,19 +2110,5 @@ defmodule LivebookWeb.SessionLive do
     |> Enum.any?(fn {cell, _section} ->
       data.cell_infos[cell.id].eval.validity == :stale
     end)
-  end
-
-  defp get_identifier(socket, %{"module" => module, "function" => fun, "arity" => arity}) do
-    arity = String.to_integer(arity)
-    Session.get_identifier(socket.assigns.session.pid, {:function, module, fun, arity})
-  end
-
-  defp get_identifier(socket, %{"module" => module, "type" => type, "arity" => arity}) do
-    arity = String.to_integer(arity)
-    Session.get_identifier(socket.assigns.session.pid, {:type, module, type, arity})
-  end
-
-  defp get_identifier(socket, %{"module" => module}) do
-    Session.get_identifier(socket.assigns.session.pid, {:module, module})
   end
 end

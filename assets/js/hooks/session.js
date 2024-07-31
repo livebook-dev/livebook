@@ -238,8 +238,8 @@ const Session = {
       this.handleLocationReport(client_id, report);
     });
 
-    this.handleEvent("go_to_definition", ({ client_id, cell_id, line }) => {
-      this.handleGoToDefinition(client_id, cell_id, line);
+    globalPubsub.subscribe("go_to_definition", ({ cellId, line }) => {
+      this.handleGoToDefinition(cellId, line);
     });
   },
 
@@ -1315,10 +1315,8 @@ const Session = {
     }
   },
 
-  handleGoToDefinition(clientId, cellId, line) {
-    const client = this.store.get("clients")[clientId];
-
-    if (client && this.isCell(cellId)) {
+  handleGoToDefinition(cellId, line) {
+    if (this.isCell(cellId)) {
       this.setFocusedLine(cellId, line);
     }
   },

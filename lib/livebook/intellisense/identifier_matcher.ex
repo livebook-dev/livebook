@@ -176,6 +176,57 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
+  @doc """
+
+  """
+  @spec fetch_identifier(
+          charlist(),
+          {:module, module()} | {:function | :type, name :: atom(), arity :: pos_integer()}
+        ) ::
+          {:ok, cell_id :: String.t(), line :: pos_integer()} | :error
+  def fetch_identifier(path, identifier)
+
+  def fetch_identifier(path, {:module, module}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+      {:attribute, anno, :module, ^module} =
+        Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
+
+      {:ok, cell_id_from_module(path), :erl_anno.line(anno)}
+    end
+  end
+
+  def fetch_identifier(path, {:function, name, arity}) do
+    with {:ok, {:debug_info_v1, _, {_, metadata, _}}} <- beam_lib_chunks(path, :debug_info) do
+      {_, :def, [line: line], _} =
+        Enum.find(metadata.definitions, &match?({{^name, ^arity}, :def, [line: _line], _}, &1))
+
+      {:ok, cell_id_from_module(path), line}
+    end
+  end
+
+  def fetch_identifier(path, {:type, name, arity}) do
+    bin = File.read!(path)
+
+    with {:ok, types} <- Code.Typespec.fetch_types(bin) do
+      {:ok, line} =
+        Enum.find_value(types, fn
+          {type_kind, value} when type_kind in [:type, :opaque] ->
+            case value do
+              {^name, {_, line, _, _}, vars} when length(vars) == arity ->
+                {:ok, line}
+
+              {^name, {_, 0, _, [{_, line, _} | _]}, vars} when length(vars) == arity ->
+                {:ok, line}
+
+              _ ->
+                nil
+            end
+        end)
+
+      {:ok, cell_id_from_module(path), line}
+    end
+  end
+
   # Takes a context returned from Code.Fragment.cursor_context
   # or Code.Fragment.surround_context and looks up matching
   # identifier items
@@ -805,5 +856,18 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           name: attribute,
           documentation: {"text/markdown", info.doc}
         }
+  end
+
+  defp beam_lib_chunks(bin, key) do
+    with {:ok, {_, [{^key, value}]}} <- :beam_lib.chunks(bin, [key]) do
+      {:ok, value}
+    end
+  end
+
+  defp cell_id_from_module(path) do
+    with {:ok, {:debug_info_v1, _, {_, definitions, _}}} <- beam_lib_chunks(path, :debug_info) do
+      [_filename, cell_id] = String.split(definitions.file, "#cell:", trim: true)
+      cell_id
+    end
   end
 end
