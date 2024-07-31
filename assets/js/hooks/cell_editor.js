@@ -8,14 +8,14 @@ const CellEditor = {
   mounted() {
     this.props = this.getProps();
 
-    this.el.addEventListener("click", e => {
+    this.el.addEventListener("click", (e) => {
       if (e.target.matches("[data-el-gotodef]")) {
         const cellId = e.target.dataset.cell_id;
         const line = e.target.dataset.line;
 
         globalPubsub.broadcast("go_to_definition", { cellId, line });
       }
-    })
+    });
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
