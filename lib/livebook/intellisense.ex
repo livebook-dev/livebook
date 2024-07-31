@@ -20,7 +20,7 @@ defmodule Livebook.Intellisense do
   """
   @type context :: %{
           env: Macro.Env.t(),
-          ebin_path: String.t(),
+          ebin_path: String.t() | nil,
           map_binding: (Code.binding() -> any())
         }
 
