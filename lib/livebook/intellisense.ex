@@ -536,18 +536,21 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_definition_link(module, context, function_or_type \\ nil) do
-    path = Path.join(context.ebin_path, "#{module}.beam")
+    if context.ebin_path do
+      path = Path.join(context.ebin_path, "#{module}.beam")
 
-    identifier =
-      if function_or_type,
-        do: function_or_type,
-        else: {:module, module}
+      identifier =
+        if function_or_type,
+          do: function_or_type,
+          else: {:module, module}
 
-    with true <- File.exists?(path),
-         {:ok, cell_id, line} <- IdentifierMatcher.fetch_identifier(to_charlist(path), identifier) do
-      "[Go to definition](goto:#{cell_id}?line=#{line})"
-    else
-      _otherwise -> nil
+      with true <- File.exists?(path),
+           {:ok, cell_id, line} <-
+             IdentifierMatcher.fetch_identifier(to_charlist(path), identifier) do
+        "[Go to definition](goto:#{cell_id}?line=#{line})"
+      else
+        _otherwise -> nil
+      end
     end
   end
 
