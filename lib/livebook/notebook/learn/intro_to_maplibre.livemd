@@ -14,7 +14,7 @@ To work with maps in Livebook we need two libraries:
 * The [`maplibre`](https://hexdocs.pm/maplibre/MapLibre.html)
   package allows us to define our map style specifications
 
-* The [`kino_maplibre`](https://hexdocs.pm/kino_maplibre/) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/maplibregl.Evented/)
+* The [`kino_maplibre`](https://hexdocs.pm/kino_maplibre/) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/Evented/)
 
 We will make extensive use of MapLibre's functions, so it's handy to alias the module to something shorter.
 
@@ -362,7 +362,7 @@ Ml.new() |> Kino.MapLibre.add_geocode_control()
 
 ## Interactive maps
 
-As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/maplibregl.Evented/) we need `Kino.MapLibre`.
+As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js/docs/API/classes/Evented/) we need `Kino.MapLibre`.
 
 `Kino.MapLibre` supports two types of maps: static and dynamic. Essentially, a dynamic map can be updated on the fly without having to be re-evaluated. To make a map dynamic you need to wrap it in `Kino.MapLibre.new/1`
 
