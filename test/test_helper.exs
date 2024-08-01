@@ -15,7 +15,8 @@ Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.Standalone,
   Livebook.Runtime.Attached,
   Livebook.Runtime.Embedded,
-  Livebook.Runtime.Fly
+  Livebook.Runtime.Fly,
+  Livebook.Runtime.K8s
 ])
 
 defmodule Livebook.Runtime.Embedded.Packages do
