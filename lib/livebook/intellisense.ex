@@ -416,7 +416,11 @@ defmodule Livebook.Intellisense do
         nil
 
       matches ->
-        contents = Enum.map(matches, &format_details_item(&1, ctx))
+        contents =
+          matches
+          |> Enum.sort_by(& &1[:arity], :asc)
+          |> Enum.map(&format_details_item(&1, ctx))
+
         %{range: range, contents: contents}
     end
   end

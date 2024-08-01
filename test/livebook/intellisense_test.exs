@@ -1885,6 +1885,8 @@ defmodule Livebook.IntellisenseTest do
               """
 
               @type t :: term()
+              @type foo :: foo(:bar)
+              @type foo(var) :: {var, t()}
 
               @doc """
               Hello doc
@@ -1973,13 +1975,19 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [content]} =
                Intellisense.get_details("RemoteModule.hello", 15, context, node)
 
-      assert content =~ "goto:#{cell_id}?line=12"
+      assert content =~ "goto:#{cell_id}?line=14"
 
       # check if shows the go-to-definition link for types
       assert %{contents: [content]} =
                Intellisense.get_details("RemoteModule.t", 14, context, node)
 
       assert content =~ "goto:#{cell_id}?line=6"
+
+      assert %{contents: [arity_0_content, arity_1_content]} =
+               Intellisense.get_details("RemoteModule.foo", 14, context, node)
+
+      assert arity_0_content =~ "goto:#{cell_id}?line=7"
+      assert arity_1_content =~ "goto:#{cell_id}?line=8"
     after
       Code.put_compiler_option(:debug_info, false)
     end
