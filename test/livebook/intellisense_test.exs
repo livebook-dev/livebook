@@ -1892,7 +1892,7 @@ defmodule Livebook.IntellisenseTest do
                 quote do
                   require Logger
                   Logger.debug("Running code")
-                  result = unquote(Macro.escape(block))
+                  result = unquote(block)
                   Logger.debug("Result: #{inspect(result)}")
                   result
                 end
