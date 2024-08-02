@@ -867,10 +867,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp find_type_value(annotations, name, arity) do
     annotations
-    |> Enum.filter(&match?({:attribute, _, :export_type, _}, &1))
+    |> Enum.filter(&match?({:attribute, _, :type, _}, &1))
     |> Enum.sort_by(&elem(&1, 1), :asc)
     |> Enum.find_value(:error, fn
-      {:attribute, anno, :export_type, [{^name, ^arity}]} ->
+      {:attribute, anno, :type, {^name, _, vars}} when length(vars) == arity ->
         {:ok, :erl_anno.line(anno)}
 
       _ ->
