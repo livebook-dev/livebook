@@ -1901,7 +1901,7 @@ defmodule Livebook.IntellisenseTest do
               @doc """
               Hello doc
               """
-              @spec hello(var :: term()) :: foo(var)
+              @spec hello(var :: term()) :: foo(term())
               def hello(message)
 
               def hello(message) do
