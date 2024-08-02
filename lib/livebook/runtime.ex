@@ -1140,10 +1140,6 @@ defprotocol Livebook.Runtime do
   @spec fetch_proxy_handler_spec(t()) :: {:ok, proxy_handler_spec()} | {:error, :not_found}
   def fetch_proxy_handler_spec(runtime)
 
-  @spec fetch_modules_identifiers(t(), map()) ::
-          {:ok, %{(module :: String.t()) => map()}} | :error
-  def fetch_modules_identifiers(runtime, metadata)
-
   @doc """
   Asks the runtime to disconnect from the given connected node.
 

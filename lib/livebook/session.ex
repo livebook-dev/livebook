@@ -129,8 +129,7 @@ defmodule Livebook.Session do
           app_pid: pid() | nil,
           auto_shutdown_ms: non_neg_integer() | nil,
           auto_shutdown_timer_ref: reference() | nil,
-          started_by: Livebook.Users.User.t() | nil,
-          identifiers: %{(module :: String.t()) => list(identifier_data())}
+          started_by: Livebook.Users.User.t() | nil
         }
 
   @type memory_usage ::
@@ -141,15 +140,6 @@ defmodule Livebook.Session do
 
   @type files_source ::
           {:dir, FileSystem.File.t()} | {:url, String.t()} | {:inline, %{String.t() => binary()}}
-
-  @type identifier_data :: %{
-          kind: :type | :module | :function,
-          name: String.t(),
-          arity: non_neg_integer() | nil,
-          line: pos_integer(),
-          section_id: String.t(),
-          cell_id: String.t()
-        }
 
   @typedoc """
   An id assigned to every running session process.
@@ -917,8 +907,7 @@ defmodule Livebook.Session do
         app_pid: opts[:app_pid],
         auto_shutdown_ms: opts[:auto_shutdown_ms],
         auto_shutdown_timer_ref: nil,
-        started_by: opts[:started_by],
-        identifiers: %{}
+        started_by: opts[:started_by]
       }
 
       {:ok, state}
@@ -1104,28 +1093,6 @@ defmodule Livebook.Session do
       {:reply, Runtime.fetch_proxy_handler_spec(state.data.runtime), state}
     else
       {:reply, {:error, :disconnected}, state}
-    end
-  end
-
-  def handle_call({:get_identifier, {:module, module}}, _from, state) do
-    if identifiers = state.identifiers[module] do
-      {:reply, Enum.find(identifiers, &(&1.kind == :module)), state}
-    else
-      {:reply, nil, state}
-    end
-  end
-
-  def handle_call({:get_identifier, {kind, module, name, arity}}, _from, state) do
-    if identifiers = state.identifiers[module] do
-      identifier =
-        Enum.find(
-          identifiers,
-          &(&1.kind == kind && &1.name == name && &1.arity == arity)
-        )
-
-      {:reply, identifier, state}
-    else
-      {:reply, nil, state}
     end
   end
 
@@ -2444,27 +2411,6 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(
-         %{data: %{runtime_status: :connected}} = state,
-         _prev_state,
-         {:add_cell_evaluation_response, _client_id, id, _output, metadata}
-       ) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(state.data.notebook, id),
-         {:ok, identifiers} <- Runtime.fetch_modules_identifiers(state.data.runtime, metadata) do
-      if Enum.empty?(identifiers) do
-        state
-      else
-        %{
-          state
-          | identifiers:
-              Map.merge(state.identifiers, build_identifiers(identifiers, cell.id, section.id))
-        }
-      end
-    else
-      _ -> state
-    end
-  end
-
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
@@ -3319,19 +3265,4 @@ defmodule Livebook.Session do
   end
 
   defp normalize_smart_cell_started_info(info), do: info
-
-  @doc """
-  Returns the identifier data from module defined in the notebook.
-  """
-  @spec get_identifier(pid(), tuple()) :: identifier_data() | nil
-  def get_identifier(pid, message) do
-    GenServer.call(pid, {:get_identifier, message}, @timeout)
-  end
-
-  defp build_identifiers(identifiers, cell_id, section_id) do
-    for {key, items} <- identifiers, into: %{} do
-      items = for item <- items, do: Map.merge(item, %{cell_id: cell_id, section_id: section_id})
-      {key, items}
-    end
-  end
 end

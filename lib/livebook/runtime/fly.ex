@@ -503,10 +503,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Fly do
     RuntimeServer.fetch_proxy_handler_spec(runtime.server_pid)
   end
 
-  def fetch_modules_identifiers(runtime, metadata) do
-    RuntimeServer.fetch_modules_identifiers(runtime.server_pid, metadata)
-  end
-
   def disconnect_node(runtime, node) do
     RuntimeServer.disconnect_node(runtime.server_pid, node)
   end
