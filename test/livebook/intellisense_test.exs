@@ -1888,12 +1888,24 @@ defmodule Livebook.IntellisenseTest do
               @type foo :: foo(:bar)
               @type foo(var) :: {var, t()}
 
+              defmacro with_logging(do: block) do
+                quote do
+                  require Logger
+                  Logger.debug("Running code")
+                  result = unquote(Macro.escape(block))
+                  Logger.debug("Result: #{inspect(result)}")
+                  result
+                end
+              end
+
               @doc """
               Hello doc
               """
               @spec hello(term()) :: t()
+              def hello(message)
+
               def hello(message) do
-                message
+                {:bar, message}
               end
             end
             '''
@@ -1973,9 +1985,14 @@ defmodule Livebook.IntellisenseTest do
 
       # check if shows the go-to-definition link for functions
       assert %{contents: [content]} =
+               Intellisense.get_details("RemoteModule.with_logging", 15, context, node)
+
+      assert content =~ "goto:#{cell_id}?line=10"
+
+      assert %{contents: [content]} =
                Intellisense.get_details("RemoteModule.hello", 15, context, node)
 
-      assert content =~ "goto:#{cell_id}?line=14"
+      assert content =~ "goto:#{cell_id}?line=24"
 
       # check if shows the go-to-definition link for types
       assert %{contents: [content]} =
