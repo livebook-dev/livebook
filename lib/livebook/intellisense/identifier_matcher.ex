@@ -177,7 +177,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   @doc """
+  Extracts the location about an identifier found.
 
+  The function returns the cell id and the line where the identifier
+  is located.
   """
   @spec fetch_identifier(
           charlist(),
