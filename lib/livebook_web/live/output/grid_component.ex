@@ -30,7 +30,7 @@ defmodule LivebookWeb.Output.GridComponent do
       <div
         id={"#{@id}-grid"}
         class="grid grid-cols-2 w-full"
-        style={"grid-template-columns: #{@template}; gap: #{@gap}px"}
+        style={"grid-template-columns: #{make_template(@columns)}; gap: #{@gap}px"}
         phx-update="stream"
       >
         <div :for={{dom_id, output} <- @streams.outputs} id={dom_id}>
@@ -48,4 +48,17 @@ defmodule LivebookWeb.Output.GridComponent do
     </div>
     """
   end
+
+  defp make_template(columns) when is_tuple(columns) do
+    columns = Tuple.to_list(columns)
+
+    if Enum.all?(columns, &is_integer/1) do
+      columns
+      |> Enum.map_join(" ", fn n -> "minmax(0, #{n}fr)" end)
+    else
+      ""
+    end
+  end
+
+  defp make_template(columns), do: "repeat(#{columns}, minmax(0, 1fr))"
 end

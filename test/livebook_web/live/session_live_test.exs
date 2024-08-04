@@ -724,16 +724,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.queue_cell_evaluation(session.pid, cell_id)
 
       frame = %{type: :frame, ref: "1", outputs: [terminal_text("In frame")], placeholder: true}
-
-      grid = %{
-        type: :grid,
-        outputs: [frame],
-        columns: ["Frame"],
-        gap: 8,
-        boxed: false,
-        template: "1fr"
-      }
-
+      grid = %{type: :grid, outputs: [frame], columns: ["Frame"], gap: 8, boxed: false}
       send(session.pid, {:runtime_evaluation_output, cell_id, grid})
 
       {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")

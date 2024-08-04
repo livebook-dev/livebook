@@ -175,7 +175,6 @@ defmodule LivebookWeb.Output do
       columns: grid.columns,
       gap: grid.gap,
       outputs: grid.outputs,
-      template: grid.template,
       session_id: session_id,
       session_pid: session_pid,
       input_views: input_views,
@@ -189,7 +188,6 @@ defmodule LivebookWeb.Output do
       id={@id}
       outputs={@outputs}
       columns={@columns}
-      template={@template}
       gap={@gap}
       session_id={@session_id}
       session_pid={@session_pid}
