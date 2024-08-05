@@ -13,12 +13,11 @@
       "Segoe UI Emoji";
   }
 
-  /* Please don't do this. This is bad for accessibility. */
   /* Remove the default outline on focused elements */
-  /* :focus, */
-  /* button:focus { */
-    /* outline: none; */
-  /* } */
+  :focus,
+  button:focus {
+    outline: none;
+  }
 
   menu {
     margin: 0;
