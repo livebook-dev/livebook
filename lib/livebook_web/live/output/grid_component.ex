@@ -53,12 +53,13 @@ defmodule LivebookWeb.Output.GridComponent do
     columns = Tuple.to_list(columns)
 
     if Enum.all?(columns, &is_integer/1) do
-      columns
-      |> Enum.map_join(" ", fn n -> "minmax(0, #{n}fr)" end)
+      Enum.map_join(columns, " ", fn n -> "minmax(0, #{n}fr)" end)
     else
       ""
     end
   end
 
-  defp make_template(columns), do: "repeat(#{columns}, minmax(0, 1fr))"
+  defp make_template(columns) when is_integer(columns), do: "repeat(#{columns}, minmax(0, 1fr))"
+
+  defp make_template(_columns), do: ""
 end
