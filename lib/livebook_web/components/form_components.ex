@@ -291,7 +291,10 @@ defmodule LivebookWeb.FormComponents do
   attr :rest, :global
 
   def checkbox_field(assigns) do
-    assigns = assigns_from_field(assigns)
+    assigns =
+      assigns
+      |> assigns_from_field()
+      |> then(&assign(&1, :checkbox_input_id, &1[:id] || &1[:name]))
 
     ~H"""
     <div>
@@ -302,15 +305,20 @@ defmodule LivebookWeb.FormComponents do
           class="peer hidden"
           value={@checked_value}
           name={@name}
-          id={@id || @name}
+          id={@checkbox_input_id}
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded">
+        <button
+          class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded"
+          type="button"
+          autofocus
+          phx-click={JS.dispatch("click", to: "##{@checkbox_input_id}")}
+        >
           <svg viewBox="0 0 16 16" fill="white" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z" />
           </svg>
-        </div>
+        </button>
         <span :if={@label} class={["text-gray-700 flex gap-1 items-center", @small && "text-sm"]}>
           <%= @label %>
           <.help :if={@help} text={@help} />
