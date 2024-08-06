@@ -56,6 +56,7 @@ import {
 } from "./live_editor/codemirror/commands";
 import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 import { selectingClass } from "./live_editor/codemirror/selecting_class";
+import { globalPubsub } from "../../lib/pubsub";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -532,9 +533,19 @@ export default class LiveEditor {
               item.classList.add("cm-hoverDocsContent");
               item.classList.add("cm-markdown");
               dom.appendChild(item);
+
               new Markdown(item, content, {
                 defaultCodeLanguage: this.language,
                 useDarkTheme: this.usesDarkTheme(),
+              });
+
+              item.addEventListener("click", (e) => {
+                if (e.target.dataset.cell_id && e.target.dataset.line) {
+                  const cellId = e.target.dataset.cell_id;
+                  const line = e.target.dataset.line;
+
+                  globalPubsub.broadcast("go_to_definition", { cellId, line });
+                }
               });
             }
 

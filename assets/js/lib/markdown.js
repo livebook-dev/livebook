@@ -21,8 +21,6 @@ import { highlight } from "../hooks/cell_editor/live_editor/highlight";
 import { renderMermaid } from "./markdown/mermaid";
 import { escapeHtml } from "../lib/utils";
 
-const DEFAULT_URI_SCHEMES = ["goto"];
-
 /**
  * Renders markdown content in the given container.
  */
@@ -38,10 +36,6 @@ class Markdown {
       useDarkTheme = false,
     } = {},
   ) {
-    for (const i in DEFAULT_URI_SCHEMES) {
-      allowedUriSchemes.push(DEFAULT_URI_SCHEMES[i]);
-    }
-
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
@@ -261,11 +255,11 @@ function rehypeExternalLinks(options) {
       if (node.properties && node.properties.href) {
         const url = node.properties.href;
 
-        if (isInternalScheme(url)) {
-          const [_goto, rest] = url.split(":");
-          const [cell_id, search] = rest.split("?");
-          const searchParams = new URLSearchParams(`?${search}`);
+        if (isPageAnchor(url)) {
+          const search = url.replace("#go-to-definition", "");
+          const searchParams = new URLSearchParams(search);
           const json = Object.fromEntries(searchParams);
+          const [_filename, cell_id] = json.file.split("#cell:");
 
           node.properties.href = null;
           node.properties.className = "cursor-pointer";
@@ -297,10 +291,6 @@ function isPageAnchor(url) {
 
 function isInternalUrl(url) {
   return url.startsWith("/") || url.startsWith(window.location.origin);
-}
-
-function isInternalScheme(url) {
-  return url.startsWith("goto:");
 }
 
 function urlAppend(url, relativePath) {
