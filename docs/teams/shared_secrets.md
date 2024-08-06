@@ -4,7 +4,7 @@
 
 This feature allows your team to share Livebook secrets among team members in an easy way.
 
-Just add a secret to your organization hub, and Livebook Teams will synchronize it with the Livebook of every member of your organization.
+Just add a secret to your organization workspace, and Livebook Teams will synchronize it with the Livebook of every member of your organization.
 
 ![](images/add_shared_secret.png)
 
