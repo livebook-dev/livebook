@@ -1,2 +1,0 @@
-set LIVEBOOK_DISTRIBUTION=name
-set LIVEBOOK_NODE=livebook@127.0.0.1
