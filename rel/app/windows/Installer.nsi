@@ -31,7 +31,15 @@ Section "Install"
   SetOutPath "$INSTDIR"
 
   File "bin\vc_redist.x64.exe"
-  ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
+
+  ; Check if the redistributable is installed
+  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
+  ${If} $0 == 1
+      DetailPrint "Visual C++ Redistributable is already installed. Skipping installation."
+  ${Else}
+      DetailPrint "Visual C++ Redistributable is not installed. Installing now..."
+      ExecWait '"$INSTDIR\vc_redist.x64.exe" /install /quiet /norestart'
+  ${EndIf}
   Delete "$INSTDIR\vc_redist.x64.exe"
 
   File /a /r "bin\Livebook-Release\"
