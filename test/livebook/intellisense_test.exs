@@ -5,7 +5,7 @@ defmodule Livebook.IntellisenseTest do
 
   # Returns intellisense context resulting from evaluating
   # the given block of code in a fresh context.
-  defmacrop eval(node \\ node(), do: block) do
+  defmacrop eval(do: block) do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
@@ -14,7 +14,7 @@ defmodule Livebook.IntellisenseTest do
 
       %{
         env: env,
-        ebin_path: ebin_path(unquote(node)),
+        ebin_path: System.tmp_dir!(),
         map_binding: fn fun -> fun.(binding) end
       }
     end
@@ -1917,7 +1917,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "find the RemoteModule and its docs", %{node: node} do
-      context = eval(node, do: nil)
+      context = eval(do: nil)
 
       assert %{
                label: "RemoteModule",
@@ -1932,7 +1932,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "find RemoteModule exported functions and its docs", %{node: node} do
-      context = eval(node, do: nil)
+      context = eval(do: nil)
 
       assert %{
                label: "hello/1",
@@ -1944,7 +1944,7 @@ defmodule Livebook.IntellisenseTest do
 
     @tag :erl_docs
     test "find modules from apps", %{node: node} do
-      context = eval(node, do: nil)
+      context = eval(do: nil)
 
       assert [
                %{
@@ -1957,19 +1957,10 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "get details", %{node: node} do
-      context = eval(node, do: nil)
+      context = eval(do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
       assert content =~ "No documentation available"
     end
-  end
-
-  defp ebin_path(node) do
-    [runtime_path] =
-      for path <- :erpc.call(node, :code, :get_path, []),
-          to_string(path) =~ "livebook_runtime",
-          do: to_string(path)
-
-    runtime_path
   end
 end

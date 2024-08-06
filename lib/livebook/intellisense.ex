@@ -409,8 +409,6 @@ defmodule Livebook.Intellisense do
     %{matches: matches, range: range} =
       IdentifierMatcher.locate_identifier(line, column, context, node)
 
-    ctx = %{intellisense_context: context, node: node}
-
     case Enum.filter(matches, &include_in_details?/1) do
       [] ->
         nil
@@ -419,7 +417,7 @@ defmodule Livebook.Intellisense do
         contents =
           matches
           |> Enum.sort_by(& &1[:arity], :asc)
-          |> Enum.map(&format_details_item(&1, ctx))
+          |> Enum.map(&format_details_item(&1, context))
 
         %{range: range, contents: contents}
     end
@@ -429,13 +427,13 @@ defmodule Livebook.Intellisense do
   defp include_in_details?(%{kind: :bitstring_modifier}), do: false
   defp include_in_details?(_), do: true
 
-  defp format_details_item(%{kind: :variable, name: name}, _ctx), do: code(name)
+  defp format_details_item(%{kind: :variable, name: name}, _context), do: code(name)
 
-  defp format_details_item(%{kind: :map_field, name: name}, _ctx), do: code(name)
+  defp format_details_item(%{kind: :map_field, name: name}, _context), do: code(name)
 
-  defp format_details_item(%{kind: :in_map_field, name: name}, _ctx), do: code(name)
+  defp format_details_item(%{kind: :in_map_field, name: name}, _context), do: code(name)
 
-  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}, _ctx) do
+  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}, _context) do
     join_with_divider([
       code(name),
       """
@@ -450,11 +448,11 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item(
          %{kind: :module, module: module, documentation: documentation},
-         ctx
+         context
        ) do
     join_with_divider([
       code(inspect(module)),
-      format_definition_link(module, ctx),
+      format_definition_link(module, context),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
@@ -471,12 +469,12 @@ defmodule Livebook.Intellisense do
            specs: specs,
            meta: meta
          },
-         ctx
+         context
        ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_definition_link(module, ctx, {:function, name, arity}),
+        format_definition_link(module, context, {:function, name, arity}),
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
@@ -495,11 +493,11 @@ defmodule Livebook.Intellisense do
            documentation: documentation,
            type_spec: type_spec
          },
-         ctx
+         context
        ) do
     join_with_divider([
       format_type_signature(type_spec, module) |> code(),
-      format_definition_link(module, ctx, {:type, name, arity}),
+      format_definition_link(module, context, {:type, name, arity}),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -508,7 +506,7 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item(
          %{kind: :module_attribute, name: name, documentation: documentation},
-         _ctx
+         _context
        ) do
     join_with_divider([
       code("@#{name}"),
@@ -541,9 +539,9 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_definition_link(module, ctx, function_or_type \\ nil) do
-    if ctx.intellisense_context.ebin_path do
-      path = Path.join(ctx.intellisense_context.ebin_path, "#{module}.beam")
+  defp format_definition_link(module, context, function_or_type \\ nil) do
+    if context.ebin_path do
+      path = Path.join(context.ebin_path, "#{module}.beam")
 
       identifier =
         if function_or_type,
@@ -552,7 +550,7 @@ defmodule Livebook.Intellisense do
 
       with true <- File.exists?(path),
            {:ok, line} <- Docs.locate_definition(to_charlist(path), identifier) do
-        file = :erpc.call(ctx.node, fn -> module.module_info(:compile)[:source] end)
+        file = module.module_info(:compile)[:source]
         query_string = URI.encode_query(%{file: to_string(file), line: line})
         "[Go to definition](#go-to-definition?#{query_string})"
       else

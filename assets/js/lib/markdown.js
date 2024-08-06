@@ -255,18 +255,7 @@ function rehypeExternalLinks(options) {
       if (node.properties && node.properties.href) {
         const url = node.properties.href;
 
-        if (isPageAnchor(url)) {
-          const search = url.replace("#go-to-definition", "");
-          const searchParams = new URLSearchParams(search);
-          const json = Object.fromEntries(searchParams);
-          const [_filename, cell_id] = json.file.split("#cell:");
-
-          node.properties.href = null;
-          node.properties.className = "cursor-pointer";
-          node.properties[`data-cell_id`] = cell_id;
-          node.properties[`data-line`] = json.line;
-          node.properties[`data-el-gotodef`] = true;
-        } else if (isInternalUrl(url)) {
+        if (isInternalUrl(url)) {
           node.properties["data-phx-link"] =
             options.baseUrl && url.startsWith(options.baseUrl)
               ? "patch"
