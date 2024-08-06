@@ -2,20 +2,10 @@ import LiveEditor from "./cell_editor/live_editor";
 import Connection from "./cell_editor/live_editor/connection";
 import { parseHookProps } from "../lib/attribute";
 import { waitUntilInViewport } from "../lib/utils";
-import { globalPubsub } from "../lib/pubsub";
 
 const CellEditor = {
   mounted() {
     this.props = this.getProps();
-
-    this.el.addEventListener("click", (e) => {
-      if (e.target.matches("[data-el-gotodef]")) {
-        const cellId = e.target.dataset.cell_id;
-        const line = e.target.dataset.line;
-
-        globalPubsub.broadcast("go_to_definition", { cellId, line });
-      }
-    });
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,

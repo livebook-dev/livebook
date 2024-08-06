@@ -546,15 +546,15 @@ defmodule Livebook.Intellisense do
       path = Path.join(ctx.intellisense_context.ebin_path, "#{module}.beam")
 
       identifier =
-        case function_or_type do
-          nil -> {:module, module}
-          {kind, name, arity} -> {kind, module, name, arity}
-        end
+        if function_or_type,
+          do: function_or_type,
+          else: {:module, module}
 
       with true <- File.exists?(path),
-           {:ok, cell_id, line} <-
-             IdentifierMatcher.fetch_identifier(to_charlist(path), ctx.node, identifier) do
-        "[Go to definition](goto:#{cell_id}?line=#{line})"
+           {:ok, line} <- Docs.locate_definition(to_charlist(path), identifier) do
+        file = :erpc.call(ctx.node, fn -> module.module_info(:compile)[:source] end)
+        query_string = URI.encode_query(%{file: to_string(file), line: line})
+        "[Go to definition](#go-to-definition?#{query_string})"
       else
         _otherwise -> nil
       end

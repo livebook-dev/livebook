@@ -176,47 +176,6 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  @doc """
-  Extracts the location about an identifier found.
-
-  The function returns the cell id and the line where the identifier
-  is located.
-  """
-  @spec fetch_identifier(
-          charlist(),
-          node(),
-          {:module, module()} | {:function | :type, name :: atom(), arity :: pos_integer()}
-        ) ::
-          {:ok, cell_id :: String.t(), line :: pos_integer()} | :error
-  def fetch_identifier(path, node, identifier)
-
-  def fetch_identifier(path, node, {:module, module}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code),
-         {:ok, cell_id} <- cell_id_from_module(node, module) do
-      {:attribute, anno, :module, ^module} =
-        Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
-
-      {:ok, cell_id, :erl_anno.line(anno)}
-    end
-  end
-
-  def fetch_identifier(path, node, {:function, module, name, arity}) do
-    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
-         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}),
-         {:ok, line} <- Keyword.fetch(kw, :line),
-         {:ok, cell_id} <- cell_id_from_module(node, module) do
-      {:ok, cell_id, line}
-    end
-  end
-
-  def fetch_identifier(path, node, {:type, module, name, arity}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code),
-         {:ok, line} <- find_type_value(annotations, name, arity),
-         {:ok, cell_id} <- cell_id_from_module(node, module) do
-      {:ok, cell_id, line}
-    end
-  end
-
   # Takes a context returned from Code.Fragment.cursor_context
   # or Code.Fragment.surround_context and looks up matching
   # identifier items
@@ -846,38 +805,5 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           name: attribute,
           documentation: {"text/markdown", info.doc}
         }
-  end
-
-  defp beam_lib_chunks(bin, key) do
-    with {:ok, {_, [{^key, value}]}} <- :beam_lib.chunks(bin, [key]) do
-      {:ok, value}
-    end
-  end
-
-  defp cell_id_from_module(node, module) do
-    node
-    |> :erpc.call(fn -> module.module_info(:compile)[:source] end)
-    |> :string.split(~c"#cell:")
-    |> case do
-      [_filename, cell_id] -> {:ok, to_string(cell_id)}
-      _otherwise -> :error
-    end
-  end
-
-  defp keyfind(list, key) do
-    List.keyfind(list, key, 0) || :error
-  end
-
-  defp find_type_value(annotations, name, arity) do
-    annotations
-    |> Enum.filter(&match?({:attribute, _, :type, _}, &1))
-    |> Enum.sort_by(&elem(&1, 1), :asc)
-    |> Enum.find_value(:error, fn
-      {:attribute, anno, :type, {^name, _, vars}} when length(vars) == arity ->
-        {:ok, :erl_anno.line(anno)}
-
-      _ ->
-        nil
-    end)
   end
 end

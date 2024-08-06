@@ -157,6 +157,13 @@ const Session = {
       (event) => this.toggleCollapseAllSections(),
     );
 
+    this.getElement("gotodef").addEventListener("click", (e) => {
+      const cellId = e.target.dataset.cell_id;
+      const line = e.target.dataset.line;
+
+      globalPubsub.broadcast("go_to_definition", { cellId, line });
+    });
+
     this.initializeDragAndDrop();
 
     window.addEventListener(

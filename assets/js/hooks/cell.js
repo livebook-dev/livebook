@@ -179,7 +179,7 @@ const Cell = {
 
   handleLineFocused(line) {
     if (this.isFocused) {
-      this.currentEditor().focusLine(line);
+      this.currentEditor().moveCursorToLine(line);
     }
   },
 

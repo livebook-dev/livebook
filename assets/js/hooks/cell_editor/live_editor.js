@@ -180,15 +180,14 @@ export default class LiveEditor {
   }
 
   /**
-   * Focuses the editor in given line.
-   *
+   * Updates editor selection such that cursor points to the given line.
    */
-  focusLine(lineNumber) {
-    setTimeout(() => {
-      const line = this.view.state.doc.line(lineNumber);
+  moveCursorToLine(lineNumber) {
+    const line = this.view.state.doc.line(lineNumber);
 
+    setTimeout(() => {
       this.view.dispatch({
-        selection: { anchor: line.from },
+        selection: EditorSelection.single(line.from),
         scrollIntoView: EditorView.scrollIntoView(this.view.contentDOM, {
           scrollMode: "if-needed",
           behavior: "smooth",

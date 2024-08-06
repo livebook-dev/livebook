@@ -1867,8 +1867,6 @@ defmodule Livebook.IntellisenseTest do
     pid = Livebook.Runtime.Standalone.new() |> Livebook.Runtime.connect()
     assert_receive {:runtime_connect_done, ^pid, {:ok, runtime}}
 
-    cell_id = Livebook.Utils.random_short_id()
-    file = "#{__ENV__.file}#cell:#{cell_id}"
     parent = self()
 
     runtime_owner_pid =
@@ -1884,24 +1882,9 @@ defmodule Livebook.IntellisenseTest do
               RemoteModule module docs
               """
 
-              @type t :: term()
-              @type foo :: foo(:bar)
-              @type foo(var) :: {var, t()}
-
-              defmacro with_logging(do: block) do
-                quote do
-                  require Logger
-                  Logger.debug("Running code")
-                  result = unquote(block)
-                  Logger.debug("Result: #{inspect(result)}")
-                  result
-                end
-              end
-
               @doc """
               Hello doc
               """
-              @spec hello(var :: term()) :: foo(term())
               def hello(message)
 
               def hello(message) do
@@ -1910,7 +1893,7 @@ defmodule Livebook.IntellisenseTest do
             end
             '''
 
-          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [], file: file)
+          Livebook.Runtime.evaluate_code(runtime, :elixir, code, {:c1, :e1}, [])
           receive do: ({:runtime_evaluation_response, :e1, _, _} -> :ok)
           send(parent, :continue)
 
@@ -1924,7 +1907,7 @@ defmodule Livebook.IntellisenseTest do
       Process.exit(runtime_owner_pid, :kill)
     end)
 
-    [node: runtime.node, cell_id: cell_id]
+    [node: runtime.node]
   end
 
   describe "intellisense completion for remote nodes" do
@@ -1973,40 +1956,11 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items(":mnesia.unsub", context, node)
     end
 
-    test "get details", %{node: node, cell_id: cell_id} do
-      Code.put_compiler_option(:debug_info, true)
+    test "get details", %{node: node} do
       context = eval(node, do: nil)
 
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
       assert content =~ "No documentation available"
-
-      # check if shows the go-to-definition link for modules
-      assert content =~ "goto:#{cell_id}?line=1"
-
-      # check if shows the go-to-definition link for functions
-      assert %{contents: [content]} =
-               Intellisense.get_details("RemoteModule.with_logging", 15, context, node)
-
-      assert content =~ "goto:#{cell_id}?line=10"
-
-      assert %{contents: [content]} =
-               Intellisense.get_details("RemoteModule.hello", 15, context, node)
-
-      assert content =~ "goto:#{cell_id}?line=24"
-
-      # check if shows the go-to-definition link for types
-      assert %{contents: [content]} =
-               Intellisense.get_details("RemoteModule.t", 14, context, node)
-
-      assert content =~ "goto:#{cell_id}?line=6"
-
-      assert %{contents: [arity_0_content, arity_1_content]} =
-               Intellisense.get_details("RemoteModule.foo", 14, context, node)
-
-      assert arity_0_content =~ "goto:#{cell_id}?line=7"
-      assert arity_1_content =~ "goto:#{cell_id}?line=8"
-    after
-      Code.put_compiler_option(:debug_info, false)
     end
   end
 
