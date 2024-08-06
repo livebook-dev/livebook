@@ -132,7 +132,7 @@ function buildEditorTheme(colors, { dark }) {
       },
 
       ".cm-panels": {
-        backgroundColor: colors.background,
+        backgroundColor: "transparent",
         color: colors.text,
 
         "&.cm-panels-top": {
@@ -325,7 +325,7 @@ function buildEditorTheme(colors, { dark }) {
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
-        padding: "8px 8px 0 8px",
+        padding: "8px",
 
         "& br": {
           content: '" "',
