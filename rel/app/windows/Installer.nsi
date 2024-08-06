@@ -42,6 +42,9 @@ Section "Install"
   ${EndIf}
   Delete "$INSTDIR\vc_redist.x64.exe"
 
+  DetailPrint "Stopping epmd.exe from previous installation, if any"
+  ExecWait "taskkill /f /t /im epmd.exe"
+
   File /a /r "bin\Livebook-Release\"
 
   CreateDirectory "$LOCALAPPDATA\Livebook\Logs"
