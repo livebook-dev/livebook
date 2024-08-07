@@ -237,10 +237,6 @@ const Session = {
       const report = { focusableId: focusable_id };
       this.handleLocationReport(client_id, report);
     });
-
-    globalPubsub.subscribe("go_to_definition", ({ cellId, line }) => {
-      this.handleGoToDefinition(cellId, line);
-    });
   },
 
   updated() {
@@ -1087,12 +1083,6 @@ const Session = {
     this.sendLocationReport({ focusableId });
   },
 
-  setFocusedLine(focusableId, line, options) {
-    this.setFocusedEl(focusableId, options);
-    globalPubsub.broadcast("navigation", { type: "line_focused", line });
-    this.setInsertMode(true);
-  },
-
   setInsertMode(insertModeEnabled) {
     this.insertMode = insertModeEnabled;
 
@@ -1331,12 +1321,6 @@ const Session = {
       ) {
         this.setFocusedEl(report.focusableId);
       }
-    }
-  },
-
-  handleGoToDefinition(cellId, line) {
-    if (this.isCell(cellId)) {
-      this.setFocusedLine(cellId, line);
     }
   },
 

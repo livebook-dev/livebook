@@ -186,15 +186,9 @@ export default class LiveEditor {
   moveCursorToLine(lineNumber) {
     const line = this.view.state.doc.line(lineNumber);
 
-    setTimeout(() => {
-      this.view.dispatch({
-        selection: EditorSelection.single(line.from),
-        scrollIntoView: EditorView.scrollIntoView(this.view.contentDOM, {
-          scrollMode: "if-needed",
-          behavior: "smooth",
-        }),
-      });
-    }, 300);
+    this.view.dispatch({
+      selection: EditorSelection.single(line.from),
+    });
   }
 
   /**
@@ -537,15 +531,6 @@ export default class LiveEditor {
               new Markdown(item, content, {
                 defaultCodeLanguage: this.language,
                 useDarkTheme: this.usesDarkTheme(),
-              });
-
-              item.addEventListener("click", (e) => {
-                if (e.target.dataset.cell_id && e.target.dataset.line) {
-                  const cellId = e.target.dataset.cell_id;
-                  const line = e.target.dataset.line;
-
-                  globalPubsub.broadcast("go_to_definition", { cellId, line });
-                }
               });
             }
 
