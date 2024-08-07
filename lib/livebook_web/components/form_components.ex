@@ -295,11 +295,11 @@ defmodule LivebookWeb.FormComponents do
 
     ~H"""
     <div>
-      <label class="flex items-center gap-2 cursor-pointer">
+      <label class="flex items-center gap-2 cursor-pointer relative">
         <input :if={@unchecked_value} type="hidden" value={@unchecked_value} name={@name} />
         <input
           type="checkbox"
-          class="peer hidden"
+          class="peer opacity-0 absolute top-0 left-0"
           value={@checked_value}
           name={@name}
           id={@id || @name}
