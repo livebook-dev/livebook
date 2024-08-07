@@ -224,6 +224,7 @@ defmodule Livebook.MixProject do
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",
+      "docs/deployment/nginx_https.md",
       "docs/teams/intro_to_teams.md",
       "docs/teams/shared_secrets.md",
       "docs/teams/shared_file_storages.md",
