@@ -183,7 +183,7 @@ defmodule Livebook.Intellisense.Docs do
 
   The function returns the line where the identifier is located.
   """
-  @spec locate_definition(charlist(), definition()) :: {:ok, pos_integer()} | :error
+  @spec locate_definition(String.t(), definition()) :: {:ok, pos_integer()} | :error
   def locate_definition(path, identifier)
 
   def locate_definition(path, {:module, module}) do
@@ -208,8 +208,10 @@ defmodule Livebook.Intellisense.Docs do
     end
   end
 
-  defp beam_lib_chunks(bin, key) do
-    case :beam_lib.chunks(bin, [key]) do
+  defp beam_lib_chunks(path, key) do
+    path = String.to_charlist(path)
+
+    case :beam_lib.chunks(path, [key]) do
       {:ok, {_, [{^key, value}]}} -> {:ok, value}
       _ -> :error
     end

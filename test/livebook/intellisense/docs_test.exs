@@ -34,7 +34,6 @@ defmodule Livebook.Intellisense.DocsTest do
     path = Path.join(tmp_dir, "Elixir.GoToDefinition.beam")
     [{module, bytecode}] = Code.compile_string(@code)
     File.write!(path, bytecode)
-    path = to_charlist(path)
 
     assert Docs.locate_definition(path, {:module, module}) == {:ok, 1}
     assert Docs.locate_definition(path, {:function, :with_logging, 1}) == {:ok, 6}

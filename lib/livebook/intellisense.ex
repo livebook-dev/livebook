@@ -549,7 +549,7 @@ defmodule Livebook.Intellisense do
           else: {:module, module}
 
       with true <- File.exists?(path),
-           {:ok, line} <- Docs.locate_definition(to_charlist(path), identifier) do
+           {:ok, line} <- Docs.locate_definition(path, identifier) do
         file = module.module_info(:compile)[:source]
         query_string = URI.encode_query(%{file: to_string(file), line: line})
         "[Go to definition](#go-to-definition?#{query_string})"
