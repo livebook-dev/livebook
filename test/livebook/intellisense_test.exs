@@ -1885,10 +1885,8 @@ defmodule Livebook.IntellisenseTest do
               @doc """
               Hello doc
               """
-              def hello(message)
-
               def hello(message) do
-                {:bar, message}
+                message
               end
             end
             '''
@@ -1897,14 +1895,14 @@ defmodule Livebook.IntellisenseTest do
           receive do: ({:runtime_evaluation_response, :e1, _, _} -> :ok)
           send(parent, :continue)
 
-          Process.sleep(:infinity)
+          receive do: (:done -> :ok)
         end
       })
 
     receive do: (:continue -> :ok)
 
     on_exit(fn ->
-      Process.exit(runtime_owner_pid, :kill)
+      send(runtime_owner_pid, :done)
     end)
 
     [node: runtime.node]
