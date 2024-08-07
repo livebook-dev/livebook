@@ -159,6 +159,8 @@ const Cell = {
   handleCellEvent(event) {
     if (event.type === "dispatch_queue_evaluation") {
       this.handleDispatchQueueEvaluation(event.dispatch);
+    } else if (event.type === "jump_to_line") {
+      this.handleJumpToLine(event.line);
     }
   },
 
@@ -172,6 +174,12 @@ const Cell = {
     } else if (this.isFocused) {
       this.isFocused = false;
       this.el.removeAttribute("data-js-focused");
+    }
+  },
+
+  handleJumpToLine(line) {
+    if (this.isFocused) {
+      this.currentEditor().moveCursorToLine(line);
     }
   },
 

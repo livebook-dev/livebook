@@ -40,6 +40,9 @@ defmodule Livebook.Intellisense.Docs do
   @type type_spec() :: {type_kind(), term()}
   @type type_kind() :: :type | :opaque
 
+  @type definition ::
+          {:module, module()} | {:function | :type, name :: atom(), arity :: pos_integer()}
+
   @doc """
   Fetches documentation for the given module if available.
   """
@@ -174,4 +177,57 @@ defmodule Livebook.Intellisense.Docs do
   # so we explicitly list it.
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(module), do: Code.ensure_loaded?(module)
+
+  @doc """
+  Extracts the location about an identifier found.
+
+  The function returns the line where the identifier is located.
+  """
+  @spec locate_definition(String.t(), definition()) :: {:ok, pos_integer()} | :error
+  def locate_definition(path, identifier)
+
+  def locate_definition(path, {:module, module}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+      {:attribute, anno, :module, ^module} =
+        Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
+
+      {:ok, :erl_anno.line(anno)}
+    end
+  end
+
+  def locate_definition(path, {:function, name, arity}) do
+    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
+         {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
+      Keyword.fetch(kw, :line)
+    end
+  end
+
+  def locate_definition(path, {:type, name, arity}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+      fetch_type_line(annotations, name, arity)
+    end
+  end
+
+  defp fetch_type_line(annotations, name, arity) do
+    for {:attribute, anno, :type, {^name, _, vars}} <- annotations, length(vars) == arity do
+      :erl_anno.line(anno)
+    end
+    |> case do
+      [] -> :error
+      lines -> {:ok, Enum.min(lines)}
+    end
+  end
+
+  defp beam_lib_chunks(path, key) do
+    path = String.to_charlist(path)
+
+    case :beam_lib.chunks(path, [key]) do
+      {:ok, {_, [{^key, value}]}} -> {:ok, value}
+      _ -> :error
+    end
+  end
+
+  defp keyfind(list, key) do
+    List.keyfind(list, key, 0) || :error
+  end
 end

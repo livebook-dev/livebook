@@ -11,7 +11,7 @@ import {
   lineNumbers,
   highlightActiveLineGutter,
 } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, EditorSelection } from "@codemirror/state";
 import {
   indentOnInput,
   bracketMatching,
@@ -56,6 +56,7 @@ import {
 } from "./live_editor/codemirror/commands";
 import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 import { selectingClass } from "./live_editor/codemirror/selecting_class";
+import { globalPubsub } from "../../lib/pubsub";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -177,6 +178,17 @@ export default class LiveEditor {
     }
 
     this.view.focus();
+  }
+
+  /**
+   * Updates editor selection such that cursor points to the given line.
+   */
+  moveCursorToLine(lineNumber) {
+    const line = this.view.state.doc.line(lineNumber);
+
+    this.view.dispatch({
+      selection: EditorSelection.single(line.from),
+    });
   }
 
   /**
@@ -515,6 +527,7 @@ export default class LiveEditor {
               item.classList.add("cm-hoverDocsContent");
               item.classList.add("cm-markdown");
               dom.appendChild(item);
+
               new Markdown(item, content, {
                 defaultCodeLanguage: this.language,
                 useDarkTheme: this.usesDarkTheme(),

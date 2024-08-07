@@ -13,7 +13,7 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   Evaluation binding and environment is used to expand aliases,
   imports, access variable values, etc.
   """
-  @spec get_matching_signatures(String.t(), Livebook.Intellisense.intellisense_context(), node()) ::
+  @spec get_matching_signatures(String.t(), Livebook.Intellisense.context(), node()) ::
           {:ok, list(signature_info()), active_argument :: non_neg_integer()} | :error
   def get_matching_signatures(hint, intellisense_context, node) do
     %{env: env} = intellisense_context
