@@ -3,6 +3,15 @@ defmodule Livebook.Apps.ManagerTest do
   # also test restarting the global manager process
   use ExUnit.Case, async: false
 
+  # On Windows CI the VM exits abruptly while running this suite most
+  # of the time. Elixir does not exit explicitly anywhere, which points
+  # to some edge case in the VM itself. Note that introducing more IO
+  # for debugging purposes makes the issue go away. We skipt the suite
+  # on Windows entirely for now.
+  #
+  # TODO: retry on OTP 28
+  @moduletag :unix
+
   alias Livebook.Apps
   alias Livebook.Notebook
 
