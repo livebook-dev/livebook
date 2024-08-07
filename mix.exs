@@ -235,8 +235,7 @@ defmodule Livebook.MixProject do
       groups_for_extras: [
         "Livebook Teams": Path.wildcard("docs/teams/*"),
         Deployment: Path.wildcard("docs/deployment/*"),
-        Authentication: Path.wildcard("docs/authentication/*"),
-        "How-to guides": Path.wildcard("docs/how_to/*")
+        Authentication: Path.wildcard("docs/authentication/*")
       ]
     ]
   end
@@ -249,6 +248,7 @@ defmodule Livebook.MixProject do
       "docs/deployment/docker.md",
       "docs/deployment/clustering.md",
       "docs/deployment/fips.md",
+      "docs/deployment/nginx_https.md",
       "docs/teams/intro_to_teams.md",
       "docs/teams/shared_secrets.md",
       "docs/teams/shared_file_storages.md",
@@ -256,8 +256,7 @@ defmodule Livebook.MixProject do
       "docs/authentication/cloudflare.md",
       "docs/authentication/google_iap.md",
       "docs/authentication/tailscale.md",
-      "docs/authentication/custom_auth.md",
-      "docs/how_to/nginx_https.md"
+      "docs/authentication/custom_auth.md"
     ]
   end
 end
