@@ -222,13 +222,12 @@ defmodule Livebook.Intellisense.Docs do
   end
 
   defp find_type_value(annotations, name, arity) do
-    for {:attribute, anno, :type, {^name, _, vars}} when length(vars) == arity <- annotations do
+    for {:attribute, anno, :type, {^name, _, vars}} <- annotations, length(vars) == arity do
       :erl_anno.line(anno)
     end
-    |> Enum.sort()
     |> case do
       [] -> :error
-      [line | _] -> {:ok, line}
+      lines -> {:ok, Enum.min(lines)}
     end
   end
 end
