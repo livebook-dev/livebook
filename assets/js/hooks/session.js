@@ -552,7 +552,7 @@ const Session = {
       this.setInsertMode(true);
 
       globalPubsub.broadcast("navigation", {
-        type: "line_focused",
+        type: "jump_to_line",
         line: json.line,
       });
       event.preventDefault();

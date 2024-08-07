@@ -147,8 +147,8 @@ const Cell = {
       this.handleElementFocused(event.focusableId, event.scroll);
     } else if (event.type === "insert_mode_changed") {
       this.handleInsertModeChanged(event.enabled);
-    } else if (event.type === "line_focused") {
-      this.handleLineFocused(event.line);
+    } else if (event.type === "jump_to_line") {
+      this.handleJumpToLine(event.line);
     }
   },
 
@@ -177,7 +177,7 @@ const Cell = {
     }
   },
 
-  handleLineFocused(line) {
+  handleJumpToLine(line) {
     if (this.isFocused) {
       this.currentEditor().moveCursorToLine(line);
     }
