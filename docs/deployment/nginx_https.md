@@ -17,7 +17,7 @@ Use the following Nginx config file as a starting point:
 http {
     server {
         listen 443 ssl;
-        server_name your_domain_or_ip;  # e.g., livebook.example.com
+        server_name your_domain;  # e.g., livebook.example.com
 
         ssl_certificate /path/to/your/ssl_certificate.crt;  # e.g., /etc/nginx/ssl/livebook.crt
         ssl_certificate_key /path/to/your/ssl_certificate.key;  # e.g., /etc/nginx/ssl/livebook.key
@@ -36,7 +36,7 @@ http {
 
     server {
         listen 80;
-        server_name your_domain_or_ip;  # e.g., livebook.example.com
+        server_name your_domain;  # e.g., livebook.example.com
         return 301 https://$host$request_uri;
     }
 }
