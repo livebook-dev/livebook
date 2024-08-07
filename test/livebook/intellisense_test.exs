@@ -5,7 +5,7 @@ defmodule Livebook.IntellisenseTest do
 
   # Returns intellisense context resulting from evaluating
   # the given block of code in a fresh context.
-  defmacrop eval(do: block) do
+  defmacrop eval(ebin_path \\ System.tmp_dir!(), do: block) do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
@@ -14,7 +14,7 @@ defmodule Livebook.IntellisenseTest do
 
       %{
         env: env,
-        ebin_path: System.tmp_dir!(),
+        ebin_path: unquote(ebin_path),
         map_binding: fn fun -> fun.(binding) end
       }
     end
@@ -1580,6 +1580,74 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details(":string.uppercase", 11, context, node())
 
       assert content =~ ~r"https://www.erlang.org/doc/man/string.html#uppercase-1"
+    end
+
+    test "returns the go to definition link" do
+      Code.put_compiler_option(:debug_info, true)
+
+      [runtime_path | _] = :code.get_path()
+      runtime_path = to_string(runtime_path)
+
+      context = eval(runtime_path, do: nil)
+
+      code = ~S'''
+      defmodule GoToDefinition do
+        @type t :: term()
+        @type foo :: foo(:bar)
+        @type foo(var) :: {var, t()}
+
+        defmacro with_logging(do: block) do
+          quote do
+            require Logger
+            Logger.debug("Running code")
+            result = unquote(block)
+            Logger.debug("Result: #{inspect(result)}")
+            result
+          end
+        end
+
+        @spec hello(var :: term()) :: foo(term())
+        def hello(message) do
+          {:bar, message}
+        end
+      end
+      '''
+
+      file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
+      [runtime_path | _] = :code.get_path()
+      runtime_path = to_string(runtime_path)
+      path = Path.join(runtime_path, "Elixir.GoToDefinition.beam")
+
+      [{_module, bytecode}] = Code.compile_string(code, file)
+      File.write!(path, bytecode)
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("GoToDefinition", 14, context, node())
+
+      assert content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 1})}"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("GoToDefinition.t", 16, context, node())
+
+      assert content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 2})}"
+
+      assert %{contents: [arity_0_content, arity_1_content]} =
+               Intellisense.get_details("GoToDefinition.foo", 18, context, node())
+
+      assert arity_0_content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 3})}"
+      assert arity_1_content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 4})}"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("GoToDefinition.with_logging", 20, context, node())
+
+      assert content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 6})}"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("GoToDefinition.hello", 18, context, node())
+
+      assert content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 17})}"
+    after
+      Code.put_compiler_option(:debug_info, false)
     end
   end
 
