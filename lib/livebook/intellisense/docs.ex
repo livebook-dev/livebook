@@ -204,7 +204,17 @@ defmodule Livebook.Intellisense.Docs do
 
   def locate_definition(path, {:type, name, arity}) do
     with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
-      find_type_value(annotations, name, arity)
+      fetch_type_line(annotations, name, arity)
+    end
+  end
+
+  defp fetch_type_line(annotations, name, arity) do
+    for {:attribute, anno, :type, {^name, _, vars}} <- annotations, length(vars) == arity do
+      :erl_anno.line(anno)
+    end
+    |> case do
+      [] -> :error
+      lines -> {:ok, Enum.min(lines)}
     end
   end
 
@@ -219,15 +229,5 @@ defmodule Livebook.Intellisense.Docs do
 
   defp keyfind(list, key) do
     List.keyfind(list, key, 0) || :error
-  end
-
-  defp find_type_value(annotations, name, arity) do
-    for {:attribute, anno, :type, {^name, _, vars}} <- annotations, length(vars) == arity do
-      :erl_anno.line(anno)
-    end
-    |> case do
-      [] -> :error
-      lines -> {:ok, Enum.min(lines)}
-    end
   end
 end
