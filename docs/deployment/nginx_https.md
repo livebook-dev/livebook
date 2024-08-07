@@ -1,4 +1,4 @@
-# How to use Nginx to serve Livebook over HTTPS
+# Nginx over HTTPS
 
 This guide shows you how to use Nginx to serve Livebook over HTTPS.
 
