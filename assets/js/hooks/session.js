@@ -544,17 +544,15 @@ const Session = {
       event.target.hash.startsWith("#go-to-definition")
     ) {
       const search = event.target.hash.replace("#go-to-definition", "");
-      const searchParams = new URLSearchParams(search);
-      const json = Object.fromEntries(searchParams);
-      const [_filename, cellId] = json.file.split("#cell:");
+      const params = new URLSearchParams(search);
+      const line = parseInt(params.get("line"), 10);
+      const [_filename, cellId] = params.get("file").split("#cell:");
 
       this.setFocusedEl(cellId);
       this.setInsertMode(true);
 
-      globalPubsub.broadcast("navigation", {
-        type: "jump_to_line",
-        line: json.line,
-      });
+      globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+
       event.preventDefault();
     }
 

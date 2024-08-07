@@ -147,8 +147,6 @@ const Cell = {
       this.handleElementFocused(event.focusableId, event.scroll);
     } else if (event.type === "insert_mode_changed") {
       this.handleInsertModeChanged(event.enabled);
-    } else if (event.type === "jump_to_line") {
-      this.handleJumpToLine(event.line);
     }
   },
 
@@ -161,6 +159,8 @@ const Cell = {
   handleCellEvent(event) {
     if (event.type === "dispatch_queue_evaluation") {
       this.handleDispatchQueueEvaluation(event.dispatch);
+    } else if (event.type === "jump_to_line") {
+      this.handleJumpToLine(event.line);
     }
   },
 
