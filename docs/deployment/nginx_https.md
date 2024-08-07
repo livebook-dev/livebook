@@ -43,7 +43,3 @@ http {
 
 events {}
 ```
-
-Note that there's no need to configure a proxy for Livebook's iframe port (the default is 8081)
-because when accessing Livebook over HTTPS, it loads its iframe from
-https://livebookusercontent.com, not from your installed Livebook instance.
