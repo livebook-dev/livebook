@@ -1614,8 +1614,6 @@ defmodule Livebook.IntellisenseTest do
       '''
 
       file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
-      [runtime_path | _] = :code.get_path()
-      runtime_path = to_string(runtime_path)
       path = Path.join(runtime_path, "Elixir.GoToDefinition.beam")
 
       [{_module, bytecode}] = Code.compile_string(code, file)
