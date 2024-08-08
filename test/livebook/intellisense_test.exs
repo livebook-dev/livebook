@@ -1582,16 +1582,17 @@ defmodule Livebook.IntellisenseTest do
       assert content =~ ~r"https://www.erlang.org/doc/man/string.html#uppercase-1"
     end
 
-    test "returns the go to definition link" do
+    @tag :tmp_dir
+    test "returns the go to definition link", %{tmp_dir: tmp_dir} do
       Code.put_compiler_option(:debug_info, true)
 
-      [runtime_path | _] = :code.get_path()
-      runtime_path = to_string(runtime_path)
-
-      context = eval(runtime_path, do: nil)
+      context =
+        eval tmp_dir do
+          alias Livebook.IntellisenseTest.GoToDefinition
+        end
 
       code = ~S'''
-      defmodule GoToDefinition do
+      defmodule Livebook.IntellisenseTest.GoToDefinition do
         @type t :: term()
         @type foo :: foo(:bar)
         @type foo(var) :: {var, t()}
@@ -1614,10 +1615,11 @@ defmodule Livebook.IntellisenseTest do
       '''
 
       file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
-      path = Path.join(runtime_path, "Elixir.GoToDefinition.beam")
+      path = Path.join(tmp_dir, "Elixir.Livebook.IntellisenseTest.GoToDefinition.beam")
 
       [{_module, bytecode}] = Code.compile_string(code, file)
       File.write!(path, bytecode)
+      Code.prepend_path(tmp_dir)
 
       assert %{contents: [content]} =
                Intellisense.get_details("GoToDefinition", 14, context, node())
@@ -1646,6 +1648,9 @@ defmodule Livebook.IntellisenseTest do
       assert content =~ "#go-to-definition?#{URI.encode_query(%{file: file, line: 17})}"
     after
       Code.put_compiler_option(:debug_info, false)
+      Code.delete_path(tmp_dir)
+      :code.purge(:"Elixir.Livebook.IntellisenseTest.GoToDefinition")
+      :code.delete(:"Elixir.Livebook.IntellisenseTest.GoToDefinition")
     end
   end
 
