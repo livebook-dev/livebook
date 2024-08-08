@@ -60,6 +60,7 @@ defmodule LivebookWeb.SessionLive.Render do
         module={LivebookWeb.SessionLive.RuntimeComponent}
         id="runtime-settings"
         session={@session}
+        return_to={@self_path}
         runtime={@data_view.runtime}
         runtime_status={@data_view.runtime_status}
         runtime_connect_info={@data_view.runtime_connect_info}

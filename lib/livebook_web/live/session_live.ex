@@ -1053,6 +1053,10 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, put_flash(socket, kind, message)}
   end
 
+  def handle_info({:push_patch, to}, socket) do
+    {:noreply, push_patch(socket, to: to)}
+  end
+
   def handle_info({:starred_notebooks_updated, starred_notebooks}, socket) do
     {:noreply, assign(socket, starred_files: starred_files(starred_notebooks))}
   end
