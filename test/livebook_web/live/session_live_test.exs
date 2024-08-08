@@ -913,8 +913,12 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_receive {:operation, {:set_runtime, _pid, %Runtime.Standalone{}}}
       assert_receive {:operation, {:runtime_connected, _pid, %Runtime.Standalone{} = runtime}}
 
+      assert_patch(view, "/sessions/#{session.id}")
+      assert render(view) =~ Atom.to_string(runtime.node)
+
+      {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}/settings/runtime")
+
       page = render(view)
-      assert page =~ Atom.to_string(runtime.node)
       assert page =~ "Reconnect"
       assert page =~ "Disconnect"
     end
