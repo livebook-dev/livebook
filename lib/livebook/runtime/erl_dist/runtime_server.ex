@@ -177,7 +177,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             {:transfer, target_path, target_pid} ->
               try do
                 path
-                |> File.stream!(2048, [])
+                |> File.stream!(64_000, [])
                 |> Enum.each(fn chunk -> IO.binwrite(target_pid, chunk) end)
 
                 target_path
