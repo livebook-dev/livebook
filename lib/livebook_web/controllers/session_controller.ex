@@ -304,7 +304,7 @@ defmodule LivebookWeb.SessionController do
 
   defp transfer_file!(remote_node, remote_path, local_path) do
     File.mkdir_p!(Path.dirname(local_path))
-    remote_stream = :erpc.call(remote_node, File, :stream!, [remote_path, 2048, []])
+    remote_stream = :erpc.call(remote_node, File, :stream!, [remote_path, 64_000, []])
     local_stream = File.stream!(local_path)
     Enum.into(remote_stream, local_stream)
   end
