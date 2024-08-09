@@ -61,23 +61,13 @@ defmodule Livebook.Config do
   def docker_images() do
     version = app_version()
 
-    {version, version_cuda} =
-      if version =~ "dev" do
-        {"edge", "latest"}
-      else
-        {version, version}
-      end
+    version = if version =~ "dev", do: "nightly", else: version
 
     [
       %{tag: version, name: "Livebook", env: []},
       %{
-        tag: "#{version_cuda}-cuda11.8",
-        name: "Livebook + CUDA 11.8",
-        env: [{"XLA_TARGET", "cuda118"}]
-      },
-      %{
-        tag: "#{version_cuda}-cuda12.1",
-        name: "Livebook + CUDA 12.1",
+        tag: "#{version}-cuda12",
+        name: "Livebook + CUDA 12",
         env: [{"XLA_TARGET", "cuda120"}]
       }
     ]

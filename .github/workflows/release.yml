@@ -1,0 +1,95 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  schedule:
+    # Daily at 00:00
+    - cron: "0 0 * * *"
+  # Workflow dispatch always builds as nightly
+  workflow_dispatch:
+jobs:
+  create_draft_release:
+    if: github.ref_type == 'tag'
+    name: "Create draft release"
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+    steps:
+      - name: Create draft release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ github.ref_name }} \
+            --draft \
+            ${{ github.ref_name }}
+
+  docker:
+    name: Docker (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "default"
+            suffix: ""
+            build_args: |
+              VARIANT=default
+          - name: "cuda12"
+            tag_suffix: "-cuda12"
+            build_args: |
+              VARIANT=cuda
+              CUDA_VERSION=12-1
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          . versions
+          echo "elixir=$elixir" >> $GITHUB_ENV
+          echo "otp=$otp" >> $GITHUB_ENV
+          echo "ubuntu=$ubuntu" >> $GITHUB_ENV
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/livebook-dev/livebook
+          flavor: |
+            suffix=${{ matrix.tag_suffix }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=nightly,enable=${{ github.ref_type != 'tag' }}
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BASE_IMAGE=hexpm/elixir:${{ env.elixir }}-erlang-${{ env.otp }}-ubuntu-${{ env.ubuntu }}
+            ${{ matrix.build_args }}
+
+  desktop:
+    name: "Desktop"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger desktop builds
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}
+          else
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.sha }} -f release_name=nightly
+          fi

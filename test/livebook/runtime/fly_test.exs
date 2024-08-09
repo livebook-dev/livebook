@@ -73,7 +73,7 @@ defmodule Livebook.Runtime.FlyTest do
       gpu_kind: nil,
       gpus: nil,
       volume_id: nil,
-      docker_tag: "edge"
+      docker_tag: "nightly"
     }
 
     Map.merge(defaults, attrs)
