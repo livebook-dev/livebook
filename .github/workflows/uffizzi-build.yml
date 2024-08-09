@@ -77,7 +77,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BASE_IMAGE=hexpm/elixir:${{ env.elixir }}-erlang-${{ env.otp }}-ubuntu-${{ env.ubuntu }}
-            VARIANT="default"
+            VARIANT=default
 
   render-compose-file:
     name: Render Docker Compose file
