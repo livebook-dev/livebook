@@ -77,7 +77,7 @@ To deploy Livebook on your cloud platform, see our [Docker Deployment](docs/depl
 For CUDA support, [see images with the "cuda" tag](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
 To try out features from the main branch you can alternatively
-use the `ghcr.io/livebook-dev/livebook:edge` image.
+use the `ghcr.io/livebook-dev/livebook:nightly` image.
 See [Livebook images](https://github.com/livebook-dev/livebook/pkgs/container/livebook).
 
 ### Embedded devices

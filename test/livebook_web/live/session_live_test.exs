@@ -1111,7 +1111,7 @@ defmodule LivebookWeb.SessionLiveTest do
           gpu_kind: nil,
           gpus: nil,
           volume_id: "vol_1",
-          docker_tag: "edge"
+          docker_tag: "nightly"
         })
 
       Session.set_runtime(session.pid, runtime)
@@ -1183,7 +1183,7 @@ defmodule LivebookWeb.SessionLiveTest do
           gpu_kind: nil,
           gpus: nil,
           volume_id: "vol_1",
-          docker_tag: "edge"
+          docker_tag: "nightly"
         })
 
       Session.set_runtime(session.pid, runtime)
