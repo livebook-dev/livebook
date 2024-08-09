@@ -26,6 +26,20 @@ jobs:
             --draft \
             ${{ github.ref_name }}
 
+  desktop:
+    name: "Desktop"
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+    steps:
+      - name: Trigger desktop builds
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}
+          else
+            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.sha }} -f release_name=nightly
+          fi
+
   docker:
     name: Docker (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -81,15 +95,3 @@ jobs:
           build-args: |
             BASE_IMAGE=hexpm/elixir:${{ env.elixir }}-erlang-${{ env.otp }}-ubuntu-${{ env.ubuntu }}
             ${{ matrix.build_args }}
-
-  desktop:
-    name: "Desktop"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger desktop builds
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}
-          else
-            gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.sha }} -f release_name=nightly
-          fi
