@@ -59,7 +59,7 @@ jobs:
           echo "COMPOSE_FILE_HASH=$(md5sum docker-compose.rendered.yml | awk '{ print $1 }')" >> $GITHUB_OUTPUT
       - name: Cache Rendered Compose File
         if: ${{ steps.event.outputs.ACTION != 'closed' }}
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: docker-compose.rendered.yml
           key: ${{ steps.hash.outputs.COMPOSE_FILE_HASH }}
