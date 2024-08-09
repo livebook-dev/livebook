@@ -210,6 +210,24 @@ defmodule Livebook.FlyAPI do
     end
   end
 
+  @doc """
+  Waits for the machine to be destroyed.
+  """
+  @spec await_machine_destroyed(String.t(), String.t(), String.t(), pos_integer()) ::
+          :ok | {:error, error}
+  def await_machine_destroyed(token, app_name, machine_id, timeout_s) when timeout_s <= 60 do
+    # Contrarily to the above, if we expect the machine to be destroying,
+    # it should take a short time, so we don't retry requests and expect
+    # a rather short timeout
+    with {:ok, _data} <-
+           flaps_request(token, "/v1/apps/#{app_name}/machines/#{machine_id}/wait",
+             params: %{state: "destroyed", timeout: timeout_s},
+             retry: false
+           ) do
+      :ok
+    end
+  end
+
   defp flaps_request(token, path, opts \\ []) do
     opts =
       [base_url: @flaps_url, url: path, auth: {:bearer, token}]
