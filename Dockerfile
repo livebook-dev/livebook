@@ -13,22 +13,23 @@ RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" &&
   # Official Docker images use the sbsa packages when targetting arm64.
   # See https://gitlab.com/nvidia/container-images/cuda/-/blob/85f465ea3343a2d7f7753a0a838701999ed58a01/dist/12.5.1/ubuntu2204/base/Dockerfile#L12
   arch="$(if [ "$(uname -m)" = "aarch64" ]; then echo "sbsa"; else echo "x86_64"; fi)" && \
-  apt update -q && apt install -y ca-certificates wget && \
+  apt-get update && apt-get install -y ca-certificates wget && \
   wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-keyring_1.1-1_all.deb && \
-  dpkg -i /tmp/cuda-keyring.deb && apt update -q
-
-# In order to minimize the image size, we install only a subset of
-# the CUDA toolkit that is required by Elixir numerical packages
-# (nvcc and runtime libraries). Note that we do not need to install
-# the driver, it is already provided by NVIDIA Container Toolkit.
-RUN apt install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn8
+  dpkg -i /tmp/cuda-keyring.deb && apt-get update && \
+  # In order to minimize the image size, we install only a subset of
+  # the CUDA toolkit that is required by Elixir numerical packages
+  # (nvcc and runtime libraries). Note that we do not need to install
+  # the driver, it is already provided by NVIDIA Container Toolkit.
+  apt-get install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn8 && \
+  apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Build stage: builds the release
 FROM base-${VARIANT} AS build
 
 RUN apt-get update && apt-get upgrade -y && \
   apt-get install --no-install-recommends -y \
-    build-essential git
+    build-essential git && \
+  apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -82,9 +83,7 @@ RUN apt-get update && apt-get upgrade -y && \
     wget \
     # In case someone uses Torchx for Nx
     cmake && \
-  apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
-  apt-get clean -y && \
-  rm -rf /var/lib/apt/lists/*
+  apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Run in the /data directory by default, makes for a good place for
 # the user to mount local volume
