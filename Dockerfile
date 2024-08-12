@@ -3,9 +3,9 @@ ARG VARIANT
 
 # Pre-stages for base image variants
 
-FROM ${BASE_IMAGE} as base-default
+FROM ${BASE_IMAGE} AS base-default
 
-FROM ${BASE_IMAGE} as base-cuda
+FROM ${BASE_IMAGE} AS base-cuda
 
 ARG CUDA_VERSION
 
