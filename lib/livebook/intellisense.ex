@@ -53,6 +53,10 @@ defmodule Livebook.Intellisense do
     get_details(line, column, context, node)
   end
 
+  def handle_request({:definition, line, column}, context, node) do
+    get_definitions(line, column, context, node)
+  end
+
   def handle_request({:signature, hint}, context, node) do
     get_signature_items(hint, context, node)
   end
@@ -673,6 +677,58 @@ defmodule Livebook.Intellisense do
 
   defp format_documentation({format, _content}, _variant) do
     raise "unknown documentation format #{inspect(format)}"
+  end
+
+  @doc """
+  Returns the identifier definition located in `column` in `line`.
+  """
+  @spec get_definitions(String.t(), pos_integer(), context(), node()) ::
+          Runtime.details_response() | nil
+  def get_definitions(line, column, context, node) do
+    case IdentifierMatcher.locate_identifier(line, column, context, node) do
+      %{matches: []} ->
+        nil
+
+      %{matches: matches, range: range} ->
+        contents =
+          matches
+          |> Enum.sort_by(& &1[:arity], :asc)
+          |> Enum.reduce([], fn match, acc ->
+            if content = get_definition_link(match, context) do
+              acc ++ [content]
+            else
+              acc
+            end
+          end)
+
+        %{range: range, contents: contents}
+    end
+  end
+
+  defp get_definition_link(%{kind: :module, module: module}, context) do
+    get_definition_link(module, context, {:module, module})
+  end
+
+  defp get_definition_link(%{kind: :function, module: module, name: name, arity: arity}, context) do
+    get_definition_link(module, context, {:function, name, arity})
+  end
+
+  defp get_definition_link(%{kind: :type, module: module, name: name, arity: arity}, context) do
+    get_definition_link(module, context, {:type, name, arity})
+  end
+
+  defp get_definition_link(module, context, identifier) do
+    if context.ebin_path do
+      path = Path.join(context.ebin_path, "#{module}.beam")
+
+      with true <- File.exists?(path),
+           {:ok, line} <- Docs.locate_definition(path, identifier) do
+        file = module.module_info(:compile)[:source]
+        URI.encode_query(%{file: to_string(file), line: line})
+      else
+        _otherwise -> nil
+      end
+    end
   end
 
   # Erlang HTML AST
