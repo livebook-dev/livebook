@@ -306,6 +306,7 @@ export default class LiveEditor {
     const customKeymap = [
       { key: "Escape", run: exitMulticursor },
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
+      { key: "Alt-.", run: this.jumpToDefinition.bind(this) },
     ];
 
     this.view = new EditorView({
@@ -539,6 +540,35 @@ export default class LiveEditor {
         };
       })
       .catch(() => null);
+  }
+
+  /** @private */
+  jumpToDefinition(view) {
+    const pos = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(pos);
+    const lineLength = line.to - line.from;
+    const text = line.text;
+
+    const column = pos - line.from;
+    if (column < 1 || column > lineLength) return null;
+
+    return this.connection
+      .intellisenseRequest("definition", { line: text, column })
+      .then((response) => {
+        if (response.contents.length > 0) {
+          const search = response.contents[0];
+          const params = new URLSearchParams(`?${search}`);
+          const line = parseInt(params.get("line"), 10);
+          const [_filename, cellId] = params.get("file").split("#cell:");
+
+          globalPubsub.broadcast("jump_to_editor", { line, cellId });
+
+          return true;
+        }
+
+        return false;
+      })
+      .catch(() => false);
   }
 
   /** @private */

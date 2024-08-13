@@ -157,6 +157,18 @@ const Session = {
       (event) => this.toggleCollapseAllSections(),
     );
 
+    this.subscriptions = [
+      globalPubsub.subscribe("jump_to_editor", ({ line, cellId }) => {
+        this.setFocusedEl(cellId);
+        this.setInsertMode(true);
+
+        globalPubsub.broadcast(`cells:${cellId}`, {
+          type: "jump_to_line",
+          line,
+        });
+      }),
+    ];
+
     this.initializeDragAndDrop();
 
     window.addEventListener(
@@ -270,6 +282,7 @@ const Session = {
       leaveChannel();
     }
 
+    this.subscriptions.forEach((subscription) => subscription.destroy());
     this.store.destroy();
   },
 
