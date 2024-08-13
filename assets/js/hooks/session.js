@@ -539,23 +539,6 @@ const Session = {
       this.setInsertMode(false);
     }
 
-    if (
-      event.target.matches("a") &&
-      event.target.hash.startsWith("#go-to-definition")
-    ) {
-      const search = event.target.hash.replace("#go-to-definition", "");
-      const params = new URLSearchParams(search);
-      const line = parseInt(params.get("line"), 10);
-      const [_filename, cellId] = params.get("file").split("#cell:");
-
-      this.setFocusedEl(cellId);
-      this.setInsertMode(true);
-
-      globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
-
-      event.preventDefault();
-    }
-
     const evalButton = event.target.closest(
       `[data-el-queue-cell-evaluation-button]`,
     );
