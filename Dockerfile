@@ -20,7 +20,8 @@ RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" &&
   # the CUDA toolkit that is required by Elixir numerical packages
   # (nvcc and runtime libraries). Note that we do not need to install
   # the driver, it is already provided by NVIDIA Container Toolkit.
-  apt-get install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn8 && \
+  cuda_version="${CUDA_VERSION}" && cuda_major="${cuda_version%-*}" && \
+  apt-get install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn9-cuda-$cuda_major && \
   apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Build stage: builds the release
