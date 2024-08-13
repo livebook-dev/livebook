@@ -42,7 +42,6 @@ Here is what we will learn:
   * Using agents for state
   * Using structs for custom data structures
   * Extending the language with protocols
-  * Supervision trees and applications
   * Distributed Elixir nodes
 
 At the end of this notebook, we will make the following code work:
