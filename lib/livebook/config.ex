@@ -426,6 +426,14 @@ defmodule Livebook.Config do
   def app_version(), do: @app_version
 
   @doc """
+  This is the URL of the application repo that will be checked to see whetehr
+  some new version is available. Note: Currently this must be a github repo.
+  """
+  def app_repo_url() do
+    Application.get_env(:livebook, :app_repo_url, "https://api.github.com/repos/livebook-dev/livebook/releases/latest")
+  end
+
+  @doc """
   Aborts booting due to a configuration error.
   """
   @spec abort!(String.t()) :: no_return()
