@@ -352,13 +352,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverTooltip(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverTooltip(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -368,6 +368,7 @@ export default class LiveEditor {
           blur: this.handleEditorBlur.bind(this),
           focus: this.handleEditorFocus.bind(this),
         }),
+        EditorView.clickAddsSelectionRange.of(event => event.altKey),
       ],
     });
   }
