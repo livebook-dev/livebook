@@ -333,7 +333,7 @@ const Cell = {
 
       if (this.currentEditor()) {
         this.currentEditor().focus();
-        this.scrollEditorCursorIntoViewIfNeeded();
+        this.scrollEditorCursorIntoViewIfNeeded("instant");
       }
     } else if (this.insertMode && !insertMode) {
       this.insertMode = insertMode;
@@ -362,12 +362,12 @@ const Cell = {
     }
   },
 
-  scrollEditorCursorIntoViewIfNeeded() {
+  scrollEditorCursorIntoViewIfNeeded(behavior = "smooth") {
     const element = this.currentEditor().getElementAtCursor();
 
     scrollIntoView(element, {
       scrollMode: "if-needed",
-      behavior: "smooth",
+      behavior: behavior,
       block: "center",
     });
   },
