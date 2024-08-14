@@ -306,7 +306,6 @@ export default class LiveEditor {
     const customKeymap = [
       { key: "Escape", run: exitMulticursor },
       { key: "Alt-Enter", run: insertBlankLineAndCloseHints },
-      { key: "Alt-.", run: this.jumpToDefinition.bind(this) },
     ];
 
     this.view = new EditorView({
@@ -352,25 +351,35 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-            autocompletion({ override: [this.completionSource.bind(this)] }),
-            hoverTooltip(this.docsHoverTooltipSource.bind(this)),
-            signature(this.signatureSource.bind(this), {
-              activateOnTyping: settings.editor_auto_signature,
-            }),
-            formatter(this.formatterSource.bind(this)),
-          ]
+              autocompletion({ override: [this.completionSource.bind(this)] }),
+              hoverTooltip(this.docsHoverTooltipSource.bind(this)),
+              signature(this.signatureSource.bind(this), {
+                activateOnTyping: settings.editor_auto_signature,
+              }),
+              formatter(this.formatterSource.bind(this)),
+            ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
         language ? language.support : [],
         EditorView.domEventHandlers({
+          click: this.handleEditorClick.bind(this),
           keydown: this.handleEditorKeydown.bind(this),
           blur: this.handleEditorBlur.bind(this),
           focus: this.handleEditorFocus.bind(this),
         }),
-        EditorView.clickAddsSelectionRange.of(event => event.altKey),
+        EditorView.clickAddsSelectionRange.of((event) => event.altKey),
       ],
     });
+  }
+
+  /** @private */
+  handleEditorClick(event) {
+    if (event.ctrlKey && event.type === "click") {
+      this.jumpToDefinition(this.view);
+    }
+
+    return false;
   }
 
   /** @private */
