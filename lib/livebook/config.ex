@@ -426,7 +426,7 @@ defmodule Livebook.Config do
   def app_version(), do: @app_version
 
   @doc """
-  This is the URL of the application repo that will be checked to see whetehr
+  This is the URL of the application repo that will be checked to see whether
   some new version is available. Note: Currently this must be a github repo.
   """
   def app_repo_url() do
