@@ -1584,7 +1584,7 @@ defmodule Livebook.IntellisenseTest do
   end
 
   @tag :tmp_dir
-  test "get_definition/4 returns the go to definition query string", %{tmp_dir: tmp_dir} do
+  test "get_definitions/4 returns the go to definition query string", %{tmp_dir: tmp_dir} do
     Code.put_compiler_option(:debug_info, true)
 
     context =
@@ -1623,28 +1623,28 @@ defmodule Livebook.IntellisenseTest do
     Code.prepend_path(tmp_dir)
 
     assert %{contents: [content]} =
-             Intellisense.get_definition("GoToDefinition", 14, context, node())
+             Intellisense.get_definitions("GoToDefinition", 14, context, node())
 
     assert content =~ URI.encode_query(%{file: file, line: 1})
 
     assert %{contents: [content]} =
-             Intellisense.get_definition("GoToDefinition.t", 16, context, node())
+             Intellisense.get_definitions("GoToDefinition.t", 16, context, node())
 
     assert content =~ URI.encode_query(%{file: file, line: 2})
 
     assert %{contents: [arity_0_content, arity_1_content]} =
-             Intellisense.get_definition("GoToDefinition.foo", 18, context, node())
+             Intellisense.get_definitions("GoToDefinition.foo", 18, context, node())
 
     assert arity_0_content =~ URI.encode_query(%{file: file, line: 3})
     assert arity_1_content =~ URI.encode_query(%{file: file, line: 4})
 
     assert %{contents: [content]} =
-             Intellisense.get_definition("GoToDefinition.with_logging", 20, context, node())
+             Intellisense.get_definitions("GoToDefinition.with_logging", 20, context, node())
 
     assert content =~ URI.encode_query(%{file: file, line: 6})
 
     assert %{contents: [content]} =
-             Intellisense.get_definition("GoToDefinition.hello", 18, context, node())
+             Intellisense.get_definitions("GoToDefinition.hello", 18, context, node())
 
     assert content == URI.encode_query(%{file: file, line: 17})
   after
