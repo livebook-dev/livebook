@@ -456,7 +456,7 @@ defmodule Livebook.Intellisense do
        ) do
     join_with_divider([
       code(inspect(module)),
-      format_definition_link(module, context),
+      format_definition_link(module, context, {:module, module}),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
@@ -543,23 +543,9 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_definition_link(module, context, function_or_type \\ nil) do
-    if context.ebin_path do
-      path = Path.join(context.ebin_path, "#{module}.beam")
-
-      identifier =
-        if function_or_type,
-          do: function_or_type,
-          else: {:module, module}
-
-      with true <- File.exists?(path),
-           {:ok, line} <- Docs.locate_definition(path, identifier) do
-        file = module.module_info(:compile)[:source]
-        query_string = URI.encode_query(%{file: to_string(file), line: line})
-        "[Go to definition](#go-to-definition?#{query_string})"
-      else
-        _otherwise -> nil
-      end
+  defp format_definition_link(module, context, identifier) do
+    if query_string = get_definition_link(module, context, identifier) do
+      "[Go to definition](#go-to-definition?#{query_string})"
     end
   end
 
