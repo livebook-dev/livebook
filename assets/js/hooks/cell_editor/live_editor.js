@@ -351,13 +351,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-            autocompletion({ override: [this.completionSource.bind(this)] }),
-            hoverTooltip(this.docsHoverTooltipSource.bind(this)),
-            signature(this.signatureSource.bind(this), {
-              activateOnTyping: settings.editor_auto_signature,
-            }),
-            formatter(this.formatterSource.bind(this)),
-          ]
+              autocompletion({ override: [this.completionSource.bind(this)] }),
+              hoverTooltip(this.docsHoverTooltipSource.bind(this)),
+              signature(this.signatureSource.bind(this), {
+                activateOnTyping: settings.editor_auto_signature,
+              }),
+              formatter(this.formatterSource.bind(this)),
+            ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -567,7 +567,10 @@ export default class LiveEditor {
     return this.connection
       .intellisenseRequest("definition", { line: text, column })
       .then((response) => {
-        globalPubsub.broadcast("jump_to_editor", { line: response.line, file: response.file });
+        globalPubsub.broadcast("jump_to_editor", {
+          line: response.line,
+          file: response.file,
+        });
 
         return true;
       })

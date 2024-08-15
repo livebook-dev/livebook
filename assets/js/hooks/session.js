@@ -158,7 +158,9 @@ const Session = {
     );
 
     this.subscriptions = [
-      globalPubsub.subscribe("jump_to_editor", ({ line, file }) => this.jumpToLine(file, line)),
+      globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
+        this.jumpToLine(file, line),
+      ),
     ];
 
     this.initializeDragAndDrop();
@@ -1452,7 +1454,7 @@ const Session = {
     this.setInsertMode(true);
 
     globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
-  }
+  },
 };
 
 export default Session;
