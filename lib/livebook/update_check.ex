@@ -128,7 +128,7 @@ defmodule Livebook.UpdateCheck do
   end
 
   defp fetch_latest_version() do
-    url = "https://api.github.com/repos/livebook-dev/livebook/releases/latest"
+    url = "https://api.github.com/repos/#{Livebook.Config.github_release_repo()}/releases/latest"
     headers = [{"accept", "application/vnd.github.v3+json"}]
 
     case Livebook.Utils.HTTP.request(:get, url, headers: headers) do
