@@ -426,11 +426,10 @@ defmodule Livebook.Config do
   def app_version(), do: @app_version
 
   @doc """
-  This is the URL of the application repo that will be checked to see whether
-  some new version is available. Note: Currently this must be a github repo.
+  Returns the GitHub org/repo where the releases are created.
   """
-  def app_repo_url() do
-    Application.get_env(:livebook, :app_repo_url, "https://api.github.com/repos/livebook-dev/livebook/releases/latest")
+  def github_release_repo() do
+    Application.get_env(:livebook, :github_release_repo)
   end
 
   @doc """
