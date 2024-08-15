@@ -17,7 +17,7 @@ defmodule Livebook.Runtime.Definitions do
 
   kino_db = %{
     name: "kino_db",
-    dependency: %{dep: {:kino_db, "~> 0.2.8"}, config: []}
+    dependency: %{dep: {:kino_db, "~> 0.2.10"}, config: []}
   }
 
   exqlite = %{
