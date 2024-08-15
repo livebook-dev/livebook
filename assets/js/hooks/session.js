@@ -1448,7 +1448,7 @@ const Session = {
   jumpToLine(file, line) {
     const [_filename, cellId] = file.split("#cell:");
 
-    this.setFocusedEl(cellId);
+    this.setFocusedEl(cellId, { scroll: false, focusElement: true });
     this.setInsertMode(true);
 
     globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
