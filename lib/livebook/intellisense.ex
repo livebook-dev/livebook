@@ -545,7 +545,7 @@ defmodule Livebook.Intellisense do
 
   defp format_definition_link(module, context, identifier) do
     if query = get_definition_location(module, context, identifier) do
-      "[<> View definition](#go-to-definition?#{URI.encode_query(query)})"
+      "[Go to definition](#go-to-definition?#{URI.encode_query(query)})"
     end
   end
 
