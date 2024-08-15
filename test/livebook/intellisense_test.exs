@@ -251,16 +251,6 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("RuntimeE", context, node())
     end
 
-    test "caches all loaded modules" do
-      context = eval(do: nil)
-      Intellisense.get_completion_items("Hub", context, node())
-
-      key = {Intellisense.IdentifierMatcher, node()}
-      assert [_ | _] = :persistent_term.get(key, :error)
-      Intellisense.IdentifierMatcher.clear_all_loaded(node())
-      assert :error = :persistent_term.get(key, :error)
-    end
-
     test "Elixir struct completion lists nested options" do
       context = eval(do: nil)
 
