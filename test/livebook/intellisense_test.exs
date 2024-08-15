@@ -999,11 +999,16 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("^my_va", context, node())
     end
 
-    defmodule SublevelTest.LevelA.LevelB do
-    end
+    @tag :tmp_dir
+    test "Elixir completion sublevel", %{tmp_dir: tmp_dir} do
+      context =
+        eval tmp_dir do
+        end
 
-    test "Elixir completion sublevel" do
-      context = eval(do: nil)
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.SublevelTest.LevelA.LevelB do
+      end
+      ''')
 
       assert [%{label: "LevelA"}] =
                Intellisense.get_completion_items(
@@ -1100,12 +1105,17 @@ defmodule Livebook.IntellisenseTest do
       :code.delete(Sample)
     end
 
-    defmodule MyStruct do
-      defstruct [:my_val]
-    end
+    @tag :tmp_dir
+    test "completion for struct names", %{tmp_dir: tmp_dir} do
+      context =
+        eval tmp_dir do
+        end
 
-    test "completion for struct names" do
-      context = eval(do: nil)
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.MyStruct do
+        defstruct [:my_val]
+      end
+      ''')
 
       assert [
                %{label: "MyStruct"}
@@ -1117,9 +1127,16 @@ defmodule Livebook.IntellisenseTest do
                )
     end
 
-    test "completion for struct keys" do
+    @tag :tmp_dir
+    test "completion for struct keys", %{tmp_dir: tmp_dir} do
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.MyStruct do
+        defstruct [:my_val]
+      end
+      ''')
+
       context =
-        eval do
+        eval tmp_dir do
           struct = %Livebook.IntellisenseTest.MyStruct{}
         end
 
@@ -1128,8 +1145,17 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("struct.my", context, node())
     end
 
-    test "completion for struct keys inside struct" do
-      context = eval(do: nil)
+    @tag :tmp_dir
+    test "completion for struct keys inside struct", %{tmp_dir: tmp_dir} do
+      context =
+        eval tmp_dir do
+        end
+
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.MyStruct do
+        defstruct [:my_val]
+      end
+      ''')
 
       assert [
                %{
@@ -1154,8 +1180,18 @@ defmodule Livebook.IntellisenseTest do
                )
     end
 
-    test "completion for struct keys inside struct removes filled keys" do
-      context = eval(do: nil)
+    @tag :tmp_dir
+    test "completion for struct keys inside struct removes filled keys",
+         %{tmp_dir: tmp_dir} do
+      context =
+        eval tmp_dir do
+        end
+
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.MyStruct do
+        defstruct [:my_val]
+      end
+      ''')
 
       assert [] =
                Intellisense.get_completion_items(
@@ -1173,8 +1209,17 @@ defmodule Livebook.IntellisenseTest do
       refute Enum.find(completions, &match?(%{label: "__exception__"}, &1))
     end
 
-    test "completion for struct keys in update syntax" do
-      context = eval(do: nil)
+    @tag :tmp_dir
+    test "completion for struct keys in update syntax", %{tmp_dir: tmp_dir} do
+      context =
+        eval tmp_dir do
+        end
+
+      compile_and_save_bytecode(tmp_dir, ~S'''
+      defmodule Livebook.IntellisenseTest.MyStruct do
+        defstruct [:my_val]
+      end
+      ''')
 
       assert [
                %{
@@ -1616,11 +1661,7 @@ defmodule Livebook.IntellisenseTest do
     '''
 
     file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
-    path = Path.join(tmp_dir, "Elixir.Livebook.IntellisenseTest.GoToDefinition.beam")
-
-    [{_module, bytecode}] = Code.compile_string(code, file)
-    File.write!(path, bytecode)
-    Code.prepend_path(tmp_dir)
+    compile_and_save_bytecode(tmp_dir, code, file)
 
     assert Intellisense.get_definitions("GoToDefinition", 14, context, node()) == %{
              line: 1,
@@ -1654,9 +1695,6 @@ defmodule Livebook.IntellisenseTest do
            }
   after
     Code.put_compiler_option(:debug_info, false)
-    Code.delete_path(tmp_dir)
-    :code.purge(:"Elixir.Livebook.IntellisenseTest.GoToDefinition")
-    :code.delete(:"Elixir.Livebook.IntellisenseTest.GoToDefinition")
   end
 
   describe "get_signature_items/3" do
@@ -2036,5 +2074,19 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [content]} = Intellisense.get_details("RemoteModule", 6, context, node)
       assert content =~ "No documentation available"
     end
+  end
+
+  defp compile_and_save_bytecode(dir, code, file \\ "nofile") do
+    [{module, bytecode}] = Code.compile_string(code, file)
+    path = Path.join(dir, "#{module}.beam")
+
+    File.write!(path, bytecode)
+    Code.prepend_path(dir)
+
+    on_exit(fn ->
+      Code.delete_path(dir)
+      :code.purge(module)
+      :code.delete(module)
+    end)
   end
 end
