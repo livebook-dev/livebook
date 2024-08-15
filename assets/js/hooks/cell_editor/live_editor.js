@@ -46,7 +46,7 @@ import { settingsStore } from "../../lib/settings";
 import Delta from "../../lib/delta";
 import Markdown from "../../lib/markdown";
 import { readOnlyHint } from "./live_editor/codemirror/read_only_hint";
-import { wait } from "../../lib/utils";
+import { isMacOS, wait } from "../../lib/utils";
 import Emitter from "../../lib/emitter";
 import CollabClient from "./live_editor/collab_client";
 import { languages } from "./live_editor/codemirror/languages";
@@ -351,13 +351,13 @@ export default class LiveEditor {
         }),
         this.intellisense
           ? [
-              autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverTooltip(this.docsHoverTooltipSource.bind(this)),
-              signature(this.signatureSource.bind(this), {
-                activateOnTyping: settings.editor_auto_signature,
-              }),
-              formatter(this.formatterSource.bind(this)),
-            ]
+            autocompletion({ override: [this.completionSource.bind(this)] }),
+            hoverTooltip(this.docsHoverTooltipSource.bind(this)),
+            signature(this.signatureSource.bind(this), {
+              activateOnTyping: settings.editor_auto_signature,
+            }),
+            formatter(this.formatterSource.bind(this)),
+          ]
           : [],
         settings.editor_mode === "vim" ? [vim()] : [],
         settings.editor_mode === "emacs" ? [emacs()] : [],
@@ -375,7 +375,9 @@ export default class LiveEditor {
 
   /** @private */
   handleEditorClick(event) {
-    if (event.ctrlKey && event.type === "click") {
+    const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+
+    if (cmd) {
       this.jumpToDefinition(this.view);
     }
 
@@ -565,18 +567,12 @@ export default class LiveEditor {
     return this.connection
       .intellisenseRequest("definition", { line: text, column })
       .then((response) => {
-        if (response.contents.length > 0) {
-          const search = response.contents[0];
-          const params = new URLSearchParams(`?${search}`);
-          const line = parseInt(params.get("line"), 10);
-          const [_filename, cellId] = params.get("file").split("#cell:");
+        const line = response.line;
+        const [_filename, cellId] = response.file.split("#cell:");
 
-          globalPubsub.broadcast("jump_to_editor", { line, cellId });
+        globalPubsub.broadcast("jump_to_editor", { line, cellId });
 
-          return true;
-        }
-
-        return false;
+        return true;
       })
       .catch(() => false);
   }

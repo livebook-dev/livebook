@@ -455,8 +455,8 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
-      code(inspect(module)),
       format_definition_link(module, context, {:module, module}),
+      code(inspect(module)),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
@@ -476,9 +476,9 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
+      format_definition_link(module, context, {:function, name, arity}),
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_definition_link(module, context, {:function, name, arity}),
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
@@ -500,8 +500,8 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
-      format_type_signature(type_spec, module) |> code(),
       format_definition_link(module, context, {:type, name, arity}),
+      format_type_signature(type_spec, module) |> code(),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -544,8 +544,8 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_definition_link(module, context, identifier) do
-    if query_string = get_definition_link(module, context, identifier) do
-      "[Go to definition](#go-to-definition?#{query_string})"
+    if query = get_definition_location(module, context, identifier) do
+      "[<> View definition](#go-to-definition?#{URI.encode_query(query)})"
     end
   end
 
@@ -704,48 +704,46 @@ defmodule Livebook.Intellisense do
   Returns the identifier definition located in `column` in `line`.
   """
   @spec get_definitions(String.t(), pos_integer(), context(), node()) ::
-          Runtime.details_response() | nil
+          Runtime.definition_response() | nil
   def get_definitions(line, column, context, node) do
     case IdentifierMatcher.locate_identifier(line, column, context, node) do
       %{matches: []} ->
         nil
 
       %{matches: matches, range: range} ->
-        contents =
-          matches
-          |> Enum.sort_by(& &1[:arity], :asc)
-          |> Enum.reduce([], fn match, acc ->
-            if content = get_definition_link(match, context) do
-              acc ++ [content]
-            else
-              acc
-            end
-          end)
-
-        %{range: range, contents: contents}
+        matches
+        |> Enum.sort_by(& &1[:arity], :asc)
+        |> Enum.flat_map(&List.wrap(get_definition_location(&1, context)))
+        |> case do
+          [%{file: file, line: line} | _] -> %{range: range, file: file, line: line}
+          _ -> nil
+        end
     end
   end
 
-  defp get_definition_link(%{kind: :module, module: module}, context) do
-    get_definition_link(module, context, {:module, module})
+  defp get_definition_location(%{kind: :module, module: module}, context) do
+    get_definition_location(module, context, {:module, module})
   end
 
-  defp get_definition_link(%{kind: :function, module: module, name: name, arity: arity}, context) do
-    get_definition_link(module, context, {:function, name, arity})
+  defp get_definition_location(
+         %{kind: :function, module: module, name: name, arity: arity},
+         context
+       ) do
+    get_definition_location(module, context, {:function, name, arity})
   end
 
-  defp get_definition_link(%{kind: :type, module: module, name: name, arity: arity}, context) do
-    get_definition_link(module, context, {:type, name, arity})
+  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
+    get_definition_location(module, context, {:type, name, arity})
   end
 
-  defp get_definition_link(module, context, identifier) do
+  defp get_definition_location(module, context, identifier) do
     if context.ebin_path do
       path = Path.join(context.ebin_path, "#{module}.beam")
 
       with true <- File.exists?(path),
            {:ok, line} <- Docs.locate_definition(path, identifier) do
         file = module.module_info(:compile)[:source]
-        URI.encode_query(%{file: to_string(file), line: line})
+        %{file: to_string(file), line: line}
       else
         _otherwise -> nil
       end
