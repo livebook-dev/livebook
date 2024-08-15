@@ -158,7 +158,9 @@ const Session = {
     );
 
     this.subscriptions = [
-      globalPubsub.subscribe("jump_to_editor", ({ line, cellId }) => {
+      globalPubsub.subscribe("jump_to_editor", ({ line, file }) => {
+        const cellId = file.split("#cell:");
+
         this.setFocusedEl(cellId);
         this.setInsertMode(true);
 

@@ -455,8 +455,8 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
-      format_definition_link(module, context, {:module, module}),
       code(inspect(module)),
+      format_definition_link(module, context, {:module, module}),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
@@ -476,9 +476,9 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
-      format_definition_link(module, context, {:function, name, arity}),
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
+        format_definition_link(module, context, {:function, name, arity}),
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
@@ -500,8 +500,8 @@ defmodule Livebook.Intellisense do
          context
        ) do
     join_with_divider([
-      format_definition_link(module, context, {:type, name, arity}),
       format_type_signature(type_spec, module) |> code(),
+      format_definition_link(module, context, {:type, name, arity}),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)

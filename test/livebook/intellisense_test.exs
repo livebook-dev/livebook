@@ -1622,31 +1622,36 @@ defmodule Livebook.IntellisenseTest do
     File.write!(path, bytecode)
     Code.prepend_path(tmp_dir)
 
-    assert %{contents: [content]} =
-             Intellisense.get_definitions("GoToDefinition", 14, context, node())
+    assert Intellisense.get_definitions("GoToDefinition", 14, context, node()) == %{
+             line: 1,
+             file: file,
+             range: %{to: 15, from: 1}
+           }
 
-    assert content =~ URI.encode_query(%{file: file, line: 1})
+    assert Intellisense.get_definitions("GoToDefinition.t", 16, context, node()) == %{
+             line: 2,
+             file: file,
+             range: %{to: 17, from: 1}
+           }
 
-    assert %{contents: [content]} =
-             Intellisense.get_definitions("GoToDefinition.t", 16, context, node())
+    # For now, we aren't fetching the expected arity but we will address it later.
+    assert Intellisense.get_definitions("GoToDefinition.foo", 18, context, node()) == %{
+             line: 3,
+             file: file,
+             range: %{to: 19, from: 1}
+           }
 
-    assert content =~ URI.encode_query(%{file: file, line: 2})
+    assert Intellisense.get_definitions("GoToDefinition.with_logging", 20, context, node()) == %{
+             line: 6,
+             file: file,
+             range: %{to: 28, from: 1}
+           }
 
-    assert %{contents: [arity_0_content, arity_1_content]} =
-             Intellisense.get_definitions("GoToDefinition.foo", 18, context, node())
-
-    assert arity_0_content =~ URI.encode_query(%{file: file, line: 3})
-    assert arity_1_content =~ URI.encode_query(%{file: file, line: 4})
-
-    assert %{contents: [content]} =
-             Intellisense.get_definitions("GoToDefinition.with_logging", 20, context, node())
-
-    assert content =~ URI.encode_query(%{file: file, line: 6})
-
-    assert %{contents: [content]} =
-             Intellisense.get_definitions("GoToDefinition.hello", 18, context, node())
-
-    assert content == URI.encode_query(%{file: file, line: 17})
+    assert Intellisense.get_definitions("GoToDefinition.hello", 18, context, node()) == %{
+             line: 17,
+             file: file,
+             range: %{to: 21, from: 1}
+           }
   after
     Code.put_compiler_option(:debug_info, false)
     Code.delete_path(tmp_dir)

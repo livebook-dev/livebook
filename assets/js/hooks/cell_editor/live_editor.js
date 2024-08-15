@@ -567,10 +567,7 @@ export default class LiveEditor {
     return this.connection
       .intellisenseRequest("definition", { line: text, column })
       .then((response) => {
-        const line = response.line;
-        const [_filename, cellId] = response.file.split("#cell:");
-
-        globalPubsub.broadcast("jump_to_editor", { line, cellId });
+        globalPubsub.broadcast("jump_to_editor", { line: response.line, file: response.file });
 
         return true;
       })
