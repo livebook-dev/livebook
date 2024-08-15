@@ -426,6 +426,13 @@ defmodule Livebook.Config do
   def app_version(), do: @app_version
 
   @doc """
+  Returns the GitHub org/repo where the releases are created.
+  """
+  def github_release_repo() do
+    Application.get_env(:livebook, :github_release_repo)
+  end
+
+  @doc """
   Aborts booting due to a configuration error.
   """
   @spec abort!(String.t()) :: no_return()
