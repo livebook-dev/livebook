@@ -146,6 +146,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       Code.prepend_path(ebin_path)
     end
 
+    Livebook.Intellisense.load()
+
+    :net_kernel.monitor_nodes(true, node_type: :all)
+
     {:ok,
      %{
        unload_modules_on_termination: unload_modules_on_termination,
@@ -163,6 +167,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
   @impl true
   def terminate(_reason, state) do
+    Livebook.Intellisense.clear_cache()
+
     Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
 
     if ansi_syntax_colors = state.initial_ansi_syntax_colors do
@@ -235,6 +241,11 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     send(pid, {:reply, ref, server_pid})
 
+    {:noreply, state}
+  end
+
+  def handle_info({:nodedown, node, _metadata}, state) do
+    Livebook.Intellisense.clear_cache(node)
     {:noreply, state}
   end
 
