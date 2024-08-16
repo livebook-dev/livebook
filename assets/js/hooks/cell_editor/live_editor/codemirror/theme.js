@@ -289,6 +289,10 @@ function buildEditorTheme(colors, { dark }) {
         },
       },
 
+      ".cm-hoverDocsSelection": {
+        backgroundColor: colors.selectionMatchBackground,
+      },
+
       // Signature
 
       ".cm-tooltip.cm-signatureHint": {
