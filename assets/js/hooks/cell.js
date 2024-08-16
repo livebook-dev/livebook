@@ -367,7 +367,7 @@ const Cell = {
 
     scrollIntoView(element, {
       scrollMode: "if-needed",
-      behavior: "smooth",
+      behavior: "instant",
       block: "center",
     });
   },

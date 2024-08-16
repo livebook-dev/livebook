@@ -46,7 +46,7 @@ import { settingsStore } from "../../lib/settings";
 import Delta from "../../lib/delta";
 import Markdown from "../../lib/markdown";
 import { readOnlyHint } from "./live_editor/codemirror/read_only_hint";
-import { wait } from "../../lib/utils";
+import { isMacOS, wait } from "../../lib/utils";
 import Emitter from "../../lib/emitter";
 import CollabClient from "./live_editor/collab_client";
 import { languages } from "./live_editor/codemirror/languages";
@@ -363,12 +363,25 @@ export default class LiveEditor {
         settings.editor_mode === "emacs" ? [emacs()] : [],
         language ? language.support : [],
         EditorView.domEventHandlers({
+          click: this.handleEditorClick.bind(this),
           keydown: this.handleEditorKeydown.bind(this),
           blur: this.handleEditorBlur.bind(this),
           focus: this.handleEditorFocus.bind(this),
         }),
+        EditorView.clickAddsSelectionRange.of((event) => event.altKey),
       ],
     });
+  }
+
+  /** @private */
+  handleEditorClick(event) {
+    const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+
+    if (cmd) {
+      this.jumpToDefinition(this.view);
+    }
+
+    return false;
   }
 
   /** @private */
@@ -539,6 +552,29 @@ export default class LiveEditor {
         };
       })
       .catch(() => null);
+  }
+
+  /** @private */
+  jumpToDefinition(view) {
+    const pos = view.state.selection.main.head;
+    const line = view.state.doc.lineAt(pos);
+    const lineLength = line.to - line.from;
+    const text = line.text;
+
+    const column = pos - line.from;
+    if (column < 1 || column > lineLength) return null;
+
+    return this.connection
+      .intellisenseRequest("definition", { line: text, column })
+      .then((response) => {
+        globalPubsub.broadcast("jump_to_editor", {
+          line: response.line,
+          file: response.file,
+        });
+
+        return true;
+      })
+      .catch(() => false);
   }
 
   /** @private */
