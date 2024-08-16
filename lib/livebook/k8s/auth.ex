@@ -1,4 +1,4 @@
-defmodule Livebook.K8sAPI.CanI do
+defmodule Livebook.K8s.Auth do
   def create_access_reviews(reqs) do
     can_i?(reqs,
       verb: "create",
@@ -47,7 +47,7 @@ defmodule Livebook.K8sAPI.CanI do
   end
 
   defp create_self_subject_access_review(reqs, access_review) do
-    case Kubereq.create(reqs.access_reviews, access_review) |> dbg() do
+    case Kubereq.create(reqs.access_reviews, access_review) do
       {:ok, %Req.Response{status: 201, body: %{"status" => %{"allowed" => true}}}} ->
         :ok
 

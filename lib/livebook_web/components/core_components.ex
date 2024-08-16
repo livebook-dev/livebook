@@ -930,7 +930,7 @@ defmodule LivebookWeb.CoreComponents do
   attr :small, :boolean, default: false
   attr :class, :string, default: nil
 
-  attr :rest, :global, include: ~w(href patch navigate download name)
+  attr :rest, :global, include: ~w(href patch navigate download name value)
 
   slot :inner_block
 

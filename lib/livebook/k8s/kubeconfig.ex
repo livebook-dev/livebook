@@ -1,4 +1,4 @@
-defmodule Livebook.K8sAPI.Kubeconfig do
+defmodule Livebook.K8s.Kubeconfig do
   use Pluggable.StepBuilder
 
   step Kubereq.Kubeconfig.ENV, env_var: "KUBECONFIG"
