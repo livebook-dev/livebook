@@ -25,8 +25,37 @@ defmodule Livebook.Intellisense do
         }
 
   @doc """
+  Adjusts the system for more accurate intellisense.
+  """
+  @spec load() :: :ok
+  def load() do
+    # Completion looks for modules in loaded applications, so we ensure
+    # that the most relevant built-in applications are loaded
+    apps = [:erts, :crypto, :inets, :public_key, :runtime_tools, :ex_unit, :iex]
+
+    for app <- apps do
+      Application.load(app)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Clears all cache stored by the intellisense modules.
+  """
+  @spec clear_cache() :: :ok
+  def clear_cache() do
+    for node <- Node.list() do
+      clear_cache(node)
+    end
+
+    :ok
+  end
+
+  @doc """
   Clear any cache stored related to the given node.
   """
+  @spec clear_cache(node()) :: :ok
   def clear_cache(node) do
     IdentifierMatcher.clear_all_loaded(node)
   end
