@@ -616,10 +616,6 @@ defmodule LivebookWeb.SessionLive do
           column = Text.JS.js_column_to_elixir(column, line)
           {:details, line, column}
 
-        %{"type" => "definition", "line" => line, "column" => column} ->
-          column = Text.JS.js_column_to_elixir(column, line)
-          {:definition, line, column}
-
         %{"type" => "signature", "hint" => hint} ->
           {:signature, hint}
 

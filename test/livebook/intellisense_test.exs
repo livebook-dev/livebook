@@ -1616,75 +1616,60 @@ defmodule Livebook.IntellisenseTest do
 
       assert content =~ ~r"https://www.erlang.org/doc/man/string.html#uppercase-1"
     end
-  end
 
-  @tag :tmp_dir
-  test "get_definitions/4 returns the go to definition query string", %{tmp_dir: tmp_dir} do
-    Code.put_compiler_option(:debug_info, true)
+    @tag :tmp_dir
+    test "includes definition location for runtime modules", %{tmp_dir: tmp_dir} do
+      Code.put_compiler_option(:debug_info, true)
 
-    context =
-      eval tmp_dir do
-        alias Livebook.IntellisenseTest.GoToDefinition
-      end
+      context =
+        eval tmp_dir do
+          alias Livebook.IntellisenseTest.GoToDefinition
+        end
 
-    code = ~S'''
-    defmodule Livebook.IntellisenseTest.GoToDefinition do
-      @type t :: term()
-      @type foo :: foo(:bar)
-      @type foo(var) :: {var, t()}
+      code = ~S'''
+      defmodule Livebook.IntellisenseTest.GoToDefinition do
+        @type t :: term()
+        @type foo :: foo(:bar)
+        @type foo(var) :: {var, t()}
 
-      defmacro with_logging(do: block) do
-        quote do
-          require Logger
-          Logger.debug("Running code")
-          result = unquote(block)
-          Logger.debug("Result: #{inspect(result)}")
-          result
+        defmacro with_logging(do: block) do
+          quote do
+            require Logger
+            Logger.debug("Running code")
+            result = unquote(block)
+            Logger.debug("Result: #{inspect(result)}")
+            result
+          end
+        end
+
+        @spec hello(var :: term()) :: foo(term())
+        def hello(message) do
+          {:bar, message}
         end
       end
+      '''
 
-      @spec hello(var :: term()) :: foo(term())
-      def hello(message) do
-        {:bar, message}
-      end
+      file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
+      compile_and_save_bytecode(tmp_dir, code, file)
+
+      assert %{definition: %{line: 1, file: ^file}} =
+               Intellisense.get_details("GoToDefinition", 14, context, node())
+
+      assert %{definition: %{line: 2, file: ^file}} =
+               Intellisense.get_details("GoToDefinition.t", 16, context, node())
+
+      # Currently we are fetching location of the lowest arity
+      assert %{definition: %{line: 3, file: ^file}} =
+               Intellisense.get_details("GoToDefinition.foo", 18, context, node())
+
+      assert %{definition: %{line: 6, file: ^file}} =
+               Intellisense.get_details("GoToDefinition.with_logging", 20, context, node())
+
+      assert %{definition: %{line: 17, file: ^file}} =
+               Intellisense.get_details("GoToDefinition.hello", 18, context, node())
+    after
+      Code.put_compiler_option(:debug_info, false)
     end
-    '''
-
-    file = "#{__ENV__.file}#cell:#{Livebook.Utils.random_short_id()}"
-    compile_and_save_bytecode(tmp_dir, code, file)
-
-    assert Intellisense.get_definitions("GoToDefinition", 14, context, node()) == %{
-             line: 1,
-             file: file,
-             range: %{to: 15, from: 1}
-           }
-
-    assert Intellisense.get_definitions("GoToDefinition.t", 16, context, node()) == %{
-             line: 2,
-             file: file,
-             range: %{to: 17, from: 1}
-           }
-
-    # For now, we aren't fetching the expected arity but we will address it later.
-    assert Intellisense.get_definitions("GoToDefinition.foo", 18, context, node()) == %{
-             line: 3,
-             file: file,
-             range: %{to: 19, from: 1}
-           }
-
-    assert Intellisense.get_definitions("GoToDefinition.with_logging", 20, context, node()) == %{
-             line: 6,
-             file: file,
-             range: %{to: 28, from: 1}
-           }
-
-    assert Intellisense.get_definitions("GoToDefinition.hello", 18, context, node()) == %{
-             line: 17,
-             file: file,
-             range: %{to: 21, from: 1}
-           }
-  after
-    Code.put_compiler_option(:debug_info, false)
   end
 
   describe "get_signature_items/3" do
