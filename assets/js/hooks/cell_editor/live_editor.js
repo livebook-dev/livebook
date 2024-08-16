@@ -1,6 +1,5 @@
 import {
   EditorView,
-  hoverTooltip,
   keymap,
   highlightSpecialChars,
   drawSelection,
@@ -57,6 +56,7 @@ import {
 import { ancestorNode, closestNode } from "./live_editor/codemirror/tree_utils";
 import { selectingClass } from "./live_editor/codemirror/selecting_class";
 import { globalPubsub } from "../../lib/pubsub";
+import { hoverDetails } from "./live_editor/codemirror/hover_details";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -352,7 +352,7 @@ export default class LiveEditor {
         this.intellisense
           ? [
               autocompletion({ override: [this.completionSource.bind(this)] }),
-              hoverTooltip(this.docsHoverTooltipSource.bind(this)),
+              hoverDetails(this.docsHoverTooltipSource.bind(this)),
               signature(this.signatureSource.bind(this), {
                 activateOnTyping: settings.editor_auto_signature,
               }),
