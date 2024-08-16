@@ -503,7 +503,6 @@ defprotocol Livebook.Runtime do
   @type intellisense_request ::
           completion_request()
           | details_request()
-          | definition_request()
           | signature_request()
           | format_request()
 
@@ -517,7 +516,6 @@ defprotocol Livebook.Runtime do
           nil
           | completion_response()
           | details_response()
-          | definition_response()
           | signature_response()
           | format_response()
 
@@ -552,22 +550,8 @@ defprotocol Livebook.Runtime do
             from: non_neg_integer(),
             to: non_neg_integer()
           },
-          contents: list(String.t())
-        }
-
-  @typedoc """
-  Looks up more the definition about an identifier found in `column` in
-  `line`.
-  """
-  @type definition_request :: {:definition, line :: String.t(), column :: pos_integer()}
-
-  @type definition_response :: %{
-          range: %{
-            from: non_neg_integer(),
-            to: non_neg_integer()
-          },
-          line: pos_integer(),
-          file: String.t()
+          contents: list(String.t()),
+          definition: %{file: String.t(), line: pos_integer()} | nil
         }
 
   @typedoc """

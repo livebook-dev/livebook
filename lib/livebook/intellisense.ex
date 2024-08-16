@@ -82,10 +82,6 @@ defmodule Livebook.Intellisense do
     get_details(line, column, context, node)
   end
 
-  def handle_request({:definition, line, column}, context, node) do
-    get_definitions(line, column, context, node)
-  end
-
   def handle_request({:signature, hint}, context, node) do
     get_signature_items(hint, context, node)
   end
@@ -447,12 +443,12 @@ defmodule Livebook.Intellisense do
         nil
 
       matches ->
-        contents =
-          matches
-          |> Enum.sort_by(& &1[:arity], :asc)
-          |> Enum.map(&format_details_item(&1, context))
+        matches = Enum.sort_by(matches, & &1[:arity], :asc)
+        contents = Enum.map(matches, &format_details_item/1)
 
-        %{range: range, contents: contents}
+        definition = get_definition_location(hd(matches), context)
+
+        %{range: range, contents: contents, definition: definition}
     end
   end
 
@@ -460,13 +456,13 @@ defmodule Livebook.Intellisense do
   defp include_in_details?(%{kind: :bitstring_modifier}), do: false
   defp include_in_details?(_), do: true
 
-  defp format_details_item(%{kind: :variable, name: name}, _context), do: code(name)
+  defp format_details_item(%{kind: :variable, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :map_field, name: name}, _context), do: code(name)
+  defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_map_field, name: name}, _context), do: code(name)
+  defp format_details_item(%{kind: :in_map_field, name: name}), do: code(name)
 
-  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}, _context) do
+  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([
       code(name),
       """
@@ -479,35 +475,27 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item(
-         %{kind: :module, module: module, documentation: documentation},
-         context
-       ) do
+  defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
-      format_definition_link(module, context, {:module, module}),
       format_docs_link(module),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item(
-         %{
-           kind: :function,
-           module: module,
-           name: name,
-           arity: arity,
-           documentation: documentation,
-           signatures: signatures,
-           specs: specs,
-           meta: meta
-         },
-         context
-       ) do
+  defp format_details_item(%{
+         kind: :function,
+         module: module,
+         name: name,
+         arity: arity,
+         documentation: documentation,
+         signatures: signatures,
+         specs: specs,
+         meta: meta
+       }) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_definition_link(module, context, {:function, name, arity}),
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
       ]),
@@ -517,34 +505,58 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item(
-         %{
-           kind: :type,
-           module: module,
-           name: name,
-           arity: arity,
-           documentation: documentation,
-           type_spec: type_spec
-         },
-         context
-       ) do
+  defp format_details_item(%{
+         kind: :type,
+         module: module,
+         name: name,
+         arity: arity,
+         documentation: documentation,
+         type_spec: type_spec
+       }) do
     join_with_divider([
       format_type_signature(type_spec, module) |> code(),
-      format_definition_link(module, context, {:type, name, arity}),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item(
-         %{kind: :module_attribute, name: name, documentation: documentation},
-         _context
-       ) do
+  defp format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
     join_with_divider([
       code("@#{name}"),
       format_documentation(documentation, :all)
     ])
+  end
+
+  defp get_definition_location(%{kind: :module, module: module}, context) do
+    get_definition_location(module, context, {:module, module})
+  end
+
+  defp get_definition_location(
+         %{kind: :function, module: module, name: name, arity: arity},
+         context
+       ) do
+    get_definition_location(module, context, {:function, name, arity})
+  end
+
+  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
+    get_definition_location(module, context, {:type, name, arity})
+  end
+
+  defp get_definition_location(_idenfitier, _context), do: nil
+
+  defp get_definition_location(module, context, identifier) do
+    if context.ebin_path do
+      path = Path.join(context.ebin_path, "#{module}.beam")
+
+      with true <- File.exists?(path),
+           {:ok, line} <- Docs.locate_definition(path, identifier) do
+        file = module.module_info(:compile)[:source]
+        %{file: to_string(file), line: line}
+      else
+        _otherwise -> nil
+      end
+    end
   end
 
   # Formatting helpers
@@ -570,12 +582,6 @@ defmodule Livebook.Intellisense do
     #{code}
     ```\
     """
-  end
-
-  defp format_definition_link(module, context, identifier) do
-    if query = get_definition_location(module, context, identifier) do
-      "[Go to definition](#go-to-definition?#{URI.encode_query(query)})"
-    end
   end
 
   defp format_docs_link(module, function_or_type \\ nil) do
@@ -727,56 +733,6 @@ defmodule Livebook.Intellisense do
 
   defp format_documentation({format, _content}, _variant) do
     raise "unknown documentation format #{inspect(format)}"
-  end
-
-  @doc """
-  Returns the identifier definition located in `column` in `line`.
-  """
-  @spec get_definitions(String.t(), pos_integer(), context(), node()) ::
-          Runtime.definition_response() | nil
-  def get_definitions(line, column, context, node) do
-    case IdentifierMatcher.locate_identifier(line, column, context, node) do
-      %{matches: []} ->
-        nil
-
-      %{matches: matches, range: range} ->
-        matches
-        |> Enum.sort_by(& &1[:arity], :asc)
-        |> Enum.flat_map(&List.wrap(get_definition_location(&1, context)))
-        |> case do
-          [%{file: file, line: line} | _] -> %{range: range, file: file, line: line}
-          _ -> nil
-        end
-    end
-  end
-
-  defp get_definition_location(%{kind: :module, module: module}, context) do
-    get_definition_location(module, context, {:module, module})
-  end
-
-  defp get_definition_location(
-         %{kind: :function, module: module, name: name, arity: arity},
-         context
-       ) do
-    get_definition_location(module, context, {:function, name, arity})
-  end
-
-  defp get_definition_location(%{kind: :type, module: module, name: name, arity: arity}, context) do
-    get_definition_location(module, context, {:type, name, arity})
-  end
-
-  defp get_definition_location(module, context, identifier) do
-    if context.ebin_path do
-      path = Path.join(context.ebin_path, "#{module}.beam")
-
-      with true <- File.exists?(path),
-           {:ok, line} <- Docs.locate_definition(path, identifier) do
-        file = module.module_info(:compile)[:source]
-        %{file: to_string(file), line: line}
-      else
-        _otherwise -> nil
-      end
-    end
   end
 
   # Erlang HTML AST
