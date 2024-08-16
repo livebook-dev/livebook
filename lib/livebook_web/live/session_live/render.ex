@@ -1231,22 +1231,22 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp status_button_classes(color) do
     [
-      "text-xl leading-none p-1 flex items-center justify-center rounded-full rounded-full border-2",
+      "text-xl leading-none p-1 flex items-center justify-center rounded-full rounded-full border-2 focus-visible:outline-none",
       case color do
         :gray ->
-          "text-gray-400 border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
+          "text-gray-400 border-gray-200 hover:bg-gray-100 focus-visible:bg-gray-100"
 
         :blue ->
-          "text-blue-500 border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
+          "text-blue-500 border-blue-400 hover:bg-blue-50 focus-visible:bg-blue-50"
 
         :green ->
-          "text-green-bright-400 border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
+          "text-green-bright-400 border-green-bright-300 hover:bg-green-bright-50 focus-visible:bg-green-bright-50"
 
         :yellow ->
-          "text-yellow-bright-300 border-yellow-bright-200 hover:bg-yellow-bright-50 focus:bg-yellow-bright-50"
+          "text-yellow-bright-300 border-yellow-bright-200 hover:bg-yellow-bright-50 focus-visible:bg-yellow-bright-50"
 
         :red ->
-          "text-red-400 border-red-300 hover:bg-red-50 focus:bg-red-50"
+          "text-red-400 border-red-300 hover:bg-red-50 focus-visible:bg-red-50"
       end
     ]
   end
