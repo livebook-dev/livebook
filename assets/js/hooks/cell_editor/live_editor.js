@@ -535,11 +535,30 @@ export default class LiveEditor {
             const dom = document.createElement("div");
             dom.classList.add("cm-hoverDocs");
 
+            if (response.definition) {
+              const link = document.createElement("a");
+              link.classList.add("cm-hoverDocsDefinitionLink");
+              link.innerHTML = `<i class="ri-code-line"></i> Go to definition`;
+              dom.appendChild(link);
+
+              link.addEventListener("click", (event) => {
+                globalPubsub.broadcast("jump_to_editor", {
+                  line: response.definition.line,
+                  file: response.definition.file,
+                });
+                event.preventDefault();
+              });
+            }
+
+            const contents = document.createElement("div");
+            contents.classList.add("cm-hoverDocsContents");
+            dom.appendChild(contents);
+
             for (const content of response.contents) {
               const item = document.createElement("div");
               item.classList.add("cm-hoverDocsContent");
               item.classList.add("cm-markdown");
-              dom.appendChild(item);
+              contents.appendChild(item);
 
               new Markdown(item, content, {
                 defaultCodeLanguage: this.language,
@@ -565,16 +584,16 @@ export default class LiveEditor {
     if (column < 1 || column > lineLength) return null;
 
     return this.connection
-      .intellisenseRequest("definition", { line: text, column })
+      .intellisenseRequest("details", { line: text, column })
       .then((response) => {
-        globalPubsub.broadcast("jump_to_editor", {
-          line: response.line,
-          file: response.file,
-        });
-
-        return true;
+        if (response.definition) {
+          globalPubsub.broadcast("jump_to_editor", {
+            line: response.definition.line,
+            file: response.definition.file,
+          });
+        }
       })
-      .catch(() => false);
+      .catch(() => null);
   }
 
   /** @private */

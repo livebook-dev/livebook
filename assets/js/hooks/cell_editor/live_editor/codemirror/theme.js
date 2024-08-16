@@ -265,10 +265,28 @@ function buildEditorTheme(colors, { dark }) {
         maxWidth: "800px",
         maxHeight: "300px",
         overflowY: "auto",
-        padding: "8px",
         display: "flex",
         flexDirection: "column",
-        gap: "64px",
+
+        "& .cm-hoverDocsDefinitionLink": {
+          padding: "4px 8px",
+          cursor: "pointer",
+          fontSize: "0.875em",
+          fontFamily: fonts.sans,
+          opacity: 0.8,
+          borderBottom: `1px solid ${colors.separator}`,
+
+          "& i": {
+            marginRight: "2px",
+          },
+        },
+
+        "& .cm-hoverDocsContents": {
+          padding: "8px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "64px",
+        },
       },
 
       // Signature
