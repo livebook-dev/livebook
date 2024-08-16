@@ -6,6 +6,9 @@ Livebook.Runtime.ErlDist.NodeManager.start(
   unload_modules_on_termination: false
 )
 
+# We load erts so we can access its modules for completion.
+Application.load(:erts)
+
 # Use the embedded runtime in tests by default, so they are cheaper
 # to run. Other runtimes can be tested by setting them explicitly
 Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())

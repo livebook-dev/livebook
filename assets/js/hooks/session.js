@@ -157,6 +157,12 @@ const Session = {
       (event) => this.toggleCollapseAllSections(),
     );
 
+    this.subscriptions = [
+      globalPubsub.subscribe("jump_to_editor", ({ line, file }) =>
+        this.jumpToLine(file, line),
+      ),
+    ];
+
     this.initializeDragAndDrop();
 
     window.addEventListener(
@@ -270,6 +276,7 @@ const Session = {
       leaveChannel();
     }
 
+    this.subscriptions.forEach((subscription) => subscription.destroy());
     this.store.destroy();
   },
 
@@ -546,12 +553,9 @@ const Session = {
       const search = event.target.hash.replace("#go-to-definition", "");
       const params = new URLSearchParams(search);
       const line = parseInt(params.get("line"), 10);
-      const [_filename, cellId] = params.get("file").split("#cell:");
+      const file = params.get("file");
 
-      this.setFocusedEl(cellId);
-      this.setInsertMode(true);
-
-      globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
+      this.jumpToLine(file, line);
 
       event.preventDefault();
     }
@@ -1441,6 +1445,15 @@ const Session = {
 
   getElement(name) {
     return this.el.querySelector(`[data-el-${name}]`);
+  },
+
+  jumpToLine(file, line) {
+    const [_filename, cellId] = file.split("#cell:");
+
+    this.setFocusedEl(cellId, { scroll: false });
+    this.setInsertMode(true);
+
+    globalPubsub.broadcast(`cells:${cellId}`, { type: "jump_to_line", line });
   },
 };
 

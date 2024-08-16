@@ -627,19 +627,35 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp get_matching_modules(hint, ctx) do
-    ctx.node
+    ctx
     |> get_modules()
     |> Enum.filter(&ctx.matcher.(Atom.to_string(&1), hint))
     |> Enum.uniq()
   end
 
-  defp get_modules(node) do
-    modules = cached_all_loaded(node)
-
+  defp get_modules(%{node: node} = ctx) do
+    # On interactive mode, we load modules from the application
+    # and then the ones from runtime. For a remote node, ideally
+    # we would get the applications one, but there is no cheap
+    # way to do such, so we get :code.all_loaded and cache it
+    # instead (which includes all modules anyway on embedded mode).
     if node == node() and :code.get_mode() == :interactive do
-      modules ++ get_modules_from_applications()
+      runtime_modules(ctx.intellisense_context.ebin_path) ++ get_modules_from_applications()
     else
-      modules
+      cached_all_loaded(node)
+    end
+  end
+
+  defp runtime_modules(path) do
+    with true <- is_binary(path),
+         {:ok, beams} <- File.ls(path) do
+      for beam <- beams, String.ends_with?(beam, ".beam") do
+        beam
+        |> binary_slice(0..-6//1)
+        |> String.to_atom()
+      end
+    else
+      _ -> []
     end
   end
 
