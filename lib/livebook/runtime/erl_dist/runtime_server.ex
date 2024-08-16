@@ -335,7 +335,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @impl true
   def init(opts) do
     Process.send_after(self(), :check_owner, @await_owner_timeout)
-    :net_kernel.monitor_nodes(true, node_type: :all)
+
     schedule_memory_usage_report()
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
@@ -381,11 +381,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     else
       {:stop, {:shutdown, :no_owner}, state}
     end
-  end
-
-  def handle_info({:nodedown, node, _metadata}, state) do
-    Livebook.Intellisense.clear_cache(node)
-    {:noreply, state}
   end
 
   def handle_info({:DOWN, _, :process, owner, _}, %{owner: owner} = state) do
