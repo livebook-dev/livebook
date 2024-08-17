@@ -256,7 +256,7 @@ defmodule Livebook.Intellisense do
          documentation:
            join_with_newlines([
              format_documentation(documentation, :short),
-             code(format_signatures(signatures, module))
+             code(format_signatures(signatures, module, name, arity))
            ]),
          insert_text:
            cond do
@@ -494,7 +494,7 @@ defmodule Livebook.Intellisense do
          meta: meta
        }) do
     join_with_divider([
-      format_signatures(signatures, module) |> code(),
+      format_signatures(signatures, module, name, arity) |> code(),
       join_with_middle_dot([
         format_docs_link(module, {:function, name, arity}),
         format_meta(:since, meta)
@@ -514,7 +514,7 @@ defmodule Livebook.Intellisense do
          type_spec: type_spec
        }) do
     join_with_divider([
-      format_type_signature(type_spec, module) |> code(),
+      format_type_signature(type_spec, module, name, arity) |> code(),
       format_docs_link(module, {:type, name, arity}),
       format_type_spec(type_spec, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -623,9 +623,11 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_signatures([], _module), do: nil
+  defp format_signatures([], module, name, arity) do
+    signature_fallback(module, name, arity)
+  end
 
-  defp format_signatures(signatures, module) do
+  defp format_signatures(signatures, module, _name, _arity) do
     signatures_string = Enum.join(signatures, "\n")
 
     # Don't add module prefix to operator signatures
@@ -636,11 +638,18 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_type_signature(nil, _module), do: nil
+  defp format_type_signature(nil, module, name, arity) do
+    signature_fallback(module, name, arity)
+  end
 
-  defp format_type_signature({_type_kind, type}, module) do
+  defp format_type_signature({_type_kind, type}, module, _name, _arity) do
     {:"::", _env, [lhs, _rhs]} = Code.Typespec.type_to_quoted(type)
     inspect(module) <> "." <> Macro.to_string(lhs)
+  end
+
+  defp signature_fallback(module, name, arity) do
+    args = Enum.map_join(1..arity//1, ", ", fn n -> "arg#{n}" end)
+    "#{inspect(module)}.#{name}(#{args})"
   end
 
   defp format_meta(:deprecated, %{deprecated: deprecated}) do

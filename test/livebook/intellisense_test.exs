@@ -2024,7 +2024,13 @@ defmodule Livebook.IntellisenseTest do
       assert %{
                label: "hello/1",
                kind: :function,
-               documentation: "No documentation available",
+               documentation: """
+               No documentation available
+
+               ```
+               RemoteModule.hello(arg1)
+               ```\
+               """,
                insert_text: "hello(${})"
              } in Intellisense.get_completion_items("RemoteModule.hel", context, node)
     end
@@ -2037,7 +2043,13 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "unsubscribe/1",
                  kind: :function,
-                 documentation: "No documentation available",
+                 documentation: """
+                 No documentation available
+
+                 ```
+                 :mnesia.unsubscribe(arg1)
+                 ```\
+                 """,
                  insert_text: "unsubscribe(${})"
                }
              ] = Intellisense.get_completion_items(":mnesia.unsub", context, node)
