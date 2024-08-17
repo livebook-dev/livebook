@@ -39,7 +39,7 @@ defmodule LivebookWeb.FormComponents do
 
   defp input_classes(errors) do
     [
-      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed",
+      "w-full px-3 py-2 text-sm font-normal border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
       if errors == [] do
         "bg-gray-50 border-gray-200 text-gray-600"
       else
@@ -249,7 +249,7 @@ defmodule LivebookWeb.FormComponents do
             type="checkbox"
             value={@checked_value}
             class={[
-              "appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-all duration-300",
+              "appearance-none absolute block w-7 h-7 rounded-full bg-white border-[5px] border-gray-200 cursor-pointer transition-[transform,border-color] duration-300 outline-none",
               "peer checked:bg-white checked:border-blue-600 checked:translate-x-full"
             ]}
             name={@name}
@@ -258,8 +258,8 @@ defmodule LivebookWeb.FormComponents do
             {@rest}
           />
           <div class={[
-            "block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-all duration-300",
-            "peer-checked:bg-blue-600"
+            "block h-full w-full rounded-full bg-gray-200 cursor-pointer transition-colors duration-300",
+            "peer-checked:bg-blue-600 peer-focus-visible:outline peer-focus-visible:outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600"
           ]}>
           </div>
         </label>
@@ -306,7 +306,7 @@ defmodule LivebookWeb.FormComponents do
           checked={to_string(@value) == @checked_value}
           {@rest}
         />
-        <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded">
+        <div class="w-5 h-5 flex items-center justify-center border border-gray-300 peer-checked:border-transparent bg-white peer-checked:bg-blue-600 rounded peer-focus-visible:outline peer-focus-visible:outline-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600">
           <svg viewBox="0 0 16 16" fill="white" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z" />
           </svg>
@@ -487,7 +487,7 @@ defmodule LivebookWeb.FormComponents do
           id={@id}
           name={@name}
           class={[
-            "w-full px-3 py-2 pr-7 appearance-none text-sm border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed",
+            "w-full px-3 py-2 pr-7 appearance-none text-sm border rounded-lg placeholder-gray-400 disabled:opacity-70 disabled:cursor-not-allowed focus:border-blue-600 focus-visible:outline-none",
             if(@errors == [],
               do: "bg-gray-50 border-gray-200 text-gray-600",
               else: "bg-red-50 border-red-600 text-red-600"

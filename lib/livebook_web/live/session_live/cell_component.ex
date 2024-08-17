@@ -315,7 +315,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
-    <div class="flex relative" data-el-cell-body tabindex="0">
+    <div class="flex relative focus-visible:outline-none" data-el-cell-body tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator></div>
       <div class="w-full">
         <%= render_slot(@inner_block) %>
@@ -328,7 +328,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="flex items-center space-x-1">
       <button
-        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
         data-el-queue-cell-evaluation-button
         data-cell-id={@cell_id}
       >
@@ -346,7 +346,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </button>
       <.menu id={"cell-#{@cell_id}-evaluation-menu"} position={:bottom_left} distant>
         <:toggle>
-          <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+          <button class="flex text-gray-600 hover:text-gray-800">
             <.remix_icon icon="arrow-down-s-line" class="text-xl" />
           </button>
         </:toggle>
@@ -380,7 +380,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_evaluation_button(assigns) do
     ~H"""
     <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
       phx-click="cancel_cell_evaluation"
       phx-value-cell_id={@cell_id}
     >
@@ -396,7 +396,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="flex items-center space-x-1">
       <button
-        class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+        class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
         data-el-queue-cell-evaluation-button
         data-cell-id={@cell_id}
       >
@@ -411,7 +411,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <%= unless Livebook.Runtime.fixed_dependencies?(@runtime) do %>
         <.menu id="setup-menu" position={:bottom_left} distant>
           <:toggle>
-            <button class="flex text-gray-600 hover:text-gray-800 focus:text-gray-800">
+            <button class="flex text-gray-600 hover:text-gray-800">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </:toggle>
@@ -435,7 +435,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp setup_cell_evaluation_button(assigns) do
     ~H"""
     <button
-      class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
       phx-click="cancel_cell_evaluation"
       phx-value-cell_id={@cell_id}
     >
