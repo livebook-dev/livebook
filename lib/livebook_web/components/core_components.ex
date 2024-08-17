@@ -200,7 +200,6 @@ defmodule LivebookWeb.CoreComponents do
           role="dialog"
           aria-modal="true"
           tabindex="0"
-          autofocus
           phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
           phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
           phx-key="escape"
@@ -236,6 +235,7 @@ defmodule LivebookWeb.CoreComponents do
   def show_modal(js \\ %JS{}, id) do
     js
     |> JS.show(to: "##{id}")
+    |> JS.dispatch("lb:focus", to: "##{id}-content")
     |> JS.transition(
       {"ease-out duration-200", "opacity-0", "opacity-100"},
       to: "##{id}-container"
@@ -455,7 +455,7 @@ defmodule LivebookWeb.CoreComponents do
     ~H"""
     <li class={[
       "w-full",
-      "[&>:first-child]:w-full [&>:first-child]:flex [&>:first-child]:space-x-3 [&>:first-child]:px-5 [&>:first-child]:py-2 [&>:first-child]:items-center [&>:first-child:hover]:bg-gray-100 [&>:first-child:focus]:bg-gray-100 [&>:first-child]:whitespace-nowrap font-medium",
+      "[&>:first-child]:w-full [&>:first-child]:flex [&>:first-child]:space-x-3 [&>:first-child]:px-5 [&>:first-child]:py-2 [&>:first-child]:items-center [&>:first-child:hover]:bg-gray-100 [&>:first-child:focus-visible]:bg-gray-100 [&>:first-child:focus-visible]:outline-none [&>:first-child]:whitespace-nowrap font-medium",
       menu_item_class(@variant),
       @disabled && "pointer-events-none opacity-50"
     ]}>
@@ -889,7 +889,7 @@ defmodule LivebookWeb.CoreComponents do
       else
         "px-5 py-2 font-medium text-sm"
       end,
-      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1.5",
+      "inline-flex rounded-lg border whitespace-nowrap items-center justify-center gap-1.5 focus-visible:outline-none",
       if disabled do
         "cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400"
       else
@@ -961,7 +961,7 @@ defmodule LivebookWeb.CoreComponents do
       if disabled do
         "cursor-default text-gray-300"
       else
-        "text-gray-500 hover:text-gray-900 focus:bg-gray-100"
+        "text-gray-500 hover:text-gray-900 hover:bg-gray-50 focus-visible:bg-gray-100 focus-visible:outline-none"
       end
     ]
   end

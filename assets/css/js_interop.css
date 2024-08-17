@@ -51,7 +51,7 @@ solely client-side operations.
 
 [data-el-notebook-headline][data-js-focused] [data-el-heading],
 [data-el-section-headline][data-js-focused] [data-el-heading] {
-  @apply border-blue-300;
+  @apply border-blue-300 outline-none;
 }
 
 [data-el-section-headline]:not(:hover):not([data-js-focused])

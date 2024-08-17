@@ -81,7 +81,7 @@ defmodule LivebookWeb.LayoutComponents do
         <div class="flex flex-col">
           <div class="space-y-3">
             <div class="flex items-center mb-5">
-              <.link navigate={~p"/"} class="flex items-center border-l-4 border-gray-900 group">
+              <.link navigate={~p"/"} class="flex items-center ml-1 group">
                 <img
                   src={~p"/images/logo.png"}
                   class="mx-2"
