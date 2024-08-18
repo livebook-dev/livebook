@@ -4,13 +4,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   import Ecto.Changeset
 
-  alias Livebook.K8s.Auth
+  alias Livebook.{K8s.Auth, Session, Runtime}
 
   @config_secret_prefix "K8S_RUNTIME_"
-  @base_spec_config %Pod.BasicSpecs{
-    resource_limits: %Pod.Resources{},
-    resource_requests: %Pod.Resources{}
-  }
 
   @impl true
   def mount(socket) do
@@ -33,8 +29,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        namespace_options: nil,
        rbac_permissions: nil,
        rbac_error: nil,
-       basic_specs_changeset: Pod.BasicSpecs.changeset(@base_spec_config),
-       advanced_specs_changeset: Pod.AdvancedSpecs.changeset(%Pod.AdvancedSpecs{}),
+       basic_specs_changeset: Pod.BasicSpecs.changeset(),
+       advanced_specs_changeset: Pod.AdvancedSpecs.changeset(),
        save_config: nil,
        pvcs: nil,
        pvc_action: nil,
@@ -341,7 +337,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   defp storage_config(assigns) do
     ~H"""
     <div>
-      <div class="text-base text-gray-800 font-medium">
+      <div class="mt-4 text-base text-gray-800 font-medium">
         Storage
       </div>
       <div class="mt-1 text-gray-700">
@@ -608,7 +604,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("set_context", %{"context" => context}, socket) do
-    {:noreply, set_context(socket, context)}
+    {:noreply, socket |> set_context(context) |> set_namespace(nil)}
   end
 
   def handle_event("set_namespace", %{"namespace" => namespace}, socket) do
@@ -633,8 +629,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("validate_basic_specs", %{"specs" => specs}, socket) do
     changeset =
-      @base_spec_config
-      |> Pod.BasicSpecs.changeset(specs)
+      specs
+      |> Pod.BasicSpecs.changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, :basic_specs_changeset, changeset)}
@@ -642,8 +638,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
   def handle_event("validate_advanced_specs", %{"specs" => specs}, socket) do
     changeset =
-      %Pod.AdvancedSpecs{}
-      |> Pod.AdvancedSpecs.changeset(specs)
+      specs
+      |> Pod.AdvancedSpecs.changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign(socket, :advanced_specs_changeset, changeset)}
@@ -681,7 +677,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("confirm_delete_pvc", %{}, socket) do
-    %{namespace: namespace, home_pvc: name, pvcs: pvcs} = socket.assigns
+    %{namespace: namespace, home_pvc: name} = socket.assigns
     req = socket.assigns.reqs.pvc
 
     socket =
@@ -699,11 +695,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("init", %{}, socket) do
-    manifest = build_manifest(socket)
-    dbg(manifest)
-    # runtime = Runtime.K8s.new(config)
-    # Session.set_runtime(socket.assigns.session.pid, runtime)
-    # Session.connect_runtime(socket.assigns.session.pid)
+    config = build_config(socket)
+    runtime = Runtime.K8s.new(config, socket.assigns.reqs.pod)
+    Session.set_runtime(socket.assigns.session.pid, runtime)
+    Session.connect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 
@@ -825,16 +820,16 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
-  def set_context(socket, nil), do: socket
+  defp set_context(socket, nil), do: socket
 
-  def set_context(socket, context) do
+  defp set_context(socket, context) do
     kubeconfig = Kubereq.Kubeconfig.set_current_context(socket.assigns.kubeconfig, context)
 
     reqs = %{
       access_reviews:
         Kubereq.new(kubeconfig, "apis/authorization.k8s.io/v1/selfsubjectaccessreviews"),
       namespaces: Kubereq.new(kubeconfig, "api/v1/namespaces/:name"),
-      pods: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/configmaps/:name"),
+      pod: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/pods/:name"),
       pvc: Kubereq.new(kubeconfig, "api/v1/namespaces/:namespace/persistentvolumeclaims/:name"),
       sc: Kubereq.new(kubeconfig, "apis/storage.k8s.io/v1/storageclasses/:name")
     }
@@ -854,7 +849,9 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     )
   end
 
-  defp set_namespace(socket, nil), do: socket
+  defp set_namespace(socket, nil) do
+    assign(socket, namespace: nil, rbac_permissions: nil)
+  end
 
   defp set_namespace(socket, ns) do
     reqs = socket.assigns.reqs
@@ -931,13 +928,21 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp load_config_defaults(socket) do
-    # TODO
+    config_defaults = socket.assigns.config_defaults
+
     socket
+    |> assign(
+      context: config_defaults["context"],
+      namespace: config_defaults["namespace"],
+      home_pvc: config_defaults["home_pvc"],
+      basic_specs_changeset: Pod.BasicSpecs.changeset(config_defaults["basic_specs"]),
+      advanced_specs_changeset: Pod.AdvancedSpecs.changeset(config_defaults["advanced_specs"])
+    )
   end
 
   defp config_secret_changeset(socket, attrs) do
     hub = socket.assigns.hub
-    value = socket |> build_manifest() |> Jason.encode!()
+    value = socket |> build_config() |> Jason.encode!()
     secret = %Livebook.Secrets.Secret{hub_id: hub.id, name: nil, value: value}
 
     secret
@@ -976,11 +981,24 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end)
   end
 
-  defp build_manifest(socket) do
+  defp build_config(socket) do
     basic_specs = apply_changes(socket.assigns.basic_specs_changeset)
     advanced_specs = apply_changes(socket.assigns.advanced_specs_changeset)
-    namespace = socket.assigns.namespace
-    home_pvc = socket.assigns.home_pvc
-    Pod.build_manifest(namespace, basic_specs, advanced_specs, home_pvc)
+
+    %{
+      context: socket.assigns.context,
+      namespace: socket.assigns.namespace,
+      home_pvc: socket.assigns.home_pvc,
+      basic_specs: %{
+        docker_tag: basic_specs.docker_tag,
+        resource_limits: Map.from_struct(basic_specs.resource_limits),
+        resource_requests: Map.from_struct(basic_specs.resource_requests)
+      },
+      advanced_specs: %{
+        annotations: Enum.map(advanced_specs.annotations, &Map.from_struct(&1)),
+        labels: Enum.map(advanced_specs.labels, &Map.from_struct(&1)),
+        service_account_name: advanced_specs.service_account_name
+      }
+    }
   end
 end

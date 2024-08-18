@@ -110,6 +110,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type(%Runtime.Attached{}), do: "attached"
   defp runtime_type(%Runtime.Embedded{}), do: "embedded"
   defp runtime_type(%Runtime.Fly{}), do: "fly"
+  defp runtime_type(%Runtime.K8s{}), do: "k8s"
 
   defp component_for_type("standalone"), do: LivebookWeb.SessionLive.StandaloneRuntimeComponent
   defp component_for_type("attached"), do: LivebookWeb.SessionLive.AttachedRuntimeComponent

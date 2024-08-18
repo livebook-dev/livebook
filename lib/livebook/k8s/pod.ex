@@ -2,6 +2,15 @@ defmodule Livebook.K8s.Pod do
   import Ecto.Changeset
 
   @main_container_name "livebook-runtime"
+  @home_pvc_volume_name "lb-home-folder"
+
+  defmacrop access_by_name(name) do
+    quote do
+      Access.filter(&(&1["name"] == unquote(name)))
+    end
+  end
+
+  defguardp is_empty(value) when is_nil(value) or value == ""
 
   defmodule Resources do
     use Ecto.Schema
@@ -27,6 +36,22 @@ defmodule Livebook.K8s.Pod do
       |> cast(attrs, @fields)
       |> validate_required(@required)
     end
+
+    def build_manifest(resources) do
+      resources
+      |> Map.new(fn
+        {:gpu, value} -> {"nvidia/gpu", value}
+        {key, value} -> {Atom.to_string(key), value}
+      end)
+    end
+
+    def parse_manifest(manifest) do
+      %{
+        cpu: Map.get(manifest, "cpu"),
+        memory: Map.get(manifest, "memory"),
+        gpu: Map.get(manifest, "nvidia/gpu")
+      }
+    end
   end
 
   defmodule BasicSpecs do
@@ -42,16 +67,16 @@ defmodule Livebook.K8s.Pod do
 
     embedded_schema do
       field :docker_tag, :string, default: hd(Livebook.Config.docker_images()).tag
-      embeds_one :resource_limits, Resources
-      embeds_one :resource_requests, Resources
+      embeds_one :resource_limits, Resources, on_replace: :update
+      embeds_one :resource_requests, Resources, on_replace: :update
     end
 
     @fields ~w(
     docker_tag
   )a
 
-    def changeset(manifest, attrs \\ %{}) do
-      manifest
+    def changeset(attrs \\ %{}) do
+      %__MODULE__{resource_limits: %Resources{}, resource_requests: %Resources{}}
       |> cast(attrs, @fields)
       |> validate_required(@fields)
       |> cast_embed(:resource_limits)
@@ -81,8 +106,8 @@ defmodule Livebook.K8s.Pod do
       service_account_name
     )a
 
-    def changeset(manifest, attrs \\ %{}) do
-      manifest
+    def changeset(attrs \\ %{}) do
+      %__MODULE__{}
       |> cast(attrs, @fields)
       |> validate_required(@fields)
       |> cast_embed(:labels,
@@ -98,21 +123,30 @@ defmodule Livebook.K8s.Pod do
 
   def build_manifest(namespace, basic_specs, advanced_specs, home_pvc) do
     manifest = %{
-      "appVersion" => "v1",
+      "apiVersion" => "v1",
       "kind" => "Pod",
       "metadata" => %{
         "namespace" => namespace
       },
       "spec" => %{
+        "serviceAccountName" => advanced_specs.service_account_name,
+        "restartPolicy" => "Never",
         "containers" => [
           %{
             "name" => @main_container_name,
             "image" => "ghcr.io/livebook-dev/livebook:#{basic_specs.docker_tag}",
             "resources" => %{
-              "requests" => basic_specs.resource_requests,
-              "limits" => basic_specs.resource_limits
+              "requests" => Resources.build_manifest(basic_specs.resource_requests),
+              "limits" => Resources.build_manifest(basic_specs.resource_limits)
             },
-            "serviceAccountName" => advanced_specs.service_account_name
+            "env" => [
+              %{
+                "name" => "POD_IP",
+                "valueFrom" => %{
+                  "fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "status.podIP"}
+                }
+              }
+            ]
           }
         ]
       }
@@ -124,15 +158,49 @@ defmodule Livebook.K8s.Pod do
     |> set_home_pvc(home_pvc)
   end
 
-  defp set_home_pvc(manifest, nil), do: manifest
+  def parse_manifest(manifest) do
+    main_container =
+      manifest
+      |> get_in(["spec", "containers", access_by_name(@main_container_name)])
+      |> List.first()
+
+    [_, docker_tag] = main_container |> Map.get("image") |> String.split(":")
+
+    home_pvc =
+      manifest
+      |> get_in([
+        "specs",
+        "volumes",
+        access_by_name(@home_pvc_volume_name),
+        "persistentVolumeClaim",
+        "claimName"
+      ])
+      |> List.wrap()
+      |> List.first()
+
+    basic_specs = %{
+      docker_tag: docker_tag,
+      resource_limits: Resources.parse_manifest(get_in(main_container, ["resources", "limits"])),
+      resource_requests:
+        Resources.parse_manifest(get_in(main_container, ["resources", "requests"]))
+    }
+
+    advanced_specs = %{
+      annotations: get_in(manifest, ~w(metadata annotations)),
+      labels: get_in(manifest, ~w(metadata labels)),
+      service_account_name: get_in(manifest, ~w(spec serviceAccountName))
+    }
+
+    %{home_pvc: home_pvc, basic_specs: basic_specs, advanced_specs: advanced_specs}
+  end
+
+  defp set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
 
   defp set_home_pvc(manifest, home_pvc) do
-    volume_name = "lb-home-folder"
-
     manifest
-    |> update_in([Access.key("volumes", [])], fn volumes ->
+    |> update_in(["spec", Access.key("volumes", [])], fn volumes ->
       volume = %{
-        "name" => volume_name,
+        "name" => @home_pvc_volume_name,
         "persistentVolumeClaim" => %{"claimName" => home_pvc}
       }
 
@@ -143,15 +211,27 @@ defmodule Livebook.K8s.Pod do
       fn container ->
         container
         |> update_in([Access.key("volumeMounts", [])], fn volume_mounts ->
-          [%{"name" => volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
+          [%{"name" => @home_pvc_volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
         end)
       end
     )
   end
 
-  defp add_metadata(manifest, field, kv) when is_nil(kv) or kv == [], do: manifest
+  defp add_metadata(manifest, _field, kv) when is_nil(kv) or kv == [], do: manifest
 
   defp add_metadata(manifest, field, kv) do
-    update_in(manifest, ["metadata", Access.key(field, [])], fn existing -> kv ++ existing end)
+    update_in(manifest, ["metadata", Access.key(field, %{})], fn existing ->
+      for %{key: key, value: value} <- kv, reduce: existing do
+        acc -> Map.put(acc, key, value)
+      end
+    end)
+  end
+
+  def add_env_vars(manifest, env_vars) do
+    update_in(
+      manifest,
+      ["spec", "containers", access_by_name(@main_container_name), Access.key("env", [])],
+      fn existing_vars -> env_vars ++ existing_vars end
+    )
   end
 end

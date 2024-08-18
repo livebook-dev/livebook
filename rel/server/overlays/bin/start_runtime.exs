@@ -6,10 +6,21 @@ File.cd!(System.user_home!())
   dist_port: dist_port
 } = System.fetch_env!("LIVEBOOK_RUNTIME") |> Base.decode64!() |> :erlang.binary_to_term()
 
-# This is the only Fly-specific part of starting Livebook as runtime
-app = System.fetch_env!("FLY_APP_NAME")
-machine_id = System.fetch_env!("FLY_MACHINE_ID")
-node = :"#{node_base}@#{machine_id}.vm.#{app}.internal"
+node =
+  cond do
+    System.get_env("FLY_APP_NAME") ->
+      # This is the only Fly-specific part of starting Livebook as runtime
+      app = System.fetch_env!("FLY_APP_NAME")
+      machine_id = System.fetch_env!("FLY_MACHINE_ID")
+      :"#{node_base}@#{machine_id}.vm.#{app}.internal"
+
+    System.get_env("POD_IP") ->
+      # This is the only K8s-specific part of starting Livebook as runtime
+      hostname = System.fetch_env!("POD_IP")
+      :"#{node_base}@#{hostname}"
+  end
+
+dbg(node)
 
 # We persist the information before the node is reachable
 :persistent_term.put(:livebook_runtime_info, %{
