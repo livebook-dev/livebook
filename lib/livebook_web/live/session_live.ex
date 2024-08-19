@@ -1778,6 +1778,7 @@ defmodule LivebookWeb.SessionLive do
       dirty: data.dirty,
       persistence_warnings: data.persistence_warnings,
       runtime: data.runtime,
+      runtime_metadata: Runtime.describe(data.runtime),
       runtime_status: data.runtime_status,
       runtime_connect_info: data.runtime_connect_info,
       runtime_connected_nodes: Enum.sort(data.runtime_connected_nodes),

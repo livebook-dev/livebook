@@ -6,9 +6,18 @@ defmodule LivebookWeb.HTMLHelpers do
   @doc """
   Returns path to specific process dialog within LiveDashboard.
   """
+  @spec live_dashboard_process_path(pid) :: String.t()
   def live_dashboard_process_path(pid) do
     pid_str = Phoenix.LiveDashboard.PageBuilder.encode_pid(pid)
     ~p"/dashboard/#{node()}/processes?info=#{pid_str}"
+  end
+
+  @doc """
+  Returns path to specific node within LiveDashboard.
+  """
+  @spec live_dashboard_node_path(String.t()) :: String.t()
+  def live_dashboard_node_path(node) do
+    ~p"/dashboard/#{node}/home"
   end
 
   @doc """
