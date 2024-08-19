@@ -276,7 +276,7 @@ defmodule Livebook.Runtime.K8s do
             {:error, "failed to port-forward. Error: #{String.trim(error)}"}
 
           {:DOWN, ^port_ref, :port, _object, reason} ->
-            {:error, "failed to open fly proxy. Process terminated, reason: #{inspect(reason)}"}
+            {:error, "failed to port-forward. Process terminated, reason: #{inspect(reason)}"}
         after
           30_000 ->
             {:error, "failed to port-forward. Timed out after 30s"}
