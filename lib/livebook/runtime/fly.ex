@@ -360,7 +360,6 @@ defmodule Livebook.Runtime.Fly do
 
   defp initialize_node(child_node) do
     init_opts = [
-      node_manager_opts: [start_os_mon: true],
       runtime_server_opts: [
         extra_smart_cell_definitions: Livebook.Runtime.Definitions.smart_cell_definitions()
       ]

@@ -35,9 +35,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     * `:capture_orphan_logs` - whether to capture logs out of Livebook
       evaluator's scope. Defaults to `true`
 
-    * `:start_os_mon` - starts `:os_mon` for additional statistics in
-      LiveDashboard. Defaults to `false`
-
   """
   def start(opts \\ []) do
     GenServer.start(__MODULE__, opts, name: @name)
@@ -99,7 +96,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     auto_termination = Keyword.get(opts, :auto_termination, true)
     parent_node = Keyword.get(opts, :parent_node)
     capture_orphan_logs = Keyword.get(opts, :capture_orphan_logs, true)
-    start_os_mon = Keyword.get(opts, :start_os_mon, false)
 
     ## Initialize the node
 
@@ -153,10 +149,6 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     Livebook.Intellisense.load()
 
     :net_kernel.monitor_nodes(true, node_type: :all)
-
-    if start_os_mon do
-      Application.ensure_all_started(:os_mon)
-    end
 
     {:ok,
      %{
