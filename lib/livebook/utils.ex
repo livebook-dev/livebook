@@ -651,10 +651,10 @@ defmodule Livebook.Utils do
       "1.2 MB"
 
       iex> Livebook.Utils.format_bytes(1_363_148_800)
-      "1.4 GB"
+      "1.3 GB"
 
       iex> Livebook.Utils.format_bytes(1_503_238_553_600)
-      "1.5 TB"
+      "1.4 TB"
 
   """
   @spec format_bytes(non_neg_integer()) :: String.t()
@@ -675,10 +675,10 @@ defmodule Livebook.Utils do
     "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
   end
 
-  defp memory_unit(:TB), do: 1_000_000_000_000
-  defp memory_unit(:GB), do: 1_000_000_000
-  defp memory_unit(:MB), do: 1_000_000
-  defp memory_unit(:KB), do: 1_000
+  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:KB), do: 1024
 
   @doc """
   Converts the given IP address into a valid hostname.
