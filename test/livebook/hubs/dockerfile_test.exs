@@ -174,8 +174,6 @@ defmodule Livebook.Hubs.DockerfileTest do
 
       assert dockerfile =~ """
              FROM ghcr.io/livebook-dev/livebook:#{@version}-cuda12
-
-             ENV XLA_TARGET "cuda120"
              """
     end
 
@@ -251,10 +249,9 @@ defmodule Livebook.Hubs.DockerfileTest do
       hub = team_hub()
       agent_key = Livebook.Factory.build(:agent_key)
 
-      %{image: image, env: env} = Dockerfile.online_docker_info(config, hub, agent_key)
+      %{image: image, env: _env} = Dockerfile.online_docker_info(config, hub, agent_key)
 
       assert image == "ghcr.io/livebook-dev/livebook:#{@version}-cuda12"
-      assert {"XLA_TARGET", "cuda120"} in env
     end
 
     test "deploying with auto cluster setup" do
