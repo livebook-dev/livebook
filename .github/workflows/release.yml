@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 jobs:
   create_draft_release:
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && github.repository == 'livebook-dev/livebook'
     name: "Create draft release"
     permissions:
       contents: write
