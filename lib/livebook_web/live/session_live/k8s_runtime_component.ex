@@ -92,27 +92,20 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           >Kubernetes configuration</a> YAML file (e.g. to <code>"~/.kube/config"</code>).
         </.message_box>
 
-        <.form
-          :let={f}
+        <form
           :if={@context_options != []}
           phx-change="set_context"
           phx-nosubmit
           phx-target={@myself}
           class="mt-4"
         >
-          <.select_field
-            field={f[:context]}
-            label="Context"
-            options={@context_options}
-            value={@context}
-          />
-        </.form>
+          <.select_field name="context" value={@context} label="Context" options={@context_options} />
+        </form>
 
         <.loader :if={@cluster_check.status == :inflight} />
 
         <.cluster_check_error :if={@cluster_check.status == :error} error={@cluster_check.error} />
-        <.form
-          :let={f}
+        <form
           :if={@cluster_check.status == :ok}
           phx-change="set_namespace"
           phx-nosubmit
@@ -121,19 +114,19 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         >
           <.select_field
             :if={@namespace_options != nil}
-            field={f[:namespace]}
+            name="namespace"
+            value={@namespace}
             label="Namespace"
             options={@namespace_options}
-            value={@namespace}
           />
           <.text_field
             :if={@namespace_options == nil}
-            field={f[:namespace]}
+            name="namespace"
             value={@namespace}
             label="Namespace"
             phx-debounce="600"
           />
-        </.form>
+        </form>
 
         <.rbac_error :if={@rbac_error} error={@rbac_error} />
 
@@ -165,10 +158,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
                 not @advanced_specs_changeset.valid?
             }
           >
-            Connect
+            <%= label(@namespace, @runtime, @runtime_status) %>
           </.button>
-          <%!-- <div
-            :if={reconnecting?(@app_name, @runtime) && @runtime_connect_info}
+          <div
+            :if={reconnecting?(@namespace, @runtime) && @runtime_connect_info}
             class="mt-4 scroll-mb-8"
             phx-mounted={JS.dispatch("lb:scroll_into_view", detail: %{behavior: "instant"})}
           >
@@ -178,7 +171,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
                 <span>Step: <%= @runtime_connect_info %></span>
               </div>
             </.message_box>
-          </div> --%>
+          </div>
         </div>
       </div>
     </div>
@@ -336,7 +329,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               Node Selector Terms
             </div>
             <.inputs_for :let={node_selector_term} field={f[:node_selector]}>
-              <input type="hidden" name="specs[node_selector_sort][]" value={node_selector_term.index} />
+              <input
+                type="hidden"
+                name="specs[node_selector_sort][]"
+                value={node_selector_term.index}
+              />
               <div class="flex items-start gap-1">
                 <.text_field field={node_selector_term[:key]} placeholder="Name" />
                 <.text_field field={node_selector_term[:value]} placeholder="Value" />
@@ -367,7 +364,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </div>
         </div>
 
-
         <div>
           <div class="flex flex-col gap-2">
             <div class="text-base text-gray-800 font-medium">
@@ -379,7 +375,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
                 <.text_field field={toleration[:key]} placeholder="Key" />
                 <.select_field field={toleration[:operator]} options={["Equal", "Exists"]} />
                 <.text_field field={toleration[:value]} placeholder="Value" />
-                <.select_field field={toleration[:effect]} options={[{"All Effects", nil}, "NoSchedule", "PreferNoSchedule", "NoExecute"]} />
+                <.select_field
+                  field={toleration[:effect]}
+                  options={[{"All Effects", nil}, "NoSchedule", "PreferNoSchedule", "NoExecute"]}
+                />
 
                 <span class="tooltip left" data-tooltip="Delete this toleration">
                   <.icon_button
@@ -635,7 +634,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     """
   end
 
-  defp cluster_check_error(%{error: %{reason: :timeout}} = assigns) do
+  defp cluster_check_error(assigns) do
     ~H"""
     <.message_box kind={:error}>
       <div class="flex items-center justify-between">
@@ -870,19 +869,19 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, socket}
   end
 
-  # defp label(app_name, runtime, runtime_status) do
-  #   reconnecting? = reconnecting?(app_name, runtime)
+  defp label(namespace, runtime, runtime_status) do
+    reconnecting? = reconnecting?(namespace, runtime)
 
-  #   case {reconnecting?, runtime_status} do
-  #     {true, :connected} -> "Reconnect"
-  #     {true, :connecting} -> "Connecting..."
-  #     _ -> "Connect"
-  #   end
-  # end
+    case {reconnecting?, runtime_status} do
+      {true, :connected} -> "Reconnect"
+      {true, :connecting} -> "Connecting..."
+      _ -> "Connect"
+    end
+  end
 
-  # defp reconnecting?(app_name, runtime) do
-  #   match?(%Runtime.Fly{config: %{app_name: ^app_name}}, runtime)
-  # end
+  defp reconnecting?(namespace, runtime) do
+    match?(%Runtime.Fly{config: %{namespace: ^namespace}}, runtime)
+  end
 
   defp create_pvc(socket, pvc) do
     namespace = socket.assigns.namespace
@@ -1076,7 +1075,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         labels: Enum.map(advanced_specs.labels, &Map.from_struct(&1)),
         service_account_name: advanced_specs.service_account_name,
         node_selector: Enum.map(advanced_specs.node_selector, &Map.from_struct(&1)),
-        tolerations: Enum.map(advanced_specs.tolerations, &Map.from_struct(&1)),
+        tolerations: Enum.map(advanced_specs.tolerations, &Map.from_struct(&1))
       }
     }
   end

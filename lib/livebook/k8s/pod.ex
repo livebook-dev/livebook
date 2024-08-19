@@ -50,11 +50,11 @@ defmodule Livebook.K8s.Pod do
     use Ecto.Schema
 
     @type t :: %__MODULE__{
-      effect: String.t(),
-      key: String.t(),
-      operator: String.t(),
-      value: String.t(),
-    }
+            effect: String.t(),
+            key: String.t(),
+            operator: String.t(),
+            value: String.t()
+          }
 
     @primary_key false
 
@@ -189,7 +189,6 @@ defmodule Livebook.K8s.Pod do
     |> add_node_selector(advanced_specs.node_selector)
     |> add_tolerations(advanced_specs.tolerations)
     |> set_home_pvc(home_pvc)
-    |>dbg
   end
 
   defp set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
