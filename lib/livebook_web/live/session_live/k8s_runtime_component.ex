@@ -329,6 +329,44 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         </div>
 
         <.text_field field={f[:service_account_name]} label="Service Account Name" />
+
+        <div class="grid grid-cols-2 gap-6">
+          <div class="flex flex-col gap-2">
+            <div class="text-base text-gray-800 font-medium">
+              Node Selector Terms
+            </div>
+            <.inputs_for :let={node_selector_term} field={f[:node_selector]}>
+              <input type="hidden" name="specs[node_selector_sort][]" value={node_selector_term.index} />
+              <div class="flex items-start gap-1">
+                <.text_field field={node_selector_term[:key]} placeholder="Name" />
+                <.text_field field={node_selector_term[:value]} placeholder="Value" />
+
+                <span class="tooltip left" data-tooltip="Delete this node_selector_term">
+                  <.icon_button
+                    class="text-red-600 font-medium text-sm whitespace-nowrap"
+                    type="button"
+                    name="specs[node_selector_drop][]"
+                    value={node_selector_term.index}
+                    phx-click={JS.dispatch("change")}
+                  >
+                    <.remix_icon icon="delete-bin-6-line" />
+                  </.icon_button>
+                </span>
+              </div>
+            </.inputs_for>
+            <input type="hidden" name="specs[node_selector_drop][]" />
+
+            <.icon_button
+              type="button"
+              name="specs[node_selector_sort][]"
+              value="new"
+              phx-click={JS.dispatch("change")}
+            >
+              <.remix_icon icon="add-line" />
+            </.icon_button>
+          </div>
+
+        </div>
       </.form>
     </div>
     """
@@ -997,7 +1035,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       advanced_specs: %{
         annotations: Enum.map(advanced_specs.annotations, &Map.from_struct(&1)),
         labels: Enum.map(advanced_specs.labels, &Map.from_struct(&1)),
-        service_account_name: advanced_specs.service_account_name
+        service_account_name: advanced_specs.service_account_name,
+        node_selector: Enum.map(advanced_specs.node_selector, &Map.from_struct(&1)),
       }
     }
   end

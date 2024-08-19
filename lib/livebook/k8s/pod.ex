@@ -10,7 +10,7 @@ defmodule Livebook.K8s.Pod do
     end
   end
 
-  defguardp is_empty(value) when is_nil(value) or value == ""
+  defguardp is_empty(value) when is_nil(value) or value == "" or value == []
 
   defmodule Resources do
     use Ecto.Schema
@@ -43,14 +43,6 @@ defmodule Livebook.K8s.Pod do
         {:gpu, value} -> {"nvidia/gpu", value}
         {key, value} -> {Atom.to_string(key), value}
       end)
-    end
-
-    def parse_manifest(manifest) do
-      %{
-        cpu: Map.get(manifest, "cpu"),
-        memory: Map.get(manifest, "memory"),
-        gpu: Map.get(manifest, "nvidia/gpu")
-      }
     end
   end
 
@@ -91,7 +83,8 @@ defmodule Livebook.K8s.Pod do
     @type t :: %__MODULE__{
             annotations: [KeyValue.t()],
             labels: [KeyValue.t()],
-            service_account_name: String.t()
+            service_account_name: String.t(),
+            node_selector: [KeyValue.t()]
           }
 
     @primary_key false
@@ -100,6 +93,7 @@ defmodule Livebook.K8s.Pod do
       field :service_account_name, :string, default: "default"
       embeds_many :labels, KeyValue
       embeds_many :annotations, KeyValue
+      embeds_many :node_selector, KeyValue
     end
 
     @fields ~w(
@@ -117,6 +111,10 @@ defmodule Livebook.K8s.Pod do
       |> cast_embed(:annotations,
         sort_param: :annotations_sort,
         drop_param: :annotations_drop
+      )
+      |> cast_embed(:node_selector,
+        sort_param: :node_selector_sort,
+        drop_param: :node_selector_drop
       )
     end
   end
@@ -155,43 +153,8 @@ defmodule Livebook.K8s.Pod do
     manifest
     |> add_metadata("labels", advanced_specs.labels)
     |> add_metadata("annotations", advanced_specs.annotations)
+    |> add_node_selector(advanced_specs.node_selector)
     |> set_home_pvc(home_pvc)
-  end
-
-  def parse_manifest(manifest) do
-    main_container =
-      manifest
-      |> get_in(["spec", "containers", access_by_name(@main_container_name)])
-      |> List.first()
-
-    [_, docker_tag] = main_container |> Map.get("image") |> String.split(":")
-
-    home_pvc =
-      manifest
-      |> get_in([
-        "specs",
-        "volumes",
-        access_by_name(@home_pvc_volume_name),
-        "persistentVolumeClaim",
-        "claimName"
-      ])
-      |> List.wrap()
-      |> List.first()
-
-    basic_specs = %{
-      docker_tag: docker_tag,
-      resource_limits: Resources.parse_manifest(get_in(main_container, ["resources", "limits"])),
-      resource_requests:
-        Resources.parse_manifest(get_in(main_container, ["resources", "requests"]))
-    }
-
-    advanced_specs = %{
-      annotations: get_in(manifest, ~w(metadata annotations)),
-      labels: get_in(manifest, ~w(metadata labels)),
-      service_account_name: get_in(manifest, ~w(spec serviceAccountName))
-    }
-
-    %{home_pvc: home_pvc, basic_specs: basic_specs, advanced_specs: advanced_specs}
   end
 
   defp set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
@@ -217,13 +180,11 @@ defmodule Livebook.K8s.Pod do
     )
   end
 
-  defp add_metadata(manifest, _field, kv) when is_nil(kv) or kv == [], do: manifest
+  defp add_metadata(manifest, _field, kv) when is_empty(kv) or kv == [], do: manifest
 
   defp add_metadata(manifest, field, kv) do
     update_in(manifest, ["metadata", Access.key(field, %{})], fn existing ->
-      for %{key: key, value: value} <- kv, reduce: existing do
-        acc -> Map.put(acc, key, value)
-      end
+      for %{key: key, value: value} <- kv, into: existing, do: {key, value}
     end)
   end
 
@@ -233,5 +194,13 @@ defmodule Livebook.K8s.Pod do
       ["spec", "containers", access_by_name(@main_container_name), Access.key("env", [])],
       fn existing_vars -> env_vars ++ existing_vars end
     )
+  end
+
+  defp add_node_selector(manifest, kv) when is_empty(kv), do: manifest
+
+  defp add_node_selector(manifest, kv) do
+    update_in(manifest, ["spec", Access.key("nodeSelector", %{})], fn existing ->
+      for %{key: key, value: value} <- kv, into: existing, do: {key, value}
+    end)
   end
 end

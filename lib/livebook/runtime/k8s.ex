@@ -230,7 +230,7 @@ defmodule Livebook.Runtime.K8s do
     {:ok, pod_ip}
   end
 
-  defp k8s_forward_port(kubeconfig, pod_name, namespace, host, proxy_data) do
+  defp k8s_forward_port(kubeconfig, pod_name, namespace, _pod_ip, proxy_data) do
     with {:ok, kubectl_path} <- find_kubectl_executable() do
       %{local_port: local_port, remote_port: remote_port} = proxy_data
 
