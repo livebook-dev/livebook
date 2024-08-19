@@ -65,11 +65,7 @@ defmodule Livebook.Config do
 
     [
       %{tag: version, name: "Livebook", env: []},
-      %{
-        tag: "#{version}-cuda12",
-        name: "Livebook + CUDA 12",
-        env: [{"XLA_TARGET", "cuda120"}]
-      }
+      %{tag: "#{version}-cuda12", name: "Livebook + CUDA 12", env: []}
     ]
   end
 
