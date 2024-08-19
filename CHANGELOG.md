@@ -2,6 +2,37 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.14.0-rc.1](https://github.com/livebook-dev/livebook/tree/v0.14.0-rc.1) (2024-08-19)
+
+### Added
+
+* Support for specifying column ratios in grid output ([#2718](https://github.com/livebook-dev/livebook/pull/2718))
+* Added go-to-definition feature for modules and functions defined in the notebook ([#2730](https://github.com/livebook-dev/livebook/pull/2730), [#2741](https://github.com/livebook-dev/livebook/pull/2741))
+* Documented how to use Nginx as a HTTPS proxy in front of Livebook ([#2735](https://github.com/livebook-dev/livebook/pull/2735))
+* Introduced nightly Docker image builds, tagged as `nightly` and `nightly-cuda12` ([#2739](https://github.com/livebook-dev/livebook/pull/2739))
+* Highlight for the relevant symbol when showing hover details in the code editor ([#2747](https://github.com/livebook-dev/livebook/pull/2747))
+* Link to live dashboard for the runtime node in the runtime panel ([#2754](https://github.com/livebook-dev/livebook/pull/2754))
+
+### Changed
+
+* Improved error message in the Fly runtime config when the app name is taken
+* (Desktop) The Windows installer to execute as normal user ([#2628](https://github.com/livebook-dev/livebook/pull/2628))
+* New Docker images with CUDA 12 are now tagged `*-cuda12` ([#2739](https://github.com/livebook-dev/livebook/pull/2739))
+* Restored browser-default outlines on tab-navigation ([#2749](https://github.com/livebook-dev/livebook/pull/2749))
+* Docker images with CUDA 12 now include cuDNN 9 for compatibility with nx/exla v0.8+
+
+### Removed
+
+* Docker `edge` images are no longer built, use `nightly` instead ([#2739](https://github.com/livebook-dev/livebook/pull/2739))
+* Docker images with CUDA 11 (`*-cuda118`) are no longer built ([#2739](https://github.com/livebook-dev/livebook/pull/2739))
+* `XLA_TARGET` env var is no longer included in Dockerfiles generated for apps. When using nx/exla < v0.8 you may need to set it explicitly ([#2755](https://github.com/livebook-dev/livebook/pull/2755))
+
+### Fixed
+
+* Page crash when creating a Fly volume fails
+* Fly runtime failing to reconnect when volume is not detached on time ([#2737](https://github.com/livebook-dev/livebook/pull/2737))
+* Slow file transfer when reading file and image inputs from a Fly runtime ([#2738](https://github.com/livebook-dev/livebook/pull/2738))
+
 ## [v0.14.0-rc.0](https://github.com/livebook-dev/livebook/tree/v0.14.0-rc.0) (2024-07-26)
 
 ### Added
