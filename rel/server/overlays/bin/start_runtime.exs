@@ -20,8 +20,6 @@ node =
       :"#{node_base}@#{hostname}"
   end
 
-dbg(node)
-
 # We persist the information before the node is reachable
 :persistent_term.put(:livebook_runtime_info, %{
   pid: self()

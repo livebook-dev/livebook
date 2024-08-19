@@ -90,7 +90,7 @@ defmodule Livebook.Runtime.K8s do
 
   @impl true
   def init({runtime, caller}) do
-    state = %{primary_ref: nil, proxy_port: nil}
+    state = %{primary_ref: nil}
     {:ok, state, {:continue, {:init, runtime, caller}}}
   end
 
@@ -99,20 +99,15 @@ defmodule Livebook.Runtime.K8s do
     config = runtime.config
     namespace = config.namespace
     req = runtime.req
+
     kubeconfig = System.get_env("KUBECONFIG") || System.get_env("LIVEBOOK_KUBECONFIG")
-
-    proxy_data = %{
-      local_port: get_free_port!(),
-      remote_port: 44444
-    }
-
-    node_base = "remote_runtime_#{proxy_data.local_port}"
+    cluster_data = get_cluster_data(kubeconfig)
 
     runtime_data =
       %{
-        node_base: node_base,
+        node_base: cluster_data.node_base,
         cookie: Node.get_cookie(),
-        dist_port: proxy_data.remote_port
+        dist_port: cluster_data.remote_port
       }
       |> :erlang.term_to_binary()
       |> Base.encode64()
@@ -125,15 +120,14 @@ defmodule Livebook.Runtime.K8s do
            with_log(caller, "Wait for pod", fn ->
              await_pod_running(req, namespace, pod_name)
            end),
-         child_node <- :"#{node_base}@#{pod_ip}",
-         {:ok, proxy_port} <-
+         child_node <- :"#{cluster_data.node_base}@#{pod_ip}",
+         :ok <-
            with_log(caller, "start proxy", fn ->
              k8s_forward_port(
                kubeconfig,
+               cluster_data,
                pod_name,
-               namespace,
-               pod_ip,
-               proxy_data
+               namespace
              )
            end),
          :ok <-
@@ -153,7 +147,7 @@ defmodule Livebook.Runtime.K8s do
       runtime = %{runtime | node: child_node, server_pid: server_pid}
       send(caller, {:runtime_connect_done, self(), {:ok, runtime}})
 
-      {:noreply, %{state | primary_ref: primary_ref, proxy_port: proxy_port}}
+      {:noreply, %{state | primary_ref: primary_ref}}
     else
       {:error, error} ->
         send(caller, {:runtime_connect_done, self(), {:error, error}})
@@ -226,14 +220,22 @@ defmodule Livebook.Runtime.K8s do
     end
   end
 
-  defp k8s_forward_port(nil, _pod_name, _namespace, pod_ip, _proxy_data) do
-    {:ok, pod_ip}
+  defp get_cluster_data(nil), do: %{node_base: "k8s_runtime", remote_port: 44444}
+
+  defp get_cluster_data(_kubeconfig) do
+    local_port = get_free_port!()
+    %{node_base: "remote_runtime_#{local_port}", remote_port: 44444, local_port: local_port}
   end
 
-  defp k8s_forward_port(kubeconfig, pod_name, namespace, _pod_ip, proxy_data) do
-    with {:ok, kubectl_path} <- find_kubectl_executable() do
-      %{local_port: local_port, remote_port: remote_port} = proxy_data
+  defp k8s_forward_port(nil, _, _, _), do: :ok
 
+  defp k8s_forward_port(
+         kubeconfig,
+         %{local_port: local_port, remote_port: remote_port},
+         pod_name,
+         namespace
+       ) do
+    with {:ok, kubectl_path} <- find_kubectl_executable() do
       ports = "#{local_port}:#{remote_port}"
 
       # We want the proxy to accept the same protocol that we are
@@ -268,7 +270,7 @@ defmodule Livebook.Runtime.K8s do
       result =
         receive do
           {^port, {:data, "Forwarding from " <> _}} ->
-            {:ok, port}
+            :ok
 
           {^port, {:data, "Error: " <> error}} ->
             {:error, "failed to port-forward. Error: #{String.trim(error)}"}
