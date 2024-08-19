@@ -6,7 +6,6 @@ defmodule LivebookWeb.SessionLive.Render do
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias Livebook.Notebook.Cell
-  alias Livebook.Runtime
 
   def render(assigns) do
     ~H"""
