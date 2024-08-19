@@ -648,11 +648,7 @@ defmodule LivebookWeb.SessionLive.Render do
       </div>
       <div class="flex flex-col mt-2">
         <div class="flex flex-col space-y-3">
-          <.labeled_text
-            :for={{label, value} <- Runtime.describe(@data_view.runtime)}
-            label={label}
-            one_line
-          >
+          <.labeled_text :for={{label, value} <- @data_view.runtime_metadata} label={label} one_line>
             <%= value %>
           </.labeled_text>
         </div>
@@ -694,7 +690,10 @@ defmodule LivebookWeb.SessionLive.Render do
           </.message_box>
         </div>
 
-        <.memory_usage_info memory_usage={@session.memory_usage} />
+        <.memory_usage_info
+          memory_usage={@session.memory_usage}
+          runtime_metadata={@data_view.runtime_metadata}
+        />
 
         <.runtime_connected_nodes_info runtime_connected_nodes={@data_view.runtime_connected_nodes} />
       </div>
@@ -705,8 +704,20 @@ defmodule LivebookWeb.SessionLive.Render do
   defp memory_usage_info(assigns) do
     ~H"""
     <div class="mt-8 flex flex-col gap-2">
-      <div class="text-sm text-gray-500 font-semibold uppercase">
-        Memory
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-500 font-semibold uppercase">
+          Memory
+        </div>
+        <span class="tooltip left" data-tooltip="See on dashboard">
+          <.icon_button
+            :if={node = runtime_node(@runtime_metadata)}
+            href={LivebookWeb.HTMLHelpers.live_dashboard_node_path(node)}
+            target="_blank"
+            aria-label="see on dashboard"
+          >
+            <.remix_icon icon="dashboard-2-line" />
+          </.icon_button>
+        </span>
       </div>
       <%= if uses_memory?(@memory_usage) do %>
         <.runtime_memory_info memory_usage={@memory_usage} />
@@ -719,6 +730,10 @@ defmodule LivebookWeb.SessionLive.Render do
       <% end %>
     </div>
     """
+  end
+
+  defp runtime_node(runtime_metadata) do
+    Enum.find_value(runtime_metadata, fn {key, value} -> key == "Node name" && value end)
   end
 
   defp runtime_memory_info(assigns) do
