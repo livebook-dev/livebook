@@ -46,6 +46,35 @@ defmodule Livebook.K8s.Pod do
     end
   end
 
+  defmodule Toleration do
+    use Ecto.Schema
+
+    @type t :: %__MODULE__{
+      effect: String.t(),
+      key: String.t(),
+      operator: String.t(),
+      value: String.t(),
+    }
+
+    @primary_key false
+
+    embedded_schema do
+      field :effect, :string
+      field :key, :string
+      field :operator, :string, default: "Equal"
+      field :value, :string
+    end
+
+    @fields ~w(effect key operator value)a
+    @required ~w(key operator value)a
+
+    def changeset(toleration, attrs) do
+      toleration
+      |> cast(attrs, @fields)
+      |> validate_required(@required)
+    end
+  end
+
   defmodule BasicSpecs do
     use Ecto.Schema
 
@@ -63,9 +92,7 @@ defmodule Livebook.K8s.Pod do
       embeds_one :resource_requests, Resources, on_replace: :update
     end
 
-    @fields ~w(
-    docker_tag
-  )a
+    @fields ~w(docker_tag)a
 
     def changeset(attrs \\ %{}) do
       %__MODULE__{resource_limits: %Resources{}, resource_requests: %Resources{}}
@@ -84,7 +111,8 @@ defmodule Livebook.K8s.Pod do
             annotations: [KeyValue.t()],
             labels: [KeyValue.t()],
             service_account_name: String.t(),
-            node_selector: [KeyValue.t()]
+            node_selector: [KeyValue.t()],
+            tolerations: [Toleration.t()]
           }
 
     @primary_key false
@@ -94,6 +122,7 @@ defmodule Livebook.K8s.Pod do
       embeds_many :labels, KeyValue
       embeds_many :annotations, KeyValue
       embeds_many :node_selector, KeyValue
+      embeds_many :tolerations, Toleration
     end
 
     @fields ~w(
@@ -115,6 +144,10 @@ defmodule Livebook.K8s.Pod do
       |> cast_embed(:node_selector,
         sort_param: :node_selector_sort,
         drop_param: :node_selector_drop
+      )
+      |> cast_embed(:tolerations,
+        sort_param: :tolerations_sort,
+        drop_param: :tolerations_drop
       )
     end
   end
@@ -154,7 +187,9 @@ defmodule Livebook.K8s.Pod do
     |> add_metadata("labels", advanced_specs.labels)
     |> add_metadata("annotations", advanced_specs.annotations)
     |> add_node_selector(advanced_specs.node_selector)
+    |> add_tolerations(advanced_specs.tolerations)
     |> set_home_pvc(home_pvc)
+    |>dbg
   end
 
   defp set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
@@ -201,6 +236,14 @@ defmodule Livebook.K8s.Pod do
   defp add_node_selector(manifest, kv) do
     update_in(manifest, ["spec", Access.key("nodeSelector", %{})], fn existing ->
       for %{key: key, value: value} <- kv, into: existing, do: {key, value}
+    end)
+  end
+
+  defp add_tolerations(manifest, tolerations) when is_empty(tolerations), do: manifest
+
+  defp add_tolerations(manifest, tolerations) do
+    update_in(manifest, ["spec", Access.key("tolerations", [])], fn existing ->
+      tolerations ++ existing
     end)
   end
 end

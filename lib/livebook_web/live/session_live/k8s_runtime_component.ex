@@ -365,7 +365,46 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
               <.remix_icon icon="add-line" />
             </.icon_button>
           </div>
+        </div>
 
+
+        <div>
+          <div class="flex flex-col gap-2">
+            <div class="text-base text-gray-800 font-medium">
+              Tolerations
+            </div>
+            <.inputs_for :let={toleration} field={f[:tolerations]}>
+              <input type="hidden" name="specs[tolerations_sort][]" value={toleration.index} />
+              <div class="flex items-start gap-1">
+                <.text_field field={toleration[:key]} placeholder="Key" />
+                <.select_field field={toleration[:operator]} options={["Equal", "Exists"]} />
+                <.text_field field={toleration[:value]} placeholder="Value" />
+                <.select_field field={toleration[:effect]} options={[{"All Effects", nil}, "NoSchedule", "PreferNoSchedule", "NoExecute"]} />
+
+                <span class="tooltip left" data-tooltip="Delete this toleration">
+                  <.icon_button
+                    class="text-red-600 font-medium text-sm whitespace-nowrap"
+                    type="button"
+                    name="specs[tolerations_drop][]"
+                    value={toleration.index}
+                    phx-click={JS.dispatch("change")}
+                  >
+                    <.remix_icon icon="delete-bin-6-line" />
+                  </.icon_button>
+                </span>
+              </div>
+            </.inputs_for>
+            <input type="hidden" name="specs[tolerations_drop][]" />
+
+            <.icon_button
+              type="button"
+              name="specs[tolerations_sort][]"
+              value="new"
+              phx-click={JS.dispatch("change")}
+            >
+              <.remix_icon icon="add-line" />
+            </.icon_button>
+          </div>
         </div>
       </.form>
     </div>
@@ -1037,6 +1076,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         labels: Enum.map(advanced_specs.labels, &Map.from_struct(&1)),
         service_account_name: advanced_specs.service_account_name,
         node_selector: Enum.map(advanced_specs.node_selector, &Map.from_struct(&1)),
+        tolerations: Enum.map(advanced_specs.tolerations, &Map.from_struct(&1)),
       }
     }
   end
