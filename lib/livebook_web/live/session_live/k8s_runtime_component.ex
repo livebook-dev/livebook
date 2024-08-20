@@ -1,10 +1,10 @@
 defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
-  alias Livebook.K8s.{Pod, PVC}
   use LivebookWeb, :live_component
 
   import Ecto.Changeset
 
-  alias Livebook.{K8s.Auth, Session, Runtime}
+  alias Livebook.{Session, Runtime}
+  alias Livebook.K8s.{Auth, Pod, PVC}
 
   @config_secret_prefix "K8S_RUNTIME_"
 
@@ -29,12 +29,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
        namespace_options: nil,
        rbac_permissions: nil,
        rbac_error: nil,
-       basic_specs_changeset: Pod.BasicSpecs.changeset(),
-       advanced_specs_changeset: Pod.AdvancedSpecs.changeset(),
        save_config: nil,
        pvcs: nil,
        pvc_action: nil,
-       home_pvc: nil
+       home_pvc: nil,
+       docker_tag: hd(Livebook.Config.docker_images()).tag,
+       pod_template: %{template: Pod.default_pod_template(), status: :valid, message: nil}
      )
      |> set_context(kubeconfig.current_context)}
   end
@@ -105,6 +105,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         <.loader :if={@cluster_check.status == :inflight} />
 
         <.cluster_check_error :if={@cluster_check.status == :error} error={@cluster_check.error} />
+
         <form
           :if={@cluster_check.status == :ok}
           phx-change="set_namespace"
@@ -130,11 +131,22 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
         <.rbac_error :if={@rbac_error} error={@rbac_error} />
 
-        <.basic_specs_config
-          :if={@rbac_permissions}
-          basic_specs_changeset={@basic_specs_changeset}
-          myself={@myself}
-        />
+        <form
+          :if={@cluster_check.status == :ok}
+          phx-change="set_docker_tag"
+          phx-nosubmit
+          phx-target={@myself}
+          class="mt-8"
+        >
+          <.radio_field
+            :if={@rbac_permissions}
+            name="docker_tag"
+            value={@docker_tag}
+            label="Base Docker image"
+            options={LivebookWeb.AppComponents.docker_tag_options()}
+          />
+        </form>
+
         <.storage_config
           :if={@rbac_permissions}
           myself={@myself}
@@ -143,20 +155,43 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           pvc_action={@pvc_action}
           rbac_permissions={@rbac_permissions}
         />
-        <.advanced_spec_config
-          :if={@rbac_permissions}
-          advanced_specs_changeset={@advanced_specs_changeset}
-          myself={@myself}
-        />
+
+        <div :if={@rbac_permissions} class="mt-8">
+          <div class="mt-4 text-base text-gray-800 font-medium">
+            Pod Template
+          </div>
+          <div class="mt-1 text-gray-700">
+            This is template is used to generate the manifest for the runtime pod.
+          </div>
+          <form
+            :if={@cluster_check.status == :ok}
+            phx-change="set_pod_template"
+            phx-nosubmit
+            phx-target={@myself}
+          >
+            <.textarea_field
+              name="pod_template"
+              value={@pod_template.template}
+              phx-debounce={500}
+              monospace={true}
+              rows="20"
+              class="resize-y"
+            />
+
+            <.message_box :if={@pod_template.status != :valid} kind={@pod_template.status}>
+              <div class="flex items-center gap-2">
+                <span><%= @pod_template.message %></span>
+              </div>
+            </.message_box>
+          </form>
+        </div>
 
         <div class="mt-8">
           <.button
+            :if={@rbac_permissions}
             phx-click="init"
             phx-target={@myself}
-            disabled={
-              @runtime_status == :connecting or not @basic_specs_changeset.valid? or
-                not @advanced_specs_changeset.valid?
-            }
+            disabled={@runtime_status == :connecting}
           >
             <%= label(@namespace, @runtime, @runtime_status) %>
           </.button>
@@ -178,238 +213,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     """
   end
 
-  defp basic_specs_config(assigns) do
-    ~H"""
-    <div class="mt-8">
-      <div class="text-lg text-gray-800 font-semibold">
-        Specs
-      </div>
-      <.form
-        :let={f}
-        for={@basic_specs_changeset}
-        as={:specs}
-        class="mt-4 flex flex-col gap-4"
-        phx-change="validate_basic_specs"
-        phx-nosubmit
-        phx-target={@myself}
-        autocomplete="off"
-        spellcheck="false"
-      >
-        <.radio_field
-          field={f[:docker_tag]}
-          label="Base Docker image"
-          options={LivebookWeb.AppComponents.docker_tag_options()}
-        />
-
-        <div class="grid grid-cols-2 gap-6">
-          <div>
-            <.inputs_for :let={requests} field={f[:resource_requests]}>
-              <div class="text-base text-gray-800 font-medium">
-                Resource Requests
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <.text_field field={requests[:cpu]} label="CPUs" />
-                <.text_field field={requests[:memory]} label="Memory" />
-                <.text_field field={requests[:gpu]} label="GPUs" />
-              </div>
-            </.inputs_for>
-          </div>
-          <div>
-            <.inputs_for :let={limits} field={f[:resource_limits]}>
-              <div class="text-base text-gray-800 font-medium">
-                Resource Limits
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <.text_field field={limits[:cpu]} label="CPUs" />
-                <.text_field field={limits[:memory]} label="Memory" />
-                <.text_field field={limits[:gpu]} label="GPUs" />
-              </div>
-            </.inputs_for>
-          </div>
-        </div>
-      </.form>
-    </div>
-    """
-  end
-
-  defp advanced_spec_config(assigns) do
-    ~H"""
-    <div class="mt-8">
-      <div class="text-lg text-gray-800 font-semibold">
-        Advanced Specs
-      </div>
-      <.form
-        :let={f}
-        for={@advanced_specs_changeset}
-        as={:specs}
-        class="mt-4 flex flex-col gap-4"
-        phx-change="validate_advanced_specs"
-        phx-nosubmit
-        phx-target={@myself}
-        autocomplete="off"
-        spellcheck="false"
-      >
-        <div class="grid grid-cols-2 gap-6">
-          <div class="flex flex-col gap-2">
-            <div class="text-base text-gray-800 font-medium">
-              Labels
-            </div>
-            <.inputs_for :let={label} field={f[:labels]}>
-              <input type="hidden" name="specs[labels_sort][]" value={label.index} />
-              <div class="flex items-start gap-1">
-                <.text_field field={label[:key]} placeholder="Name" />
-                <.text_field field={label[:value]} placeholder="Value" />
-
-                <span class="tooltip left" data-tooltip="Delete this label">
-                  <.icon_button
-                    class="text-red-600 font-medium text-sm whitespace-nowrap"
-                    type="button"
-                    name="specs[labels_drop][]"
-                    value={label.index}
-                    phx-click={JS.dispatch("change")}
-                  >
-                    <.remix_icon icon="delete-bin-6-line" />
-                  </.icon_button>
-                </span>
-              </div>
-            </.inputs_for>
-            <input type="hidden" name="specs[labels_drop][]" />
-
-            <.icon_button
-              type="button"
-              name="specs[labels_sort][]"
-              value="new"
-              phx-click={JS.dispatch("change")}
-            >
-              <.remix_icon icon="add-line" />
-            </.icon_button>
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <div class="text-base text-gray-800 font-medium">
-              Annotations
-            </div>
-            <.inputs_for :let={annotation} field={f[:annotations]}>
-              <input type="hidden" name="specs[annotations_sort][]" value={annotation.index} />
-              <div class="flex items-start gap-1">
-                <.text_field field={annotation[:key]} placeholder="Name" />
-                <.text_field field={annotation[:value]} placeholder="Value" />
-
-                <span class="tooltip left" data-tooltip="Delete this annotation">
-                  <.icon_button
-                    class="text-red-600 font-medium text-sm whitespace-nowrap"
-                    type="button"
-                    name="specs[annotations_drop][]"
-                    value={annotation.index}
-                    phx-click={JS.dispatch("change")}
-                  >
-                    <.remix_icon icon="delete-bin-6-line" />
-                  </.icon_button>
-                </span>
-              </div>
-            </.inputs_for>
-            <input type="hidden" name="specs[annotations_drop][]" />
-
-            <.icon_button
-              type="button"
-              name="specs[annotations_sort][]"
-              value="new"
-              phx-click={JS.dispatch("change")}
-            >
-              <.remix_icon icon="add-line" />
-            </.icon_button>
-          </div>
-        </div>
-
-        <.text_field field={f[:service_account_name]} label="Service Account Name" />
-
-        <div class="grid grid-cols-2 gap-6">
-          <div class="flex flex-col gap-2">
-            <div class="text-base text-gray-800 font-medium">
-              Node Selector Terms
-            </div>
-            <.inputs_for :let={node_selector_term} field={f[:node_selector]}>
-              <input
-                type="hidden"
-                name="specs[node_selector_sort][]"
-                value={node_selector_term.index}
-              />
-              <div class="flex items-start gap-1">
-                <.text_field field={node_selector_term[:key]} placeholder="Name" />
-                <.text_field field={node_selector_term[:value]} placeholder="Value" />
-
-                <span class="tooltip left" data-tooltip="Delete this node_selector_term">
-                  <.icon_button
-                    class="text-red-600 font-medium text-sm whitespace-nowrap"
-                    type="button"
-                    name="specs[node_selector_drop][]"
-                    value={node_selector_term.index}
-                    phx-click={JS.dispatch("change")}
-                  >
-                    <.remix_icon icon="delete-bin-6-line" />
-                  </.icon_button>
-                </span>
-              </div>
-            </.inputs_for>
-            <input type="hidden" name="specs[node_selector_drop][]" />
-
-            <.icon_button
-              type="button"
-              name="specs[node_selector_sort][]"
-              value="new"
-              phx-click={JS.dispatch("change")}
-            >
-              <.remix_icon icon="add-line" />
-            </.icon_button>
-          </div>
-        </div>
-
-        <div>
-          <div class="flex flex-col gap-2">
-            <div class="text-base text-gray-800 font-medium">
-              Tolerations
-            </div>
-            <.inputs_for :let={toleration} field={f[:tolerations]}>
-              <input type="hidden" name="specs[tolerations_sort][]" value={toleration.index} />
-              <div class="flex items-start gap-1">
-                <.text_field field={toleration[:key]} placeholder="Key" />
-                <.select_field field={toleration[:operator]} options={["Equal", "Exists"]} />
-                <.text_field field={toleration[:value]} placeholder="Value" />
-                <.select_field
-                  field={toleration[:effect]}
-                  options={[{"All Effects", nil}, "NoSchedule", "PreferNoSchedule", "NoExecute"]}
-                />
-
-                <span class="tooltip left" data-tooltip="Delete this toleration">
-                  <.icon_button
-                    class="text-red-600 font-medium text-sm whitespace-nowrap"
-                    type="button"
-                    name="specs[tolerations_drop][]"
-                    value={toleration.index}
-                    phx-click={JS.dispatch("change")}
-                  >
-                    <.remix_icon icon="delete-bin-6-line" />
-                  </.icon_button>
-                </span>
-              </div>
-            </.inputs_for>
-            <input type="hidden" name="specs[tolerations_drop][]" />
-
-            <.icon_button
-              type="button"
-              name="specs[tolerations_sort][]"
-              value="new"
-              phx-click={JS.dispatch("change")}
-            >
-              <.remix_icon icon="add-line" />
-            </.icon_button>
-          </div>
-        </div>
-      </.form>
-    </div>
-    """
-  end
-
   defp storage_config(assigns) do
     ~H"""
     <div>
@@ -419,7 +222,11 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       <div class="mt-1 text-gray-700">
         Every time you connect to the runtime, a fresh machine is created.
         In order to persist data and caches, you can optionally mount a
-        volume at <code>/home/livebook</code>.
+        volume at <code>/home/livebook</code>. Setting a Persistent Volume
+        Claim will add a <code>.template.spec.volumes[]</code>
+        entry and a <code>.template.spec.containers[name="livebook-runtime"].volumeMounts[]</code>
+        entry to the <code>PodTemplate</code>
+        below.
       </div>
       <div class="mt-4 flex flex-col gap-4">
         <div class="flex items-start gap-1">
@@ -687,6 +494,14 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, set_namespace(socket, namespace)}
   end
 
+  def handle_event("set_docker_tag", %{"docker_tag" => docker_tag}, socket) do
+    {:noreply, assign(socket, :docker_tag, docker_tag)}
+  end
+
+  def handle_event("set_pod_template", %{"pod_template" => pod_template}, socket) do
+    {:noreply, set_pod_template(socket, pod_template)}
+  end
+
   def handle_event("set_home_pvc", %{"home_pvc" => home_pvc}, socket) do
     {:noreply, assign(socket, :home_pvc, home_pvc)}
   end
@@ -694,7 +509,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   def handle_event("new_pvc", %{}, socket) do
     pvc_action = %{
       type: :new,
-      changeset: PVC.changeset(%PVC{}),
+      changeset: PVC.changeset(),
       storage_classes: storage_classes(socket.assigns),
       inflight: false,
       error: false
@@ -703,28 +518,10 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     {:noreply, assign(socket, pvc_action: pvc_action)}
   end
 
-  def handle_event("validate_basic_specs", %{"specs" => specs}, socket) do
-    changeset =
-      specs
-      |> Pod.BasicSpecs.changeset()
-      |> Map.replace!(:action, :validate)
-
-    {:noreply, assign(socket, :basic_specs_changeset, changeset)}
-  end
-
-  def handle_event("validate_advanced_specs", %{"specs" => specs}, socket) do
-    changeset =
-      specs
-      |> Pod.AdvancedSpecs.changeset()
-      |> Map.replace!(:action, :validate)
-
-    {:noreply, assign(socket, :advanced_specs_changeset, changeset)}
-  end
-
   def handle_event("validate_pvc", %{"pvc" => pvc}, socket) do
     changeset =
-      %PVC{}
-      |> PVC.changeset(pvc)
+      pvc
+      |> PVC.changeset()
       |> Map.replace!(:action, :validate)
 
     {:noreply, assign_nested(socket, :pvc_action, changeset: changeset)}
@@ -735,8 +532,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   def handle_event("create_pvc", %{"pvc" => pvc}, socket) do
-    %PVC{}
-    |> PVC.changeset(pvc)
+    pvc
+    |> PVC.changeset()
     |> apply_action(:insert)
     |> case do
       {:ok, applied_pvc} ->
@@ -958,6 +755,27 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     end
   end
 
+  def set_pod_template(socket, pod_template_yaml) do
+    with {:ok, pod_template} <- YamlElixir.read_from_string(pod_template_yaml),
+         :ok <- Pod.validate_pod_template(pod_template, socket.assigns.namespace) do
+      assign(socket, :pod_template, %{template: pod_template_yaml, status: :valid, message: nil})
+    else
+      {:error, error} when is_exception(error) ->
+        assign(socket, :pod_template, %{
+          template: pod_template_yaml,
+          status: :error,
+          message: Exception.message(error)
+        })
+
+      {status, message} ->
+        assign(socket, :pod_template, %{
+          template: pod_template_yaml,
+          status: status,
+          message: message
+        })
+    end
+  end
+
   defp pvc_options(%{assigns: %{rbac_permissions: %{list_pvc: false}}} = socket) do
     assign(socket, :pvcs, [])
   end
@@ -1011,8 +829,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       context: config_defaults["context"],
       namespace: config_defaults["namespace"],
       home_pvc: config_defaults["home_pvc"],
-      basic_specs_changeset: Pod.BasicSpecs.changeset(config_defaults["basic_specs"]),
-      advanced_specs_changeset: Pod.AdvancedSpecs.changeset(config_defaults["advanced_specs"])
+      docker_tag: config_defaults["docker_tag"],
+      pod_template: config_defaults["pod_template"]
     )
   end
 
@@ -1058,25 +876,12 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
   end
 
   defp build_config(socket) do
-    basic_specs = apply_changes(socket.assigns.basic_specs_changeset)
-    advanced_specs = apply_changes(socket.assigns.advanced_specs_changeset)
-
     %{
       context: socket.assigns.context,
       namespace: socket.assigns.namespace,
       home_pvc: socket.assigns.home_pvc,
-      basic_specs: %{
-        docker_tag: basic_specs.docker_tag,
-        resource_limits: Map.from_struct(basic_specs.resource_limits),
-        resource_requests: Map.from_struct(basic_specs.resource_requests)
-      },
-      advanced_specs: %{
-        annotations: Enum.map(advanced_specs.annotations, &Map.from_struct(&1)),
-        labels: Enum.map(advanced_specs.labels, &Map.from_struct(&1)),
-        service_account_name: advanced_specs.service_account_name,
-        node_selector: Enum.map(advanced_specs.node_selector, &Map.from_struct(&1)),
-        tolerations: Enum.map(advanced_specs.tolerations, &Map.from_struct(&1))
-      }
+      docker_tag: socket.assigns.docker_tag,
+      pod_template: socket.assigns.pod_template
     }
   end
 end

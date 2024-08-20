@@ -1,199 +1,44 @@
 defmodule Livebook.K8s.Pod do
-  import Ecto.Changeset
-
   @main_container_name "livebook-runtime"
   @home_pvc_volume_name "lb-home-folder"
+  @default_pod_template """
+  apiVersion: v1
+  kind: PodTemplate
+  metadata:
+    name: livebook-runtime-template
+  template:
+    metadata:
+      generateName: livebook-runtime-
+    spec:
+      containers:
+        - image: ghcr.io/livebook-dev/livebook:nightly
+          name: livebook-runtime
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: "1"
+              memory: 1Gi
+  """
 
-  defmacrop access_by_name(name) do
+  defmacrop access_main_container() do
     quote do
-      Access.filter(&(&1["name"] == unquote(name)))
+      Access.filter(&(&1["name"] == @main_container_name))
     end
   end
 
   defguardp is_empty(value) when is_nil(value) or value == "" or value == []
 
-  defmodule Resources do
-    use Ecto.Schema
+  def default_pod_template(), do: @default_pod_template
 
-    @type t :: %__MODULE__{
-            cpu: String.t(),
-            memory: String.t(),
-            gpu: String.t()
-          }
-
-    @primary_key false
-    embedded_schema do
-      field :cpu, :string, default: "1"
-      field :memory, :string, default: "1Gi"
-      field :gpu, :string
-    end
-
-    @fields ~w(cpu memory gpu)a
-    @required ~w(cpu memory)a
-
-    def changeset(resources, attrs) do
-      resources
-      |> cast(attrs, @fields)
-      |> validate_required(@required)
-    end
-
-    def build_manifest(resources) do
-      resources
-      |> Map.new(fn
-        {:gpu, value} -> {"nvidia/gpu", value}
-        {key, value} -> {Atom.to_string(key), value}
-      end)
-    end
+  def set_namespace(manifest, namespace) do
+    put_in(manifest, ~w(metadata namespace), namespace)
   end
 
-  defmodule Toleration do
-    use Ecto.Schema
+  def set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
 
-    @type t :: %__MODULE__{
-            effect: String.t(),
-            key: String.t(),
-            operator: String.t(),
-            value: String.t()
-          }
-
-    @primary_key false
-
-    embedded_schema do
-      field :effect, :string
-      field :key, :string
-      field :operator, :string, default: "Equal"
-      field :value, :string
-    end
-
-    @fields ~w(effect key operator value)a
-    @required ~w(key operator value)a
-
-    def changeset(toleration, attrs) do
-      toleration
-      |> cast(attrs, @fields)
-      |> validate_required(@required)
-    end
-  end
-
-  defmodule BasicSpecs do
-    use Ecto.Schema
-
-    @type t :: %__MODULE__{
-            docker_tag: String.t(),
-            resource_limits: Resources.t(),
-            resource_requests: Resources.t()
-          }
-
-    @primary_key false
-
-    embedded_schema do
-      field :docker_tag, :string, default: hd(Livebook.Config.docker_images()).tag
-      embeds_one :resource_limits, Resources, on_replace: :update
-      embeds_one :resource_requests, Resources, on_replace: :update
-    end
-
-    @fields ~w(docker_tag)a
-
-    def changeset(attrs \\ %{}) do
-      %__MODULE__{resource_limits: %Resources{}, resource_requests: %Resources{}}
-      |> cast(attrs, @fields)
-      |> validate_required(@fields)
-      |> cast_embed(:resource_limits)
-      |> cast_embed(:resource_requests)
-    end
-  end
-
-  defmodule AdvancedSpecs do
-    alias Livebook.K8s.KeyValue
-    use Ecto.Schema
-
-    @type t :: %__MODULE__{
-            annotations: [KeyValue.t()],
-            labels: [KeyValue.t()],
-            service_account_name: String.t(),
-            node_selector: [KeyValue.t()],
-            tolerations: [Toleration.t()]
-          }
-
-    @primary_key false
-
-    embedded_schema do
-      field :service_account_name, :string, default: "default"
-      embeds_many :labels, KeyValue
-      embeds_many :annotations, KeyValue
-      embeds_many :node_selector, KeyValue
-      embeds_many :tolerations, Toleration
-    end
-
-    @fields ~w(
-      service_account_name
-    )a
-
-    def changeset(attrs \\ %{}) do
-      %__MODULE__{}
-      |> cast(attrs, @fields)
-      |> validate_required(@fields)
-      |> cast_embed(:labels,
-        sort_param: :labels_sort,
-        drop_param: :labels_drop
-      )
-      |> cast_embed(:annotations,
-        sort_param: :annotations_sort,
-        drop_param: :annotations_drop
-      )
-      |> cast_embed(:node_selector,
-        sort_param: :node_selector_sort,
-        drop_param: :node_selector_drop
-      )
-      |> cast_embed(:tolerations,
-        sort_param: :tolerations_sort,
-        drop_param: :tolerations_drop
-      )
-    end
-  end
-
-  def build_manifest(namespace, basic_specs, advanced_specs, home_pvc) do
-    manifest = %{
-      "apiVersion" => "v1",
-      "kind" => "Pod",
-      "metadata" => %{
-        "namespace" => namespace
-      },
-      "spec" => %{
-        "serviceAccountName" => advanced_specs.service_account_name,
-        "restartPolicy" => "Never",
-        "containers" => [
-          %{
-            "name" => @main_container_name,
-            "image" => "ghcr.io/livebook-dev/livebook:#{basic_specs.docker_tag}",
-            "resources" => %{
-              "requests" => Resources.build_manifest(basic_specs.resource_requests),
-              "limits" => Resources.build_manifest(basic_specs.resource_limits)
-            },
-            "env" => [
-              %{
-                "name" => "POD_IP",
-                "valueFrom" => %{
-                  "fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "status.podIP"}
-                }
-              }
-            ]
-          }
-        ]
-      }
-    }
-
-    manifest
-    |> add_metadata("labels", advanced_specs.labels)
-    |> add_metadata("annotations", advanced_specs.annotations)
-    |> add_node_selector(advanced_specs.node_selector)
-    |> add_tolerations(advanced_specs.tolerations)
-    |> set_home_pvc(home_pvc)
-  end
-
-  defp set_home_pvc(manifest, home_pvc) when is_empty(home_pvc), do: manifest
-
-  defp set_home_pvc(manifest, home_pvc) do
+  def set_home_pvc(manifest, home_pvc) do
     manifest
     |> update_in(["spec", Access.key("volumes", [])], fn volumes ->
       volume = %{
@@ -214,35 +59,102 @@ defmodule Livebook.K8s.Pod do
     )
   end
 
-  defp add_metadata(manifest, _field, kv) when is_empty(kv) or kv == [], do: manifest
-
-  defp add_metadata(manifest, field, kv) do
-    update_in(manifest, ["metadata", Access.key(field, %{})], fn existing ->
-      for %{key: key, value: value} <- kv, into: existing, do: {key, value}
-    end)
-  end
-
   def add_env_vars(manifest, env_vars) do
     update_in(
       manifest,
-      ["spec", "containers", access_by_name(@main_container_name), Access.key("env", [])],
+      ["spec", "containers", access_main_container(), Access.key("env", [])],
       fn existing_vars -> env_vars ++ existing_vars end
     )
   end
 
-  defp add_node_selector(manifest, kv) when is_empty(kv), do: manifest
-
-  defp add_node_selector(manifest, kv) do
-    update_in(manifest, ["spec", Access.key("nodeSelector", %{})], fn existing ->
-      for %{key: key, value: value} <- kv, into: existing, do: {key, value}
-    end)
+  def set_docker_tag(manifest, docker_tag) do
+    image = "ghcr.io/livebook-dev/livebook:#{docker_tag}"
+    put_in(manifest, ["spec", "containers", access_main_container(), "image"], image)
   end
 
-  defp add_tolerations(manifest, tolerations) when is_empty(tolerations), do: manifest
+  def pod_from_template(pod_template) do
+    pod =
+      pod_template
+      |> YamlElixir.read_from_string!()
+      |> Map.get("template")
 
-  defp add_tolerations(manifest, tolerations) do
-    update_in(manifest, ["spec", Access.key("tolerations", [])], fn existing ->
-      tolerations ++ existing
-    end)
+    pod
+    |> Map.merge(%{"apiVersion" => "v1", "kind" => "Pod"})
+    |> put_in(~w(spec restartPolicy), "Never")
+  end
+
+  def validate_pod_template(pod_template, namespace) do
+    with :ok <- validate_basics(pod_template),
+         :ok <- validate_main_container(pod_template),
+         :ok <- validate_namespace(pod_template, namespace) do
+      validate_container_image(pod_template)
+    end
+  end
+
+  defp validate_basics(pod_template) do
+    cond do
+      pod_template["apiVersion"] != "v1" or pod_template["kind"] != "PodTemplate" ->
+        {:error,
+         ~s'Make sure to define a valid resource of apiVersion "v1" and kind "PodTemplate"'}
+
+      is_empty(pod_template["template"]["metadata"]["name"]) and
+          is_empty(pod_template["template"]["metadata"]["generateName"]) ->
+        {:error,
+         ~s'Make sure to define .template.metadata.name or .template.metadata.generateName'}
+
+      :otherwise ->
+        :ok
+    end
+  end
+
+  defp validate_main_container(pod_template) do
+    if get_in(pod_template, ["template", "spec", "containers", access_main_container()]) == [] do
+      {:error,
+       "Main container is missing. The main container should be named '#{@main_container_name}'."}
+    else
+      :ok
+    end
+  end
+
+  defp validate_container_image(pod_template) do
+    image =
+      pod_template
+      |> get_in(["template", "spec", "containers", access_main_container(), "image"])
+      |> List.first()
+
+    case image do
+      nil ->
+        :ok
+
+      "ghcr.io/livebook-dev/livebook:" <> _tag ->
+        :ok
+
+      custom_image ->
+        supported_images =
+          Livebook.Config.docker_images()
+          |> Enum.map(&"ghcr.io/livebook-dev/livebook:#{&1.tag}")
+          |> Enum.join(", ")
+
+        {:warning,
+         "Make sure your container image '#{custom_image}' is based off on of the following image: #{supported_images}"}
+    end
+  end
+
+  defp validate_namespace(pod_template, namespace) do
+    ns = get_in(pod_template, ~w(metadata namespace))
+    template_ns = get_in(pod_template, ~w(template metadata namespace))
+
+    cond do
+      !is_nil(ns) and ns != namespace ->
+        {:error,
+         "The field .metadata.namespace has to be omitted or set to the namespace you selected."}
+
+      !is_nil(template_ns) and template_ns != namespace ->
+        {:error,
+         "The field .template.metadata.namespace has to be omitted or set to the namespace you selected."}
+
+      :otherwise ->
+        :ok
+    end
   end
 end

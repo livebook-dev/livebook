@@ -53,9 +53,9 @@ defmodule Livebook.Runtime.K8s do
   @type config :: %{
           context: String.t(),
           namespace: String.t(),
-          home_pvc: map(),
-          basic_specs: map(),
-          advanced_specs: map()
+          home_pvc: String.t(),
+          docker_tag: String.t(),
+          pod_template: String.t()
         }
 
   @type t :: %__MODULE__{
@@ -190,33 +190,37 @@ defmodule Livebook.Runtime.K8s do
   end
 
   defp create_pod(req, config, runtime_data) do
-    manifest =
-      Pod.build_manifest(
-        config.namespace,
-        config.basic_specs,
-        config.advanced_specs,
-        config.home_pvc
-      )
-
-    pod_name = "livebook-runtime-#{Livebook.Utils.random_id()}"
+    %{
+      pod_template: pod_template,
+      docker_tag: docker_tag,
+      home_pvc: home_pvc,
+      namespace: namespace
+    } = config
 
     manifest =
-      manifest
-      |> put_in(~w(metadata name), pod_name)
+      pod_template.template
+      |> Pod.pod_from_template()
       |> Pod.add_env_vars([
         %{"name" => "LIVEBOOK_RUNTIME", "value" => runtime_data},
-        %{"name" => "ERL_AFLAGS", "value" => "-proto_dist inet6_tcp"}
+        %{"name" => "ERL_AFLAGS", "value" => "-proto_dist inet6_tcp"},
+        %{
+          "name" => "POD_IP",
+          "valueFrom" => %{"fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "status.podIP"}}
+        }
       ])
+      |> Pod.set_docker_tag(docker_tag)
+      |> Pod.set_home_pvc(home_pvc)
+      |> Pod.set_namespace(namespace)
 
     case Kubereq.create(req, manifest) do
-      {:ok, %{status: 201}} ->
+      {:ok, %{status: 201, body: %{"metadata" => %{"name" => pod_name}}}} ->
         {:ok, pod_name}
 
       {:ok, %{body: body}} ->
-        {:error, "could not create machine, reason: #{body["message"]}"}
+        {:error, "could not create Pod, reason: #{body["message"]}"}
 
       {:error, error} ->
-        {:error, "could not create machine, reason: #{Exception.message(error)}"}
+        {:error, "could not create Pod, reason: #{Exception.message(error)}"}
     end
   end
 
@@ -358,17 +362,10 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.K8s do
   alias Livebook.Runtime.ErlDist.RuntimeServer
 
-  def describe(%{config: config}) do
-    requests = config.basic_specs.resource_requests
-    limits = config.basic_specs.resource_limits
-
+  def describe(_) do
     [
-      {"Type", "K8s Pod"},
-      {"CPU", "Request: #{requests.cpu}, Limit: #{limits.cpu}"},
-      {"Memory", "Request: #{requests.memory}, Limit: #{limits.memory}"},
-      requests.gpu && {"GPU", "Request: #{requests.gpu}, Limit: #{limits.gpu}"}
+      {"Type", "K8s Pod"}
     ]
-    |> Enum.reject(&is_nil/1)
   end
 
   def connect(runtime) do

@@ -21,9 +21,9 @@ defmodule Livebook.K8s.PVC do
   @fields ~w(name size_gb access_mode storage_class)a
   @required ~w(name size_gb access_mode)a
 
-  @spec changeset(t(), map()) :: Ecto.Changeset.t()
-  def changeset(pvc, attrs \\ %{}) do
-    pvc
+  @spec changeset(map()) :: Ecto.Changeset.t()
+  def changeset(attrs \\ %{}) do
+    %__MODULE__{}
     |> cast(attrs, @fields)
     |> validate_required(@required)
   end
