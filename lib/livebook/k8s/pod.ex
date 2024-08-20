@@ -97,6 +97,13 @@ defmodule Livebook.K8s.Pod do
         {:error,
          ~s'Make sure to define a valid resource of apiVersion "v1" and kind "PodTemplate"'}
 
+      !is_map(pod_template["template"]) or !is_map(pod_template["template"]["metadata"]) ->
+        {:error, ".template.metadata is missing"}
+
+      !is_map(pod_template["template"]["spec"]) or
+          !is_list(pod_template["template"]["spec"]["containers"]) ->
+        {:error, ".template.spec.containers is missing"}
+
       is_empty(pod_template["template"]["metadata"]["name"]) and
           is_empty(pod_template["template"]["metadata"]["generateName"]) ->
         {:error,
