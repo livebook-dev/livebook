@@ -475,8 +475,12 @@ defmodule Livebook.Runtime.Evaluator do
     end
 
     state = put_context(state, ref, new_context)
-
     output = Evaluator.Formatter.format_result(result, language)
+
+    definitions =
+      for {module, _} <- tracer_info.modules_defined,
+          definition = get_definition(context, module),
+          do: definition
 
     metadata = %{
       errored: error_result?(result),
@@ -485,7 +489,8 @@ defmodule Livebook.Runtime.Evaluator do
       memory_usage: memory(),
       code_markers: code_markers,
       identifiers_used: identifiers_used,
-      identifiers_defined: identifiers_defined
+      identifiers_defined: identifiers_defined,
+      definitions: definitions
     }
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
@@ -1037,5 +1042,25 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp ebin_path() do
     Process.get(@ebin_path_key)
+  end
+
+  defp get_definition(context, module) do
+    if ebin_path() do
+      path = Path.join(ebin_path(), "#{module}.beam")
+
+      with true <- File.exists?(path),
+           {:ok, line} <- Livebook.Intellisense.Docs.locate_definition(path, {:module, module}) do
+        %{label: module_name(module), file: context.env.file, line: line}
+      else
+        _otherwise -> nil
+      end
+    end
+  end
+
+  defp module_name(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      name -> name
+    end
   end
 end
