@@ -246,10 +246,11 @@ defmodule LivebookWeb.Integration.Hub.DeploymentGroupTest do
   test "shows the app deployed count", %{conn: conn, hub: hub, tmp_dir: tmp_dir} do
     %{id: id} = insert_deployment_group(mode: :online, hub_id: hub.id)
     id = to_string(id)
+    hub_id = hub.id
 
     {:ok, view, _html} = live(conn, ~p"/hub/#{hub.id}")
 
-    refute_received {:app_deployment_started, %{deployment_group_id: ^id}}
+    refute_received {:app_deployment_started, %{deployment_group_id: ^id, hub_id: ^hub_id}}
 
     assert view
            |> element("#hub-deployment-group-#{id} [aria-label=\"apps deployed\"]")
