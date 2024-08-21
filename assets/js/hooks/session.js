@@ -109,6 +109,7 @@ const Session = {
 
     this.getElement("sections-list").addEventListener("click", (event) => {
       this.handleSectionsListClick(event);
+      this.handleSectionsListModuleClick(event);
       this.handleCellIndicatorsClick(event);
     });
 
@@ -583,6 +584,19 @@ const Session = {
       const sectionId = sectionButton.getAttribute("data-section-id");
       const section = this.getSectionById(sectionId);
       section.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+  },
+
+  /**
+   * Handles section module link clicks in the section list.
+   */
+  handleSectionsListModuleClick(event) {
+    const sectionButton = event.target.closest(`[data-el-sections-list-module-item]`);
+    if (sectionButton) {
+      const file = sectionButton.getAttribute("data-file");
+      const line = sectionButton.getAttribute("data-line");
+
+      this.jumpToLine(file, line);
     }
   },
 

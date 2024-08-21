@@ -1796,7 +1796,8 @@ defmodule LivebookWeb.SessionLive do
             id: section.id,
             name: section.name,
             parent: parent_section_view(section.parent_id, data),
-            status: cells_status(section.cells, data)
+            status: cells_status(section.cells, data),
+            definitions: cells_definitions(section.cells, data)
           }
         end,
       clients:
@@ -1851,6 +1852,14 @@ defmodule LivebookWeb.SessionLive do
       true ->
         {:fresh, nil}
     end
+  end
+
+  defp cells_definitions(cells, data) do
+    for %Cell.Code{} = cell <- cells,
+        Cell.evaluable?(cell),
+        info = data.cell_infos[cell.id].eval,
+        definition <- info.definitions,
+        do: definition
   end
 
   defp global_status(data) do
