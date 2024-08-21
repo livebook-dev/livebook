@@ -109,7 +109,7 @@ defmodule Livebook.K8s.Pod do
         {:error,
          ~s'Make sure to define .template.metadata.name or .template.metadata.generateName'}
 
-      :otherwise ->
+      true ->
         :ok
     end
   end
@@ -160,7 +160,7 @@ defmodule Livebook.K8s.Pod do
         {:error,
          "The field .template.metadata.namespace has to be omitted or set to the namespace you selected."}
 
-      :otherwise ->
+      true ->
         :ok
     end
   end

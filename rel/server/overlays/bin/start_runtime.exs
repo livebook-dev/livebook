@@ -18,6 +18,9 @@ node =
       # This is the only K8s-specific part of starting Livebook as runtime
       hostname = System.fetch_env!("POD_IP")
       :"#{node_base}@#{hostname}"
+
+    true ->
+      raise "expected either POD_IP (for k8s) or FLY_APP_NAME (for Fly.io) to be set"
   end
 
 # We persist the information before the node is reachable
