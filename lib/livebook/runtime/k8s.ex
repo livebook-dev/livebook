@@ -100,7 +100,11 @@ defmodule Livebook.Runtime.K8s do
     namespace = config.namespace
     req = runtime.req
 
-    kubeconfig = System.get_env("KUBECONFIG") || System.get_env("LIVEBOOK_KUBECONFIG")
+    kubeconfig =
+      if System.get_env("KUBERNETES_SERVICE_HOST"),
+        do: nil,
+        else: System.get_env("KUBECONFIG") || Path.join(System.user_home!(), ".kube/config")
+
     cluster_data = get_cluster_data(kubeconfig)
 
     runtime_data =

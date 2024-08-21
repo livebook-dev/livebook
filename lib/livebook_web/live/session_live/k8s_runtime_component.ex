@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
       raise "runtime module not allowed"
     end
 
-    kubeconfig = Kubereq.Kubeconfig.load(Livebook.K8s.Kubeconfig)
+    kubeconfig = Kubereq.Kubeconfig.load(Kubereq.Kubeconfig.Default)
     context_options = Enum.map(kubeconfig.contexts, & &1["name"])
 
     {:ok,
@@ -84,7 +84,6 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
 
         <.message_box :if={@kubeconfig.current_cluster == nil} kind={:error}>
           In order to use the Kubernetes context, you need to set the <code>KUBECONFIG</code>
-          or <code>LIVEBOOK_KUBECONFIG</code>
           environment variable to a path pointing to a <a
             class="text-blue-600 hover:text-blue-700"
             href="https://kubernetes.io/docs/reference/config-api/kubeconfig.v1/"
