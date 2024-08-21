@@ -49,12 +49,9 @@ defmodule Livebook.K8s.Pod do
       [volume | volumes]
     end)
     |> update_in(
-      ["spec", "containers", Access.filter(&(&1["name"] == @main_container_name))],
-      fn container ->
-        container
-        |> update_in([Access.key("volumeMounts", [])], fn volume_mounts ->
-          [%{"name" => @home_pvc_volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
-        end)
+      ["spec", "containers", access_main_container(), Access.key("volumeMounts", [])],
+      fn volume_mounts ->
+        [%{"name" => @home_pvc_volume_name, "mountPath" => "/home/livebook"} | volume_mounts]
       end
     )
   end
