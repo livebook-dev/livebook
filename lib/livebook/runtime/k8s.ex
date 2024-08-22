@@ -210,6 +210,16 @@ defmodule Livebook.Runtime.K8s do
         %{
           "name" => "POD_IP",
           "valueFrom" => %{"fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "status.podIP"}}
+        },
+        %{
+          "name" => "POD_NAMESPACE",
+          "valueFrom" => %{
+            "fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "metadata.namespace"}
+          }
+        },
+        %{
+          "name" => "POD_NAME",
+          "valueFrom" => %{"fieldRef" => %{"apiVersion" => "v1", "fieldPath" => "metadata.name"}}
         }
       ])
       |> Pod.set_docker_tag(docker_tag)
