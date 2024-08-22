@@ -293,6 +293,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           class="flex gap-2 items-center"
           autocomplete="off"
           spellcheck="false"
+          errors={["asdf"]}
         >
           <div>
             <.remix_icon icon="corner-down-right-line" class="text-gray-400 text-lg" />
@@ -314,6 +315,8 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
           </.button>
         </.form>
       </div>
+
+      <.error :if={@pvc_action[:error]}><%= @pvc_action[:error] %></.error>
     </div>
     """
   end
@@ -685,10 +688,20 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
     req = socket.assigns.reqs.pvc
 
     case Kubereq.create(req, manifest) do
-      {:ok, %{body: created_pvc}} ->
+      {:ok, %{status: 201, body: created_pvc}} ->
         socket
         |> assign(home_pvc: created_pvc["metadata"]["name"], pvc_action: nil)
         |> pvc_options()
+
+      {:ok, %{body: body}} ->
+        socket
+        |> assign_nested(:pvc_action, error: "Creating the PVC failed: #{body["message"]}")
+
+      {:error, error} when is_exception(error) ->
+        socket
+        |> assign_nested(:pvc_action,
+          error: "Creating the PVC failed: #{Exception.message(error)}"
+        )
     end
   end
 
