@@ -24,6 +24,8 @@ RUN distro="ubuntu$(. /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d '.')" &&
   apt-get install -y git cuda-nvcc-${CUDA_VERSION} cuda-libraries-${CUDA_VERSION} libcudnn9-cuda-$cuda_major && \
   apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+ENV PATH="/usr/local/nvidia/bin:/usr/local/cuda/bin:$PATH"
+
 # Build stage: builds the release
 FROM base-${VARIANT} AS build
 
