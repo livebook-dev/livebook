@@ -72,26 +72,10 @@ defmodule Livebook.K8s.Pod do
     |> do_pod_from_template
   end
 
-  defp do_pod_from_template(%{"apiVersion" => "v1", "kind" => "PodTemplate"} = pod_template) do
-    do_pod_from_template(pod_template["template"])
-  end
-
   defp do_pod_from_template(pod) do
     pod
     |> Map.merge(%{"apiVersion" => "v1", "kind" => "Pod"})
     |> put_in(~w(spec restartPolicy), "Never")
-  end
-
-  def validate_pod_template(
-        %{"apiVersion" => "v1", "kind" => "PodTemplate"} = pod_template,
-        namespace
-      ) do
-    if is_map(pod_template["template"]) do
-      pod = Map.merge(pod_template["template"], %{"apiVersion" => "v1", "kind" => "Pod"})
-      validate_pod_template(pod, namespace)
-    else
-      {:error, ~s'Make sure to define a .template property if kind is "PodTemplate"'}
-    end
   end
 
   def validate_pod_template(%{"apiVersion" => "v1", "kind" => "Pod"} = pod, namespace) do
@@ -105,8 +89,7 @@ defmodule Livebook.K8s.Pod do
   def validate_pod_template(other_input, _namespace) do
     dbg(other_input)
 
-    {:error,
-     ~s'Make sure to define a valid resource of apiVersion "v1" and kind "PodTemplate" or "Pod"'}
+    {:error, ~s'Make sure to define a valid resource of apiVersion "v1" and kind "Pod"'}
   end
 
   defp validate_basics(pod) do

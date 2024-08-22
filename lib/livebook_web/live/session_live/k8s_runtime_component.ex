@@ -224,8 +224,7 @@ defmodule LivebookWeb.SessionLive.K8sRuntimeComponent do
         volume at <code>/home/livebook</code>. Setting a Persistent Volume
         Claim will add a <code>.template.spec.volumes[]</code>
         entry and a <code>.template.spec.containers[name="livebook-runtime"].volumeMounts[]</code>
-        entry to the <code>PodTemplate</code>
-        below.
+        entry to the Pod template below.
       </div>
       <div class="mt-4 flex flex-col gap-4">
         <div class="flex items-start gap-1">
