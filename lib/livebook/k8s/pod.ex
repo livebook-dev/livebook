@@ -3,23 +3,20 @@ defmodule Livebook.K8s.Pod do
   @home_pvc_volume_name "lb-home-folder"
   @default_pod_template """
   apiVersion: v1
-  kind: PodTemplate
+  kind: Pod
   metadata:
-    name: livebook-runtime-template
-  template:
-    metadata:
-      generateName: livebook-runtime-
-    spec:
-      containers:
-        - image: ghcr.io/livebook-dev/livebook:nightly
-          name: livebook-runtime
-          resources:
-            limits:
-              cpu: "1"
-              memory: 1Gi
-            requests:
-              cpu: "1"
-              memory: 1Gi
+    generateName: livebook-runtime-
+  spec:
+    containers:
+      - image: ghcr.io/livebook-dev/livebook:nightly
+        name: livebook-runtime
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: "1"
+            memory: 1Gi
   """
 
   defmacrop access_main_container() do
@@ -70,41 +67,61 @@ defmodule Livebook.K8s.Pod do
   end
 
   def pod_from_template(pod_template) do
-    pod =
-      pod_template
-      |> YamlElixir.read_from_string!()
-      |> Map.get("template")
+    pod_template
+    |> YamlElixir.read_from_string!()
+    |> do_pod_from_template
+  end
 
+  defp do_pod_from_template(%{"apiVersion" => "v1", "kind" => "PodTemplate"} = pod_template) do
+    do_pod_from_template(pod_template["template"])
+  end
+
+  defp do_pod_from_template(pod) do
     pod
     |> Map.merge(%{"apiVersion" => "v1", "kind" => "Pod"})
     |> put_in(~w(spec restartPolicy), "Never")
   end
 
-  def validate_pod_template(pod_template, namespace) do
-    with :ok <- validate_basics(pod_template),
-         :ok <- validate_main_container(pod_template),
-         :ok <- validate_namespace(pod_template, namespace) do
-      validate_container_image(pod_template)
+  def validate_pod_template(
+        %{"apiVersion" => "v1", "kind" => "PodTemplate"} = pod_template,
+        namespace
+      ) do
+    if is_map(pod_template["template"]) do
+      pod = Map.merge(pod_template["template"], %{"apiVersion" => "v1", "kind" => "Pod"})
+      validate_pod_template(pod, namespace)
+    else
+      {:error, ~s'Make sure to define a .template property if kind is "PodTemplate"'}
     end
   end
 
-  defp validate_basics(pod_template) do
+  def validate_pod_template(%{"apiVersion" => "v1", "kind" => "Pod"} = pod, namespace) do
+    with :ok <- validate_basics(pod),
+         :ok <- validate_main_container(pod),
+         :ok <- validate_namespace(pod, namespace) do
+      validate_container_image(pod)
+    end
+  end
+
+  def validate_pod_template(other_input, _namespace) do
+    dbg(other_input)
+
+    {:error,
+     ~s'Make sure to define a valid resource of apiVersion "v1" and kind "PodTemplate" or "Pod"'}
+  end
+
+  defp validate_basics(pod) do
     cond do
-      pod_template["apiVersion"] != "v1" or pod_template["kind"] != "PodTemplate" ->
+      !is_map(pod["metadata"]) ->
+        {:error, ".metadata is missing in your pod template."}
+
+      !is_map(pod["spec"]) or
+          !is_list(pod["spec"]["containers"]) ->
+        {:error, ".spec.containers is missing in your pod template."}
+
+      is_empty(pod["metadata"]["name"]) and
+          is_empty(pod["metadata"]["generateName"]) ->
         {:error,
-         ~s'Make sure to define a valid resource of apiVersion "v1" and kind "PodTemplate"'}
-
-      !is_map(pod_template["template"]) or !is_map(pod_template["template"]["metadata"]) ->
-        {:error, ".template.metadata is missing"}
-
-      !is_map(pod_template["template"]["spec"]) or
-          !is_list(pod_template["template"]["spec"]["containers"]) ->
-        {:error, ".template.spec.containers is missing"}
-
-      is_empty(pod_template["template"]["metadata"]["name"]) and
-          is_empty(pod_template["template"]["metadata"]["generateName"]) ->
-        {:error,
-         ~s'Make sure to define .template.metadata.name or .template.metadata.generateName'}
+         ~s'Make sure to define .metadata.name or .metadata.generateName in your pod template.'}
 
       true ->
         :ok
@@ -120,10 +137,10 @@ defmodule Livebook.K8s.Pod do
     end
   end
 
-  defp validate_container_image(pod_template) do
+  defp validate_container_image(pod) do
     image =
-      pod_template
-      |> get_in(["template", "spec", "containers", access_main_container(), "image"])
+      pod
+      |> get_in(["spec", "containers", access_main_container(), "image"])
       |> List.first()
 
     case image do
@@ -144,21 +161,14 @@ defmodule Livebook.K8s.Pod do
     end
   end
 
-  defp validate_namespace(pod_template, namespace) do
-    ns = get_in(pod_template, ~w(metadata namespace))
-    template_ns = get_in(pod_template, ~w(template metadata namespace))
+  defp validate_namespace(pod, namespace) do
+    template_ns = get_in(pod, ~w(metadata namespace))
 
-    cond do
-      !is_nil(ns) and ns != namespace ->
-        {:error,
-         "The field .metadata.namespace has to be omitted or set to the namespace you selected."}
-
-      !is_nil(template_ns) and template_ns != namespace ->
-        {:error,
-         "The field .template.metadata.namespace has to be omitted or set to the namespace you selected."}
-
-      true ->
-        :ok
+    if is_nil(template_ns) or template_ns != namespace do
+      :ok
+    else
+      {:error,
+       "The field .template.metadata.namespace has to be omitted or set to the namespace you selected."}
     end
   end
 end
