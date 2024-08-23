@@ -185,11 +185,12 @@ defmodule Livebook.Intellisense.Docs do
 
   The function returns the line where the identifier is located.
   """
-  @spec locate_definition(String.t(), definition()) :: {:ok, pos_integer()} | :error
-  def locate_definition(path, identifier)
+  @spec locate_definition(list() | binary(), definition()) :: {:ok, pos_integer()} | :error
+  def locate_definition(path_or_bytecode, identifier)
 
-  def locate_definition(path, {:module, module}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+  def locate_definition(path_or_bytecode, {:module, module}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <-
+           beam_lib_chunks(path_or_bytecode, :abstract_code) do
       {:attribute, anno, :module, ^module} =
         Enum.find(annotations, &match?({:attribute, _, :module, _}, &1))
 
@@ -197,15 +198,17 @@ defmodule Livebook.Intellisense.Docs do
     end
   end
 
-  def locate_definition(path, {:function, name, arity}) do
-    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <- beam_lib_chunks(path, :debug_info),
+  def locate_definition(path_or_bytecode, {:function, name, arity}) do
+    with {:ok, {:debug_info_v1, _, {:elixir_v1, meta, _}}} <-
+           beam_lib_chunks(path_or_bytecode, :debug_info),
          {_pair, _kind, kw, _body} <- keyfind(meta.definitions, {name, arity}) do
       Keyword.fetch(kw, :line)
     end
   end
 
-  def locate_definition(path, {:type, name, arity}) do
-    with {:ok, {:raw_abstract_v1, annotations}} <- beam_lib_chunks(path, :abstract_code) do
+  def locate_definition(path_or_bytecode, {:type, name, arity}) do
+    with {:ok, {:raw_abstract_v1, annotations}} <-
+           beam_lib_chunks(path_or_bytecode, :abstract_code) do
       fetch_type_line(annotations, name, arity)
     end
   end
@@ -220,10 +223,8 @@ defmodule Livebook.Intellisense.Docs do
     end
   end
 
-  defp beam_lib_chunks(path, key) do
-    path = String.to_charlist(path)
-
-    case :beam_lib.chunks(path, [key]) do
+  defp beam_lib_chunks(path_or_bytecode, key) do
+    case :beam_lib.chunks(path_or_bytecode, [key]) do
       {:ok, {_, [{^key, value}]}} -> {:ok, value}
       _ -> :error
     end

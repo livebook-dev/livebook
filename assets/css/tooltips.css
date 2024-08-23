@@ -160,10 +160,3 @@ otherwise there's a tiny space between them.
   border-top-color: transparent;
   border-bottom-color: transparent;
 }
-
-.tooltip.word-break-all:before {
-  white-space: normal;
-  word-break: break-all;
-  width: max-content;
-  max-width: 100%;
-}

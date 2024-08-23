@@ -893,7 +893,7 @@ defmodule Livebook.Runtime.Evaluator do
           into: identifiers_used
 
     identifiers_defined =
-      for {module, _vars} <- tracer_info.modules_defined,
+      for {module, _line_vars} <- tracer_info.modules_defined,
           version = module.__info__(:md5),
           do: {{:module, module}, version},
           into: identifiers_defined
@@ -971,7 +971,7 @@ defmodule Livebook.Runtime.Evaluator do
     # Note that :prune_binding removes variables used by modules
     # (unless used outside), so we get those from the tracer
     module_used_vars =
-      for {_module, vars} <- tracer_info.modules_defined,
+      for {_module, {_line, vars}} <- tracer_info.modules_defined,
           var <- vars,
           into: MapSet.new(),
           do: var
@@ -1043,22 +1043,8 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp definitions(context, tracer_info) do
-    for {module, _} <- tracer_info.modules_defined,
-        definition = definition(context, module),
-        do: definition
-  end
-
-  defp definition(context, module) do
-    if ebin_path() do
-      path = Path.join(ebin_path(), "#{module}.beam")
-
-      with true <- File.exists?(path),
-           {:ok, line} <- Livebook.Intellisense.Docs.locate_definition(path, {:module, module}) do
-        %{label: module_name(module), file: context.env.file, line: line}
-      else
-        _otherwise -> nil
-      end
-    end
+    for {module, {line, _vars}} <- tracer_info.modules_defined,
+        do: %{label: module_name(module), file: context.env.file, line: line}
   end
 
   defp module_name(module) do

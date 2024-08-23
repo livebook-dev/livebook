@@ -550,7 +550,7 @@ defmodule Livebook.Intellisense do
       path = Path.join(context.ebin_path, "#{module}.beam")
 
       with true <- File.exists?(path),
-           {:ok, line} <- Docs.locate_definition(path, identifier) do
+           {:ok, line} <- Docs.locate_definition(String.to_charlist(path), identifier) do
         file = module.module_info(:compile)[:source]
         %{file: to_string(file), line: line}
       else
