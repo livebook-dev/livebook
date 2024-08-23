@@ -505,14 +505,15 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
 
     @tag :with_ebin_path
-    test "captures the identifier definitions", %{evaluator: evaluator} do
+    test "returns identifier definitions", %{evaluator: evaluator} do
       Code.put_compiler_option(:debug_info, true)
 
       code = ~S'''
-      defmodule Livebook.Runtime.EvaluatorTest.RemoteModule do
+      defmodule Livebook.Runtime.EvaluatorTest.ModuleDef1 do
+        def fun(), do: :ok
       end
 
-      defmodule Livebook.Runtime.EvaluatorTest.AnotherRemoteModule do
+      defmodule Livebook.Runtime.EvaluatorTest.ModuleDef2 do
         defmodule Foo do
           defstruct [:name]
         end
@@ -528,18 +529,18 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       assert metadata.identifier_definitions == [
                %{
-                 label: "Livebook.Runtime.EvaluatorTest.RemoteModule",
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef1",
                  line: 1,
                  file: file
                },
                %{
-                 label: "Livebook.Runtime.EvaluatorTest.AnotherRemoteModule",
-                 line: 4,
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef2",
+                 line: 5,
                  file: file
                },
                %{
-                 label: "Livebook.Runtime.EvaluatorTest.AnotherRemoteModule.Foo",
-                 line: 5,
+                 label: "Livebook.Runtime.EvaluatorTest.ModuleDef2.Foo",
+                 line: 6,
                  file: file
                }
              ]
