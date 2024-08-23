@@ -17,7 +17,7 @@ defmodule Livebook.SessionTest do
     evaluation_time_ms: 10,
     identifiers_used: [],
     identifiers_defined: %{},
-    definitions: [],
+    identifier_definitions: [],
     code_markers: []
   }
 

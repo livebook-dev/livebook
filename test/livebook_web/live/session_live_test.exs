@@ -2639,11 +2639,11 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.subscribe(session.id)
 
     {:ok, view, _} = live(conn, ~p"/sessions/#{session.id}")
-    refute render(view) =~ "MyBigModuleName"
+    refute render(view) =~ "LivebookWeb.SessionLiveTest.MyBigModuleName"
 
     cell_id =
       insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule MyBigModuleName do
+      defmodule LivebookWeb.SessionLiveTest.MyBigModuleName do
         def bar, do: :baz
       end
       ''')
@@ -2651,19 +2651,22 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.queue_cell_evaluation(session.pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
-    assert has_element?(view, "[data-el-sections-list-module-item]", "MyBigModuleName")
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.MyBigModuleName"
+           )
 
     assert render(view) =~
-             ~s'data-file="#cell:#{cell_id}" data-line="1" data-tooltip="MyBigModuleName"'
+             ~s'data-file="#cell:#{cell_id}" data-line="1" data-tooltip="LivebookWeb.SessionLiveTest.MyBigModuleName"'
 
     second_cell_id =
       insert_text_cell(session.pid, insert_section(session.pid), :code, ~S'''
-      defmodule AnotherModule do
+      defmodule LivebookWeb.SessionLiveTest.AnotherModule do
         def bar, do: :baz
       end
 
-      # ...
-      defmodule Foo do
+      defmodule LivebookWeb.SessionLiveTest.Foo do
         def bar, do: :baz
       end
       ''')
@@ -2671,14 +2674,23 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.queue_cell_evaluation(session.pid, second_cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^second_cell_id, _, _}}
 
-    assert has_element?(view, "[data-el-sections-list-module-item]", "AnotherModule")
-    assert has_element?(view, "[data-el-sections-list-module-item]", "Foo")
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.AnotherModule"
+           )
+
+    assert has_element?(
+             view,
+             "[data-el-sections-list-definition-item] span",
+             "LivebookWeb.SessionLiveTest.Foo"
+           )
 
     assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="1" data-tooltip="AnotherModule"'
+             ~s'data-file="#cell:#{second_cell_id}" data-line="1" data-tooltip="LivebookWeb.SessionLiveTest.AnotherModule"'
 
     assert render(view) =~
-             ~s'data-file="#cell:#{second_cell_id}" data-line="6" data-tooltip="Foo"'
+             ~s'data-file="#cell:#{second_cell_id}" data-line="5" data-tooltip="LivebookWeb.SessionLiveTest.Foo"'
   after
     Code.put_compiler_option(:debug_info, false)
   end

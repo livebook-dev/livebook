@@ -259,9 +259,8 @@ defmodule Livebook.Runtime.EvaluatorTest do
                       }}
     end
 
-    test "returns additional metadata when there is a module compilation error", %{
-      evaluator: evaluator
-    } do
+    test "returns additional metadata when there is a module compilation error",
+         %{evaluator: evaluator} do
       code = """
       defmodule Livebook.Runtime.EvaluatorTest.Invalid do
         x
@@ -503,6 +502,49 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:DOWN, ^ref, :process, ^gl, _reason}
 
       refute Code.ensure_loaded?(Livebook.Runtime.EvaluatorTest.Exited)
+    end
+
+    @tag :with_ebin_path
+    test "captures the identifier definitions", %{evaluator: evaluator} do
+      Code.put_compiler_option(:debug_info, true)
+
+      code = ~S'''
+      defmodule Livebook.Runtime.EvaluatorTest.RemoteModule do
+      end
+
+      defmodule Livebook.Runtime.EvaluatorTest.AnotherRemoteModule do
+        defmodule Foo do
+          defstruct [:name]
+        end
+      end
+      '''
+
+      file = "file.livemd#cell_id:123456789"
+
+      Evaluator.evaluate_code(evaluator, :elixir, code, :code_1, [], file: file)
+
+      assert_receive {:runtime_evaluation_response, :code_1, terminal_text(_),
+                      metadata() = metadata}
+
+      assert metadata.identifier_definitions == [
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.RemoteModule",
+                 line: 1,
+                 file: file
+               },
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.AnotherRemoteModule",
+                 line: 4,
+                 file: file
+               },
+               %{
+                 label: "Livebook.Runtime.EvaluatorTest.AnotherRemoteModule.Foo",
+                 line: 5,
+                 file: file
+               }
+             ]
+    after
+      Code.put_compiler_option(:debug_info, false)
     end
   end
 

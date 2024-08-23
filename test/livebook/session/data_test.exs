@@ -25,7 +25,7 @@ defmodule Livebook.Session.DataTest do
   defp eval_meta(opts \\ []) do
     uses = opts[:uses] || []
     defines = opts[:defines] || %{}
-    definitions = opts[:definitions] || []
+    identifier_definitions = opts[:identifier_definitions] || []
     errored = Keyword.get(opts, :errored, false)
     interrupted = Keyword.get(opts, :interrupted, false)
 
@@ -35,7 +35,7 @@ defmodule Livebook.Session.DataTest do
       evaluation_time_ms: 10,
       identifiers_used: uses,
       identifiers_defined: defines,
-      definitions: definitions,
+      identifier_definitions: identifier_definitions,
       code_markers: []
     }
   end

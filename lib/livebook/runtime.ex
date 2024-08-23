@@ -470,12 +470,15 @@ defprotocol Livebook.Runtime do
   dependencies between evaluations and avoids unnecessary reevaluations.
   """
   @type evaluation_response_metadata :: %{
+          interrupted: boolean(),
           errored: boolean(),
           evaluation_time_ms: non_neg_integer(),
           code_markers: list(code_marker()),
           memory_usage: runtime_memory(),
           identifiers_used: list(identifier :: term()) | :unknown,
-          identifiers_defined: %{(identifier :: term()) => version :: term()}
+          identifiers_defined: %{(identifier :: term()) => version :: term()},
+          identifier_definitions:
+            list(%{label: String.t(), file: String.t(), line: pos_integer()})
         }
 
   @typedoc """

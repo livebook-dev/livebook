@@ -499,7 +499,7 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp sections_list(assigns) do
     ~H"""
-    <div class="flex flex-col grow">
+    <div class="flex flex-col grow max-w-[271px]">
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Sections
       </h3>
@@ -536,20 +536,20 @@ defmodule LivebookWeb.SessionLive.Render do
             />
           </div>
 
-          <ul :if={section_item.definitions != []} class="mt-2 ml-5 list-none items-center">
-            <li :for={definition <- section_item.definitions}>
-              <span class="flex items-center text-sm gap-1">
-                <.remix_icon icon="braces-line" class="font-normal leading-none" />
-                <span
-                  class="cursor-pointer font-mono text-ellipsis tooltip top"
-                  data-el-sections-list-module-item
-                  data-file={definition.file}
-                  data-line={definition.line}
-                  data-tooltip={definition.label}
-                >
-                  <%= slice(definition.label, 0..22) %>
+          <ul :if={section_item.identifier_definitions != []} class="mt-2 ml-5 list-none items-center">
+            <li :for={definition <- section_item.identifier_definitions}>
+              <button
+                class="flex max-w-60 items-center text-gray-500 hover:text-gray-900 text-sm gap-1 tooltip top"
+                data-el-sections-list-definition-item
+                data-file={definition.file}
+                data-line={definition.line}
+                data-tooltip={definition.label}
+              >
+                <.remix_icon icon="braces-line" class="font-normal" />
+                <span class="font-mono truncate">
+                  <%= definition.label %>
                 </span>
-              </span>
+              </button>
             </li>
           </ul>
         </div>
@@ -1433,13 +1433,5 @@ defmodule LivebookWeb.SessionLive.Render do
 
   defp starred?(file, starred_files) do
     Enum.any?(starred_files, &Livebook.FileSystem.File.equal?(&1, file))
-  end
-
-  def slice(text, min..max_length//_) do
-    cond do
-      not String.valid?(text) -> text
-      String.length(text) < max_length -> text
-      true -> "#{String.slice(text, min..max_length)}..."
-    end
   end
 end

@@ -439,7 +439,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     %{tracer_info: tracer_info} = Evaluator.IOProxy.after_evaluation(state.io_proxy)
 
-    {new_context, result, identifiers_used, identifiers_defined} =
+    {new_context, result, identifiers_used, identifiers_defined, identifier_definitions} =
       case eval_result do
         {:ok, value, binding, env} ->
           context_id = random_long_id()
@@ -454,8 +454,10 @@ defmodule Livebook.Runtime.Evaluator do
           {identifiers_used, identifiers_defined} =
             identifier_dependencies(new_context, tracer_info, context)
 
+          identifier_definitions = definitions(new_context, tracer_info)
+
           result = {:ok, value}
-          {new_context, result, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
 
         {:error, kind, error, stacktrace} ->
           for {module, _} <- tracer_info.modules_defined do
@@ -465,9 +467,10 @@ defmodule Livebook.Runtime.Evaluator do
           result = {:error, kind, error, stacktrace}
           identifiers_used = :unknown
           identifiers_defined = %{}
+          identifier_definitions = []
           # Empty context
           new_context = initial_context()
-          {new_context, result, identifiers_used, identifiers_defined}
+          {new_context, result, identifiers_used, identifiers_defined, identifier_definitions}
       end
 
     if ebin_path() do
@@ -477,11 +480,6 @@ defmodule Livebook.Runtime.Evaluator do
     state = put_context(state, ref, new_context)
     output = Evaluator.Formatter.format_result(result, language)
 
-    definitions =
-      for {module, _} <- tracer_info.modules_defined,
-          definition = get_definition(context, module),
-          do: definition
-
     metadata = %{
       errored: error_result?(result),
       interrupted: interrupt_result?(result),
@@ -490,7 +488,7 @@ defmodule Livebook.Runtime.Evaluator do
       code_markers: code_markers,
       identifiers_used: identifiers_used,
       identifiers_defined: identifiers_defined,
-      definitions: definitions
+      identifier_definitions: identifier_definitions
     }
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
@@ -1044,7 +1042,13 @@ defmodule Livebook.Runtime.Evaluator do
     Process.get(@ebin_path_key)
   end
 
-  defp get_definition(context, module) do
+  defp definitions(context, tracer_info) do
+    for {module, _} <- tracer_info.modules_defined,
+        definition = definition(context, module),
+        do: definition
+  end
+
+  defp definition(context, module) do
     if ebin_path() do
       path = Path.join(ebin_path(), "#{module}.beam")
 

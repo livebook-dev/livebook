@@ -109,7 +109,6 @@ const Session = {
 
     this.getElement("sections-list").addEventListener("click", (event) => {
       this.handleSectionsListClick(event);
-      this.handleSectionsListModuleClick(event);
       this.handleCellIndicatorsClick(event);
     });
 
@@ -580,10 +579,20 @@ const Session = {
    */
   handleSectionsListClick(event) {
     const sectionButton = event.target.closest(`[data-el-sections-list-item]`);
+
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
       const section = this.getSectionById(sectionId);
       section.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+
+    const sectionDefinitionButton = event.target.closest(`[data-el-sections-list-definition-item]`);
+
+    if (sectionDefinitionButton) {
+      const file = sectionDefinitionButton.getAttribute("data-file");
+      const line = sectionDefinitionButton.getAttribute("data-line");
+
+      this.jumpToLine(file, line);
     }
   },
 
